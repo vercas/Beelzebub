@@ -1,0 +1,12 @@
+megs: 32
+romimage: file=/usr/local/share/bochs/BIOS-bochs-latest
+vgaromimage: file=/usr/local/share/bochs/VGABIOS-lgpl-latest
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0-master: type=cdrom, path="build/boot.iso", status=inserted
+boot: cdrom
+log: bochsout.txt
+mouse: enabled=0
+cpu: count=4
+display_library: x, options="gui_debug"
+magic_break: enabled=1
+cpuid: apic=x2apic

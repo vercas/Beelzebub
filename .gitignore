@@ -195,6 +195,15 @@ FakesAssemblies/
 # Visual Studio 6 workspace options file
 *.opt
 
+# Bootloader stuff
+build/*
+loader/build/*
+image/build/*
+kernel/build/*
+bochsout.txt
+.project
+.cproject
+
 # vStuff
 .sync/
 *~
