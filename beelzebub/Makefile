@@ -24,9 +24,9 @@ LD			:= ld
 # Toolchain Flags
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
 CFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(INCFLAGS)
-DFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large
+DFLAGS		:= -m64 -Wall -Werror -mcmodel=large -fproperty
 ASFLAGS		:= -f elf64
-LDFLAGS		:= -z max-page-size=0x1000
+LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 
 # Link File
 LDFILE		:= link.ld

@@ -169,6 +169,8 @@ static void fault_gp(isr_state_t *state)
     screen_write(buffer, 10, 20);
 }
 
+extern void test_ep();
+
 void kmain_bsp(void);
 void kmain_bsp(void)
 {
@@ -185,8 +187,12 @@ void kmain_bsp(void)
     buffer = build_memory(&buffer[1]);
     buffer = build_modules(&buffer[1]);
 
-    ui_display(0, 0);
+    test_ep();
+    //ui_display(0, 0);
+    
     asm volatile ("sti");
+
     keyboard_init();
+
     while (1);
 }
