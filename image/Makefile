@@ -8,7 +8,7 @@ PREFIX			:= ./../build
 ISO				:= $(PREFIX)/boot.iso
 ISO_DIR			:= $(BUILD_DIR)/iso
 ISO_BOOT		:= boot
-ISO_ELTORITO	:= $(ISO_BOOT)/stage2_eltorito
+ISO_ELTORITO	:= $(ISO_BOOT)/grub/stage2_eltorito
 
 KERNEL			:= $(PREFIX)/bin/beelzebub_64.bin
 BOOTLOADER		:= $(PREFIX)/bin/jegudiel.bin
@@ -22,9 +22,9 @@ iso: prepare
 prepare:
 ifneq ($(strip $(KERNEL)),)
 	@ echo " Creating directory structure..."
-	@ mkdir -p $(ISO_DIR)/$(ISO_BOOT)/
+	@ mkdir -p $(ISO_DIR)/$(ISO_BOOT)/grub
 	@ echo " Copying GRUB files..."
-	@ cp $(GRUB_DIR)/* $(ISO_DIR)/$(ISO_BOOT)/
+	@ cp $(GRUB_DIR)/* $(ISO_DIR)/$(ISO_BOOT)/grub
 	@ echo " Copying binaries..."
 	@ cp $(KERNEL) $(ISO_DIR)/$(ISO_BOOT)/
 	@ cp $(BOOTLOADER) $(ISO_DIR)/$(ISO_BOOT)/
