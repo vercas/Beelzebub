@@ -43,6 +43,15 @@
 void screen_write(const char *string, uint16_t x, uint16_t y);
 
 /**
+ * Writes a <number> to the screen, given the coordinates.
+ *
+ * @param number the number to write.
+ * @param x the x coordinate to write the number to.
+ * @param y the y coordinate to write the number to.
+ */
+void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
+
+/**
  * Clears the screen.
  */
 void screen_clear(void);

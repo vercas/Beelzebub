@@ -45,6 +45,25 @@ void screen_write(const char *string, uint16_t x, uint16_t y)
     }
 }
 
+void screen_write_hex(uint64_t number, uint16_t x, uint16_t y)
+{
+    char string[17];
+    string[16] = '\0';
+
+    size_t i;
+    for (i = 0; i < 16; ++i) {
+        uint8_t nibble = (number >> (i * 4)) & 0xF;
+
+        if (nibble >= 10) {
+            string[15 - i] = 'A' + (nibble - 10);
+        } else {
+            string[15 - i] = '0' + nibble;
+        }
+    }
+
+    screen_write(string, x, y);
+}
+
 void screen_clear(void)
 {
     char *video = (char *) SCREEN_MEMORY;
