@@ -9,23 +9,38 @@ PREFIX		:= ./../build
 SOURCE_DIR	:= ./src
 BUILD_DIR	:= ./build
 INC_DIR		:= ./inc
+RUNTIME_DIR := $(SOURCE_DIR)/runtime
 
 # Object Files
 OBJECTS		:= $(patsubst $(SOURCE_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SOURCE_DIR) -name "*.c"))
-OBJECTS		+= $(patsubst $(SOURCE_DIR)/%.d,$(BUILD_DIR)/%.d.o,$(shell find $(SOURCE_DIR) -name "*.d"))
 OBJECTS		+= $(patsubst $(SOURCE_DIR)/%.s,$(BUILD_DIR)/%.s.o,$(shell find $(SOURCE_DIR) -name "*.s"))
+
+OBJECTS		+= $(patsubst $(SOURCE_DIR)/%.d,$(BUILD_DIR)/%.d.o,$(shell find $(SOURCE_DIR) -name "*.d"))
+OBJECTS		+= $(patsubst $(SOURCE_DIR)/%.cpp,$(BUILD_DIR)/%.cpp.o,$(shell find $(SOURCE_DIR) -name "*.cpp"))
 
 # Toolchain
 CC			:= gcc
+CPPC		:= gcc
 DC			:= gdc
 AS			:= nasm
 LD			:= ld
 
 # Toolchain Flags
+
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
+
 CFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(INCFLAGS)
-DFLAGS		:= -m64 -Wall -Werror -mcmodel=large -fproperty
+
+CPPFLAGS	:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(INCFLAGS)
+CPPFLAGS    += -fno-rtti -fno-exceptions
+
+DFLAGS		:= -m64 -Wall -Werror -mcmodel=large -nostdinc
+DFLAGS      += -I$(RUNTIME_DIR) -I$(SOURCE_DIR) $(INCFLAGS)
+DFLAGS      += -fno-assert -fno-emit-moduleinfo -fd-vtls -fproperty
+DLFAGS      += -fno-bounds-check
+
 ASFLAGS		:= -f elf64
+
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 
 # Link File
@@ -49,21 +64,27 @@ build: $(OBJECTS)
 
 # Build an assembly file.
 $(BUILD_DIR)/%.s.o: $(SOURCE_DIR)/%.s
-	@ echo " AS " $<
+	@ echo "/Asm:" $<
 	@ mkdir -p $(@D)
 	@ $(AS) $(ASFLAGS) $< -o $@
 
 # Build a C file.
 $(BUILD_DIR)/%.c.o: $(SOURCE_DIR)/%.c
-	@ echo " CC " $<
+	@ echo "/C__:" $<
 	@ mkdir -p $(@D)
 	@ $(CC) $(CFLAGS) -c $< -o $@
 
 # Build a D file.
 $(BUILD_DIR)/%.d.o: $(SOURCE_DIR)/%.d
-	@ echo " DC " $<
+	@ echo "/D__:" $<
 	@ mkdir -p $(@D)
 	@ $(DC) $(DFLAGS) -c $< -o $@
+
+# Build a C++ file.
+$(BUILD_DIR)/%.cpp.o: $(SOURCE_DIR)/%.cpp
+	@ echo "/C__:" $<
+	@ mkdir -p $(@D)
+	@ $(CPPC) $(CPPFLAGS) -c $< -o $@
 
 # Link the target binary.
 link:
@@ -73,4 +94,4 @@ link:
 # Cleans the build directory	
 clean:
 	@ echo " RM " $(BUILD_DIR)
-	@ rm -R $(BUILD_DIR)/*
+	@ rm -Rf $(BUILD_DIR)/*

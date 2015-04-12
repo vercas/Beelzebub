@@ -70,4 +70,4 @@ link:
 # Cleans the build directory	
 clean:
 	@ echo " RM " $(BUILD_DIR)
-	@ rm -R $(BUILD_DIR)/*
+	@ rm -Rf $(BUILD_DIR)/*
