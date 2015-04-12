@@ -32,6 +32,7 @@ MULTIBOOT_FLAG_AOUT_KLUDGE      EQU     0x0008
 MULTIBOOT_MAGIC                 EQU     0x1BADB002
 MULTIBOOT_FLAGS                 EQU     MULTIBOOT_FLAG_PAGE_ALIGN | \
                                         MULTIBOOT_FLAG_MEMORY_INFO
+                                        ;MULTIBOOT_FLAG_VIDEO_MODE | 
 MULTIBOOT_CHECKSUM              EQU     -(MULTIBOOT_MAGIC + MULTIBOOT_FLAGS)
 
 multiboot_header:
@@ -41,3 +42,8 @@ multiboot_header:
     dd MULTIBOOT_FLAGS
 .Checksum:
     dd MULTIBOOT_CHECKSUM
+;.VideoMode:
+;	dd 0
+;	dd 800
+;	dd 600
+;	dd 32
