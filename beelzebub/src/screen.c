@@ -24,7 +24,6 @@
  */
 
 #include <screen.h>
-#include <stdint.h>
 
 void screen_write(const char *string, uint16_t x, uint16_t y)
 {
@@ -64,7 +63,47 @@ void screen_write_hex(uint64_t number, uint16_t x, uint16_t y)
     screen_write(string, x, y);
 }
 
-void screen_clear(void)
+void screen_write_hex32(uint32_t number, uint16_t x, uint16_t y)
+{
+    char string[9];
+    string[8] = '\0';
+
+    size_t i;
+    for (i = 0; i < 8; ++i) {
+        uint8_t nibble = (number >> (i * 4)) & 0xF;
+
+        if (nibble >= 10) {
+            string[7 - i] = 'A' + (nibble - 10);
+        } else {
+            string[7 - i] = '0' + nibble;
+        }
+    }
+
+    screen_write(string, x, y);
+}
+
+void screen_write_ptr(void * ptr, uint16_t x, uint16_t y)
+{
+    char string[13];
+    string[12] = '\0';
+
+    uint64_t number = (uint64_t)ptr;
+
+    size_t i;
+    for (i = 0; i < 12; ++i) {
+        uint8_t nibble = (number >> (i * 4)) & 0xF;
+
+        if (nibble >= 10) {
+            string[11 - i] = 'A' + (nibble - 10);
+        } else {
+            string[11 - i] = '0' + nibble;
+        }
+    }
+
+    screen_write(string, x, y);
+}
+
+void screen_clear()
 {
     char *video = (char *) SCREEN_MEMORY;
     size_t screen_max = SCREEN_WIDTH * SCREEN_HEIGHT;

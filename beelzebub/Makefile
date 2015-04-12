@@ -30,9 +30,10 @@ LD			:= ld
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
 
 CFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(INCFLAGS)
+CFLAGS      += -std=gnu99
 
 CPPFLAGS	:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(INCFLAGS)
-CPPFLAGS    += -fno-rtti -fno-exceptions
+CPPFLAGS    += -std=gnu++11 -fno-rtti -fno-exceptions
 
 DFLAGS		:= -m64 -Wall -Werror -mcmodel=large -nostdinc
 DFLAGS      += -I$(RUNTIME_DIR) -I$(SOURCE_DIR) $(INCFLAGS)
@@ -59,7 +60,7 @@ install: all
 uninstall:
 	@ rm $(PREFIX)/bin/$(TARGET_BIN)
 
-# Build all C and assembly files.
+# Build all code files.
 build: $(OBJECTS)
 
 # Build an assembly file.
@@ -82,16 +83,16 @@ $(BUILD_DIR)/%.d.o: $(SOURCE_DIR)/%.d
 
 # Build a C++ file.
 $(BUILD_DIR)/%.cpp.o: $(SOURCE_DIR)/%.cpp
-	@ echo "/C__:" $<
+	@ echo "/C++:" $<
 	@ mkdir -p $(@D)
 	@ $(CPPC) $(CPPFLAGS) -c $< -o $@
 
 # Link the target binary.
 link:
-	@ echo " LD " $(TARGET_BIN)
+	@ echo "/LNK:" $(TARGET_BIN)
 	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(OBJECTS)
 
 # Cleans the build directory	
 clean:
-	@ echo " RM " $(BUILD_DIR)
+	@ echo "/REM:" $(BUILD_DIR)
 	@ rm -Rf $(BUILD_DIR)/*

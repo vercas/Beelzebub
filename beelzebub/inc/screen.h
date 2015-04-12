@@ -24,7 +24,7 @@
  */
 
 #pragma once
-#include <stdint.h>
+#include <metaprogramming.h>
 
 #define SCREEN_WIDTH    80
 #define SCREEN_HEIGHT   25
@@ -40,18 +40,37 @@
  * @param x the horizontal coordinate to write to.
  * @param y the vertical coordinate to write to.
  */
-void screen_write(const char *string, uint16_t x, uint16_t y);
+shared void screen_write(const char *string, uint16_t x, uint16_t y);
 
 /**
- * Writes a <number> to the screen, given the coordinates.
+ * Writes a 64-bit <number> to the screen, given the coordinates.
  *
  * @param number the number to write.
  * @param x the x coordinate to write the number to.
  * @param y the y coordinate to write the number to.
  */
-void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
+shared void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
+
+/**
+ * Writes a 32-bit <number> to the screen, given the coordinates.
+ *
+ * @param number the number to write.
+ * @param x the x coordinate to write the number to.
+ * @param y the y coordinate to write the number to.
+ */
+shared void screen_write_hex32(uint32_t number, uint16_t x, uint16_t y);
+
+/**
+ * Writes a pointer to the screen, given the coordinates.
+ * Top 2 bytes are ommitted because they are unused anyway.
+ *
+ * @param ptr the pointer to write.
+ * @param x the x coordinate to write the number to.
+ * @param y the y coordinate to write the number to.
+ */
+shared void screen_write_ptr(void * ptr, uint16_t x, uint16_t y);
 
 /**
  * Clears the screen.
  */
-void screen_clear(void);
+shared void screen_clear();

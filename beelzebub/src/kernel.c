@@ -28,11 +28,13 @@
 #include <isr.h>
 #include <keyboard.h>
 #include <screen.h>
-#include <stdint.h>
+#include <metaprogramming.h>
 #include <ui.h>
 
 #include <lapic.h>
 #include <screen.h>
+
+#include <memory.h>
 
 uint64_t pit_ticks = 0;
 
@@ -169,7 +171,7 @@ static void fault_gp(isr_state_t *state)
     screen_write(buffer, 10, 20);
 }
 
-extern void test_ep();
+extern void doCppStuff();
 
 void kmain_bsp(void);
 void kmain_bsp(void)
@@ -187,12 +189,36 @@ void kmain_bsp(void)
     buffer = build_memory(&buffer[1]);
     buffer = build_modules(&buffer[1]);
 
-    test_ep();
+    screen_clear();
+
+    InitializeMemory(JG_INFO_MMAP, JG_INFO_ROOT->mmap_count, JG_INFO_ROOT->free_paddr);
+
+    /*for (size_t i = 0; i < JG_INFO_ROOT->mmap_count; ++i)
+    {
+        short row = i % 5, col = i / 5;
+        short x = 1 + col * 29, y = row * 4;
+
+        jg_info_mmap_t * m = &JG_INFO_MMAP[i];
+
+        screen_write("ADR", x, y);
+        screen_write("LEN", x, y + 1);
+        screen_write("END", x, y + 2);
+
+        if (!m->available)
+            screen_write("^^^^^^^^^^^^^^^^^^^^", x, y + 3);
+
+        screen_write_hex(m->address, x + 4, y);
+        screen_write_hex(m->length, x + 4, y + 1);
+        screen_write_hex(m->address + m->length, x + 4, y + 2);
+    }*/
+
+    //test_ep();
+    doCppStuff();
     //ui_display(0, 0);
     
     asm volatile ("sti");
 
-    keyboard_init();
+    //keyboard_init();
 
     while (1);
 }
