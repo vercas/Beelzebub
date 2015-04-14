@@ -23,59 +23,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <isr.h>
-#include <keyboard.h>
-#include <lapic.h>
-#include <ports.h>
+#include <arc/ports.h>
 #include <stdint.h>
-#include <ui.h>
 
-bool keyboard_escaped = false;
-
-void keyboard_init(void)
+void outb(uint16_t port, uint8_t value)
 {
-    while (inb(0x64) & 0x1) {
-        inb(0x60);
-    }
-
-    keyboard_send_command(0xF4);
+    asm volatile ("outb %1, %0" :: "dN" (port), "a" (value));
 }
 
-void keyboard_send_command(uint8_t cmd)
+uint8_t inb(uint16_t port)
 {
-    while (0 != (inb(0x64) & 0x2)) {}
-    outb(0x60, cmd);
-}
-
-void keyboard_handler(isr_state_t *state)
-{
-    uint8_t code = inb(0x60);
-    outb(0x61, inb(0x61));
-
-    if (KEYBOARD_CODE_ESCAPED == code) {
-        keyboard_escaped = true;
-
-    } else if (keyboard_escaped) {
-        switch (code) {
-        case KEYBOARD_CODE_LEFT:
-            ui_switch_left();
-            break;
-
-        case KEYBOARD_CODE_RIGHT:
-            ui_switch_right();
-            break;
-
-        case KEYBOARD_CODE_UP:
-            ui_scroll_up();
-            break;
-
-        case KEYBOARD_CODE_DOWN:
-            ui_scroll_down();
-            break;
-        }
-
-        keyboard_escaped = false;
-    }
-
-    lapic_eoi();
+    uint8_t value;
+    asm volatile ("inb %1, %0" : "=a" (value) : "dN" (port));
+    return value;
 }

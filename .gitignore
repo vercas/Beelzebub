@@ -196,10 +196,12 @@ FakesAssemblies/
 *.opt
 
 # Bootloader stuff
-build/*
-loader/build/*
-image/build/*
-kernel/build/*
+build/
+jegudiel/build/
+image/build/
+beelzebub/build/
+beelzebub/src/arc
+beelzebub/inc/arc
 bochsout.txt
 .project
 .cproject

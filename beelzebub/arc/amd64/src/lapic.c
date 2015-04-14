@@ -23,17 +23,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <ports.h>
+#include <jegudiel.h>
+#include <arc/lapic.h>
 #include <stdint.h>
 
-void outb(uint16_t port, uint8_t value)
+#include <arc/screen.h>
+
+#define LAPIC_X2APIC_MODE (0 != (JG_INFO_ROOT->flags & JG_INFO_FLAG_X2APIC))
+
+static uint64_t __msr_read(uint32_t msr)
 {
-    asm volatile ("outb %1, %0" :: "dN" (port), "a" (value));
+    uint32_t a, d;
+    asm volatile ("rdmsr" : "=a" (a), "=d" (d) : "c" (msr));
+
+    return (((uint64_t) d) << 32) | a;
 }
 
-uint8_t inb(uint16_t port)
+static void __msr_write(uint32_t msr, uint64_t value)
 {
-    uint8_t value;
-    asm volatile ("inb %1, %0" : "=a" (value) : "dN" (port));
-    return value;
+    uint32_t a = value;
+    uint32_t d = (value >> 32);
+
+    asm volatile ("wrmsr" :: "c" (msr), "a" (a), "d" (d));
+}
+
+uint32_t lapic_register_read(uint16_t index)
+{
+    if (!LAPIC_X2APIC_MODE) {
+        return *((uint32_t *) (index * 0x10 + JG_INFO_ROOT->lapic_paddr));
+    } else {
+        return __msr_read(LAPIC_MSR_REGS + index);
+    }
+}
+
+void lapic_register_write(uint16_t index, uint32_t value)
+{
+    if (!LAPIC_X2APIC_MODE) {
+        *((uint32_t *) (index * 0x10 + JG_INFO_ROOT->lapic_paddr)) = value;
+    } else {
+        __msr_write(LAPIC_MSR_REGS + index, value);
+    }
 }

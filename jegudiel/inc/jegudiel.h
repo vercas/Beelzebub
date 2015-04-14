@@ -99,14 +99,14 @@ typedef struct jg_info_root {
     uint32_t flags;             //< flags
     uint16_t length;            //< length of the info tables
 
-    uint64_t lapic_paddr;       //< pjgsical address of the LAPIC MMIO window
-    uint64_t rsdp_paddr;        //< pjgsical address of the RSDP (ACPI)
+    uint64_t lapic_paddr;       //< physical address of the LAPIC MMIO window
+    uint64_t rsdp_paddr;        //< physical address of the RSDP (ACPI)
     
-    uint64_t idt_paddr;         //< pjgsical address of the IDT
-    uint64_t gdt_paddr;         //< pjgsical address of the GDT
-    uint64_t tss_paddr;         //< pjgsical address of the TSS entries
+    uint64_t idt_paddr;         //< physical address of the IDT
+    uint64_t gdt_paddr;         //< physical address of the GDT
+    uint64_t tss_paddr;         //< physical address of the TSS entries
     
-    uint64_t free_paddr;        //< pjgsical address of the first free to use byte
+    uint64_t free_paddr;        //< physical address of the first free to use byte
     
     uint32_t irq_gsi[16];       //< map of ISR IRQ numbers to GSI numbers
     uint8_t irq_flags[16];      //< flags regarding the IRQs
@@ -122,6 +122,8 @@ typedef struct jg_info_root {
     uint16_t ioapic_count;      //< number of IO APICs
     uint16_t mmap_count;        //< number of entries in the memory map
     uint16_t module_count;      //< number of modules
+
+    uint64_t multiboot_paddr;   //  Physical address of the multiboot header.
     
 } __attribute__((packed)) jg_info_root_t;
 
@@ -130,7 +132,7 @@ typedef struct jg_info_root {
  * 
  * Without the JG_INFO_CPU_PRESENT flag being set, the CPU entry can be ignored.
  * 
- * Length: 17 bytes.
+ * Length: 18 bytes.
  */
 typedef struct jg_info_cpu {
     uint32_t apic_id;           //< apic id of the CPU's LAPIC
@@ -151,7 +153,7 @@ typedef struct jg_info_ioapic {
     uint8_t version;			//< version of the IO APIC
     uint32_t gsi_base;          //< lowest GSI covered by this IO APIC
     uint16_t gsi_count;         //< number of GSIs covered by this IO APIC
-    uint64_t mmio_paddr;        //< pjgsical address of IO APIC's MMIO window
+    uint64_t mmio_paddr;        //< physical address of IO APIC's MMIO window
 } __attribute__((packed)) jg_info_ioapic_t;
 
 /**
@@ -161,7 +163,7 @@ typedef struct jg_info_ioapic {
  * Length: 32 bytes.
  */
 typedef struct jg_info_mmap {
-    uint64_t address;           //< pjgsical address the region begins on
+    uint64_t address;           //< physical address the region begins on
     uint64_t length;            //< length of the region in bytes
     uint64_t available;         //< one if available, zero otherwise
     uint64_t padding;
@@ -174,7 +176,7 @@ typedef struct jg_info_mmap {
  */
 typedef struct jg_info_module {
     uint16_t name;              //< offset of the name in the string table
-    uint64_t address;           //< pjgsical address of the module
+    uint64_t address;           //< physical address of the module
     uint32_t length;            //< length of the module in bytes
     uint16_t padding;
 } __attribute__((packed)) jg_info_module_t;

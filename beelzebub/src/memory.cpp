@@ -1,8 +1,8 @@
 #include <memory.h>
 #include <math.h>
-#include <memory/paging.hpp>
+#include <arc/memory/paging.hpp>
 
-#include <screen.h>
+#include <arc/screen.h>
 
 using namespace Beelzebub::Memory::Paging;
 

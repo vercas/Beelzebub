@@ -110,14 +110,3 @@ typedef struct multiboot_mod {
 	uint32_t cmdline;
 	uint32_t pad;
 } __attribute__((packed)) multiboot_mod_t;
-
-/**
- * Pointer to the multiboot info table.
- */
-extern multiboot_info_t *multiboot_info;
-
-/**
- * Parses the multiboot info table and adds the gathered data to the
- * Jegudiel info structures.
- */
-void multiboot_parse();

@@ -24,8 +24,9 @@
  */
 
 #include <jegudiel.h>
-#include <isr.h>
-#include <keyboard.h>
+#include <arc/isr.h>
+#include <arc/keyboard.h>
+#include <arc/entry.h>
 
 #define FLAGS                          (    \
     JG_HEADER_FLAG_IOAPIC_BSP           |    \

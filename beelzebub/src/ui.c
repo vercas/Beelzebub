@@ -23,7 +23,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <screen.h>
+#include <arc/screen.h>
 #include <stdint.h>
 #include <ui.h>
 

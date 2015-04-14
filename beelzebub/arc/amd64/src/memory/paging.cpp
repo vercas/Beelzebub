@@ -1,10 +1,11 @@
-#include <memory/paging.hpp>
-#include <screen.h>
+#include <arc/memory/paging.hpp>
+#include <arc/screen.h>
 
 namespace Beelzebub { namespace Memory { namespace Paging {
 
 	PageDescriptor * Map, * MapEnd;
 	size_t MapSize, CurrentIndex;
+	uintptr_t MemoryStart, MemoryEnd;
 
 	void InitializePageAllocator(uintptr_t start, uintptr_t end)
 	{
@@ -21,6 +22,9 @@ namespace Beelzebub { namespace Memory { namespace Paging {
 		MapSize = mapPages;
 
 		CurrentIndex = mapPages;
+
+		MemoryStart = start;
+		MemoryEnd = end;
 
 		screen_write_hex32((u32)totalPages, 1, 24);
 		screen_write_hex32((u32)freePages, 21, 24);
@@ -40,7 +44,7 @@ namespace Beelzebub { namespace Memory { namespace Paging {
 
 	Result ReservePhysicalRegion(size_t const start, size_t const length)
 	{
-		return ReservePageRange(start / PageSize, length / PageSize);
+		return ReservePageRange((start - MemoryStart) / PageSize, length / PageSize);
 	}
 
 	/****************************

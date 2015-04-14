@@ -1,4 +1,4 @@
-#include <terminals/vga.hpp>
+#include <arc/terminals/vga.hpp>
 
 namespace Beelzebub { namespace Terminals { namespace Vga {
 	/******************

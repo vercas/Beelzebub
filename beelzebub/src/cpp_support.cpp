@@ -1,7 +1,7 @@
 #include <math.h>
-#include <memory/paging.hpp>
-#include <terminals/vga.hpp>
-#include <screen.h>
+#include <arc/memory/paging.hpp>
+#include <arc/terminals/vga.hpp>
+#include <arc/screen.h>
 #include <jegudiel.h>
 
 extern "C" void __cxa_pure_virtual()

@@ -23,7 +23,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <screen.h>
+#include <arc/screen.h>
 
 void screen_write(const char *string, uint16_t x, uint16_t y)
 {

@@ -40,7 +40,7 @@
  * @param x the horizontal coordinate to write to.
  * @param y the vertical coordinate to write to.
  */
-shared void screen_write(const char *string, uint16_t x, uint16_t y);
+__extern void screen_write(const char *string, uint16_t x, uint16_t y);
 
 /**
  * Writes a 64-bit <number> to the screen, given the coordinates.
@@ -49,7 +49,7 @@ shared void screen_write(const char *string, uint16_t x, uint16_t y);
  * @param x the x coordinate to write the number to.
  * @param y the y coordinate to write the number to.
  */
-shared void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
+__extern void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
 
 /**
  * Writes a 32-bit <number> to the screen, given the coordinates.
@@ -58,7 +58,7 @@ shared void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
  * @param x the x coordinate to write the number to.
  * @param y the y coordinate to write the number to.
  */
-shared void screen_write_hex32(uint32_t number, uint16_t x, uint16_t y);
+__extern void screen_write_hex32(uint32_t number, uint16_t x, uint16_t y);
 
 /**
  * Writes a pointer to the screen, given the coordinates.
@@ -68,9 +68,9 @@ shared void screen_write_hex32(uint32_t number, uint16_t x, uint16_t y);
  * @param x the x coordinate to write the number to.
  * @param y the y coordinate to write the number to.
  */
-shared void screen_write_ptr(void * ptr, uint16_t x, uint16_t y);
+__extern void screen_write_ptr(void * ptr, uint16_t x, uint16_t y);
 
 /**
  * Clears the screen.
  */
-shared void screen_clear();
+__extern void screen_clear();
