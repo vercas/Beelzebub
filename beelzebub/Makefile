@@ -79,15 +79,17 @@ amd64:	LDFILE		+= $(ARC_DIR)/amd64/link.ld
 #	ARCHITECTURE-BASED ACTIONS   #
 ##################################
 
-###########################################
-# Remove old architecture-specific stuff  #
-# Include new architecture-specific stuff #
-mkarcdir::
+##########################################
+# Remove old architecture-specific stuff #
+rmarcdir::
 	@ echo "/REM:" $(SRCARC_DIR)
 	@ rm -Rf $(SRCARC_DIR)
 	@ echo "/REM:" $(INCARC_DIR)
 	@ rm -Rf $(INCARC_DIR)
 
+###########################################
+# Include new architecture-specific stuff #
+mkarcdir:: rmarcdir
 	@ echo "/CPY:" $(ARC_DIR)/$(ARC)/src ">" $(SRCARC_DIR)
 	@ cp -R $(ARC_DIR)/$(ARC)/src $(SRCARC_DIR)
 	@ echo "/CPY:" $(ARC_DIR)/$(ARC)/inc ">" $(INCARC_DIR)

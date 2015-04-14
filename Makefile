@@ -25,5 +25,5 @@ clean:
 	@ $(MAKE) -C image/ clean
 	@ $(MAKE) -C beelzebub/ clean
 	@ $(MAKE) -C jegudiel/ clean
-	@ rm -R $(PREFIX)/*
+	@ rm -Rf $(PREFIX)/*
 
