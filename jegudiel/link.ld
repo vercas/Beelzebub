@@ -4,7 +4,6 @@ SECTIONS {
     .text 0x100000 : {
         *(.multiboot)
         *(.text)
-        *(.rodata)
     }
 
     .data : {
@@ -31,6 +30,11 @@ SECTIONS {
     /DISCARD/ : {
         *(.eh_frame)
         *(.comment)
+    }
+
+    .consts : {
+        *(.rodata)
+        *(.font)
     }
 
     . = ALIGN(4096);

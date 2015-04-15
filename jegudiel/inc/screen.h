@@ -1,4 +1,6 @@
 /**
+ * THE FOLLOWING LICENSE ONLY APPLIES TO THE FIRST PART OF THE CODE
+ *
  * Copyright (c) 2012 by Lukas Heidemann <lukasheidemann@gmail.com>
  * All rights reserved.
  *
@@ -27,11 +29,11 @@
 #include <stdint.h>
 
 // Screen dimensions
-#define SCREEN_WIDTH            80
-#define SCREEN_HEIGHT           25
+extern uint16_t SCREEN_WIDTH;
+extern uint16_t SCREEN_HEIGHT;
 
 // Physical address of the screen's video memory
-#define SCREEN_VIDEOMEM_PADDR   0xb8000
+extern uintptr_t SCREEN_VIDEOMEM_PADDR;
 
 // Video memory as a pointer to screen cells
 #define SCREEN_VIDEOMEM         ((screen_cell_t *) SCREEN_VIDEOMEM_PADDR)
@@ -62,7 +64,7 @@ typedef struct screen_cell {
  * @param x the x coordinate to write the message to.
  * @param y the y coordinate to write the message to.
  */
-void screen_write(const char *message, uint16_t x, uint16_t y);
+extern void screen_write(const char *message, uint16_t x, uint16_t y);
 
 /**
  * Writes a <number> to the screen, given the coordinates.
@@ -71,9 +73,46 @@ void screen_write(const char *message, uint16_t x, uint16_t y);
  * @param x the x coordinate to write the number to.
  * @param y the y coordinate to write the number to.
  */
-void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
+extern void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
 
 /**
  * Clears the screen.
  */
-void screen_clear(void);
+extern void screen_clear();
+
+
+
+/**
+ * HERE THE FIRST PART END.
+ * 
+ * The #defines `b` and `b_` are taken from the following file:
+ * https://github.com/klange/toaruos/blob/strawberry-dev/userspace/gui/terminal/terminal-font.h
+ * They ain't much but credit is still due.
+ *
+ * The rest of the code is under the vLicense.
+ */
+
+
+
+/**
+ * Initializes the screen.
+ **/
+extern void screen_init();
+
+/**
+ * Writes a string to the screen.
+ */
+extern size_t puts(const char * const s);
+
+
+
+#define b(x) ((uint8_t)b_(0 ## x ## uL))
+#define b_(x) ((x & 1) | (x >> 2 & 2) | (x >> 4 & 4) | (x >> 6 & 8) | (x >> 8 & 16) | (x >> 10 & 32) | (x >> 12 & 64) | (x >> 14 & 128))
+
+#define FONT_WIDTH   8
+#define FONT_HEIGHT 14
+
+#define FONT_MIN    33
+#define FONT_MAX   126
+
+extern __attribute__((section(".font")))  uint8_t font[][14];

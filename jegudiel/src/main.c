@@ -40,117 +40,144 @@
 #include <smp.h>
 #include <stdint.h>
 #include <syscall.h>
+#include <ports.h>
 
 volatile uint8_t main_entry_barrier = 1;
 
 void main_bsp(void)
 {
-    // Print header
-    screen_write("Jegudiel v0.2b - http://github.com/farok/H2", 0, 0);
-    screen_write("Copyright (c) 2012 by Lukas Heidemann", 0, 1);
-    screen_write("-------------------------------------------------", 0, 2);
+	init_serial(COM1);
+	screen_init();
 
-    screen_write("Loading IDT...", 0, 3);
+	// Print header
+	puts("Jegudiel v0.1\r\n");
+	puts("Credits will be here eventually...\r\n");
+	puts("----");
 
-    // Load the IDT
-    idt_load(idt_address, IDT_LENGTH);
-    idt_setup_loader();
+	puts("Loading IDT...\r\n");
 
-    screen_write("Parsing Multiboot header...", 0, 4);
+	// Load the IDT
+	idt_load(idt_address, IDT_LENGTH);
+	idt_setup_loader();
 
-    // Initialize Jegudiel info tables and parse the multiboot tables
-    info_init();
-    multiboot_parse();
+	puts("Parsing Multiboot header...\r\n");
 
-    screen_write("Initializing heap...", 0, 5);
+	// Initialize Jegudiel info tables and parse the multiboot tables
+	info_init();
+	multiboot_parse();
 
-    // Setup the heap
-    heap_init();
+	puts("Initializing heap...\r\n");
 
-    screen_write("Parsing ACPI...", 0, 6);
+	// Setup the heap
+	heap_init();
 
-    // Now parse the ACPI tables and analyze the IO APICs
-    acpi_parse();
+	puts("Parsing ACPI...\r\n");
 
-    screen_write("Analyzing IOAPIC...", 0, 7);
+	// Now parse the ACPI tables and analyze the IO APICs
+	acpi_parse();
 
-    ioapic_analyze();
+	puts("Analyzing IOAPIC...\r\n");
 
-    screen_write("Deciphering kernel...", 0, 8);
+	ioapic_analyze();
 
-    // Find, check and load the kernel binary
-    screen_write("FIND", 22, 8);    kernel_find();
-    screen_write("CHECK", 27, 8);   kernel_check();
-    screen_write("LOAD", 33, 8);    elf64_load(kernel_binary);
-    screen_write("ANALYZE", 38, 8); kernel_analyze();
+	puts("Deciphering kernel...");
 
-    screen_write("Initializing LAPIC...", 0, 9);
+	// Find, check and load the kernel binary
+	puts(" FIND");    kernel_find();
+	puts(" CHECK");   kernel_check();
+	puts(" LOAD");    elf64_load(kernel_binary);
+	puts(" ANALYZE"); kernel_analyze();
 
-    // Initialize interrupt controllers
-    lapic_detect();
-    lapic_setup();
-    ioapic_setup_loader();
-    pic_setup();
+	puts("\r\n");
 
-    screen_write("Calibrating LAPIC timer...", 0, 10);
+	puts("Initializing LAPIC...\r\n");
 
-    // Calibrate the LAPIC timer
-    lapic_timer_calibrate();
+	// Initialize interrupt controllers
+	lapic_detect();
+	lapic_setup();
+	ioapic_setup_loader();
+	pic_setup();
 
-    screen_write("Booting application processors...", 0, 11);
+	puts("Calibrating LAPIC timer...\r\n");
 
-    // Boot APs
-    info_cpu[lapic_id()].flags |= JG_INFO_CPU_FLAG_BSP;
-    smp_setup();
+	// Calibrate the LAPIC timer
+	lapic_timer_calibrate();
 
-    screen_write("Setting up IDT and IOAPIC according to the kernel header...", 0, 12);
+	puts("Booting application processors...\r\n");
 
-    // Setup IDT and IOAPIC according to kernel header
-    idt_setup_kernel();
-    ioapic_setup_kernel();
+	// Boot APs
+	info_cpu[lapic_id()].flags |= JG_INFO_CPU_FLAG_BSP;
+	smp_setup();
 
-    screen_write("Setting up system call interface...", 0, 13);
+	puts("Setting up IDT and IOAPIC according to the kernel header...\r\n");
 
-    // Setup fast syscall support
-    syscall_init();
+	// Setup IDT and IOAPIC according to kernel header
+	idt_setup_kernel();
+	ioapic_setup_kernel();
 
-    screen_write("Mapping memory...", 0, 14);
+	puts("Setting up system call interface...\r\n");
 
-    // Setup mapping
-    kernel_map_info();
-    kernel_map_stack();
-    kernel_map_idt();
-    kernel_map_gdt();
+	// Setup fast syscall support
+	syscall_init();
 
-    // Set free address
-    info_root->free_paddr = (heap_top + 0xFFF) & ~0xFFF;
+	puts("Mapping structures...\r\n");
 
-    screen_write("Jumping to kernel's boot entry...", 0, 15);
+	// Setup mapping
+	kernel_map_info();
+	kernel_map_stack();
+	kernel_map_idt();
+	kernel_map_gdt();
 
-    // Lower main entry barrier and jump to the kernel entry point
-    main_entry_barrier = 0;
-    kernel_enter_bsp();
+	// Set free address
+	info_root->free_paddr = (heap_top + 0xFFF) & ~0xFFF;
+
+	/*screen_write("Video mode: ", 0, 23);
+	screen_write_hex32(multiboot_info->vbe_mode, 12, 23);
+	screen_write("; Info: ", 20, 23);
+	screen_write_hex32(multiboot_info->vbe_mode_info, 28, 23);
+
+	screen_write("Framebuffer type: ", 0, 22);
+	screen_write_hex8(multiboot_info->framebuffer_type, 18, 22);
+	screen_write("; W: ", 20, 22);
+	screen_write_hex32(multiboot_info->framebuffer_width, 25, 22);
+	screen_write("; H: ", 33, 22);
+	screen_write_hex32(multiboot_info->framebuffer_height, 38, 22);
+	screen_write("; P: ", 46, 22);
+	screen_write_hex32(multiboot_info->framebuffer_pitch, 51, 22);
+	screen_write("; BPP: ", 59, 22);
+	screen_write_hex8(multiboot_info->framebuffer_bpp, 66, 22);
+
+	screen_write("Address: ", 0, 21);
+	screen_write_hex(multiboot_info->framebuffer_addr, 9, 21);
+	screen_write("; Phys base: ", 25, 21);
+	screen_write_hex32(VBE_MODE_INFO->physbase, 38, 21);*/
+
+	puts("Jumping to kernel's boot entry...\r\n");
+
+	// Lower main entry barrier and jump to the kernel entry point
+	main_entry_barrier = 0;
+	kernel_enter_bsp();
 }
 
 void main_ap(void)
 {
-    // Load the IDT
-    idt_load((uintptr_t) &idt_data, IDT_LENGTH);
+	// Load the IDT
+	idt_load((uintptr_t) &idt_data, IDT_LENGTH);
 
-    // Enable LAPIC and calibrate the timer
-    lapic_setup();
-    lapic_timer_calibrate();
+	// Enable LAPIC and calibrate the timer
+	lapic_setup();
+	lapic_timer_calibrate();
 
-    // Setup stack mapping
-    kernel_map_stack();
+	// Setup stack mapping
+	kernel_map_stack();
 
-    // Setup fast syscall support
-    syscall_init();
+	// Setup fast syscall support
+	syscall_init();
 
-    // Signal complete AP startup
-    ++smp_ready_count;
+	// Signal complete AP startup
+	++smp_ready_count;
 
-    // Wait for main entry barrier, then enter the kernel (or halt)
-    while (main_entry_barrier == 1);
-    kernel_enter_ap();
+	// Wait for main entry barrier, then enter the kernel (or halt)
+	while (main_entry_barrier == 1);
+	kernel_enter_ap();
 }
