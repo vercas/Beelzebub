@@ -62,16 +62,16 @@ LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 ##############
 # 32-bit x86 #
 ia32:	ARC			:= ia32
-ia32:  	CFLAGS		+= -m32 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_IA32
-ia32:  	CPPFLAGS	+= -m32 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_IA32
+ia32:	CFLAGS		+= -m32 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_IA32
+ia32:	CPPFLAGS	+= -m32 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_IA32
 ia32:	ASFLAGS		+= -f elf32
 ia32:	LDFILE		+= $(ARC_DIR)/ia32/link.ld
 
 ##############
 # 64-bit x86 #
 amd64:	ARC			:= amd64
-amd64: 	CFLAGS		+= -m64 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_AMD64
-amd64: 	CPPFLAGS	+= -m64 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_AMD64
+amd64:	CFLAGS		+= -m64 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_AMD64
+amd64:	CPPFLAGS	+= -m64 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_AMD64
 amd64:	ASFLAGS		+= -f elf64
 amd64:	LDFILE		+= $(ARC_DIR)/amd64/link.ld
 
