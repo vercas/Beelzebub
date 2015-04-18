@@ -4,6 +4,75 @@ using namespace Beelzebub;
 using namespace Beelzebub::Ports;
 using namespace Beelzebub::Terminals;
 
+/*  Serial terminal descriptor  */
+
+TerminalDescriptor SerialTerminalDescriptor = {
+	&TerminalBase::DefaultWriteCharAtXy,
+	&TerminalBase::DefaultWriteCharAtCoords,
+	&TerminalBase::DefaultWriteStringAt,
+	&SerialTerminal::WriteChar,
+	&SerialTerminal::WriteString,
+	&SerialTerminal::WriteStringLine,
+
+	&TerminalBase::DefaultSetCursorPositionXy,
+	&TerminalBase::DefaultSetCursorPositionCoords,
+	&TerminalBase::DefaultGetCursorPosition,
+
+	&TerminalBase::DefaultSetCurrentPositionXy,
+	&TerminalBase::DefaultSetCurrentPositionCoords,
+	&TerminalBase::DefaultGetCurrentPosition,
+
+	&TerminalBase::DefaultSetSizeXy,
+	&TerminalBase::DefaultSetSizeCoords,
+	&TerminalBase::DefaultGetSize,
+
+	&TerminalBase::DefaultSetBufferSizeXy,
+	&TerminalBase::DefaultSetBufferSizeCoords,
+	&TerminalBase::DefaultGetBufferSize,
+
+	&TerminalBase::DefaultSetTabulatorWidth,
+	&TerminalBase::DefaultGetTabulatorWidth,
+
+	{
+		true,	//  bool CanOutput;            //  Characters can be written to the terminal.
+		false,	//  bool CanInput;             //  Characters can be received from the terminal.
+		false,	//  bool CanRead;              //  Characters can be read back from the terminal's output.
+
+		false,	//  bool CanGetOutputPosition; //  Position of next output character can be retrieved.
+		false,	//  bool CanSetOutputPosition; //  Position of output characters can be set arbitrarily.
+		false,	//  bool CanPositionCursor;    //  Terminal features a positionable cursor.
+
+		false,	//  bool CanGetSize;           //  Terminal (window) size can be retrieved.
+		false,	//  bool CanSetSize;           //  Terminal (window) size can be changed.
+
+		false,	//  bool Buffered;             //  Terminal acts as a window over a buffer.
+		false,	//  bool CanGetBufferSize;     //  Buffer size can be retrieved.
+		false,	//  bool CanSetBufferSize;     //  Buffer size can be changed.
+		false,	//  bool CanPositionWindow;    //  The "window" can be positioned arbitrarily over the buffer.
+
+		false,	//  bool CanColorBackground;   //  Area behind/around output characters can be colored.
+		false,	//  bool CanColorForeground;   //  Output characters can be colored.
+		false,	//  bool FullColor;            //  32-bit BGRA, or ARGB in little endian.
+		false,	//  bool ForegroundAlpha;      //  Alpha channel of foreground color is supported. (ignored if false)
+		false,	//  bool BackgroundAlpha;      //  Alpha channel of background color is supported. (ignored if false)
+
+		false,	//  bool CanBold;              //  Output characters can be made bold.
+		false,	//  bool CanUnderline;         //  Output characters can be underlined.
+		false,	//  bool CanBlink;             //  Output characters can blink.
+
+		false,	//  bool CanGetStyle;          //  Current style settings can be retrieved.
+
+		false,	//  bool CanGetTabulatorWidth; //  Tabulator width may be retrieved.
+		false,	//  bool CanSetTabulatorWidth; //  Tabulator width may be changed.
+		
+		true,	//  bool SequentialOutput;     //  Character sequences can be output without explicit position.
+
+		false,	//  bool SupportsTitle;        //  Supports assignment of a title.
+
+		TerminalType::Serial	//  TerminalType Type;         //  The known type of the terminal.
+	}
+};
+
 /****************************
 	SerialTerminal struct
 *****************************/
@@ -11,67 +80,36 @@ using namespace Beelzebub::Terminals;
 /*	Constructors	*/
 
 SerialTerminal::SerialTerminal(const SerialPort port)
-	: Port(port)
+	: TerminalBase(&SerialTerminalDescriptor)
+	, Port(port)
 {
-	this->Capabilities.CanOutput = 
-	this->Capabilities.SequentialOutput = true;
+	
 }
 
 /*  Writing  */
 
-TerminalWriteResult SerialTerminal::WriteAt(const char c, const int16_t x, const int16_t y)
+TerminalWriteResult SerialTerminal::WriteChar(TerminalBase * const term, const char c)
 {
-	return {Result::UnsupportedOperation, 0U, InvalidCoordinates};
-}
+	SerialTerminal * sterm = (SerialTerminal *)term;
 
-TerminalWriteResult SerialTerminal::Write(const char c)
-{
-	this->Port.Write(c, true);
+	sterm->Port.Write(c, true);
 
 	return {Result::Okay, 1U, InvalidCoordinates};
 }
 
-TerminalWriteResult SerialTerminal::Write(const char * const str)
+TerminalWriteResult SerialTerminal::WriteString(TerminalBase * const term, const char * const str)
 {
-	return {Result::Okay, (uint32_t)this->Port.WriteNtString(str), InvalidCoordinates};
+	SerialTerminal * sterm = (SerialTerminal *)term;
+
+	return {Result::Okay, (uint32_t)sterm->Port.WriteNtString(str), InvalidCoordinates};
 }
 
-TerminalWriteResult SerialTerminal::WriteLine(const char * const str)
+TerminalWriteResult SerialTerminal::WriteStringLine(TerminalBase * const term, const char * const str)
 {
-	size_t n = this->Port.WriteNtString(str);
-	n += this->Port.WriteNtString("\r\n");
+	SerialTerminal * sterm = (SerialTerminal *)term;
+
+	size_t n = sterm->Port.WriteNtString(str);
+	n += sterm->Port.WriteNtString("\r\n");
 
 	return {Result::Okay, (uint32_t)n, InvalidCoordinates};
-}
-
-/*  Positioning  */
-
-Result SerialTerminal::SetCursorPosition(const int16_t x, const int16_t y)
-{
-	return Result::UnsupportedOperation;
-}
-
-TerminalCoordinates SerialTerminal::GetCursorPosition()
-{
-	return InvalidCoordinates;
-}
-
-Result SerialTerminal::SetSize(const int16_t w, const int16_t h)
-{
-	return Result::UnsupportedOperation;
-}
-
-TerminalCoordinates SerialTerminal::GetSize()
-{
-	return InvalidCoordinates;
-}
-
-Result SerialTerminal::SetBufferSize(const int16_t w, const int16_t h)
-{
-	return Result::UnsupportedOperation;
-}
-
-TerminalCoordinates SerialTerminal::GetBufferSize()
-{
-	return InvalidCoordinates;
 }

@@ -20,85 +20,15 @@ using namespace Beelzebub::Ports;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Memory;
 
-//uint8_t initialSerialTerminalSpace[sizeof(SerialTerminal)];
-SerialTerminal initialSerialTerminalSpace;
+//uint8_t initialSerialTerminal[sizeof(SerialTerminal)];
+SerialTerminal initialSerialTerminal;
 PageAllocationSpace mainAllocationSpace;
-
-void outb(const uint16_t port, uint8_t value)
-{
-    asm volatile ("outb %1, %0" :: "dN" (port), "a" (value));
-}
-
-uint8_t inb(const uint16_t port)
-{
-    uint8_t value;
-    asm volatile ("inb %1, %0" : "=a" (value) : "dN" (port));
-    return value;
-}
-
-int is_transmit_empty(const uint16_t port)
-{
-	return inb(port + 5) & 0x20;
-}
-
-void write_serial(const uint16_t port, const char a)
-{
-	while (!is_transmit_empty(port));
-
-	outb(port, a);
-}
-
-void write_serial_str(const uint16_t port, const char * const a)
-{
-	size_t i = 0;
-
-	while (a[i] != 0)
-		write_serial(port, a[i++]);
-}
-
-void write_serial_uh(const uint16_t port, const uint64_t x, const size_t d)
-{
-	int32_t i;
-
-	for (i = (int32_t)d - 1; i >= 0; --i)
-	{
-		uint8_t nib = (x >> (i * 4)) & 0x0F;
-
-		write_serial(port, (nib > 9 ? '7' : '0') + nib);
-		//	'7' + 10 = 'A' in ASCII, dawg.
-	}
-}
-
-void write_serial_str_hex(const uint16_t port, const uint8_t * const a, const size_t d)
-{
-	size_t i;
-
-	for (i = 0; i < d; ++i)
-	{
-		write_serial_uh(port, a[i], 2);
-
-		if (i % 4 == 3)
-			write_serial(port, ' ');
-		if (i % 2 == 1)
-			write_serial(port, ' ');
-	}
-}
 
 static __bland void fault_gp(isr_state_t * state)
 {
 	//write_serial_str(0x3F8, "OMG GP FAULT!");
 	//write_serial(0x3F8, '\n');
 }
-
-class beis
-{
-	public: virtual void doDis() { write_serial_str(0x3F8, "in base class!\n"); }
-};
-
-class dereev : public beis
-{
-	public: virtual void doDis() override { write_serial_str(0x3F8, "in derived class!\n"); }
-};
 
 /*  Entry points  */ 
 
@@ -116,46 +46,22 @@ void kmain_ap()
 
 TerminalBase * InitializeTerminalMain()
 {
-	write_serial(0x3F8, '\n');
-	write_serial_uh(0x3F8, COM1.GetBasePort(), 4);
-	write_serial(0x3F8, '\n');
+	//	TODO: Properly retrieve these addresses.
 
 	//	Initializes COM1.
 	COM1 = SerialPort(0x3F8);
 	COM1.Initialize();
 
-	write_serial_uh(0x3F8, 0x3F8, 4);
-	write_serial(0x3F8, '\n');
-	write_serial_uh(0x3F8, COM1.GetBasePort(), 4);
-	write_serial(0x3F8, '\n');
-
-	write_serial_uh(0x3F8, sizeof(SerialTerminal), 4);
-	write_serial(0x3F8, '\n');
-	write_serial_str_hex(0x3F8, (uint8_t *)&initialSerialTerminalSpace, sizeof(SerialTerminal));
-	write_serial(0x3F8, '\n');
-
 	//	Initializes the serial terminal.
-	//SerialTerminal * termPtr = (SerialTerminal *)initialSerialTerminalSpace;
-	//*termPtr = SerialTerminal(COM1);
-	initialSerialTerminalSpace = SerialTerminal(COM1);
-
-	write_serial_str_hex(0x3F8, (uint8_t *)&initialSerialTerminalSpace, sizeof(SerialTerminal));
-	write_serial(0x3F8, '\n');
-	//write_serial_uh(0x3F8, &initialSerialTerminalSpace.WriteLine, 4);
-	//write_serial(0x3F8, '\n');
-
-	COM1.WriteNtString("Teeeeeest");
+	initialSerialTerminal = SerialTerminal(COM1);
 
 	//	And returns it.
-	return &initialSerialTerminalSpace; // termPtr;
+	return &initialSerialTerminal; // termPtr;
 }
 
 TerminalBase * InitializeTerminalSecondary()
 {
-	write_serial_str(0x3F8, "second terminal lol");
-	write_serial(0x3F8, '\n');
-
-	return (SerialTerminal *)&initialSerialTerminalSpace;
+	return &initialSerialTerminal;
 }
 
 /*  Interrupts  */
