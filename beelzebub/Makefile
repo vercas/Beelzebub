@@ -42,9 +42,11 @@ INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
 
 CFLAGS		:= -ffreestanding -Wall -Werror -mcmodel=large
 CFLAGS      += -D __BEELZEBUB -std=gnu99
+CFLAGS      += -mno-red-zone
 
 CPPFLAGS	:= -ffreestanding -Wall -Werror -mcmodel=large
 CPPFLAGS    += -D __BEELZEBUB -std=gnu++11 -fno-rtti -fno-exceptions
+CPPFLAGS    += -mno-red-zone
 
 DFLAGS		:= -Wall -Werror -mcmodel=large -nostdinc
 DFLAGS      += -I$(RUNTIME_DIR) -I$(SRC_DIR) $(INCFLAGS)
@@ -107,8 +109,8 @@ ia32 amd64:: mkarcdir
 # Build everything and link the target binary #
 ia32 amd64::	build link
 
-CFLAGS		+= $(INCFLAGS)
-CPPFLAGS	+= $(INCFLAGS)
+CFLAGS		+= $(INCFLAGS) -D __BEELZEBUB__ARCH=$(ARC)
+CPPFLAGS	+= $(INCFLAGS) -D __BEELZEBUB__ARCH=$(ARC)
 
 ################
 # Object Files #

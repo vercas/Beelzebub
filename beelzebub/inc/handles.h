@@ -13,10 +13,14 @@ namespace Beelzebub
 
 	enum class Result : u32
 	{
-		Fatal				= 0x70000000,
-		Okay				= 0,
+		Fatal                = 0x80000000U,
 
-		ArgumentOutOfRange	= 0x10,
+		Okay                 = 0x00U,
+		UnsupportedOperation = 0x01U,
+		NotImplemented       = 0x02U,
+
+		ArgumentOutOfRange   = 0x10U,
+		ArgumentNull         = 0x11U,
 	};
 }
 
@@ -29,9 +33,12 @@ typedef struct Handle_t
 
 typedef u32 Result;
 
-#define RES_FATAL					(0x70000000U)
-#define RES_OKAY					(0U)
+#define RES_FATAL                   (0x80000000U)
 
-#define RES_ARGUMENT_OUT_OF_RANGE	(0x10U)
+#define RES_OKAY                    (0x00U)
+#define RES_UNSUPPORTED_OPERATION   (0x01U)
+#define RES_NOT_IMPLEMENTED         (0x02U)
+
+#define RES_ARGUMENT_OUT_OF_RANGE   (0x10U)
 
 #endif

@@ -50,37 +50,57 @@ void main_bsp(void)
 	screen_init();
 
 	// Print header
-	puts("Jegudiel v0.1\r\n");
-	puts("Credits will be here eventually...\r\n");
+	puts("Jegudiel v0.1 | https://github.com/vercas/Beelzebub/\r\n");
+	puts("Copyright (c) 2015 by Lukas Heidemann and Alexandru-Mihai Maftei.\r\n");
+
+	if (multiboot_info->framebuffer_type == MULTIBOOT_FRAMEBUFFER_TYPE_RGB)
+		puts("VBE font is Free Pixel by levelb\r\n");
+
 	puts("----");
 
-	puts("Loading IDT...\r\n");
+
+	puts("[  ] Loading IDT...");
 
 	// Load the IDT
 	idt_load(idt_address, IDT_LENGTH);
 	idt_setup_loader();
 
-	puts("Parsing Multiboot header...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Parsing Multiboot header...");
 
 	// Initialize Jegudiel info tables and parse the multiboot tables
 	info_init();
 	multiboot_parse();
 
-	puts("Initializing heap...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Initializing heap...");
 
 	// Setup the heap
 	heap_init();
 
-	puts("Parsing ACPI...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Parsing ACPI...");
 
 	// Now parse the ACPI tables and analyze the IO APICs
 	acpi_parse();
 
-	puts("Analyzing IOAPIC...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Analyzing IOAPIC...");
 
 	ioapic_analyze();
 
-	puts("Deciphering kernel...");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Deciphering kernel...");
 
 	// Find, check and load the kernel binary
 	puts(" FIND");    kernel_find();
@@ -88,9 +108,10 @@ void main_bsp(void)
 	puts(" LOAD");    elf64_load(kernel_binary);
 	puts(" ANALYZE"); kernel_analyze();
 
-	puts("\r\n");
+	puts("\r[OK\r\n");
 
-	puts("Initializing LAPIC...\r\n");
+
+	puts("[  ] Initializing LAPIC...");
 
 	// Initialize interrupt controllers
 	lapic_detect();
@@ -98,29 +119,44 @@ void main_bsp(void)
 	ioapic_setup_loader();
 	pic_setup();
 
-	puts("Calibrating LAPIC timer...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Calibrating LAPIC timer...");
 
 	// Calibrate the LAPIC timer
 	lapic_timer_calibrate();
 
-	puts("Booting application processors...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Booting application processors...");
 
 	// Boot APs
 	info_cpu[lapic_id()].flags |= JG_INFO_CPU_FLAG_BSP;
 	smp_setup();
 
-	puts("Setting up IDT and IOAPIC according to the kernel header...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Setting up IDT and IOAPIC according to the kernel header...");
 
 	// Setup IDT and IOAPIC according to kernel header
 	idt_setup_kernel();
 	ioapic_setup_kernel();
 
-	puts("Setting up system call interface...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Setting up system call interface...");
 
 	// Setup fast syscall support
 	syscall_init();
 
-	puts("Mapping structures...\r\n");
+	puts("\r[OK\r\n");
+
+
+	puts("[  ] Mapping structures...");
 
 	// Setup mapping
 	kernel_map_info();
@@ -130,6 +166,12 @@ void main_bsp(void)
 
 	// Set free address
 	info_root->free_paddr = (heap_top + 0xFFF) & ~0xFFF;
+
+	// Reference multiboot header
+	info_root->multiboot_paddr = (uint64_t)multiboot_info;
+
+	puts("\r[OK\r\n");
+
 
 	/*screen_write("Video mode: ", 0, 23);
 	screen_write_hex32(multiboot_info->vbe_mode, 12, 23);
@@ -151,6 +193,8 @@ void main_bsp(void)
 	screen_write_hex(multiboot_info->framebuffer_addr, 9, 21);
 	screen_write("; Phys base: ", 25, 21);
 	screen_write_hex32(VBE_MODE_INFO->physbase, 38, 21);*/
+
+	puts("----");
 
 	puts("Jumping to kernel's boot entry...\r\n");
 

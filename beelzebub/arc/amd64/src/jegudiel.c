@@ -28,37 +28,37 @@
 #include <arc/keyboard.h>
 #include <arc/entry.h>
 
-#define FLAGS                          (    \
-    JG_HEADER_FLAG_IOAPIC_BSP           |    \
-    JG_HEADER_FLAG_X2APIC_ALLOW         )
+#define FLAGS (                   \
+	JG_HEADER_FLAG_IOAPIC_BSP   | \
+	JG_HEADER_FLAG_X2APIC_ALLOW   \
+)
 
 jg_header_root_t jegudiel_header = {
-        JG_MAGIC,                               // magic
-        FLAGS,                                  // flags
-        0xFFFFFF0000200000,                     // stack_vaddr
-        0xFFFFFF0000100000,                     // info_vaddr
-        0,                                      // idt_vaddr
-        0,                                      // gdt_vaddr
-        0,                                      // ap_entry
-        0,                                      // syscall_entry
-        (uintptr_t) &isr_gates,                 // isr_entry_table
-
-        {
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ0
-                {0, KEYBOARD_IRQ_VECTOR},       // IRQ1
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ2
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ3
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ4
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ5
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ6
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ7
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ8
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ9
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ10
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ11
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ12
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ13
-                {JG_HEADER_IRQ_FLAG_MASK, 0},   // IRQ14
-                {JG_HEADER_IRQ_FLAG_MASK, 0}    // IRQ15
-        }
+	JG_MAGIC,                               // magic
+	FLAGS,                                  // flags
+	0xFFFFFF0000200000,                     // stack_vaddr
+	0xFFFFFF0000100000,                     // info_vaddr
+	0,                                      // idt_vaddr
+	0,                                      // gdt_vaddr
+	0,                                      // ap_entry
+	0,                                      // syscall_entry
+	(uintptr_t) &isr_gates,                 // isr_entry_table
+	{
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ0
+		{0                      , KEYBOARD_IRQ_VECTOR    },   // IRQ1
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ2
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ3
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ4
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ5
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ6
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ7
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ8
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ9
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ10
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ11
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ12
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ13
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ14
+		{JG_HEADER_IRQ_FLAG_MASK, 0                      }    // IRQ15
+	}
 };

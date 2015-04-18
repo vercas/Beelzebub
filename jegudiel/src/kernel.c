@@ -151,6 +151,9 @@ extern void kernel_enter(uintptr_t address);
 
 void kernel_enter_bsp(void)
 {
+    //puts("Entering BSP: ");
+    //puthexs(((elf64_ehdr_t *) kernel_binary)->e_entry);
+
     kernel_enter(((elf64_ehdr_t *) kernel_binary)->e_entry);
 }
 

@@ -3,6 +3,13 @@
 #include <stdint.h>
 #include <arc/metaprogramming.h>
 
+/*	Some macro helpers.	*/
+
+#define MCATS2(A, B) A ## B
+#define MCATS3(A, B, C) A ## MCATS2(B, C)
+#define MCATS4(A, B, C, D) MCATS2(A, B) ## MCATS2(C, D)
+//	Maacro conCATenate Symbols!
+
 /*	Constants/keywords..?	*/
 
 #define nullptr (0)

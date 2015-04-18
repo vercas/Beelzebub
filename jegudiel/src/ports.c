@@ -105,9 +105,9 @@ void write_serial_ud(const uint16_t port, const uint64_t n)
 
 void write_serial_uh(const uint16_t port, const uint64_t x, const size_t d)
 {
-	size_t i;
+	int32_t i;
 
-	for (i = d - 1; i >= 0; --i)
+	for (i = (int32_t)d - 1; i >= 0; --i)
 	{
 		uint8_t nib = (x >> (i * 4)) & 0x0F;
 

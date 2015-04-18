@@ -34,7 +34,7 @@ SECTIONS {
 
     .consts : {
         *(.rodata)
-        *(.font)
+        *(.graphics)
     }
 
     . = ALIGN(4096);
