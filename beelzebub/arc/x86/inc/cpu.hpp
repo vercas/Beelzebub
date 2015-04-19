@@ -2,6 +2,22 @@
 
 #include <metaprogramming.h>
 
+#define REGFUNC(regl, regu, type)                                   \
+static __bland __forceinline type MCATS2(Get, regu)()               \
+{                                                                   \
+	type ret;                                                       \
+                                                                    \
+	asm volatile ( "mov %%" #regl ", %0\n\t"                        \
+	             : "=a"(ret) );                                     \
+                                                                    \
+	return ret;                                                     \
+}                                                                   \
+static __bland __forceinline void MCATS2(Set, regu)(const type val) \
+{                                                                   \
+	asm volatile ( "mov %0, %%" #regl "\n\t"                        \
+	             : : "r"(val) );                                    \
+}
+
 namespace Beelzebub
 {
 	class Cpu
@@ -16,6 +32,13 @@ namespace Beelzebub
 		{
 			asm volatile ("hlt");
 		}
+
+		/*  Registers  */
+
+		REGFUNC(cr0, Cr0, size_t)
+		REGFUNC(cr2, Cr2, size_t)
+		REGFUNC(cr3, Cr3, size_t)
+		REGFUNC(cr4, Cr4, size_t)
 
 		/*  Interrupts  */
 
@@ -51,6 +74,7 @@ namespace Beelzebub
 
 			IDTR.length = size;
 			IDTR.base = base;
+
 			asm ( "lidt (%0)" : : "p"(&IDTR) );
 		}
 

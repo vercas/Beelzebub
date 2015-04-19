@@ -10,7 +10,7 @@ namespace Beelzebub { namespace Memory
 
 	PageAllocationSpace::PageAllocationSpace()
 	{
-		
+
 	}
 
 	PageAllocationSpace::PageAllocationSpace(const uintptr_t phys_start, const uintptr_t phys_end
@@ -41,15 +41,6 @@ namespace Beelzebub { namespace Memory
 		this->AllocationStart = phys_start + (this->MapPageCount * page_size);
 		this->AllocationEnd = phys_end;
 	}
-
-	/*  Properties  */
-
-/*#define GETTER(type, prop) type PageAllocationSpace::Getprop() { return this->prop; }
-
-	GETTER(size_t, FreePageCount)
-	GETTER(size_t, FreeSize)
-	GETTER(size_t, ReservedPageCount)
-	GETTER(size_t, ReservedSize)*/
 
 	/*  Page manipulation  */
 

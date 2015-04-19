@@ -13,7 +13,7 @@ using namespace Beelzebub::Terminals;
 
 TerminalWriteResult TerminalBase::DefaultWriteCharAtXy(TerminalBase * const term, const char c, const int16_t x, const int16_t y)
 {
-	return {Result::UnsupportedOperation, 0U, InvalidCoordinates};
+	return {Result::NotImplemented, 0U, InvalidCoordinates};
 }
 
 TerminalWriteResult TerminalBase::DefaultWriteCharAtCoords(TerminalBase * const term, const char c, const TerminalCoordinates pos)
@@ -285,6 +285,26 @@ Result TerminalBase::SetTabulatorWidth(const uint16_t w)
 uint16_t TerminalBase::GetTabulatorWidth()
 {
 	return this->Descriptor->GetTabulatorWidth(this);
+}
+
+/*  Utility  */
+
+TerminalWriteResult TerminalBase::WriteHex64(const uint64_t val)
+{
+	if (!this->Descriptor->Capabilities.CanOutput)
+		return {Result::UnsupportedOperation, 0U, InvalidCoordinates};
+
+	char str[17];
+	str[16] = '\0';
+
+	for (size_t i = 0; i < 16; ++i)
+	{
+		uint8_t nib = (val >> (i * 4)) & 0xF;
+
+		str[15 - i] = (nib > 9 ? '7' : '0') + nib;
+	}
+
+	return this->Descriptor->WriteString(this, str);
 }
 
 /*********************************

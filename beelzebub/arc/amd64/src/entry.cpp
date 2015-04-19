@@ -1,5 +1,7 @@
 #include <architecture.h>
 #include <arc/entry.h>
+#include <arc/memory/paging.hpp>
+#include <arc/cpu.hpp>
 
 #include <jegudiel.h>
 #include <arc/isr.h>
@@ -19,6 +21,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::Ports;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::Memory::Paging;
 
 //uint8_t initialSerialTerminal[sizeof(SerialTerminal)];
 SerialTerminal initialSerialTerminal;
@@ -131,4 +134,60 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 void InitializeMemory()
 {
 	SanitizeAndInitializeMemory(JG_INFO_MMAP, JG_INFO_ROOT->mmap_count, JG_INFO_ROOT->free_paddr);
+
+	initialSerialTerminal.WriteLine("");
+
+	//	DUMPING CONTROL REGISTERS
+
+	initialSerialTerminal.Write("CR0: ");
+	initialSerialTerminal.WriteHex64(Cpu::GetCr0());
+	initialSerialTerminal.WriteLine("");
+
+	initialSerialTerminal.Write("CR2: ");
+	initialSerialTerminal.WriteHex64(Cpu::GetCr2());
+	initialSerialTerminal.WriteLine("");
+
+	initialSerialTerminal.Write("CR3: ");
+	initialSerialTerminal.WriteHex64(Cpu::GetCr3());
+	initialSerialTerminal.WriteLine("");
+
+	initialSerialTerminal.Write("CR4: ");
+	initialSerialTerminal.WriteHex64(Cpu::GetCr4());
+	initialSerialTerminal.WriteLine("");
+
+	initialSerialTerminal.WriteLine("");
+
+	//	DUMPING PAGING TABLES
+
+	Cr3 cr3(Cpu::GetCr3());
+	Pml4 & pml4 = *cr3.GetPml4Ptr();
+
+	initialSerialTerminal.WriteLine("PML4:>  Address  |NXB|R/W|U/S|PWT|PCD|ACC|");
+
+	for (size_t i = 0; i < 512; ++i)
+	{
+		Pml4Entry e = pml4[i];
+
+		if (e.GetPresent())
+		{
+			initialSerialTerminal.WriteHex64((uint64_t)e.GetPml3Ptr());
+			initialSerialTerminal.Write(" | ");
+			initialSerialTerminal.Write(e.GetXd() ? "X" : " ");
+			initialSerialTerminal.Write(" | ");
+			initialSerialTerminal.Write(e.GetWritable() ? "X" : " ");
+			initialSerialTerminal.Write(" | ");
+			initialSerialTerminal.Write(e.GetUsermode() ? "X" : " ");
+			initialSerialTerminal.Write(" | ");
+			initialSerialTerminal.Write(e.GetPwt() ? "X" : " ");
+			initialSerialTerminal.Write(" | ");
+			initialSerialTerminal.Write(e.GetPcd() ? "X" : " ");
+			initialSerialTerminal.Write(" | ");
+			initialSerialTerminal.Write(e.GetAccessed() ? "X" : " ");
+			initialSerialTerminal.WriteLine(" |");
+		}
+		else
+			initialSerialTerminal.WriteLine("-----------------+---+---+---+---+---+---");
+	}
+
+	initialSerialTerminal.WriteLine("");
 }

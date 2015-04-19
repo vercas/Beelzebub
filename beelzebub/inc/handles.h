@@ -8,7 +8,7 @@ namespace Beelzebub
 {
 	struct Handle
 	{
-		size_t val;
+		size_t Value;
 	} __attribute__((packed));
 
 	enum class Result : u32
@@ -28,7 +28,7 @@ namespace Beelzebub
 
 typedef struct Handle_t
 {
-	size_t val;
+	size_t Value;
 } __attribute__((packed)) Handle;
 
 typedef u32 Result;

@@ -142,6 +142,9 @@ namespace Beelzebub { namespace Memory
 		__bland Result ReservePageRange(const size_t start, const size_t count);
 		__bland Result ReserveByteRange(const uintptr_t phys_start, const size_t length);
 
+		__bland void * AllocatePages(const size_t count);
+		__bland Result FreePages(const void * const phys_start, const size_t count);
+
 	private:
 
 		/*  Fields  */

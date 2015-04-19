@@ -57,8 +57,8 @@ namespace Beelzebub { namespace Terminals
 
 		static __bland TerminalWriteResult WriteHex8(const uint8_t val);
 		static __bland TerminalWriteResult WriteHex16(const uint16_t val);
-		static __bland TerminalWriteResult WriteHex32(const uint32_t val);
-		static __bland TerminalWriteResult WriteHex64(const uint64_t val);//*/
+		static __bland TerminalWriteResult WriteHex32(const uint32_t val);//*/
+		__bland TerminalWriteResult WriteHex64(const uint64_t val);
 		
 		/*  DYNAMICS  */
 
