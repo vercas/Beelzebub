@@ -1,7 +1,12 @@
 #pragma once
 
+#include <terminals/base.hpp>
+//#include <arc/system/registers.hpp>
+//#include <arc/system/cpu.hpp>
 #include <handles.h>
 #include <metaprogramming.h>
+
+using namespace Beelzebub::Terminals;
 
 //	Creates a getter and setter for bit-based properties.
 #define BITPROP(name)                                        \
@@ -19,7 +24,7 @@ __bland __forceinline void MCATS2(Set, name)(const bool val) \
 
 namespace Beelzebub { namespace Memory { namespace Paging
 {
-/**
+	/**
 	 *	Page Map Level 1 Entry
 	 */
 	struct Pml1Entry
@@ -118,10 +123,14 @@ namespace Beelzebub { namespace Memory { namespace Paging
 		/**
 		 *	Gets the value of a bit.
 		 */
-		__bland __forceinline bool operator[](const uint8_t bit)
+		__bland __forceinline bool operator[](const uint8_t bit) const
 		{
 			return 0 != (this->Value & (1 << bit));
 		}
+
+		/*  Debug  */
+
+		__bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
 	private:
 
@@ -166,6 +175,10 @@ namespace Beelzebub { namespace Memory { namespace Paging
 			//	And use that as an index! :D
 			return this->Entries[((uint64_t)laddr & AddressBits) >> IndexOffset];
 		}
+
+		/*  Debug  */
+
+		__bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
 		/*	Field(s)  */
 
@@ -334,10 +347,14 @@ namespace Beelzebub { namespace Memory { namespace Paging
 		/**
 		 *	Gets the value of a bit.
 		 */
-		__bland __forceinline bool operator[](const uint8_t bit)
+		__bland __forceinline bool operator[](const uint8_t bit) const
 		{
 			return 0 != (this->Value & (1 << bit));
 		}
+
+		/*  Debug  */
+
+		__bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
 	private:
 
@@ -382,6 +399,10 @@ namespace Beelzebub { namespace Memory { namespace Paging
 			//	And use that as an index! :D
 			return this->Entries[((uint64_t)laddr & AddressBits) >> IndexOffset];
 		}
+
+		/*  Debug  */
+
+		__bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
 		/*	Field(s)  */
 
@@ -550,10 +571,14 @@ namespace Beelzebub { namespace Memory { namespace Paging
 		/**
 		 *	Gets the value of a bit.
 		 */
-		__bland __forceinline bool operator[](const uint8_t bit)
+		__bland __forceinline bool operator[](const uint8_t bit) const
 		{
 			return 0 != (this->Value & (1 << bit));
 		}
+
+		/*  Debug  */
+
+		__bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
 	private:
 
@@ -598,6 +623,10 @@ namespace Beelzebub { namespace Memory { namespace Paging
 			//	And use that as an index! :D
 			return this->Entries[((uint64_t)laddr & AddressBits) >> IndexOffset];
 		}
+
+		/*  Debug  */
+
+		__bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
 		/*	Field(s)  */
 
@@ -702,10 +731,14 @@ namespace Beelzebub { namespace Memory { namespace Paging
 		/**
 		 *	Gets the value of a bit.
 		 */
-		__bland __forceinline bool operator[](const uint8_t bit)
+		__bland __forceinline bool operator[](const uint8_t bit) const
 		{
 			return 0 != (this->Value & (1 << bit));
 		}
+
+		/*  Debug  */
+
+		__bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
 	private:
 
@@ -750,126 +783,14 @@ namespace Beelzebub { namespace Memory { namespace Paging
 			return this->Entries[((uint64_t)laddr & AddressBits) >> IndexOffset];
 		}
 
+		/*  Debug  */
+
+		__bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+
 		/*	Field(s)  */
 
 	private:
 
 		Pml4Entry Entries[512];	//	Yeah...
-	};
-
-
-	/**
-	 * Represents the contents of the CR3 register.
-	 */
-	struct Cr3
-	{
-		/*
-		 *	Bit structure with PCID disabled:
-		 *		 0 -   2 : Ignored
-		 *		 3       : PWT (page-level write-through)
-		 *		 4       : PCD (page-level cache disable)
-		 *		 5 -  11 : Ignored
-		 *		12 - M-1 : Physical address of PML4 table; 4-KiB aligned.
-		 *		 M -  63 : Reserved (must be 0)
-		 *
-		 *	Bit structure with PCID enabled:
-		 *		 0 -  11 : PCID
-		 *		12 - M-1 : Physical address of PML4 table; 4-KiB aligned.
-		 *		 M -  63 : Reserved (must be 0)
-		 */
-
-		static const uint64_t PwtBit        = 1ULL <<  3;
-		static const uint64_t PcdBit        = 1ULL <<  4;
-
-		static const uint64_t ReferenceBits = 0x000FFFFFFFFFF000ULL;
-		static const uint64_t PcidBits      = 0x0000000000000FFFULL;
-
-		/*  Constructors  */
-
-		/**
-		 *	Creates a new CR3 structure from the given raw value.
-		 */
-		__bland __forceinline Cr3(const size_t val)
-		{
-			this->Value = val;
-		}
-
-		/**
-		 *	Creates a new CR3 structure for use with PCID disabled.
-		 */
-		__bland __forceinline Cr3(const Pml4 * const paddr, const bool PWT, const bool PCD)
-		{
-			this->Value = ((uint64_t)paddr & ReferenceBits)
-			            | (PWT ? PwtBit : 0)
-			            | (PCD ? PcdBit : 0);
-		}
-
-		/**
-		 *	Creates a new CR3 structure for use with PCID enabled.
-		 */
-		__bland __forceinline Cr3(const Pml4 * const paddr, const Handle process)
-		{
-			//	TODO: Check whether the handle is correct or not.
-
-			this->Value = ((uint64_t)paddr         & ReferenceBits)
-			            | ((uint64_t)process.Value & PcidBits     );
-		}
-
-		/*  Properties  */
-
-		BITPROP(Pwt)
-		BITPROP(Pcd)
-
-		/**
-		 *	Gets the physical address of the PML4 table.
-		 */
-		__bland __forceinline Pml4 * GetPml4Ptr() const
-		{
-			return (Pml4 *)(this->Value & ReferenceBits);
-		}
-		/**
-		 *	Sets the physical address of the PML4 table.
-		 */
-		__bland __forceinline void SetPml4Ptr(const Pml4 * const paddr)
-		{
-			this->Value = ((uint64_t)paddr       &  ReferenceBits)
-			            | (          this->Value & ~ReferenceBits);
-		}
-
-		/**
-		 *	Gets the PCID value.
-		 */
-		__bland __forceinline Handle GetPcid() const
-		{
-			//	TODO: Construct proper handles here!
-
-			return { this->Value & PcidBits };
-		}
-		/**
-		 *	Sets the PCID value from the given process.
-		 */
-		__bland __forceinline void SetPcid(const Handle process)
-		{
-			//	TODO: Check whether the handle is correct or not.
-
-			this->Value = (process.Value &  PcidBits)
-			            | (  this->Value & ~PcidBits);
-		}
-
-		/*  Operators  */
-
-		/**
-		 *	Gets the value of a bit.
-		 */
-		__bland __forceinline bool operator[](const uint8_t bit)
-		{
-			return 0 != (this->Value & (1 << bit));
-		}
-
-		/*	Field(s)  */
-
-	private:
-
-		size_t Value;
 	};
 }}}

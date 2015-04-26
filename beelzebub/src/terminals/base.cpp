@@ -13,7 +13,7 @@ using namespace Beelzebub::Terminals;
 
 TerminalWriteResult TerminalBase::DefaultWriteCharAtXy(TerminalBase * const term, const char c, const int16_t x, const int16_t y)
 {
-	return {Result::NotImplemented, 0U, InvalidCoordinates};
+	return {Handle(HandleResult::NotImplemented), 0U, InvalidCoordinates};
 }
 
 TerminalWriteResult TerminalBase::DefaultWriteCharAtCoords(TerminalBase * const term, const char c, const TerminalCoordinates pos)
@@ -24,7 +24,7 @@ TerminalWriteResult TerminalBase::DefaultWriteCharAtCoords(TerminalBase * const 
 TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term, const char * const str, const TerminalCoordinates pos)
 {
 	if (!term->Descriptor->Capabilities.CanOutput)
-		return {Result::UnsupportedOperation, 0U, InvalidCoordinates};
+		return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
 	//  First of all, the terminal needs to be capable of output.
 
 	TerminalCoordinates size;
@@ -34,7 +34,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
 	else if (term->Descriptor->Capabilities.CanGetSize)
 		size = term->GetSize();
 	else
-		return {Result::UnsupportedOperation, 0U, InvalidCoordinates};
+		return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
 	//  A buffer or window size is required to prevent drawing outside
 	//  the boundaries.
 
@@ -75,7 +75,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
 
 			TerminalWriteResult tmp = term->WriteAt(c, x, y);
 
-			if (tmp.Result != Result::Okay)
+			if (!tmp.Result.IsOkayResult())
 				return {tmp.Result, i, {x, y}};
 
 			x++;
@@ -84,19 +84,19 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
 
 	if (term->Descriptor->Capabilities.CanSetOutputPosition)
 	{
-		Result res = term->SetCurrentPosition(x, y);
+		Handle res = term->SetCurrentPosition(x, y);
 	
 		return {res, i, {x, y}};
 	}
 
-	return {Result::Okay, i, {x, y}};
+	return {Handle(HandleResult::Okay), i, {x, y}};
 }
 
 TerminalWriteResult TerminalBase::DefaultWriteChar(TerminalBase * const term, const char c)
 {
 	if (!(term->Descriptor->Capabilities.CanOutput
 	   && term->Descriptor->Capabilities.CanGetOutputPosition))
-		return {Result::UnsupportedOperation, 0U, InvalidCoordinates};
+		return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
 
 	return term->WriteAt(c, term->GetCurrentPosition());
 }
@@ -105,7 +105,7 @@ TerminalWriteResult TerminalBase::DefaultWriteString(TerminalBase * const term, 
 {
 	if (!(term->Descriptor->Capabilities.CanOutput
 	   && term->Descriptor->Capabilities.CanGetOutputPosition))
-		return {Result::UnsupportedOperation, 0U, InvalidCoordinates};
+		return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
 
 	return term->WriteAt(str, term->GetCurrentPosition());
 }
@@ -114,7 +114,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringLine(TerminalBase * const te
 {
 	TerminalWriteResult tmp = term->Write(str);
 
-	if (tmp.Result != Result::Okay)
+	if (!tmp.Result.IsOkayResult())
 		return tmp;
 
 	return term->Write("\r\n");
@@ -123,12 +123,12 @@ TerminalWriteResult TerminalBase::DefaultWriteStringLine(TerminalBase * const te
 /*  Positioning  */
 
 
-Result TerminalBase::DefaultSetCursorPositionXy(TerminalBase * const term, const int16_t x, const int16_t y)
+Handle TerminalBase::DefaultSetCursorPositionXy(TerminalBase * const term, const int16_t x, const int16_t y)
 {
-	return Result::UnsupportedOperation;
+	return Handle(HandleResult::UnsupportedOperation);
 }
 
-Result TerminalBase::DefaultSetCursorPositionCoords(TerminalBase * const term, const TerminalCoordinates pos)
+Handle TerminalBase::DefaultSetCursorPositionCoords(TerminalBase * const term, const TerminalCoordinates pos)
 {
 	return term->SetCursorPosition(pos.X, pos.Y);
 }
@@ -139,19 +139,19 @@ TerminalCoordinates TerminalBase::DefaultGetCursorPosition(TerminalBase * const 
 }
 
 
-Result TerminalBase::DefaultSetCurrentPositionXy(TerminalBase * const term, const int16_t x, const int16_t y)
+Handle TerminalBase::DefaultSetCurrentPositionXy(TerminalBase * const term, const int16_t x, const int16_t y)
 {
 	return term->SetCurrentPosition({x, y});
 }
 
-Result TerminalBase::DefaultSetCurrentPositionCoords(TerminalBase * const term, const TerminalCoordinates pos)
+Handle TerminalBase::DefaultSetCurrentPositionCoords(TerminalBase * const term, const TerminalCoordinates pos)
 {
 	if (!term->Descriptor->Capabilities.CanSetOutputPosition)
-		return Result::UnsupportedOperation;
+		return Handle(HandleResult::UnsupportedOperation);
 
 	term->CurrentPosition = pos;
 
-	return Result::Okay;
+	return Handle(HandleResult::Okay);
 }
 
 TerminalCoordinates TerminalBase::DefaultGetCurrentPosition(TerminalBase * const term)
@@ -163,12 +163,12 @@ TerminalCoordinates TerminalBase::DefaultGetCurrentPosition(TerminalBase * const
 }
 
 
-Result TerminalBase::DefaultSetSizeXy(TerminalBase * const term, const int16_t w, const int16_t h)
+Handle TerminalBase::DefaultSetSizeXy(TerminalBase * const term, const int16_t w, const int16_t h)
 {
-	return Result::UnsupportedOperation;
+	return Handle(HandleResult::UnsupportedOperation);
 }
 
-Result TerminalBase::DefaultSetSizeCoords(TerminalBase * const term, const TerminalCoordinates pos)
+Handle TerminalBase::DefaultSetSizeCoords(TerminalBase * const term, const TerminalCoordinates pos)
 {
 	return term->SetSize(pos.X, pos.Y);
 }
@@ -179,12 +179,12 @@ TerminalCoordinates TerminalBase::DefaultGetSize(TerminalBase * const term)
 }
 
 
-Result TerminalBase::DefaultSetBufferSizeXy(TerminalBase * const term, const int16_t w, const int16_t h)
+Handle TerminalBase::DefaultSetBufferSizeXy(TerminalBase * const term, const int16_t w, const int16_t h)
 {
-	return Result::UnsupportedOperation;
+	return Handle(HandleResult::UnsupportedOperation);
 }
 
-Result TerminalBase::DefaultSetBufferSizeCoords(TerminalBase * const term, const TerminalCoordinates pos)
+Handle TerminalBase::DefaultSetBufferSizeCoords(TerminalBase * const term, const TerminalCoordinates pos)
 {
 	return term->SetBufferSize(pos.X, pos.Y);
 }
@@ -195,14 +195,14 @@ TerminalCoordinates TerminalBase::DefaultGetBufferSize(TerminalBase * const term
 }
 
 
-Result TerminalBase::DefaultSetTabulatorWidth(TerminalBase * const term, const uint16_t w)
+Handle TerminalBase::DefaultSetTabulatorWidth(TerminalBase * const term, const uint16_t w)
 {
 	if (!term->Descriptor->Capabilities.CanSetTabulatorWidth)
-		return Result::UnsupportedOperation;
+		return Handle(HandleResult::UnsupportedOperation);
 
 	term->TabulatorWidth = w;
 
-	return Result::Okay;
+	return Handle(HandleResult::Okay);
 }
 
 uint16_t TerminalBase::DefaultGetTabulatorWidth(TerminalBase * const term)
@@ -258,11 +258,11 @@ TerminalWriteResult TerminalBase::WriteLine(const char * const str)
 /*  Positioning  */
 
 #define I_HATE_REPEATING_MYSELF_1(prop) \
-Result TerminalBase::MCATS2(Set, prop)(const int16_t x, const int16_t y) \
+Handle TerminalBase::MCATS2(Set, prop)(const int16_t x, const int16_t y) \
 { \
 	return this->Descriptor->MCATS3(Set, prop, Xy)(this, x, y); \
 } \
-Result TerminalBase::MCATS2(Set, prop)(const TerminalCoordinates pos) \
+Handle TerminalBase::MCATS2(Set, prop)(const TerminalCoordinates pos) \
 { \
 	return this->Descriptor->MCATS3(Set, prop, Coords)(this, pos); \
 } \
@@ -277,7 +277,7 @@ I_HATE_REPEATING_MYSELF_1(Size)
 I_HATE_REPEATING_MYSELF_1(BufferSize)
 
 
-Result TerminalBase::SetTabulatorWidth(const uint16_t w)
+Handle TerminalBase::SetTabulatorWidth(const uint16_t w)
 {
 	return this->Descriptor->SetTabulatorWidth(this, w);
 }
@@ -289,10 +289,28 @@ uint16_t TerminalBase::GetTabulatorWidth()
 
 /*  Utility  */
 
+TerminalWriteResult TerminalBase::WriteHex16(const uint16_t val)
+{
+	if (!this->Descriptor->Capabilities.CanOutput)
+		return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+
+	char str[5];
+	str[4] = '\0';
+
+	for (size_t i = 0; i < 4; ++i)
+	{
+		uint8_t nib = (val >> (i * 4)) & 0xF;
+
+		str[3 - i] = (nib > 9 ? '7' : '0') + nib;
+	}
+
+	return this->Descriptor->WriteString(this, str);
+}
+
 TerminalWriteResult TerminalBase::WriteHex64(const uint64_t val)
 {
 	if (!this->Descriptor->Capabilities.CanOutput)
-		return {Result::UnsupportedOperation, 0U, InvalidCoordinates};
+		return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
 
 	char str[17];
 	str[16] = '\0';

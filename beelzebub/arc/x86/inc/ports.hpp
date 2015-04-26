@@ -1,7 +1,9 @@
 #pragma once
 
-#include <arc/cpu.hpp>
+#include <arc/system/cpu.hpp>
 #include <metaprogramming.h>
+
+using namespace Beelzebub::System;
 
 namespace Beelzebub { namespace Ports
 {

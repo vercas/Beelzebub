@@ -1,7 +1,8 @@
-#include <arc/cpu.hpp>
+#include <arc/system/cpu.hpp>
 #include <kernel.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::System;
 
 volatile bool InitializingSystem = true;
 

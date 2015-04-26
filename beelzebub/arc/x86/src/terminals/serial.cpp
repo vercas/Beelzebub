@@ -94,14 +94,14 @@ TerminalWriteResult SerialTerminal::WriteChar(TerminalBase * const term, const c
 
 	sterm->Port.Write(c, true);
 
-	return {Result::Okay, 1U, InvalidCoordinates};
+	return {Handle(HandleResult::Okay), 1U, InvalidCoordinates};
 }
 
 TerminalWriteResult SerialTerminal::WriteString(TerminalBase * const term, const char * const str)
 {
 	SerialTerminal * sterm = (SerialTerminal *)term;
 
-	return {Result::Okay, (uint32_t)sterm->Port.WriteNtString(str), InvalidCoordinates};
+	return {Handle(HandleResult::Okay), (uint32_t)sterm->Port.WriteNtString(str), InvalidCoordinates};
 }
 
 TerminalWriteResult SerialTerminal::WriteStringLine(TerminalBase * const term, const char * const str)
@@ -111,5 +111,5 @@ TerminalWriteResult SerialTerminal::WriteStringLine(TerminalBase * const term, c
 	size_t n = sterm->Port.WriteNtString(str);
 	n += sterm->Port.WriteNtString("\r\n");
 
-	return {Result::Okay, (uint32_t)n, InvalidCoordinates};
+	return {Handle(HandleResult::Okay), (uint32_t)n, InvalidCoordinates};
 }

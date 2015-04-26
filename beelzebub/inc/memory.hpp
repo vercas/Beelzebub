@@ -7,5 +7,5 @@
 namespace Beelzebub { namespace Memory
 {
 	/*	Initializes the memory based on the given ranges.	*/
-	__bland Result Initialize(const PageAllocationSpace * const ranges, const size_t count);
+	__bland Handle Initialize(const PageAllocationSpace * const ranges, const size_t count);
 }}

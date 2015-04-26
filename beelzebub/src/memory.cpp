@@ -3,9 +3,9 @@
 
 using namespace Beelzebub;
 
-Result Beelzebub::Memory::Initialize(const PageAllocationSpace * const ranges, const size_t count)
+Handle Beelzebub::Memory::Initialize(const PageAllocationSpace * const ranges, const size_t count)
 {
 
 
-	return Result::Okay;
+	return Handle(HandleResult::Okay);
 }

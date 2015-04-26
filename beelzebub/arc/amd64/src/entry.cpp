@@ -1,7 +1,7 @@
 #include <architecture.h>
 #include <arc/entry.h>
 #include <arc/memory/paging.hpp>
-#include <arc/cpu.hpp>
+#include <arc/system/cpu.hpp>
 
 #include <jegudiel.h>
 #include <arc/isr.h>
@@ -137,19 +137,41 @@ void InitializeMemory()
 
 	initialSerialTerminal.WriteLine("");
 
+	//	DUMPING MMAP
+
+	initialSerialTerminal.WriteLine("IND |A|    Address     |     Length     |");
+
+	// get pagez lol
+
+	jg_info_mmap_t * mmap = JG_INFO_MMAP;
+	uint32_t mmapcnt = JG_INFO_ROOT->mmap_count;
+
+	for (uint32_t i = 0; i < mmapcnt; i++)
+	{
+		jg_info_mmap_t & e = mmap[i];
+		//  Current map.
+
+		initialSerialTerminal.WriteHex16((uint16_t)i);
+		initialSerialTerminal.Write("|");
+		initialSerialTerminal.Write(e.available ? "A" : " ");
+		initialSerialTerminal.Write("|");
+		initialSerialTerminal.WriteHex64(e.address);
+		initialSerialTerminal.Write("|");
+		initialSerialTerminal.WriteHex64(e.length);
+		initialSerialTerminal.WriteLine("|");
+	}
+
+	initialSerialTerminal.WriteLine("");
+
 	//	DUMPING CONTROL REGISTERS
 
-	initialSerialTerminal.Write("CR0: ");
-	initialSerialTerminal.WriteHex64(Cpu::GetCr0());
-	initialSerialTerminal.WriteLine("");
+	Cpu::GetCr0().PrintToTerminal(&initialSerialTerminal);
 
 	initialSerialTerminal.Write("CR2: ");
-	initialSerialTerminal.WriteHex64(Cpu::GetCr2());
+	initialSerialTerminal.WriteHex64((uint64_t)Cpu::GetCr2());
 	initialSerialTerminal.WriteLine("");
 
-	initialSerialTerminal.Write("CR3: ");
-	initialSerialTerminal.WriteHex64(Cpu::GetCr3());
-	initialSerialTerminal.WriteLine("");
+	Cpu::GetCr3().PrintToTerminal(&initialSerialTerminal);
 
 	initialSerialTerminal.Write("CR4: ");
 	initialSerialTerminal.WriteHex64(Cpu::GetCr4());
@@ -162,32 +184,118 @@ void InitializeMemory()
 	Cr3 cr3(Cpu::GetCr3());
 	Pml4 & pml4 = *cr3.GetPml4Ptr();
 
-	initialSerialTerminal.WriteLine("PML4:>  Address  |NXB|R/W|U/S|PWT|PCD|ACC|");
+	/*initialSerialTerminal.WriteLine("PML4:>  Address  |NXB|R/W|U/S|PWT|PCD|ACC|");
 
 	for (size_t i = 0; i < 512; ++i)
 	{
-		Pml4Entry e = pml4[i];
+		Pml4Entry & e = pml4[i];
 
 		if (e.GetPresent())
 		{
 			initialSerialTerminal.WriteHex64((uint64_t)e.GetPml3Ptr());
-			initialSerialTerminal.Write(" | ");
-			initialSerialTerminal.Write(e.GetXd() ? "X" : " ");
-			initialSerialTerminal.Write(" | ");
-			initialSerialTerminal.Write(e.GetWritable() ? "X" : " ");
-			initialSerialTerminal.Write(" | ");
-			initialSerialTerminal.Write(e.GetUsermode() ? "X" : " ");
-			initialSerialTerminal.Write(" | ");
-			initialSerialTerminal.Write(e.GetPwt() ? "X" : " ");
-			initialSerialTerminal.Write(" | ");
-			initialSerialTerminal.Write(e.GetPcd() ? "X" : " ");
-			initialSerialTerminal.Write(" | ");
-			initialSerialTerminal.Write(e.GetAccessed() ? "X" : " ");
-			initialSerialTerminal.WriteLine(" |");
+			initialSerialTerminal.Write(" |");
+			initialSerialTerminal.Write(e.GetXd()       ? "EXD" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetWritable() ? "R/W" : " R ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetUsermode() ? "U/S" : " S ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetPwt()      ? "PWT" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetPcd()      ? "PCD" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetAccessed() ? "ACC" : "   ");
+			initialSerialTerminal.WriteLine("|");
 		}
 		else
-			initialSerialTerminal.WriteLine("-----------------+---+---+---+---+---+---");
+			initialSerialTerminal.WriteLine("-----------------+---+---+---+---+---+---<");
 	}
+
+	initialSerialTerminal.WriteLine("");//*/
+
+	Pml3 & pml3 = *pml4[510].GetPml3Ptr();
+
+	/*initialSerialTerminal.WriteLine("PML3:>  Address  |M/P|NXB|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|");
+
+	for (size_t i = 0; i < 512; ++i)
+	{
+		Pml3Entry & e = pml3[i];
+
+		if (e.GetPresent())
+		{
+			initialSerialTerminal.WriteHex64((uint64_t)e.GetPml2Ptr());
+			initialSerialTerminal.Write(" |");
+			initialSerialTerminal.Write(e.GetPageSize() ? "MAP" : "PAG");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetXd()       ? "EXD" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetWritable() ? "R/W" : " R ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetUsermode() ? "U/S" : " S ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetPwt()      ? "PWT" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetPcd()      ? "PCD" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetAccessed() ? "ACC" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetGlobal()   ? "GLB" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetDirty()    ? "DRT" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetPat()      ? "PAT" : "   ");
+			initialSerialTerminal.WriteLine("|");
+		}
+		else
+			initialSerialTerminal.WriteLine("-----------------+---+---+---+---+---+---+---<");
+	}
+
+	initialSerialTerminal.WriteLine("");//*/
+
+	Pml2 & pml2 = *pml3[(uint16_t)0].GetPml2Ptr();
+
+	/*initialSerialTerminal.WriteLine("PML2:>  Address  |M/P|NXB|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|");
+
+	for (size_t i = 0; i < 512; ++i)
+	{
+		Pml2Entry & e = pml2[i];
+
+		if (e.GetPresent())
+		{
+			initialSerialTerminal.WriteHex64((uint64_t)e.GetPml1Ptr());
+			initialSerialTerminal.Write(" |");
+			initialSerialTerminal.Write(e.GetPageSize() ? "MAP" : "PAG");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetXd()       ? "EXD" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetWritable() ? "R/W" : " R ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetUsermode() ? "U/S" : " S ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetPwt()      ? "PWT" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetPcd()      ? "PCD" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetAccessed() ? "ACC" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetGlobal()   ? "GLB" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetDirty()    ? "DRT" : "   ");
+			initialSerialTerminal.Write("|");
+			initialSerialTerminal.Write(e.GetPat()      ? "PAT" : "   ");
+			initialSerialTerminal.WriteLine("|");
+		}
+		else
+			initialSerialTerminal.WriteLine("-----------------+---+---+---+---+---+---+---+---+---+---<");
+	}
+
+	initialSerialTerminal.WriteLine("");//*/
+
+	pml2[(uint16_t)0].GetPml1Ptr()->PrintToTerminal(&initialSerialTerminal);
+
+	initialSerialTerminal.WriteLine("");
+
+	pml2[(uint16_t)1].GetPml1Ptr()->PrintToTerminal(&initialSerialTerminal);
 
 	initialSerialTerminal.WriteLine("");
 }
