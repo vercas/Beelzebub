@@ -71,7 +71,7 @@ static uint64_t *page_struct_get(uintptr_t virtual, uint8_t level, bool create)
 	if (0 == (*parent_entry & PAGE_FLAG_PRESENT)) {
 		if (create) {
 			uintptr_t frame = (uintptr_t) heap_alloc(0x1000);
-			uint64_t flags = PAGE_FLAG_PRESENT | PAGE_FLAG_WRITABLE | PAGE_FLAG_USER;
+			uint64_t flags = PAGE_FLAG_PRESENT | PAGE_FLAG_WRITABLE;// | PAGE_FLAG_USER;
 
 			*parent_entry = frame | flags;
 
