@@ -11,6 +11,9 @@ run: image
 	
 qemu: image
 	@ qemu-system-x86_64 -cdrom $(PREFIX)/boot.iso -smp 4
+
+qemu-serial: image
+	@ qemu-system-x86_64 -cdrom $(PREFIX)/boot.iso -smp 4 -nographic
 	
 loader:
 	@ $(MAKE) -C jegudiel/ install
