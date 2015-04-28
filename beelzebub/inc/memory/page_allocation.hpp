@@ -159,8 +159,13 @@ namespace Beelzebub { namespace Memory
         PROP(size_t, Size)                  //  Total number of bytes in the allocation space.
         PROP(size_t, AllocablePageCount)    //  Total number of pages which can be allocated.
         PROP(size_t, AllocableSize)         //  Total number of bytes which can be allocated.
-        PROP(size_t, MapPageCount)          //  Number of pages used for mapping the space.
-        PROP(size_t, MapSize)               //  Number of bytes in pages used for mapping.
+        
+        PROP(size_t, ControlPageCount)      //  Number of pages used for control structures (descriptor map and stacks).
+        PROP(size_t, MapSize)               //  Number of bytes used for descriptor map.
+        PROP(size_t, StackSize)             //  Number of bytes used for the page stack.
+
+        PROP(size_t, StackFreeTop)          //  Top of the free page stack.
+        PROP(size_t, StackCacheTop)         //  Top of the cache page stack.
 
         PROP(size_t, FreePageCount)         //  Number of unallocated pages.
         PROP(size_t, FreeSize)              //  Number of bytes in unallocated pages.
@@ -189,6 +194,8 @@ namespace Beelzebub { namespace Memory
 
         PageDescriptor * Map, * MapEnd;
         //  Pointers to the allocation map within the space.
+        size_t * Stack;
+        //  El stacko de páginas libres. Lmao.
         size_t CurrentIndex;
         //  Used for round-robin checkin'.
 

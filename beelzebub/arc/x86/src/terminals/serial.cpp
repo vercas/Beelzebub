@@ -12,6 +12,7 @@ TerminalDescriptor SerialTerminalDescriptor = {
 	&TerminalBase::DefaultWriteStringAt,
 	&SerialTerminal::WriteChar,
 	&SerialTerminal::WriteString,
+    &TerminalBase::DefaultWriteStringVarargs,
 	&SerialTerminal::WriteStringLine,
 
 	&TerminalBase::DefaultSetCursorPositionXy,

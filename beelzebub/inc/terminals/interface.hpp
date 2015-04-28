@@ -3,6 +3,8 @@
 #include <metaprogramming.h>
 #include <handles.h>
 
+#include "stdarg.h"
+
 namespace Beelzebub { namespace Terminals
 {
 	/**
@@ -101,6 +103,7 @@ namespace Beelzebub { namespace Terminals
 
 	typedef TerminalWriteResult (*WriteCharFunc)(TerminalBase * const, const char);
 	typedef TerminalWriteResult (*WriteStringFunc)(TerminalBase * const, const char * const);
+	typedef TerminalWriteResult (*WriteStringVarargsFunc)(TerminalBase * const, const char * const, va_list);
 
 	typedef Handle (*SetXyFunc)(TerminalBase * const, const int16_t, const int16_t);
 	typedef Handle (*SetCoordsFunc)(TerminalBase * const, const TerminalCoordinates);
@@ -124,6 +127,7 @@ namespace Beelzebub { namespace Terminals
 
 		WriteCharFunc WriteChar;
 		WriteStringFunc WriteString;
+        WriteStringVarargsFunc WriteStringVarargs;
 		WriteStringFunc WriteLineString;
 
 		/*  Positioning  */

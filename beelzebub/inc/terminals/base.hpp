@@ -4,17 +4,22 @@
 #include <metaprogramming.h>
 #include <handles.h>
 
-#define TERMTRY0(call, tres)                \
+#include "stdarg.h"
+
+#define TERMTRY0(call, tres) do {           \
 tres = call;                                \
 if (!tres.Result.IsOkayResult())            \
-	return tres;                            
+	return tres;                            \
+} while (false)
 
-#define TERMTRY1(call, tres, cnt)           \
+#define TERMTRY1(call, tres, cnt) do {      \
 cnt = tres.Size;                            \
 tres = call;                                \
-tres.Size += cnt;                           \
-if (!tres.Result.IsOkayResult())            \
-	return tres;                            
+if (tres.Result.IsOkayResult())             \
+	tres.Size += cnt;                       \
+else                                        \
+	return tres;                            \
+} while (false)
 
 namespace Beelzebub { namespace Terminals
 {
@@ -37,7 +42,9 @@ namespace Beelzebub { namespace Terminals
 
 		static __bland TerminalWriteResult DefaultWriteChar(TerminalBase * const term, const char c);
 		static __bland TerminalWriteResult DefaultWriteString(TerminalBase * const term, const char * const str);
+		static __bland TerminalWriteResult DefaultWriteStringVarargs(TerminalBase * const term, const char * const fmt, va_list args);
 		static __bland TerminalWriteResult DefaultWriteStringLine(TerminalBase * const term, const char * const str);
+		static __bland TerminalWriteResult DefaultWriteStringFormat(TerminalBase * const term, const char * const fmt, ...);
 
 		/*  Positioning  */
 
@@ -65,10 +72,10 @@ namespace Beelzebub { namespace Terminals
 		/*	Utilitary methods  */
 
 		/*static __bland TerminalWriteResult WriteIntD(const int64_t val);
-		static __bland TerminalWriteResult WriteUintD(const uint64_t val);
 
 		static __bland TerminalWriteResult WriteHex8(const uint8_t val);
 		static __bland TerminalWriteResult WriteHex32(const uint32_t val);//*/
+		__bland TerminalWriteResult WriteUIntD(const uint64_t val);
 		__bland TerminalWriteResult WriteHex16(const uint16_t val);
 		__bland TerminalWriteResult WriteHex64(const uint64_t val);
 		
@@ -90,7 +97,9 @@ namespace Beelzebub { namespace Terminals
 
 		__bland TerminalWriteResult Write(const char c);
 		__bland TerminalWriteResult Write(const char * const str);
+		__bland TerminalWriteResult Write(const char * const fmt, va_list args);
 		__bland TerminalWriteResult WriteLine(const char * const str);
+		__bland TerminalWriteResult WriteFormat(const char * const fmt, ...);
 
 		/*  Positioning  */
 

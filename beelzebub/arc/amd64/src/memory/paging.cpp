@@ -71,16 +71,16 @@ TerminalWriteResult Pml1::PrintToTerminal(TerminalBase * const term) const
 {
 	TerminalWriteResult tret;
 	
-	TERMTRY0(term->WriteLine("IND |PML1:  Address  |T|NXB|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|"), tret)
+	TERMTRY0(term->WriteLine("IND |PML1:  Address  |T|NXB|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|"), tret);
 
 	uint32_t cnt;
 
 	for (size_t i = 0; i < 512; ++i)
 	{
-		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt)
-		TERMTRY1(term->Write("|"), tret, cnt)
+		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
+		TERMTRY1(term->Write("|"), tret, cnt);
 		
-		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt)
+		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt);
 	}
 
 	return tret;
@@ -155,16 +155,16 @@ TerminalWriteResult Pml2::PrintToTerminal(TerminalBase * const term) const
 {
 	TerminalWriteResult tret;
 	
-	TERMTRY0(term->WriteLine("IND |PML2:  Address  |T|NXB|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|"), tret)
+	TERMTRY0(term->WriteLine("IND |PML2:  Address  |T|NXB|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|"), tret);
 
 	uint32_t cnt;
 
 	for (size_t i = 0; i < 512; ++i)
 	{
-		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt)
-		TERMTRY1(term->Write("|"), tret, cnt)
+		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
+		TERMTRY1(term->Write("|"), tret, cnt);
 		
-		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt)
+		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt);
 	}
 
 	return tret;
@@ -239,16 +239,16 @@ TerminalWriteResult Pml3::PrintToTerminal(TerminalBase * const term) const
 {
 	TerminalWriteResult tret;
 	
-	TERMTRY0(term->WriteLine("IND |PML3:  Address  |T|NXB|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|"), tret)
+	TERMTRY0(term->WriteLine("IND |PML3:  Address  |T|NXB|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|"), tret);
 
 	uint32_t cnt;
 
 	for (size_t i = 0; i < 512; ++i)
 	{
-		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt)
-		TERMTRY1(term->Write("|"), tret, cnt)
+		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
+		TERMTRY1(term->Write("|"), tret, cnt);
 		
-		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt)
+		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt);
 	}
 
 	return tret;
@@ -312,16 +312,16 @@ TerminalWriteResult Pml4::PrintToTerminal(TerminalBase * const term) const
 {
 	TerminalWriteResult tret;
 	
-	TERMTRY0(term->WriteLine("IND |PML4:  Address  |T|NXB|R/W|U/S|PWT|PCD|ACC|"), tret)
+	TERMTRY0(term->WriteLine("IND |PML4:  Address  |T|NXB|R/W|U/S|PWT|PCD|ACC|"), tret);
 	
 	uint32_t cnt;
 
 	for (size_t i = 0; i < 512; ++i)
 	{
-		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt)
-		TERMTRY1(term->Write("|"), tret, cnt)
+		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
+		TERMTRY1(term->Write("|"), tret, cnt);
 		
-		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt)
+		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt);
 	}
 
 	return tret;
