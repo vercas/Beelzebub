@@ -1,7 +1,7 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(boot32_bsp)
 SECTIONS {
-    .text 0x100000 : {
+    .text 0x1000000 : {
         *(.multiboot)
         *(.text)
     }
@@ -14,7 +14,7 @@ SECTIONS {
         *(.bss)
     }
     
-    .info 0x108000 : {
+    .info 0x1008000 : {
         idt_data = .; . += 4096;
         gdt_data = .; . += 4096;
         page_pml4 = .; . += 4096;

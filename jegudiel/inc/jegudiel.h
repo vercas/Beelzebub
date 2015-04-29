@@ -55,9 +55,9 @@
 // Info Table - Memory Structure
 //-----------------------------------------------------------------------------
 
-#define JG_INFO_OFFSET(name)    ((uintptr_t) (0x14C000 + JG_INFO_ROOT-> name ## _offset))
+#define JG_INFO_OFFSET(name)    ((uintptr_t) (0x104C000 + JG_INFO_ROOT-> name ## _offset))
 
-#define JG_INFO_ROOT            ((jg_info_root_t *) 0x14C000)
+#define JG_INFO_ROOT            ((jg_info_root_t *) 0x104C000)
 #define JG_INFO_CPU             ((jg_info_cpu_t *) JG_INFO_OFFSET(cpu))
 #define JG_INFO_IOAPIC          ((jg_info_ioapic_t *) JG_INFO_OFFSET(ioapic))
 #define JG_INFO_MMAP            ((jg_info_mmap_t *) JG_INFO_OFFSET(mmap))
