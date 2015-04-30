@@ -192,12 +192,10 @@ namespace Beelzebub { namespace Memory
 
         /*  Fields  */
 
-        PageDescriptor * Map, * MapEnd;
+        PageDescriptor * Map;
         //  Pointers to the allocation map within the space.
         size_t * Stack;
         //  El stacko de páginas libres. Lmao.
-        size_t CurrentIndex;
-        //  Used for round-robin checkin'.
 
         //  Current size: 144 bytes. :(
 

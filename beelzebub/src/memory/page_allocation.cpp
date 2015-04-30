@@ -41,30 +41,36 @@ namespace Beelzebub { namespace Memory
         this->MapSize = this->AllocablePageCount * sizeof(PageDescriptor);
         this->StackSize = this->AllocablePageCount * sizeof(size_t);
 
-        this->ReservedSize = this->MapSize + this->StackSize;
+        //  Technically, the whole pages are reserved.
+        this->ReservedSize = this->ReservedPageCount * page_size;
 
-        this->MapEnd = this->Map + this->AllocablePageCount - 1;
         this->Stack = (size_t *)(this->Map + this->AllocablePageCount);
 
         size_t j = 0;
         for (size_t i = 0; i < this->PageCount; ++i)
-        {
-            this->Map[i] = PageDescriptor(i, i < this->ControlPageCount ? PageStatus::Reserved : PageStatus::Free);
-            
             if (i >= this->ControlPageCount)
+            {
+                this->Map[i] = PageDescriptor(j, PageStatus::Free);
                 this->Stack[j++] = i;
-        }
+            }
+            else
+                this->Map[i] = PageDescriptor(0, PageStatus::Reserved);
 
         this->StackFreeTop = this->StackCacheTop = j;
-
-        assert(j == this->AllocablePageCount, "Number of free pages in the stack doesn't match the number of allocable pages..? %u8 vs %u8", j, this->AllocablePageCount);
-
-        this->CurrentIndex = this->ControlPageCount;
 
         this->MemoryStart = phys_start;
         this->MemoryEnd = phys_end;
         this->AllocationStart = phys_start + (this->ControlPageCount * page_size);
         this->AllocationEnd = phys_end;
+
+        assert(j == this->AllocablePageCount
+            , "Number of free pages in the stack doesn't match the number of allocable pages..? %u8 vs %u8"
+            , j, this->AllocablePageCount);
+
+        assert(this->ControlPageCount + this->AllocablePageCount == this->PageCount
+            , "Page count mismatch..? %u8 + %u8 != %u8"
+            , this->ControlPageCount, this->AllocablePageCount
+            , this->PageCount);
     }
 
     /*  Page manipulation  */
