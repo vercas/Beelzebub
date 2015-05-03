@@ -129,11 +129,25 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
     {
         if (inFormat)
         {
-            if (c == 'u')
+            if (c == 'u')       //  Unsigned decimal.
             {
                 /*  Unsigned decimal integer  */
 
                 char size = *fmts++;
+
+                switch (size)
+                {
+                    case 's':
+                        size = '0' + sizeof(size_t);
+                        break;
+
+                    case 'p':
+                        size = '0' + sizeof(void *);
+                        break;
+
+                    default:
+                        break;
+                }
 
                 switch (size)
                 {
@@ -160,11 +174,139 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                         return {Handle(HandleResult::FormatBadArgumentSize), cnt, InvalidCoordinates};
                 }
             }
-            else if (c == 's')
+            else if (c == 'i')       //  Unsigned decimal.
+            {
+                /*  Unsigned decimal integer  */
+
+                char size = *fmts++;
+
+                switch (size)
+                {
+                    case 's':
+                        size = '0' + sizeof(size_t);
+                        break;
+
+                    case 'p':
+                        size = '0' + sizeof(void *);
+                        break;
+
+                    default:
+                        break;
+                }
+
+                switch (size)
+                {
+                    case '8':
+                        {
+                            int64_t val8 = va_arg(args, int64_t);
+                            TERMTRY1(term->WriteIntD(val8), res, cnt);
+                        }
+                        break;
+
+                    case '4':
+                    case '2':
+                    case '1':
+                        /*  Apparently chars and shorts are promoted to integers!  */
+                        
+                        {
+                            int32_t val4 = va_arg(args, int32_t);
+                            TERMTRY1(term->WriteIntD(val4), res, cnt);
+                        }
+
+                        break;
+
+                    default:
+                        return {Handle(HandleResult::FormatBadArgumentSize), cnt, InvalidCoordinates};
+                }
+            }
+            else if (c == 'X')       //  Hexadecimal.
+            {
+                /*  Unsigned decimal integer  */
+
+                char size = *fmts++;
+
+                switch (size)
+                {
+                    case 's':
+                        size = '0' + sizeof(size_t);
+                        break;
+
+                    case 'p':
+                        size = '0' + sizeof(void *);
+                        break;
+
+                    default:
+                        break;
+                }
+
+                switch (size)
+                {
+                    case '8':
+                        {
+                            uint64_t val8 = va_arg(args, uint64_t);
+                            TERMTRY1(term->WriteHex64(val8), res, cnt);
+                        }
+                        break;
+
+                    case '4':
+                        {
+                            uint32_t val4 = va_arg(args, uint32_t);
+                            TERMTRY1(term->WriteHex32(val4), res, cnt);
+                        }
+
+                    case '2':
+                        /*  Apparently chars and shorts are promoted to integers!  */
+                        
+                        {
+                            uint32_t val2 = va_arg(args, uint32_t);
+                            TERMTRY1(term->WriteHex16((uint16_t)val2), res, cnt);
+                        }
+
+                    case '1':
+                        /*  Apparently chars and shorts are promoted to integers!  */
+                        
+                        {
+                            uint32_t val1 = va_arg(args, uint32_t);
+                            TERMTRY1(term->WriteHex8((uint8_t)val1), res, cnt);
+                        }
+
+                        break;
+
+                    default:
+                        return {Handle(HandleResult::FormatBadArgumentSize), cnt, InvalidCoordinates};
+                }
+            }
+            else if (c == 's')  //  String.
             {
                 char * str = va_arg(args, char *);
                 
                 TERMTRY1(writeString(term, str), res, cnt);
+            }
+            else if (c == 'C')  //  Character from pointer.
+            {
+                char * chr = va_arg(args, char *);
+                
+                TERMTRY1(writeChar(term, chr[0]), res, cnt);
+            }
+            else if (c == 'c')  //  Character.
+            {
+                uint32_t chr = va_arg(args, uint32_t);
+                
+                TERMTRY1(writeChar(term, (char)chr), res, cnt);
+            }
+            else if (c == '#')  //  Get current character count.
+            {
+                *(va_arg(args, uint32_t *)) = res.Size;
+            }
+            else if (c == '*')  //  Fill with spaces.
+            {
+                uint32_t n = va_arg(args, uint32_t);
+
+                TERMTRY2(n, writeChar(term, ' '), res, cnt);
+            }
+            else if (c == 'n')  //  Newline.
+            {
+                TERMTRY1(writeString(term, "\r\n"), res, cnt);
             }
             else if (c == '%')
                 TERMTRY1(writeChar(term, '%'), res, cnt);
@@ -397,6 +539,33 @@ uint16_t TerminalBase::GetTabulatorWidth()
 
 /*  Utility  */
 
+TerminalWriteResult TerminalBase::WriteIntD(const int64_t val)
+{
+    if (!this->Descriptor->Capabilities.CanOutput)
+        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+
+    char str[21];
+    str[20] = 0;
+
+    size_t i = 0;
+    uint64_t x = val > 0 ? (uint64_t)val : ((uint64_t)(-val));
+
+    do
+    {
+        uint8_t digit = x % 10;
+
+        str[19 - i++] = '0' + digit;
+
+        x /= 10;
+    }
+    while (x > 0 && i < 20);
+
+    if (val < 0)
+        str[19 - i++] = '-';
+
+    return this->Descriptor->WriteString(this, str + 20 - i);
+}
+
 TerminalWriteResult TerminalBase::WriteUIntD(const uint64_t val)
 {
     if (!this->Descriptor->Capabilities.CanOutput)
@@ -405,19 +574,38 @@ TerminalWriteResult TerminalBase::WriteUIntD(const uint64_t val)
     char str[21];
     str[20] = 0;
 
-    size_t i;
+    size_t i = 0;
     uint64_t x = val;
 
-    for (i = 0; x > 0 && i < 20; ++i)
+    do
     {
         uint8_t digit = x % 10;
 
-        str[19 - i] = '0' + digit;
+        str[19 - i++] = '0' + digit;
 
         x /= 10;
     }
+    while (x > 0 && i < 20);
 
     return this->Descriptor->WriteString(this, str + 20 - i);
+}
+
+TerminalWriteResult TerminalBase::WriteHex8(const uint8_t val)
+{
+    if (!this->Descriptor->Capabilities.CanOutput)
+        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+
+    char str[3];
+    str[2] = '\0';
+
+    for (size_t i = 0; i < 2; ++i)
+    {
+        uint8_t nib = (val >> (i * 4)) & 0xF;
+
+        str[1 - i] = (nib > 9 ? '7' : '0') + nib;
+    }
+
+    return this->Descriptor->WriteString(this, str);
 }
 
 TerminalWriteResult TerminalBase::WriteHex16(const uint16_t val)
@@ -433,6 +621,24 @@ TerminalWriteResult TerminalBase::WriteHex16(const uint16_t val)
         uint8_t nib = (val >> (i * 4)) & 0xF;
 
         str[3 - i] = (nib > 9 ? '7' : '0') + nib;
+    }
+
+    return this->Descriptor->WriteString(this, str);
+}
+
+TerminalWriteResult TerminalBase::WriteHex32(const uint32_t val)
+{
+    if (!this->Descriptor->Capabilities.CanOutput)
+        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+
+    char str[9];
+    str[8] = '\0';
+
+    for (size_t i = 0; i < 8; ++i)
+    {
+        uint8_t nib = (val >> (i * 4)) & 0xF;
+
+        str[7 - i] = (nib > 9 ? '7' : '0') + nib;
     }
 
     return this->Descriptor->WriteString(this, str);

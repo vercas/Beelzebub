@@ -21,6 +21,14 @@ else                                        \
 	return tres;                            \
 } while (false)
 
+#define TERMTRY2(n, call, tres, cnt) do {     \
+cnt = tres.Size;                              \
+for (typeof(n) i = 0; i < n; ++i)             \
+	if (!(tres = call).Result.IsOkayResult()) \
+		return tres;                          \
+tres.Size += cnt + n;                         \
+} while (false)
+
 namespace Beelzebub { namespace Terminals
 {
 	/**
@@ -71,12 +79,12 @@ namespace Beelzebub { namespace Terminals
 
 		/*	Utilitary methods  */
 
-		/*static __bland TerminalWriteResult WriteIntD(const int64_t val);
-
-		static __bland TerminalWriteResult WriteHex8(const uint8_t val);
-		static __bland TerminalWriteResult WriteHex32(const uint32_t val);//*/
+		__bland TerminalWriteResult WriteIntD(const int64_t val);
 		__bland TerminalWriteResult WriteUIntD(const uint64_t val);
+
+		__bland TerminalWriteResult WriteHex8(const uint8_t val);
 		__bland TerminalWriteResult WriteHex16(const uint16_t val);
+		__bland TerminalWriteResult WriteHex32(const uint32_t val);
 		__bland TerminalWriteResult WriteHex64(const uint64_t val);
 		
 		/*  DYNAMICS  */
