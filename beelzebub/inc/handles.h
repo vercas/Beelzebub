@@ -7,25 +7,32 @@ namespace Beelzebub
     enum class HandleType : uint64_t
     {
         //  This be an invalid handle.
-        Invalid              = 0x0000000000000000,
+        Invalid              = 0x0000000000000000U,
+
+        //  A miscellaneous/anonymous object belonging to the kernel.
+        KernelObject         = 0x0001000000000000U,
+        //  A miscellaneous/anonymous object belonging to a service.
+        ServiceObject        = 0x0002000000000000U,
+        //  A miscellaneous/anonymous object belonging to an application.
+        ApplicationObject    = 0x0003000000000000U,
 
         //  A unit of execution.
-        Thread               = 0x0010000000000000,
+        Thread               = 0x0010000000000000U,
         //  A unit of isolation.
-        Process              = 0x0011000000000000,
+        Process              = 0x0011000000000000U,
         //  A unit of management.
-        Job                  = 0x0012000000000000,
+        Job                  = 0x0012000000000000U,
 
         //  A virtual address space. ("linear" by x86 terminology)
-        VirtualAddressSpace  = 0x0020000000000000,
+        VirtualAddressSpace  = 0x0020000000000000U,
 
         //  An table which associates handles with resources.
-        HandleTable          = 0xFFF0000000000000,
+        HandleTable          = 0xFFF0000000000000U,
         //  A finite set of handles.
-        MultiHandle          = 0xFFF1000000000000,
+        MultiHandle          = 0xFFF1000000000000U,
 
         //  A general result code.
-        Result               = 0xFFFF000000000000,
+        Result               = 0xFFFF000000000000U,
     };
 
     enum class HandleResult : uint64_t
@@ -46,6 +53,11 @@ namespace Beelzebub
         FormatBadSpecifier    = 0x0000000000000020U,
         //  The size given for a format argument is invalid.
         FormatBadArgumentSize = 0x0000000000000021U,
+
+        //  An operation was attempted on a range of pages that aren't free.
+        PagesNotFree          = 0x0000000000000030U,
+        //  An operation was attempted on a range of pages that aren't free or caching.
+        PagesNotFreeOrCaching = 0x0000000000000031U,
     };
 
     struct Handle
@@ -117,8 +129,10 @@ namespace Beelzebub
 
         __bland __forceinline bool IsOkayResult() const
         {
-            return this->IsType(HandleType::Result)
-                && (HandleResult)(this->Value & IndexBits) == HandleResult::Okay;
+            //return this->IsType(HandleType::Result)
+            //    && (HandleResult)(this->Value & IndexBits) == HandleResult::Okay;
+
+            return this->Value == ((uint64_t)HandleType::Result | (uint64_t)HandleResult::Okay);
         }
 
         /*  Execution flow-specific functions  */
