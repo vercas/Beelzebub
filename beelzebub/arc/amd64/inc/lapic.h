@@ -24,7 +24,7 @@
  */
 
 #pragma once
-#include <stdint.h>
+#include <metaprogramming.h>
 
 // register indices
 #define LAPIC_REG_ID            0x02    //< LAPIC ID

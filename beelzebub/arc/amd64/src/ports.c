@@ -24,7 +24,7 @@
  */
 
 #include <arc/ports.h>
-#include <stdint.h>
+#include <metaprogramming.h>
 
 void outb(uint16_t port, uint8_t value)
 {

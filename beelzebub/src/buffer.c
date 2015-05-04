@@ -24,7 +24,7 @@
  */
 
 #include <buffer.h>
-#include <stdint.h>
+#include <metaprogramming.h>
 
 char *buffer_write(const char *string, char *buffer)
 {

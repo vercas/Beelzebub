@@ -24,7 +24,7 @@
  */
 
 #pragma once
-#include <stdint.h>
+#include <metaprogramming.h>
 
 /**
  * Sends a byte to an output <port>.

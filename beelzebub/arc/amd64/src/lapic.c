@@ -25,7 +25,7 @@
 
 #include <jegudiel.h>
 #include <arc/lapic.h>
-#include <stdint.h>
+#include <metaprogramming.h>
 
 #include <arc/screen.h>
 

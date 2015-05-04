@@ -24,7 +24,7 @@
  */
 
 #pragma once
-#include <stdint.h>
+#include <metaprogramming.h>
 
 #define ISR_COUNT 0xFF
 //  Questioné: Shouldn't there be 0x100...?
