@@ -15,7 +15,9 @@
 #include <arc/terminals/serial.hpp>
 #include <memory.hpp>
 #include <kernel.hpp>
+#include <debug.hpp>
 #include <math.h>
+#include <cpp_support.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Ports;
@@ -56,7 +58,7 @@ TerminalBase * InitializeTerminalMain()
 	COM1.Initialize();
 
 	//	Initializes the serial terminal.
-	initialSerialTerminal = SerialTerminal(COM1);
+	new (&initialSerialTerminal) SerialTerminal(COM1);
 
 	//	And returns it.
 	return &initialSerialTerminal; // termPtr;
@@ -122,17 +124,33 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 		}
 	}
 
-	mainAllocationSpace = PageAllocationSpace(start, end, PageSize);
+	msg("Initializing memory over entries #%us-%us...", (size_t)(firstMap - map)
+		                                              , (size_t)(lastMap - map));
+	msg(" Address rage: %Xp-%Xp.%n", start, end);
+
+	new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
+
+#ifdef __BEELZEBUB__DEBUG
+	//mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
+#endif
 
 	for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
 		if (!m->available)
 			mainAllocationSpace.ReserveByteRange(m->address, m->length);
+
+#ifdef __BEELZEBUB__DEBUG
+	//mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
+#endif
 
 	Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
 }
 
 void InitializeMemory()
 {
+	initialSerialTerminal.WriteLine("");
+
+	//	TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
+
 	SanitizeAndInitializeMemory(JG_INFO_MMAP, JG_INFO_ROOT->mmap_count, JG_INFO_ROOT->free_paddr);
 
 	initialSerialTerminal.WriteLine("");

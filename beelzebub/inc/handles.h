@@ -58,6 +58,10 @@ namespace Beelzebub
         PagesNotFree          = 0x0000000000000030U,
         //  An operation was attempted on a range of pages that aren't free or caching.
         PagesNotFreeOrCaching = 0x0000000000000031U,
+        //  An invalid operation was attempted on a reserved page.
+        PageReserved          = 0x0000000000000032U,
+        //  An invalid operation was attempted on a free page.
+        PageFree              = 0x0000000000000032U,
     };
 
     struct Handle
