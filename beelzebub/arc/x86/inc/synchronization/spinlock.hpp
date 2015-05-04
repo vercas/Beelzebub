@@ -21,7 +21,9 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Destructor  */
 
+#ifdef __BEELZEBUB__DEBUG
         ~Spinlock();
+#endif
 
         /*  Operations  */
 
