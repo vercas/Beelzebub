@@ -6,10 +6,10 @@
 
 //	Some type definitions.
 
-typedef unsigned long long paddr_t;		//	Physical address.
-typedef unsigned long long vaddr_t;		//	Virtual (linear) address.
-typedef unsigned long long psize_t;		//	Physical size.
-typedef unsigned long long vsize_t;		//	Virtual (linear) address.
-typedef unsigned long long pageindex_t;	//	Index of a memory page.
+typedef unsigned long long paddr_t;	//	Physical address.
+typedef unsigned long long vaddr_t;	//	Virtual (linear) address.
+typedef unsigned long long psize_t;	//	Physical size.
+typedef unsigned long long vsize_t;	//	Virtual (linear) address.
+typedef unsigned long long pgind_t;	//	Index of a memory page.
 
-typedef uint8_t            byte;		//	Uhm...
+typedef uint8_t            byte;	//	Uhm...

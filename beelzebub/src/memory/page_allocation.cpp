@@ -34,7 +34,7 @@ namespace Beelzebub { namespace Memory
 
         //  Just the ones that can be quickly calculated and are required later.
         this->PageCount = (phys_end - phys_start) / page_size;
-        this->AllocablePageCount = (phys_end - phys_start) / (page_size + sizeof(PageDescriptor) + sizeof(pageindex_t));
+        this->AllocablePageCount = (phys_end - phys_start) / (page_size + sizeof(PageDescriptor) + sizeof(pgind_t));
         this->FreePageCount = this->AllocablePageCount;
 
         //  Stuff we cannot touch.
@@ -46,7 +46,7 @@ namespace Beelzebub { namespace Memory
 
         //  Control structures sizes.
         this->MapSize = this->AllocablePageCount * sizeof(PageDescriptor);
-        this->StackSize = this->AllocablePageCount * sizeof(pageindex_t);
+        this->StackSize = this->AllocablePageCount * sizeof(pgind_t);
 
         //  Technically, the whole pages are reserved.
         this->ReservedSize = this->ReservedPageCount * page_size;
@@ -103,14 +103,14 @@ namespace Beelzebub { namespace Memory
 
     /*  Page manipulation  */
 
-    Handle PageAllocationSpace::ReservePageRange(const pageindex_t start, const psize_t count, const bool onlyFree)
+    Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t count, const bool onlyFree)
     {
         if (start + count > this->MapSize)
             return Handle(HandleResult::ArgumentOutOfRange);
 
         PageDescriptor * map = this->Map + start - this->ControlPageCount;
 
-        for (pageindex_t i = 0; i < count; ++i)
+        for (pgind_t i = 0; i < count; ++i)
         {
             this->Lock();
 
@@ -173,14 +173,14 @@ namespace Beelzebub { namespace Memory
         return Handle(HandleResult::Okay);
     }
 
-    Handle PageAllocationSpace::FreePageRange(const pageindex_t start, const psize_t count)
+    Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t count)
     {
         if (start + count > this->MapSize)
             return Handle(HandleResult::ArgumentOutOfRange);
 
         PageDescriptor * map = this->Map + start - this->ControlPageCount;
 
-        for (pageindex_t i = 0; i < count; ++i)
+        for (pgind_t i = 0; i < count; ++i)
         {
             this->Lock();
 
@@ -232,7 +232,7 @@ namespace Beelzebub { namespace Memory
         {
             this->Lock();
 
-            pageindex_t i = this->Stack[this->StackFreeTop--];
+            pgind_t i = this->Stack[this->StackFreeTop--];
 
             if (this->StackCacheTop != this->StackFreeTop + 1)
                 this->Stack[this->StackFreeTop + 1] = this->Stack[this->StackCacheTop--];

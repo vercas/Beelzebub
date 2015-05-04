@@ -236,8 +236,8 @@ namespace Beelzebub { namespace Memory
 
         /*  Page manipulation  */
 
-        __bland Handle ReservePageRange(const pageindex_t start, const psize_t count, const bool onlyFree);
-        __bland __forceinline Handle ReservePageRange(const pageindex_t start, const psize_t count)
+        __bland Handle ReservePageRange(const pgind_t start, const psize_t count, const bool onlyFree);
+        __bland __forceinline Handle ReservePageRange(const pgind_t start, const psize_t count)
         {
             return this->ReservePageRange(start, count, true);
         }
@@ -251,7 +251,7 @@ namespace Beelzebub { namespace Memory
             return this->ReserveByteRange(phys_start, length, true);
         }
 
-        __bland Handle FreePageRange(const pageindex_t start, const psize_t count);
+        __bland Handle FreePageRange(const pgind_t start, const psize_t count);
 
         __bland paddr_t AllocatePage();
         __bland paddr_t AllocatePages(const psize_t count);
@@ -274,7 +274,7 @@ namespace Beelzebub { namespace Memory
 
         PageDescriptor * Map;
         //  Pointers to the allocation map within the space.
-        pageindex_t * Stack;
+        pgind_t * Stack;
         //  El stacko de páginas libres. Lmao.
 
         Spinlock Locker;
