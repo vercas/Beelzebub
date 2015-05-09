@@ -14,6 +14,8 @@ namespace Beelzebub { namespace Ports
 	{
 	public:
 
+		static const size_t QueueSize = 14;
+
 		/*  Construction  */
 
 		__bland SerialPort(const uint16_t basePort) : BasePort(basePort) { }
