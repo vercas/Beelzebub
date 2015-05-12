@@ -16,7 +16,7 @@ namespace Beelzebub { namespace Terminals
 		/*  Constructors  */
 
 		__bland SerialTerminal() : TerminalBase( nullptr ), Port(0) { }
-		__bland SerialTerminal(const SerialPort port);
+		__bland SerialTerminal(ManagedSerialPort * const port);
 
 		/*  Writing  */
 
@@ -26,6 +26,6 @@ namespace Beelzebub { namespace Terminals
 
 	private:
 
-		SerialPort Port;
+		ManagedSerialPort * Port;
 	};
 }}

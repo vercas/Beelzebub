@@ -13,7 +13,7 @@
 #include <arc/screen.h>
 
 #include <arc/terminals/serial.hpp>
-#include <memory.hpp>
+#include <memory/page_allocator.hpp>
 #include <kernel.hpp>
 #include <debug.hpp>
 #include <math.h>
@@ -33,6 +33,8 @@ static __bland void fault_gp(isr_state_t * state)
 {
 	//write_serial_str(0x3F8, "OMG GP FAULT!");
 	//write_serial(0x3F8, '\n');
+
+	initialSerialTerminal.WriteFormat("ISR Handler: %X8%n", state->vector);
 }
 
 /*  Entry points  */ 
@@ -49,22 +51,22 @@ void kmain_ap()
 
 /*  Terminal  */
 
-TerminalBase * InitializeTerminalMain()
+TerminalBase * InitializeTerminalProto()
 {
 	//	TODO: Properly retrieve these addresses.
 
 	//	Initializes COM1.
-	COM1 = SerialPort(0x3F8);
+	COM1 = ManagedSerialPort(0x3F8);
 	COM1.Initialize();
 
 	//	Initializes the serial terminal.
-	new (&initialSerialTerminal) SerialTerminal(COM1);
+	new (&initialSerialTerminal) SerialTerminal(&COM1);
 
 	//	And returns it.
 	return &initialSerialTerminal; // termPtr;
 }
 
-TerminalBase * InitializeTerminalSecondary()
+TerminalBase * InitializeTerminalMain()
 {
 	return &initialSerialTerminal;
 }
@@ -77,6 +79,10 @@ void InitializeInterrupts()
 	{
 		isr_handlers[i] = (uintptr_t)&fault_gp;
 	}
+
+	isr_handlers[32] = (uintptr_t)&SerialPort::IrqHandler;
+
+	initialSerialTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
 }
 
 /*  Memory map sanitation and initialization  */
@@ -142,18 +148,18 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 	//mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
 #endif
 
-	Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
+	//Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
 }
 
 void InitializeMemory()
 {
-	initialSerialTerminal.WriteLine("");
+	initialSerialTerminal.WriteLine();
 
 	//	TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
 
 	SanitizeAndInitializeMemory(JG_INFO_MMAP, JG_INFO_ROOT->mmap_count, JG_INFO_ROOT->free_paddr);
 
-	initialSerialTerminal.WriteLine("");
+	initialSerialTerminal.WriteLine();
 
 	//	DUMPING MMAP
 
@@ -179,12 +185,12 @@ void InitializeMemory()
 		initialSerialTerminal.WriteLine("|");
 	}
 
-	initialSerialTerminal.WriteLine("");
+	initialSerialTerminal.WriteLine();
 
 	initialSerialTerminal.WriteHex64(JG_INFO_ROOT->free_paddr);
 
-	initialSerialTerminal.WriteLine("");
-	initialSerialTerminal.WriteLine("");
+	initialSerialTerminal.WriteLine();
+	initialSerialTerminal.WriteLine();
 
 	//	DUMPING CONTROL REGISTERS
 
@@ -192,28 +198,25 @@ void InitializeMemory()
 
 	initialSerialTerminal.Write("CR2: ");
 	initialSerialTerminal.WriteHex64((uint64_t)Cpu::GetCr2());
-	initialSerialTerminal.WriteLine("");
+	initialSerialTerminal.WriteLine();
 
 	Cpu::GetCr3().PrintToTerminal(&initialSerialTerminal);
 
 	initialSerialTerminal.Write("CR4: ");
 	initialSerialTerminal.WriteHex64(Cpu::GetCr4());
-	initialSerialTerminal.WriteLine("");
+	initialSerialTerminal.WriteLine();
 
-	initialSerialTerminal.WriteLine("");
+	initialSerialTerminal.WriteLine();
 
-	//	DUMPING PAGING TABLES
+	//	Preparing virtual memory tables
 
-	//Cr3 cr3(Cpu::GetCr3());
-	//Pml4 & pml4 = *cr3.GetPml4Ptr();
-	//Pml3 & pml3 = *pml4[510].GetPml3Ptr();
-	//Pml2 & pml2 = *pml3[(uint16_t)0].GetPml2Ptr();
+	paddr_t pml4_addr = mainAllocationSpace.AllocatePage();
 
-	//pml2[(uint16_t)0].GetPml1Ptr()->PrintToTerminal(&initialSerialTerminal);
+	Pml4 & pml4 = * new ((Pml4 *)pml4_addr) Pml4();
 
-	initialSerialTerminal.WriteLine("");
+	Cr3 cr3(Cpu::GetCr3());
+	Pml4 & currentPml4 = *cr3.GetPml4Ptr();
 
-	//pml2[(uint16_t)1].GetPml1Ptr()->PrintToTerminal(&initialSerialTerminal);
-
-	initialSerialTerminal.WriteLine("");
+	pml4[511] = currentPml4[511];
+	pml4[510] = currentPml4[510];
 }

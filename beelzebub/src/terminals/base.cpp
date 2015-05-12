@@ -600,7 +600,7 @@ TerminalWriteResult TerminalBase::WriteHex8(const uint8_t val)
 
     for (size_t i = 0; i < 2; ++i)
     {
-        uint8_t nib = (val >> (i * 4)) & 0xF;
+        uint8_t nib = (val >> (i << 2)) & 0xF;
 
         str[1 - i] = (nib > 9 ? '7' : '0') + nib;
     }
@@ -618,7 +618,7 @@ TerminalWriteResult TerminalBase::WriteHex16(const uint16_t val)
 
     for (size_t i = 0; i < 4; ++i)
     {
-        uint8_t nib = (val >> (i * 4)) & 0xF;
+        uint8_t nib = (val >> (i << 2)) & 0xF;
 
         str[3 - i] = (nib > 9 ? '7' : '0') + nib;
     }
@@ -636,7 +636,7 @@ TerminalWriteResult TerminalBase::WriteHex32(const uint32_t val)
 
     for (size_t i = 0; i < 8; ++i)
     {
-        uint8_t nib = (val >> (i * 4)) & 0xF;
+        uint8_t nib = (val >> (i << 2)) & 0xF;
 
         str[7 - i] = (nib > 9 ? '7' : '0') + nib;
     }
@@ -654,12 +654,173 @@ TerminalWriteResult TerminalBase::WriteHex64(const uint64_t val)
 
     for (size_t i = 0; i < 16; ++i)
     {
-        uint8_t nib = (val >> (i * 4)) & 0xF;
+        uint8_t nib = (val >> (i << 2)) & 0xF;
 
         str[15 - i] = (nib > 9 ? '7' : '0') + nib;
     }
 
     return this->Descriptor->WriteString(this, str);
+}
+
+TerminalWriteResult TerminalBase::WriteHexDump(const uintptr_t start, const size_t length, const size_t charsPerLine)
+{
+    if (!this->Descriptor->Capabilities.CanOutput)
+        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+
+    char addrhexstr[sizeof(size_t) * 2 + 1], wordhexstr[5], spaces[11] = "          ";
+    addrhexstr[sizeof(size_t) * 2] = '\0'; wordhexstr[4] = '\0';
+
+    //WriteCharFunc writeChar = this->Descriptor->WriteChar;
+    WriteStringFunc writeString = this->Descriptor->WriteString;
+
+    TerminalWriteResult res;
+    uint32_t cnt;
+
+    for (size_t i = 0; i < length; i += charsPerLine)
+    {
+        uintptr_t lStart = start + i;
+
+        for (size_t j = 0; j < sizeof(size_t) * 2; ++j)
+        {
+            uint8_t nib = (lStart >> (j << 2)) & 0xF;
+
+            addrhexstr[sizeof(size_t) * 2 - 1 - j] = (nib > 9 ? '7' : '0') + nib;
+        }
+
+        TERMTRY1(writeString(this, addrhexstr), res, cnt);
+        TERMTRY1(writeString(this, ": "), res, cnt);
+
+        for (size_t j = 0; j < charsPerLine; j += 2)
+        {
+            size_t spacesOffset = 9;
+
+            if (j > 0)
+            {
+                if ((j & 0x003) == 0) { --spacesOffset;
+                if ((j & 0x007) == 0) { --spacesOffset;
+                if ((j & 0x00F) == 0) { --spacesOffset;
+                if ((j & 0x01F) == 0) { --spacesOffset;
+                if ((j & 0x03F) == 0) { --spacesOffset;
+                if ((j & 0x07F) == 0) { --spacesOffset;
+                if ((j & 0x0FF) == 0) { --spacesOffset;
+                if ((j & 0x1FF) == 0) { --spacesOffset;
+                if ((j & 0x3FF) == 0)   --spacesOffset; }}}}}}}}
+
+                //  This is undoubtedly the ugliest hack I've ever written.
+            }
+
+            TERMTRY1(writeString(this, spaces + spacesOffset), res, cnt);
+
+            uint16_t val = *(uint16_t *)(lStart + j);
+
+            for (size_t j = 0; j < 4; ++j)
+            {
+                uint8_t nib = (val >> (j << 2)) & 0xF;
+
+                wordhexstr[j ^ 1] = (nib > 9 ? '7' : '0') + nib;
+                //  This may be THE smartest, though. It flips the last
+                //  bit, so bytes are big endian but the whole word is not.
+            }
+
+            TERMTRY1(writeString(this, wordhexstr), res, cnt);
+        }
+
+        TERMTRY1(writeString(this, "\n\r"), res, cnt);
+    }
+
+    return res;
+}
+
+TerminalWriteResult TerminalBase::WriteHexTable(const uintptr_t start, const size_t length, const size_t charsPerLine, const bool ascii)
+{
+    if (!this->Descriptor->Capabilities.CanOutput)
+        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+
+    char addrhexstr[sizeof(size_t) * 2 + 1], wordhexstr[4] = "   ";
+    addrhexstr[sizeof(size_t) * 2] = '\0';
+
+    WriteCharFunc writeChar = this->Descriptor->WriteChar;
+    WriteStringFunc writeString = this->Descriptor->WriteString;
+
+    TerminalWriteResult res = {Handle(HandleResult::Okay), 0U, InvalidCoordinates};
+    uint32_t cnt = 0U;
+
+    size_t actualCharsPerLine = charsPerLine;
+
+    if (0 == actualCharsPerLine)
+    {
+        if (this->Descriptor->Capabilities.CanGetBufferSize)
+        {
+            TerminalCoordinates size = this->Descriptor->GetBufferSize(this);
+    
+            if (ascii)
+            {
+                actualCharsPerLine = (size.X - (sizeof(uintptr_t) * 2) - 4) >> 2;
+                //  Per line, there is an address and the ':', ' |', '|'.
+                //  The latter three make 4 characters.
+                //  Besides this, there is a space, two hexadecimal digits and
+                //  an ASCII character per byte: 4 chars (thus the >> 2).
+            }
+            else
+            {
+                actualCharsPerLine = (size.X - (sizeof(uintptr_t) * 2) - 1) / 3;
+                //  Per line, there is an address and the ':'.
+                //  The latter three make 1 character.
+                //  Besides this, there is a space abd two hexadecimal digits
+                //  per byte: 4 chars (thus the >> 2).
+            }
+        }
+        else
+            return {Handle(HandleResult::ArgumentOutOfRange), 0U, InvalidCoordinates};
+    }
+
+    for (size_t i = 0; i < length; i += actualCharsPerLine)
+    {
+        uintptr_t lStart = start + i;
+
+        for (size_t j = 0; j < sizeof(size_t) * 2; ++j)
+        {
+            uint8_t nib = (lStart >> (j << 2)) & 0xF;
+
+            addrhexstr[sizeof(size_t) * 2 - 1 - j] = (nib > 9 ? '7' : '0') + nib;
+        }
+
+        TERMTRY1(writeString(this, addrhexstr), res, cnt);
+        TERMTRY1(writeChar(this, ':'), res, cnt);
+
+        for (size_t j = 0; j < actualCharsPerLine; ++j)
+        {
+            uint8_t val = *(uint8_t *)(lStart + j);
+
+            uint8_t nib = val & 0xF;
+            wordhexstr[2] = (nib > 9 ? '7' : '0') + nib;
+            nib = (val >> 4) & 0xF;
+            wordhexstr[1] = (nib > 9 ? '7' : '0') + nib;
+
+            TERMTRY1(writeString(this, wordhexstr), res, cnt);
+        }
+
+        if (ascii)
+        {
+            TERMTRY1(writeString(this, " |"), res, cnt);
+
+            for (size_t j = 0; j < actualCharsPerLine; ++j)
+            {
+                uint8_t val = *(uint8_t *)(lStart + j);
+
+                if (val >= 32 && val != 127)
+                    TERMTRY1(writeChar(this, val), res, cnt);
+                else
+                    TERMTRY1(writeChar(this, '.'), res, cnt);
+            }
+
+            TERMTRY1(writeString(this, "|\n\r"), res, cnt);
+        }
+        else
+            TERMTRY1(writeString(this, "\n\r"), res, cnt);
+    }
+
+    return res;
 }
 
 /*********************************

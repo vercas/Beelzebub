@@ -167,15 +167,11 @@ namespace Beelzebub { namespace Memory
     } __attribute__((packed));
 
     /**
-     * Describes a region of memory in which pages can be allocated.
+     * Manages a region of memory in which pages can be allocated.
      */
     class PageAllocationSpace
     {
         /*  TODO:
-         *  - Mutual exclusion: - Maybe over the whole allocator,
-         *                        but this would shuck.
-         *                      - Maybe over ranges over every N pages,
-         *                        but this may complicate the code.
          *  - Maybe take care of page colouring?
          */
 
@@ -231,7 +227,7 @@ namespace Beelzebub { namespace Memory
         __bland PageAllocationSpace();
         __bland PageAllocationSpace(const paddr_t phys_start, const paddr_t phys_end
                                   , const psize_t page_size);
-        
+
         PageAllocationSpace(PageAllocationSpace const&) = delete;
 
         /*  Page manipulation  */
@@ -244,7 +240,7 @@ namespace Beelzebub { namespace Memory
 
         __bland __forceinline Handle ReserveByteRange(const paddr_t phys_start, const psize_t length, const bool onlyFree)
         {
-            return this->ReservePageRange((phys_start - this->MemoryStart) / this->PageSize, length / this->PageSize, onlyFree);
+            return this->ReservePageRange((phys_start - this->AllocationStart) / this->PageSize, length / this->PageSize, onlyFree);
         }
         __bland __forceinline Handle ReserveByteRange(const paddr_t phys_start, const psize_t length)
         {
@@ -252,6 +248,14 @@ namespace Beelzebub { namespace Memory
         }
 
         __bland Handle FreePageRange(const pgind_t start, const psize_t count);
+        __bland __forceinline Handle FreeByteRange(const paddr_t phys_start, const psize_t length)
+        {
+            return this->FreePageRange((phys_start - this->MemoryStart) / this->PageSize, length / this->PageSize);
+        }
+        __bland __forceinline Handle FreePageAtAddress(const paddr_t phys_addr)
+        {
+            return this->FreePageRange((phys_addr - this->MemoryStart) / this->PageSize, 1);
+        }
 
         __bland paddr_t AllocatePage();
         __bland paddr_t AllocatePages(const psize_t count);
@@ -281,7 +285,8 @@ namespace Beelzebub { namespace Memory
 
     public:
 
-        //PageAllocationSpace * Next;
+        PageAllocationSpace * Next;
+        PageAllocationSpace * Previous;
 
         /*  Debug  */
 
@@ -290,4 +295,21 @@ namespace Beelzebub { namespace Memory
 #endif
 
     };// __attribute__((packed));
+
+    /**
+     *  Manages allocation of memory pages using a linked list of
+     *  page allocation spaces.
+     */
+    class PageAllocator
+    {
+    public:
+
+        /*  Constructors    */
+
+        __bland PageAllocator(PageAllocator * const first);
+
+        /*  Fields  */
+
+        PageAllocationSpace * FirstSpace;
+    };
 }}

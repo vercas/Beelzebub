@@ -80,7 +80,7 @@ TerminalDescriptor SerialTerminalDescriptor = {
 
 /*	Constructors	*/
 
-SerialTerminal::SerialTerminal(const SerialPort port)
+SerialTerminal::SerialTerminal(ManagedSerialPort * const port)
 	: TerminalBase(&SerialTerminalDescriptor)
 	, Port(port)
 {
@@ -93,7 +93,7 @@ TerminalWriteResult SerialTerminal::WriteChar(TerminalBase * const term, const c
 {
 	SerialTerminal * sterm = (SerialTerminal *)term;
 
-	sterm->Port.Write(c, true);
+	sterm->Port->Write(c, true);
 
 	return {Handle(HandleResult::Okay), 1U, InvalidCoordinates};
 }
@@ -102,15 +102,15 @@ TerminalWriteResult SerialTerminal::WriteString(TerminalBase * const term, const
 {
 	SerialTerminal * sterm = (SerialTerminal *)term;
 
-	return {Handle(HandleResult::Okay), (uint32_t)sterm->Port.WriteNtString(str), InvalidCoordinates};
+	return {Handle(HandleResult::Okay), (uint32_t)sterm->Port->WriteNtString(str), InvalidCoordinates};
 }
 
 TerminalWriteResult SerialTerminal::WriteStringLine(TerminalBase * const term, const char * const str)
 {
 	SerialTerminal * sterm = (SerialTerminal *)term;
 
-	size_t n = sterm->Port.WriteNtString(str);
-	n += sterm->Port.WriteNtString("\r\n");
+	size_t n = sterm->Port->WriteNtString(str);
+	n += sterm->Port->WriteNtString("\r\n");
 
 	return {Handle(HandleResult::Okay), (uint32_t)n, InvalidCoordinates};
 }

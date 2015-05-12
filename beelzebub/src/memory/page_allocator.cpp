@@ -1,4 +1,4 @@
-#include <memory/page_allocation.hpp>
+#include <memory/page_allocator.hpp>
 #include <debug.hpp>
 #include <math.h>
 
@@ -18,6 +18,7 @@ namespace Beelzebub { namespace Memory
         , MemoryEnd(0)
         , PageSize(0)
         , Size(0)
+        , Locker()
     {
 
     }
@@ -28,6 +29,7 @@ namespace Beelzebub { namespace Memory
         , MemoryEnd(phys_end)
         , PageSize(page_size)
         , Size(phys_end - phys_start)
+        , Locker()
     {
         //  Basics.
         this->Map = (PageDescriptor *)phys_start;
@@ -105,10 +107,10 @@ namespace Beelzebub { namespace Memory
 
     Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t count, const bool onlyFree)
     {
-        if (start + count > this->MapSize)
+        if (start + count >= this->PageCount)
             return Handle(HandleResult::ArgumentOutOfRange);
 
-        PageDescriptor * map = this->Map + start - this->ControlPageCount;
+        PageDescriptor * map = this->Map + start;
 
         for (pgind_t i = 0; i < count; ++i)
         {
@@ -127,11 +129,21 @@ namespace Beelzebub { namespace Memory
                     , this->StackFreeTop
                     , this->StackCacheTop);//*/
 
+                PageDescriptor * freeTop = this->Map + this->Stack[this->StackFreeTop];
+
                 //  Popping off el stacko.
                 this->Stack[page->StackIndex] = this->Stack[this->StackFreeTop--];
+                freeTop->StackIndex = page->StackIndex;
 
                 if (this->StackCacheTop != this->StackFreeTop + 1)
+                {
+                    PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
+
                     this->Stack[this->StackFreeTop + 1] = this->Stack[this->StackCacheTop--];
+                    cacheTop->StackIndex = this->StackFreeTop + 1;
+                }
+                else
+                    --this->StackCacheTop;
 
                 --this->FreePageCount;
                 this->FreeSize -= this->PageSize;
@@ -145,8 +157,11 @@ namespace Beelzebub { namespace Memory
 
                 //  TODO: Perhaps notify of this event?
 
+                PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
+
                 //  Popping off el stacko.
                 this->Stack[page->StackIndex] = this->Stack[this->StackCacheTop--];
+                cacheTop->StackIndex = page->StackIndex;
             }
             else
             {
@@ -175,10 +190,10 @@ namespace Beelzebub { namespace Memory
 
     Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t count)
     {
-        if (start + count > this->MapSize)
+        if (start + count >= this->PageCount)
             return Handle(HandleResult::ArgumentOutOfRange);
 
-        PageDescriptor * map = this->Map + start - this->ControlPageCount;
+        PageDescriptor * map = this->Map + start;
 
         for (pgind_t i = 0; i < count; ++i)
         {
@@ -237,16 +252,16 @@ namespace Beelzebub { namespace Memory
             if (this->StackCacheTop != this->StackFreeTop + 1)
                 this->Stack[this->StackFreeTop + 1] = this->Stack[this->StackCacheTop--];
 
-            (this->Map + i - this->ControlPageCount)->Use();
+            (this->Map + i)->Use();
             //  Mark the page as used.
 
             --this->FreePageCount;
             this->FreeSize -= this->PageSize;
             //  Change the info accordingly.
 
-            //  UNLOCK
+            this->Unlock();
 
-            return this->MemoryStart + i * this->PageSize;
+            return this->AllocationStart + i * this->PageSize;
         }
 
         return nullptr;
@@ -272,7 +287,7 @@ namespace Beelzebub { namespace Memory
     
         if (details)
         {
-            TERMTRY0(term->WriteFormat("--|T|M|  Stack  Index  |   Page Index   | ... PR: %Xp-%Xp; STK: %Xp--%n", this->MemoryStart, this->MemoryEnd, this->Stack), tret);
+            TERMTRY0(term->WriteFormat("--|T|M|  Stack  Index  |   Page Index   | ... PR: %Xp-%Xp; STK: %Xp--%n", this->AllocationStart, this->AllocationEnd, this->Stack), tret);
 
             for (size_t i = 0; i <= this->StackFreeTop; ++i)
             {

@@ -12,27 +12,27 @@ void Beelzebub::Main()
 {
     //  First step is getting a simple terminal running for the most
     //  basic of output. This is a platform-specific function.
-    MainTerminal = InitializeTerminalMain();
+    MainTerminal = InitializeTerminalProto();
 
-    MainTerminal->WriteLine("Primary terminal initialized.");
+    MainTerminal->WriteLine("Prototerminal initialized.");
 
     //  Initialize the memory for partition and allocation.
     //  Also platform-specific.
-    MainTerminal->Write("[..] Initializing memory...");
+    MainTerminal->Write("[....] Initializing memory...");
     InitializeMemory();
-    MainTerminal->WriteLine(" Done.\r[OK]");
+    MainTerminal->WriteLine(" Done.\r[OKAY]");
 
     //  Setting up basic interrupt handlers 'n stuff.
     //  Again, platform-specific.
-    MainTerminal->Write("[..] Initializing interrupts...");
+    MainTerminal->Write("[....] Initializing interrupts...");
     InitializeInterrupts();
-    MainTerminal->WriteLine(" Done.\r[OK]");
+    MainTerminal->WriteLine(" Done.\r[OKAY]");
 
     //  Upgrade the terminal to a more capable and useful one.
     //  Yet again, platform-specific.
-    MainTerminal->Write("[..] Initializing secondary terminal...");
-    TerminalBase * secondaryTerminal = InitializeTerminalSecondary();
-    MainTerminal->WriteLine(" Done.\r[OK]");
+    MainTerminal->Write("[....] Initializing main terminal...");
+    TerminalBase * secondaryTerminal = InitializeTerminalMain();
+    MainTerminal->WriteLine(" Done.\r[OKAY]");
 
     MainTerminal->WriteLine("Switching over.");
     MainTerminal = secondaryTerminal;
@@ -42,9 +42,14 @@ void Beelzebub::Main()
     MainTerminal->WriteLine("Initialization complete!");
 
     //  Enable interrupts so they can run.
-    MainTerminal->Write("[..] Enabling interrupts...");
+    MainTerminal->Write("[....] Enabling interrupts...");
     Cpu::EnableInterrupts();
-    MainTerminal->WriteLine(" Done.\r[OK]");
+
+    if (Cpu::InterruptsEnabled())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
+    //  Can never bee too sure.
 
     MainTerminal->WriteLine("Halting indefinitely now.");
 
@@ -56,6 +61,8 @@ void Beelzebub::Secondary()
 {
     //  Wait for the system to initialize;
     while (InitializingSystem) ;
+
+    //MainTerminal->Write('S');
 
     //  Enable interrupts so they can run.
     Cpu::EnableInterrupts();

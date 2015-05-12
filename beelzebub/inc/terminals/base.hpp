@@ -77,15 +77,7 @@ namespace Beelzebub { namespace Terminals
 
 		/*  Styling  */
 
-		/*	Utilitary methods  */
-
-		__bland TerminalWriteResult WriteIntD(const int64_t val);
-		__bland TerminalWriteResult WriteUIntD(const uint64_t val);
-
-		__bland TerminalWriteResult WriteHex8(const uint8_t val);
-		__bland TerminalWriteResult WriteHex16(const uint16_t val);
-		__bland TerminalWriteResult WriteHex32(const uint32_t val);
-		__bland TerminalWriteResult WriteHex64(const uint64_t val);
+		// ... sooooon.
 		
 		/*  DYNAMICS  */
 
@@ -129,6 +121,33 @@ namespace Beelzebub { namespace Terminals
 
 		__bland Handle SetTabulatorWidth(const uint16_t w);
 		__bland uint16_t GetTabulatorWidth();
+
+		/*	Utilitary methods  */
+
+		__bland TerminalWriteResult WriteIntD(const int64_t val);
+		__bland TerminalWriteResult WriteUIntD(const uint64_t val);
+
+		__bland TerminalWriteResult WriteHex8(const uint8_t val);
+		__bland TerminalWriteResult WriteHex16(const uint16_t val);
+		__bland TerminalWriteResult WriteHex32(const uint32_t val);
+		__bland TerminalWriteResult WriteHex64(const uint64_t val);
+
+		__bland TerminalWriteResult WriteHexDump(const uintptr_t start, const size_t length, const size_t charsPerLine);
+		__bland __forceinline TerminalWriteResult WriteHexDump(const void * const start, const size_t length, const size_t charsPerLine)
+		{
+			return this->WriteHexDump((uintptr_t)start, length, charsPerLine);
+		}
+
+		__bland TerminalWriteResult WriteHexTable(const uintptr_t start, const size_t length, const size_t charsPerLine, const bool ascii);
+		__bland __forceinline TerminalWriteResult WriteHexTable(const void * const start, const size_t length, const size_t charsPerLine, const bool ascii)
+		{
+			return this->WriteHexTable((uintptr_t)start, length, charsPerLine, ascii);
+		}
+
+		__bland __forceinline TerminalWriteResult WriteLine()
+		{
+			return this->WriteLine("");
+		}
 
 	protected:
 
