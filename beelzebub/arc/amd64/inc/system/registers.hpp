@@ -182,8 +182,8 @@ namespace Beelzebub { namespace System
 		{
 			//	TODO: Check whether the handle is correct or not.
 
-			this->Value = ((uint64_t)paddr        & ReferenceBits)
-			            | (process.GetProcessId() & PcidBits     );
+			this->Value = ((uint64_t)paddr    & ReferenceBits)
+			            | (process.GetIndex() & PcidBits     );
 		}
 
 		/*  Properties  */
@@ -225,8 +225,8 @@ namespace Beelzebub { namespace System
 		{
 			//	TODO: Check whether the handle is correct or not.
 
-			this->Value = (process.GetProcessId() &  PcidBits)
-			            | (           this->Value & ~PcidBits);
+			this->Value = (process.GetIndex() &  PcidBits)
+			            | (       this->Value & ~PcidBits);
 		}
 
 		/**
