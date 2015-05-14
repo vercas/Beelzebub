@@ -12,6 +12,64 @@ using namespace Beelzebub::Synchronization;
 namespace Beelzebub { namespace Memory
 {
     /**
+     * Represents possible options for memory page allocation.
+     */
+    enum class PageAllocationOptions : int
+    {
+        //  64-bit pages preferred.
+        GeneralPages   = 0,
+        //  32-bit pages mandatory.
+        ThirtyTwoBit   = 1 << 0,
+    };
+
+    //  Bitwise OR.
+    inline PageAllocationOptions operator |(PageAllocationOptions a, PageAllocationOptions b)
+    { return static_cast<PageAllocationOptions>(static_cast<int>(a) | static_cast<int>(b)); }
+
+    //  Bitwise AND.
+    inline PageAllocationOptions operator &(PageAllocationOptions a, PageAllocationOptions b)
+    { return static_cast<PageAllocationOptions>(static_cast<int>(a) & static_cast<int>(b)); }
+
+    //  Equality.
+    inline bool operator ==(int a, PageAllocationOptions b)
+    { return a == static_cast<int>(b); }
+
+    //  Inequality.
+    inline bool operator !=(int a, PageAllocationOptions b)
+    { return a != static_cast<int>(b); }
+
+    /**
+     * Represents possible options for memory page reservation.
+     */
+    enum class PageReservationOptions : int
+    {
+        //  Only free pages will be reserved.
+        OnlyFree       = 0,
+        //  Caching pages will be reserved as well.
+        IncludeCaching = 1 << 0,
+        //  In-use pages will be reserved as well.
+        IncludeInUse   = 1 << 1,
+        //  Pages that are already reserved will be ignored.
+        IgnoreReserved = 1 << 2,
+    };
+
+    //  Bitwise OR.
+    inline PageReservationOptions operator |(PageReservationOptions a, PageReservationOptions b)
+    { return static_cast<PageReservationOptions>(static_cast<int>(a) | static_cast<int>(b)); }
+
+    //  Bitwise AND.
+    inline PageReservationOptions operator &(PageReservationOptions a, PageReservationOptions b)
+    { return static_cast<PageReservationOptions>(static_cast<int>(a) & static_cast<int>(b)); }
+
+    //  Equality.
+    inline bool operator ==(int a, PageReservationOptions b)
+    { return a == static_cast<int>(b); }
+
+    //  Inequality.
+    inline bool operator !=(int a, PageReservationOptions b)
+    { return a != static_cast<int>(b); }
+
+    /**
      * Represents possible statuses of a memory page.
      */
     enum class PageStatus : uint16_t
@@ -232,19 +290,19 @@ namespace Beelzebub { namespace Memory
 
         /*  Page manipulation  */
 
-        __bland Handle ReservePageRange(const pgind_t start, const psize_t count, const bool onlyFree);
+        __bland Handle ReservePageRange(const pgind_t start, const psize_t count, const PageReservationOptions options);
         __bland __forceinline Handle ReservePageRange(const pgind_t start, const psize_t count)
         {
-            return this->ReservePageRange(start, count, true);
+            return this->ReservePageRange(start, count, PageReservationOptions::OnlyFree);
         }
 
-        __bland __forceinline Handle ReserveByteRange(const paddr_t phys_start, const psize_t length, const bool onlyFree)
+        __bland __forceinline Handle ReserveByteRange(const paddr_t phys_start, const psize_t length, const PageReservationOptions options)
         {
-            return this->ReservePageRange((phys_start - this->AllocationStart) / this->PageSize, length / this->PageSize, onlyFree);
+            return this->ReservePageRange((phys_start - this->AllocationStart) / this->PageSize, length / this->PageSize, options);
         }
         __bland __forceinline Handle ReserveByteRange(const paddr_t phys_start, const psize_t length)
         {
-            return this->ReserveByteRange(phys_start, length, true);
+            return this->ReserveByteRange(phys_start, length, PageReservationOptions::OnlyFree);
         }
 
         __bland Handle FreePageRange(const pgind_t start, const psize_t count);
@@ -259,6 +317,12 @@ namespace Beelzebub { namespace Memory
 
         __bland paddr_t AllocatePage();
         __bland paddr_t AllocatePages(const psize_t count);
+
+        __bland __forceinline bool ContainsRange(const paddr_t phys_start, const psize_t length) const
+        {
+            return ( phys_start           >= this->AllocationStart)
+                && ((phys_start + length) <= this->AllocationEnd);
+        }
 
         /*  Synchronization  */
 
@@ -304,12 +368,50 @@ namespace Beelzebub { namespace Memory
     {
     public:
 
-        /*  Constructors    */
+        /*  Constructors  */
 
-        __bland PageAllocator(PageAllocator * const first);
+        __bland PageAllocator();
+        __bland PageAllocator(PageAllocationSpace * const first);
 
-        /*  Fields  */
+        /*  Page Manipulation  */
+
+        __bland Handle ReserveByteRange(const paddr_t phys_start, const psize_t length, const PageReservationOptions options);
+        __bland __forceinline Handle ReserveByteRange(const paddr_t phys_start, const psize_t length)
+        {
+            return this->ReserveByteRange(phys_start, length, PageReservationOptions::OnlyFree);
+        }
+
+        __bland Handle FreeByteRange(const paddr_t phys_start, const psize_t length);
+        __bland Handle FreePageAtAddress(const paddr_t phys_addr);
+
+        __bland paddr_t AllocatePage(const PageAllocationOptions options);
+        __bland paddr_t AllocatePages(const psize_t count, const PageAllocationOptions options);
+
+        __bland PageAllocationSpace * GetSpaceContainingAddress(const paddr_t address);
+        __bland bool ContainsRange(const paddr_t phys_start, const psize_t length);
+
+        /*  Synchronization  */
+
+        //  Used for mutual exclusion over the linking pointers of the
+        //  allocation spaces.
+        Spinlock ChainLock;
+
+        __bland __forceinline void Lock()
+        {
+            (&this->ChainLock)->Acquire();
+        }
+
+        __bland __forceinline void Unlock()
+        {
+            (&this->ChainLock)->Release();
+        }
+
+        /*  Space Chaining  */
 
         PageAllocationSpace * FirstSpace;
+        PageAllocationSpace * LastSpace;
+
+        __bland void PreppendAllocationSpace(PageAllocationSpace * const space);
+        __bland void AppendAllocationSpace(PageAllocationSpace * const space);
     };
 }}
