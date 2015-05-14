@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <memory/page_allocator.hpp>
+//#include <memory/page_allocator.hpp>
 #include <handles.h>
 #include <metaprogramming.h>
 
@@ -17,17 +17,18 @@ namespace Beelzebub { namespace Memory
     {
         //  The physical page selected will be suitable for general use
         //  in the kernel heap and applications. 64-bit preferred.
-        PhysicalGeneral  = 0x00000000,
+        PhysicalGeneral    = 0x00000000,
         //  The physical page selected will have a 32-bit address,
         //  suitable for certain devices.
-        Physical32bit    = 0x00000010,
+        Physical32bit      = 0x00000010,
 
         //  The virtual page will be located in kernel-specific areas.
-        VirtualKernel    = 0x00000000,
+        VirtualKernel      = 0x00000000,
         //  The virtual page will be located in userland-specific areas.
-        VirtualUser      = 0x00010000,
-        //  The virtual page will be located in userland-specific areas.
-        VirtualUser32bit = 0x00110000,
+        VirtualUser        = 0x00010000,
+        //  The virtual page will be located in 32-bit memory locations,
+        //  suitable for 32-bit applications and kernel modules.
+        Virtual32bit       = 0x00100000,
     };
 
     /**
