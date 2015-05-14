@@ -44,7 +44,7 @@ CFLAGS		:= -ffreestanding -Wall -Werror -mcmodel=large
 CFLAGS      += -D __BEELZEBUB -std=gnu99
 CFLAGS      += -mno-red-zone
 
-CPPFLAGS	:= -ffreestanding -Wall -Werror -mcmodel=large
+CPPFLAGS	:= -ffreestanding -Wall -mcmodel=large
 CPPFLAGS    += -D __BEELZEBUB -std=gnu++11 -fno-rtti -fno-exceptions
 CPPFLAGS    += -mno-red-zone
 
