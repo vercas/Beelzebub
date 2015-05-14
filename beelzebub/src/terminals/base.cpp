@@ -145,6 +145,10 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                         size = '0' + sizeof(void *);
                         break;
 
+                    case 'P':
+                        size = '0' + sizeof(paddr_t);
+                        break;
+
                     default:
                         break;
                 }
@@ -188,6 +192,10 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
 
                     case 'p':
                         size = '0' + sizeof(void *);
+                        break;
+
+                    case 'P':
+                        size = '0' + sizeof(paddr_t);
                         break;
 
                     default:
@@ -235,6 +243,10 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                         size = '0' + sizeof(void *);
                         break;
 
+                    case 'P':
+                        size = '0' + sizeof(paddr_t);
+                        break;
+
                     default:
                         break;
                 }
@@ -275,6 +287,12 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                     default:
                         return {Handle(HandleResult::FormatBadArgumentSize), cnt, InvalidCoordinates};
                 }
+            }
+            else if (c == 'H')  //  Handle.
+            {
+                Handle h = va_arg(args, Handle);
+                
+                TERMTRY1(term->WriteHandle(h), res, cnt);
             }
             else if (c == 's')  //  String.
             {
@@ -538,6 +556,56 @@ uint16_t TerminalBase::GetTabulatorWidth()
 }
 
 /*  Utility  */
+
+TerminalWriteResult TerminalBase::WriteHandle(const Handle val)
+{
+    if (!this->Descriptor->Capabilities.CanOutput)
+        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+
+    char str[22] = "<    | |            >";
+    //  <type|global/fatal|result/index>
+
+    const char * const strType = val.GetTypeString();
+    const char * const strRes  = val.GetResultString();
+
+    for (size_t i = 0; 0 != strType[i] && i < 4; ++i)
+        str[1 + i] = strType[i];
+
+    if (!val.IsValid())
+    {
+        str[6] = '-';
+
+        for (size_t i = 8; i < 20; ++i)
+            str[i] = '-';
+    }
+    else if (val.IsType(HandleType::Result))
+    {
+        if (val.IsFatalResult())
+            str[6] = 'F';
+
+        char * const str2 = str + 8;
+
+        for (size_t i = 0; 0 != strRes[i] && i < 12; ++i)
+            str2[i] = strRes[i];
+    }
+    else
+    {
+        if (val.IsGlobal())
+            str[6] = 'G';
+
+        char * const str2 = str + 8;
+        const uint64_t ind = val.GetIndex();
+
+        for (size_t i = 0; i < 12; ++i)
+        {
+            uint8_t nib = (ind >> (i << 2)) & 0xF;
+
+            str2[11 - i] = (nib > 9 ? '7' : '0') + nib;
+        }
+    }
+
+    return this->Descriptor->WriteString(this, str);
+}
 
 TerminalWriteResult TerminalBase::WriteIntD(const int64_t val)
 {

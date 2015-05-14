@@ -124,6 +124,8 @@ namespace Beelzebub { namespace Terminals
 
 		/*	Utilitary methods  */
 
+		__bland TerminalWriteResult WriteHandle(const Handle val);
+
 		__bland TerminalWriteResult WriteIntD(const int64_t val);
 		__bland TerminalWriteResult WriteUIntD(const uint64_t val);
 
