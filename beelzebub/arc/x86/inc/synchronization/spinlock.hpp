@@ -65,6 +65,18 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /*
+         *  Acquire the spinlock, waiting if necessary.
+         *  Includes a pointer in the memory barrier, if supported.
+         */
+        __bland __forceinline void Acquire(void * const ptr)
+        {
+            while (__sync_lock_test_and_set(&this->Value, 1, ptr))
+                this->Spin();
+
+            //msg("LOCK|ACQ|%Xp%n", this);
+        }
+
+        /*
          *  Release the spinlock.
          */
         __bland __forceinline void Release()
@@ -72,6 +84,17 @@ namespace Beelzebub { namespace Synchronization
             //msg("LOCK|REL|%Xp%n", this);
 
             __sync_lock_release(&this->Value);
+        }
+
+        /*
+         *  Release the spinlock.
+         *  Includes a pointer in the memory barrier.
+         */
+        __bland __forceinline void Release(void * const ptr)
+        {
+            //msg("LOCK|REL|%Xp%n", this);
+
+            __sync_lock_release(&this->Value, ptr);
         }
 
         /*
@@ -98,3 +121,6 @@ namespace Beelzebub { namespace Synchronization
         volatile spinlock_t Value; 
     };
 }}
+
+//  Very sad note: GCC doesn't support protectign additional pointers in
+//  the memory barrier. Nevertheless, I have added the feature.
