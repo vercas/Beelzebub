@@ -41,7 +41,7 @@ PageAllocationSpace::PageAllocationSpace(const paddr_t phys_start, const paddr_t
 
     //  Stuff we cannot touch.
     this->ControlPageCount = this->PageCount - this->FreePageCount;
-    this->ReservedPageCount = this->ControlPageCount;
+    this->ReservedPageCount = 0;
 
     //  Bytes! :D
     this->FreeSize = this->AllocableSize = this->AllocablePageCount * page_size;
@@ -107,7 +107,7 @@ PageAllocationSpace::PageAllocationSpace(const paddr_t phys_start, const paddr_t
 
 Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t count, const PageReservationOptions options)
 {
-    if (start + count >= this->PageCount)
+    if (start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
         return Handle(HandleResult::PagesOutOfAllocatorRange);
 
     const bool inclCaching  = (0 != (options & PageReservationOptions::IncludeCaching));
@@ -204,7 +204,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
 Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t count)
 {
-    if (start + count >= this->PageCount)
+    if (start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
         return Handle(HandleResult::PagesOutOfAllocatorRange);
 
     PageDescriptor * const map = this->Map + start;

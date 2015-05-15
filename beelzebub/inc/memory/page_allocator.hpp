@@ -240,6 +240,22 @@ namespace Beelzebub { namespace Memory
          *      not mapped; they are implicitly reserved.)
          */
 
+    public:
+
+        /*  Statics  */
+
+        static __bland __forceinline psize_t GetControlPageCountOfRange(
+              const paddr_t phys_start
+            , const paddr_t phys_end
+            , const psize_t page_size)
+        {
+            const psize_t len = phys_end - phys_start;
+
+            return (len /  page_size                                            )
+                 - (len / (page_size + sizeof(PageDescriptor) + sizeof(pgind_t)));
+            //  Total page count minus allocable page count.
+        }
+
         /*  Proeprties  */
 
 #define PROP(type, name)                                     \
@@ -385,6 +401,11 @@ namespace Beelzebub { namespace Memory
         __bland Handle FreePageAtAddress(const paddr_t phys_addr);
 
         __bland paddr_t AllocatePage(const PageAllocationOptions options);
+        __bland __forceinline paddr_t AllocatePage()
+        {
+            return this->AllocatePage(PageAllocationOptions::GeneralPages);
+        }
+
         __bland paddr_t AllocatePages(const psize_t count, const PageAllocationOptions options);
 
         __bland PageAllocationSpace * GetSpaceContainingAddress(const paddr_t address);

@@ -92,11 +92,59 @@ void InitializeInterrupts()
 
 bool firstRegionCreated;
 
-PageAllocationSpace * CreateAllocationSpace(uint64_t start, uint64_t end)
+psize_t currentSpaceIndex, currentSpaceLimit;
+PageAllocationSpace * currentSpaceLocation;
+
+PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 {
+    /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
+
     if (firstRegionCreated)
     {
+        if (currentSpaceIndex == currentSpaceLimit)
+        {
+            //  The limit of the current allocation space location has
+            //  been reached.
 
+            currentSpaceIndex = 0;
+            //  Reset the index.
+
+            currentSpaceLocation = nullptr;
+            //  Nullify the location so it is recreated.
+
+            /*msg("MAX; ");//*/
+        }
+
+        if (currentSpaceLocation == nullptr)
+        {
+            currentSpaceLocation = (PageAllocationSpace *)mainAllocator.AllocatePage();
+
+            assert(currentSpaceLocation != nullptr
+                ,   "Unable to allocate a special page for creating more allocation spaces!");
+
+            Handle res = mainAllocator.ReserveByteRange((paddr_t)currentSpaceLocation, PageSize, PageReservationOptions::IncludeInUse);
+
+            assert(res.IsOkayResult()
+                , "Failed to reserve special page for further allocation space creation!");
+
+            /*msg("PAGE@%Xp; ", currentSpaceLocation);//*/
+        }
+
+        /*msg("SPA@%Xp; I=%u2; "
+            , currentSpaceLocation + currentSpaceIndex
+            , (uint16_t)currentSpaceIndex);//*/
+
+        PageAllocationSpace * space = new (currentSpaceLocation + currentSpaceIndex++) PageAllocationSpace(start, end, PageSize);
+        //  One of the really neat things I like about C++.
+
+        mainAllocator.PreppendAllocationSpace(space);
+
+        /*msg("%XP-%XP;%n"
+            , space->GetAllocationStart()
+            , space->GetAllocationEnd());//*/
+
+
+        return space;
     }
     else
     {
@@ -105,10 +153,19 @@ PageAllocationSpace * CreateAllocationSpace(uint64_t start, uint64_t end)
 
         firstRegionCreated = true;
 
+        currentSpaceIndex = 0;
+        currentSpaceLimit = PageSize / sizeof(PageAllocationSpace);
+        currentSpaceLocation = nullptr;
+
+        /*msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
+            , &mainAllocationSpace, &mainAllocator
+            , mainAllocationSpace.GetAllocationStart()
+            , mainAllocationSpace.GetAllocationEnd()
+            , (uint16_t)currentSpaceLimit
+            , (uint16_t)sizeof(PageAllocationSpace));//*/
+
         return &mainAllocationSpace;
     }
-
-    return nullptr;
 }
 
 void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t freeStart)
@@ -136,6 +193,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
         if (firstMap == nullptr)
             firstMap = m;
 
+        /*
         uint64_t addressMisalignment = RoundUpDiff(m->address, PageSize);
         //  The address is rounded up to the closest page;
 
@@ -144,6 +202,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
         m->length -= m->length % PageSize;
         //  The length is rounded down.
+        */// This is not necessary when using Jegudiel.
 
         uint64_t mEnd = m->address + m->length;
 
@@ -157,108 +216,6 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     msg("Initializing memory over entries #%us-%us...", (size_t)(firstMap - map)
                                                       , (size_t)(lastMap - map));
     msg(" Address rage: %X8-%X8.%n", start, end);
-
-    //uint64_t maxGapSize = 2 * PageSize * PageSize / sizeof(PageDescriptor);
-    //  The maximum size of a region of reserved memory.
-    //  Any greater and it is considered to split memory regions.
-    //  ... Because it would waste space with descriptors and generally
-    //  slow down contigious allocations.
-
-    firstRegionCreated = false;
-
-    bool lastAvailable = true;
-    uint64_t availableEnd = lastMap->address + lastMap->length, reservedEnd;
-    uint64_t availableStart = lastMap->address, reservedStart;
-
-    msg("-- Initial range: %X8-%X8;%n", availableStart, availableEnd);
-
-    for (jg_info_mmap_t * m = lastMap - 1; m >= firstMap; --m)
-    {
-        uint64_t start = m->address, end = m->address + m->length;
-        bool available = 0 != m->available;
-
-        msg("-- Range: (%c) %X8-%X8: L%c"
-            , available ? 'A' : 'R'
-            , start, end
-            , lastAvailable ? 'A' : 'R');
-
-        if (available)
-        {
-            if (lastAvailable)
-            {
-                assert(end == availableStart
-                    , "The end of the current available entry doesn't match the start of the previous available entry.");
-
-                availableStart = start;
-
-                msg(" EXTENDING AVAILABLE;%n");
-            }
-            else
-            {
-                assert(end == reservedStart
-                    , "The end of the current available entry doesn't match the start of the previous reserved entry.");
-
-                msg(" STARTING AVAILABLE;%n");
-            }
-        }
-        else
-        {
-            if (lastAvailable)
-            {
-                assert(end == availableStart
-                    , "The end of the current reserved entry doesn't match the start of the previous available entry.");
-
-                reservedStart = start;
-                reservedEnd = end;
-
-                msg(" STARTING RESERVED;%n");
-            }
-            else
-            {
-                assert(end == reservedStart
-                    , "The end of the current reserved entry doesn't match the start of the previous reserved entry.");
-
-                reservedStart = start;
-
-                msg(" EXTENDING RESERVED;%n");
-            }
-        }
-
-        lastAvailable = available;
-    }
-
-    new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
-    new (&mainAllocator)       PageAllocator(&mainAllocationSpace);
-
-#ifdef __BEELZEBUB__DEBUG
-    //mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
-#endif
-
-    for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
-        if (!m->available)
-        {
-            Handle res = mainAllocationSpace.ReserveByteRange(m->address, m->length);
-
-            assert(res.IsOkayResult()
-                , "Failed to reserve page range %XP-%XP: %H."
-                , m->address, m->address + m->length
-                , res);
-        }
-
-#ifdef __BEELZEBUB__DEBUG
-    //mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
-#endif
-
-    //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
-}
-
-void InitializeMemory()
-{
-    initialSerialTerminal.WriteLine();
-
-    //  TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
-
-    SanitizeAndInitializeMemory(JG_INFO_MMAP, JG_INFO_ROOT->mmap_count, JG_INFO_ROOT->free_paddr);
 
     initialSerialTerminal.WriteLine();
 
@@ -293,6 +250,123 @@ void InitializeMemory()
     initialSerialTerminal.WriteLine();
     initialSerialTerminal.WriteLine();
 
+    //uint64_t maxGapSize = 2 * PageSize * PageSize / sizeof(PageDescriptor);
+    //  The maximum size of a region of reserved memory.
+    //  Any greater and it is considered to split memory regions.
+    //  ... Because it would waste space with descriptors and generally
+    //  slow down contigious allocations.
+
+    /*firstRegionCreated = false;
+
+    bool lastAvailable = true;
+    uint64_t availableEnd = lastMap->address + lastMap->length, reservedEnd;
+    uint64_t availableStart = lastMap->address, reservedStart;
+
+    msg("-- Initial range: %X8-%X8;%n", availableStart, availableEnd);
+
+    for (jg_info_mmap_t * m = lastMap - 1; m >= firstMap; --m)
+    {
+        uint64_t start = m->address, end = m->address + m->length;
+        bool available = 0 != m->available;
+
+        msg("-- Range: (%c) %X8-%X8: L%c"
+            , available ? 'A' : 'R'
+            , start, end
+            , lastAvailable ? 'A' : 'R');
+
+        if (available)
+        {
+            if (lastAvailable)
+            {
+                assert(end == availableStart
+                    , "The end of the current available entry doesn't match the start of the previous available entry.");
+
+                availableStart = start;
+
+                msg(" EXTENDING AVAILABLE;%n");
+            }
+            else
+            {
+                assert(end == reservedStart
+                    , "The end of the current available entry doesn't match the start of the previous reserved entry.");
+
+                availableStart = start;
+                availableEnd = end;
+
+                msg(" STARTING AVAILABLE;%n");
+            }
+        }
+        else
+        {
+            if (lastAvailable)
+            {
+                assert(end == availableStart
+                    , "The end of the current reserved entry doesn't match the start of the previous available entry.");
+
+                reservedStart = start;
+                reservedEnd = end;
+
+                msg(" STARTING RESERVED;%n");
+            }
+            else
+            {
+                assert(end == reservedStart
+                    , "The end of the current reserved entry doesn't match the start of the previous reserved entry.");
+
+                reservedStart = start;
+
+                msg(" EXTENDING RESERVED;%n");
+            }
+        }
+
+        lastAvailable = available;
+    }*/
+
+    //new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
+    //new (&mainAllocator)       PageAllocator(&mainAllocationSpace);
+
+    for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
+        if (m->available && m->length >= (2 * PageSize))
+        {
+            if (m->address < start && (m->address + m->length) > start)
+                //  Means this entry crosses the start of free memory.
+                CreateAllocationSpace(start, m->address + m->length);
+            else
+                CreateAllocationSpace(m->address, m->address + m->length);
+        }
+
+#ifdef __BEELZEBUB__DEBUG
+    //mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
+#endif
+
+    for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
+        if (!m->available)
+        {
+            Handle res = mainAllocator.ReserveByteRange(m->address, m->length);
+
+            assert(res.IsOkayResult() || res.IsResult(HandleResult::PagesOutOfAllocatorRange)
+                , "Failed to reserve page range %XP-%XP: %H."
+                , m->address, m->address + m->length
+                , res);
+        }
+
+#ifdef __BEELZEBUB__DEBUG
+    //mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
+#endif
+
+    //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
+}
+
+void InitializeMemory()
+{
+    initialSerialTerminal.WriteLine();
+
+    //  TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
+
+    SanitizeAndInitializeMemory(JG_INFO_MMAP, JG_INFO_ROOT->mmap_count, JG_INFO_ROOT->free_paddr);
+
+    initialSerialTerminal.WriteLine();
+
     //  DUMPING CONTROL REGISTERS
 
     Cpu::GetCr0().PrintToTerminal(&initialSerialTerminal);
@@ -311,7 +385,7 @@ void InitializeMemory()
 
     //  Preparing virtual memory tables
 
-    paddr_t pml4_addr = mainAllocationSpace.AllocatePage();
+    paddr_t pml4_addr = mainAllocator.AllocatePage();
 
     Pml4 & pml4 = * new ((Pml4 *)pml4_addr) Pml4();
 
