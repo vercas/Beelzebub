@@ -141,6 +141,10 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                         size = '0' + sizeof(size_t);
                         break;
 
+                    case 'S':
+                        size = '0' + sizeof(psize_t);
+                        break;
+
                     case 'p':
                         size = '0' + sizeof(void *);
                         break;
@@ -190,6 +194,10 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                         size = '0' + sizeof(size_t);
                         break;
 
+                    case 'S':
+                        size = '0' + sizeof(psize_t);
+                        break;
+
                     case 'p':
                         size = '0' + sizeof(void *);
                         break;
@@ -237,6 +245,10 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                 {
                     case 's':
                         size = '0' + sizeof(size_t);
+                        break;
+
+                    case 'S':
+                        size = '0' + sizeof(psize_t);
                         break;
 
                     case 'p':
