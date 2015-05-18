@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <arc/string.h>
 #include <metaprogramming.h>
 
 __extern       bool   memeq  (const void * const src1, const void * const src2, size_t len);
