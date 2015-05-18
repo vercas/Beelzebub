@@ -354,6 +354,11 @@ namespace Beelzebub { namespace Memory
 
     private:
 
+        /*  Utilitary Methods  */
+
+        //  Pops a page off the stack. (stack selected based on status)
+        __bland Handle PopPage(const pgind_t ind);
+
         /*  Fields  */
 
         PageDescriptor * Map;

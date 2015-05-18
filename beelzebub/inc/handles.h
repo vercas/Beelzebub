@@ -60,15 +60,19 @@ namespace Beelzebub
 
         //  An operation was attempted on a range of pages that
         //  aren't covered by the page allocator.
-        PagesOutOfAllocatorRange  = 0x0000000000000030U, // Pag. OOAR
+        PagesOutOfAllocatorRange  = 0x0000000000000030U, // Pag OOAR
         //  An invalid operation was attempted on a reserved page.
-        PageReserved              = 0x0000000000000031U, // Pag. Res.
+        PageReserved              = 0x0000000000000031U, // Pag Res.
         //  An invalid operation was attempted on a free page.
-        PageFree                  = 0x0000000000000032U, // Pag. Free
+        PageFree                  = 0x0000000000000032U, // Pag Free
         //  An invalid operation was attempted on a used page.
-        PageInUse                 = 0x0000000000000033U, // Pag. Used
+        PageInUse                 = 0x0000000000000033U, // Pag Used
         //  An invalid operation was attempted on a caching page.
-        PageCaching               = 0x0000000000000034U, // Pag. Cach.
+        PageCaching               = 0x0000000000000034U, // Pag Cach.
+        //  A page cannot be pushed to the stack because it is already on the stack.
+        PageStacked               = 0x0000000000000035U, // Pag Stkd
+        //  A page cannot be popped off the stack because it is not on the stack.
+        PageNotStacked            = 0x0000000000000036U, // Pag N Stkd
     };
 
     struct Handle
@@ -250,6 +254,10 @@ namespace Beelzebub
                     return "Pag Used";
                 case HandleResult::PageReserved:
                     return "Pag Res.";
+                case HandleResult::PageStacked:
+                    return "Pag Stkd";
+                case HandleResult::PageNotStacked:
+                    return "Pag N Stkd";
 
                 default:
                     return "UNKNOWN";

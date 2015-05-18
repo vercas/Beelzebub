@@ -119,12 +119,13 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
     for (pgind_t i = 0; i < count; ++i)
     {
         PageDescriptor * const page = map + i;
+        const PageStatus status = page->Status;
 
         /*msg("Reserving page #%us (%Xp @%us: %s).%n", start + i
             , this->MemoryStart + (start + i) * this->PageSize
             , i, page->GetStatusString());//*/
 
-        if (page->Status == PageStatus::Free)
+        if (status == PageStatus::Free)
         {
             /*msg("  SI: %us; SFT: %us; SCT: %us.%n"
                 , page->StackIndex
@@ -133,27 +134,9 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
             this->Lock();
 
-            PageDescriptor * freeTop = this->Map + this->Stack[this->StackFreeTop];
-
-            //  Popping off el stacko.
-            this->Stack[page->StackIndex] = this->Stack[this->StackFreeTop--];
-            freeTop->StackIndex = page->StackIndex;
-
-            if (this->StackCacheTop != this->StackFreeTop + 1)
-            {
-                PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
-
-                this->Stack[this->StackFreeTop + 1] = this->Stack[this->StackCacheTop--];
-                cacheTop->StackIndex = this->StackFreeTop + 1;
-            }
-            else
-                --this->StackCacheTop;
-
-            --this->FreePageCount;
-            this->FreeSize -= this->PageSize;
-            //  Change the info accordingly.
+            this->PopPage(start + i);
         }
-        else if (page->Status == PageStatus::Caching)
+        else if (status == PageStatus::Caching)
         {
             if (inclCaching)
             {
@@ -165,16 +148,12 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
                 //  TODO: Perhaps notify of this event?
 
-                PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
-
-                //  Popping off el stacko.
-                this->Stack[page->StackIndex] = this->Stack[this->StackCacheTop--];
-                cacheTop->StackIndex = page->StackIndex;
+                this->PopPage(start + i);
             }
             else
                 return Handle(HandleResult::PageCaching);
         }
-        else if (page->Status == PageStatus::InUse)
+        else if (status == PageStatus::InUse)
         {
             if (inclInUse)
                 this->Lock();
@@ -265,6 +244,8 @@ paddr_t PageAllocationSpace::AllocatePage()
 
         if (this->StackCacheTop != this->StackFreeTop + 1)
             this->Stack[this->StackFreeTop + 1] = this->Stack[this->StackCacheTop--];
+        else
+            --this->StackCacheTop;
 
         (this->Map + i)->Use();
         //  Mark the page as used.
@@ -289,6 +270,53 @@ paddr_t PageAllocationSpace::AllocatePages(const psize_t count)
     //  TODO: Implement this in the most noobish way imaginable.
 
     return nullptr;
+}
+
+/*  Utilitary Methods  */
+
+Handle PageAllocationSpace::PopPage(const pgind_t ind)
+{
+    if (ind >= this->AllocablePageCount)
+        return Handle(HandleResult::PagesOutOfAllocatorRange);
+
+    PageDescriptor * const page = this->Map + ind;
+
+    if (page->Status == PageStatus::Free)
+    {
+        PageDescriptor * freeTop = this->Map + this->Stack[this->StackFreeTop];
+
+        //  Popping off el stacko.
+        this->Stack[page->StackIndex] = this->Stack[this->StackFreeTop--];
+        freeTop->StackIndex = page->StackIndex;
+
+        if (this->StackCacheTop != this->StackFreeTop + 1)
+        {
+            PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
+
+            this->Stack[this->StackFreeTop + 1] = this->Stack[this->StackCacheTop--];
+            cacheTop->StackIndex = this->StackFreeTop + 1;
+        }
+        else
+            --this->StackCacheTop;
+
+        --this->FreePageCount;
+        this->FreeSize -= this->PageSize;
+        //  Change the info accordingly.
+
+        return Handle(HandleResult::Okay);
+    }
+    else if (page->Status == PageStatus::Caching)
+    {
+        PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
+
+        //  Popping off el stacko.
+        this->Stack[page->StackIndex] = this->Stack[this->StackCacheTop--];
+        cacheTop->StackIndex = page->StackIndex;
+
+        return Handle(HandleResult::Okay);
+    }
+
+    return Handle(HandleResult::PageNotStacked);
 }
 
 /*  Debug  */
