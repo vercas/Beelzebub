@@ -9,7 +9,7 @@
 #define MCATS2(A, B) A ## B
 #define MCATS3(A, B, C) A ## B ## C
 #define MCATS4(A, B, C, D) A ## B ## C ## D
-//	Maacro conCATenate Symbols!
+//	Macro conCATenate Symbols!
 
 /*	Constants/keywords..?	*/
 
