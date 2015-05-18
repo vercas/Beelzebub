@@ -175,7 +175,6 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                             uint32_t val4 = va_arg(args, uint32_t);
                             TERMTRY1(term->WriteUIntD(val4), res, cnt);
                         }
-
                         break;
 
                     default:
@@ -228,7 +227,6 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                             int32_t val4 = va_arg(args, int32_t);
                             TERMTRY1(term->WriteIntD(val4), res, cnt);
                         }
-
                         break;
 
                     default:
@@ -277,6 +275,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                             uint32_t val4 = va_arg(args, uint32_t);
                             TERMTRY1(term->WriteHex32(val4), res, cnt);
                         }
+                        break;
 
                     case '2':
                         /*  Apparently chars and shorts are promoted to integers!  */
@@ -285,6 +284,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                             uint32_t val2 = va_arg(args, uint32_t);
                             TERMTRY1(term->WriteHex16((uint16_t)val2), res, cnt);
                         }
+                        break;
 
                     case '1':
                         /*  Apparently chars and shorts are promoted to integers!  */
@@ -293,7 +293,6 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                             uint32_t val1 = va_arg(args, uint32_t);
                             TERMTRY1(term->WriteHex8((uint8_t)val1), res, cnt);
                         }
-
                         break;
 
                     default:
