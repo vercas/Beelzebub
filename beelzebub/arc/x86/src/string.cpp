@@ -18,7 +18,7 @@ const void * memchr(const void * const src, const int val, size_t len)
 
 void * memchr(void * const src, const int val, size_t len)
 {
-    const byte * s = (byte *)src;
+    byte * s = (byte *)src;
 
     for (; len > 0; ++s, --len)
         if (*s == val)
