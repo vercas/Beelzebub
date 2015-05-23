@@ -1,7 +1,7 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(kmain_bsp)
 SECTIONS {
-    .text 0xFFFFFF0000000000 : {
+    .text 0xFFFFFF8000000000 : {
         *(.text)
         *(.rodata)
     }

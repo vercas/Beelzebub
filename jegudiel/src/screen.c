@@ -126,7 +126,7 @@ void draw_bitmap(const size_t x, const size_t y, const uint32_t colf, const uint
 /**
  * Initializes the screen.
  **/
-void screen_init()
+void screen_init(void)
 {
 	curX = curY = 0;
 
@@ -165,7 +165,7 @@ void screen_init()
 /**
  * Clears the screen.
  */
-void screen_clear()
+void screen_clear(void)
 {
 	if (type == 0)
 	{

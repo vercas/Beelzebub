@@ -80,7 +80,7 @@ extern void screen_write_hex(uint64_t number, uint16_t x, uint16_t y);
 /**
  * Clears the screen.
  */
-extern void screen_clear();
+extern void screen_clear(void);
 
 
 
@@ -93,7 +93,7 @@ extern void screen_clear();
 /**
  * Initializes the screen.
  **/
-extern void screen_init();
+extern void screen_init(void);
 
 /**
  * Writes a string to the screen.

@@ -305,6 +305,18 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                 
                 TERMTRY1(term->WriteHandle(h), res, cnt);
             }
+            else if (c == 'B')  //  Boolean (T/F)
+            {
+                uint32_t val = va_arg(args, uint32_t);
+                
+                TERMTRY1(writeChar(term, (bool)val ? 'T' : 'F'), res, cnt);
+            }
+            else if (c == 'b')  //  Boolean/bit (1/0)
+            {
+                uint32_t val = va_arg(args, uint32_t);
+                
+                TERMTRY1(writeChar(term, (bool)val ? '1' : '0'), res, cnt);
+            }
             else if (c == 's')  //  String.
             {
                 char * str = va_arg(args, char *);

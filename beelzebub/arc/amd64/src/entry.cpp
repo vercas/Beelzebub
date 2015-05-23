@@ -1,7 +1,9 @@
 #include <architecture.h>
 #include <arc/entry.h>
+#include <arc/memory/virtual_allocator.hpp>
 #include <arc/memory/paging.hpp>
 #include <arc/system/cpu.hpp>
+#include <arc/system/cpuid.hpp>
 
 #include <jegudiel.h>
 #include <arc/isr.h>
@@ -20,6 +22,7 @@
 #include <cpp_support.h>
 
 using namespace Beelzebub;
+using namespace Beelzebub::System;
 using namespace Beelzebub::Ports;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Memory;
@@ -29,6 +32,11 @@ using namespace Beelzebub::Memory::Paging;
 SerialTerminal initialSerialTerminal;
 PageAllocationSpace mainAllocationSpace;
 PageAllocator mainAllocator;
+VirtualAllocationSpace bootstrapVas;
+
+volatile bool bootstrapVasReady = false;
+
+CpuId Beelzebub::System::BootstrapProcessorId;
 
 static __bland void fault_gp(isr_state_t * state)
 {
@@ -42,11 +50,19 @@ static __bland void fault_gp(isr_state_t * state)
 
 void kmain_bsp()
 {
+    bootstrapVasReady = false;
+
     Beelzebub::Main();
 }
 
 void kmain_ap()
 {
+    while (!bootstrapVasReady) ;
+    //  Await!
+
+    bootstrapVas.Activate();
+    //  Perfectly valid solution.
+
     Beelzebub::Secondary();
 }
 
@@ -83,7 +99,7 @@ void InitializeInterrupts()
 
     isr_handlers[32] = (uintptr_t)&SerialPort::IrqHandler;
 
-    initialSerialTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
+    //initialSerialTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
 }
 
 /**********************************************/
@@ -120,12 +136,13 @@ PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
             currentSpaceLocation = (PageAllocationSpace *)mainAllocator.AllocatePage();
 
             assert(currentSpaceLocation != nullptr
-                ,   "Unable to allocate a special page for creating more allocation spaces!");
+                , "Unable to allocate a special page for creating more allocation spaces!");
 
             Handle res = mainAllocator.ReserveByteRange((paddr_t)currentSpaceLocation, PageSize, PageReservationOptions::IncludeInUse);
 
             assert(res.IsOkayResult()
-                , "Failed to reserve special page for further allocation space creation!");
+                , "Failed to reserve special page for further allocation space creation: %H"
+                , res);
 
             /*msg("PAGE@%Xp; ", currentSpaceLocation);//*/
         }
@@ -142,7 +159,6 @@ PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
         /*msg("%XP-%XP;%n"
             , space->GetAllocationStart()
             , space->GetAllocationEnd());//*/
-
 
         return space;
     }
@@ -213,41 +229,80 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
         }
     }
 
-    msg("Initializing memory over entries #%us-%us...", (size_t)(firstMap - map)
-                                                      , (size_t)(lastMap - map));
+    msg("Initializing memory over entries #%us-%us...%n", (size_t)(firstMap - map)
+                                                        , (size_t)(lastMap - map));
     msg(" Address rage: %X8-%X8.%n", start, end);
+    msg(" Maps start at %Xp.%n", firstMap);
 
-    initialSerialTerminal.WriteLine();
+    //  Mapping more momery, if available.
 
-    //  DUMPING MMAP
-
-    initialSerialTerminal.WriteLine("IND |A|    Address     |     Length     |");
-
-    // get pagez lol
-
-    jg_info_mmap_t * mmap = JG_INFO_MMAP;
-    uint32_t mmapcnt = JG_INFO_ROOT->mmap_count;
-
-    for (uint32_t i = 0; i < mmapcnt; i++)
+    if (end > (64ULL << 30) && BootstrapProcessorId.CheckFeature(CpuFeature::Page1GB))
     {
-        jg_info_mmap_t & e = mmap[i];
-        //  Current map.
+        msg(" Available memory seems to be more than 64 GiB, and 1-GiB pages are supported.%n");
 
-        initialSerialTerminal.WriteHex16((uint16_t)i);
-        initialSerialTerminal.Write("|");
-        initialSerialTerminal.Write(e.available ? "A" : " ");
-        initialSerialTerminal.Write("|");
-        initialSerialTerminal.WriteHex64(e.address);
-        initialSerialTerminal.Write("|");
-        initialSerialTerminal.WriteHex64(e.length);
-        initialSerialTerminal.WriteLine("|");
+        //  More than 64 gigs of memory means we need some serious 1-gig pages!
+
+        Cr3 cr3 = Cpu::GetCr3();
+        Pml4 & pml4 = *cr3.GetPml4Ptr();
+        Pml3 & pml3 = *pml4[(uint16_t)0].GetPml3Ptr();
+
+        if (pml3[(uint16_t)0].GetPageSize())
+            msg("  PDPT's first entry seems to be a 1-GiB page. Assuming all available memory is mapped!%n");
+        else
+        {
+            msg("  PDPT's first entry is a PD. Switching to 1-GiB pages.%n");
+
+            paddr_t oldPml2Start = pml3[(uint16_t)0].GetAddress();
+            size_t oldPml2Count = 0;
+            //  I'm making no assumption about the number of present PDs.
+
+            bool goOn = true;
+
+            for (uint16_t i = 0; i < 512; ++i)
+            {
+                if (pml3[i].GetPresent())
+                    ++oldPml2Count;
+
+                if (((uint64_t)i << 30) < end)
+                    pml3[i] = Pml3Entry((uint64_t)i << 30, true, true, false, false, false, false, false, false, false, false);
+                    //  This is a 1-GiB page!
+                else
+                    pml3[i].SetPresent(goOn = false);
+                    //  Just makin' sure.
+            }
+
+            if (goOn)
+            {
+                msg("   One PDPT did not suffice.%n");
+
+                assert(end <= ((uint64_t)oldPml2Count + 1ULL) * (512ULL << 30)
+                    , "   Where did you get so much RAM..? Can't map it all!");
+
+                for (uint16_t j = 0; j < oldPml2Count; ++j)
+                {
+                    goOn = true;
+                    //  Reused variable!!
+
+                    Pml3 & pml3N = *((Pml3 *)oldPml2Start + j);
+                    pml4[(uint16_t)(j + 1)] = Pml4Entry((paddr_t)(&pml3N), true, true, false, false);
+
+                    for (uint16_t i = 0; i < 512; ++i)
+                    {
+                        if (((uint64_t)i << 30) < end)
+                            pml3N[i] = Pml3Entry((uint64_t)i << 30, true, true, false, false);
+                            //  This is a 1-GiB page!
+                        else
+                            pml3N[i].SetPresent(goOn = false);
+                            //  NOT breaking because the rest of the entries need cleanup.
+                    }
+
+                    if (!goOn)
+                        break; // yourself fool
+                }
+            }
+        }
     }
 
-    initialSerialTerminal.WriteLine();
-
-    initialSerialTerminal.WriteHex64(JG_INFO_ROOT->free_paddr);
-
-    initialSerialTerminal.WriteLine();
     initialSerialTerminal.WriteLine();
 
     //uint64_t maxGapSize = 2 * PageSize * PageSize / sizeof(PageDescriptor);
@@ -325,6 +380,8 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     //new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
     //new (&mainAllocator)       PageAllocator(&mainAllocationSpace);
 
+    //  SPACE CREATION
+
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
         if (m->available && m->length >= (2 * PageSize))
         {
@@ -334,6 +391,8 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
             else
                 CreateAllocationSpace(m->address, m->address + m->length);
         }
+
+    //  PAGE RESERVATION
 
 #ifdef __BEELZEBUB__DEBUG
     //mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
@@ -354,44 +413,85 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     //mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
 #endif
 
+    //  PAGING INITIALIZATION
+
+    msg("Constructing bootstrap virtual allocation space... ");
+    new (&bootstrapVas) VirtualAllocationSpace(&mainAllocator);
+    msg("Done.%n");
+
+    msg("Bootstrapping the VAS... ");
+    bootstrapVas.Bootstrap();
+    msg("Done.%n");
+
+    bootstrapVasReady = true;
+
+    msg("Activating the VAS... ");
+    bootstrapVas.Activate();
+    msg("Done!%n%n");
+
+    //  DUMPING MMAP
+
+    initialSerialTerminal.WriteLine("IND |A|    Address     |     Length     |       End      |");
+
+    for (uint32_t i = 0; i < cnt; i++)
+    {
+        jg_info_mmap_t & e = map[i];
+        //  Current map.
+
+        initialSerialTerminal.WriteHex16((uint16_t)i);
+        initialSerialTerminal.Write("|");
+        initialSerialTerminal.Write(e.available ? "A" : " ");
+        initialSerialTerminal.Write("|");
+        initialSerialTerminal.WriteHex64(e.address);
+        initialSerialTerminal.Write("|");
+        initialSerialTerminal.WriteHex64(e.length);
+        initialSerialTerminal.Write("|");
+        initialSerialTerminal.WriteHex64(e.address + e.length);
+        initialSerialTerminal.WriteLine("|");
+    }
+
+    initialSerialTerminal.Write("Free memory start: ");
+    initialSerialTerminal.WriteHex64(freeStart);
+
+    initialSerialTerminal.WriteLine();
+    initialSerialTerminal.WriteLine();
+
     //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
 }
 
 void InitializeMemory()
 {
     initialSerialTerminal.WriteLine();
+    
+    BootstrapProcessorId = CpuId();
+    BootstrapProcessorId.Initialize();
+    //  This is required to page all the available memory.
+
+    BootstrapProcessorId.PrintToTerminal(&initialSerialTerminal);
+
+    initialSerialTerminal.WriteLine();
 
     //  TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
 
-    SanitizeAndInitializeMemory(JG_INFO_MMAP, JG_INFO_ROOT->mmap_count, JG_INFO_ROOT->free_paddr);
+    SanitizeAndInitializeMemory(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, JG_INFO_ROOT_EX->free_paddr);
 
     initialSerialTerminal.WriteLine();
 
     //  DUMPING CONTROL REGISTERS
 
     Cpu::GetCr0().PrintToTerminal(&initialSerialTerminal);
+    initialSerialTerminal.WriteLine();
 
     initialSerialTerminal.Write("CR2: ");
     initialSerialTerminal.WriteHex64((uint64_t)Cpu::GetCr2());
     initialSerialTerminal.WriteLine();
 
     Cpu::GetCr3().PrintToTerminal(&initialSerialTerminal);
+    initialSerialTerminal.WriteLine();
 
     initialSerialTerminal.Write("CR4: ");
     initialSerialTerminal.WriteHex64(Cpu::GetCr4());
     initialSerialTerminal.WriteLine();
 
     initialSerialTerminal.WriteLine();
-
-    //  Preparing virtual memory tables
-
-    paddr_t pml4_addr = mainAllocator.AllocatePage();
-
-    Pml4 & pml4 = * new ((Pml4 *)pml4_addr) Pml4();
-
-    Cr3 cr3(Cpu::GetCr3());
-    Pml4 & currentPml4 = *cr3.GetPml4Ptr();
-
-    pml4[511] = currentPml4[511];
-    pml4[510] = currentPml4[510];
 }

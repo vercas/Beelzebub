@@ -4,18 +4,18 @@
 #include "stddef.h"
 #include <arc/metaprogramming.h>
 
-/*	Some macro helpers.	*/
+/*  Some macro helpers. */
 
 #define MCATS2(A, B) A ## B
 #define MCATS3(A, B, C) A ## B ## C
 #define MCATS4(A, B, C, D) A ## B ## C ## D
-//	Macro conCATenate Symbols!
+//  Macro conCATenate Symbols!
 
-/*	Constants/keywords..?	*/
+/*  Constants/keywords..?   */
 
 #define nullptr (0)
 
-/*	This is interesting.	*/
+/*  This is interesting.    */
 
 #ifdef __cplusplus
 #define __extern extern "C"
@@ -23,7 +23,15 @@
 #define __extern extern
 #endif
 
-/*	This part defines a few function modifiers based on attributes.	*/
+/*  This part defines a few function modifiers based on attributes. */
 
-#define __forceinline	inline  __attribute__((always_inline))
-#define __const			__attribute__((const))
+#define __forceinline   inline  __attribute__((always_inline))
+#define __const         __attribute__((const))
+#define __cold          __attribute__((cold))
+#define __hot           __attribute__((hot))
+#define __noreturn      __attribute__((noreturn))
+#define __used          __attribute__((used))
+#define __unused        __attribute__((unused))
+
+//  These exist because they are shorter and I can later adapt them for
+//  other compilers as well.

@@ -43,10 +43,12 @@ namespace Beelzebub
 
         //  Saul Goodman!
         Okay                      = 0x0000000000000000U, // Okay
+        //  Not enough memory available to complete an operation.
+        OutOfMemory               = 0x0000000000000001U, // No mem.
         //  The requested operation isn't supported by the object/interface.
-        UnsupportedOperation      = 0x0000000000000001U, // Unsp. Op.
+        UnsupportedOperation      = 0x0000000000000009U, // Unsp. Op.
         //  Operation not implemented by the object/interface.
-        NotImplemented            = 0x0000000000000002U, // Not Impl.
+        NotImplemented            = 0x000000000000000AU, // Not Impl.
 
         //  An argument given to a function/method is outside of the expected/supported range.
         ArgumentOutOfRange        = 0x0000000000000010U, // Arg. OOR
@@ -229,6 +231,8 @@ namespace Beelzebub
             {
                 case HandleResult::Okay:
                     return "Okay";
+                case HandleResult::OutOfMemory:
+                    return "No mem.";
                 case HandleResult::UnsupportedOperation:
                     return "Uns. Op.";
                 case HandleResult::NotImplemented:

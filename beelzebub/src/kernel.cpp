@@ -1,15 +1,22 @@
 #include <arc/system/cpu.hpp>
+#include <arc/synchronization/spinlock.hpp>
 #include <kernel.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Synchronization;
 
-volatile bool InitializingSystem = true;
+volatile bool InitializingLock = true;
+Spinlock InitializationLock;
+Spinlock TerminalMessageLock;
 
 TerminalBase * Beelzebub::MainTerminal;
 
 void Beelzebub::Main()
 {
+    (&InitializationLock)->Acquire();
+    InitializingLock = false;
+
     //  First step is getting a simple terminal running for the most
     //  basic of output. This is a platform-specific function.
     MainTerminal = InitializeTerminalProto();
@@ -38,20 +45,29 @@ void Beelzebub::Main()
     MainTerminal = secondaryTerminal;
 
     //  Permit other processors to initialize themselves.
-    InitializingSystem = false;
     MainTerminal->WriteLine("Initialization complete!");
+    MainTerminal->WriteLine();
+    (&InitializationLock)->Release();
+
+    //  Now every core will print.
+    (&TerminalMessageLock)->Acquire();
+    MainTerminal->Write("+-- Core #");
+    MainTerminal->WriteUIntD(Cpu::GetUnpreciseIndex());
+    MainTerminal->WriteLine();
 
     //  Enable interrupts so they can run.
-    MainTerminal->Write("[....] Enabling interrupts...");
+    MainTerminal->Write("|[....] Enabling interrupts...");
     Cpu::EnableInterrupts();
 
     if (Cpu::InterruptsEnabled())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
     else
-        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
     //  Can never bee too sure.
 
-    MainTerminal->WriteLine("Halting indefinitely now.");
+    MainTerminal->WriteLine("\\Halting indefinitely now.");
+
+    (&TerminalMessageLock)->Release();
 
     //  Allow the CPU to rest.
     while (true) if (Cpu::CanHalt) Cpu::Halt();
@@ -59,13 +75,31 @@ void Beelzebub::Main()
 
 void Beelzebub::Secondary()
 {
-    //  Wait for the system to initialize;
-    while (InitializingSystem) ;
+    //  Wait for the initialization spinlock to be ready.
+    while (InitializingLock) ;
 
-    //MainTerminal->Write('S');
+    //  Wait for the system to initialize.
+    (&InitializationLock)->Spin();
+
+    //  Now every core will print.
+    (&TerminalMessageLock)->Acquire();
+    MainTerminal->Write("+-- Core #");
+    MainTerminal->WriteUIntD(Cpu::GetUnpreciseIndex());
+    MainTerminal->WriteLine();
 
     //  Enable interrupts so they can run.
+    MainTerminal->Write("|[....] Enabling interrupts...");
     Cpu::EnableInterrupts();
+
+    if (Cpu::InterruptsEnabled())
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+    else
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+    //  Can never bee too sure.
+
+    MainTerminal->WriteLine("\\Halting indefinitely now.");
+
+    (&TerminalMessageLock)->Release();
 
     //  Allow the CPU to rest.
     while (true) if (Cpu::CanHalt) Cpu::Halt();

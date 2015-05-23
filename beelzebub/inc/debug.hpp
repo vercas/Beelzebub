@@ -25,17 +25,17 @@ if (!(cond))                                                            \
 
 namespace Beelzebub { namespace Debug
 {
-    __bland void CatchFire(const char * const file
-                         , const size_t line
-                         , const char * const msg);
+    __bland __noreturn void CatchFire(const char * const file
+                                    , const size_t line
+                                    , const char * const msg);
 
-    __bland void CatchFire(const char * const file
-                         , const size_t line
-                         , const char * const fmt, va_list args);
+    __bland __noreturn void CatchFire(const char * const file
+                                    , const size_t line
+                                    , const char * const fmt, va_list args);
 
-    __bland void CatchFireFormat(const char * const file
-                               , const size_t line
-                               , const char * const fmt, ...);
+    __bland __noreturn void CatchFireFormat(const char * const file
+                                          , const size_t line
+                                          , const char * const fmt, ...);
 
     __bland void Assert(const bool condition
                       , const char * const file

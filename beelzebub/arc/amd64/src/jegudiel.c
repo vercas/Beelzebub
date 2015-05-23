@@ -36,10 +36,10 @@
 jg_header_root_t jegudiel_header = {
 	JG_MAGIC,                               // magic
 	FLAGS,                                  // flags
-	0xFFFFFF0000200000,                     // stack_vaddr
-	0xFFFFFF0000100000,                     // info_vaddr
-	0,                                      // idt_vaddr
-	0,                                      // gdt_vaddr
+	0xFFFFFFFFFFF00000,                     // stack_vaddr
+	JG_INFO_ROOT_BASE ,                     // info_vaddr
+	0xFFFFFFFFFFCFF000,                     // idt_vaddr
+	0xFFFFFFFFFFCFE000,                     // gdt_vaddr
 	(uintptr_t)&kmain_ap,                   // ap_entry
 	0,                                      // syscall_entry
 	(uintptr_t)&isr_gates,                  // isr_entry_table
