@@ -84,7 +84,7 @@ namespace Beelzebub { namespace Debug
               , const size_t line
               , const char * const msg)
     {
-        if (!condition)
+        if unlikely(!condition)
             CatchFire(file, line, msg);
     }
 
@@ -93,7 +93,7 @@ namespace Beelzebub { namespace Debug
                , const size_t line
                , const char * const msg, va_list args)
     {
-        if (!condition)
+        if unlikely(!condition)
             CatchFire(file, line, msg, args);
     }
 
@@ -102,7 +102,7 @@ namespace Beelzebub { namespace Debug
                     , const size_t line
                     , const char * const fmt, ...)
     {
-        if (!condition)
+        if unlikely(!condition)
         {
             va_list args;
 

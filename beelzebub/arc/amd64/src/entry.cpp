@@ -425,10 +425,6 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     bootstrapVasReady = true;
 
-    msg("Activating the VAS... ");
-    bootstrapVas.Activate();
-    msg("Done!%n%n");
-
     //  DUMPING MMAP
 
     initialSerialTerminal.WriteLine("IND |A|    Address     |     Length     |       End      |");
@@ -492,6 +488,10 @@ void InitializeMemory()
     initialSerialTerminal.Write("CR4: ");
     initialSerialTerminal.WriteHex64(Cpu::GetCr4());
     initialSerialTerminal.WriteLine();
+
+    initialSerialTerminal.WriteLine();
+
+    initialSerialTerminal.WriteLine("Memory map test:");
 
     initialSerialTerminal.WriteLine();
 }

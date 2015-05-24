@@ -628,3 +628,38 @@ void PageAllocator::AppendAllocationSpace(PageAllocationSpace * const space)
 
     this->Unlock();
 }
+
+void PageAllocator::RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr)
+{
+    this->Lock();
+
+    const vaddr_t firstAddr   = (vaddr_t)this->FirstSpace;
+    const vaddr_t lastAddr    = (vaddr_t)this->LastSpace;
+    const vaddr_t oldVaddr    = oldAddr;
+    const vaddr_t newVaddr    = newAddr;
+    const vaddr_t oldVaddrEnd = oldVaddr + 0x1000U;
+
+    if (firstAddr > 0 && firstAddr >= oldVaddr && firstAddr < oldVaddrEnd)
+        this->FirstSpace = (PageAllocationSpace *)((firstAddr - oldVaddr) + newVaddr);
+    if (lastAddr > 0 && lastAddr >= oldVaddr && lastAddr < oldVaddrEnd)
+        this->LastSpace = (PageAllocationSpace *)((lastAddr - oldVaddr) + newVaddr);
+
+    //  Now makin' sure all the pointers are aligned.
+
+    PageAllocationSpace * cur = this->LastSpace;
+
+    while (cur != nullptr)
+    {
+        const vaddr_t nextAddr = (vaddr_t)cur->Next;
+        const vaddr_t prevAddr = (vaddr_t)cur->Previous;
+
+        if (nextAddr > 0 && nextAddr >= oldVaddr && nextAddr < oldVaddrEnd)
+            this->FirstSpace = (PageAllocationSpace *)((nextAddr - oldVaddr) + newVaddr);
+        if (prevAddr > 0 && prevAddr >= oldVaddr && prevAddr < oldVaddrEnd)
+            this->LastSpace = (PageAllocationSpace *)((prevAddr - oldVaddr) + newVaddr);
+
+        cur = cur->Previous;
+    }
+
+    this->Unlock();
+}

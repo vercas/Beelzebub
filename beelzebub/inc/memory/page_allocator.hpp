@@ -352,6 +352,20 @@ namespace Beelzebub { namespace Memory
             (&this->Locker)->Release();
         }
 
+        /*  Miscellaneous  */
+
+        __bland __forceinline void RemapControlStructures(const vaddr_t newAddr)
+        {
+            this->Lock();
+
+            this->Map = (PageDescriptor *)newAddr;
+            //  This will be atomic on x86, but I'm not making any
+            //  assumptions about other architectures.
+            //  Oh, and it'll only be called once.
+
+            this->Unlock();
+        }
+
     private:
 
         /*  Utilitary Methods  */
@@ -439,5 +453,7 @@ namespace Beelzebub { namespace Memory
 
         __bland void PreppendAllocationSpace(PageAllocationSpace * const space);
         __bland void AppendAllocationSpace(PageAllocationSpace * const space);
+
+        __bland void RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr);
     };
 }}

@@ -27,6 +27,14 @@ typedef unsigned    int    vsize_t; //  Virtual (linear) address.
 typedef unsigned    int    pgind_t; //  Index of a memory page.
 #endif
 
+#ifdef __GNUC__
+typedef union
+{
+    void * ptr;
+    vaddr_t val;
+} vaddrptr_t __attribute__((transparent_union));
+#endif
+
 typedef             int     comp_t; //  Result of comparison functions.
 
 typedef unsigned     char     byte; //  Uhm...

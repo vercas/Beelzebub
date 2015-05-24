@@ -75,6 +75,15 @@ namespace Beelzebub
         PageStacked               = 0x0000000000000035U, // Pag Stkd
         //  A page cannot be popped off the stack because it is not on the stack.
         PageNotStacked            = 0x0000000000000036U, // Pag N Stkd
+
+        //  A/The target page is in an illegal range.
+        PageMapIllegalRange       = 0x0000000000000040U, // Pag rng ill
+        //  A/The target page is (already) mapped.
+        PageMapped                = 0x0000000000000041U, // Pag mapped
+        //  A/The target page is (already) unmapped.
+        PageUnmapped              = 0x0000000000000042U, // Pag unmp.
+        //  A given page is unaligned.
+        PageUnaligned             = 0x0000000000000042U, // Pag unal.
     };
 
     struct Handle
@@ -262,6 +271,13 @@ namespace Beelzebub
                     return "Pag Stkd";
                 case HandleResult::PageNotStacked:
                     return "Pag N Stkd";
+
+                case HandleResult::PageMapIllegalRange:
+                    return "Pag rng ill";
+                case HandleResult::PageMapped:
+                    return "Pag mapped";
+                case HandleResult::PageUnmapped:
+                    return "Pag unmp.";
 
                 default:
                     return "UNKNOWN";

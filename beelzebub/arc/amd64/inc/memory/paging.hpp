@@ -62,6 +62,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
         /*  Constructors  */
 
         /**
+         *  Creates an empty PML1 (PT) entry structure.
+         */
+        __bland __forceinline Pml1Entry() : Value( 0ULL ) { }
+
+        /**
          *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
          */
         __bland __forceinline Pml1Entry(const paddr_t paddr
@@ -136,6 +141,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
                         | (this->Value & ~AddressBits);
         }
 
+        __bland __forceinline bool IsNull()
+        {
+            return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
+        }
+
         /*  Operators  */
 
         /**
@@ -150,7 +160,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
-    private:
+    //private:
 
         uint64_t Value;
     };
@@ -187,23 +197,12 @@ namespace Beelzebub { namespace Memory { namespace Paging
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland __forceinline Pml1Entry & operator [](const void * const vaddr)
+        __bland __forceinline Pml1Entry & operator [](const vaddrptr_t vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
             //  And use that as an index! :D
-            return this->Entries[((uint64_t)vaddr & AddressBits) >> IndexOffset];
-        }
-
-        /**
-         *  Gets the entry corresponding to the given linear address.
-         */
-        __bland __forceinline Pml1Entry & operator [](const vaddr_t vaddr)
-        {
-            //  Take the interesting bits from the linear address...
-            //  Shift it by the required amount of bits...
-            //  And use that as an index! :D
-            return this->Entries[((uint64_t)vaddr & AddressBits) >> IndexOffset];
+            return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
         }
 
         /*  Debug  */
@@ -212,7 +211,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Field(s)  */
 
-    private:
+    //private:
 
         Pml1Entry Entries[512]; //  Yeah...
     };
@@ -406,6 +405,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
                         | (this->Value & ~AddressBits);
         }
 
+        __bland __forceinline bool IsNull()
+        {
+            return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
+        }
+
         /*  Operators  */
 
         /**
@@ -420,7 +424,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
-    private:
+    //private:
 
         uint64_t Value;
     };
@@ -457,23 +461,12 @@ namespace Beelzebub { namespace Memory { namespace Paging
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland __forceinline Pml2Entry & operator [](const void * const vaddr)
+        __bland __forceinline Pml2Entry & operator [](const vaddrptr_t vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
             //  And use that as an index! :D
-            return this->Entries[((uint64_t)vaddr & AddressBits) >> IndexOffset];
-        }
-
-        /**
-         *  Gets the entry corresponding to the given linear address.
-         */
-        __bland __forceinline Pml2Entry & operator [](const vaddr_t vaddr)
-        {
-            //  Take the interesting bits from the linear address...
-            //  Shift it by the required amount of bits...
-            //  And use that as an index! :D
-            return this->Entries[((uint64_t)vaddr & AddressBits) >> IndexOffset];
+            return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
         }
 
         /*  Debug  */
@@ -482,7 +475,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Field(s)  */
 
-    private:
+    //private:
 
         Pml2Entry Entries[512]; //  Yeah...
     };
@@ -676,6 +669,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
                         | (this->Value & ~AddressBits);
         }
 
+        __bland __forceinline bool IsNull()
+        {
+            return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
+        }
+
         /*  Operators  */
 
         /**
@@ -690,7 +688,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
-    private:
+    //private:
 
         uint64_t Value;
     };
@@ -727,23 +725,12 @@ namespace Beelzebub { namespace Memory { namespace Paging
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland __forceinline Pml3Entry & operator [](const void * const vaddr)
+        __bland __forceinline Pml3Entry & operator [](const vaddrptr_t vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
             //  And use that as an index! :D
-            return this->Entries[((uint64_t)vaddr & AddressBits) >> IndexOffset];
-        }
-
-        /**
-         *  Gets the entry corresponding to the given linear address.
-         */
-        __bland __forceinline Pml3Entry & operator [](const vaddr_t vaddr)
-        {
-            //  Take the interesting bits from the linear address...
-            //  Shift it by the required amount of bits...
-            //  And use that as an index! :D
-            return this->Entries[((uint64_t)vaddr & AddressBits) >> IndexOffset];
+            return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
         }
 
         /*  Debug  */
@@ -752,7 +739,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Field(s)  */
 
-    private:
+    //private:
 
         Pml3Entry Entries[512]; //  Yeah...
     };
@@ -880,6 +867,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
                         | (this->Value & ~AddressBits);
         }
 
+        __bland __forceinline bool IsNull()
+        {
+            return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
+        }
+
         /*  Operators  */
 
         /**
@@ -894,7 +886,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
-    private:
+    //private:
 
         uint64_t Value;
     };
@@ -930,23 +922,12 @@ namespace Beelzebub { namespace Memory { namespace Paging
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland __forceinline Pml4Entry & operator [](const void * const vaddr)
+        __bland __forceinline Pml4Entry & operator [](const vaddrptr_t vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
             //  And use that as an index! :D
-            return this->Entries[((uint64_t)vaddr & AddressBits) >> IndexOffset];
-        }
-
-        /**
-         *  Gets the entry corresponding to the given linear address.
-         */
-        __bland __forceinline Pml4Entry & operator [](const vaddr_t vaddr)
-        {
-            //  Take the interesting bits from the linear address...
-            //  Shift it by the required amount of bits...
-            //  And use that as an index! :D
-            return this->Entries[((uint64_t)vaddr & AddressBits) >> IndexOffset];
+            return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
         }
 
         /*  Debug  */
@@ -955,7 +936,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Field(s)  */
 
-    private:
+    //private:
 
         Pml4Entry Entries[512]; //  Yeah...
     };

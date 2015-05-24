@@ -11,9 +11,11 @@
 #include <memory/page_allocator.hpp>
 #include <memory/allocation.hpp>
 #include <arc/memory/paging.hpp>
+#include <arc/system/cpu.hpp>
 #include <handles.h>
 #include <metaprogramming.h>
 
+using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Memory::Paging;
 
@@ -24,28 +26,53 @@ namespace Beelzebub { namespace Memory
      */
     class VirtualAllocationSpace
     {
-        /*  Private Constants  */
-
-        //  Start of the higher half address.
-        static const vaddr_t HigherHalf = 0xFFFF000000000000ULL;
-
-        //  Right below the kernel.
-        static const uint16_t FractalIndex = 510;
-
-        //  Start of the PML4 tables.
-        static const vaddr_t Pml4Base = HigherHalf + ((vaddr_t)FractalIndex << 12);
-        //  Start of the PML3 tables (PDPTs).
-        static const vaddr_t Pml3Base = HigherHalf + ((vaddr_t)FractalIndex << 21);
-        //  Start of the PML2 tables (PDs).
-        static const vaddr_t Pml2Base = HigherHalf + ((vaddr_t)FractalIndex << 30);
-        //  Start of the PML1 tables (PTs).
-        static const vaddr_t Pml1Base = HigherHalf + ((vaddr_t)FractalIndex << 39);
-
         /*  Cached Feature Flags  */
 
         static bool Page1GB, NX;
 
     public:
+
+        /*  Public Constants  */
+
+        //  End of the lower half address range.
+        static const vaddr_t LowerHalfEnd              = 0x0001000000000000ULL;
+        //  Start of the higher half address range.
+        static const vaddr_t HigherHalfStart           = 0xFFFF800000000000ULL;
+
+        //  Start of the kernel area.
+        static const vaddr_t KernelStart               = 0xFFFFFF8000000000ULL;
+        //  Start of allocation space control structures.
+        static const vaddr_t PasControlStructuresStart = 0xFFFF808000000000ULL;
+        //  End of allocation space control strucutres.
+        static const vaddr_t PasControlStructuresEnd   = 0xFFFF820000000000ULL;
+
+        //  Right below the kernel.
+        static const uint16_t LocalFractalIndex = 510;
+        //  Right below the kernel.
+        static const uint16_t AlienFractalIndex = 509;
+
+        //  Start of the active PML4 tables.
+        static const vaddr_t LocalPml1Base = 0xFFFF000000000000ULL + ((vaddr_t)LocalFractalIndex << 39);
+        //  Start of the active PML3 tables (PDPTs).
+        static const vaddr_t LocalPml2Base = LocalPml1Base         + ((vaddr_t)LocalFractalIndex << 30);
+        //  Start of the active PML2 tables (PDs).
+        static const vaddr_t LocalPml3Base = LocalPml2Base         + ((vaddr_t)LocalFractalIndex << 21);
+        //  Start of the active PML1 tables (PTs).
+        static const vaddr_t LocalPml4Base = LocalPml3Base         + ((vaddr_t)LocalFractalIndex << 12);
+
+        //  Start of the temporary PML4 tables.
+        static const vaddr_t AlienPml1Base = 0xFFFF000000000000ULL + ((vaddr_t)AlienFractalIndex << 39);
+        //  Start of the active PML3 tables (PDPTs).
+        static const vaddr_t AlienPml2Base = AlienPml1Base         + ((vaddr_t)AlienFractalIndex << 30);
+        //  Start of the active PML2 tables (PDs).
+        static const vaddr_t AlienPml3Base = AlienPml2Base         + ((vaddr_t)AlienFractalIndex << 21);
+        //  Start of the active PML1 tables (PTs).
+        static const vaddr_t AlienPml4Base = AlienPml3Base         + ((vaddr_t)AlienFractalIndex << 12);
+
+        static const vaddr_t FractalStart = LocalPml1Base;
+        static const vaddr_t FractalEnd   = FractalStart + (1ULL << 39);
+        //  The pages in this 512-GiB range are automagically allocated due
+        //  to the awesome fractal mapping! :D
 
         /*  Static Translation Methods  */
 
@@ -69,32 +96,60 @@ namespace Beelzebub { namespace Memory
             return (uint16_t)((addr >> 12) & 511);
         }
 
-        static __bland __forceinline Pml4 * const GetPml4() { return (Pml4 *)Pml4Base; }
+        //  Local Map.
 
-        static __bland __forceinline Pml3 * const GetPml3(const vaddr_t addr)
+        static __bland __forceinline Pml4 * const GetLocalPml4() { return (Pml4 *)LocalPml4Base; }
+
+        static __bland __forceinline Pml3 * const GetLocalPml3(const vaddr_t addr)
         {
-            return (Pml3 *)(Pml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
+            return (Pml3 *)(LocalPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
         }
 
-        static __bland __forceinline Pml2 * const GetPml2(const vaddr_t addr)
+        static __bland __forceinline Pml2 * const GetLocalPml2(const vaddr_t addr)
         {
-            return (Pml2 *)(Pml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
+            return (Pml2 *)(LocalPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
         }
 
-        static __bland __forceinline Pml1 * const GetPml1(const vaddr_t addr)
+        static __bland __forceinline Pml1 * const GetLocalPml1(const vaddr_t addr)
         {
-            return (Pml1 *)(Pml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
+            return (Pml1 *)(LocalPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
         }
 
-        static __bland __forceinline Pml1Entry & GetPml1Entry(const vaddr_t addr)
+        static __bland __forceinline Pml1Entry & GetLocalPml1Entry(const vaddr_t addr)
         {
-            return (*GetPml1(addr))[GetPml1Index(addr)];
+            return (*GetLocalPml1(addr))[GetPml1Index(addr)];
         }
+
+        //  Alien Map.
+
+        static __bland __forceinline Pml4 * const GetAlienPml4() { return (Pml4 *)AlienPml4Base; }
+
+        static __bland __forceinline Pml3 * const GetAlienPml3(const vaddr_t addr)
+        {
+            return (Pml3 *)(AlienPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
+        }
+
+        static __bland __forceinline Pml2 * const GetAlienPml2(const vaddr_t addr)
+        {
+            return (Pml2 *)(AlienPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
+        }
+
+        static __bland __forceinline Pml1 * const GetAlienPml1(const vaddr_t addr)
+        {
+            return (Pml1 *)(AlienPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
+        }
+
+        static __bland __forceinline Pml1Entry & GetAlienPml1Entry(const vaddr_t addr)
+        {
+            return (*GetAlienPml1(addr))[GetPml1Index(addr)];
+        }
+
+        //  Translation.
 
         //  Translates the address with the current VAS.
-        static __bland __forceinline paddr_t Translate(const vaddr_t address)
+        static __bland __forceinline paddr_t TranslateLocal(const vaddr_t address)
         {
-            return GetPml1Entry(address).GetAddress() + (paddr_t)(address & 4095);
+            return GetLocalPml1Entry(address).GetAddress() + (paddr_t)(address & 4095);
             //  Yeah, the offset within the page is preserved.
         }
 
@@ -109,7 +164,39 @@ namespace Beelzebub { namespace Memory
 
         __bland Handle Bootstrap();
         __bland VirtualAllocationSpace * Clone();
-        __bland Handle Activate();
+
+        __bland __forceinline void Activate()
+        {
+            const Cr3 newVal = Cr3(this->Pml4Address, false, false);
+
+            Cpu::SetCr3(newVal);
+        }
+
+        __bland __forceinline void Alienate()
+        {
+            Pml4 & pml4 = *GetLocalPml4();
+
+            pml4[AlienFractalIndex] = Pml4Entry(this->Pml4Address, true, true, false, NX);
+        }
+
+        __bland __forceinline bool IsLocal() const
+        {
+            Pml4 & pml4 = *GetLocalPml4();
+
+            return pml4[LocalFractalIndex].GetAddress() == this->Pml4Address;
+        }
+
+        __bland __forceinline bool IsAlien() const
+        {
+            Pml4 & pml4 = *GetLocalPml4();
+
+            return pml4[AlienFractalIndex].GetAddress() == this->Pml4Address;
+        }
+
+        /*  Mapping  */
+
+        __bland Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
+        __bland Handle Unmap(const vaddr_t vaddr);
 
         /*  Fields  */
 

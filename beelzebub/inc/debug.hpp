@@ -9,13 +9,13 @@
 
 #ifdef __BEELZEBUB__DEBUG
 #define assert(cond, ...) do {                                          \
-if (!(cond))                                                            \
+if unlikely(!(cond))                                                    \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, __VA_ARGS__); \
 } while (false)
 
 //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
 #define msg(...) do {                                                   \
-    if (Beelzebub::MainTerminal)                                        \
+    if likely(Beelzebub::MainTerminal != nullptr)                       \
         Beelzebub::MainTerminal->WriteFormat(__VA_ARGS__);              \
 } while (false)
 #else
