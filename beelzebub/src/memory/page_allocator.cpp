@@ -14,10 +14,20 @@ using namespace Beelzebub::Memory;
 /*  Constructors    */
 
 PageAllocationSpace::PageAllocationSpace()
+    //  Just the basics.
     : MemoryStart( 0 )
     , MemoryEnd(0)
+    , AllocationEnd(0)
     , PageSize(0)
+    , PageCount(0)
     , Size(0)
+
+    //  Number of pages that are allocable.
+    , AllocablePageCount(0)
+
+    //  Miscellaneous.
+    , ReservedPageCount(0)
+    , Map(nullptr)
     , Locker()
 {
 
@@ -25,89 +35,41 @@ PageAllocationSpace::PageAllocationSpace()
 
 PageAllocationSpace::PageAllocationSpace(const paddr_t phys_start, const paddr_t phys_end
                                        , const psize_t page_size)
+    //  Just the basics.
     : MemoryStart( phys_start )
     , MemoryEnd(phys_end)
+    , AllocationEnd(phys_end)
     , PageSize(page_size)
+    , PageCount((phys_end - phys_start) / page_size)
     , Size(phys_end - phys_start)
+
+    //  Number of pages that are allocable.
+    , AllocablePageCount((phys_end - phys_start) / (page_size + sizeof(PageDescriptor) + sizeof(pgind_t)))
+
+    //  Miscellaneous.
+    , ReservedPageCount(0)
+    , Map((PageDescriptor *)phys_start)
     , Locker()
 {
-    //  Basics.
-    this->Map = (PageDescriptor *)phys_start;
-
-    //  Just the ones that can be quickly calculated and are required later.
-    this->PageCount = (phys_end - phys_start) / page_size;
-    this->AllocablePageCount = (phys_end - phys_start) / (page_size + sizeof(PageDescriptor) + sizeof(pgind_t));
     this->FreePageCount = this->AllocablePageCount;
-
-    //  Stuff we cannot touch.
     this->ControlPageCount = this->PageCount - this->FreePageCount;
-    this->ReservedPageCount = 0;
-
-    //  Bytes! :D
     this->FreeSize = this->AllocableSize = this->AllocablePageCount * page_size;
-
-    //  Control structures sizes.
-    this->MapSize = this->AllocablePageCount * sizeof(PageDescriptor);
-    this->StackSize = this->AllocablePageCount * sizeof(pgind_t);
-
-    //  Technically, the whole pages are reserved.
     this->ReservedSize = this->ReservedPageCount * page_size;
 
     this->Stack = (psize_t *)(this->Map + this->AllocablePageCount);
 
-    /*msg("--Creating page allocator - M:%Xp; S:%Xp; PC:%us; MS:%us; SS:%us;%n"
-        , this->Map, this->Stack
-        , this->PageCount, this->MapSize, this->StackSize);
-    msg("-- AS:%us; FS:%us; RS:%us;%n"
-        , this->Size, this->FreeSize, this->ReservedSize);
-    msg("-- S-M:%u8; Diff:%u8%n"
-        , (uint64_t)this->Stack - (uint64_t)this->Map
-        , (size_t)this->Stack - (size_t)this->Map - this->MapSize);
-
-    msg("--|T|   Page Index   |  A Page Index  | A. Stack Index |  Desc Pointer  |%n");//*/
-
     for (size_t i = 0; i < this->AllocablePageCount; ++i)
-    {
         this->Map[i] = PageDescriptor(this->Stack[i] = i, PageStatus::Free);
 
-        /*msg("  |F|%X8|%X8|%X8|%X8|%n", (uint64_t)i
-                                     , (uint64_t)this->Stack[i]
-                                     , (uint64_t)this->Map[i].StackIndex
-                                     , (uint64_t)(this->Map + i));//*/
-    }
-
     this->StackFreeTop = this->StackCacheTop = this->AllocablePageCount - 1;
-
     this->AllocationStart = phys_start + (this->ControlPageCount * page_size);
-    this->AllocationEnd = phys_end;
-
-    /*assert(j == this->AllocablePageCount
-        , "Number of free pages in the stack doesn't match the number of allocable pages..? %u8 vs %u8"
-        , j, this->AllocablePageCount);//*/
-
-    assert(this->ControlPageCount + this->AllocablePageCount == this->PageCount
-        , "Page count mismatch..? %u8 + %u8 != %u8"
-        , this->ControlPageCount, this->AllocablePageCount
-        , this->PageCount);
-
-    /*msg(">>&LOCK|%Xp|&LOCK<<%n%n", &this->Locker);
-
-    msg(">>LOCK|%Xs|LOCK<<%n", *((vsize_t *)(&this->Locker)));
-    msg(">>LOCK|%Xs|LOCK<<%n", this->Locker.GetValue());
-    msg(">>LOCK|%Xs|LOCK<<%n", (&this->Locker)->GetValue());
-
-    this->Unlock();
-
-    msg(">>LOCK|%Xs|LOCK<<%n", *((vsize_t *)(&this->Locker)));
-    msg(">>LOCK|%Xs|LOCK<<%n", this->Locker.GetValue());
-    msg(">>LOCK|%Xs|LOCK<<%n", (&this->Locker)->GetValue());//*/
 }
 
 /*  Page manipulation  */
 
 Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t count, const PageReservationOptions options)
 {
-    if (start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
+    if unlikely(start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
         return Handle(HandleResult::PagesOutOfAllocatorRange);
 
     const bool inclCaching  = (0 != (options & PageReservationOptions::IncludeCaching));
@@ -125,7 +87,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
             , this->MemoryStart + (start + i) * this->PageSize
             , i, page->GetStatusString());//*/
 
-        if (status == PageStatus::Free)
+        if likely(status == PageStatus::Free)
         {
             /*msg("  SI: %us; SFT: %us; SCT: %us.%n"
                 , page->StackIndex
@@ -183,7 +145,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
 Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t count)
 {
-    if (start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
+    if unlikely(start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
         return Handle(HandleResult::PagesOutOfAllocatorRange);
 
     PageDescriptor * const map = this->Map + start;
@@ -193,7 +155,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
         PageDescriptor * const page = map + i;
         const PageStatus status = page->Status;
 
-        if (status == PageStatus::InUse)
+        if likely(status == PageStatus::InUse)
         {
             this->Lock();
 
@@ -236,7 +198,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
 
 paddr_t PageAllocationSpace::AllocatePage()
 {
-    if (this->FreePageCount != 0)
+    if likely(this->FreePageCount != 0)
     {
         this->Lock();
 
@@ -276,7 +238,7 @@ paddr_t PageAllocationSpace::AllocatePages(const psize_t count)
 
 Handle PageAllocationSpace::PopPage(const pgind_t ind)
 {
-    if (ind >= this->AllocablePageCount)
+    if unlikely(ind >= this->AllocablePageCount)
         return Handle(HandleResult::PagesOutOfAllocatorRange);
 
     PageDescriptor * const page = this->Map + ind;

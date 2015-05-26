@@ -268,23 +268,27 @@ namespace Beelzebub { namespace Memory
         }
 #define CNST(type, name)                                     \
     public:                                                  \
-        const type name;                                     
+        const type name;                                     \
+        __bland __forceinline type MCATS2(Get, name)() const \
+        {                                                    \
+            return this->name;                               \
+        }
 
-        PROP(paddr_t, MemoryStart)          //  Start of the allocation space.
-        PROP(paddr_t, MemoryEnd)            //  End of the allocation space.
+        CNST(paddr_t, MemoryStart)          //  Start of the allocation space.
+        CNST(paddr_t, MemoryEnd)            //  End of the allocation space.
         PROP(paddr_t, AllocationStart)      //  Start of space which can be freely allocated.
-        PROP(paddr_t, AllocationEnd)        //  End of space which can be freely allocated.
+        CNST(paddr_t, AllocationEnd)        //  End of space which can be freely allocated.
 
-        PROP(psize_t, PageSize)             //  Size of a memory page.
+        CNST(psize_t, PageSize)             //  Size of a memory page.
 
-        PROP(psize_t, PageCount)            //  Total number of pages in the allocation space.
-        PROP(psize_t, Size)                 //  Total number of bytes in the allocation space.
-        PROP(psize_t, AllocablePageCount)   //  Total number of pages which can be allocated.
+        CNST(psize_t, PageCount)            //  Total number of pages in the allocation space.
+        CNST(psize_t, Size)                 //  Total number of bytes in the allocation space.
+        CNST(psize_t, AllocablePageCount)   //  Total number of pages which can be allocated.
         PROP(psize_t, AllocableSize)        //  Total number of bytes which can be allocated.
 
         PROP(psize_t, ControlPageCount)     //  Number of pages used for control structures (descriptor map and stacks).
-        PROP(psize_t, MapSize)              //  Number of bytes used for descriptor map.
-        PROP(psize_t, StackSize)            //  Number of bytes used for the page stack.
+        //PROP(psize_t, MapSize)              //  Number of bytes used for descriptor map.
+        //PROP(psize_t, StackSize)            //  Number of bytes used for the page stack.
 
         PROP(psize_t, StackFreeTop)         //  Top of the free page stack.
         PROP(psize_t, StackCacheTop)        //  Top of the cache page stack.
@@ -302,11 +306,12 @@ namespace Beelzebub { namespace Memory
         __bland PageAllocationSpace(const paddr_t phys_start, const paddr_t phys_end
                                   , const psize_t page_size);
 
-        PageAllocationSpace(PageAllocationSpace const&) = delete;
+        PageAllocationSpace(PageAllocationSpace const &) = delete;
+        PageAllocationSpace & operator =(const PageAllocationSpace &) = delete;
 
         /*  Page manipulation  */
 
-        __bland Handle ReservePageRange(const pgind_t start, const psize_t count, const PageReservationOptions options);
+        __cold __bland Handle ReservePageRange(const pgind_t start, const psize_t count, const PageReservationOptions options);
         __bland __forceinline Handle ReservePageRange(const pgind_t start, const psize_t count)
         {
             return this->ReservePageRange(start, count, PageReservationOptions::OnlyFree);
@@ -321,7 +326,7 @@ namespace Beelzebub { namespace Memory
             return this->ReserveByteRange(phys_start, length, PageReservationOptions::OnlyFree);
         }
 
-        __bland Handle FreePageRange(const pgind_t start, const psize_t count);
+        __hot __bland Handle FreePageRange(const pgind_t start, const psize_t count);
         __bland __forceinline Handle FreeByteRange(const paddr_t phys_start, const psize_t length)
         {
             return this->FreePageRange((phys_start - this->MemoryStart) / this->PageSize, length / this->PageSize);
@@ -331,8 +336,8 @@ namespace Beelzebub { namespace Memory
             return this->FreePageRange((phys_addr - this->MemoryStart) / this->PageSize, 1);
         }
 
-        __bland paddr_t AllocatePage();
-        __bland paddr_t AllocatePages(const psize_t count);
+        __hot __bland paddr_t AllocatePage();
+        __hot __bland paddr_t AllocatePages(const psize_t count);
 
         __bland __forceinline bool ContainsRange(const paddr_t phys_start, const psize_t length) const
         {
@@ -354,7 +359,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Miscellaneous  */
 
-        __bland __forceinline void RemapControlStructures(const vaddr_t newAddr)
+        __cold __bland __forceinline void RemapControlStructures(const vaddr_t newAddr)
         {
             this->Lock();
 
@@ -371,7 +376,7 @@ namespace Beelzebub { namespace Memory
         /*  Utilitary Methods  */
 
         //  Pops a page off the stack. (stack selected based on status)
-        __bland Handle PopPage(const pgind_t ind);
+        __hot __bland Handle PopPage(const pgind_t ind);
 
         /*  Fields  */
 
@@ -390,7 +395,7 @@ namespace Beelzebub { namespace Memory
         /*  Debug  */
 
 #ifdef __BEELZEBUB__DEBUG
-        __bland TerminalWriteResult PrintStackToTerminal(TerminalBase * const term, const bool details);
+        __cold __bland TerminalWriteResult PrintStackToTerminal(TerminalBase * const term, const bool details);
 #endif
 
     };// __attribute__((packed));
@@ -408,24 +413,27 @@ namespace Beelzebub { namespace Memory
         __bland PageAllocator();
         __bland PageAllocator(PageAllocationSpace * const first);
 
+        PageAllocator(PageAllocator const &) = delete;
+        PageAllocator & operator =(const PageAllocator &) = delete;
+
         /*  Page Manipulation  */
 
-        __bland Handle ReserveByteRange(const paddr_t phys_start, const psize_t length, const PageReservationOptions options);
+        __cold __bland Handle ReserveByteRange(const paddr_t phys_start, const psize_t length, const PageReservationOptions options);
         __bland __forceinline Handle ReserveByteRange(const paddr_t phys_start, const psize_t length)
         {
             return this->ReserveByteRange(phys_start, length, PageReservationOptions::OnlyFree);
         }
 
-        __bland Handle FreeByteRange(const paddr_t phys_start, const psize_t length);
+        __hot __bland Handle FreeByteRange(const paddr_t phys_start, const psize_t length);
         __bland Handle FreePageAtAddress(const paddr_t phys_addr);
 
-        __bland paddr_t AllocatePage(const PageAllocationOptions options);
+        __hot __bland paddr_t AllocatePage(const PageAllocationOptions options);
         __bland __forceinline paddr_t AllocatePage()
         {
             return this->AllocatePage(PageAllocationOptions::GeneralPages);
         }
 
-        __bland paddr_t AllocatePages(const psize_t count, const PageAllocationOptions options);
+        __hot __bland paddr_t AllocatePages(const psize_t count, const PageAllocationOptions options);
 
         __bland PageAllocationSpace * GetSpaceContainingAddress(const paddr_t address);
         __bland bool ContainsRange(const paddr_t phys_start, const psize_t length);
@@ -446,14 +454,19 @@ namespace Beelzebub { namespace Memory
             (&this->ChainLock)->Release();
         }
 
+        __bland __forceinline void Await()
+        {
+            (&this->ChainLock)->Await();
+        }
+
         /*  Space Chaining  */
 
         PageAllocationSpace * FirstSpace;
         PageAllocationSpace * LastSpace;
 
-        __bland void PreppendAllocationSpace(PageAllocationSpace * const space);
-        __bland void AppendAllocationSpace(PageAllocationSpace * const space);
+        __cold __bland void PreppendAllocationSpace(PageAllocationSpace * const space);
+        __cold __bland void AppendAllocationSpace(PageAllocationSpace * const space);
 
-        __bland void RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr);
+        __cold __bland void RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr);
     };
 }}

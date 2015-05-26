@@ -127,10 +127,10 @@ namespace Beelzebub { namespace System
 
         /*  Operations  */
 
-        __bland void Initialize();
+        __cold __bland void Initialize();
 
-        __bland void InitializeIntel();
-        __bland void InitializeAmd();
+        __cold __bland void InitializeIntel();
+        __cold __bland void InitializeAmd();
 
         /*  Fields  */
 
@@ -146,7 +146,7 @@ namespace Beelzebub { namespace System
 
         /*  Info extraction  */
 
-        __bland bool CheckFeature(const CpuFeature feature) const;
+        __hot __bland bool CheckFeature(const CpuFeature feature) const;
 
         __bland __forceinline uint8_t GetSteppingId() const
         {
@@ -214,7 +214,7 @@ namespace Beelzebub { namespace System
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
     };
 
     extern CpuId BootstrapProcessorId;

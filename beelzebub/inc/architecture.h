@@ -5,8 +5,8 @@
 
 using namespace Beelzebub::Terminals;
 
-__extern void InitializeMemory();
-__extern void InitializeInterrupts();
+__extern __bland void InitializeMemory();
+__extern __bland void InitializeInterrupts();
 
-__extern TerminalBase * InitializeTerminalProto();
-__extern TerminalBase * InitializeTerminalMain();
+__extern __bland TerminalBase * InitializeTerminalProto();
+__extern __bland TerminalBase * InitializeTerminalMain();

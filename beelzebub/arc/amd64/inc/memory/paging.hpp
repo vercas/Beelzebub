@@ -158,7 +158,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
     //private:
 
@@ -207,7 +207,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -422,7 +422,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
     //private:
 
@@ -471,7 +471,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -686,7 +686,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
     //private:
 
@@ -735,7 +735,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -884,7 +884,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
     //private:
 
@@ -932,7 +932,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 

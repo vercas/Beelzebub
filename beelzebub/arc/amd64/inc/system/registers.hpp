@@ -128,7 +128,7 @@ namespace Beelzebub { namespace System
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -284,7 +284,7 @@ namespace Beelzebub { namespace System
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -400,7 +400,7 @@ namespace Beelzebub { namespace System
 
         /*  Debug  */
 
-        __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 

@@ -42,11 +42,11 @@ INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
 
 CFLAGS		:= -ffreestanding -Wall -Werror -mcmodel=large
 CFLAGS      += -D __BEELZEBUB -std=gnu99
-CFLAGS      += -mno-red-zone
+CFLAGS      += -mno-red-zone -O2
 
 CPPFLAGS	:= -ffreestanding -Wall -mcmodel=large
 CPPFLAGS    += -D __BEELZEBUB -std=gnu++11 -fno-rtti -fno-exceptions
-CPPFLAGS    += -mno-red-zone
+CPPFLAGS    += -mno-red-zone -O2
 
 DFLAGS		:= -Wall -Werror -mcmodel=large -nostdinc
 DFLAGS      += -I$(RUNTIME_DIR) -I$(SRC_DIR) $(INCFLAGS)

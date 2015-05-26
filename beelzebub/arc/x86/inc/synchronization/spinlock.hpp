@@ -17,29 +17,28 @@ namespace Beelzebub { namespace Synchronization
         /*  Constructor(s)  */
 
         Spinlock() = default;
-        Spinlock(Spinlock const&) = delete;
+        Spinlock(Spinlock const &) = delete;
+        Spinlock & operator =(const Spinlock &) = delete;
 
         /*  Destructor  */
 
 #ifdef __BEELZEBUB__DEBUG
-        ~Spinlock();
+        __bland ~Spinlock();
 #endif
 
         /*  Operations  */
 
-        /*
+        /**
          *  Acquire the spinlock, if possible.
          */
         __bland __forceinline bool TryAcquire()
         {
             spinlock_t oldValue = __sync_lock_test_and_set(&this->Value, 1);
 
-            //msg("LOCK|TAQ|%Xp|%s%n", this, oldValue ? "BUSY" : "ACQUIRED");
-
             return !oldValue;
         }
 
-        /*
+        /**
          *  Awaits for the spinlock to be freed.
          *  Does not acquire the lock.
          */
@@ -48,23 +47,31 @@ namespace Beelzebub { namespace Synchronization
             do
             {
                 asm volatile ("pause");
-
-                //msg("LOCK|SPN|%Xp|%s|%Xs%n", this, this->Value ? "BUSY" : "FREE", this->Value);
             } while (this->Value);
         }
 
-        /*
+        /**
+         *  Checks if the spinlock is free. If not, it awaits.
+         *  Does not acquire the lock.
+         */
+        __bland __forceinline void Await()
+        {
+            while (this->Value)
+            {
+                asm volatile ("pause");
+            }
+        }
+
+        /**
          *  Acquire the spinlock, waiting if necessary.
          */
         __bland __forceinline void Acquire()
         {
             while (__sync_lock_test_and_set(&this->Value, 1))
                 this->Spin();
-
-            //msg("LOCK|ACQ|%Xp%n", this);
         }
 
-        /*
+        /**
          *  Acquire the spinlock, waiting if necessary.
          *  Includes a pointer in the memory barrier, if supported.
          */
@@ -72,38 +79,30 @@ namespace Beelzebub { namespace Synchronization
         {
             while (__sync_lock_test_and_set(&this->Value, 1, ptr))
                 this->Spin();
-
-            //msg("LOCK|ACQ|%Xp%n", this);
         }
 
-        /*
+        /**
          *  Release the spinlock.
          */
         __bland __forceinline void Release()
         {
-            //msg("LOCK|REL|%Xp%n", this);
-
             __sync_lock_release(&this->Value);
         }
 
-        /*
+        /**
          *  Release the spinlock.
          *  Includes a pointer in the memory barrier.
          */
         __bland __forceinline void Release(void * const ptr)
         {
-            //msg("LOCK|REL|%Xp%n", this);
-
             __sync_lock_release(&this->Value, ptr);
         }
 
-        /*
+        /**
          *  Checks whether the spinlock is free or not.
          */
         __bland __forceinline bool Check()
         {
-            //msg("LOCK|CHK|%Xp|%s%n", this, this->Value ? "BUSY" : "FREE");
-
             return this->Value == 0;
         }
 

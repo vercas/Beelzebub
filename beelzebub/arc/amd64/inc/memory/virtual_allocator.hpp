@@ -156,13 +156,14 @@ namespace Beelzebub { namespace Memory
         /*  Constructor  */
 
         VirtualAllocationSpace() = default;
-        VirtualAllocationSpace(VirtualAllocationSpace const&) = default;
+        VirtualAllocationSpace(VirtualAllocationSpace const &) = delete;
+        VirtualAllocationSpace & operator =(const VirtualAllocationSpace &) = delete;
 
         __bland VirtualAllocationSpace(PageAllocator * const allocator);
 
         /*  Main Operations  */
 
-        __bland Handle Bootstrap();
+        __cold __bland Handle Bootstrap();
         __bland VirtualAllocationSpace * Clone();
 
         __bland __forceinline void Activate()
@@ -195,8 +196,8 @@ namespace Beelzebub { namespace Memory
 
         /*  Mapping  */
 
-        __bland Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
-        __bland Handle Unmap(const vaddr_t vaddr);
+        __hot __bland Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
+        __hot __bland Handle Unmap(const vaddr_t vaddr);
 
         /*  Fields  */
 

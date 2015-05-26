@@ -73,7 +73,8 @@ TerminalBase * InitializeTerminalProto()
     //  TODO: Properly retrieve these addresses.
 
     //  Initializes COM1.
-    COM1 = ManagedSerialPort(0x3F8);
+    //COM1 = ManagedSerialPort(0x3F8);
+    new (&COM1) ManagedSerialPort(0x3F8);
     COM1.Initialize();
 
     //  Initializes the serial terminal.
@@ -111,7 +112,7 @@ bool firstRegionCreated;
 psize_t currentSpaceIndex, currentSpaceLimit;
 PageAllocationSpace * currentSpaceLocation;
 
-PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
+__bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 {
     /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
 

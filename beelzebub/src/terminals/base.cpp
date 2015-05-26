@@ -119,7 +119,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
     WriteStringFunc writeString = term->Descriptor->WriteString;
 
     TerminalWriteResult res;
-    uint32_t cnt;
+    uint32_t cnt = 0U;
 
     bool inFormat = false;
     char c;

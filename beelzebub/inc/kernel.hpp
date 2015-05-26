@@ -9,6 +9,6 @@ namespace Beelzebub
 {
     extern TerminalBase * MainTerminal;
 
-    __bland void Main();
-    __bland void Secondary();
+    __cold __bland void Main();
+    __cold __bland void Secondary();
 }
