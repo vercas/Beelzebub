@@ -2,7 +2,7 @@
 
 #include <kernel.hpp>
 #include <terminals/base.hpp>
-#include <arc/synchronization/spinlock.hpp>
+#include <synchronization/spinlock.hpp>
 #include <handles.h>
 #include <metaprogramming.h>
 
@@ -363,10 +363,8 @@ namespace Beelzebub { namespace Memory
         {
             this->Lock();
 
+            this->Stack = (pgind_t *)((vaddr_t)this->Stack - (vaddr_t)this->Map + newAddr);
             this->Map = (PageDescriptor *)newAddr;
-            //  This will be atomic on x86, but I'm not making any
-            //  assumptions about other architectures.
-            //  Oh, and it'll only be called once.
 
             this->Unlock();
         }

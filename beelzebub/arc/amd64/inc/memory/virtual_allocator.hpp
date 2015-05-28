@@ -7,11 +7,11 @@
 
 #include <kernel.hpp>
 #include <terminals/base.hpp>
-#include <arc/synchronization/spinlock.hpp>
+#include <synchronization/spinlock.hpp>
 #include <memory/page_allocator.hpp>
 #include <memory/allocation.hpp>
-#include <arc/memory/paging.hpp>
-#include <arc/system/cpu.hpp>
+#include <memory/paging.hpp>
+#include <system/cpu.hpp>
 #include <handles.h>
 #include <metaprogramming.h>
 
@@ -61,13 +61,13 @@ namespace Beelzebub { namespace Memory
         static const vaddr_t LocalPml4Base = LocalPml3Base         + ((vaddr_t)LocalFractalIndex << 12);
 
         //  Start of the temporary PML4 tables.
-        static const vaddr_t AlienPml1Base = 0xFFFF000000000000ULL + ((vaddr_t)AlienFractalIndex << 39);
+        static const vaddr_t AlienPml1Base = 0xFFFF000000000000ULL + ((vaddr_t)LocalFractalIndex << 39);
         //  Start of the active PML3 tables (PDPTs).
-        static const vaddr_t AlienPml2Base = AlienPml1Base         + ((vaddr_t)AlienFractalIndex << 30);
+        static const vaddr_t AlienPml2Base = AlienPml1Base         + ((vaddr_t)LocalFractalIndex << 30);
         //  Start of the active PML2 tables (PDs).
-        static const vaddr_t AlienPml3Base = AlienPml2Base         + ((vaddr_t)AlienFractalIndex << 21);
+        static const vaddr_t AlienPml3Base = AlienPml2Base         + ((vaddr_t)LocalFractalIndex << 21);
         //  Start of the active PML1 tables (PTs).
-        static const vaddr_t AlienPml4Base = AlienPml3Base         + ((vaddr_t)AlienFractalIndex << 12);
+        static const vaddr_t AlienPml4Base = AlienPml3Base         + ((vaddr_t)LocalFractalIndex << 12);
 
         static const vaddr_t FractalStart = LocalPml1Base;
         static const vaddr_t FractalEnd   = FractalStart + (1ULL << 39);
@@ -164,7 +164,7 @@ namespace Beelzebub { namespace Memory
         /*  Main Operations  */
 
         __cold __bland Handle Bootstrap();
-        __bland VirtualAllocationSpace * Clone();
+        __bland Handle Clone(VirtualAllocationSpace * const target);
 
         __bland __forceinline void Activate()
         {
@@ -202,10 +202,8 @@ namespace Beelzebub { namespace Memory
         /*  Fields  */
 
         PageAllocator * Allocator;
-        psize_t FreePagesCount, MappedPagesCount;
+        //psize_t FreePagesCount, MappedPagesCount;
 
         paddr_t Pml4Address;
-
-        bool Active;
     };
 }}

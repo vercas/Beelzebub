@@ -1,8 +1,8 @@
 #pragma once
 
-#include <arc/system/cpu.hpp>
-#include <arc/synchronization/spinlock.hpp>
-#include <arc/isr.h>
+#include <system/cpu.hpp>
+#include <synchronization/spinlock.hpp>
+#include <isr.h>
 #include <metaprogramming.h>
 
 using namespace Beelzebub::System;

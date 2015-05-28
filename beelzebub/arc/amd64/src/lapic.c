@@ -24,10 +24,10 @@
  */
 
 #include <jegudiel.h>
-#include <arc/lapic.h>
+#include <lapic.h>
 #include <metaprogramming.h>
 
-#include <arc/screen.h>
+#include <screen.h>
 
 #define LAPIC_X2APIC_MODE (0 != (JG_INFO_ROOT->flags & JG_INFO_FLAG_X2APIC))
 

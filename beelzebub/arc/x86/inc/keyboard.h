@@ -24,7 +24,7 @@
  */
 
 #pragma once
-#include <arc/isr.h>
+#include <isr.h>
 #include <stdint.h>
 
 #define KEYBOARD_CODE_ESCAPED   0xE0

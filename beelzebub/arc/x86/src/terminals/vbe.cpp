@@ -1,3 +1,3 @@
-#include <arc/terminals/vbe.hpp>
+#include <terminals/vbe.hpp>
 
 using namespace Beelzebub::Terminals;

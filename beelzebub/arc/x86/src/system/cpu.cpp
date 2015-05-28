@@ -1,4 +1,4 @@
-#include <arc/system/cpu.hpp>
+#include <system/cpu.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;

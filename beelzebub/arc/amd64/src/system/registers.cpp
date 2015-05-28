@@ -1,4 +1,4 @@
-#include <arc/system/registers.hpp>
+#include <system/registers.hpp>
 #include <terminals/base.hpp>
 #include <handles.h>
 

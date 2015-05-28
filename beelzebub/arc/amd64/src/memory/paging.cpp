@@ -1,4 +1,4 @@
-#include <arc/memory/paging.hpp>
+#include <memory/paging.hpp>
 #include <terminals/base.hpp>
 #include <handles.h>
 

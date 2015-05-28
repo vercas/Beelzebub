@@ -1,4 +1,4 @@
-#include <arc/terminals/serial.hpp>
+#include <terminals/serial.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Ports;

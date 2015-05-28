@@ -137,7 +137,19 @@ namespace Beelzebub { namespace System
         uint32_t MaxStandardValue;
         uint32_t MaxExtendedValue;
 
-        char VendorString[13], ProcessorName[49];
+        union
+        {
+            char Characters[13];
+            uint32_t Integers[3];
+        } VendorString;
+
+        union
+        {
+            char Characters[49];
+            uint32_t Integers[12];
+        } ProcessorName;
+
+        //char VendorString[13], ProcessorName[49];
         CpuVendor Vendor;
 
         uint32_t VersionInformation, FeatureFlagsStandardB;

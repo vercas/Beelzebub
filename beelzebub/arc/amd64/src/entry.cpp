@@ -1,20 +1,20 @@
 #include <architecture.h>
-#include <arc/entry.h>
-#include <arc/memory/virtual_allocator.hpp>
-#include <arc/memory/paging.hpp>
-#include <arc/system/cpu.hpp>
-#include <arc/system/cpuid.hpp>
+#include <entry.h>
+#include <memory/virtual_allocator.hpp>
+#include <memory/paging.hpp>
+#include <system/cpu.hpp>
+#include <system/cpuid.hpp>
 
 #include <jegudiel.h>
-#include <arc/isr.h>
-#include <arc/keyboard.h>
-#include <arc/screen.h>
+#include <isr.h>
+#include <keyboard.h>
+#include <screen.h>
 #include <ui.h>
 
-#include <arc/lapic.h>
-#include <arc/screen.h>
+#include <lapic.h>
+#include <screen.h>
 
-#include <arc/terminals/serial.hpp>
+#include <terminals/serial.hpp>
 #include <memory/page_allocator.hpp>
 #include <kernel.hpp>
 #include <debug.hpp>
@@ -306,81 +306,6 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     initialSerialTerminal.WriteLine();
 
-    //uint64_t maxGapSize = 2 * PageSize * PageSize / sizeof(PageDescriptor);
-    //  The maximum size of a region of reserved memory.
-    //  Any greater and it is considered to split memory regions.
-    //  ... Because it would waste space with descriptors and generally
-    //  slow down contigious allocations.
-
-    /*firstRegionCreated = false;
-
-    bool lastAvailable = true;
-    uint64_t availableEnd = lastMap->address + lastMap->length, reservedEnd;
-    uint64_t availableStart = lastMap->address, reservedStart;
-
-    msg("-- Initial range: %X8-%X8;%n", availableStart, availableEnd);
-
-    for (jg_info_mmap_t * m = lastMap - 1; m >= firstMap; --m)
-    {
-        uint64_t start = m->address, end = m->address + m->length;
-        bool available = 0 != m->available;
-
-        msg("-- Range: (%c) %X8-%X8: L%c"
-            , available ? 'A' : 'R'
-            , start, end
-            , lastAvailable ? 'A' : 'R');
-
-        if (available)
-        {
-            if (lastAvailable)
-            {
-                assert(end == availableStart
-                    , "The end of the current available entry doesn't match the start of the previous available entry.");
-
-                availableStart = start;
-
-                msg(" EXTENDING AVAILABLE;%n");
-            }
-            else
-            {
-                assert(end == reservedStart
-                    , "The end of the current available entry doesn't match the start of the previous reserved entry.");
-
-                availableStart = start;
-                availableEnd = end;
-
-                msg(" STARTING AVAILABLE;%n");
-            }
-        }
-        else
-        {
-            if (lastAvailable)
-            {
-                assert(end == availableStart
-                    , "The end of the current reserved entry doesn't match the start of the previous available entry.");
-
-                reservedStart = start;
-                reservedEnd = end;
-
-                msg(" STARTING RESERVED;%n");
-            }
-            else
-            {
-                assert(end == reservedStart
-                    , "The end of the current reserved entry doesn't match the start of the previous reserved entry.");
-
-                reservedStart = start;
-
-                msg(" EXTENDING RESERVED;%n");
-            }
-        }
-
-        lastAvailable = available;
-    }*/
-
-    //new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
-    //new (&mainAllocator)       PageAllocator(&mainAllocationSpace);
-
     //  SPACE CREATION
 
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
@@ -489,10 +414,6 @@ void InitializeMemory()
     initialSerialTerminal.Write("CR4: ");
     initialSerialTerminal.WriteHex64(Cpu::GetCr4());
     initialSerialTerminal.WriteLine();
-
-    initialSerialTerminal.WriteLine();
-
-    initialSerialTerminal.WriteLine("Memory map test:");
 
     initialSerialTerminal.WriteLine();
 }

@@ -23,7 +23,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arc/ports.h>
+#include <ports.h>
 #include <metaprogramming.h>
 
 void outb(uint16_t port, uint8_t value)

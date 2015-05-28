@@ -1,8 +1,8 @@
 #pragma once
 
-#include <arc/memory/paging.hpp>
-#include <arc/system/registers.hpp>
-#include <arc/system/cpuid.hpp>
+#include <memory/paging.hpp>
+#include <system/registers.hpp>
+#include <system/cpuid.hpp>
 #include <metaprogramming.h>
 
 #define REGFUNC1(regl, regu, type)                                   \
@@ -109,20 +109,131 @@ namespace Beelzebub { namespace System
             IDTR.length = size;
             IDTR.base = base;
 
-            asm ( "lidt (%0)\n\t" : : "p"(&IDTR) );
+            asm volatile ( "lidt (%0)\n\t" : : "p"(&IDTR) );
         }
 
         /*  Far memory ops  */
+
+        static __bland __forceinline uint8_t FsGet8(const uintptr_t off)
+        {
+            uint8_t ret;
+
+            asm volatile ( "mov  %%fs:(%1), %0 \n\t"
+                         : "=r"(ret) : "r"(off) );
+
+            return ret;
+        }
+
+        static __bland __forceinline uint8_t GsGet8(const uintptr_t off)
+        {
+            uint8_t ret;
+
+            asm volatile ( "mov  %%gs:(%1), %0 \n\t"
+                         : "=r"(ret) : "r"(off) );
+
+            return ret;
+        }
+
+        static __bland __forceinline uint16_t FsGet16(const uintptr_t off)
+        {
+            uint16_t ret;
+
+            asm volatile ( "mov  %%fs:(%1), %0 \n\t"
+                         : "=r"(ret) : "r"(off) );
+
+            return ret;
+        }
+
+        static __bland __forceinline uint16_t GsGet16(const uintptr_t off)
+        {
+            uint16_t ret;
+
+            asm volatile ( "mov  %%gs:(%1), %0 \n\t"
+                         : "=r"(ret) : "r"(off) );
+
+            return ret;
+        }
+
+        static __bland __forceinline uint32_t FsGet32(const uintptr_t off)
+        {
+            uint32_t ret;
+
+            asm volatile ( "mov  %%fs:(%1), %0 \n\t"
+                         : "=r"(ret) : "r"(off) );
+
+            return ret;
+        }
+
+        static __bland __forceinline uint32_t GsGet32(const uintptr_t off)
+        {
+            uint32_t ret;
+
+            asm volatile ( "mov  %%gs:(%1), %0 \n\t"
+                         : "=r"(ret) : "r"(off) );
+
+            return ret;
+        }
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        static __bland __forceinline uint64_t FsGet64(const uintptr_t off)
+        {
+            uint64_t ret;
+
+            asm volatile ( "mov  %%fs:(%1), %0 \n\t"
+                         : "=r"(ret) : "r"(off) );
+
+            return ret;
+        }
+
+        static __bland __forceinline uint64_t GsGet64(const uintptr_t off)
+        {
+            uint64_t ret;
+
+            asm volatile ( "mov  %%gs:(%1), %0 \n\t"
+                         : "=r"(ret) : "r"(off) );
+
+            return ret;
+        }
+#else
+        static __bland __forceinline uint64_t FsGet64(const uintptr_t off)
+        {
+            uint32_t low;
+            uint32_t high;
+
+            asm volatile ( "mov  %%fs:(%2    ), %0 \n\t"
+                           "mov  %%fs:(%2 + 4), %1 \n\t"
+                         : "=r"(low), "=r"(high)
+                         : "r"(off) );
+
+            return ((uint64_t)high << 32) | (uint64_t)low;
+        }
+
+        static __bland __forceinline uint64_t GsGet64(const uintptr_t off)
+        {
+            uint32_t low;
+            uint32_t high;
+
+            asm volatile ( "mov  %%gs:(%2    ), %0 \n\t"
+                           "mov  %%gs:(%2 + 4), %1 \n\t"
+                         : "=r"(low), "=r"(high)
+                         : "r"(off) );
+
+            return ((uint64_t)high << 32) | (uint64_t)low;
+        }
+#endif
 
         static __bland __forceinline uint32_t FarGet32(const uint16_t sel
                                                      , const uintptr_t off)
         {
             uint32_t ret;
-            asm ( "push %%fs          \n\t"
-                  "mov  %1, %%fs      \n\t"
-                  "mov  %%fs:(%2), %0 \n\t"
-                  "pop  %%fs          \n\t"
-                  : "=r"(ret) : "g"(sel), "r"(off) );
+
+            asm volatile ( "push %%fs          \n\t"
+                           "mov  %1, %%fs      \n\t"
+                           "mov  %%fs:(%2), %0 \n\t"
+                           "pop  %%fs          \n\t"
+                           : "=r"(ret)
+                           : "g"(sel), "r"(off) );
+
             return ret;
         }
 
@@ -202,6 +313,17 @@ namespace Beelzebub { namespace System
                          : "c" (reg));
 
             return {{d, a}};
+        }
+
+        static __bland __forceinline uint64_t ReadMsr64(const Msr reg)
+        {
+            uint32_t a, d;
+
+            asm volatile ( "rdmsr \n\t"
+                         : "=a" (a), "=d" (d)
+                         : "c" (reg));
+
+            return (uint64_t)a | ((uint64_t)d << 32);
         }
 
         static __bland __forceinline void ReadMsr(const Msr reg, uint32_t & a, uint32_t & d)

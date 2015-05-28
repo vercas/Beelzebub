@@ -2,7 +2,7 @@
 
 #include <metaprogramming.h>
 #include <terminals/base.hpp>
-#include <arc/terminals/colors.hpp>
+#include <terminals/colors.hpp>
 
 namespace Beelzebub { namespace Terminals { namespace Vga
 {

@@ -1,9 +1,10 @@
-#include <arc/memory/virtual_allocator.hpp>
-#include <arc/system/cpuid.hpp>
-#include <arc/system/cpu.hpp>
+#include <memory/virtual_allocator.hpp>
+#include <system/cpuid.hpp>
+#include <system/cpu.hpp>
 #include <debug.hpp>
 #include <string.h>
 #include <math.h>
+#include <cpp_support.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
@@ -25,8 +26,8 @@ bool VirtualAllocationSpace::NX;
 
 VirtualAllocationSpace::VirtualAllocationSpace(PageAllocator * const allocator)
     : Allocator( allocator )
-    , FreePagesCount(0)
-    , MappedPagesCount(0)
+    //, FreePagesCount(0)
+    //, MappedPagesCount(0)
 {
 
 }
@@ -47,6 +48,9 @@ Handle VirtualAllocationSpace::Bootstrap()
 
     paddr_t pml4_paddr = this->Allocator->AllocatePage();
 
+    if (pml4_paddr == nullptr)
+        return Handle(HandleResult::OutOfMemory);
+    
     Pml4 & pml4 = *((Pml4 *)pml4_paddr);
     //  Cheap.
 
@@ -55,9 +59,6 @@ Handle VirtualAllocationSpace::Bootstrap()
 
     Cr3 cr3 = Cpu::GetCr3();
     Pml4 & currentPml4 = *cr3.GetPml4Ptr();
-
-    //msg("CURRENT PML4 ADDR: %XP ", cr3.GetAddress());
-    //msg("NEW ONE: %XP ", pml4_paddr);
 
     for (uint16_t i = 0; i < 256; ++i)
         pml4[i] = currentPml4[i];
@@ -82,7 +83,6 @@ Handle VirtualAllocationSpace::Bootstrap()
     this->Pml4Address = pml4_paddr;
 
     //  Activation, to finish the process.
-
     this->Activate();
 
     //  Remapping PAS control structures.
@@ -120,8 +120,6 @@ Handle VirtualAllocationSpace::Bootstrap()
         const size_t controlStructuresSize = (cur->GetAllocationStart() - pasStart);
         //  Size of control pages.
 
-        //msg("Control structures for allocator %Xp are at %XP (%Xs bytes). ", cur, pasStart, controlStructuresSize);
-
         if (curLoc + controlStructuresSize > PasControlStructuresEnd)
             break;
         //  Well, we reached our maximum!
@@ -142,6 +140,43 @@ Handle VirtualAllocationSpace::Bootstrap()
         curLoc += controlStructuresSize;
 
     } while ((cur = cur->Next) != nullptr);
+
+    for (uint16_t i = 0; i < 256; ++i)
+        pml4[i] = Pml4Entry();
+    //  Getting rid of those naughty identity maps.
+
+    //  Re-activate, to flush the identity maps.
+    this->Activate();
+
+    return Handle(HandleResult::Okay);
+}
+
+Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
+{
+    new (target) VirtualAllocationSpace(this->Allocator);
+
+    paddr_t pml4_paddr = target->Pml4Address = this->Allocator->AllocatePage();
+
+    if (pml4_paddr == nullptr)
+        return Handle(HandleResult::OutOfMemory);
+    
+    target->Alienate();
+    //  So it can be accessible.
+
+    Pml4 & pml4Local = *GetLocalPml4();
+    Pml4 & pml4Alien = *GetAlienPml4();
+
+    for (uint16_t i = 0; i < 256; ++i)
+        pml4Alien[i] = Pml4Entry();
+    //  Userland space will be empty.
+    
+    for (uint16_t i = 256; i < AlienFractalIndex; ++i)
+        pml4Alien[i] = pml4Local[i];
+    //  Kernel-specific tables.
+
+    pml4Alien[LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, NX);
+
+    pml4Alien[511] = pml4Local[511];
 
     return Handle(HandleResult::Okay);
 }
@@ -193,10 +228,10 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
         if (newPml3 == 0)
             return Handle(HandleResult::OutOfMemory);
 
-        memset((void *)newPml3, 0, 4096);
-
         pml4[ind] = Pml4Entry(newPml3, true, true, true, false);
         //  Present, writable, user-accessible, executable.
+
+        memset(pml3p, 0, 4096);
     }
 
     Pml3 & pml3 = *pml3p;
@@ -213,10 +248,10 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
         if (newPml2 == 0)
             return Handle(HandleResult::OutOfMemory);
 
-        memset((void *)newPml2, 0, 4096);
-
         pml3[ind] = Pml3Entry(newPml2, true, true, true, false);
         //  Present, writable, user-accessible, executable.
+
+        memset(pml2p, 0, 4096);
     }
     
     Pml2 & pml2 = *pml2p;
@@ -233,10 +268,10 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
         if (newPml1 == 0)
             return Handle(HandleResult::OutOfMemory);
 
-        memset((void *)newPml1, 0, 4096);
-
         pml2[ind] = Pml2Entry(newPml1, true, true, true, false);
         //  Present, writable, user-accessible, executable.
+
+        memset(pml1p, 0, 4096);
     }
     
     Pml1 & pml1 = *pml1p;

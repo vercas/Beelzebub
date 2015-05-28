@@ -1,4 +1,4 @@
-#include <arc/synchronization/spinlock.hpp>
+#include <synchronization/spinlock.hpp>
 
 using namespace Beelzebub::Synchronization;
 

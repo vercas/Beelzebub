@@ -1,8 +1,8 @@
 #pragma once
 
 #include <terminals/base.hpp>
-//#include <arc/system/registers.hpp>
-//#include <arc/system/cpu.hpp>
+//#include <system/registers.hpp>
+//#include <system/cpu.hpp>
 #include <handles.h>
 #include <metaprogramming.h>
 
@@ -274,6 +274,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
         /*  Constructors  */
 
         /**
+         *  Creates an empty PML2 (PD) entry structure.
+         */
+        __bland __forceinline Pml2Entry() : Value( 0ULL ) { }
+
+        /**
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
         __bland __forceinline Pml2Entry(const paddr_t pml1_paddr
@@ -538,6 +543,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
         /*  Constructors  */
 
         /**
+         *  Creates an empty PML3 (PDPT) entry structure.
+         */
+        __bland __forceinline Pml3Entry() : Value( 0ULL ) { }
+
+        /**
          *  Creates a new PML3 entry structure that points to a PML2 table.
          */
         __bland __forceinline Pml3Entry(const paddr_t pml2_paddr
@@ -780,12 +790,9 @@ namespace Beelzebub { namespace Memory { namespace Paging
         /*  Constructors  */
 
         /**
-         *  Creates a new empty PML4 entry structure.
+         *  Creates an empty PML4 (PT) entry structure.
          */
-        __bland __forceinline Pml4Entry()
-        {
-            this->Value = 0ULL;
-        }
+        __bland __forceinline Pml4Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML4 entry structure that points to a PML3 table.

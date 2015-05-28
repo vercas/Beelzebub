@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 #include "stddef.h"
-#include <arc/metaprogramming.h>
+#include <metaprogramming_arc.h>
 
 /*  Some macro helpers. */
 

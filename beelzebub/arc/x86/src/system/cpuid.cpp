@@ -4,7 +4,7 @@
  *  naturally.
  */
 
-#include <arc/system/cpuid.hpp>
+#include <system/cpuid.hpp>
 #include <string.h>
 
 using namespace Beelzebub;
@@ -24,20 +24,21 @@ void CpuId::Initialize()
     //  Find the max standard value and vendor string.
     Execute(0x00000000U
         , this->MaxStandardValue
-        , *(uint32_t *)(this->VendorString    )
-        , *(uint32_t *)(this->VendorString + 8)
-        , *(uint32_t *)(this->VendorString + 4));
+        , this->VendorString.Integers[0]
+        , this->VendorString.Integers[1]
+        , this->VendorString.Integers[2]);
 
-    char otherVendorString[13];
+    //char otherVendorString[13];
+    uint32_t dummy;
 
     //  Find the max extended value and vendor string.
     Execute(0x80000000U
         , this->MaxExtendedValue
-        , *(uint32_t *)(otherVendorString    )
-        , *(uint32_t *)(otherVendorString + 8)
-        , *(uint32_t *)(otherVendorString + 4));
+        , dummy
+        , dummy
+        , dummy);
 
-    this->VendorString[12] = otherVendorString[12] = 0;
+    this->VendorString.Characters[12] = 0;
     //  Just ensuring null-termination.
 
     //  Find the standard feature flags.
@@ -48,13 +49,13 @@ void CpuId::Initialize()
     Execute(0x80000001U, this->ExtendedSignature, this->FeatureFlagsExtendedB
                        , this->FeatureFlagsExtendedC, this->FeatureIntegers[2]);
 
-    if      (memeq(this->VendorString, "GenuineIntel", 12))
+    if      (memeq(this->VendorString.Characters, "GenuineIntel", 12))
     {
         this->Vendor = CpuVendor::Intel;
 
         this->InitializeIntel();
     }
-    else if (memeq(this->VendorString, "AuthenticAMD", 12))
+    else if (memeq(this->VendorString.Characters, "AuthenticAMD", 12))
     {
         this->Vendor = CpuVendor::Amd;
 
@@ -69,27 +70,27 @@ void CpuId::Initialize()
     {
         //  First part (16 characters) of the processor name string.
         Execute(0x80000002U
-            , *(uint32_t *)(this->ProcessorName     )
-            , *(uint32_t *)(this->ProcessorName +  4)
-            , *(uint32_t *)(this->ProcessorName +  8)
-            , *(uint32_t *)(this->ProcessorName + 12));
+            , this->ProcessorName.Integers[ 0]
+            , this->ProcessorName.Integers[ 1]
+            , this->ProcessorName.Integers[ 2]
+            , this->ProcessorName.Integers[ 3]);
 
         //  Second part (16 characters) of the processor name string.
         Execute(0x80000003U
-            , *(uint32_t *)(this->ProcessorName + 16)
-            , *(uint32_t *)(this->ProcessorName + 20)
-            , *(uint32_t *)(this->ProcessorName + 24)
-            , *(uint32_t *)(this->ProcessorName + 28));
+            , this->ProcessorName.Integers[ 4]
+            , this->ProcessorName.Integers[ 5]
+            , this->ProcessorName.Integers[ 6]
+            , this->ProcessorName.Integers[ 7]);
 
         //  Third part (16 characters) of the processor name string.
         Execute(0x80000004U
-            , *(uint32_t *)(this->ProcessorName + 32)
-            , *(uint32_t *)(this->ProcessorName + 36)
-            , *(uint32_t *)(this->ProcessorName + 40)
-            , *(uint32_t *)(this->ProcessorName + 44));
+            , this->ProcessorName.Integers[ 8]
+            , this->ProcessorName.Integers[ 9]
+            , this->ProcessorName.Integers[10]
+            , this->ProcessorName.Integers[11]);
     }
 
-    this->ProcessorName[48] = 0;
+    this->ProcessorName.Characters[48] = 0;
     //  Just makin' sure.
 }
 
@@ -154,7 +155,7 @@ TerminalWriteResult CpuId::PrintToTerminal(TerminalBase * const term) const
 
     TERMTRY0(term->WriteLine("CPUID:"), tret);
 
-    TERMTRY1(term->WriteFormat("  Vendor String: %s%n", this->VendorString), tret, cnt);
+    TERMTRY1(term->WriteFormat("  Vendor String: %s%n", this->VendorString.Characters), tret, cnt);
 
     TERMTRY1(term->Write("  Vendor: "), tret, cnt);
 
@@ -174,7 +175,7 @@ TerminalWriteResult CpuId::PrintToTerminal(TerminalBase * const term) const
     }
 
     if (this->MaxExtendedValue >= 0x80000004U)
-        TERMTRY1(term->WriteFormat("  Processor Name: %s%n", this->ProcessorName), tret, cnt);
+        TERMTRY1(term->WriteFormat("  Processor Name: %s%n", this->ProcessorName.Characters), tret, cnt);
 
     TERMTRY1(term->WriteLine("  ----"), tret, cnt);
 

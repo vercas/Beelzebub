@@ -1,5 +1,5 @@
-#include <arc/system/cpu.hpp>
-#include <arc/synchronization/spinlock.hpp>
+#include <system/cpu.hpp>
+#include <synchronization/spinlock.hpp>
 #include <kernel.hpp>
 
 using namespace Beelzebub;

@@ -23,10 +23,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <arc/isr.h>
-#include <arc/keyboard.h>
-#include <arc/lapic.h>
-#include <arc/ports.h>
+#include <isr.h>
+#include <keyboard.h>
+#include <lapic.h>
+#include <ports.h>
 #include <stdint.h>
 #include <ui.h>
 

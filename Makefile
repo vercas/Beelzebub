@@ -1,10 +1,13 @@
-.PHONY: run clean loader image kernel
+.PHONY: run clean jegudiel image kernel
+all: amd64
 
 PREFIX    := ./build
 EMU       := bochs
 EMUFLAGS  := -q
 
-all: loader kernel image
+ia32:		kernel image
+ia32pae:	kernel image
+amd64:		jegudiel kernel image
 
 run: image
 	@ $(EMU) $(EMUFLAGS)
@@ -15,14 +18,14 @@ qemu: image
 qemu-serial: image
 	@ qemu-system-x86_64 -cdrom $(PREFIX)/boot.iso -smp 4 -nographic
 	
-loader:
-	@ $(MAKE) -C jegudiel/ install
+jegudiel:
+	@ $(MAKE) -C jegudiel/ $(MAKECMDGOALS) install
 	
-image: loader
+image: jegudiel
 	@ $(MAKE) -C image/
 
 kernel:
-	@ $(MAKE) -C beelzebub/ install
+	@ $(MAKE) -C beelzebub/ $(MAKECMDGOALS) install -j 9
 
 clean:
 	@ $(MAKE) -C image/ clean

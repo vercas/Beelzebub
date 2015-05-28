@@ -29,7 +29,8 @@ LDFLAGS		:= -z max-page-size=0x1000
 LDFILE		:= link.ld
 
 # Build everything and link the target binary.
-all: build link
+all: amd64
+amd64: build link
 
 # Install to prefix directory.
 install: all

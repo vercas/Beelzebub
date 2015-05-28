@@ -1,7 +1,7 @@
 #pragma once
 
-//#include <arc/system/cpu.hpp>
-#include <arc/memory/paging.hpp>
+//#include <system/cpu.hpp>
+#include <memory/paging.hpp>
 #include <terminals/base.hpp>
 #include <handles.h>
 
