@@ -2,9 +2,12 @@
 #include <synchronization/spinlock.hpp>
 #include <kernel.hpp>
 
+#include <execution/thread_switching.hpp>
+
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
+using namespace Beelzebub::Execution;
 
 volatile bool InitializingLock = true;
 Spinlock InitializationLock;
@@ -12,6 +15,63 @@ Spinlock TerminalMessageLock;
 
 TerminalBase * Beelzebub::MainTerminal;
 bool Beelzebub::Scheduling;
+
+////////////////////////////////////////////////////////
+
+Thread tA, tB;
+
+byte stackA[4096];
+byte stackB[4096];
+
+void DoA()
+{
+    while (true)
+    {
+        for (size_t i = 0; i < 108; ++i)
+            MainTerminal->Write('A');
+
+        MainTerminal->Write("->");
+
+        ScheduleNext(&tA);
+    }
+}
+
+void DoB()
+{
+    while (true)
+    {
+        for (size_t i = 0; i < 108; ++i)
+            MainTerminal->Write('B');
+
+        MainTerminal->Write("->");
+
+        ScheduleNext(&tB);
+    }
+}
+
+void StartThreadTest()
+{
+    tA.StackPointer = (uintptr_t)stackA + 4096 - sizeof(ThreadState);
+    tB.StackPointer = (uintptr_t)stackB + 4096 - sizeof(ThreadState);
+
+    tA.StackPointer &= ~((uintptr_t)0xF);
+    tB.StackPointer &= ~((uintptr_t)0xF);
+    //  Makin' sure the stacks are aligned on a 16-byte boundary.
+
+    tA.Next = &tB;
+    tB.Next = &tA;
+
+    ThreadState * stateA = (ThreadState *)tA.StackPointer;
+    ThreadState * stateB = (ThreadState *)tB.StackPointer;
+
+    stateA->RIP = (uintptr_t)&DoA;
+    stateB->RIP = (uintptr_t)&DoB;
+
+    uintptr_t dummy;
+    SwitchThread(&dummy, tA.StackPointer);
+}
+
+////////////////////////////////////////////////////////
 
 void Beelzebub::Main()
 {
@@ -65,6 +125,10 @@ void Beelzebub::Main()
     else
         MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
     //  Can never bee too sure.
+
+    MainTerminal->WriteLine("\\Attempting to run scheduler.");
+
+    StartThreadTest();
 
     MainTerminal->WriteLine("\\Halting indefinitely now.");
 

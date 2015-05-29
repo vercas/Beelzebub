@@ -15,7 +15,7 @@ using namespace Beelzebub::System;
  */
 void Beelzebub::System::MiscellaneousInterruptHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<MISC INT @ %Xp: v%u1, ec%X8>>", INSTRUCTION_POINTER, state->Vector, state->ErrorCode);
 }
 
@@ -24,7 +24,7 @@ void Beelzebub::System::MiscellaneousInterruptHandler(IsrState * const state)
  */
 void Beelzebub::System::DivideErrorHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<DIVIDE ERROR @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -33,7 +33,7 @@ void Beelzebub::System::DivideErrorHandler(IsrState * const state)
  */
 void Beelzebub::System::OverflowHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<OVERFLOW @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -42,7 +42,7 @@ void Beelzebub::System::OverflowHandler(IsrState * const state)
  */
 void Beelzebub::System::BoundRangeExceededHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<BOUNDS EXCEEDED @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -51,7 +51,7 @@ void Beelzebub::System::BoundRangeExceededHandler(IsrState * const state)
  */
 void Beelzebub::System::InvalidOpcodeHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<INVALID OPCODE @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -60,7 +60,7 @@ void Beelzebub::System::InvalidOpcodeHandler(IsrState * const state)
  */
 void Beelzebub::System::DoubleFaultHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<DOUBLE FAULT @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
 }
 
@@ -69,7 +69,7 @@ void Beelzebub::System::DoubleFaultHandler(IsrState * const state)
  */
 void Beelzebub::System::InvalidTssHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<INVALID TSS @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
 }
 
@@ -86,7 +86,7 @@ void Beelzebub::System::SegmentNotPresentHandler(IsrState * const state)
                    "mov %%gs, %2 \n\t"
                  : "=r"(ES), "=r"(FS), "=r"(GS));
 
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<SEGMENT NOT PRESENT @ %Xp (%Xs): CS%X2 DS%X2 SS%X2 ES%X2 FS%X2 GS%X2>>"
         , INSTRUCTION_POINTER, state->ErrorCode
         , (uint16_t)state->CS, (uint16_t)state->DS, (uint16_t)state->SS, ES, FS, GS);
@@ -97,7 +97,7 @@ void Beelzebub::System::SegmentNotPresentHandler(IsrState * const state)
  */
 void Beelzebub::System::StackSegmentFaultHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<STACK SEGMENT FAULT @ %Xp (%Xs): SS%X2>>"
         , INSTRUCTION_POINTER, state->ErrorCode, (uint16_t)state->SS);
 }
@@ -107,7 +107,7 @@ void Beelzebub::System::StackSegmentFaultHandler(IsrState * const state)
  */
 void Beelzebub::System::GeneralProtectionHandler(IsrState * const state)
 {
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<GENERAL PROTECTION FAULT @ %Xp (%Xs)>>"
         , INSTRUCTION_POINTER, state->ErrorCode);
 }
@@ -119,7 +119,7 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
 {
     void * const CR2 = Cpu::GetCr2();
 
-    assert(INSTRUCTION_POINTER < KERNEL_CODE_SEPARATOR
+    assert(false
         , "<<PAGE FAULT @ %Xp (%Xs); CR2: %Xp>>"
         , INSTRUCTION_POINTER, state->ErrorCode, CR2);
 }
