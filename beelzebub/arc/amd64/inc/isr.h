@@ -26,48 +26,49 @@
 #pragma once
 #include <metaprogramming.h>
 
-#define ISR_COUNT 0xFF
-//  Questioné: Shouldn't there be 0x100...?
+/**
+ *  The state of the system before an interrupt was raised and
+ *  that can be used and manipulated by ISRs.
+ */
+typedef struct IsrState_t {
+    uint64_t DS;
+
+    uint64_t R15;
+    uint64_t R14;
+    uint64_t R13;
+    uint64_t R12;
+    uint64_t R11;
+    uint64_t R10;
+    uint64_t R9;
+    uint64_t R8;
+    uint64_t RBP;
+    uint64_t RDI;
+    uint64_t RSI;
+    uint64_t RDX;
+    uint64_t RCX;
+    uint64_t RBX;
+    uint64_t RAX;
+
+    uint64_t Vector;
+    uint64_t ErrorCode;
+
+    uint64_t RIP;
+    uint64_t CS;
+    uint64_t RFLAGS;
+    uint64_t RSP;
+    uint64_t SS;
+} __attribute__((packed)) IsrState;
+
+typedef void (*IsrHandlerFunction)(IsrState * const state);
+
+#define ISR_COUNT 256
 
 /**
- * Array of pointers to all interrupt gates.
+ *  Array of pointers to all interrupt gates.
  */
-extern uint64_t isr_gates[ISR_COUNT];
+extern uint64_t IsrGates[ISR_COUNT];
 
 /**
- * Array of higher-level interrupt handlers.
+ *  Array of higher-level interrupt handlers.
  */
-extern uint64_t isr_handlers[ISR_COUNT];
-
-/**
- * The state of the system before an interrupt was raised and
- * that can be used and manipulated by ISRs.
- */
-typedef struct isr_state {
-    uint64_t ds;
-
-    uint64_t r15;
-    uint64_t r14;
-    uint64_t r13;
-    uint64_t r12;
-    uint64_t r11;
-    uint64_t r10;
-    uint64_t r9;
-    uint64_t r8;
-    uint64_t rbp;
-    uint64_t rdi;
-    uint64_t rsi;
-    uint64_t rdx;
-    uint64_t rcx;
-    uint64_t rbx;
-    uint64_t rax;
-
-    uint64_t vector;
-    uint64_t error_code;
-
-    uint64_t rip;
-    uint64_t cs;
-    uint64_t rflags;
-    uint64_t rsp;
-    uint64_t ss;
-} __attribute__((packed)) isr_state_t;
+extern IsrHandlerFunction IsrHandlers[ISR_COUNT];

@@ -24,8 +24,8 @@
 section .text
 bits 64
 
-global isr_gates
-global isr_handlers
+global IsrGates
+global IsrHandlers
 
 isr_dispatch:
     mov rax, rdi        ; Get vector
@@ -33,7 +33,7 @@ isr_dispatch:
     mov rax, qword [rax]
 
     mov rbx, rax        ; Get handler
-    mov rax, isr_handlers
+    mov rax, IsrHandlers
     shl rbx, 3
     add rax, rbx
     mov rax, qword [rax]
@@ -157,7 +157,7 @@ ISR_NOERRCODE 31
 
 section .data
 
-isr_gates:
+IsrGates:
     %assign i 0
     %rep 256
         dq isr_stub %+ i
@@ -166,5 +166,5 @@ isr_gates:
 
 section .bss
 
-isr_handlers:
+IsrHandlers:
     resb 8 * 256

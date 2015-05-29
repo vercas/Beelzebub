@@ -13,7 +13,7 @@ ManagedSerialPort Beelzebub::Ports::COM4(0x02E8);
 
 /*	Static methods  */
 
-void SerialPort::IrqHandler(isr_state_t * state)
+void SerialPort::IrqHandler(IsrState * const state)
 {
 	//uint8_t reg = Cpu::In8(COM1.BasePort + 2);
 
@@ -96,7 +96,7 @@ size_t SerialPort::WriteNtString(const char * const str) const
 
 /*	Static methods  */
 
-void ManagedSerialPort::IrqHandler(isr_state_t * state)
+void ManagedSerialPort::IrqHandler(IsrState * const state)
 {
 	//uint8_t reg = Cpu::In8(COM1.BasePort + 2);
 

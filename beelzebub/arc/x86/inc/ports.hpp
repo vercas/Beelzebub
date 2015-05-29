@@ -24,7 +24,7 @@ namespace Beelzebub { namespace Ports
 
         /*  Static methods  */
 
-        static __bland void IrqHandler(isr_state_t * state);
+        static __bland void IrqHandler(IsrState * const state);
 
         /*  Construction  */
 
@@ -91,7 +91,7 @@ namespace Beelzebub { namespace Ports
 
         /*  Static methods  */
 
-        static __bland void IrqHandler(isr_state_t * state);
+        static __bland void IrqHandler(IsrState * const state);
 
         /*  Construction  */
 

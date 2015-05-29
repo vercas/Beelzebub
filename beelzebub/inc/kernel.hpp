@@ -8,6 +8,7 @@
 namespace Beelzebub
 {
     extern TerminalBase * MainTerminal;
+    extern bool Scheduling;
 
     __cold __bland void Main();
     __cold __bland void Secondary();

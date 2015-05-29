@@ -2,6 +2,7 @@
 
 #include <memory/paging.hpp>
 #include <system/registers.hpp>
+#include <system/registers_x86.hpp>
 #include <system/cpuid.hpp>
 #include <metaprogramming.h>
 
@@ -297,10 +298,10 @@ namespace Beelzebub { namespace System
 
         /*  Control Registers  */
 
-        REGFUNC2(cr0, Cr0, size_t, Beelzebub::System::Cr0)
+        REGFUNC2(cr0, Cr0, creg_t, Beelzebub::System::Cr0)
         REGFUNC1(cr2, Cr2, void *)
-        REGFUNC2(cr3, Cr3, size_t, Beelzebub::System::Cr3)
-        REGFUNC1(cr4, Cr4, size_t)
+        REGFUNC2(cr3, Cr3, creg_t, Beelzebub::System::Cr3)
+        REGFUNC1(cr4, Cr4, creg_t)
 
         /*  MSRs  */
 

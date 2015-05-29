@@ -58,4 +58,4 @@ void keyboard_send_command(uint8_t cmd);
  *
  * @param state state of the system
  */
-void keyboard_handler(isr_state_t *state);
+void keyboard_handler(IsrState * const state);

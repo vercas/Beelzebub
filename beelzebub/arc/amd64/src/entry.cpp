@@ -16,6 +16,7 @@
 
 #include <terminals/serial.hpp>
 #include <memory/page_allocator.hpp>
+#include <system/exceptions.hpp>
 #include <kernel.hpp>
 #include <debug.hpp>
 #include <math.h>
@@ -37,14 +38,6 @@ VirtualAllocationSpace bootstrapVas;
 volatile bool bootstrapVasReady = false;
 
 CpuId Beelzebub::System::BootstrapProcessorId;
-
-static __bland void fault_gp(isr_state_t * state)
-{
-    //write_serial_str(0x3F8, "OMG GP FAULT!");
-    //write_serial(0x3F8, '\n');
-
-    initialSerialTerminal.WriteFormat("ISR Handler: %X8%n", state->vector);
-}
 
 /*  Entry points  */ 
 
@@ -95,10 +88,21 @@ void InitializeInterrupts()
 {
     for (size_t i = 0; i < 256; ++i)
     {
-        isr_handlers[i] = (uintptr_t)&fault_gp;
+        IsrHandlers[i] = &MiscellaneousInterruptHandler;
     }
 
-    isr_handlers[32] = (uintptr_t)&SerialPort::IrqHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::InvalidOpcode] = &InvalidOpcodeHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::DoubleFault] = &DoubleFaultHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::InvalidTss] = &InvalidTssHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::SegmentNotPresent] = &SegmentNotPresentHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::StackSegmentFault] = &StackSegmentFaultHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::GeneralProtectionFault] = &GeneralProtectionHandler;
+    IsrHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
+
+    IsrHandlers[32] = &SerialPort::IrqHandler;
 
     //initialSerialTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
 }

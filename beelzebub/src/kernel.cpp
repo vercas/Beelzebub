@@ -11,6 +11,7 @@ Spinlock InitializationLock;
 Spinlock TerminalMessageLock;
 
 TerminalBase * Beelzebub::MainTerminal;
+bool Beelzebub::Scheduling;
 
 void Beelzebub::Main()
 {

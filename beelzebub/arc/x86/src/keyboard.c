@@ -47,7 +47,7 @@ void keyboard_send_command(uint8_t cmd)
     outb(0x60, cmd);
 }
 
-void keyboard_handler(isr_state_t *state)
+void keyboard_handler(IsrState * const state)
 {
     uint8_t code = inb(0x60);
     outb(0x61, inb(0x61));

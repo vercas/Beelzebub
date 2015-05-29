@@ -13,18 +13,33 @@ typedef unsigned long long vaddr_t; //  Virtual (linear) address.
 typedef unsigned long long psize_t; //  Physical size.
 typedef unsigned long long vsize_t; //  Virtual (linear) address.
 typedef unsigned long long pgind_t; //  Index of a memory page.
-#elif defined(__BEELZEBUB__ARCH_IA32PAE)
-typedef unsigned long long paddr_t; //  Physical address.
-typedef unsigned    int    vaddr_t; //  Virtual (linear) address.
-typedef unsigned long long psize_t; //  Physical size.
-typedef unsigned    int    vsize_t; //  Virtual (linear) address.
-typedef unsigned    int    pgind_t; //  Index of a memory page.
+typedef unsigned long long  creg_t; //  Control register.
+
+typedef unsigned long long uintptr_t;
+typedef   signed long long  intptr_t;
+
+#define KERNEL_CODE_SEPARATOR ((uintptr_t)0xFFFFFF8000000000ULL)
+
 #elif defined(__BEELZEBUB__ARCH_IA32)
+
+#if   defined(__BEELZEBUB__ARCH_IA32PAE)
+typedef unsigned long long paddr_t; //  Physical address.
+typedef unsigned long long psize_t; //  Physical size.
+#else
 typedef unsigned    int    paddr_t; //  Physical address.
-typedef unsigned    int    vaddr_t; //  Virtual (linear) address.
 typedef unsigned    int    psize_t; //  Physical size.
+#endif
+
+typedef unsigned    int    vaddr_t; //  Virtual (linear) address.
 typedef unsigned    int    vsize_t; //  Virtual (linear) address.
 typedef unsigned    int    pgind_t; //  Index of a memory page.
+typedef unsigned    int     creg_t; //  Control register.
+
+typedef unsigned    int    uintptr_t;
+typedef   signed    int     intptr_t;
+
+#define KERNEL_CODE_SEPARATOR ((uintptr_t)0xC0000000U)
+
 #endif
 
 #ifdef __GNUC__
