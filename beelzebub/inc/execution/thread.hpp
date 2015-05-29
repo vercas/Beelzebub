@@ -4,12 +4,29 @@
 
 namespace Beelzebub { namespace Execution
 {
-	class Thread
-	{
-	public:
+    typedef void (*ThreadEntryPointFunction)(void * const arg);
 
-		uintptr_t StackPointer;
+    /**
+     *  A unit of execution.
+     */
+    class Thread
+    {
+    public:
 
-		Thread * Next;
-	};
+        /*  Stack  */
+
+        uintptr_t KernelStackTop;
+        uintptr_t KernelStackBottom;
+
+        uintptr_t KernelStackPointer;
+
+        /*  Linkage  */
+
+        Thread * Previous;
+        Thread * Next;
+
+        /*  Parameters  */
+
+        ThreadEntryPointFunction EntryPoint;
+    };
 }}

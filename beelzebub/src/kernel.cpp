@@ -3,6 +3,7 @@
 #include <kernel.hpp>
 
 #include <execution/thread_switching.hpp>
+#include <execution/thread_init.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -23,7 +24,7 @@ Thread tA, tB;
 byte stackA[4096];
 byte stackB[4096];
 
-void DoA()
+void DoA(void * const state)
 {
     while (true)
     {
@@ -36,7 +37,7 @@ void DoA()
     }
 }
 
-void DoB()
+void DoB(void * const state)
 {
     while (true)
     {
@@ -51,24 +52,23 @@ void DoB()
 
 void StartThreadTest()
 {
-    tA.StackPointer = (uintptr_t)stackA + 4096 - sizeof(ThreadState);
-    tB.StackPointer = (uintptr_t)stackB + 4096 - sizeof(ThreadState);
+    tA.KernelStackBottom = (uintptr_t)stackA;
+    tA.KernelStackTop = tA.KernelStackBottom + 4096;
 
-    tA.StackPointer &= ~((uintptr_t)0xF);
-    tB.StackPointer &= ~((uintptr_t)0xF);
-    //  Makin' sure the stacks are aligned on a 16-byte boundary.
+    tB.KernelStackBottom = (uintptr_t)stackB;
+    tB.KernelStackTop = tB.KernelStackBottom + 4096;
 
-    tA.Next = &tB;
-    tB.Next = &tA;
+    tA.Next = tA.Previous = &tB;
+    tB.Next = tB.Previous = &tA;
 
-    ThreadState * stateA = (ThreadState *)tA.StackPointer;
-    ThreadState * stateB = (ThreadState *)tB.StackPointer;
+    tA.EntryPoint = &DoA;
+    tB.EntryPoint = &DoB;
 
-    stateA->RIP = (uintptr_t)&DoA;
-    stateB->RIP = (uintptr_t)&DoB;
+    InitializeThreadState(&tA);
+    InitializeThreadState(&tB);
 
     uintptr_t dummy;
-    SwitchThread(&dummy, tA.StackPointer);
+    SwitchThread(&dummy, tA.KernelStackPointer);
 }
 
 ////////////////////////////////////////////////////////

@@ -5,5 +5,5 @@ using namespace Beelzebub::Execution;
 
 void Beelzebub::Execution::ScheduleNext(Thread * const current)
 {
-	SwitchThread(&current->StackPointer, current->Next->StackPointer);
+    SwitchThread(&current->KernelStackPointer, current->Next->KernelStackPointer);
 }
