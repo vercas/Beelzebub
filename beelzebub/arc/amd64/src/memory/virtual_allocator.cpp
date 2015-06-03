@@ -181,6 +181,69 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
     return Handle(HandleResult::Okay);
 }
 
+/*  Translation  */
+
+Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, paddr_t & paddr)
+{
+    if unlikely((vaddr >= FractalStart && vaddr < FractalEnd     )
+             || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart))
+        return Handle(HandleResult::PageMapIllegalRange);
+
+    paddr_t offset = vaddr & 0xFFFULL;
+
+    const bool nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
+    uint16_t ind;   //  Used to hold the current index.
+
+    Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
+
+    if (nonLocal)
+    {
+        this->Alienate();
+
+        pml4p = GetAlienPml4();
+        pml3p = GetAlienPml3(vaddr);
+        pml2p = GetAlienPml2(vaddr);
+        pml1p = GetAlienPml1(vaddr);
+    }
+    else
+    {
+        pml4p = GetLocalPml4();
+        pml3p = GetLocalPml3(vaddr);
+        pml2p = GetLocalPml2(vaddr);
+        pml1p = GetLocalPml1(vaddr);
+    }
+
+    Pml4 & pml4 = *pml4p;
+    ind = GetPml4Index(vaddr);
+
+    if unlikely(!pml4[ind].GetPresent())
+        return Handle(HandleResult::PageUnmapped);
+
+    Pml3 & pml3 = *pml3p;
+    ind = GetPml3Index(vaddr);
+
+    if unlikely(!pml3[ind].GetPresent())
+        return Handle(HandleResult::PageUnmapped);
+    
+    Pml2 & pml2 = *pml2p;
+    ind = GetPml2Index(vaddr);
+
+    if unlikely(!pml2[ind].GetPresent())
+        return Handle(HandleResult::PageUnmapped);
+    
+    Pml1 & pml1 = *pml1p;
+    ind = GetPml1Index(vaddr);
+
+    if likely(pml1[ind].GetPresent())
+    {
+        paddr = pml1[ind].GetAddress() + offset;
+
+        return Handle(HandleResult::Okay);
+    }
+    else
+        return Handle(HandleResult::PageUnmapped);
+}
+
 /*  Mapping  */
 
 Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags)
@@ -290,7 +353,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
     return Handle(HandleResult::Okay);
 }
 
-Handle VirtualAllocationSpace::Unmap(const vaddr_t vaddr)
+Handle VirtualAllocationSpace::Unmap(const vaddr_t vaddr, paddr_t & res)
 {
     if unlikely((vaddr >= FractalStart && vaddr < FractalEnd     )
              || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart))
@@ -344,6 +407,7 @@ Handle VirtualAllocationSpace::Unmap(const vaddr_t vaddr)
 
     if likely(pml1[ind].GetPresent())
     {
+        res = pml1[ind].GetAddress();
         pml1[ind] = Pml1Entry();
         //  Null.
 

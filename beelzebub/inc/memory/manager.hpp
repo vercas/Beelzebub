@@ -1,17 +1,18 @@
-/*  THE DECLARATIONS IN THIS FILE ARE DEFINED IN ARCHITECTURE-SPECIFIC
- *  FILES
+/**
+ *  The implementation of the main memory manager is architecture-specific:
+ *
+ *  AMD64       :   manager_amd64.cpp
  */
 
 #pragma once
 
-//#include <memory/page_allocator.hpp>
 #include <handles.h>
 #include <metaprogramming.h>
 
 namespace Beelzebub { namespace Memory
 {
     /**
-     * Represents types of pages that can be allocated.
+     *  Represents types of pages that can be allocated.
      */
     enum class PageFlags
     {
@@ -42,7 +43,7 @@ namespace Beelzebub { namespace Memory
     { return a != static_cast<int>(b); }
 
     /**
-     * Represents types of pages that can be allocated.
+     *  Represents types of pages that can be allocated.
      */
     enum class AllocatedPageType : uint32_t
     {
@@ -52,6 +53,12 @@ namespace Beelzebub { namespace Memory
         //  The physical page selected will have a 32-bit address,
         //  suitable for certain devices.
         Physical32bit      = 0x00000010,
+        //  The physical page selected will have a 24-bit address,
+        //  suitable for certain devices.
+        Physical24bit      = 0x00000020,
+        //  The physical page selected will have a 16-bit address,
+        //  suitable for certain devices.
+        Physical16bit      = 0x00000030,
 
         //  The virtual page will be located in areas specific to the kernel heap.
         VirtualKernelHeap  = 0x00000000,
@@ -60,6 +67,9 @@ namespace Beelzebub { namespace Memory
         //  The virtual page will be located in 32-bit memory locations,
         //  suitable for 32-bit applications and kernel modules.
         Virtual32bit       = 0x00100000,
+        //  The virtual page will be located in 16-bit memory locations,
+        //  suitable for 16-bit applications and kernel modules.
+        Virtual16bit       = 0x00300000,
     };
 
     //  Bitwise OR.
@@ -79,10 +89,25 @@ namespace Beelzebub { namespace Memory
     { return a != static_cast<uint32_t>(b); }
 
     /**
-     * Describes a region of memory in which pages can be allocated.
+     *  A memory management unit.
      */
-    class MemoryAllocator
+    class MemoryManager
     {
+    public:
 
+        /*  Status  */
+
+        __hot __bland Handle Activate();
+        __hot __bland Handle Switch(MemoryManager * const other);
+        __bland bool IsActive();
+
+        /*  Page Management  */
+
+        __hot __bland Handle MapPage(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
+        __hot __bland Handle UnmapPage(const vaddr_t vaddr);
+        __hot __bland Handle TryTranslate(const vaddr_t address, paddr_t & res);
+
+        __hot __bland Handle AllocatePages(const size_t count, const AllocatedPageType type, const PageFlags flags, vaddr_t & res);
+        __hot __bland Handle FreePages(const vaddr_t vaddr, const size_t count);
     };
 }}

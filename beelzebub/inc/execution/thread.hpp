@@ -1,5 +1,6 @@
 #pragma once
 
+#include <execution/process.hpp>
 #include <execution/thread_state.hpp>
 
 namespace Beelzebub { namespace Execution
@@ -28,5 +29,9 @@ namespace Beelzebub { namespace Execution
         /*  Parameters  */
 
         ThreadEntryPointFunction EntryPoint;
+
+        /*  Hierarchy  */
+
+
     };
 }}

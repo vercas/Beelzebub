@@ -228,6 +228,8 @@ paddr_t PageAllocationSpace::AllocatePages(const psize_t count)
 {
     if (count == 1)
         return this->AllocatePage();
+    else if (count == 0)
+        return nullptr;
 
     //  TODO: Implement this in the most noobish way imaginable.
 
@@ -559,6 +561,21 @@ bool PageAllocator::ContainsRange(const paddr_t phys_start, const psize_t length
     while (space != nullptr)
     {
         if (space->ContainsRange(phys_start, length))
+            return true;
+
+        space = space->Next;
+    }
+
+    return false;
+}
+
+bool PageAllocator::TryGetPageDescriptor(const paddr_t paddr, PageDescriptor * & res)
+{
+    PageAllocationSpace * space = this->FirstSpace;
+
+    while (space != nullptr)
+    {
+        if (space->TryGetPageDescriptor(paddr, res))
             return true;
 
         space = space->Next;

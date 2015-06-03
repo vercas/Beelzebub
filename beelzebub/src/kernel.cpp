@@ -1,6 +1,7 @@
 #include <system/cpu.hpp>
 #include <synchronization/spinlock.hpp>
 #include <kernel.hpp>
+#include <debug.hpp>
 
 #include <execution/thread_switching.hpp>
 #include <execution/thread_init.hpp>
@@ -17,61 +18,9 @@ Spinlock TerminalMessageLock;
 TerminalBase * Beelzebub::MainTerminal;
 bool Beelzebub::Scheduling;
 
-////////////////////////////////////////////////////////
+Thread BootstrapThread;
 
-Thread tA, tB;
-
-byte stackA[4096];
-byte stackB[4096];
-
-void DoA(void * const state)
-{
-    while (true)
-    {
-        for (size_t i = 0; i < 108; ++i)
-            MainTerminal->Write('A');
-
-        MainTerminal->Write("->");
-
-        ScheduleNext(&tA);
-    }
-}
-
-void DoB(void * const state)
-{
-    while (true)
-    {
-        for (size_t i = 0; i < 108; ++i)
-            MainTerminal->Write('B');
-
-        MainTerminal->Write("->");
-
-        ScheduleNext(&tB);
-    }
-}
-
-void StartThreadTest()
-{
-    tA.KernelStackBottom = (uintptr_t)stackA;
-    tA.KernelStackTop = tA.KernelStackBottom + 4096;
-
-    tB.KernelStackBottom = (uintptr_t)stackB;
-    tB.KernelStackTop = tB.KernelStackBottom + 4096;
-
-    tA.Next = tA.Previous = &tB;
-    tB.Next = tB.Previous = &tA;
-
-    tA.EntryPoint = &DoA;
-    tB.EntryPoint = &DoB;
-
-    InitializeThreadState(&tA);
-    InitializeThreadState(&tB);
-
-    uintptr_t dummy;
-    SwitchThread(&dummy, tA.KernelStackPointer);
-}
-
-////////////////////////////////////////////////////////
+/*  Main entry point  */
 
 void Beelzebub::Main()
 {
@@ -122,13 +71,27 @@ void Beelzebub::Main()
 
     if (Cpu::InterruptsEnabled())
         MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        //  Can never bee too sure.
     else
+    {
         MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
-    //  Can never bee too sure.
 
-    MainTerminal->WriteLine("\\Attempting to run scheduler.");
+        assert(false, "Enabling interrupts failed!");
+    }
 
-    StartThreadTest();
+    MainTerminal->WriteLine("|[....] Initializing as bootstrap thread...");
+
+    Handle res = InitializeBootstrapThread(&BootstrapThread);
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+    else
+    {
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+
+        assert(false, "Failed to initialize main entry point as bootstrap thread: %H"
+            , res);
+    }
 
     MainTerminal->WriteLine("\\Halting indefinitely now.");
 
@@ -137,6 +100,8 @@ void Beelzebub::Main()
     //  Allow the CPU to rest.
     while (true) if (Cpu::CanHalt) Cpu::Halt();
 }
+
+/*  Secondary entry point  */
 
 void Beelzebub::Secondary()
 {

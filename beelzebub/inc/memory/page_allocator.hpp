@@ -85,10 +85,17 @@ namespace Beelzebub { namespace Memory
      */
     struct PageDescriptor
     {
+        static const uint16_t MaxAccesses = (uint16_t)0xFFFF;
+
         /*  Fields  */
 
+        //  Device (file?) from which the page comes.
+        Handle Source;
+        //  File page descriptor (TODO - in the really long term)
+        void * FilePageDescriptor;
+
         //  Index of the page in the allocation stack.
-        uint64_t StackIndex;
+        pgind_t StackIndex;
 
         //  Page status
         PageStatus Status;
@@ -96,12 +103,7 @@ namespace Beelzebub { namespace Memory
         uint16_t Accesses;
 
         //  Number of references to this page.
-        uint32_t ReferenceCount;
-
-        //  Device (file?) from which the page comes.
-        Handle Source;
-        //  File page descriptor (TODO - in the really long term)
-        void * FilePageDescriptor;
+        volatile uint32_t ReferenceCount;
 
         /*  Constructors  */
 
@@ -109,24 +111,24 @@ namespace Beelzebub { namespace Memory
         PageDescriptor(PageDescriptor const&) = default;
 
         __bland __forceinline PageDescriptor(const uint64_t stackIndex)
-            : StackIndex( stackIndex )
+            : Source()
+            , FilePageDescriptor(0ULL)
+            , StackIndex( stackIndex )
             , Status(PageStatus::Free)
             , Accesses(0)
             , ReferenceCount(0)
-            , Source()
-            , FilePageDescriptor(0ULL)
         {
 
         }
 
         __bland __forceinline PageDescriptor(const uint64_t stackIndex
                                            , const PageStatus status)
-            : StackIndex( stackIndex )
+            : Source()
+            , FilePageDescriptor(0ULL)
+            , StackIndex( stackIndex )
             , Status(status)
             , Accesses(0)
             , ReferenceCount(0)
-            , Source()
-            , FilePageDescriptor(0ULL)
         {
 
         }
@@ -143,10 +145,16 @@ namespace Beelzebub { namespace Memory
             //  An exact count isn't really required, but it may
             //  prove useful.
 
-            if (this->Accesses == (uint16_t)0xFFFF)
-                return this->Accesses = 1;
+            uint16_t ret = __sync_add_and_fetch(&this->Accesses, 1);
+
+            if unlikely(ret == 0)
+            {
+                __sync_val_compare_and_swap(&this->Accesses, 0, 1);
+
+                return 1;
+            }
             else
-                return ++this->Accesses;
+                return ret;
         }
 
         /*  Reference count  */
@@ -154,20 +162,20 @@ namespace Beelzebub { namespace Memory
         __bland __forceinline void ResetReferenceCount()
         {
             this->ReferenceCount = 0;
+            //  This really should be atomic...
         }
 
         __bland __forceinline uint32_t IncrementReferenceCount()
         {
-            //  TODO: Handle overflow..?
-            
-            return ++this->ReferenceCount;
+            return __sync_add_and_fetch(&this->ReferenceCount, 1);
         }
 
         __bland __forceinline uint32_t DecrementReferenceCount()
         {
-            //  TODO: Handle underflow..?
-            
-            return --this->ReferenceCount;
+            assert(this->ReferenceCount > 0,
+                "Attempting to decrement reference count of a page count 0!");
+
+            return __sync_sub_and_fetch(&this->ReferenceCount, 1);
         }
 
         /*  Status  */
@@ -369,6 +377,19 @@ namespace Beelzebub { namespace Memory
             this->Unlock();
         }
 
+        /**
+         *  Tries to get the descriptor of the page at the given physical address.
+         */
+        __bland __forceinline bool TryGetPageDescriptor(const paddr_t paddr, PageDescriptor * & res)
+        {
+            if (paddr < this->AllocationStart || paddr >= this->AllocationEnd)
+                return false;
+
+            res = this->Map + ((paddr - this->AllocationStart) / this->PageSize);
+
+            return true;
+        }
+
     private:
 
         /*  Utilitary Methods  */
@@ -435,6 +456,8 @@ namespace Beelzebub { namespace Memory
 
         __bland PageAllocationSpace * GetSpaceContainingAddress(const paddr_t address);
         __bland bool ContainsRange(const paddr_t phys_start, const psize_t length);
+
+        __hot __bland bool TryGetPageDescriptor(const paddr_t paddr, PageDescriptor * & res);
 
         /*  Synchronization  */
 

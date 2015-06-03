@@ -7,9 +7,8 @@
 
 #include <kernel.hpp>
 #include <terminals/base.hpp>
-#include <synchronization/spinlock.hpp>
 #include <memory/page_allocator.hpp>
-#include <memory/allocation.hpp>
+#include <memory/manager.hpp>
 #include <memory/paging.hpp>
 #include <system/cpu.hpp>
 #include <handles.h>
@@ -144,15 +143,6 @@ namespace Beelzebub { namespace Memory
             return (*GetAlienPml1(addr))[GetPml1Index(addr)];
         }
 
-        //  Translation.
-
-        //  Translates the address with the current VAS.
-        static __bland __forceinline paddr_t TranslateLocal(const vaddr_t address)
-        {
-            return GetLocalPml1Entry(address).GetAddress() + (paddr_t)(address & 4095);
-            //  Yeah, the offset within the page is preserved.
-        }
-
         /*  Constructor  */
 
         VirtualAllocationSpace() = default;
@@ -194,10 +184,21 @@ namespace Beelzebub { namespace Memory
             return pml4[AlienFractalIndex].GetAddress() == this->Pml4Address;
         }
 
+        /*  Translation  */
+
+        //  Translates the address with the current VAS.
+        static __bland __forceinline paddr_t TranslateLocal(const vaddr_t vaddr)
+        {
+            return GetLocalPml1Entry(vaddr).GetAddress() + (paddr_t)(vaddr & 4095);
+            //  Yeah, the offset within the page is preserved.
+        }
+
+        __hot __bland Handle TryTranslate(const vaddr_t vaddr, paddr_t & paddr);
+
         /*  Mapping  */
 
         __hot __bland Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
-        __hot __bland Handle Unmap(const vaddr_t vaddr);
+        __hot __bland Handle Unmap(const vaddr_t vaddr, paddr_t & res);
 
         /*  Fields  */
 
