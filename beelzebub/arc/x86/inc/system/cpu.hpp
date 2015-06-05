@@ -3,6 +3,10 @@
 #include <memory/paging.hpp>
 #include <system/registers.hpp>
 #include <system/registers_x86.hpp>
+
+#include <synchronization/spinlock.hpp>
+#include <execution/thread.hpp>
+
 #include <system/cpuid.hpp>
 #include <metaprogramming.h>
 
@@ -119,60 +123,108 @@ namespace Beelzebub { namespace System
         {
             uint8_t ret;
 
-            asm volatile ( "mov  %%fs:(%1), %0 \n\t"
+            asm volatile ( "movb %%fs:(%1), %0 \n\t"
                          : "=r"(ret) : "r"(off) );
 
             return ret;
+        }
+        static __bland __forceinline uint8_t FsSet8(const uintptr_t off, const uint8_t val)
+        {
+            asm volatile ( "movb %0, %%fs:(%1) \n\t"
+                         :
+                         : "r"(val), "r"(off) );
+
+            return val;
         }
 
         static __bland __forceinline uint8_t GsGet8(const uintptr_t off)
         {
             uint8_t ret;
 
-            asm volatile ( "mov  %%gs:(%1), %0 \n\t"
+            asm volatile ( "movb %%gs:(%1), %0 \n\t"
                          : "=r"(ret) : "r"(off) );
 
             return ret;
+        }
+        static __bland __forceinline uint8_t GsSet8(const uintptr_t off, const uint8_t val)
+        {
+            asm volatile ( "movb %0, %%gs:(%1) \n\t"
+                         :
+                         : "r"(val), "r"(off) );
+
+            return val;
         }
 
         static __bland __forceinline uint16_t FsGet16(const uintptr_t off)
         {
             uint16_t ret;
 
-            asm volatile ( "mov  %%fs:(%1), %0 \n\t"
+            asm volatile ( "movw %%fs:(%1), %0 \n\t"
                          : "=r"(ret) : "r"(off) );
 
             return ret;
+        }
+        static __bland __forceinline uint16_t FsSet16(const uintptr_t off, const uint16_t val)
+        {
+            asm volatile ( "movw %0, %%fs:(%1) \n\t"
+                         :
+                         : "r"(val), "r"(off) );
+
+            return val;
         }
 
         static __bland __forceinline uint16_t GsGet16(const uintptr_t off)
         {
             uint16_t ret;
 
-            asm volatile ( "mov  %%gs:(%1), %0 \n\t"
+            asm volatile ( "movw %%gs:(%1), %0 \n\t"
                          : "=r"(ret) : "r"(off) );
 
             return ret;
+        }
+        static __bland __forceinline uint16_t GsSet16(const uintptr_t off, const uint16_t val)
+        {
+            asm volatile ( "movw %0, %%gs:(%1) \n\t"
+                         :
+                         : "r"(val), "r"(off) );
+
+            return val;
         }
 
         static __bland __forceinline uint32_t FsGet32(const uintptr_t off)
         {
             uint32_t ret;
 
-            asm volatile ( "mov  %%fs:(%1), %0 \n\t"
+            asm volatile ( "movl %%fs:(%1), %0 \n\t"
                          : "=r"(ret) : "r"(off) );
 
             return ret;
+        }
+        static __bland __forceinline uint32_t FsSet32(const uintptr_t off, const uint32_t val)
+        {
+            asm volatile ( "movl %0, %%fs:(%1) \n\t"
+                         :
+                         : "r"(val), "r"(off) );
+
+            return val;
         }
 
         static __bland __forceinline uint32_t GsGet32(const uintptr_t off)
         {
             uint32_t ret;
 
-            asm volatile ( "mov  %%gs:(%1), %0 \n\t"
+            asm volatile ( "movl %%gs:(%1), %0 \n\t"
                          : "=r"(ret) : "r"(off) );
 
             return ret;
+        }
+        static __bland __forceinline uint32_t GsSet32(const uintptr_t off, const uint32_t val)
+        {
+            asm volatile ( "movl %0, %%gs:(%1) \n\t"
+                         :
+                         : "r"(val), "r"(off) );
+
+            return val;
         }
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
@@ -180,33 +232,70 @@ namespace Beelzebub { namespace System
         {
             uint64_t ret;
 
-            asm volatile ( "mov  %%fs:(%1), %0 \n\t"
+            asm volatile ( "movq %%fs:(%1), %0 \n\t"
                          : "=r"(ret) : "r"(off) );
 
             return ret;
+        }
+        static __bland __forceinline uint64_t FsSet64(const uintptr_t off, const uint64_t val)
+        {
+            asm volatile ( "movq %0, %%fs:(%1) \n\t"
+                         :
+                         : "r"(val), "r"(off) );
+
+            return val;
         }
 
         static __bland __forceinline uint64_t GsGet64(const uintptr_t off)
         {
             uint64_t ret;
 
-            asm volatile ( "mov  %%gs:(%1), %0 \n\t"
+            asm volatile ( "movq %%gs:(%1), %0 \n\t"
                          : "=r"(ret) : "r"(off) );
 
             return ret;
         }
+        static __bland __forceinline uint64_t GsSet64(const uintptr_t off, const uint64_t val)
+        {
+            asm volatile ( "movq %0, %%gs:(%1) \n\t"
+                         :
+                         : "r"(val), "r"(off) );
+
+            return val;
+        }
+
+#define FsGetPointer(off     )    ((uintptr_t)(FsGet64(off     )))
+#define FsSetPointer(off, val)    ((uintptr_t)(FsSet64(off, val)))
+#define GsGetPointer(off     )    ((uintptr_t)(GsGet64(off     )))
+#define GsSetPointer(off, val)    ((uintptr_t)(GsSet64(off, val)))
+#define FsGetSize(off     )       ((   size_t)(FsGet64(off     )))
+#define FsSetSize(off, val)       ((   size_t)(FsSet64(off, val)))
+#define GsGetSize(off     )       ((   size_t)(GsGet64(off     )))
+#define GsSetSize(off, val)       ((   size_t)(GsSet64(off, val)))
+
 #else
         static __bland __forceinline uint64_t FsGet64(const uintptr_t off)
         {
             uint32_t low;
             uint32_t high;
 
-            asm volatile ( "mov  %%fs:(%2    ), %0 \n\t"
-                           "mov  %%fs:(%2 + 4), %1 \n\t"
+            asm volatile ( "movl %%fs:(%2    ), %0 \n\t"
+                           "movl %%fs:(%2 + 4), %1 \n\t"
                          : "=r"(low), "=r"(high)
                          : "r"(off) );
 
             return ((uint64_t)high << 32) | (uint64_t)low;
+        }
+        static __bland __forceinline uint64_t FsSet64(const uintptr_t off, const uint64_t val)
+        {
+            asm volatile ( "movl %0, %%fs:(%2    ) \n\t"
+                           "movl %1, %%fs:(%2 + 4) \n\t"
+                         : 
+                         : "r"((uint32_t)val)
+                         , "r"((uint32_t)(val >> 32))
+                         , "r"(off) );
+
+            return val;
         }
 
         static __bland __forceinline uint64_t GsGet64(const uintptr_t off)
@@ -214,13 +303,34 @@ namespace Beelzebub { namespace System
             uint32_t low;
             uint32_t high;
 
-            asm volatile ( "mov  %%gs:(%2    ), %0 \n\t"
-                           "mov  %%gs:(%2 + 4), %1 \n\t"
+            asm volatile ( "movl %%gs:(%2    ), %0 \n\t"
+                           "movl %%gs:(%2 + 4), %1 \n\t"
                          : "=r"(low), "=r"(high)
                          : "r"(off) );
 
             return ((uint64_t)high << 32) | (uint64_t)low;
         }
+        static __bland __forceinline uint64_t GsSet64(const uintptr_t off, const uint64_t val)
+        {
+            asm volatile ( "movl %0, %%gs:(%2    ) \n\t"
+                           "movl %1, %%gs:(%2 + 4) \n\t"
+                         : 
+                         : "r"((uint32_t)val)
+                         , "r"((uint32_t)(val >> 32))
+                         , "r"(off) );
+
+            return val;
+        }
+
+#define FsGetPointer(off     )    ((uintptr_t)(FsGet32(off     )))
+#define FsSetPointer(off, val)    ((uintptr_t)(FsSet32(off, val)))
+#define GsGetPointer(off     )    ((uintptr_t)(GsGet32(off     )))
+#define GsSetPointer(off, val)    ((uintptr_t)(GsSet32(off, val)))
+#define FsGetSize(off     )       ((   size_t)(FsGet32(off     )))
+#define FsSetSize(off, val)       ((   size_t)(FsSet32(off, val)))
+#define GsGetSize(off     )       ((   size_t)(GsGet32(off     )))
+#define GsSetSize(off, val)       ((   size_t)(GsSet32(off, val)))
+
 #endif
 
         static __bland __forceinline uint32_t FarGet32(const uint16_t sel
@@ -378,6 +488,75 @@ namespace Beelzebub { namespace System
                          : "eax", "edx");
         }
 
-        static __bland size_t GetUnpreciseIndex();
+        static __bland size_t ComputeIndex();
+
+        /*  CPU-specific data  */
+
+        static const size_t CpuDataSize
+            = sizeof(size_t)                    //  Index
+            + sizeof(void *)                    //  Active thread
+            + sizeof(Synchronization::Spinlock) //  Heap Spinlock Placeholder Location
+            + sizeof(void *)                    //  Heap Spinlock Pointer
+            + sizeof(vaddr_t)                   //  Kernel Heap Start
+            + sizeof(vaddr_t)                   //  Kernel Heap Cursor
+            + sizeof(vaddr_t);                  //  Kernel Heap End
+
+        static const uintptr_t CpuDataIndexOffset = 0;
+        static const uintptr_t CpuDataActiveThreadOffset = CpuDataIndexOffset + sizeof(size_t);
+        static const uintptr_t CpuDataHeapPagesSpinlockPlaceholderOffset = CpuDataActiveThreadOffset + sizeof(void *);
+        static const uintptr_t CpuDataHeapPagesSpinlockPointerOffset = CpuDataHeapPagesSpinlockPlaceholderOffset + sizeof(Synchronization::Spinlock);
+        static const uintptr_t CpuDataHeapStartOffset = CpuDataHeapPagesSpinlockPointerOffset + sizeof(void *);
+        static const uintptr_t CpuDataHeapCursorOffset = CpuDataHeapStartOffset + sizeof(vaddr_t);
+        static const uintptr_t CpuDataHeapEndOffset = CpuDataHeapCursorOffset + sizeof(vaddr_t);
+
+        static __bland __forceinline size_t GetIndex()
+        {
+            return GsGetSize(0);
+        }
+
+        static __bland __forceinline Execution::Thread * GetActiveThread()
+        {
+            return (Execution::Thread *)GsGetPointer(CpuDataActiveThreadOffset);
+        }
+        static __bland __forceinline Execution::Thread * SetActiveThread(Execution::Thread * const val)
+        {
+            return (Execution::Thread *)GsSetPointer(CpuDataActiveThreadOffset, (uintptr_t)val);
+        }
+
+        static __bland __forceinline Synchronization::Spinlock * GetKernelHeapSpinlock()
+        {
+            return (Synchronization::Spinlock *)GsGetPointer(CpuDataHeapPagesSpinlockPointerOffset);
+        }
+        static __bland __forceinline Synchronization::Spinlock * SetKernelHeapSpinlock(Synchronization::Spinlock * const val)
+        {
+            return (Synchronization::Spinlock *)GsSetPointer(CpuDataHeapPagesSpinlockPointerOffset, (uintptr_t)val);
+        }
+
+        static __bland __forceinline vaddr_t GetKernelHeapStart()
+        {
+            return (vaddr_t)GsGetPointer(CpuDataHeapStartOffset);
+        }
+        static __bland __forceinline vaddr_t SetKernelHeapStart(const vaddr_t val)
+        {
+            return (vaddr_t)GsSetPointer(CpuDataHeapStartOffset, (uintptr_t)val);
+        }
+
+        static __bland __forceinline vaddr_t GetKernelHeapCursor()
+        {
+            return (vaddr_t)GsGetPointer(CpuDataHeapCursorOffset);
+        }
+        static __bland __forceinline vaddr_t SetKernelHeapCursor(const vaddr_t val)
+        {
+            return (vaddr_t)GsSetPointer(CpuDataHeapCursorOffset, (uintptr_t)val);
+        }
+
+        static __bland __forceinline vaddr_t GetKernelHeapEnd()
+        {
+            return (vaddr_t)GsGetPointer(CpuDataHeapEndOffset);
+        }
+        static __bland __forceinline vaddr_t SetKernelHeapEnd(const vaddr_t val)
+        {
+            return (vaddr_t)GsSetPointer(CpuDataHeapEndOffset, (uintptr_t)val);
+        }
     };
 }}

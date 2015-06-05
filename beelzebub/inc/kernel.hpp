@@ -2,6 +2,7 @@
 
 #define __BEELZEBUB__DEBUG  true
 
+#include <memory/manager.hpp>
 #include <architecture.h>
 #include <metaprogramming.h>
 
@@ -9,6 +10,8 @@ namespace Beelzebub
 {
     extern TerminalBase * MainTerminal;
     extern bool Scheduling;
+
+    extern Memory::MemoryManager * BootstrapMemoryManager;
 
     /**
      *  Entry point for the bootstrap processor.

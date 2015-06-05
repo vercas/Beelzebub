@@ -21,7 +21,7 @@ qemu-serial: image
 jegudiel:
 	@ $(MAKE) -C jegudiel/ $(MAKECMDGOALS) install
 	
-image: jegudiel
+image:
 	@ $(MAKE) -C image/
 
 kernel:

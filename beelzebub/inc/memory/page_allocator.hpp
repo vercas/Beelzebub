@@ -22,21 +22,7 @@ namespace Beelzebub { namespace Memory
         ThirtyTwoBit   = 1 << 0,
     };
 
-    //  Bitwise OR.
-    inline PageAllocationOptions operator |(PageAllocationOptions a, PageAllocationOptions b)
-    { return static_cast<PageAllocationOptions>(static_cast<int>(a) | static_cast<int>(b)); }
-
-    //  Bitwise AND.
-    inline PageAllocationOptions operator &(PageAllocationOptions a, PageAllocationOptions b)
-    { return static_cast<PageAllocationOptions>(static_cast<int>(a) & static_cast<int>(b)); }
-
-    //  Equality.
-    inline bool operator ==(int a, PageAllocationOptions b)
-    { return a == static_cast<int>(b); }
-
-    //  Inequality.
-    inline bool operator !=(int a, PageAllocationOptions b)
-    { return a != static_cast<int>(b); }
+    ENUMOPS(PageAllocationOptions, int)
 
     /**
      * Represents possible options for memory page reservation.
@@ -53,26 +39,12 @@ namespace Beelzebub { namespace Memory
         IgnoreReserved = 1 << 2,
     };
 
-    //  Bitwise OR.
-    inline PageReservationOptions operator |(PageReservationOptions a, PageReservationOptions b)
-    { return static_cast<PageReservationOptions>(static_cast<int>(a) | static_cast<int>(b)); }
-
-    //  Bitwise AND.
-    inline PageReservationOptions operator &(PageReservationOptions a, PageReservationOptions b)
-    { return static_cast<PageReservationOptions>(static_cast<int>(a) & static_cast<int>(b)); }
-
-    //  Equality.
-    inline bool operator ==(int a, PageReservationOptions b)
-    { return a == static_cast<int>(b); }
-
-    //  Inequality.
-    inline bool operator !=(int a, PageReservationOptions b)
-    { return a != static_cast<int>(b); }
+    ENUMOPS(PageReservationOptions, int)
 
     /**
      * Represents possible statuses of a memory page.
      */
-    enum class PageStatus : uint16_t
+    enum class PageDescriptorStatus : uint16_t
     {
         Free     =  0,
         Caching  =  1,
@@ -98,7 +70,7 @@ namespace Beelzebub { namespace Memory
         pgind_t StackIndex;
 
         //  Page status
-        PageStatus Status;
+        PageDescriptorStatus Status;
         //  Access count
         uint16_t Accesses;
 
@@ -114,7 +86,7 @@ namespace Beelzebub { namespace Memory
             : Source()
             , FilePageDescriptor(0ULL)
             , StackIndex( stackIndex )
-            , Status(PageStatus::Free)
+            , Status(PageDescriptorStatus::Free)
             , Accesses(0)
             , ReferenceCount(0)
         {
@@ -122,7 +94,7 @@ namespace Beelzebub { namespace Memory
         }
 
         __bland __forceinline PageDescriptor(const uint64_t stackIndex
-                                           , const PageStatus status)
+                                           , const PageDescriptorStatus status)
             : Source()
             , FilePageDescriptor(0ULL)
             , StackIndex( stackIndex )
@@ -182,7 +154,7 @@ namespace Beelzebub { namespace Memory
 
         __bland __forceinline void Free()
         {
-            this->Status = PageStatus::Free;
+            this->Status = PageDescriptorStatus::Free;
 
             this->ResetAccesses();
             this->ResetReferenceCount();
@@ -190,7 +162,7 @@ namespace Beelzebub { namespace Memory
 
         __bland __forceinline void Use()
         {
-            this->Status = PageStatus::InUse;
+            this->Status = PageDescriptorStatus::InUse;
 
             this->ResetAccesses();
             this->ResetReferenceCount();
@@ -198,7 +170,7 @@ namespace Beelzebub { namespace Memory
 
         __bland __forceinline void Reserve()
         {
-            this->Status = PageStatus::Reserved;
+            this->Status = PageDescriptorStatus::Reserved;
 
             this->ResetReferenceCount();
         }
@@ -210,13 +182,13 @@ namespace Beelzebub { namespace Memory
         {
             switch (this->Status)
             {
-                case PageStatus::Free:
+                case PageDescriptorStatus::Free:
                     return "Free";
-                case PageStatus::InUse:
+                case PageDescriptorStatus::InUse:
                     return "In Use";
-                case PageStatus::Caching:
+                case PageDescriptorStatus::Caching:
                     return "Caching";
-                case PageStatus::Reserved:
+                case PageDescriptorStatus::Reserved:
                     return "Reserved";
 
                 default:
@@ -344,7 +316,7 @@ namespace Beelzebub { namespace Memory
             return this->FreePageRange((phys_addr - this->MemoryStart) / this->PageSize, 1);
         }
 
-        __hot __bland paddr_t AllocatePage();
+        __hot __bland paddr_t AllocatePage(PageDescriptor * & desc);
         __hot __bland paddr_t AllocatePages(const psize_t count);
 
         __bland __forceinline bool ContainsRange(const paddr_t phys_start, const psize_t length) const
@@ -446,10 +418,10 @@ namespace Beelzebub { namespace Memory
         __hot __bland Handle FreeByteRange(const paddr_t phys_start, const psize_t length);
         __bland Handle FreePageAtAddress(const paddr_t phys_addr);
 
-        __hot __bland paddr_t AllocatePage(const PageAllocationOptions options);
-        __bland __forceinline paddr_t AllocatePage()
+        __hot __bland paddr_t AllocatePage(const PageAllocationOptions options, PageDescriptor * & desc);
+        __bland __forceinline paddr_t AllocatePage(PageDescriptor * & desc)
         {
-            return this->AllocatePage(PageAllocationOptions::GeneralPages);
+            return this->AllocatePage(PageAllocationOptions::GeneralPages, desc);
         }
 
         __hot __bland paddr_t AllocatePages(const psize_t count, const PageAllocationOptions options);

@@ -12,14 +12,14 @@ using namespace Beelzebub::Terminals;
 #define BITPROP(name)                                        \
 __bland __forceinline bool MCATS2(Get, name)() const         \
 {                                                            \
-    return 0 != (this->Value & MCATS2(name, Bit));           \
+    return (this->Value & (1ULL << MCATS2(name, Bit)));      \
 }                                                            \
 __bland __forceinline void MCATS2(Set, name)(const bool val) \
 {                                                            \
     if (val)                                                 \
-        this->Value |=  MCATS2(name, Bit);                   \
+        this->Value |=  (1ULL << MCATS2(name, Bit));         \
     else                                                     \
-        this->Value &= ~MCATS2(name, Bit);                   \
+        this->Value &= ~(1ULL << MCATS2(name, Bit));         \
 }
 
 namespace Beelzebub { namespace Memory { namespace Paging
@@ -46,16 +46,16 @@ namespace Beelzebub { namespace Memory { namespace Paging
          *      63       : XD (eXecute Disable, if 1)
          */
 
-        static const uint64_t PresentBit    = 1ULL <<  0;
-        static const uint64_t WritableBit   = 1ULL <<  1;
-        static const uint64_t UsermodeBit   = 1ULL <<  2;
-        static const uint64_t PwtBit        = 1ULL <<  3;
-        static const uint64_t PcdBit        = 1ULL <<  4;
-        static const uint64_t AccessedBit   = 1ULL <<  5;
-        static const uint64_t DirtyBit      = 1ULL <<  6;
-        static const uint64_t PatBit        = 1ULL <<  7;
-        static const uint64_t GlobalBit     = 1ULL <<  8;
-        static const uint64_t XdBit         = 1ULL << 63;
+        static const uint64_t PresentBit    =  0;
+        static const uint64_t WritableBit   =  1;
+        static const uint64_t UserlandBit   =  2;
+        static const uint64_t PwtBit        =  3;
+        static const uint64_t PcdBit        =  4;
+        static const uint64_t AccessedBit   =  5;
+        static const uint64_t DirtyBit      =  6;
+        static const uint64_t PatBit        =  7;
+        static const uint64_t GlobalBit     =  8;
+        static const uint64_t XdBit         = 63;
 
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
@@ -77,11 +77,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (global         ? (1ULL << GlobalBit)   : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL);
         }
 
         /**
@@ -100,23 +100,23 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (dirty          ? DirtyBit    : 0ULL)
-                        | (PAT            ? PatBit      : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (PWT            ? (1ULL << PwtBit)      : 0ULL)
+                        | (PCD            ? (1ULL << PcdBit)      : 0ULL)
+                        | (accessed       ? (1ULL << AccessedBit) : 0ULL)
+                        | (dirty          ? (1ULL << DirtyBit)    : 0ULL)
+                        | (PAT            ? (1ULL << PatBit)      : 0ULL)
+                        | (global         ? (1ULL << GlobalBit)   : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL);
         }
 
         /*  Properties  */
 
         BITPROP(Present)
         BITPROP(Writable)
-        BITPROP(Usermode)
+        BITPROP(Userland)
         BITPROP(Pwt)
         BITPROP(Pcd)
         BITPROP(Accessed)
@@ -257,17 +257,17 @@ namespace Beelzebub { namespace Memory { namespace Paging
          *      63       : XD (eXecute Disable, if 1)
          */
 
-        static const uint64_t PresentBit    = 1ULL <<  0;
-        static const uint64_t WritableBit   = 1ULL <<  1;
-        static const uint64_t UsermodeBit   = 1ULL <<  2;
-        static const uint64_t PwtBit        = 1ULL <<  3;
-        static const uint64_t PcdBit        = 1ULL <<  4;
-        static const uint64_t AccessedBit   = 1ULL <<  5;
-        static const uint64_t DirtyBit      = 1ULL <<  6;
-        static const uint64_t PageSizeBit   = 1ULL <<  7;
-        static const uint64_t GlobalBit     = 1ULL <<  8;
-        static const uint64_t PatBit        = 1ULL << 12;
-        static const uint64_t XdBit         = 1ULL << 63;
+        static const uint64_t PresentBit    =  0;
+        static const uint64_t WritableBit   =  1;
+        static const uint64_t UserlandBit   =  2;
+        static const uint64_t PwtBit        =  3;
+        static const uint64_t PcdBit        =  4;
+        static const uint64_t AccessedBit   =  5;
+        static const uint64_t DirtyBit      =  6;
+        static const uint64_t PageSizeBit   =  7;
+        static const uint64_t GlobalBit     =  8;
+        static const uint64_t PatBit        = 12;
+        static const uint64_t XdBit         = 63;
 
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
@@ -288,10 +288,10 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (pml1_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL);
         }
 
         /**
@@ -307,13 +307,13 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (pml1_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (PWT            ? (1ULL << PwtBit)      : 0ULL)
+                        | (PCD            ? (1ULL << PcdBit)      : 0ULL)
+                        | (accessed       ? (1ULL << AccessedBit) : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL);
         }
 
         /**
@@ -327,11 +327,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = ((uint64_t)paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (XD             ? XdBit       : 0ULL)
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (global         ? (1ULL << GlobalBit)   : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL)
                         |                   PageSizeBit        ;
         }
 
@@ -351,16 +351,16 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = ((uint64_t)paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (dirty          ? DirtyBit    : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (PAT            ? PatBit      : 0ULL)
-                        | (XD             ? XdBit       : 0ULL)
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (PWT            ? (1ULL << PwtBit)      : 0ULL)
+                        | (PCD            ? (1ULL << PcdBit)      : 0ULL)
+                        | (accessed       ? (1ULL << AccessedBit) : 0ULL)
+                        | (dirty          ? (1ULL << DirtyBit)    : 0ULL)
+                        | (global         ? (1ULL << GlobalBit)   : 0ULL)
+                        | (PAT            ? (1ULL << PatBit)      : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL)
                         |                   PageSizeBit        ;
         }
 
@@ -368,7 +368,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         BITPROP(Present)
         BITPROP(Writable)
-        BITPROP(Usermode)
+        BITPROP(Userland)
         BITPROP(Pwt)
         BITPROP(Pcd)
         BITPROP(Accessed)
@@ -526,17 +526,17 @@ namespace Beelzebub { namespace Memory { namespace Paging
          *      63       : XD (eXecute Disable, if 1)
          */
 
-        static const uint64_t PresentBit    = 1ULL <<  0;
-        static const uint64_t WritableBit   = 1ULL <<  1;
-        static const uint64_t UsermodeBit   = 1ULL <<  2;
-        static const uint64_t PwtBit        = 1ULL <<  3;
-        static const uint64_t PcdBit        = 1ULL <<  4;
-        static const uint64_t AccessedBit   = 1ULL <<  5;
-        static const uint64_t DirtyBit      = 1ULL <<  6;
-        static const uint64_t PageSizeBit   = 1ULL <<  7;
-        static const uint64_t GlobalBit     = 1ULL <<  8;
-        static const uint64_t PatBit        = 1ULL << 12;
-        static const uint64_t XdBit         = 1ULL << 63;
+        static const uint64_t PresentBit    =  0;
+        static const uint64_t WritableBit   =  1;
+        static const uint64_t UserlandBit   =  2;
+        static const uint64_t PwtBit        =  3;
+        static const uint64_t PcdBit        =  4;
+        static const uint64_t AccessedBit   =  5;
+        static const uint64_t DirtyBit      =  6;
+        static const uint64_t PageSizeBit   =  7;
+        static const uint64_t GlobalBit     =  8;
+        static const uint64_t PatBit        = 12;
+        static const uint64_t XdBit         = 63;
 
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
@@ -557,10 +557,10 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (pml2_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL);
         }
 
         /**
@@ -576,13 +576,13 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (pml2_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (PWT            ? (1ULL << PwtBit)      : 0ULL)
+                        | (PCD            ? (1ULL << PcdBit)      : 0ULL)
+                        | (accessed       ? (1ULL << AccessedBit) : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL);
         }
 
         /**
@@ -596,11 +596,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (XD             ? XdBit       : 0ULL)
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (global         ? (1ULL << GlobalBit)   : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL)
                         |                   PageSizeBit        ;
         }
 
@@ -620,16 +620,16 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (dirty          ? DirtyBit    : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (PAT            ? PatBit      : 0ULL)
-                        | (XD             ? XdBit       : 0ULL)
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (PWT            ? (1ULL << PwtBit)      : 0ULL)
+                        | (PCD            ? (1ULL << PcdBit)      : 0ULL)
+                        | (accessed       ? (1ULL << AccessedBit) : 0ULL)
+                        | (dirty          ? (1ULL << DirtyBit)    : 0ULL)
+                        | (global         ? (1ULL << GlobalBit)   : 0ULL)
+                        | (PAT            ? (1ULL << PatBit)      : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL)
                         |                   PageSizeBit        ;
         }
 
@@ -637,7 +637,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
 
         BITPROP(Present)
         BITPROP(Writable)
-        BITPROP(Usermode)
+        BITPROP(Userland)
         BITPROP(Pwt)
         BITPROP(Pcd)
         BITPROP(Accessed)
@@ -777,13 +777,13 @@ namespace Beelzebub { namespace Memory { namespace Paging
          *      63       : XD (eXecute Disable, if 1)
          */
 
-        static const uint64_t PresentBit    = 1ULL <<  0;
-        static const uint64_t WritableBit   = 1ULL <<  1;
-        static const uint64_t UsermodeBit   = 1ULL <<  2;
-        static const uint64_t PwtBit        = 1ULL <<  3;
-        static const uint64_t PcdBit        = 1ULL <<  4;
-        static const uint64_t AccessedBit   = 1ULL <<  5;
-        static const uint64_t XdBit         = 1ULL << 63;
+        static const uint64_t PresentBit    =  0;
+        static const uint64_t WritableBit   =  1;
+        static const uint64_t UserlandBit   =  2;
+        static const uint64_t PwtBit        =  3;
+        static const uint64_t PcdBit        =  4;
+        static const uint64_t AccessedBit   =  5;
+        static const uint64_t XdBit         = 63;
 
         static const uint64_t AddressBits = 0x000FFFFFFFFFF000ULL;
 
@@ -804,10 +804,10 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (pml3_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL);
         }
 
         /**
@@ -823,20 +823,20 @@ namespace Beelzebub { namespace Memory { namespace Paging
                                       , const bool    XD)
         {
             this->Value = (pml3_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UsermodeBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+                        | (present        ? (1ULL << PresentBit)  : 0ULL)
+                        | (writable       ? (1ULL << WritableBit) : 0ULL)
+                        | (userAccessible ? (1ULL << UserlandBit) : 0ULL)
+                        | (PWT            ? (1ULL << PwtBit)      : 0ULL)
+                        | (PCD            ? (1ULL << PcdBit)      : 0ULL)
+                        | (accessed       ? (1ULL << AccessedBit) : 0ULL)
+                        | (XD             ? (1ULL << XdBit)       : 0ULL);
         }
 
         /*  Properties  */
 
         BITPROP(Present)
         BITPROP(Writable)
-        BITPROP(Usermode)
+        BITPROP(Userland)
         BITPROP(Pwt)
         BITPROP(Pcd)
         BITPROP(Accessed)

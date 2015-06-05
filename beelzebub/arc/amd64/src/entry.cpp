@@ -1,5 +1,6 @@
 #include <architecture.h>
 #include <entry.h>
+#include <memory/manager_amd64.hpp>
 #include <memory/virtual_allocator.hpp>
 #include <memory/paging.hpp>
 #include <system/cpu.hpp>
@@ -34,8 +35,11 @@ SerialTerminal initialSerialTerminal;
 PageAllocationSpace mainAllocationSpace;
 PageAllocator mainAllocator;
 VirtualAllocationSpace bootstrapVas;
+MemoryManagerAmd64 bootstrapMemMgr;
 
-volatile bool bootstrapVasReady = false;
+volatile uintptr_t CpuDataBase;
+
+volatile bool bootstrapReady = false;
 
 CpuId Beelzebub::System::BootstrapProcessorId;
 
@@ -43,14 +47,14 @@ CpuId Beelzebub::System::BootstrapProcessorId;
 
 void kmain_bsp()
 {
-    bootstrapVasReady = false;
+    bootstrapReady = false;
 
     Beelzebub::Main();
 }
 
 void kmain_ap()
 {
-    while (!bootstrapVasReady) ;
+    while (!bootstrapReady) ;
     //  Await!
 
     bootstrapVas.Activate();
@@ -138,9 +142,11 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 
         if (currentSpaceLocation == nullptr)
         {
-            currentSpaceLocation = (PageAllocationSpace *)mainAllocator.AllocatePage();
+            PageDescriptor * desc = nullptr;
 
-            assert(currentSpaceLocation != nullptr
+            currentSpaceLocation = (PageAllocationSpace *)mainAllocator.AllocatePage(desc);
+
+            assert(currentSpaceLocation != nullptr && desc != nullptr
                 , "Unable to allocate a special page for creating more allocation spaces!");
 
             Handle res = mainAllocator.ReserveByteRange((paddr_t)currentSpaceLocation, PageSize, PageReservationOptions::IncludeInUse);
@@ -191,6 +197,8 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 
 void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t freeStart)
 {
+    Handle res; //  Used for intermediary results.
+
     //  First step is aligning the memory map.
     //  Also, yes, I could've used bits 'n powers of two here.
     //  But I'm hoping to future-proof the code a bit, in case
@@ -331,7 +339,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
         if (!m->available)
         {
-            Handle res = mainAllocator.ReserveByteRange(m->address, m->length);
+            res = mainAllocator.ReserveByteRange(m->address, m->length);
 
             assert(res.IsOkayResult() || res.IsResult(HandleResult::PagesOutOfAllocatorRange)
                 , "Failed to reserve page range %XP-%XP: %H."
@@ -353,7 +361,22 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     bootstrapVas.Bootstrap();
     msg("Done.%n");
 
-    bootstrapVasReady = true;
+    msg("Constructing bootstrap memory manager... ");
+    new (&bootstrapMemMgr) MemoryManagerAmd64(&bootstrapVas);
+    msg("Done.%n");
+
+    BootstrapMemoryManager = &bootstrapMemMgr;
+
+    //  CPU DATA
+
+    size_t cpuDataSize = JG_INFO_ROOT_EX->cpu_count * Cpu::CpuDataSize;
+    size_t cpuDataPageCount = (cpuDataSize + PageSize - 1) / PageSize;
+
+    //  TODO ASAP
+
+    //  RELEASING APs
+
+    bootstrapReady = true;
 
     //  DUMPING MMAP
 

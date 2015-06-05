@@ -10,6 +10,7 @@ TARGET		:= beelzebub
 TARGET_BIN	:= $(TARGET).bin
 ARC			:= ''
 AUX			:= ''
+MTUNE       := corei7-avx
 
 ###############
 # Directories #
@@ -103,8 +104,8 @@ endif
 ##############
 # Common x86 #
 ifeq ($(AUX),x86)
-	CFLAGS		+= -D __BEELZEBUB__ARCH_X86
-	CPPFLAGS	+= -D __BEELZEBUB__ARCH_X86
+	CFLAGS		+= -D __BEELZEBUB__ARCH_X86 -mtune=$(MTUNE)
+	CPPFLAGS	+= -D __BEELZEBUB__ARCH_X86 -mtune=$(MTUNE)
 endif
 
 ###############################################

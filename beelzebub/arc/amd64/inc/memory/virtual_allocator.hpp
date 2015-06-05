@@ -143,7 +143,7 @@ namespace Beelzebub { namespace Memory
             return (*GetAlienPml1(addr))[GetPml1Index(addr)];
         }
 
-        /*  Constructor  */
+        /*  Constructors  */
 
         VirtualAllocationSpace() = default;
         VirtualAllocationSpace(VirtualAllocationSpace const &) = delete;
@@ -193,12 +193,18 @@ namespace Beelzebub { namespace Memory
             //  Yeah, the offset within the page is preserved.
         }
 
-        __hot __bland Handle TryTranslate(const vaddr_t vaddr, paddr_t & paddr);
+        __hot __bland Handle TryTranslate(const vaddr_t vaddr, Pml1Entry * & e);
 
         /*  Mapping  */
 
+        __hot __bland Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags, PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc);
         __hot __bland Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
-        __hot __bland Handle Unmap(const vaddr_t vaddr, paddr_t & res);
+        __hot __bland Handle Unmap(const vaddr_t vaddr, paddr_t & paddr);
+
+        /*  Flags  */
+
+        __bland Handle GetPageFlags(const vaddr_t vaddr, PageFlags & flags);
+        __bland Handle SetPageFlags(const vaddr_t vaddr, const PageFlags flags);
 
         /*  Fields  */
 

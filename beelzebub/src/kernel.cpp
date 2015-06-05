@@ -8,6 +8,7 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Execution;
 
@@ -17,7 +18,7 @@ Spinlock TerminalMessageLock;
 
 TerminalBase * Beelzebub::MainTerminal;
 bool Beelzebub::Scheduling;
-
+MemoryManager * Beelzebub::BootstrapMemoryManager;
 Thread BootstrapThread;
 
 /*  Main entry point  */
@@ -62,7 +63,7 @@ void Beelzebub::Main()
     //  Now every core will print.
     (&TerminalMessageLock)->Acquire();
     MainTerminal->Write("+-- Core #");
-    MainTerminal->WriteUIntD(Cpu::GetUnpreciseIndex());
+    MainTerminal->WriteUIntD(Cpu::GetIndex());
     MainTerminal->WriteLine();
 
     //  Enable interrupts so they can run.
@@ -79,7 +80,7 @@ void Beelzebub::Main()
         assert(false, "Enabling interrupts failed!");
     }
 
-    MainTerminal->WriteLine("|[....] Initializing as bootstrap thread...");
+    MainTerminal->Write("|[....] Initializing as bootstrap thread...");
 
     Handle res = InitializeBootstrapThread(&BootstrapThread);
 
@@ -114,7 +115,7 @@ void Beelzebub::Secondary()
     //  Now every core will print.
     (&TerminalMessageLock)->Acquire();
     MainTerminal->Write("+-- Core #");
-    MainTerminal->WriteUIntD(Cpu::GetUnpreciseIndex());
+    MainTerminal->WriteUIntD(Cpu::GetIndex());
     MainTerminal->WriteLine();
 
     //  Enable interrupts so they can run.

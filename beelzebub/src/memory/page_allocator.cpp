@@ -59,7 +59,7 @@ PageAllocationSpace::PageAllocationSpace(const paddr_t phys_start, const paddr_t
     this->Stack = (psize_t *)(this->Map + this->AllocablePageCount);
 
     for (size_t i = 0; i < this->AllocablePageCount; ++i)
-        this->Map[i] = PageDescriptor(this->Stack[i] = i, PageStatus::Free);
+        this->Map[i] = PageDescriptor(this->Stack[i] = i, PageDescriptorStatus::Free);
 
     this->StackFreeTop = this->StackCacheTop = this->AllocablePageCount - 1;
     this->AllocationStart = phys_start + (this->ControlPageCount * page_size);
@@ -81,13 +81,13 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
     for (pgind_t i = 0; i < count; ++i)
     {
         PageDescriptor * const page = map + i;
-        const PageStatus status = page->Status;
+        const PageDescriptorStatus status = page->Status;
 
         /*msg("Reserving page #%us (%Xp @%us: %s).%n", start + i
             , this->MemoryStart + (start + i) * this->PageSize
             , i, page->GetStatusString());//*/
 
-        if likely(status == PageStatus::Free)
+        if likely(status == PageDescriptorStatus::Free)
         {
             /*msg("  SI: %us; SFT: %us; SCT: %us.%n"
                 , page->StackIndex
@@ -98,7 +98,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
             this->PopPage(start + i);
         }
-        else if (status == PageStatus::Caching)
+        else if (status == PageDescriptorStatus::Caching)
         {
             if (inclCaching)
             {
@@ -115,7 +115,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
             else
                 return Handle(HandleResult::PageCaching);
         }
-        else if (status == PageStatus::InUse)
+        else if (status == PageDescriptorStatus::InUse)
         {
             if (inclInUse)
                 this->Lock();
@@ -153,9 +153,9 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
     for (pgind_t i = 0; i < count; ++i)
     {
         PageDescriptor * const page = map + i;
-        const PageStatus status = page->Status;
+        const PageDescriptorStatus status = page->Status;
 
-        if likely(status == PageStatus::InUse)
+        if likely(status == PageDescriptorStatus::InUse)
         {
             this->Lock();
 
@@ -164,7 +164,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
 
             this->Stack[page->StackIndex = ++this->StackFreeTop] = start + i;
         }
-        else if (status == PageStatus::Caching)
+        else if (status == PageDescriptorStatus::Caching)
         {
             this->Lock();
 
@@ -180,7 +180,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
             //  Reserved pages won't be freed by this function.
             //  Free pages are already free.
 
-            if (status == PageStatus::Reserved)
+            if (status == PageDescriptorStatus::Reserved)
                 return Handle(HandleResult::PageReserved);
             else
                 return Handle(HandleResult::PageFree);
@@ -196,7 +196,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
     return Handle(HandleResult::Okay);
 }
 
-paddr_t PageAllocationSpace::AllocatePage()
+paddr_t PageAllocationSpace::AllocatePage(PageDescriptor * & desc)
 {
     if likely(this->FreePageCount != 0)
     {
@@ -209,8 +209,9 @@ paddr_t PageAllocationSpace::AllocatePage()
         else
             --this->StackCacheTop;
 
-        (this->Map + i)->Use();
+        (desc = this->Map + i)->Use();
         //  Mark the page as used.
+        //  And, of course, return the descriptor.
 
         --this->FreePageCount;
         this->FreeSize -= this->PageSize;
@@ -221,13 +222,19 @@ paddr_t PageAllocationSpace::AllocatePage()
         return this->AllocationStart + i * this->PageSize;
     }
 
+    desc = nullptr;
+
     return nullptr;
 }
 
 paddr_t PageAllocationSpace::AllocatePages(const psize_t count)
 {
     if (count == 1)
-        return this->AllocatePage();
+    {
+        PageDescriptor * desc;
+
+        return this->AllocatePage(desc);
+    }
     else if (count == 0)
         return nullptr;
 
@@ -245,7 +252,7 @@ Handle PageAllocationSpace::PopPage(const pgind_t ind)
 
     PageDescriptor * const page = this->Map + ind;
 
-    if (page->Status == PageStatus::Free)
+    if (page->Status == PageDescriptorStatus::Free)
     {
         PageDescriptor * freeTop = this->Map + this->Stack[this->StackFreeTop];
 
@@ -269,7 +276,7 @@ Handle PageAllocationSpace::PopPage(const pgind_t ind)
 
         return Handle(HandleResult::Okay);
     }
-    else if (page->Status == PageStatus::Caching)
+    else if (page->Status == PageDescriptorStatus::Caching)
     {
         PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
 
@@ -451,7 +458,7 @@ Handle PageAllocator::FreePageAtAddress(const paddr_t phys_addr)
     return Handle(HandleResult::PagesOutOfAllocatorRange);
 }
 
-paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options)
+paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options, PageDescriptor * & desc)
 {
     paddr_t ret = nullptr;
     PageAllocationSpace * space;
@@ -468,7 +475,7 @@ paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options)
                 //  at a 32-bit address. (all the other addresses are less,
                 //  thus have to be 32-bit if the end is)
 
-                ret = space->AllocatePage();
+                ret = space->AllocatePage(desc);
 
                 if (ret != nullptr)
                     return ret;
@@ -483,7 +490,7 @@ paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options)
 
         while (space != nullptr)
         {
-            ret = space->AllocatePage();
+            ret = space->AllocatePage(desc);
 
             if (ret != nullptr)
                 return ret;
@@ -491,6 +498,8 @@ paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options)
             space = space->Next;
         }
     }
+
+    desc = nullptr;
 
     return nullptr;
 }

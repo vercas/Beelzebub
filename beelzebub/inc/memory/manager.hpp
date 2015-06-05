@@ -12,10 +12,13 @@
 namespace Beelzebub { namespace Memory
 {
     /**
-     *  Represents types of pages that can be allocated.
+     *  Represents characteristics of pages that can be mapped.
      */
-    enum class PageFlags
+    enum class PageFlags : int
     {
+        //  No flags.
+        None       = 0x0,
+
         //  Shared by all processes.
         Global     = 0x01,
         //  Accessible by user code.
@@ -26,21 +29,25 @@ namespace Beelzebub { namespace Memory
         Executable = 0x08,
     };
 
-    //  Bitwise OR.
-    inline PageFlags operator |(PageFlags a, PageFlags b)
-    { return static_cast<PageFlags>(static_cast<int>(a) | static_cast<int>(b)); }
+    ENUMOPS(PageFlags, int)
 
-    //  Bitwise AND.
-    inline PageFlags operator &(PageFlags a, PageFlags b)
-    { return static_cast<PageFlags>(static_cast<int>(a) & static_cast<int>(b)); }
+    /**
+     *  Represents the status of memory pages.
+     */
+    enum class PageStatus : int
+    {
+        //  No flags.
+        None       = 0x0,
 
-    //  Equality.
-    inline bool operator ==(int a, PageFlags b)
-    { return a == static_cast<int>(b); }
+        //  The page maps to a physical address.
+        Present    = 0x01,
+        //  Accessed since the flag was reset.
+        Accessed   = 0x02,
+        //  Written to since the flag was reset.
+        Written    = 0x04,
+    };
 
-    //  Inequality.
-    inline bool operator !=(int a, PageFlags b)
-    { return a != static_cast<int>(b); }
+    ENUMOPS(PageStatus, int)
 
     /**
      *  Represents types of pages that can be allocated.
@@ -49,44 +56,34 @@ namespace Beelzebub { namespace Memory
     {
         //  The physical page selected will be suitable for general use
         //  in the kernel heap and applications. 64-bit preferred.
-        PhysicalGeneral    = 0x00000000,
+        PhysicalGeneral      = 0x00000000,
         //  The physical page selected will have a 32-bit address,
         //  suitable for certain devices.
-        Physical32bit      = 0x00000010,
+        Physical32bit        = 0x00000010,
         //  The physical page selected will have a 24-bit address,
         //  suitable for certain devices.
-        Physical24bit      = 0x00000020,
+        Physical24bit        = 0x00000020,
         //  The physical page selected will have a 16-bit address,
         //  suitable for certain devices.
-        Physical16bit      = 0x00000030,
+        Physical16bit        = 0x00000030,
+
+        //  When multiple pages are allocated, they will be physically
+        //  contiguous.
+        PhysicallyContiguous = 0x00008000,
 
         //  The virtual page will be located in areas specific to the kernel heap.
-        VirtualKernelHeap  = 0x00000000,
+        VirtualKernelHeap    = 0x00000000,
         //  The virtual page will be located in userland-specific areas.
-        VirtualUser        = 0x00080000,
+        VirtualUser          = 0x00080000,
         //  The virtual page will be located in 32-bit memory locations,
         //  suitable for 32-bit applications and kernel modules.
-        Virtual32bit       = 0x00100000,
+        Virtual32bit         = 0x00100000,
         //  The virtual page will be located in 16-bit memory locations,
         //  suitable for 16-bit applications and kernel modules.
-        Virtual16bit       = 0x00300000,
+        Virtual16bit         = 0x00300000,
     };
 
-    //  Bitwise OR.
-    inline AllocatedPageType operator |(AllocatedPageType a, AllocatedPageType b)
-    { return static_cast<AllocatedPageType>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b)); }
-
-    //  Bitwise AND.
-    inline AllocatedPageType operator &(AllocatedPageType a, AllocatedPageType b)
-    { return static_cast<AllocatedPageType>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b)); }
-
-    //  Equality.
-    inline bool operator ==(uint32_t a, AllocatedPageType b)
-    { return a == static_cast<uint32_t>(b); }
-
-    //  Inequality.
-    inline bool operator !=(uint32_t a, AllocatedPageType b)
-    { return a != static_cast<uint32_t>(b); }
+    ENUMOPS(AllocatedPageType, uint32_t)
 
     /**
      *  A memory management unit.
@@ -109,5 +106,10 @@ namespace Beelzebub { namespace Memory
 
         __hot __bland Handle AllocatePages(const size_t count, const AllocatedPageType type, const PageFlags flags, vaddr_t & res);
         __hot __bland Handle FreePages(const vaddr_t vaddr, const size_t count);
+
+        /*  Flags  */
+
+        __bland Handle GetPageFlags(const vaddr_t vaddr, PageFlags & flags);
+        __bland Handle SetPageFlags(const vaddr_t vaddr, const PageFlags flags);
     };
 }}

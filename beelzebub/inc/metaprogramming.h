@@ -43,3 +43,20 @@
 
 //  These exist because they are shorter and I can later adapt them for
 //  other compilers as well.
+
+
+#ifdef __cplusplus
+#define ENUMOPS(T, U)                                                      \
+inline  T   operator ~  (T  a     ) { return (T )(~((U )(a))          ); } \
+inline  T   operator |  (T  a, T b) { return (T )(  (U )(a) |  (U )(b)); } \
+inline  T   operator &  (T  a, T b) { return (T )(  (U )(a) &  (U )(b)); } \
+inline  T   operator ^  (T  a, T b) { return (T )(  (U )(a) ^  (U )(b)); } \
+inline  T&  operator |= (T& a, T b) { return (T&)(  (U&)(a) |= (U )(b)); } \
+inline  T&  operator &= (T& a, T b) { return (T&)(  (U&)(a) &= (U )(b)); } \
+inline  T&  operator ^= (T& a, T b) { return (T&)(  (U&)(a) ^= (U )(b)); } \
+inline bool operator == (U  a, T b) { return             a  == (U )(b);  } \
+inline bool operator != (U  a, T b) { return             a  != (U )(b);  } \
+inline bool operator == (T  a, U b) { return        (U )(a) ==      b ;  } \
+inline bool operator != (T  a, U b) { return        (U )(a) !=      b ;  }
+#endif
+    

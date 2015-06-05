@@ -9,7 +9,7 @@ using namespace Beelzebub::System;
 
 /*  Operations  */
 
-size_t Cpu::GetUnpreciseIndex()
+size_t Cpu::ComputeIndex()
 {
     uint32_t a, b, c, d;
 

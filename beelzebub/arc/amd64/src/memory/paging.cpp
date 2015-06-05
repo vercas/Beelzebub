@@ -40,7 +40,7 @@ TerminalWriteResult Pml1Entry::PrintToTerminal(TerminalBase * const term) const
 	else
 		str[24] = 'R';
 
-	if (this->GetUsermode())
+	if (this->GetUserland())
 		{ str[27] = 'U'; str[28] = '/'; str[29] = 'S'; }
 	else
 		str[28] = 'S';
@@ -124,7 +124,7 @@ TerminalWriteResult Pml2Entry::PrintToTerminal(TerminalBase * const term) const
 	else
 		str[24] = 'R';
 
-	if (this->GetUsermode())
+	if (this->GetUserland())
 		{ str[27] = 'U'; str[28] = '/'; str[29] = 'S'; }
 	else
 		str[28] = 'S';
@@ -208,7 +208,7 @@ TerminalWriteResult Pml3Entry::PrintToTerminal(TerminalBase * const term) const
 	else
 		str[24] = 'R';
 
-	if (this->GetUsermode())
+	if (this->GetUserland())
 		{ str[27] = 'U'; str[28] = '/'; str[29] = 'S'; }
 	else
 		str[28] = 'S';
@@ -287,7 +287,7 @@ TerminalWriteResult Pml4Entry::PrintToTerminal(TerminalBase * const term) const
 	else
 		str[24] = 'R';
 
-	if (this->GetUsermode())
+	if (this->GetUserland())
 		{ str[27] = 'U'; str[28] = '/'; str[29] = 'S'; }
 	else
 		str[28] = 'S';
