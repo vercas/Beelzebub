@@ -33,7 +33,7 @@
 	JG_HEADER_FLAG_X2APIC_ALLOW   \
 )
 
-jg_header_root_t jegudiel_header = {
+__attribute__((used)) jg_header_root_t jegudiel_header = {
 	JG_MAGIC,                               // magic
 	FLAGS,                                  // flags
 	0xFFFFFFFFFFF00000,                     // stack_vaddr

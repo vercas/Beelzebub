@@ -1,4 +1,4 @@
-.PHONY: all build link install uninstall clean
+.PHONY: all build linku linko install uninstall clean
 
 ########################
 # Default architecture #
@@ -30,11 +30,16 @@ CC			:= gcc
 CPPC		:= gcc
 DC			:= gdc
 AS			:= nasm
+LO			:= gcc
 LD			:= ld
 
 #############################
 # Objects and linker script #
-OBJECTS		:=  
+#OBJECTS		:=  
+OBJECTSO	:=  
+OBJECTSU	:=  
+CODELANG    :=  
+CODEASM     :=  
 LDFILE		:=  
 
 ##########################
@@ -44,10 +49,14 @@ LDFILE		:=
 CFLAGS		:= -ffreestanding -Wall -Werror -mcmodel=large
 CFLAGS      += -D __BEELZEBUB -std=gnu99
 CFLAGS      += -mno-red-zone -O2
+CFLAGS		+= -flto -nostartfiles -nodefaultlibs -nostdlib
+CFLAGS		+= -pipe
 
 CPPFLAGS	:= -ffreestanding -Wall -mcmodel=large
 CPPFLAGS    += -D __BEELZEBUB -std=gnu++11 -fno-rtti -fno-exceptions
 CPPFLAGS    += -mno-red-zone -O2
+CPPFLAGS	+= -flto -nostartfiles -nodefaultlibs -nostdlib
+CPPFLAGS	+= -pipe
 
 DFLAGS		:= -Wall -Werror -mcmodel=large -nostdinc
 DFLAGS      += -I$(RUNTIME_DIR) -I$(SRC_DIR)
@@ -55,6 +64,10 @@ DFLAGS      += -fno-assert -fno-emit-moduleinfo -fd-vtls -fproperty
 DLFAGS      += -fno-bounds-check
 
 ASFLAGS		:=  
+
+LOFLAGS     := -flto -O2 -ffreestanding -Wall -mcmodel=large -mno-red-zone
+LOFLAGS     += -nostartfiles -nodefaultlibs -nostdlib -Wl,-z,max-page-size=0x1000
+LOFLAGS		+= -pipe
 
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 
@@ -110,7 +123,7 @@ endif
 
 ###############################################
 # Build everything and link the target binary #
-ia32 ia32pae amd64:	link
+ia32 ia32pae amd64:	linko
 
 ####################################
 #   OBJECTS, SOURCES AND HEADERS   #
@@ -118,16 +131,20 @@ ia32 ia32pae amd64:	link
 
 # Standard
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
-OBJECTS		+= $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SRC_DIR) -name "*.c"))
-OBJECTS		+= $(patsubst $(SRC_DIR)/%.s,$(BUILD_DIR)/%.s.o,$(shell find $(SRC_DIR) -name "*.s"))
-OBJECTS		+= $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.cpp.o,$(shell find $(SRC_DIR) -name "*.cpp"))
+OBJECTSO	+= $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SRC_DIR) -name "*.c"))
+OBJECTSU	+= $(patsubst $(SRC_DIR)/%.s,$(BUILD_DIR)/%.s.o,$(shell find $(SRC_DIR) -name "*.s"))
+OBJECTSO	+= $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.cpp.o,$(shell find $(SRC_DIR) -name "*.cpp"))
+CODELANG    += $(shell find $(SRC_DIR) -name "*.c") $(shell find $(SRC_DIR) -name "*.cpp")
+CODEASM     += $(shell find $(SRC_DIR) -name "*.s")
 
 # When architecture-specific files are present...
 ifneq ($(ARC),'')
 	INCFLAGS	+= -I$(ARC_DIR)/$(ARC)/inc
-	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.c,$(BUILD_DIR)/%.c.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.c"))
-	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.s,$(BUILD_DIR)/%.s.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.s"))
-	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.cpp,$(BUILD_DIR)/%.cpp.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.cpp"))
+	OBJECTSO	+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.c,$(BUILD_DIR)/%.c.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.c"))
+	OBJECTSU	+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.s,$(BUILD_DIR)/%.s.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.s"))
+	OBJECTSO	+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.cpp,$(BUILD_DIR)/%.cpp.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.cpp"))
+	CODELANG    += $(shell find $(ARC_DIR)/$(ARC)/src -name "*.c") $(shell find $(ARC_DIR)/$(ARC)/src -name "*.cpp")
+	CODEASM     += $(shell find $(ARC_DIR)/$(ARC)/src -name "*.s")
 
 	CFLAGS		+= -D __BEELZEBUB__ARCH=$(ARC)
 	CPPFLAGS	+= -D __BEELZEBUB__ARCH=$(ARC)
@@ -136,13 +153,18 @@ endif
 # When auxiliary files are present...
 ifneq ($(AUX),'')
 	INCFLAGS	+= -I$(AUX_DIR)/$(AUX)/inc
-	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.c,$(BUILD_DIR)/%.c.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.c"))
-	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.s,$(BUILD_DIR)/%.s.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.s"))
-	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.cpp,$(BUILD_DIR)/%.cpp.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.cpp"))
+	OBJECTSO	+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.c,$(BUILD_DIR)/%.c.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.c"))
+	OBJECTSU	+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.s,$(BUILD_DIR)/%.s.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.s"))
+	OBJECTSO	+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.cpp,$(BUILD_DIR)/%.cpp.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.cpp"))
+	CODELANG    += $(shell find $(AUX_DIR)/$(AUX)/src -name "*.c") $(shell find $(AUX_DIR)/$(AUX)/src -name "*.cpp")
+	CODEASM     += $(shell find $(AUX_DIR)/$(AUX)/src -name "*.s")
 
 	CFLAGS		+= -D __BEELZEBUB__AUX=$(AUX)
 	CPPFLAGS	+= -D __BEELZEBUB__AUX=$(AUX)
 endif
+
+# Getting them all.
+OBJECTS     := $(OBJECTSU) $(OBJECTSO)
 
 # Bootstrapping
 CFLAGS		+= $(INCFLAGS)
@@ -156,7 +178,7 @@ CPPFLAGS	+= $(INCFLAGS)
 
 ###############################
 # Install to prefix directory #
-install: link
+install: linko
 	@ echo " CP" $(TARGET_BIN)
 	@ mkdir -p $(PREFIX)/bin
 	@ cp $(BUILD_DIR)/$(TARGET_BIN) $(PREFIX)/bin
@@ -166,9 +188,15 @@ install: link
 uninstall:
 	@ rm $(PREFIX)/bin/$(TARGET_BIN)
 
+##################################################
+# Link the target binary with extra optimization #
+linko: build
+	@ echo "/GCC:" $(TARGET_BIN) " (" $(LDFILE) ")"
+	@ $(LO) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(LOFLAGS) $(OBJECTS)
+
 ##########################
 # Link the target binary #
-link: build
+linku: build
 	@ echo "/LNK:" $(TARGET_BIN) " (" $(LDFILE) ")"
 	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(OBJECTS)
 
