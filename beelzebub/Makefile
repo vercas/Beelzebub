@@ -209,6 +209,12 @@ build: $(OBJECTS)
 # Precompile all header files #
 headers: $(HEADERS)
 
+####################################### DEPENDENCIES ##########
+
+#################################
+# Obtain depdendency file names #
+DEPENDENCIES = $(OBJECTS:%.o=%.d)
+
 ####################################### BINARY BLOBS ##########
 
 ###########################################
@@ -228,28 +234,28 @@ $(BUILD_DIR)/$(TARGET_BIN): $(LDFILE) $(OBJECTS)
 
 ##########################
 # Build an assembly file #
-$(BUILD_DIR)/%.s.o: $(SRC_DIR)/%.s $(HEADERS)
+$(BUILD_DIR)/%.s.o: $(SRC_DIR)/%.s
 	@ echo "/STD/Asm:" $<
 	@ mkdir -p $(@D)
 	@ $(AS) $(ASFLAGS) $< -o $@
 
 ##################
 # Build a C file #
-$(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c $(HEADERS)
+$(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c
 	@ echo "/STD/C__:" $<
 	@ mkdir -p $(@D)
-	@ $(CC) $(CFLAGS) -c $< -o $@
+	@ $(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 ####################
 # Build a C++ file #
-$(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp $(HEADERS)
+$(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp
 	@ echo "/STD/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXXC) $(CXXFLAGS) -c $< -o $@
+	@ $(CXXC) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 ##################
 # Build a D file #
-$(BUILD_DIR)/%.d.o: $(SRC_DIR)/%.d $(HEADERS)
+$(BUILD_DIR)/%.d.o: $(SRC_DIR)/%.d
 	@ echo "/STD/D__:" $<
 	@ mkdir -p $(@D)
 	@ $(DC) $(DFLAGS) -c $< -o $@
@@ -258,47 +264,53 @@ $(BUILD_DIR)/%.d.o: $(SRC_DIR)/%.d $(HEADERS)
 
 ##########################
 # Build an assembly file #
-$(BUILD_DIR)/%.s.arc.o: $(ARC_DIR)/$(ARC)/src/%.s $(HEADERS)
+$(BUILD_DIR)/%.s.arc.o: $(ARC_DIR)/$(ARC)/src/%.s
 	@ echo "/ARC/Asm:" $<
 	@ mkdir -p $(@D)
 	@ $(AS) $(ASFLAGS) $< -o $@
 
 ##################
 # Build a C file #
-$(BUILD_DIR)/%.c.arc.o: $(ARC_DIR)/$(ARC)/src/%.c $(HEADERS)
+$(BUILD_DIR)/%.c.arc.o: $(ARC_DIR)/$(ARC)/src/%.c
 	@ echo "/ARC/C__:" $<
 	@ mkdir -p $(@D)
-	@ $(CC) $(CFLAGS) -c $< -o $@
+	@ $(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 ####################
 # Build a C++ file #
-$(BUILD_DIR)/%.cpp.arc.o: $(ARC_DIR)/$(ARC)/src/%.cpp $(HEADERS)
+$(BUILD_DIR)/%.cpp.arc.o: $(ARC_DIR)/$(ARC)/src/%.cpp
 	@ echo "/ARC/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXXC) $(CXXFLAGS) -c $< -o $@
+	@ $(CXXC) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 ####################################### AUXILIARY FILES ##########
 
 ##########################
 # Build an assembly file #
-$(BUILD_DIR)/%.s.aux.o: $(AUX_DIR)/$(AUX)/src/%.s $(HEADERS)
+$(BUILD_DIR)/%.s.aux.o: $(AUX_DIR)/$(AUX)/src/%.s
 	@ echo "/AUX/Asm:" $<
 	@ mkdir -p $(@D)
 	@ $(AS) $(ASFLAGS) $< -o $@
 
 ##################
 # Build a C file #
-$(BUILD_DIR)/%.c.aux.o: $(AUX_DIR)/$(AUX)/src/%.c $(HEADERS)
+$(BUILD_DIR)/%.c.aux.o: $(AUX_DIR)/$(AUX)/src/%.c
 	@ echo "/AUX/C__:" $<
 	@ mkdir -p $(@D)
-	@ $(CC) $(CFLAGS) -c $< -o $@
+	@ $(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 ####################
 # Build a C++ file #
-$(BUILD_DIR)/%.cpp.aux.o: $(AUX_DIR)/$(AUX)/src/%.cpp $(HEADERS)
+$(BUILD_DIR)/%.cpp.aux.o: $(AUX_DIR)/$(AUX)/src/%.cpp
 	@ echo "/AUX/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXXC) $(CXXFLAGS) -c $< -o $@
+	@ $(CXXC) $(CXXFLAGS) -MMD -MP -c $< -o $@
+
+####################################### DEPENDENCIES ##########
+
+################################
+# Include all dependency files #
+-include $(DEPENDENCIES)
 
 ####################################### NORMAL HEADER FILES ##########
 
