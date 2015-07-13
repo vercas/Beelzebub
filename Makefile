@@ -19,13 +19,13 @@ qemu-serial: image
 	@ qemu-system-x86_64 -cdrom $(PREFIX)/boot.iso -smp 4 -nographic
 	
 jegudiel:
-	@ $(MAKE) -C jegudiel/ $(MAKECMDGOALS) install
+	@ $(MAKE) -C jegudiel/ $(MAKECMDGOALS) install -j 8
 	
 image:
 	@ $(MAKE) -C image/
 
 kernel:
-	@ $(MAKE) -C beelzebub/ $(MAKECMDGOALS) install -j 9
+	@ $(MAKE) -C beelzebub/ $(MAKECMDGOALS) install -j 8
 
 clean:
 	@ $(MAKE) -C image/ clean

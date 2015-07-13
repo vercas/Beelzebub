@@ -15,9 +15,9 @@ OBJECTS		:= $(patsubst $(SOURCE_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SOURC
 OBJECTS		+= $(patsubst $(SOURCE_DIR)/%.s,$(BUILD_DIR)/%.s.o,$(shell find $(SOURCE_DIR) -name "*.s"))
 
 # Toolchain
-CC			:= gcc
+CC			:= /usr/local/cross/bin/x86_64-elf-gcc
 AS			:= nasm
-LD			:= ld
+LD			:= /usr/local/cross/bin/x86_64-elf-ld
 
 # Toolchain Flags
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
@@ -30,7 +30,7 @@ LDFILE		:= link.ld
 
 # Build everything and link the target binary.
 all: amd64
-amd64: build link
+amd64: link
 
 # Install to prefix directory.
 install: all
@@ -48,6 +48,11 @@ uninstall:
 	@ rm $(PREFIX)/bin/$(TARGET_BIN)
 	@ rm $(PREFIX)/include/jegudiel.h
 
+# Link the target binary.
+link: build
+	@ echo " LD " $(TARGET_BIN)
+	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(OBJECTS)
+
 # Build all C and assembly files.
 build: $(OBJECTS)
 
@@ -62,11 +67,6 @@ $(BUILD_DIR)/%.c.o: $(SOURCE_DIR)/%.c
 	@ echo " CC " $<
 	@ mkdir -p $(@D)
 	@ $(CC) $(CFLAGS) -c $< -o $@
-
-# Link the target binary.
-link:
-	@ echo " LD " $(TARGET_BIN)
-	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(OBJECTS)
 
 # Cleans the build directory	
 clean:
