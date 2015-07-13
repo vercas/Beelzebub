@@ -50,7 +50,7 @@ extern ui_page_t ui_pages[];
  * @param page the number of the page to display.
  * @param line the line of the page to begin on.
  */
-void ui_display(size_t page_nr, size_t line);
+void ui_display(unsigned long long page_nr, unsigned long long line);
 
 /**
  * Switches one page left.

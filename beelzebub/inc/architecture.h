@@ -1,9 +1,15 @@
 #pragma once
 
-#include <terminals/base.hpp>
 #include <metaprogramming.h>
 
-using namespace Beelzebub::Terminals;
+#ifdef __cplusplus
+    #include <terminals/base.hpp>
+
+    using namespace Beelzebub::Terminals;
+#else
+    #define TerminalBase void
+    //  Hue hue hue.
+#endif
 
 __extern __bland void InitializeMemory();
 __extern __bland void InitializeInterrupts();

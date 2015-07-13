@@ -2,6 +2,8 @@
 
 #include <metaprogramming.h>
 
+#ifdef __cplusplus
+
 namespace Beelzebub
 {
     enum class HandleType : uint64_t
@@ -362,5 +364,9 @@ namespace Beelzebub
     } __attribute__((packed));
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.
 }
+
+#else
+
+#endif
 
 //  TODO: C version.

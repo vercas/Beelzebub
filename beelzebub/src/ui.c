@@ -29,12 +29,12 @@
 
 ui_page_t ui_pages[UI_PAGE_COUNT];
 
-size_t ui_page_current = 0;
-size_t ui_line_current = 0;
+unsigned long long ui_page_current = 0;
+unsigned long long ui_line_current = 0;
 
-static char *ui_get_line(char *string, size_t line) {
-    size_t line_cur = 0;
-    size_t i;
+static char *ui_get_line(char *string, unsigned long long line) {
+    unsigned long long line_cur = 0;
+    unsigned long long i;
 
     for (i = 0; '\0' != string[i] && line_cur < line; ++i) {
         if ('\n' == string[i]) {
@@ -52,12 +52,12 @@ static void ui_display_header(ui_page_t *page) {
     screen_write("----------------------------------------", 40, 1);
 }
 
-static void ui_display_body(ui_page_t *page, size_t line) {
+static void ui_display_body(ui_page_t *page, unsigned long long line) {
     char *body = ui_get_line(page->body, line);
     screen_write(body, 0, 2);
 }
 
-void ui_display(size_t page_nr, size_t line)
+void ui_display(unsigned long long page_nr, unsigned long long line)
 {
     ui_page_t *page = &ui_pages[page_nr % UI_PAGE_COUNT];
 
