@@ -195,13 +195,11 @@ FakesAssemblies/
 # Visual Studio 6 workspace options file
 *.opt
 
-# Bootloader stuff
+# Stuffff
 build/
 jegudiel/build/
 image/build/
 beelzebub/build/
-beelzebub/src/arc
-beelzebub/inc/arc
 bochsout.txt
 .project
 .cproject
@@ -209,4 +207,8 @@ bochsout.txt
 # vStuff
 .sync/
 *~
+*.sublime-project
+*.sublime-workspace
+BOCHS.bat
+QEMU.bat
 
