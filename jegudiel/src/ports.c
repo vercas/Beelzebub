@@ -26,17 +26,17 @@
 #include <ports.h>
 #include <stdint.h>
 
-void outb(const uint16_t port, uint8_t value)
-{
-    asm volatile ("outb %1, %0" :: "dN" (port), "a" (value));
-}
+// void outb(const uint16_t port, uint8_t value)
+// {
+//     asm volatile ("outb %1, %0" :: "dN" (port), "a" (value));
+// }
 
-uint8_t inb(const uint16_t port)
-{
-    uint8_t value;
-    asm volatile ("inb %1, %0" : "=a" (value) : "dN" (port));
-    return value;
-}
+// uint8_t inb(const uint16_t port)
+// {
+//     uint8_t value;
+//     asm volatile ("inb %1, %0" : "=a" (value) : "dN" (port));
+//     return value;
+// }
 
 void init_serial(const uint16_t port)
 {

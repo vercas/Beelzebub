@@ -34,7 +34,10 @@
  * @param port port to send the byte to
  * @param value the byte to send
  */
-inline __attribute__((always_inline)) void outb(const uint16_t port, uint8_t value);
+inline __attribute__((always_inline)) void outb(const uint16_t port, uint8_t value)
+{
+	asm volatile ("outb %1, %0" :: "dN" (port), "a" (value));
+}
 
 /**
  * Reads a byte from an input <port>.
@@ -42,7 +45,12 @@ inline __attribute__((always_inline)) void outb(const uint16_t port, uint8_t val
  * @param port the port to read from
  * @return the byte read from the port
  */
-inline __attribute__((always_inline)) uint8_t inb(const uint16_t port);
+inline __attribute__((always_inline)) uint8_t inb(const uint16_t port)
+{
+	uint8_t value;
+    asm volatile ("inb %1, %0" : "=a" (value) : "dN" (port));
+    return value;
+}
 
 void init_serial(const uint16_t port);
 
