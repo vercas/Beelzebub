@@ -1,4 +1,4 @@
-.PHONY: all build link install uninstall clean
+.PHONY: all amd64 install uninstall clean link build
 
 # Target
 TARGET		:= jegudiel
@@ -32,43 +32,68 @@ LDFILE		:= link.ld
 all: amd64
 amd64: link
 
-# Install to prefix directory.
-install: all
-	@ mkdir -p $(PREFIX)/bin
-	@ mkdir -p $(PREFIX)/include
-	
-	@ echo " CP" $(TARGET_BIN)
-	@ cp $(BUILD_DIR)/$(TARGET_BIN) $(PREFIX)/bin
-	
-	@ echo " CP jegudiel.h"
-	@ cp $(INC_DIR)/jegudiel.h $(PREFIX)/include
-	
-# Uninstalls from prefix directory.
+####################################### BASICS ##########
+
+###############################
+# Install to prefix directory #
+install: $(PREFIX)/bin/$(TARGET_BIN) $(PREFIX)/include/jegudiel.h
+
+###################################
+# Uninstall from prefix directory #
 uninstall:
 	@ rm $(PREFIX)/bin/$(TARGET_BIN)
 	@ rm $(PREFIX)/include/jegudiel.h
 
-# Link the target binary.
-link: build
-	@ echo " LD " $(TARGET_BIN)
-	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(OBJECTS)
+#############################
+# Clean the build directory #
+clean:
+	@ echo "/REM:" $(BUILD_DIR)
+	@ rm -Rf $(BUILD_DIR)/*
 
-# Build all C and assembly files.
+##########################
+# Link the target binary #
+link: $(BUILD_DIR)/$(TARGET_BIN)
+
+##########################
+# Build all object files #
 build: $(OBJECTS)
 
-# Build an assembly file.
+####################################### BINARY BLOBS ##########
+
+###########################################
+# Install binary blob to prefix directory #
+$(PREFIX)/bin/$(TARGET_BIN): $(BUILD_DIR)/$(TARGET_BIN)
+	@ echo "/CPY:" $< ">" $@
+	@ mkdir -p $(PREFIX)/bin
+	@ cp $< $@
+
+##########################
+# Link the target binary #
+$(BUILD_DIR)/$(TARGET_BIN): $(LDFILE) $(OBJECTS)
+	@ echo "/LNK/UNO:" $@
+	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(OBJECTS)
+
+####################################### OTHER OUTPUT ##########
+
+##########################################
+# Install jegudiel.h to prefix directory #
+$(PREFIX)/include/jegudiel.h: $(INC_DIR)/jegudiel.h
+	@ echo "/CPY:" $< ">" $@
+	@ mkdir -p $(PREFIX)/include
+	@ cp $< $@
+
+####################################### NORMAL FILES ##########
+
+##########################
+# Build an assembly file #
 $(BUILD_DIR)/%.s.o: $(SOURCE_DIR)/%.s
-	@ echo " AS " $<
+	@ echo "/ASM:" $<
 	@ mkdir -p $(@D)
 	@ $(AS) $(ASFLAGS) $< -o $@
 
-# Build a C file.
+##################
+# Build a C file #
 $(BUILD_DIR)/%.c.o: $(SOURCE_DIR)/%.c
-	@ echo " CC " $<
+	@ echo "/C__" $<
 	@ mkdir -p $(@D)
 	@ $(CC) $(CFLAGS) -c $< -o $@
-
-# Cleans the build directory	
-clean:
-	@ echo " RM " $(BUILD_DIR)
-	@ rm -Rf $(BUILD_DIR)/*
