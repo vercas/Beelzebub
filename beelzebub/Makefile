@@ -220,9 +220,9 @@ DEPENDENCIES = $(OBJECTS:%.o=%.d)
 ###########################################
 # Install binary blob to prefix directory #
 $(PREFIX)/bin/$(TARGET_BIN): $(BUILD_DIR)/$(TARGET_BIN)
-	@ echo " CP" $(TARGET_BIN)
+	@ echo "/CPY:" $< ">" $@
 	@ mkdir -p $(PREFIX)/bin
-	@ cp $(BUILD_DIR)/$(TARGET_BIN) $(PREFIX)/bin/$(TARGET_BIN)
+	@ cp $< $@
 
 ##################################################
 # Link the target binary with extra optimization #
