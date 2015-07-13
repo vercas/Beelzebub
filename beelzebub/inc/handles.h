@@ -12,29 +12,29 @@ namespace Beelzebub
         Invalid              = 0x0000000000000000U, // INVL
 
         //  A miscellaneous/anonymous object belonging to the kernel.
-        KernelObject         = 0x0001000000000000U, // KOBJ
+        KernelObject         = 0x0100000000000000U, // KOBJ
         //  A miscellaneous/anonymous object belonging to a service.
-        ServiceObject        = 0x0002000000000000U, // SOBJ
+        ServiceObject        = 0x0200000000000000U, // SOBJ
         //  A miscellaneous/anonymous object belonging to an application.
-        ApplicationObject    = 0x0003000000000000U, // AOBJ
+        ApplicationObject    = 0x0300000000000000U, // AOBJ
 
         //  A unit of execution.
-        Thread               = 0x0010000000000000U, // THRD
+        Thread               = 0x1000000000000000U, // THRD
         //  A unit of isolation.
-        Process              = 0x0011000000000000U, // PRCS
+        Process              = 0x1100000000000000U, // PRCS
         //  A unit of management.
-        Job                  = 0x0012000000000000U, // JOB
+        Job                  = 0x1200000000000000U, // JOB
 
         //  A virtual address space. ("linear" by x86 terminology)
-        VirtualAddressSpace  = 0x0020000000000000U, // VASP
+        VirtualAddressSpace  = 0x2000000000000000U, // VASP
 
         //  An table which associates handles with resources.
-        HandleTable          = 0xFFF0000000000000U, // HTBL
+        HandleTable          = 0xF000000000000000U, // HTBL
         //  A finite set of handles.
-        MultiHandle          = 0xFFF1000000000000U, // MHND
+        MultiHandle          = 0xF100000000000000U, // MHND
 
         //  A general result code.
-        Result               = 0xFFFF000000000000U, // RES
+        Result               = 0xFF00000000000000U, // RES
     };
 
     enum class HandleResult : uint64_t
@@ -90,16 +90,42 @@ namespace Beelzebub
     {
         /*  Statics  */
 
-        static const uint64_t NullValue      = 0x0000000000000000ULL;
-        //static const Handle Null             = {NullValue};
+        static const uint64_t NullValue           = 0x0000000000000000ULL;
+        //static const Handle Null                  = {NullValue};
 
-        static const uint64_t TypeBits       = 0xFFFF000000000000ULL;
-        //static const uint32_t TypeOffset     = 48;
+        static const uint64_t TypeBits            = 0xFF00000000000000ULL;
+        //static const uint32_t TypeOffset          = 56;
 
-        static const uint64_t IndexBits      = 0x00007FFFFFFFFFFFULL;
+        static const uint64_t IndexBits           = 0x007FFFFFFFFFFFFFULL;
 
-        static const uint64_t GlobalFatalBit = 0x0000800000000000ULL;
-        static const uint32_t GlobalOffset   = 47;
+        static const uint64_t GlobalFatalBit      = 0x0080000000000000ULL;
+        static const uint64_t GlobalOffset        = 55;
+
+        static const uint64_t ResultHasArgsBit    = 0x0040000000000000ULL;
+        static const uint64_t ResultHasArgsOffset = 54;
+
+        static const uint64_t ResultExtrasBits    = 0x0030000000000000ULL;
+        static const uint64_t ResultExtrasOffset  = 52;
+
+        static const uint64_t ResultValueBits     = 0x0080000000000FFFULL;
+        static const uint64_t ResultExtra1Bits    = 0x0000000000FFF000ULL;
+        static const uint64_t ResultExtra2Bits    = 0x0000000FFF000000ULL;
+        static const uint64_t ResultExtra3Bits    = 0x0000FFF000000000ULL;
+        static const uint64_t ResultArg1Bits      = 0x0000000000FFF000ULL;
+        static const uint64_t ResultArg12Bits     = 0x00000000FFFFF000ULL;
+        static const uint64_t ResultArg123Bits    = 0x000000FFFFFFF000ULL;
+        static const uint64_t ResultArg1234Bits   = 0x0000FFFFFFFFF000ULL;
+        static const uint64_t ResultArg12345Bits  = 0x003FFFFFFFFFF000ULL;
+        static const uint64_t ResultArg2345Bits   = 0x003FFFFFFF000000ULL;
+        static const uint64_t ResultArg5Bits      = 0x003F000000000000ULL;
+        static const uint64_t ResultExtra1Offset  = 12;
+        static const uint64_t ResultExtra2Offset  = 24;
+        static const uint64_t ResultExtra3Offset  = 36;
+        static const uint64_t ResultArg1Offset    = 12;
+        static const uint64_t ResultArg2Offset    = 24;
+        static const uint64_t ResultArg3Offset    = 32;
+        static const uint64_t ResultArg4Offset    = 40;
+        static const uint64_t ResultArg5Offset    = 48;
 
         /*  Constructor(s)  */
 
@@ -118,7 +144,25 @@ namespace Beelzebub
         //  Result handle.
         __bland __forceinline Handle(const HandleResult res)
             : Value((uint64_t)HandleType::Result
-                  | ((uint64_t)res & IndexBits))
+                  | ((uint64_t)res & ResultValueBits))
+        {
+            
+        }
+
+        //  Result handle with 5 arguments.
+        __bland __forceinline Handle(const HandleResult res
+                                   , const uint16_t     arg1
+                                   , const  uint8_t     arg2
+                                   , const  uint8_t     arg3
+                                   , const  uint8_t     arg4)
+            : Value(  (uint64_t)HandleType::Result
+                  |  ((uint64_t)res                       & ResultValueBits)
+                  | ResultHasArgsBit
+                  | (((uint64_t)arg1 << ResultArg1Offset) &  ResultArg1Bits)
+                  |  ((uint64_t)arg2 << ResultArg2Offset)
+                  |  ((uint64_t)arg3 << ResultArg3Offset)
+                  |  ((uint64_t)arg4 << ResultArg4Offset)
+                  | (((uint64_t)arg4 << ResultArg4Offset) & ResultArg5Bits))
         {
             
         }
@@ -162,12 +206,12 @@ namespace Beelzebub
 
         __bland __forceinline HandleResult GetResult() const
         {
-            return (HandleResult)(this->Value & IndexBits);
+            return (HandleResult)(this->Value & ResultValueBits);
         }
 
         __bland __forceinline bool IsResult(const HandleResult res) const
         {
-            return this->Value == ((uint64_t)HandleType::Result | (uint64_t)res);
+            return (this->Value & (TypeBits | ResultValueBits)) == ((uint64_t)HandleType::Result | (uint64_t)res);
         }
 
         __bland __forceinline bool IsFatalResult() const
@@ -184,11 +228,42 @@ namespace Beelzebub
             return this->Value == ((uint64_t)HandleType::Result | (uint64_t)HandleResult::Okay);
         }
 
+        __bland __forceinline uint16_t GetResultArg1()
+        {
+            return (uint16_t)((this->Value & ResultArg1Bits) >> ResultArg1Offset);
+        }
+
+        __bland __forceinline uint8_t GetResultArg2()
+        {
+            return this->Bytes[3];
+        }
+
+        __bland __forceinline uint8_t GetResultArg3()
+        {
+            return this->Bytes[4];
+        }
+
+        __bland __forceinline uint8_t GetResultArg4()
+        {
+            return this->Bytes[5];
+        }
+
+        __bland __forceinline uint8_t GetResultArg5()
+        {
+            return this->Bytes[6] & 0x7F;
+        }
+
         /*  Field(s)  */
 
     private:
 
-        uint64_t Value;
+        union
+        {
+            uint64_t Value;
+            uint32_t Dwords[2];
+            uint16_t Words[4];
+            uint8_t  Bytes[8];
+        };
 
     public:
 
