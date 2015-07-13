@@ -35,6 +35,8 @@ namespace Beelzebub { namespace Debug
 
         //  Allow the CPU to rest.
         while (true) if (Cpu::CanHalt) Cpu::Halt();
+
+        __unreachable_code;
     }
 
     void CatchFire(const char * const file
@@ -63,6 +65,8 @@ namespace Beelzebub { namespace Debug
 
         //  Allow the CPU to rest... IN PEACE! :OOOOooOO00OOoO
         while (true) if (Cpu::CanHalt) Cpu::Halt();
+
+        __unreachable_code;
     }
 
     void CatchFireFormat(const char * const file
