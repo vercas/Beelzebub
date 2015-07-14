@@ -1,4 +1,5 @@
 .PHONY: all amd64 install uninstall clean link build
+.SUFFIXES:  
 
 # Target
 TARGET		:= jegudiel

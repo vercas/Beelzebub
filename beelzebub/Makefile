@@ -1,4 +1,5 @@
 .PHONY: all amd64 ia32 ia32pae install uninstall clean linku linko build headers
+.SUFFIXES:  
 
 ########################
 # Default architecture #
@@ -6,11 +7,10 @@ all: amd64
 
 ##########
 # Target #
-TARGET		:= beelzebub
-TARGET_BIN	:= $(TARGET).bin
+KERNEL_NAME	:= beelzebub
 ARC			:= ''
 AUX			:= ''
-MTUNE       := corei7-avx
+MTUNE		:= corei7-avx
 
 ###############
 # Directories #
@@ -19,10 +19,8 @@ SRC_DIR		:= ./src
 ARC_DIR		:= ./arc
 AUX_DIR		:= ./arc
 SRCARC_DIR	:= ./src/arc
-BUILD_DIR	:= ./build
 INC_DIR		:= ./inc
 INCARC_DIR	:= ./inc/arc
-INCPCH_DIR  := ./build/inc
 RUNTIME_DIR := $(SRC_DIR)/runtime
 
 #############
@@ -61,8 +59,8 @@ DLFAGS      += -fno-bounds-check
 
 ASFLAGS		:=  
 
-LOFLAGS     := -flto -O2 -ffreestanding -Wall -mcmodel=large -mno-red-zone
-LOFLAGS     += -nostdlib -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000
+LOFLAGS		:= -flto -O2 -ffreestanding -Wall -mcmodel=large -mno-red-zone
+LOFLAGS		+= -nostdlib -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000
 LOFLAGS		+= -pipe
 
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
@@ -71,13 +69,12 @@ LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 #	ARCHITECTURE-SPECIFIC SETTINGS   #
 ######################################
 
+include ../Beelzebub.mk
+
 ##############
 # 64-bit x86 #
-ifneq (,$(findstring amd64,$(MAKECMDGOALS)))
-	AUX			:= x86
-	ARC			:= amd64
-
-	LDFILE		+= $(ARC_DIR)/amd64/link.ld
+ifeq ($(ARC),amd64)
+	LDFILE		:= $(ARC_DIR)/amd64/link.ld
 
 	ASFLAGS		+= -f elf64
 	CFLAGS		+= -m64 -D __BEELZEBUB__ARCH_AMD64
@@ -85,11 +82,8 @@ ifneq (,$(findstring amd64,$(MAKECMDGOALS)))
 
 ####################################
 # 32-bit x86 with 36-bit addresses #
-else ifneq (,$(findstring ia32pae,$(MAKECMDGOALS)))
-	AUX			:= x86
-	ARC			:= ia32pae
-
-	LDFILE		+= $(ARC_DIR)/ia32/link.ld
+else ifeq ($(ARC),ia32pae)
+	LDFILE		:= $(ARC_DIR)/ia32/link.ld
 	#	There will be no specific linker file for PAE.
 
 	ASFLAGS		+= -f elf32
@@ -98,11 +92,8 @@ else ifneq (,$(findstring ia32pae,$(MAKECMDGOALS)))
 
 ##############
 # 32-bit x86 #
-else ifneq (,$(findstring ia32,$(MAKECMDGOALS)))
-	AUX			:= x86
-	ARC			:= ia32
-
-	LDFILE		+= $(ARC_DIR)/ia32/link.ld
+else ifeq ($(ARC),ia32)
+	LDFILE		:= $(ARC_DIR)/ia32/link.ld
 
 	ASFLAGS		+= -f elf32
 	CFLAGS		+= -m32 -D __BEELZEBUB__ARCH_X86 -D __BEELZEBUB__ARCH_IA32
@@ -116,6 +107,14 @@ ifeq ($(AUX),x86)
 	CFLAGS		+= -D __BEELZEBUB__ARCH_X86 -mtune=$(MTUNE)
 	CXXFLAGS	+= -D __BEELZEBUB__ARCH_X86 -mtune=$(MTUNE)
 endif
+
+# Output directories
+BUILD_HOST		:= ./build
+BUILD_DIR		:= $(BUILD_HOST)/$(ARC)
+INCPCH_DIR		:= $(BUILD_DIR)/inc
+
+# Binary blob
+KERNEL_PATH		:= $(BUILD_HOST)/$(KERNEL_BIN)
 
 ###############################################
 # Build everything and link the target binary #
@@ -178,28 +177,28 @@ CXXFLAGS	+= $(INCFLAGS)
 
 ###############################
 # Install to prefix directory #
-install: $(PREFIX)/bin/$(TARGET_BIN)
+install: $(KERNEL_INSTALL_PATH)
 
 ####################################
 # Uninstalls from prefix directory #
 uninstall:
-	@ rm $(PREFIX)/bin/$(TARGET_BIN)
+	@ rm $(KERNEL_INSTALL_PATH)
 
 ##############################
 # Cleans the build directory #
 clean:
-	@ echo "/REM:" $(BUILD_DIR)
-	@ rm -Rf $(BUILD_DIR)
+	@ echo "/REM:" $(BUILD_HOST)
+	@ rm -Rf $(BUILD_HOST)
 
 ##################################################
 # Link the target binary with extra optimization #
-linko: $(BUILD_DIR)/$(TARGET_BIN)
+linko: $(KERNEL_PATH)
 
 ##########################
 # Link the target binary #
 linku: $(OBJECTS)
-	@ echo "/LNK/UNO:" $(TARGET_BIN) "("$(LDFILE)")"
-	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(OBJECTS)
+	@ echo "/LNK/UNO:" $(KERNEL_PATH) "("$(LDFILE)")"
+	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(KERNEL_PATH) $(OBJECTS)
 
 ##########################
 # Build all object files #
@@ -219,16 +218,16 @@ DEPENDENCIES = $(OBJECTS:%.o=%.d)
 
 ###########################################
 # Install binary blob to prefix directory #
-$(PREFIX)/bin/$(TARGET_BIN): $(BUILD_DIR)/$(TARGET_BIN)
+$(KERNEL_INSTALL_PATH): $(KERNEL_PATH)
 	@ echo "/CPY:" $< ">" $@
-	@ mkdir -p $(PREFIX)/bin
+	@ mkdir -p $(KERNEL_INSTALL_DIR)
 	@ cp $< $@
 
 ##################################################
 # Link the target binary with extra optimization #
-$(BUILD_DIR)/$(TARGET_BIN): $(LDFILE) $(OBJECTS)
-	@ echo "/LNK/OPT:" $(TARGET_BIN) "("$(LDFILE)")"
-	@ $(LO) -T $(LDFILE) -o $(BUILD_DIR)/$(TARGET_BIN) $(LOFLAGS) $(OBJECTS)
+$(KERNEL_PATH): $(LDFILE) $(OBJECTS)
+	@ echo "/LNK/OPT:" $@ "("$(LDFILE)")"
+	@ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS)
 
 ####################################### NORMAL FILES ##########
 
