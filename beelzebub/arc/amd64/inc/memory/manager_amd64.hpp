@@ -40,6 +40,10 @@ namespace Beelzebub { namespace Memory
         static vaddr_t KernelModulesCursor;
         static Spinlock KernelModulesLock;
 
+        static Spinlock PasDescriptorsLock;
+
+        static Spinlock HandleTablesLock;
+
         static volatile size_t KernelHeapLockCount;
         static Spinlock KernelHeapMasterLock;
 

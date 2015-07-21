@@ -5,7 +5,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 
-static __forceinline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
+static __bland inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
 {
     if (vaddr < VirtualAllocationSpace::LowerHalfEnd)
         mm.UserLock.Acquire();
@@ -13,9 +13,13 @@ static __forceinline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, con
     {
         if (vaddr <= MemoryManagerAmd64::KernelModulesEnd)
             MemoryManagerAmd64::KernelModulesLock.Acquire();
+        else if (vaddr <= MemoryManagerAmd64::PasDescriptorsEnd)
+            MemoryManagerAmd64::PasDescriptorsLock.Acquire();
+        else if (vaddr <= MemoryManagerAmd64::HandleTablesEnd)
+            MemoryManagerAmd64::HandleTablesLock.Acquire();
         else if (vaddr <= MemoryManagerAmd64::KernelHeapEnd)
         {
-            if (alloc)
+            if (alloc || (vaddr >= Cpu::GetKernelHeapStart() && vaddr < Cpu::GetKernelHeapEnd()))
             {
                 MemoryManagerAmd64::KernelHeapMasterLock.Await();
                 //  The master lock must be free!
@@ -41,7 +45,7 @@ static __forceinline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, con
     }
 }
 
-static __forceinline void Unlock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
+static __bland inline void Unlock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
 {
     if (vaddr < VirtualAllocationSpace::LowerHalfEnd)
         mm.UserLock.Release();
@@ -49,18 +53,20 @@ static __forceinline void Unlock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, c
     {
         if (vaddr <= MemoryManagerAmd64::KernelModulesEnd)
             MemoryManagerAmd64::KernelModulesLock.Release();
+        else if (vaddr <= MemoryManagerAmd64::PasDescriptorsEnd)
+            MemoryManagerAmd64::PasDescriptorsLock.Release();
+        else if (vaddr <= MemoryManagerAmd64::HandleTablesEnd)
+            MemoryManagerAmd64::HandleTablesLock.Release();
         else if (vaddr <= MemoryManagerAmd64::KernelHeapEnd)
         {
-            if (alloc)
+            if (alloc || (vaddr >= Cpu::GetKernelHeapStart() && vaddr < Cpu::GetKernelHeapEnd()))
             {
                 __sync_sub_and_fetch(&MemoryManagerAmd64::KernelHeapLockCount, 1);
                 Cpu::GetKernelHeapSpinlock()->Release();
                 //  Decrement the number of heap locks and release this CPU's heap lock.
             }
             else
-            {
                 MemoryManagerAmd64::KernelHeapMasterLock.Release();
-            }
         }
         else
             MemoryManagerAmd64::KernelBinariesLock.Release();
@@ -73,6 +79,10 @@ static __forceinline void Unlock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, c
 
 vaddr_t MemoryManagerAmd64::KernelModulesCursor = KernelModulesStart;
 Spinlock MemoryManagerAmd64::KernelModulesLock;
+
+Spinlock MemoryManagerAmd64::PasDescriptorsLock;
+
+Spinlock MemoryManagerAmd64::HandleTablesLock;
 
 volatile size_t MemoryManagerAmd64::KernelHeapLockCount = 0;
 Spinlock MemoryManagerAmd64::KernelHeapMasterLock;
