@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6B075575-78EE-4615-A506-8ABD24E86C97}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakeBuildCommandLine>bash makevs.sh amd64 install</NMakeBuildCommandLine>
+    <NMakeCleanCommandLine>bash makevs.sh clean</NMakeCleanCommandLine>
+    <NMakeReBuildCommandLine>bash makevs.sh clean amd64 install</NMakeReBuildCommandLine>
+    <NMakePreprocessorDefinitions>__JEGUDIEL__DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <IncludePath>T:\GitHub\Beelzebub\jegudiel\inc;$(IncludePath)</IncludePath>
+    <SourcePath>T:\GitHub\Beelzebub\jegudiel\src</SourcePath>
+    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeBuildCommandLine>bash makevs.sh amd64 install</NMakeBuildCommandLine>
+    <NMakeCleanCommandLine>bash makevs.sh clean</NMakeCleanCommandLine>
+    <NMakeReBuildCommandLine>bash makevs.sh clean amd64 install</NMakeReBuildCommandLine>
+    <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <IncludePath>T:\GitHub\Beelzebub\jegudiel\inc;$(IncludePath)</IncludePath>
+    <SourcePath>T:\GitHub\Beelzebub\jegudiel\src</SourcePath>
+    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="src\acpi.c" />
+    <ClInclude Include="src\boot16.s" />
+    <ClInclude Include="src\boot32.s" />
+    <ClInclude Include="src\cpu.c" />
+    <ClInclude Include="src\elf64.c" />
+    <ClInclude Include="src\font.c" />
+    <ClInclude Include="src\gdt.c" />
+    <ClInclude Include="src\heap.c" />
+    <ClInclude Include="src\idt.c" />
+    <ClInclude Include="src\idt.s" />
+    <ClInclude Include="src\info.c" />
+    <ClInclude Include="src\ioapic.c" />
+    <ClInclude Include="src\kernel.c" />
+    <ClInclude Include="src\kernel.s" />
+    <ClInclude Include="src\lapic.c" />
+    <ClInclude Include="src\lapic.s" />
+    <ClInclude Include="src\main.c" />
+    <ClInclude Include="src\multiboot.c" />
+    <ClInclude Include="src\multiboot.s" />
+    <ClInclude Include="src\page.c" />
+    <ClInclude Include="src\pic.c" />
+    <ClInclude Include="src\pit.c" />
+    <ClInclude Include="src\ports.c" />
+    <ClInclude Include="src\screen.c" />
+    <ClInclude Include="src\smp.c" />
+    <ClInclude Include="src\splash.c" />
+    <ClInclude Include="src\string.c" />
+    <ClInclude Include="src\syscall.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="inc\acpi.h" />
+    <ClInclude Include="inc\apic.h" />
+    <ClInclude Include="inc\cpu.h" />
+    <ClInclude Include="inc\elf64.h" />
+    <ClInclude Include="inc\font.h" />
+    <ClInclude Include="inc\gdt.h" />
+    <ClInclude Include="inc\heap.h" />
+    <ClInclude Include="inc\idt.h" />
+    <ClInclude Include="inc\info.h" />
+    <ClInclude Include="inc\ioapic.h" />
+    <ClInclude Include="inc\jegudiel.h" />
+    <ClInclude Include="inc\kernel.h" />
+    <ClInclude Include="inc\lapic.h" />
+    <ClInclude Include="inc\main.h" />
+    <ClInclude Include="inc\multiboot.h" />
+    <ClInclude Include="inc\page.h" />
+    <ClInclude Include="inc\pic.h" />
+    <ClInclude Include="inc\pit.h" />
+    <ClInclude Include="inc\ports.h" />
+    <ClInclude Include="inc\screen.h" />
+    <ClInclude Include="inc\smp.h" />
+    <ClInclude Include="inc\splash.h" />
+    <ClInclude Include="inc\stdint.h" />
+    <ClInclude Include="inc\string.h" />
+    <ClInclude Include="inc\syscall.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="link.ld" />
+    <None Include="Makefile" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
