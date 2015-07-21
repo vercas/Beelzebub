@@ -50,7 +50,7 @@ GCCFLAGS	+= -pipe
 
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
 
-CXXFLAGS	:= $(GCCFLAGS) -std=gnu++11 -fno-rtti -fno-exceptions
+CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 
 DFLAGS		:= -Wall -Werror -mcmodel=large -nostdinc
 DFLAGS      += -I$(RUNTIME_DIR) -I$(SRC_DIR)
