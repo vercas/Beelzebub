@@ -202,7 +202,8 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 
 /*  Translation  */
 
-Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, Pml1Entry * & e)
+template<typename cbk_t>
+Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, cbk_t cbk)
 {
     if unlikely((vaddr >= FractalStart && vaddr < FractalEnd     )
              || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart))
@@ -251,12 +252,9 @@ Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, Pml1Entry * & e
     Pml1 & pml1 = *pml1p;
     ind = GetPml1Index(vaddr);
 
-    if likely((e = (pml1.Entries + ind))->GetPresent())
-        return Handle(HandleResult::Okay);
-    else
-        return Handle(HandleResult::PageUnmapped);
+    return cbk(pml1.Entries + ind);
 
-    //  Yeah, I set `e` even if not present.
+    //  The status of the page is irrelevant.
 }
 
 /*  Mapping  */
@@ -385,62 +383,180 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
 
 Handle VirtualAllocationSpace::Unmap(const vaddr_t vaddr, paddr_t & paddr)
 {
-    Pml1Entry * e = nullptr;
+    return this->TryTranslate(vaddr, [&paddr](Pml1Entry * pE) __bland
+        {
+            if likely(pE->GetPresent())
+            {
+                paddr = pE->GetAddress();
+                *pE = Pml1Entry();
+                //  Null.
 
-    Handle res = this->TryTranslate(vaddr, e);
+                return Handle(HandleResult::Okay);
+            }
+            else
+            {
+                paddr = 0;
 
-    if likely(res.IsOkayResult())
-    {
-        paddr = e->GetAddress();
-        *e = Pml1Entry();
-        //  Null.
-    }
-    
-    return res;
+                return Handle(HandleResult::PageUnmapped);
+            }
+        });
 }
 
 /*  Flags  */
 
 Handle VirtualAllocationSpace::GetPageFlags(const vaddr_t vaddr, PageFlags & flags)
 {
-    Pml1Entry * pE = nullptr;
+    return this->TryTranslate(vaddr, [&flags](Pml1Entry * pE) __bland
+        {
+            if likely(pE->GetPresent())
+            {
+                const Pml1Entry e = *pE;
+                PageFlags f = PageFlags::None;
 
-    Handle res = this->TryTranslate(vaddr, pE);
+                if (  e.GetGlobal())    f |= PageFlags::Global;
+                if (  e.GetUserland())  f |= PageFlags::Userland;
+                if (  e.GetWritable())  f |= PageFlags::Writable;
+                if (!(e.GetXd() && NX)) f |= PageFlags::Executable;
 
-    if likely(res.IsOkayResult())
-    {
-        const Pml1Entry e = *pE;
-        PageFlags f = PageFlags::None;
+                flags = f;
 
-        if (  e.GetGlobal())    f |= PageFlags::Global;
-        if (  e.GetUserland())  f |= PageFlags::Userland;
-        if (  e.GetWritable())  f |= PageFlags::Writable;
-        if (!(e.GetXd() && NX)) f |= PageFlags::Executable;
+                return Handle(HandleResult::Okay);
+            }
+            else
+            {
+                flags = PageFlags::None;
 
-        flags = f;
-    }
-    
-    return res;
+                return Handle(HandleResult::PageUnmapped);
+            }
+        });
 }
 
 Handle VirtualAllocationSpace::SetPageFlags(const vaddr_t vaddr, const PageFlags flags)
 {
-    Pml1Entry * pE = nullptr;
-
-    Handle res = this->TryTranslate(vaddr, pE);
-
-    if likely(res.IsOkayResult())
-    {
-        Pml1Entry e = *pE;
+    return this->TryTranslate(vaddr, [flags](Pml1Entry * pE) __bland
+        {
+            if likely(pE->GetPresent())
+            {
+                Pml1Entry e = *pE;
         
-        e.SetGlobal(  ((PageFlags::Global     & flags) != 0));
-        e.SetUserland(((PageFlags::Userland   & flags) != 0));
-        e.SetWritable(((PageFlags::Writable   & flags) != 0));
-        e.SetXd( NX & ((PageFlags::Executable & flags) == 0));
+                e.SetGlobal(  ((PageFlags::Global     & flags) != 0));
+                e.SetUserland(((PageFlags::Userland   & flags) != 0));
+                e.SetWritable(((PageFlags::Writable   & flags) != 0));
+                e.SetXd( NX & ((PageFlags::Executable & flags) == 0));
 
-        *pE = e;
-    }
-    
-    return res;
+                *pE = e;
+
+                return Handle(HandleResult::Okay);
+            }
+            else
+                return Handle(HandleResult::PageUnmapped);
+        });
 }
 
+/**********************************************
+    VirtualAllocationSpace::Iterator struct
+**********************************************/
+
+/*  Constructor(s)  */
+
+Handle VirtualAllocationSpace::Iterator::Create(Iterator & dst, VirtualAllocationSpace * const space, const vaddr_t vaddr, const vsize_t count)
+{
+    if unlikely(0 != (vaddr & 0xFFF))
+        return Handle(HandleResult::PageUnaligned);
+    if unlikely(count < 1)
+        return Handle(HandleResult::ArgumentOutOfRange);
+
+    if unlikely((vaddr + (count << 12) > FractalStart && vaddr < FractalEnd     )
+             || (vaddr + (count << 12) > LowerHalfEnd && vaddr < HigherHalfStart))
+        return Handle(HandleResult::PageMapIllegalRange);
+
+    dst = VirtualAllocationSpace::Iterator(space, vaddr, count);
+
+    return dst.Initialize();
+}
+
+Handle VirtualAllocationSpace::Iterator::Initialize()
+{
+    const vaddr_t vaddr = this->VirtualAddress;
+    const bool nonLocal = (vaddr < LowerHalfEnd) && !this->AllocationSpace->IsLocal();
+
+    /*Pml4 & pml4 = *(nonLocal ? GetAlienPml4() : GetLocalPml4());
+    const uint16_t ind4 = GetPml4Index(vaddr);
+
+    if likely(pml4[ind4].GetPresent())
+    {
+        Pml3 & pml3 = *(nonLocal ? GetAlienPml3(vaddr) : GetLocalPml3( vaddr ));
+        const uint16_t ind3 = GetPml3Index(vaddr);
+        
+        if likely(pml3[ind3].GetPresent())
+        {
+            Pml2 & pml2 = *(nonLocal ? GetAlienPml2(vaddr) : GetLocalPml2( vaddr ));
+            const uint16_t ind2 = GetPml2Index(vaddr);
+        
+            if likely(pml2[ind2].GetPresent())
+            {
+                Pml1 & pml1 = *(nonLocal ? GetAlienPml1(vaddr) : GetLocalPml1( vaddr ));
+                const uint16_t ind1 = GetPml1Index(vaddr);
+            
+                this->Entry = &pml1[ind1];
+            
+                return HandleResult::Okay;
+            }
+        }
+    }//*/
+
+    auto const work = [vaddr, nonLocal](auto const & alien, auto const & local, auto const & index) __bland
+    {
+        auto & pml = *(nonLocal ? alien(vaddr) : local( vaddr ));
+        return &pml[index(vaddr)];
+    };
+
+    if likely(work(&GetAlienPml4Ex, &GetLocalPml4Ex, &GetPml4Index)->GetPresent())
+    {
+        if likely(work(&GetAlienPml3, &GetLocalPml3, &GetPml3Index)->GetPresent())
+        {
+            if likely(work(&GetAlienPml2, &GetLocalPml2, &GetPml2Index)->GetPresent())
+            {
+                this->Entry = work(&GetAlienPml1, &GetLocalPml1, &GetPml1Index);
+
+                return HandleResult::Okay;
+            }
+        }
+    }
+
+    this->Entry = nullptr;
+
+    return Handle(HandleResult::PageUnmapped);
+}
+
+const VirtualAllocationSpace::Iterator & VirtualAllocationSpace::Iterator::operator +=(VirtualAllocationSpace::Iterator::DifferenceType diff)
+{
+    const vaddr_t vaddr = this->VirtualAddress;
+    const vaddr_t target = vaddr + (diff << 12);
+
+    //  Must not go over the gap!
+
+    assert(target < LowerHalfEnd || target > HigherHalfStart
+        , "Paging table crawling iterator attempted to move over the void! (%Xp + %us pages = %Xp)"
+        , vaddr, diff, target);
+
+    //  A bit of over- and underflow checking.
+
+    if (diff > 0)
+        assert((vaddr_t)(diff << 12) < (~((vaddr_t)0) - vaddr)
+            , "Paging table crawling iterator attempted to overflow! (%Xp + %us pages [%Xp])"
+            , vaddr, diff, diff << 12);
+    else if (diff < 0)
+        assert(vaddr >= (vaddr_t)(-(diff << 12))
+            , "Paging table crawling iterator attempted to underflow! (%Xp - %us pages [%Xp])"
+            , vaddr, diff, diff << 12);
+    else
+        return *this;
+
+    //  Set the new address, which is now valid, and initialize.
+    
+    this->VirtualAddress = target;
+    this->Initialize();
+
+    return *this;
+}

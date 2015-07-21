@@ -14,12 +14,16 @@
 #include <handles.h>
 #include <metaprogramming.h>
 
+#include <stdlib/iterator.hpp>
+
 using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Memory::Paging;
 
 namespace Beelzebub { namespace Memory
 {
+    typedef Handle (*VasTranslationCallback)(Pml1Entry * e);
+
     /**
      *  Manages assignment and allocation of virtual (linear) memory pages.
      */
@@ -97,7 +101,8 @@ namespace Beelzebub { namespace Memory
 
         //  Local Map.
 
-        static __bland __forceinline Pml4 * const GetLocalPml4() { return (Pml4 *)LocalPml4Base; }
+        static __bland __forceinline Pml4 * const GetLocalPml4()          { return (Pml4 *)LocalPml4Base; }
+        static __bland __forceinline Pml4 * const GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base; }
 
         static __bland __forceinline Pml3 * const GetLocalPml3(const vaddr_t addr)
         {
@@ -121,7 +126,8 @@ namespace Beelzebub { namespace Memory
 
         //  Alien Map.
 
-        static __bland __forceinline Pml4 * const GetAlienPml4() { return (Pml4 *)AlienPml4Base; }
+        static __bland __forceinline Pml4 * const GetAlienPml4()          { return (Pml4 *)AlienPml4Base; }
+        static __bland __forceinline Pml4 * const GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base; }
 
         static __bland __forceinline Pml3 * const GetAlienPml3(const vaddr_t addr)
         {
@@ -156,14 +162,14 @@ namespace Beelzebub { namespace Memory
         __cold __bland Handle Bootstrap();
         __bland Handle Clone(VirtualAllocationSpace * const target);
 
-        __bland __forceinline void Activate()
+        __bland __forceinline void Activate() const
         {
             const Cr3 newVal = Cr3(this->Pml4Address, false, false);
 
             Cpu::SetCr3(newVal);
         }
 
-        __bland __forceinline void Alienate()
+        __bland __forceinline void Alienate() const
         {
             Pml4 & pml4 = *GetLocalPml4();
 
@@ -193,7 +199,8 @@ namespace Beelzebub { namespace Memory
             //  Yeah, the offset within the page is preserved.
         }
 
-        __hot __bland Handle TryTranslate(const vaddr_t vaddr, Pml1Entry * & e);
+        template<typename cbk_t>
+        __hot __bland Handle TryTranslate(const vaddr_t vaddr, cbk_t cbk);
 
         /*  Mapping  */
 
@@ -212,5 +219,222 @@ namespace Beelzebub { namespace Memory
         //psize_t FreePagesCount, MappedPagesCount;
 
         paddr_t Pml4Address;
+
+        /*  Traversal  */
+
+        //  Locks all the structures, for each individual page.
+        template<typename cbk_t>
+        __hot __bland Handle TraversePresentScarceLock(const vaddr_t vaddr, const vsize_t count, cbk_t cbk)
+        {
+            if unlikely(0 != (vaddr & 0xFFF))
+                return Handle(HandleResult::PageUnaligned);
+            if unlikely(count < 1)
+                return Handle(HandleResult::ArgumentOutOfRange);
+
+            if unlikely((vaddr + (count << 12) > FractalStart && vaddr < FractalEnd     )
+                     || (vaddr + (count << 12) > LowerHalfEnd && vaddr < HigherHalfStart))
+                return Handle(HandleResult::PageMapIllegalRange);
+
+            const bool nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
+            const vsize_t countBytes = count << 12;
+
+            size_t i;
+            Handle res;
+            vaddr_t cur;
+
+            Pml4 & pml4 = *(nonLocal ? GetAlienPml4() : GetLocalPml4());
+
+            for (i = 0, cur = vaddr; i < count; ++i, cur += 4096)
+            {
+                uint16_t ind4 = GetPml4Index(vaddr);
+
+                if unlikely(!pml4[ind4].GetPresent())
+                    return Handle(HandleResult::PageUnmapped);
+
+                //pml4[ind4].AcquireContentLock();
+                //pml4[ind4].AwaitContentLock();
+
+                Pml3 & pml3 = *(nonLocal ? GetAlienPml3(cur) : GetLocalPml3( cur ));
+                uint16_t ind3 = GetPml3Index(vaddr);
+                
+                if unlikely(!pml3[ind3].GetPresent())
+                    return Handle(HandleResult::PageUnmapped);
+
+                //pml3[ind3].AcquireContentLock();
+                
+                Pml2 & pml2 = *(nonLocal ? GetAlienPml2(cur) : GetLocalPml2( cur ));
+                uint16_t ind2 = GetPml2Index(vaddr);
+
+                if unlikely(!pml2[ind2].GetPresent())
+                    return Handle(HandleResult::PageUnmapped);
+
+                pml2[ind2].AcquireContentLock();
+                
+                Pml1 & pml1 = *(nonLocal ? GetAlienPml1(cur) : GetLocalPml1( cur ));
+                uint16_t ind1 = GetPml1Index(vaddr);
+
+                //pml1[ind1].AcquireContentLock();
+
+                res = cbk(pml1.Entries + ind1);
+                //  The status of the page is irrelevant.
+
+                //pml1[ind1].ReleaseContentLock();
+                pml2[ind2].ReleaseContentLock();
+                //pml3[ind3].ReleaseContentLock();
+                //pml4[ind4].ReleaseContentLock();
+            }
+
+            return res;
+        }
+
+        //  Locks only the structures that are in use for each callback invocation. It won't unlock and relock the same structure in sequence.
+        template<typename cbk_t>
+        __hot __bland Handle TraversePresentPartialLock(const vaddr_t vaddr, const vsize_t count, cbk_t cbk)
+        {
+            if unlikely(0 != (vaddr & 0xFFF))
+                return Handle(HandleResult::PageUnaligned);
+            if unlikely(count < 1)
+                return Handle(HandleResult::ArgumentOutOfRange);
+
+            if unlikely((vaddr + (count << 12) > FractalStart && vaddr < FractalEnd     )
+                     || (vaddr + (count << 12) > LowerHalfEnd && vaddr < HigherHalfStart))
+                return Handle(HandleResult::PageMapIllegalRange);
+
+            const bool nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
+            const vsize_t countBytes = count << 12;
+
+            size_t i;
+            Handle res;
+            vaddr_t cur;
+
+            Pml4 & pml4 = *(nonLocal ? GetAlienPml4() : GetLocalPml4());
+
+            for (i = 0, cur = vaddr; i < count; ++i, cur += 4096)
+            {
+                uint16_t ind4 = GetPml4Index(vaddr);
+
+                if unlikely(!pml4[ind4].GetPresent())
+                    return Handle(HandleResult::PageUnmapped);
+
+                pml4[ind4].AcquireContentLock();
+
+                Pml3 & pml3 = *(nonLocal ? GetAlienPml3(cur) : GetLocalPml3( cur ));
+                uint16_t ind3 = GetPml3Index(vaddr);
+                
+                if unlikely(!pml3[ind3].GetPresent())
+                    return Handle(HandleResult::PageUnmapped);
+
+                pml3[ind3].AcquireContentLock();
+                
+                Pml2 & pml2 = *(nonLocal ? GetAlienPml2(cur) : GetLocalPml2( cur ));
+                uint16_t ind2 = GetPml2Index(vaddr);
+
+                if unlikely(!pml2[ind2].GetPresent())
+                    return Handle(HandleResult::PageUnmapped);
+
+                pml2[ind2].AcquireContentLock();
+                
+                Pml1 & pml1 = *(nonLocal ? GetAlienPml1(cur) : GetLocalPml1( cur ));
+                uint16_t ind1 = GetPml1Index(vaddr);
+
+                pml1[ind1].AcquireContentLock();
+
+                res = cbk(pml1.Entries + ind1);
+                //  The status of the page is irrelevant.
+
+                pml1[ind1].ReleaseContentLock();
+                pml2[ind2].ReleaseContentLock();
+                pml3[ind3].ReleaseContentLock();
+                pml4[ind4].ReleaseContentLock();
+            }
+
+            return res;
+        }
+
+        struct Iterator
+            : public Std::Iterator<Std::RandomAccessIteratorTag, Pml1Entry>
+        {
+
+            /*  Constructor(s)  */
+
+            Iterator() = default;
+            Iterator(Iterator const &) = default;
+            Iterator & operator =(const Iterator &) = default;
+
+            static __bland Handle Create(Iterator & dst, VirtualAllocationSpace * const space, const vaddr_t vaddr, const vsize_t count);
+
+        private:
+            __hot __bland Handle Initialize();
+
+            __bland __forceinline Iterator(VirtualAllocationSpace * const space, const vaddr_t vaddr, const vsize_t count)
+                : AllocationSpace( space )
+                , VirtualAddress(vaddr)
+                , PageCount(count)
+            {
+                
+            }
+
+        public:
+
+            /*  Methods  */
+
+            __bland __forceinline Pml1Entry * GetEntry() const
+            {
+                return this->Entry;
+            }
+            __bland __forceinline bool GetTablesPresent() const
+            {
+                return this->Entry != nullptr;
+            }
+
+            __hot __bland Handle AllocateTables();
+
+            /*  Operators  */
+
+            __bland               const Iterator  & operator +=(      DifferenceType         diff);
+
+            __bland __forceinline const Iterator  & operator -=(const DifferenceType         diff)
+            {
+                return (*this) += -diff;
+            }
+
+            __bland __forceinline const Iterator  & operator ++()
+            {
+                return (*this) += 1;
+            }
+            __bland __forceinline const Iterator  & operator ++(int)
+            {
+                return (*this) += 1;
+            }
+            __bland __forceinline const Iterator  & operator --()
+            {
+                return (*this) -= 1;
+            }
+            __bland __forceinline const Iterator  & operator --(int)
+            {
+                return (*this) -= 1;
+            }
+
+            __bland __forceinline       ValueType & operator [](const DifferenceType         index)
+            {
+                return *((*this) += index);
+            }
+            __bland __forceinline       ValueType & operator  *() const
+            {
+                return *this->GetEntry();
+            }
+
+            /*  Fields  */
+
+        private:
+
+            VirtualAllocationSpace * AllocationSpace;
+            vaddr_t VirtualAddress;
+            vsize_t PageCount;
+
+            Pml1Entry * Entry;
+        };
+
+        __hot __bland Handle GetIterator(const vaddr_t start);
     };
 }}
