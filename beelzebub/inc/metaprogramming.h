@@ -44,6 +44,15 @@
 
 #else
 
+#define __forceinline      inline
+#define __const
+#define __cold
+#define __hot
+#define __noreturn
+#define __used
+#define __unused
+#define __must_check
+
 #define likely(expr)       (expr)
 #define unlikely(expr)     (expr)
 

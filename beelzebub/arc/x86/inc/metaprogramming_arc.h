@@ -17,6 +17,7 @@ typedef unsigned long long  creg_t; //  Control register.
 
 typedef unsigned long long uintptr_t;
 typedef   signed long long  intptr_t;
+//typedef   signed long long ptrdiff_t;
 
 #define KERNEL_CODE_SEPARATOR ((uintptr_t)0xFFFFFF8000000000ULL)
 
@@ -37,6 +38,7 @@ typedef unsigned    int     creg_t; //  Control register.
 
 typedef unsigned    int    uintptr_t;
 typedef   signed    int     intptr_t;
+//typedef   signed    int    ptrdiff_t;
 
 #define KERNEL_CODE_SEPARATOR ((uintptr_t)0xC0000000U)
 
