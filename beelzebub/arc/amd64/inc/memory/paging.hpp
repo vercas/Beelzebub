@@ -1,3 +1,7 @@
+/**
+ *  Bit 11 of all entries is used as a spinlock!
+ */
+
 #pragma once
 
 #include <terminals/base.hpp>
@@ -20,6 +24,52 @@ __bland __forceinline void MCATS2(Set, name)(const bool val) \
         this->Value |=  (1ULL << MCATS2(name, Bit));         \
     else                                                     \
         this->Value &= ~(1ULL << MCATS2(name, Bit));         \
+}
+
+//  Creates the functions necessary for operating a spinlock over an entry.
+#define SPINLOCK(name, bit)                                  \
+__bland __forceinline bool MCATS2(TryAcquire, name)()        \
+{                                                            \
+    bool res = 0;                                            \
+                                                             \
+    asm volatile ("lock btsq $" #bit ", ([val]) \n\t"        \
+                  "setnc [res] \n\t"                         \
+                 : [res] "=r" (res)                          \
+                 : [val] "m" (&this->Value)                  \
+                 : "cc");                                    \
+                                                             \
+    return res;                                              \
+}                                                            \
+__bland __forceinline void MCATS2(Spin, name)()              \
+{                                                            \
+    do                                                       \
+    {                                                        \
+        asm volatile ("pause");                              \
+    } while (!this->MCATS2(Check, name)());                  \
+}                                                            \
+__bland __forceinline void MCATS2(Await, name)()             \
+{                                                            \
+    while (!this->MCATS2(Check, name)())                     \
+    {                                                        \
+        asm volatile ("pause");                              \
+    }                                                        \
+}                                                            \
+__bland __forceinline void MCATS2(Acquire, name)()           \
+{                                                            \
+    while (!this->MCATS2(TryAcquire, name)())                \
+        this->MCATS2(Spin, name)();                          \
+}                                                            \
+__bland __forceinline void MCATS2(Release, name)()           \
+{                                                            \
+    asm volatile ("lock btrq $" #bit ", ([val]) \n\t"        \
+                 :                                           \
+                 : [val] "m" (&this->Value)                  \
+                 : "cc");                                    \
+}                                                            \
+__bland __forceinline bool MCATS2(Check, name)()             \
+{                                                            \
+    return 0 == (this->Value & (1 << bit));                  \
+    /*  A simple AND operation works very well here.  */     \
 }
 
 namespace Beelzebub { namespace Memory { namespace Paging
@@ -45,7 +95,7 @@ namespace Beelzebub { namespace Memory { namespace Paging
          *      52 -  62 : Ignored
          *      63       : XD (eXecute Disable, if 1)
          */
-
+		
         static const uint64_t PresentBit    =  0;
         static const uint64_t WritableBit   =  1;
         static const uint64_t UserlandBit   =  2;
@@ -145,6 +195,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
         {
             return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
         }
+
+        /*  Synchronization  */
+
+        SPINLOCK(ContentLock, 10);
+        SPINLOCK(PropertiesLock, 11);
 
         /*  Operators  */
 
@@ -415,6 +470,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
             return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
         }
 
+        /*  Synchronization  */
+
+        SPINLOCK(ContentLock, 10);
+        SPINLOCK(PropertiesLock, 11);
+
         /*  Operators  */
 
         /**
@@ -684,6 +744,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
             return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
         }
 
+        /*  Synchronization  */
+
+        SPINLOCK(ContentLock, 10);
+        SPINLOCK(PropertiesLock, 11);
+
         /*  Operators  */
 
         /**
@@ -878,6 +943,11 @@ namespace Beelzebub { namespace Memory { namespace Paging
         {
             return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
         }
+
+        /*  Synchronization  */
+
+        SPINLOCK(ContentLock, 10);
+        SPINLOCK(PropertiesLock, 11);
 
         /*  Operators  */
 
