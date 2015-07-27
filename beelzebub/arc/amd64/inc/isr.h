@@ -57,7 +57,7 @@ typedef struct IsrState_t {
     uint64_t RFLAGS;
     uint64_t RSP;
     uint64_t SS;
-} __attribute__((packed)) IsrState;
+} __packed IsrState;
 
 typedef void (*IsrHandlerFunction)(IsrState * const state);
 

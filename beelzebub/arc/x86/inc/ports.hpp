@@ -75,7 +75,7 @@ namespace Beelzebub { namespace Ports
     private:
 
         uint16_t BasePort;
-    } __attribute__((packed));
+    } __packed;
 
     /**
      * Represents a serial port whose output is managed.

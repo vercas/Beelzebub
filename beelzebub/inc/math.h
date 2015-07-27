@@ -2,9 +2,9 @@
 
 #include <metaprogramming.h>
 
-__extern __forceinline __bland u64 RoundUp(u64 value, u64 step) __attribute__((const));
-__extern __forceinline __bland u64 RoundDown(u64 value, u64 step) __attribute__((const));
-__extern __forceinline __bland u64 RoundUpDiff(u64 value, u64 step) __attribute__((const));
+__extern __forceinline __bland u64 RoundUp(u64 value, u64 step) __const;
+__extern __forceinline __bland u64 RoundDown(u64 value, u64 step) __const;
+__extern __forceinline __bland u64 RoundUpDiff(u64 value, u64 step) __const;
 
 u64 RoundUp(u64 value, u64 step)
 {

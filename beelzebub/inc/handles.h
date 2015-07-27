@@ -224,9 +224,6 @@ namespace Beelzebub
 
         __bland __forceinline bool IsOkayResult() const
         {
-            //return this->IsType(HandleType::Result)
-            //    && (HandleResult)(this->Value & IndexBits) == HandleResult::Okay;
-
             return this->Value == ((uint64_t)HandleType::Result | (uint64_t)HandleResult::Okay);
         }
 
@@ -361,7 +358,7 @@ namespace Beelzebub
             }
         }
 
-    } __attribute__((packed));
+    } __packed;
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.
 }
 

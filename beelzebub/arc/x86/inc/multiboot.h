@@ -24,7 +24,8 @@
  */
 
 #pragma once
-#include <stdint.h>
+
+#include <metaprogramming.h>
 
 #define MULTIBOOT_FRAMEBUFFER_TYPE_INDEXED 0
 #define MULTIBOOT_FRAMEBUFFER_TYPE_RGB     1
@@ -87,7 +88,7 @@ typedef struct multiboot_info {
 			uint8_t framebuffer_blue_mask_size;
 		};
 	};
-} __attribute__((packed)) multiboot_info_t;
+} __packed multiboot_info_t;
 
 /**
  * Video info table.
@@ -124,7 +125,7 @@ typedef struct multiboot_mmap {
 	uint64_t address;
 	uint64_t length;
 	uint32_t type;
-} __attribute__((packed)) multiboot_mmap_t;
+} __packed multiboot_mmap_t;
 
 /**
  * An entry in the multiboot module list.
@@ -136,7 +137,7 @@ typedef struct multiboot_mod {
 	uint32_t end;
 	uint32_t cmdline;
 	uint32_t pad;
-} __attribute__((packed)) multiboot_mod_t;
+} __packed multiboot_mod_t;
 
 /**
  * Pointer to the multiboot info table.

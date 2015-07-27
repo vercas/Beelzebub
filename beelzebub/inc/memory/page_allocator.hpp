@@ -202,7 +202,7 @@ namespace Beelzebub { namespace Memory
         }
 #endif
 
-    } __attribute__((packed));
+    } __packed;
 
     /**
      * Manages a region of memory in which pages can be allocated.
@@ -389,7 +389,7 @@ namespace Beelzebub { namespace Memory
         __cold __bland TerminalWriteResult PrintStackToTerminal(TerminalBase * const term, const bool details);
 #endif
 
-    };// __attribute__((packed));
+    };// __packed;
 
     /**
      *  Manages allocation of memory pages using a linked list of

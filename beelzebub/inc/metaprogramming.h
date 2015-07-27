@@ -42,6 +42,8 @@
 #define __unreachable_code __builtin_unreachable()
 #define __prefetch         __builtin_prefetch
 
+#define __packed           __attribute__((packed))
+
 #else
 
 #define __forceinline      inline
@@ -58,6 +60,8 @@
 
 #define __unreachable_code do { } while (false)
 #define __prefetch(...)    do { } while (false)
+
+#define __packed
 
 #endif
 

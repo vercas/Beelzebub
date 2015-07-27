@@ -109,7 +109,7 @@ namespace Beelzebub { namespace System
             {
                 uint16_t length;
                 uintptr_t base;
-            } __attribute__((packed)) IDTR;
+            } __packed IDTR;
 
             IDTR.length = size;
             IDTR.base = base;

@@ -28,5 +28,5 @@ namespace Beelzebub { namespace Terminals { namespace Vga
 		Color16 SetBackgroundColor(Color16 const val) __bland;
 		Color16 GetForegroundColor() const __bland;
 		Color16 SetForegroundColor(Color16 const val) __bland;
-	} __attribute__((packed));
+	} __packed;
 }}}
