@@ -104,7 +104,7 @@ namespace Beelzebub { namespace Memory
         __hot __bland Handle UnmapPage(const vaddr_t vaddr);
         __hot __bland Handle TryTranslate(const vaddr_t address, paddr_t & res);
 
-        __hot __bland Handle AllocatePages(const size_t count, const AllocatedPageType type, const PageFlags flags, vaddr_t & res);
+        __hot __bland Handle AllocatePages(const size_t count, const AllocatedPageType type, const PageFlags flags, vaddr_t & vaddr);
         __hot __bland Handle FreePages(const vaddr_t vaddr, const size_t count);
 
         /*  Flags  */
