@@ -177,7 +177,6 @@
     <ClInclude Include="inc\memory\manager.hpp" />
     <ClInclude Include="inc\memory\page_allocator.hpp" />
     <ClInclude Include="inc\metaprogramming.h" />
-    <ClInclude Include="inc\multiboot.h" />
     <ClInclude Include="inc\stdint.h" />
     <ClInclude Include="inc\stdlib\enumerator.hpp" />
     <ClInclude Include="inc\stdlib\iterator.hpp" />

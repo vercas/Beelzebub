@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="readme.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="src\execution\thread.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -192,9 +189,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inc\metaprogramming.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\multiboot.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inc\stdint.h">
