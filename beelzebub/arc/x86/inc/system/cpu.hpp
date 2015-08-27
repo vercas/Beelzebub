@@ -64,6 +64,20 @@ static __bland __forceinline void MCATS2(Set, prettyName)(const type val) \
 namespace Beelzebub { namespace System
 {
     /**
+     *  The data available to an individual CPU core.
+     */
+    struct CpuData
+    {
+        size_t Index;
+        Execution::Thread * ActiveThread;
+        Synchronization::spinlock_t HeapSpinlock;
+        Synchronization::Spinlock * HeapSpinlockPointer;
+        vaddr_t KernelHeapStart;
+        vaddr_t KernelHeapCursor;
+        vaddr_t KernelHeapEnd;
+    } __packed;
+
+    /**
      *  Represents a processing unit of the system.
      */
     class Cpu
@@ -115,6 +129,13 @@ namespace Beelzebub { namespace System
             IDTR.base = base;
 
             asm volatile ( "lidt (%0)\n\t" : : "p"(&IDTR) );
+        }
+
+        /*  Caching  */
+
+        static __bland __forceinline void WriteBackAndInvalidateCache()
+        {
+            asm volatile ("wbinvd\n\t");
         }
 
         /*  Far memory ops  */
@@ -492,71 +513,60 @@ namespace Beelzebub { namespace System
 
         /*  CPU-specific data  */
 
-        static const size_t CpuDataSize
-            = sizeof(size_t)                    //  Index
-            + sizeof(void *)                    //  Active thread
-            + sizeof(Synchronization::Spinlock) //  Heap Spinlock Placeholder Location
-            + sizeof(void *)                    //  Heap Spinlock Pointer
-            + sizeof(vaddr_t)                   //  Kernel Heap Start
-            + sizeof(vaddr_t)                   //  Kernel Heap Cursor
-            + sizeof(vaddr_t);                  //  Kernel Heap End
-
-        static const uintptr_t CpuDataIndexOffset = 0;
-        static const uintptr_t CpuDataActiveThreadOffset = CpuDataIndexOffset + sizeof(size_t);
-        static const uintptr_t CpuDataHeapPagesSpinlockPlaceholderOffset = CpuDataActiveThreadOffset + sizeof(void *);
-        static const uintptr_t CpuDataHeapPagesSpinlockPointerOffset = CpuDataHeapPagesSpinlockPlaceholderOffset + sizeof(Synchronization::Spinlock);
-        static const uintptr_t CpuDataHeapStartOffset = CpuDataHeapPagesSpinlockPointerOffset + sizeof(void *);
-        static const uintptr_t CpuDataHeapCursorOffset = CpuDataHeapStartOffset + sizeof(vaddr_t);
-        static const uintptr_t CpuDataHeapEndOffset = CpuDataHeapCursorOffset + sizeof(vaddr_t);
+        static const size_t CpuDataSize = sizeof(CpuData);
 
         static __bland __forceinline size_t GetIndex()
         {
-            return GsGetSize(0);
+            return GsGetSize(offsetof(struct CpuData, Index));
+        }
+        static __bland __forceinline size_t SetIndex(const size_t val)
+        {
+            return (size_t)GsSetSize(offsetof(struct CpuData, Index), (uintptr_t)val);
         }
 
         static __bland __forceinline Execution::Thread * GetActiveThread()
         {
-            return (Execution::Thread *)GsGetPointer(CpuDataActiveThreadOffset);
+            return (Execution::Thread *)GsGetPointer(offsetof(struct CpuData, ActiveThread));
         }
         static __bland __forceinline Execution::Thread * SetActiveThread(Execution::Thread * const val)
         {
-            return (Execution::Thread *)GsSetPointer(CpuDataActiveThreadOffset, (uintptr_t)val);
+            return (Execution::Thread *)GsSetPointer(offsetof(struct CpuData, ActiveThread), (uintptr_t)val);
         }
 
         static __bland __forceinline Synchronization::Spinlock * GetKernelHeapSpinlock()
         {
-            return (Synchronization::Spinlock *)GsGetPointer(CpuDataHeapPagesSpinlockPointerOffset);
+            return (Synchronization::Spinlock *)GsGetPointer(offsetof(struct CpuData, HeapSpinlockPointer));
         }
         static __bland __forceinline Synchronization::Spinlock * SetKernelHeapSpinlock(Synchronization::Spinlock * const val)
         {
-            return (Synchronization::Spinlock *)GsSetPointer(CpuDataHeapPagesSpinlockPointerOffset, (uintptr_t)val);
+            return (Synchronization::Spinlock *)GsSetPointer(offsetof(struct CpuData, HeapSpinlockPointer), (uintptr_t)val);
         }
 
         static __bland __forceinline vaddr_t GetKernelHeapStart()
         {
-            return (vaddr_t)GsGetPointer(CpuDataHeapStartOffset);
+            return (vaddr_t)GsGetPointer(offsetof(struct CpuData, KernelHeapStart));
         }
         static __bland __forceinline vaddr_t SetKernelHeapStart(const vaddr_t val)
         {
-            return (vaddr_t)GsSetPointer(CpuDataHeapStartOffset, (uintptr_t)val);
+            return (vaddr_t)GsSetPointer(offsetof(struct CpuData, KernelHeapStart), (uintptr_t)val);
         }
 
         static __bland __forceinline vaddr_t GetKernelHeapCursor()
         {
-            return (vaddr_t)GsGetPointer(CpuDataHeapCursorOffset);
+            return (vaddr_t)GsGetPointer(offsetof(struct CpuData, KernelHeapCursor));
         }
         static __bland __forceinline vaddr_t SetKernelHeapCursor(const vaddr_t val)
         {
-            return (vaddr_t)GsSetPointer(CpuDataHeapCursorOffset, (uintptr_t)val);
+            return (vaddr_t)GsSetPointer(offsetof(struct CpuData, KernelHeapCursor), (uintptr_t)val);
         }
 
         static __bland __forceinline vaddr_t GetKernelHeapEnd()
         {
-            return (vaddr_t)GsGetPointer(CpuDataHeapEndOffset);
+            return (vaddr_t)GsGetPointer(offsetof(struct CpuData, KernelHeapEnd));
         }
         static __bland __forceinline vaddr_t SetKernelHeapEnd(const vaddr_t val)
         {
-            return (vaddr_t)GsSetPointer(CpuDataHeapEndOffset, (uintptr_t)val);
+            return (vaddr_t)GsSetPointer(offsetof(struct CpuData, KernelHeapEnd), (uintptr_t)val);
         }
     };
 }}
