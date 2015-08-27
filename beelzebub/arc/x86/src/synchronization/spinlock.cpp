@@ -1,4 +1,5 @@
 #include <synchronization/spinlock.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub::Synchronization;
 

@@ -1,13 +1,12 @@
 #pragma once
 
-#include <debug.hpp>
 #include <metaprogramming.h>
 
 namespace Beelzebub { namespace Synchronization
 {
     typedef vsize_t spinlock_t;
 
-    /*
+    /**
      *  Busy-waiting re-entrant synchronization primitive.
      */
     struct Spinlock
