@@ -2,8 +2,9 @@
 
 #include "stdarg.h"
 
-#include <handles.h>
 #include <metaprogramming.h>
+#include <handles.h>
+#include <synchronization/spinlock.hpp>
 
 #include <kernel.hpp>
 
@@ -16,15 +17,23 @@ if unlikely(!(cond))                                                    \
 //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
 #define msg(...) do {                                                   \
     if likely(Beelzebub::MainTerminal != nullptr)                       \
+    {                                                                   \
+        (&Beelzebub::Debug::MsgSpinlock)->Acquire();                    \
         Beelzebub::MainTerminal->WriteFormat(__VA_ARGS__);              \
+        (&Beelzebub::Debug::MsgSpinlock)->Release();                    \
+    }                                                                   \
 } while (false)
 #else
 #define assert(...) do {} while(false)
 #define msg(...) do {} while(false)
 #endif
 
+using namespace Beelzebub::Synchronization;
+
 namespace Beelzebub { namespace Debug
 {
+    extern Spinlock MsgSpinlock;
+
     __cold __bland __noreturn void CatchFire(const char * const file
                                            , const size_t line
                                            , const char * const msg);

@@ -3,6 +3,9 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Synchronization;
+
+Spinlock Beelzebub::Debug::MsgSpinlock;
 
 namespace Beelzebub { namespace Debug
 {
@@ -16,6 +19,8 @@ namespace Beelzebub { namespace Debug
         if (MainTerminal != nullptr
          && MainTerminal->Descriptor->Capabilities.CanOutput)
         {
+            (&MsgSpinlock)->Acquire();
+
             MainTerminal->WriteLine("");
             MainTerminal->Write("CAUGHT FIRE at line ");
             MainTerminal->WriteUIntD(line);
@@ -29,6 +34,8 @@ namespace Beelzebub { namespace Debug
                 MainTerminal->WriteLine("\":");
                 MainTerminal->WriteLine(msg);
             }
+
+            (&MsgSpinlock)->Release();
         }
 
         Cpu::DisableInterrupts();
@@ -46,6 +53,8 @@ namespace Beelzebub { namespace Debug
         if (MainTerminal != nullptr
          && MainTerminal->Descriptor->Capabilities.CanOutput)
         {
+            (&MsgSpinlock)->Acquire();
+
             MainTerminal->WriteLine("");
             MainTerminal->Write("CAUGHT FIRE at line ");
             MainTerminal->WriteUIntD(line);
@@ -59,6 +68,8 @@ namespace Beelzebub { namespace Debug
                 MainTerminal->WriteLine("\":");
                 MainTerminal->Write(fmt, args);
             }
+
+            (&MsgSpinlock)->Release();
         }
 
         Cpu::DisableInterrupts();
