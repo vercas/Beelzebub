@@ -1,10 +1,11 @@
 #pragma once
 
+#include <metaprogramming.h>
+#include <debug.hpp>
 #include <kernel.hpp>
 #include <terminals/base.hpp>
 #include <synchronization/spinlock.hpp>
 #include <handles.h>
-#include <metaprogramming.h>
 
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Synchronization;
