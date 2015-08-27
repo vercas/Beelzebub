@@ -77,13 +77,22 @@ static __bland inline void Unlock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, 
     MemoryManagerAmd64 struct
 ********************************/
 
-vaddr_t MemoryManagerAmd64::KernelModulesCursor = KernelModulesStart;
+/*  Statics  */
+
+void MemoryManager::Initialize()
+{
+
+}
+
+volatile vaddr_t MemoryManagerAmd64::KernelModulesCursor = MemoryManagerAmd64::KernelModulesStart;
 Spinlock MemoryManagerAmd64::KernelModulesLock;
 
+volatile vaddr_t MemoryManagerAmd64::PasDescriptorsCursor = MemoryManagerAmd64::PasDescriptorsStart;
 Spinlock MemoryManagerAmd64::PasDescriptorsLock;
 
 Spinlock MemoryManagerAmd64::HandleTablesLock;
 
+volatile vaddr_t MemoryManagerAmd64::KernelHeapCursor = 0;
 volatile size_t MemoryManagerAmd64::KernelHeapLockCount = 0;
 Spinlock MemoryManagerAmd64::KernelHeapMasterLock;
 
@@ -132,9 +141,9 @@ Handle MemoryManager::MapPage(const vaddr_t vaddr, const paddr_t paddr, const Pa
 
     Unlock(mm, vaddr);
 
-    if (pml3desc != nullptr) pml3desc->IncrementReferenceCount();
-    if (pml2desc != nullptr) pml2desc->IncrementReferenceCount();
-    if (pml1desc != nullptr) pml1desc->IncrementReferenceCount();
+    if unlikely(pml3desc != nullptr) pml3desc->IncrementReferenceCount();
+    if unlikely(pml2desc != nullptr) pml2desc->IncrementReferenceCount();
+    if unlikely(pml1desc != nullptr) pml1desc->IncrementReferenceCount();
 
     PageDescriptor * desc;
 
@@ -166,9 +175,76 @@ Handle MemoryManager::UnmapPage(const vaddr_t vaddr)
     return res;
 }
 
-Handle MemoryManager::AllocatePages(const size_t count, const AllocatedPageType type, const PageFlags flags, vaddr_t & res)
+Handle MemoryManager::AllocatePages(const size_t count, const AllocatedPageType type, const PageFlags flags, vaddr_t & vaddr)
 {
     MemoryManagerAmd64 & mm = *((MemoryManagerAmd64 *)this);
+
+    /*  Allocation cursor  */
+
+    vaddr_t cursor;
+
+    if (0 != (type & AllocatedPageType::VirtualUser))
+    {
+        cursor = mm.UserHeapCursor;
+
+        mm.UserLock.Acquire();
+
+        mm.UserHeapCursor += count << 12;
+
+        if (mm.UserHeapCursor >= VirtualAllocationSpace::LowerHalfEnd)
+            mm.UserHeapCursor -= VirtualAllocationSpace::LowerHalfEnd - (1 << 12);
+
+        mm.UserLock.Release();
+    }
+    else
+    {
+        cursor = MemoryManagerAmd64::KernelHeapCursor;
+
+        MemoryManagerAmd64::KernelHeapMasterLock.Acquire();
+
+        MemoryManagerAmd64::KernelHeapCursor += count << 12;
+
+        if (MemoryManagerAmd64::KernelHeapCursor >= MemoryManagerAmd64::KernelHeapEnd)
+            MemoryManagerAmd64::KernelHeapCursor -= MemoryManagerAmd64::KernelHeapEnd;
+
+        MemoryManagerAmd64::KernelHeapMasterLock.Release();
+    }
+
+    /*  Iteration  */
+
+    /*VirtualAllocationSpace::Iterator it;
+
+    Handle res = mm.Vas->GetIterator(it, cursor);
+
+    for (size_t i = 0; i < count; ++i, ++it)
+    {
+        
+        PageDescriptor * pml3desc = nullptr;
+        PageDescriptor * pml2desc = nullptr;
+        PageDescriptor * pml1desc = nullptr;
+
+    
+        Lock(mm, vaddr);
+
+        Handle res = mm.Vas->Map(vaddr, paddr, flags, pml3desc, pml2desc, pml1desc);
+
+        Unlock(mm, vaddr);
+
+        if unlikely(pml3desc != nullptr) pml3desc->IncrementReferenceCount();
+        if unlikely(pml2desc != nullptr) pml2desc->IncrementReferenceCount();
+        if unlikely(pml1desc != nullptr) pml1desc->IncrementReferenceCount();
+
+        PageDescriptor * desc;
+
+        if (mm.Vas->Allocator->TryGetPageDescriptor(paddr, desc))
+            desc->IncrementReferenceCount();
+        //  The page doesn't have to be in an allocation space.
+
+        if (!res.IsOkayResult())
+            return res;
+    }
+
+    return res; //*/
 }
 
 Handle MemoryManager::FreePages(const vaddr_t vaddr, const size_t count)

@@ -36,14 +36,17 @@ namespace Beelzebub { namespace Memory
         static const vaddr_t KernelHeapStart      = HandleTablesEnd;
         static const vaddr_t KernelHeapEnd        = 0xFFFFFE0000000000ULL;
         static const vsize_t KernelHeapLength     = KernelHeapEnd - KernelHeapStart;
+        static const vsize_t KernelHeapPageCount  = KernelHeapLength >> 12;
 
-        static vaddr_t KernelModulesCursor;
+        static volatile vaddr_t KernelModulesCursor;
         static Spinlock KernelModulesLock;
 
+        static volatile vaddr_t PasDescriptorsCursor;
         static Spinlock PasDescriptorsLock;
 
         static Spinlock HandleTablesLock;
 
+        static volatile vaddr_t KernelHeapCursor;
         static volatile size_t KernelHeapLockCount;
         static Spinlock KernelHeapMasterLock;
 
@@ -58,6 +61,7 @@ namespace Beelzebub { namespace Memory
         __bland __forceinline MemoryManagerAmd64(VirtualAllocationSpace * const vas)
             : Vas(vas)
             , UserLock()
+            , UserHeapCursor(1 << 12)
         {
 
         }
@@ -73,5 +77,9 @@ namespace Beelzebub { namespace Memory
         /*  Locks  */
 
         Spinlock UserLock;
+
+        /*  Cursors  */
+
+        volatile vaddr_t UserHeapCursor;
     };
 }}
