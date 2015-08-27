@@ -37,11 +37,32 @@ PageAllocator mainAllocator;
 VirtualAllocationSpace bootstrapVas;
 MemoryManagerAmd64 bootstrapMemMgr;
 
-volatile uintptr_t CpuDataBase;
-
 volatile bool bootstrapReady = false;
 
 CpuId Beelzebub::System::BootstrapProcessorId;
+
+/*  CPU data  */
+
+volatile uintptr_t CpuDataBase;
+volatile size_t CpuIndexCounter = (size_t)0;
+
+__bland void InitializeCpuData()
+{
+    uintptr_t loc = __atomic_fetch_add(&CpuDataBase, Cpu::CpuDataSize, __ATOMIC_SEQ_CST);
+    CpuData * data = (CpuData *)loc;
+
+    Cpu::WriteMsr(Msr::IA32_GS_BASE, (uint64_t)loc);
+
+    size_t ind = __atomic_fetch_add(&CpuIndexCounter, 1, __ATOMIC_SEQ_CST);
+
+    data->Index = ind;
+
+    assert(Cpu::GetIndex() == ind
+        , "Failed to set CPU index..? It should be %us but it %us is returned."
+        , ind, Cpu::GetIndex());
+
+    //msg("-- Core #%us @ %Xp.%n", ind, loc);
+}
 
 /*  Entry points  */ 
 
@@ -57,8 +78,16 @@ void kmain_ap()
     while (!bootstrapReady) ;
     //  Await!
 
+    if (VirtualAllocationSpace::NX)
+        Cpu::EnableNxBit();
+
     bootstrapVas.Activate();
+    //bootstrapMemMgr.Activate();
     //  Perfectly valid solution.
+
+    InitializeCpuData();
+
+    //while (true) { }
 
     Beelzebub::Secondary();
 }
@@ -361,6 +390,10 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     bootstrapVas.Bootstrap();
     msg("Done.%n");
 
+    msg("Statically initializing the memory manager... ");
+    MemoryManager::Initialize();
+    msg("Done.%n");
+
     msg("Constructing bootstrap memory manager... ");
     new (&bootstrapMemMgr) MemoryManagerAmd64(&bootstrapVas);
     msg("Done.%n");
@@ -372,7 +405,34 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     size_t cpuDataSize = JG_INFO_ROOT_EX->cpu_count * Cpu::CpuDataSize;
     size_t cpuDataPageCount = (cpuDataSize + PageSize - 1) / PageSize;
 
-    //  TODO ASAP
+    //  This is where the CPU data will sit.
+    CpuDataBase = MemoryManagerAmd64::KernelModulesCursor;
+
+    MemoryManagerAmd64::KernelModulesCursor += cpuDataPageCount << 12;
+    //  The CPU data will snuggle in with the kernel modules. Whoopsie!
+    //  And advance the cursor...
+
+    for (size_t i = 0; i < cpuDataPageCount; ++i)
+    {
+		PageDescriptor * desc = nullptr;
+
+		const vaddr_t vaddr = CpuDataBase + (i << 12);
+		const paddr_t paddr = mainAllocator.AllocatePage(desc);
+
+		assert(paddr != nullptr && desc != nullptr
+			, "  Unable to allocate a physical page for CPU-specific data!");
+
+		res = BootstrapMemoryManager->MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+
+		assert(res.IsOkayResult()
+			, "  Failed to map page at %Xp (%XP) for CPU-specific data: %H."
+			, vaddr, paddr
+			, res);
+
+        msg("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
+    }
+
+    InitializeCpuData();
 
     //  RELEASING APs
 
@@ -380,7 +440,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     //  DUMPING MMAP
 
-    initialSerialTerminal.WriteLine("IND |A|    Address     |     Length     |       End      |");
+    initialSerialTerminal.WriteLine("%nIND |A|    Address     |     Length     |       End      |");
 
     for (uint32_t i = 0; i < cnt; i++)
     {
@@ -443,4 +503,6 @@ void InitializeMemory()
     initialSerialTerminal.WriteLine();
 
     initialSerialTerminal.WriteLine();
+
+    Cpu::WriteBackAndInvalidateCache();
 }
