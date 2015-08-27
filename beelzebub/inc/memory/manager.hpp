@@ -55,8 +55,11 @@ namespace Beelzebub { namespace Memory
     enum class AllocatedPageType : uint32_t
     {
         //  The physical page selected will be suitable for general use
-        //  in the kernel heap and applications. 64-bit preferred.
+        //  in the kernel heap and applications. Highest preferred.
         PhysicalGeneral      = 0x00000000,
+        //  The physical page selected will have a 64-bit address,
+        //  suitable for certain devices.
+        Physical64bit        = 0x00000000,
         //  The physical page selected will have a 32-bit address,
         //  suitable for certain devices.
         Physical32bit        = 0x00000010,
@@ -91,6 +94,10 @@ namespace Beelzebub { namespace Memory
     class MemoryManager
     {
     public:
+
+        /*  Statics  */
+
+        __cold __bland static void Initialize();
 
         /*  Status  */
 
