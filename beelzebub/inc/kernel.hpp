@@ -1,10 +1,8 @@
 #pragma once
 
-#define __BEELZEBUB__DEBUG  true
-
+#include <metaprogramming.h>
 #include <memory/manager.hpp>
 #include <architecture.h>
-#include <metaprogramming.h>
 
 namespace Beelzebub
 {

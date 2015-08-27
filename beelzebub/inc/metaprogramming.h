@@ -1,5 +1,7 @@
 #pragma once
 
+#define __BEELZEBUB__DEBUG  true
+
 #include <stdint.h>
 #include "stddef.h"
 #include <metaprogramming_arc.h>
