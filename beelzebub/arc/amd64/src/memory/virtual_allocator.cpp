@@ -459,18 +459,16 @@ Handle VirtualAllocationSpace::SetPageFlags(const vaddr_t vaddr, const PageFlags
 
 /*  Constructor(s)  */
 
-Handle VirtualAllocationSpace::Iterator::Create(Iterator & dst, VirtualAllocationSpace * const space, const vaddr_t vaddr, const vsize_t count)
+Handle VirtualAllocationSpace::Iterator::Create(Iterator & dst, VirtualAllocationSpace * const space, const vaddr_t vaddr)
 {
     if unlikely(0 != (vaddr & 0xFFF))
         return Handle(HandleResult::PageUnaligned);
-    if unlikely(count < 1)
-        return Handle(HandleResult::ArgumentOutOfRange);
 
-    if unlikely((vaddr + (count << 12) > FractalStart && vaddr < FractalEnd     )
-             || (vaddr + (count << 12) > LowerHalfEnd && vaddr < HigherHalfStart))
+    if unlikely((vaddr >= FractalStart && vaddr < FractalEnd     )
+             || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart))
         return Handle(HandleResult::PageMapIllegalRange);
 
-    dst = VirtualAllocationSpace::Iterator(space, vaddr, count);
+    dst = VirtualAllocationSpace::Iterator(space, vaddr);
 
     return dst.Initialize();
 }
@@ -479,6 +477,9 @@ Handle VirtualAllocationSpace::Iterator::Initialize()
 {
     const vaddr_t vaddr = this->VirtualAddress;
     const bool nonLocal = (vaddr < LowerHalfEnd) && !this->AllocationSpace->IsLocal();
+
+    if (nonLocal)
+        this->AllocationSpace->Alienate();
 
     /*Pml4 & pml4 = *(nonLocal ? GetAlienPml4() : GetLocalPml4());
     const uint16_t ind4 = GetPml4Index(vaddr);
@@ -529,7 +530,39 @@ Handle VirtualAllocationSpace::Iterator::Initialize()
     return Handle(HandleResult::PageUnmapped);
 }
 
-const VirtualAllocationSpace::Iterator & VirtualAllocationSpace::Iterator::operator +=(VirtualAllocationSpace::Iterator::DifferenceType diff)
+const VirtualAllocationSpace::Iterator & VirtualAllocationSpace::Iterator::operator +=(const VirtualAllocationSpace::Iterator::DifferenceType diff)
+{
+    const vaddr_t vaddr = this->VirtualAddress;
+    const vaddr_t target = vaddr + (diff << 12);
+
+    //  Must not go over the gap!
+
+    assert(target < LowerHalfEnd || target > HigherHalfStart
+        , "Paging table crawling iterator attempted to move over the void! (%Xp + %us pages = %Xp)"
+        , vaddr, diff, target);
+
+    //  A bit of over- and underflow checking.
+
+    if (diff > 0)
+        assert((vaddr_t)(diff << 12) < (~((vaddr_t)0) - vaddr)
+        , "Paging table crawling iterator attempted to overflow! (%Xp + %us pages [%Xp])"
+        , vaddr, diff, diff << 12);
+    else if (diff < 0)
+        assert(vaddr >= (vaddr_t)(-(diff << 12))
+        , "Paging table crawling iterator attempted to underflow! (%Xp - %us pages [%Xp])"
+        , vaddr, diff, diff << 12);
+    else
+        return *this;
+
+    //  Set the new address, which is now valid, and initialize.
+
+    this->VirtualAddress = target;
+    this->Initialize();
+
+    return *this;
+}
+
+const VirtualAllocationSpace::Iterator VirtualAllocationSpace::Iterator::operator +(const VirtualAllocationSpace::Iterator::DifferenceType diff)
 {
     const vaddr_t vaddr = this->VirtualAddress;
     const vaddr_t target = vaddr + (diff << 12);
@@ -553,10 +586,110 @@ const VirtualAllocationSpace::Iterator & VirtualAllocationSpace::Iterator::opera
     else
         return *this;
 
-    //  Set the new address, which is now valid, and initialize.
-    
-    this->VirtualAddress = target;
-    this->Initialize();
+    //  Create new address space. :3
 
-    return *this;
+    Iterator other;
+
+    Handle res = Create(other, this->AllocationSpace, target);
+
+    assert(res.IsOkayResult()
+        , "Failed to create new Iterator instance: %H. (%Xp - %us pages [%Xp])"
+        , res, vaddr, diff, diff << 12);
+    //  Must not fail.
+
+    return other;
+}
+
+Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc)
+{
+    const vaddr_t vaddr = this->VirtualAddress;
+    const bool nonLocal = (vaddr < LowerHalfEnd) && !this->AllocationSpace->IsLocal();
+    uint16_t ind;   //  Used to hold the current index.
+
+    Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
+
+    if (nonLocal)
+    {
+        this->AllocationSpace->Alienate();
+
+        pml4p = GetAlienPml4();
+        pml3p = GetAlienPml3(vaddr);
+        pml2p = GetAlienPml2(vaddr);
+        pml1p = GetAlienPml1(vaddr);
+    }
+    else
+    {
+        pml4p = GetLocalPml4();
+        pml3p = GetLocalPml3(vaddr);
+        pml2p = GetLocalPml2(vaddr);
+        pml1p = GetLocalPml1(vaddr);
+    }
+
+    Pml4 & pml4 = *pml4p;
+    ind = GetPml4Index(vaddr);
+
+    if unlikely(!pml4[ind].GetPresent())
+    {
+        assert(pml4[ind].IsNull()
+            , "Absent PML4 entry (#%u2 for %Xp) is non-null!"
+            , ind, vaddr);
+
+        const paddr_t newPml3 = this->AllocationSpace->Allocator->AllocatePage(pml3desc);
+
+        if (newPml3 == 0)
+            return Handle(HandleResult::OutOfMemory);
+
+        pml4[ind] = Pml4Entry(newPml3, true, true, true, false);
+        //  Present, writable, user-accessible, executable.
+
+        memset(pml3p, 0, 4096);
+    }
+
+    Pml3 & pml3 = *pml3p;
+    ind = GetPml3Index(vaddr);
+
+    if unlikely(!pml3[ind].GetPresent())
+    {
+        assert(pml3[ind].IsNull()
+            , "Absent PDPT entry (#%u2 for %Xp) is non-null!"
+            , ind, vaddr);
+
+        const paddr_t newPml2 = this->AllocationSpace->Allocator->AllocatePage(pml2desc);
+
+        if (newPml2 == 0)
+            return Handle(HandleResult::OutOfMemory);
+
+        pml3[ind] = Pml3Entry(newPml2, true, true, true, false);
+        //  Present, writable, user-accessible, executable.
+
+        memset(pml2p, 0, 4096);
+    }
+
+    Pml2 & pml2 = *pml2p;
+    ind = GetPml2Index(vaddr);
+
+    //  Yes, this one is likely to be absent.
+    if likely(!pml2[ind].GetPresent())
+    {
+        assert(pml2[ind].IsNull()
+            , "Absent PD entry (#%u2 for %Xp) is non-null!"
+            , ind, vaddr);
+
+        const paddr_t newPml1 = this->AllocationSpace->Allocator->AllocatePage(pml1desc);
+
+        if (newPml1 == 0)
+            return Handle(HandleResult::OutOfMemory);
+
+        pml2[ind] = Pml2Entry(newPml1, true, true, true, false);
+        //  Present, writable, user-accessible, executable.
+
+        memset(pml1p, 0, 4096);
+    }
+
+    Pml1 & pml1 = *pml1p;
+    ind = GetPml1Index(vaddr);
+
+    this->Entry = &pml1[ind];
+
+    return Handle(HandleResult::Okay);
 }
