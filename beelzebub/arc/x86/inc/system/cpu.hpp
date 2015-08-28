@@ -90,7 +90,7 @@ namespace Beelzebub { namespace System
 
         static __bland __forceinline void Halt()
         {
-            asm volatile ("hlt\n\t");
+            asm volatile ( "hlt \n\t" );
         }
 
         /*  Interrupts  */
@@ -108,12 +108,12 @@ namespace Beelzebub { namespace System
 
         static __bland __forceinline void EnableInterrupts()
         {
-            asm volatile ("sti\n\t");
+            asm volatile ( "sti \n\t" );
         }
 
         static __bland __forceinline void DisableInterrupts()
         {
-            asm volatile ("cli\n\t");
+            asm volatile ( "cli \n\t" );
         }
 
         static __bland __forceinline void LIDT(const uintptr_t base
@@ -135,7 +135,7 @@ namespace Beelzebub { namespace System
 
         static __bland __forceinline void WriteBackAndInvalidateCache()
         {
-            asm volatile ("wbinvd\n\t");
+            asm volatile ( "wbinvd \n\t" : : : "memory" );
         }
 
         /*  Far memory ops  */
@@ -145,7 +145,8 @@ namespace Beelzebub { namespace System
             uint8_t ret;
 
             asm volatile ( "movb %%fs:(%1), %0 \n\t"
-                         : "=r"(ret) : "r"(off) );
+                         : "=r"(ret)
+                         : "r"(off) );
 
             return ret;
         }
@@ -163,7 +164,8 @@ namespace Beelzebub { namespace System
             uint8_t ret;
 
             asm volatile ( "movb %%gs:(%1), %0 \n\t"
-                         : "=r"(ret) : "r"(off) );
+                         : "=r"(ret)
+                         : "r"(off) );
 
             return ret;
         }
@@ -181,7 +183,8 @@ namespace Beelzebub { namespace System
             uint16_t ret;
 
             asm volatile ( "movw %%fs:(%1), %0 \n\t"
-                         : "=r"(ret) : "r"(off) );
+                         : "=r"(ret)
+                         : "r"(off) );
 
             return ret;
         }
@@ -199,7 +202,8 @@ namespace Beelzebub { namespace System
             uint16_t ret;
 
             asm volatile ( "movw %%gs:(%1), %0 \n\t"
-                         : "=r"(ret) : "r"(off) );
+                         : "=r"(ret)
+                         : "r"(off) );
 
             return ret;
         }
@@ -217,7 +221,8 @@ namespace Beelzebub { namespace System
             uint32_t ret;
 
             asm volatile ( "movl %%fs:(%1), %0 \n\t"
-                         : "=r"(ret) : "r"(off) );
+                         : "=r"(ret)
+                         : "r"(off) );
 
             return ret;
         }
@@ -235,7 +240,8 @@ namespace Beelzebub { namespace System
             uint32_t ret;
 
             asm volatile ( "movl %%gs:(%1), %0 \n\t"
-                         : "=r"(ret) : "r"(off) );
+                         : "=r"(ret)
+                         : "r"(off) );
 
             return ret;
         }
@@ -254,7 +260,8 @@ namespace Beelzebub { namespace System
             uint64_t ret;
 
             asm volatile ( "movq %%fs:(%1), %0 \n\t"
-                         : "=r"(ret) : "r"(off) );
+                         : "=r"(ret)
+                         : "r"(off) );
 
             return ret;
         }
@@ -272,7 +279,8 @@ namespace Beelzebub { namespace System
             uint64_t ret;
 
             asm volatile ( "movq %%gs:(%1), %0 \n\t"
-                         : "=r"(ret) : "r"(off) );
+                         : "=r"(ret)
+                         : "r"(off) );
 
             return ret;
         }
@@ -374,56 +382,80 @@ namespace Beelzebub { namespace System
         static __bland __forceinline void Out8(const uint16_t port
                                              , const uint8_t value)
         {
-            asm volatile ("outb %1, %0 \n\t" :: "dN" (port), "a" (value));
+            asm volatile ( "outb %1, %0 \n\t"
+                         :
+                         : "dN" (port), "a" (value) );
         }
 
         static __bland __forceinline void Out16(const uint16_t port
                                               , const uint16_t value)
         {
-            asm volatile ("outw %1, %0 \n\t" :: "dN" (port), "a" (value));
+            asm volatile ( "outw %1, %0 \n\t"
+                         :
+                         : "dN" (port), "a" (value) );
         }
 
         static __bland __forceinline void Out32(const uint16_t port
                                               , const uint32_t value)
         {
-            asm volatile ("outl %1, %0 \n\t" :: "dN" (port), "a" (value));
+            asm volatile ( "outl %1, %0 \n\t"
+                         :
+                         : "dN" (port), "a" (value) );
         }
 
 
         static __bland __forceinline void In8(const uint16_t port, uint8_t & value)
         {
-            asm volatile ("inb %1, %0 \n\t" : "=a" (value) : "dN" (port));
+            asm volatile ( "inb %1, %0 \n\t"
+                         : "=a" (value)
+                         : "dN" (port) );
         }
 
         static __bland __forceinline void In16(const uint16_t port, uint16_t & value)
         {
-            asm volatile ("inw %1, %0 \n\t" : "=a" (value) : "dN" (port));
+            asm volatile ( "inw %1, %0 \n\t"
+                         : "=a" (value)
+                         : "dN" (port) );
         }
 
         static __bland __forceinline void In32(const uint16_t port, uint32_t & value)
         {
-            asm volatile ("inl %1, %0 \n\t" : "=a" (value) : "dN" (port));
+            asm volatile ( "inl %1, %0 \n\t"
+                         : "=a" (value)
+                         : "dN" (port) );
         }
 
 
         static __bland __forceinline uint8_t In8(const uint16_t port)
         {
             uint8_t value;
-            asm volatile ("inb %1, %0 \n\t" : "=a" (value) : "dN" (port));
+
+            asm volatile ( "inb %1, %0 \n\t"
+                         : "=a" (value)
+                         : "dN" (port) );
+
             return value;
         }
 
         static __bland __forceinline uint16_t In16(const uint16_t port)
         {
             uint16_t value;
-            asm volatile ("inw %1, %0 \n\t" : "=a" (value) : "dN" (port));
+
+            asm volatile ( "inw %1, %0 \n\t"
+                         : "=a" (value)
+                         : "dN" (port) );
+
             return value;
         }
 
         static __bland __forceinline uint32_t In32(const uint16_t port)
         {
             uint32_t value;
-            asm volatile ("inl %1, %0 \n\t" : "=a" (value) : "dN" (port));
+
+            asm volatile ( "inl %1, %0 \n\t"
+                         : "=a" (value)
+                         : "dN" (port) );
+
             return value;
         }
 
@@ -442,7 +474,7 @@ namespace Beelzebub { namespace System
 
             asm volatile ( "rdmsr \n\t"
                          : "=a" (a), "=d" (d)
-                         : "c" (reg));
+                         : "c" (reg) );
 
             return {{d, a}};
         }
@@ -453,7 +485,7 @@ namespace Beelzebub { namespace System
 
             asm volatile ( "rdmsr \n\t"
                          : "=a" (a), "=d" (d)
-                         : "c" (reg));
+                         : "c" (reg) );
 
             return (uint64_t)a | ((uint64_t)d << 32);
         }
@@ -462,7 +494,7 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "rdmsr \n\t"
                          : "=a" (a), "=d" (d)
-                         : "c" (reg));
+                         : "c" (reg) );
         }
 
         static __bland __forceinline void ReadMsr(const Msr reg, uint64_t & val)
@@ -471,7 +503,7 @@ namespace Beelzebub { namespace System
 
             asm volatile ( "rdmsr \n\t"
                          : "=a" (a), "=d" (d)
-                         : "c" (reg));
+                         : "c" (reg) );
 
             val = (uint64_t)a | ((uint64_t)d << 32);
         }
@@ -480,7 +512,7 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "wrmsr \n\t"
                          : 
-                         : "c" (reg), "a" (val.Dwords.Low), "d" (val.Dwords.High));
+                         : "c" (reg), "a" (val.Dwords.Low), "d" (val.Dwords.High) );
         }
 
         static __bland __forceinline void WriteMsr(const Msr reg, const uint64_t val)
@@ -490,7 +522,7 @@ namespace Beelzebub { namespace System
 
             asm volatile ( "wrmsr \n\t"
                          : 
-                         : "c" (reg), "a" (a), "d" (d));
+                         : "c" (reg), "a" (a), "d" (d) );
         }
 
         MSRFUNC1(IA32_EFER, EFER, Ia32Efer)
@@ -506,7 +538,7 @@ namespace Beelzebub { namespace System
                            "wrmsr           \n\t"
                          :
                          : "c" (reg)
-                         : "eax", "edx");
+                         : "eax", "edx" );
         }
 
         static __bland size_t ComputeIndex();
