@@ -129,6 +129,12 @@
     <ClCompile Include="arc\x86\src\string.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\build_info.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\execution\elf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\execution\process.hpp">
@@ -276,6 +282,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="arc\x86\inc\ports.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\execution\elf.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

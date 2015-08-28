@@ -46,6 +46,8 @@
 
 #define __packed           __attribute__((packed))
 
+#define __build_data       __attribute__((section(".build_data")))
+
 #else
 
 #define __forceinline      inline
@@ -64,6 +66,8 @@
 #define __prefetch(...)    do { } while (false)
 
 #define __packed
+
+#define __build_data
 
 #endif
 
