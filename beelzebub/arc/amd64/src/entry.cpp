@@ -25,6 +25,7 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Ports;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Memory;
@@ -56,6 +57,9 @@ __bland void InitializeCpuData()
     size_t ind = __atomic_fetch_add(&CpuIndexCounter, 1, __ATOMIC_SEQ_CST);
 
     data->Index = ind;
+
+    data->HeapSpinlock = Spinlock().GetValue();
+    data->HeapSpinlockPointer = (Spinlock *)&data->HeapSpinlock;
 
     assert(Cpu::GetIndex() == ind
         , "Failed to set CPU index..? It should be %us but it %us is returned."
