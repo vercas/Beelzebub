@@ -16,7 +16,7 @@ using namespace Beelzebub::System;
 void Beelzebub::System::MiscellaneousInterruptHandler(IsrState * const state)
 {
     assert(false
-        , "<<MISC INT @ %Xp: v%u1, ec%X8>>", INSTRUCTION_POINTER, state->Vector, state->ErrorCode);
+        , "<<MISC INT @ %Xp (%Xs) - vector %u1>>", INSTRUCTION_POINTER, state->ErrorCode, state->Vector);
 }
 
 /**
