@@ -6,7 +6,7 @@
 namespace Beelzebub { namespace Execution {
     /*  Constants  */
 
-    extern ElfMagicNumber;
+    extern uint32_t ElfMagicNumber;
 
     /*  Enumerations  */
 
