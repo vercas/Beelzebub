@@ -51,8 +51,12 @@ Handle VirtualAllocationSpace::Bootstrap()
     VirtualAllocationSpace::Page1GB = BootstrapProcessorId.CheckFeature(CpuFeature::Page1GB);
     VirtualAllocationSpace::NX      = BootstrapProcessorId.CheckFeature(CpuFeature::NX);
 
+    msg("NX bit: %B, 1-GiB pages: %B%n", NX, Page1GB);
+
     if (NX)
         Cpu::EnableNxBit();
+
+    msg("Enabled NX bit.%n");
 
     PageDescriptor * desc = nullptr;
 
@@ -60,9 +64,13 @@ Handle VirtualAllocationSpace::Bootstrap()
 
     if (pml4_paddr == nullptr)
         return Handle(HandleResult::OutOfMemory);
+
+    msg("New PML4 is at %XP", pml4_paddr);
     
     Pml4 & pml4 = *((Pml4 *)pml4_paddr);
     //  Cheap.
+
+    msg(" (%Xp).%n", &pml4);
 
     memset((void *)pml4_paddr, 0, 4096);
     //  Clear it all out!
@@ -72,10 +80,14 @@ Handle VirtualAllocationSpace::Bootstrap()
     Cr3 cr3 = Cpu::GetCr3();
     Pml4 & currentPml4 = *cr3.GetPml4Ptr();
 
+    msg("Current PML4 is at %Xp.%n", &currentPml4);
+
     for (uint16_t i = 0; i < 256; ++i)
         pml4[i] = currentPml4[i];
     //  Temporarily-preserved identity mapping.
     //  The first cloning will discard it.
+
+    msg("Preserved lower 256 entries.%n");
 
     pml4[(uint16_t)511] = currentPml4[(uint16_t)511];
 
@@ -91,13 +103,21 @@ Handle VirtualAllocationSpace::Bootstrap()
         pml4[i] = Pml4Entry(pml3_paddr, true, true, true, false);
     }
 
+    msg("Allocated PDPTs for new PML4.%n");
+
     pml4[LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, NX);
     pml4[AlienFractalIndex] = pml4[LocalFractalIndex];
 
     this->Pml4Address = pml4_paddr;
 
+    msg("Activating... ");
+
+    breakpoint();
+
     //  Activation, to finish the process.
     this->Activate();
+
+    msg("Done!%nRemapping allocation spaces... ");
 
     //  Remapping PAS control structures.
 
@@ -155,9 +175,16 @@ Handle VirtualAllocationSpace::Bootstrap()
 
     } while ((cur = cur->Next) != nullptr);
 
+    msg("Done!%n Getting rid of identity mappings... ");
+
     for (uint16_t i = 0; i < 256; ++i)
+    {
+        msg("%u2 ", i);
         pml4[i] = Pml4Entry();
+    }
     //  Getting rid of those naughty identity maps.
+
+    msg("Done!%n Re-activating to flush TLBs... ");
 
     //  Re-activate, to flush the identity maps.
     this->Activate();

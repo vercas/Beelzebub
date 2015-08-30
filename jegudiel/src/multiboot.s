@@ -52,4 +52,4 @@ multiboot_header:
 	dd 0
 	dd 0
 	dd 0
-	dd 32
+	dd 0

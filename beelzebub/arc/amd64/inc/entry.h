@@ -14,10 +14,11 @@
 #define JG_INFO_MODULE_EX          ((jg_info_module_t *) JG_INFO_OFFSET_EX(module))
 #define JG_INFO_STRING_EX          ((char *) JG_INFO_OFFSET_EX(string))
 
-const size_t PageSize = 4 * 1024;
+//__extern const size_t PageSize = 4 * 1024;
+#define PAGE_SIZE ((size_t)4096)
 
 __extern __cold __bland void kmain_bsp();
 __extern __cold __bland void kmain_ap();
 
-__cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t freeStart);
+__extern __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t freeStart);
 

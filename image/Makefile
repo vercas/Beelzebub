@@ -11,14 +11,16 @@ include ../Beelzebub.mk
 
 ISO_TARGET_DIR		:= $(BUILD_DIR)/iso
 
-ISO_SOURCE_GRUB		:= ./grub
+ISO_SOURCE_GRUB		:= ./grub2
 ISO_SOURCE_ELTORITO	:= $(ISO_SOURCE_GRUB)/stage2_eltorito
 ISO_SOURCE_GRUBCONF	:= $(ISO_SOURCE_GRUB)/grub.$(ARC).cfg
+ISO_SOURCE_FONT		:= $(ISO_SOURCE_GRUB)/font.pf2
 
 ISO_TARGET_BOOT		:= boot
 ISO_TARGET_GRUB		:= $(ISO_TARGET_BOOT)/grub
 ISO_TARGET_ELTORITO	:= $(ISO_TARGET_GRUB)/stage2_eltorito
 ISO_TARGET_GRUBCONF	:= $(ISO_TARGET_GRUB)/grub.cfg
+ISO_TARGET_FONT		:= $(ISO_TARGET_GRUB)/font.pf2
 ISO_TARGET_KERNEL	:= $(ISO_TARGET_BOOT)/$(KERNEL_BIN)
 
 BOOTLOADER			:= $(PREFIX)/bin/jegudiel.bin
@@ -44,6 +46,7 @@ iso: $(ISO_PATH)
 $(ISO_PATH): $(ISO_TARGET_DIR)/$(ISO_TARGET_KERNEL) \
 			 $(ISO_TARGET_DIR)/$(ISO_TARGET_ELTORITO) \
 			 $(ISO_TARGET_DIR)/$(ISO_TARGET_GRUBCONF) \
+			 $(ISO_TARGET_DIR)/$(ISO_TARGET_FONT) \
 			 $(MISCELLANEOUS_TARGETS)
 	@ echo "/ISO:" $@
 	@ mkisofs -R -b $(ISO_TARGET_ELTORITO) -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(ISO_TARGET_DIR) 2> /dev/null
@@ -85,6 +88,12 @@ $(ISO_TARGET_DIR)/$(ISO_TARGET_ELTORITO): $(ISO_SOURCE_ELTORITO) $(ISO_TARGET_DI
 #########################
 # Copy GRUB config file #
 $(ISO_TARGET_DIR)/$(ISO_TARGET_GRUBCONF): $(ISO_SOURCE_GRUBCONF) $(ISO_TARGET_DIR)/$(ISO_TARGET_GRUB)
+	@ echo "/CPY:" $< ">" $@
+	@ cp $< $@
+
+#######################
+# Copy GRUB font file #
+$(ISO_TARGET_DIR)/$(ISO_TARGET_FONT): $(ISO_SOURCE_FONT) $(ISO_TARGET_DIR)/$(ISO_TARGET_GRUB)
 	@ echo "/CPY:" $< ">" $@
 	@ cp $< $@
 

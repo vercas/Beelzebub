@@ -6,6 +6,8 @@
 #include <handles.h>
 #include <synchronization/spinlock.hpp>
 
+#include <debug_arch.hpp>
+
 #include <kernel.hpp>
 
 #ifdef __BEELZEBUB__DEBUG
@@ -16,10 +18,10 @@ if unlikely(!(cond))                                                    \
 
 //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
 #define msg(...) do {                                                   \
-    if likely(Beelzebub::MainTerminal != nullptr)                       \
+    if likely(Beelzebub::Debug::DebugTerminal != nullptr)                       \
     {                                                                   \
         (&Beelzebub::Debug::MsgSpinlock)->Acquire();                    \
-        Beelzebub::MainTerminal->WriteFormat(__VA_ARGS__);              \
+        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);              \
         (&Beelzebub::Debug::MsgSpinlock)->Release();                    \
     }                                                                   \
 } while (false)
@@ -28,10 +30,16 @@ if unlikely(!(cond))                                                    \
 #define msg(...) do {} while(false)
 #endif
 
+#ifndef breakpoint
+#define breakpoint(...) do {} while (false)
+#endif
+
 using namespace Beelzebub::Synchronization;
 
 namespace Beelzebub { namespace Debug
 {
+    extern TerminalBase * DebugTerminal;
+
     extern Spinlock MsgSpinlock;
 
     __cold __bland __noreturn void CatchFire(const char * const file

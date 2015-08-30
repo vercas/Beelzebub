@@ -34,6 +34,8 @@ void Beelzebub::Main()
 
     MainTerminal->WriteLine("Prototerminal initialized.");
 
+    //breakpoint();
+
     //  Initialize the memory for partition and allocation.
     //  Also platform-specific.
     MainTerminal->Write("[....] Initializing memory...");

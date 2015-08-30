@@ -25,8 +25,8 @@ void CpuId::Initialize()
     Execute(0x00000000U
         , this->MaxStandardValue
         , this->VendorString.Integers[0]
-        , this->VendorString.Integers[1]
-        , this->VendorString.Integers[2]);
+        , this->VendorString.Integers[2]
+        , this->VendorString.Integers[1]);
 
     //char otherVendorString[13];
     uint32_t dummy;

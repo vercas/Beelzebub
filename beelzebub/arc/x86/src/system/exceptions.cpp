@@ -62,6 +62,8 @@ void Beelzebub::System::DoubleFaultHandler(IsrState * const state)
 {
     assert(false
         , "<<DOUBLE FAULT @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
+    asm volatile ("cli \n\t");
+    while (true) { asm volatile ("hlt \n\t"); }
 }
 
 /**

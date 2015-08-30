@@ -152,6 +152,7 @@
     <ClInclude Include="arc\amd64\inc\ports.h" />
     <ClInclude Include="arc\amd64\inc\screen.h" />
     <ClInclude Include="arc\amd64\inc\system\registers.hpp" />
+    <ClInclude Include="arc\x86\inc\debug_arch.hpp" />
     <ClInclude Include="arc\x86\inc\keyboard.h" />
     <ClInclude Include="arc\x86\inc\memory.hpp" />
     <ClInclude Include="arc\x86\inc\metaprogramming_arc.h" />

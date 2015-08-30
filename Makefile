@@ -22,14 +22,14 @@ ia32:		image
 ia32pae:	image
 amd64:		jegudiel image
 
-run: image
+run: $(ISO_PATH)
 	@ bochs -q
 	
-qemu: image
-	@ qemu-system-x86_64 -cdrom $(PREFIX)/boot.iso -smp 4
+qemu: $(ISO_PATH)
+	@ qemu-system-x86_64 -cdrom $(ISO_PATH) -smp 4
 
-qemu-serial: image
-	@ qemu-system-x86_64 -cdrom $(PREFIX)/boot.iso -smp 4 -nographic
+qemu-serial: $(ISO_PATH)
+	@ qemu-system-x86_64 -cdrom $(ISO_PATH) -smp 4 -nographic
 	
 jegudiel:
 	@ $(MAKE) -C jegudiel/ $(ARC) install -j 8

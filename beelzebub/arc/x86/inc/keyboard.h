@@ -25,7 +25,7 @@
 
 #pragma once
 #include <isr.h>
-#include <stdint.h>
+#include <metaprogramming.h>
 
 #define KEYBOARD_CODE_ESCAPED   0xE0
 #define KEYBOARD_CODE_LEFT      0x4B
@@ -39,23 +39,25 @@
  * Whether the escape scan code has been sent and the next
  * scan code is escaped.
  */
-extern bool keyboard_escaped;
+__extern bool keyboard_escaped;
+
+__extern volatile int breakpointEscaped;
 
 /**
  * Initializes the keyboard support.
  */
-void keyboard_init(void);
+__extern void keyboard_init(void);
 
 /**
  * Sends a command to the keyboard controller.
  *
  * @param cmd the command to send
  */
-void keyboard_send_command(uint8_t cmd);
+__extern void keyboard_send_command(uint8_t cmd);
 
 /**
  * ISR for the keyboard IRQ.
  *
  * @param state state of the system
  */
-void keyboard_handler(IsrState * const state);
+__extern void keyboard_handler(IsrState * const state);

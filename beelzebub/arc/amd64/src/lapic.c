@@ -23,13 +23,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <jegudiel.h>
+#include <entry.h>
 #include <lapic.h>
 #include <metaprogramming.h>
 
 #include <screen.h>
 
-#define LAPIC_X2APIC_MODE (0 != (JG_INFO_ROOT->flags & JG_INFO_FLAG_X2APIC))
+#define LAPIC_X2APIC_MODE (0 != (JG_INFO_ROOT_EX->flags & JG_INFO_FLAG_X2APIC))
 
 static uint64_t __msr_read(uint32_t msr)
 {
@@ -50,7 +50,7 @@ static void __msr_write(uint32_t msr, uint64_t value)
 uint32_t lapic_register_read(uint16_t index)
 {
     if (!LAPIC_X2APIC_MODE) {
-        return *((uint32_t *) (index * 0x10 + JG_INFO_ROOT->lapic_paddr));
+        return *((uint32_t *) (index * 0x10 + JG_INFO_ROOT_EX->lapic_paddr));
     } else {
         return __msr_read(LAPIC_MSR_REGS + index);
     }
@@ -59,7 +59,7 @@ uint32_t lapic_register_read(uint16_t index)
 void lapic_register_write(uint16_t index, uint32_t value)
 {
     if (!LAPIC_X2APIC_MODE) {
-        *((uint32_t *) (index * 0x10 + JG_INFO_ROOT->lapic_paddr)) = value;
+        *((uint32_t *) (index * 0x10 + JG_INFO_ROOT_EX->lapic_paddr)) = value;
     } else {
         __msr_write(LAPIC_MSR_REGS + index, value);
     }

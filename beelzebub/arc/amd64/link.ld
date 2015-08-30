@@ -3,6 +3,9 @@ ENTRY(kmain_bsp)
 SECTIONS {
     .text 0xFFFFFF8000000000 : {
         *(.text)
+    }
+
+    .rodata : {
         *(.rodata)
     }
 
@@ -17,4 +20,6 @@ SECTIONS {
     /DISCARD/ : {
         *(.comment)
     }
+
+    . = ALIGN(4096);
 }

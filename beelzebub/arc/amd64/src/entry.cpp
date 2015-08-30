@@ -7,6 +7,7 @@
 #include <system/cpuid.hpp>
 
 #include <jegudiel.h>
+#include <multiboot.h>
 #include <isr.h>
 #include <keyboard.h>
 #include <screen.h>
@@ -16,6 +17,7 @@
 #include <screen.h>
 
 #include <terminals/serial.hpp>
+#include <terminals/vbe.hpp>
 #include <memory/page_allocator.hpp>
 #include <system/exceptions.hpp>
 #include <kernel.hpp>
@@ -31,8 +33,14 @@ using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Memory::Paging;
 
-//uint8_t initialSerialTerminal[sizeof(SerialTerminal)];
+/*  Constants  */
+
+static const size_t PageSize = PAGE_SIZE;
+
+//uint8_t initialVbeTerminal[sizeof(SerialTerminal)];
 SerialTerminal initialSerialTerminal;
+VbeTerminal initialVbeTerminal;
+
 PageAllocationSpace mainAllocationSpace;
 PageAllocator mainAllocator;
 VirtualAllocationSpace bootstrapVas;
@@ -74,6 +82,11 @@ void kmain_bsp()
 {
     bootstrapReady = false;
 
+    IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
+    keyboard_init();
+
+    //breakpoint();
+
     Beelzebub::Main();
 }
 
@@ -110,13 +123,24 @@ TerminalBase * InitializeTerminalProto()
     //  Initializes the serial terminal.
     new (&initialSerialTerminal) SerialTerminal(&COM1);
 
+    Beelzebub::Debug::DebugTerminal = &initialSerialTerminal;
+
+    auto mbi = (multiboot_info_t *)JG_INFO_ROOT_EX->multiboot_paddr;
+
+    new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
+
+    Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
+
+    msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n", (uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
+
     //  And returns it.
-    return &initialSerialTerminal; // termPtr;
+    //return &initialSerialTerminal; // termPtr;
+    return &initialVbeTerminal;
 }
 
 TerminalBase * InitializeTerminalMain()
 {
-    return &initialSerialTerminal;
+    return &initialVbeTerminal;
 }
 
 /*  Interrupts  */
@@ -141,7 +165,9 @@ void InitializeInterrupts()
 
     IsrHandlers[32] = &SerialPort::IrqHandler;
 
-    //initialSerialTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
+    IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
+
+    //initialVbeTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
 }
 
 /**********************************************/
@@ -155,7 +181,7 @@ PageAllocationSpace * currentSpaceLocation;
 
 __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 {
-    /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
+    msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
 
     if (firstRegionCreated)
     {
@@ -170,7 +196,7 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
             currentSpaceLocation = nullptr;
             //  Nullify the location so it is recreated.
 
-            /*msg("MAX; ");//*/
+            msg("MAX; ");//*/
         }
 
         if (currentSpaceLocation == nullptr)
@@ -188,21 +214,24 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
                 , "Failed to reserve special page for further allocation space creation: %H"
                 , res);
 
-            /*msg("PAGE@%Xp; ", currentSpaceLocation);//*/
+            msg("PAGE@%Xp; ", currentSpaceLocation);//*/
         }
 
-        /*msg("SPA@%Xp; I=%u2; "
+        msg("SPA@%Xp; I=%u2; "
             , currentSpaceLocation + currentSpaceIndex
             , (uint16_t)currentSpaceIndex);//*/
+        breakpoint();
 
         PageAllocationSpace * space = new (currentSpaceLocation + currentSpaceIndex++) PageAllocationSpace(start, end, PageSize);
         //  One of the really neat things I like about C++.
 
         mainAllocator.PreppendAllocationSpace(space);
 
-        /*msg("%XP-%XP;%n"
+        msg("%XP-%XP;%n"
             , space->GetAllocationStart()
             , space->GetAllocationEnd());//*/
+
+        breakpoint();
 
         return space;
     }
@@ -217,7 +246,7 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
         currentSpaceLimit = PageSize / sizeof(PageAllocationSpace);
         currentSpaceLocation = nullptr;
 
-        /*msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
+        msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
             , &mainAllocationSpace, &mainAllocator
             , mainAllocationSpace.GetAllocationStart()
             , mainAllocationSpace.GetAllocationEnd()
@@ -275,10 +304,38 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
         }
     }
 
-    msg("Initializing memory over entries #%us-%us...%n", (size_t)(firstMap - map)
+    //  DUMPING MMAP
+
+    initialVbeTerminal.WriteLine("IND |A|    Address     |     Length     |       End      |");
+
+    for (uint32_t i = 0; i < cnt; i++)
+    {
+        jg_info_mmap_t & e = map[i];
+        //  Current map.
+
+        if (e.available == 0) continue;
+
+        initialVbeTerminal.WriteHex16((uint16_t)i);
+        initialVbeTerminal.Write("|");
+        initialVbeTerminal.Write(e.available ? "A" : " ");
+        initialVbeTerminal.Write("|");
+        initialVbeTerminal.WriteHex64(e.address);
+        initialVbeTerminal.Write("|");
+        initialVbeTerminal.WriteHex64(e.length);
+        initialVbeTerminal.Write("|");
+        initialVbeTerminal.WriteHex64(e.address + e.length);
+        initialVbeTerminal.WriteLine("|");
+    }
+
+    initialVbeTerminal.Write("Free memory start: ");
+    initialVbeTerminal.WriteHex64(freeStart);
+
+    initialVbeTerminal.WriteLine();
+
+    initialVbeTerminal.WriteFormat("Initializing memory over entries #%us-%us...%n", (size_t)(firstMap - map)
                                                         , (size_t)(lastMap - map));
-    msg(" Address rage: %X8-%X8.%n", start, end);
-    msg(" Maps start at %Xp.%n", firstMap);
+    initialVbeTerminal.WriteFormat(" Address rage: %X8-%X8.%n", start, end);
+    initialVbeTerminal.WriteFormat(" Maps start at %Xp.%n", firstMap);
 
     //  Mapping more momery, if available.
 
@@ -347,14 +404,16 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
                 }
             }
         }
+
+        breakpoint();
     }
 
-    initialSerialTerminal.WriteLine();
+    initialVbeTerminal.WriteLine();
 
     //  SPACE CREATION
 
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
-        if (m->available && m->length >= (2 * PageSize))
+        if (m->available != 0 && m->length >= (2 * PageSize))
         {
             if (m->address < start && (m->address + m->length) > start)
                 //  Means this entry crosses the start of free memory.
@@ -366,11 +425,11 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     //  PAGE RESERVATION
 
 #ifdef __BEELZEBUB__DEBUG
-    //mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
+    //mainAllocationSpace.PrintStackToTerminal(&initialVbeTerminal, true);
 #endif
 
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
-        if (!m->available)
+        if (m->available == 0)
         {
             res = mainAllocator.ReserveByteRange(m->address, m->length);
 
@@ -381,26 +440,26 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
         }
 
 #ifdef __BEELZEBUB__DEBUG
-    //mainAllocationSpace.PrintStackToTerminal(&initialSerialTerminal, true);
+    //mainAllocationSpace.PrintStackToTerminal(&initialVbeTerminal, true);
 #endif
 
     //  PAGING INITIALIZATION
 
-    msg("Constructing bootstrap virtual allocation space... ");
+    initialVbeTerminal.WriteFormat("Constructing bootstrap virtual allocation space... ");
     new (&bootstrapVas) VirtualAllocationSpace(&mainAllocator);
-    msg("Done.%n");
+    initialVbeTerminal.WriteFormat("Done.%n");
 
-    msg("Bootstrapping the VAS... ");
+    initialVbeTerminal.WriteFormat("Bootstrapping the VAS... ");
     bootstrapVas.Bootstrap();
-    msg("Done.%n");
+    initialVbeTerminal.WriteFormat("Done.%n");
 
-    msg("Statically initializing the memory manager... ");
+    initialVbeTerminal.WriteFormat("Statically initializing the memory manager... ");
     MemoryManager::Initialize();
-    msg("Done.%n");
+    initialVbeTerminal.WriteFormat("Done.%n");
 
-    msg("Constructing bootstrap memory manager... ");
+    initialVbeTerminal.WriteFormat("Constructing bootstrap memory manager... ");
     new (&bootstrapMemMgr) MemoryManagerAmd64(&bootstrapVas);
-    msg("Done.%n");
+    initialVbeTerminal.WriteFormat("Done.%n");
 
     BootstrapMemoryManager = &bootstrapMemMgr;
 
@@ -433,7 +492,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 			, vaddr, paddr
 			, res);
 
-        msg("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
+        initialVbeTerminal.WriteFormat("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
     }
 
     InitializeCpuData();
@@ -442,71 +501,50 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     bootstrapReady = true;
 
-    //  DUMPING MMAP
-
-    initialSerialTerminal.WriteLine("%nIND |A|    Address     |     Length     |       End      |");
-
-    for (uint32_t i = 0; i < cnt; i++)
-    {
-        jg_info_mmap_t & e = map[i];
-        //  Current map.
-
-        initialSerialTerminal.WriteHex16((uint16_t)i);
-        initialSerialTerminal.Write("|");
-        initialSerialTerminal.Write(e.available ? "A" : " ");
-        initialSerialTerminal.Write("|");
-        initialSerialTerminal.WriteHex64(e.address);
-        initialSerialTerminal.Write("|");
-        initialSerialTerminal.WriteHex64(e.length);
-        initialSerialTerminal.Write("|");
-        initialSerialTerminal.WriteHex64(e.address + e.length);
-        initialSerialTerminal.WriteLine("|");
-    }
-
-    initialSerialTerminal.Write("Free memory start: ");
-    initialSerialTerminal.WriteHex64(freeStart);
-
-    initialSerialTerminal.WriteLine();
-    initialSerialTerminal.WriteLine();
+    initialVbeTerminal.WriteLine();
 
     //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
 }
 
 void InitializeMemory()
 {
-    initialSerialTerminal.WriteLine();
+    initialVbeTerminal.WriteLine();
     
     BootstrapProcessorId = CpuId();
     BootstrapProcessorId.Initialize();
     //  This is required to page all the available memory.
 
-    BootstrapProcessorId.PrintToTerminal(&initialSerialTerminal);
+    //breakpoint();
 
-    initialSerialTerminal.WriteLine();
+    //BootstrapProcessorId.PrintToTerminal(&initialVbeTerminal);
+
+    //breakpoint();
+
+    initialVbeTerminal.WriteLine();
 
     //  TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
 
     SanitizeAndInitializeMemory(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, JG_INFO_ROOT_EX->free_paddr);
 
-    initialSerialTerminal.WriteLine();
+    initialVbeTerminal.WriteLine();
 
     //  DUMPING CONTROL REGISTERS
 
-    Cpu::GetCr0().PrintToTerminal(&initialSerialTerminal);
-    initialSerialTerminal.WriteLine();
+    Cpu::GetCr0().PrintToTerminal(&initialVbeTerminal);
+    initialVbeTerminal.WriteLine();
 
-    initialSerialTerminal.Write("CR2: ");
-    initialSerialTerminal.WriteHex64((uint64_t)Cpu::GetCr2());
-    initialSerialTerminal.WriteLine();
+    initialVbeTerminal.Write("CR2: ");
+    initialVbeTerminal.WriteHex64((uint64_t)Cpu::GetCr2());
+    initialVbeTerminal.WriteLine();
 
-    Cpu::GetCr3().PrintToTerminal(&initialSerialTerminal);
-    initialSerialTerminal.WriteLine();
+    Cpu::GetCr3().PrintToTerminal(&initialVbeTerminal);
+    initialVbeTerminal.WriteLine();
 
-    initialSerialTerminal.Write("CR4: ");
-    initialSerialTerminal.WriteHex64(Cpu::GetCr4());
-    initialSerialTerminal.WriteLine();
+    initialVbeTerminal.Write("CR4: ");
+    initialVbeTerminal.WriteHex64(Cpu::GetCr4());
+    initialVbeTerminal.WriteLine();
 
-    initialSerialTerminal.WriteLine();
+    initialVbeTerminal.WriteLine();
 
     Cpu::WriteBackAndInvalidateCache();
 }

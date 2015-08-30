@@ -287,6 +287,9 @@
     <ClInclude Include="inc\execution\elf.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="arc\x86\inc\debug_arch.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="arc\amd64\src\isr.s" />

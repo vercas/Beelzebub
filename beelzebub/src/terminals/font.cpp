@@ -1,5 +1,13 @@
 #include <terminals/font.hpp>
 
+const uint8_t Beelzebub::Terminals::FontWidth = 8;
+const uint8_t Beelzebub::Terminals::FontHeight = 14;
+
+const uint8_t Beelzebub::Terminals::FontMin = 33;
+const uint8_t Beelzebub::Terminals::FontMax = 126;
+
+const uint8_t Beelzebub::Terminals::FontUnderlineHeight = Beelzebub::Terminals::FontHeight - 2;
+
 /**
  * The font I am attempting to implement is "Free Pixel", obtained here:
  * http://www.dafont.com/free-pixel.font?fpp=100&l[]=10&l[]=1
@@ -8,7 +16,7 @@
  * http://steamcommunity.com/id/sVaxe/
  **/
 
-const uint8_t Beelzebub::Terminals::Font[][Beelzebub::Terminals::FontHeight] = {
+const uint8_t Beelzebub::Terminals::Font[][14] = {
 	{   //   33 | 0x21 | !
 		b(00000000),
 		b(00000000),

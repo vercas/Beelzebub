@@ -16,6 +16,6 @@ __extern       comp_t memcmp (const void * const src1, const void * const src2, 
 #else   //  C vs C++. :(
 __extern       void * memchr (const void * const src , const int          val , size_t len);
 #endif
-__extern       void * memcpy (      void * const dst , const void * const src , size_t len);
-__extern       void * memmove(      void * const dst , const void * const src , size_t len);
-__extern       void * memset (      void * const dst , const int          val , size_t len);
+__extern       void * memcpy (      void *       dst , const void *       src , size_t len);
+__extern       void * memmove(      void *       dst , const void *       src , size_t len);
+__extern       void * memset (      void *       dst , const int          val , size_t len);

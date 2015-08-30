@@ -13,13 +13,13 @@
 
 namespace Beelzebub { namespace Terminals
 {
-	extern const uint8_t FontWidth = 8;
-	extern const uint8_t FontHeight = 14;
+	extern const uint8_t FontWidth;
+	extern const uint8_t FontHeight;
 
-	extern const uint8_t FontMin = 33;
-	extern const uint8_t FontMax = 126;
+	extern const uint8_t FontMin;
+	extern const uint8_t FontMax;
 
-	extern const uint8_t FontUnderlineHeight = FontHeight - 2;
+	extern const uint8_t FontUnderlineHeight;
 
-	extern const uint8_t Font[][FontHeight];
+	extern const uint8_t Font[][14];
 }}

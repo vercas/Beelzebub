@@ -287,6 +287,8 @@ namespace Beelzebub { namespace Memory
         __bland PageAllocationSpace(const paddr_t phys_start, const paddr_t phys_end
                                   , const psize_t page_size);
 
+        __cold __bland Handle InitializeControlStructures();
+
         PageAllocationSpace(PageAllocationSpace const &) = delete;
         PageAllocationSpace & operator =(const PageAllocationSpace &) = delete;
 

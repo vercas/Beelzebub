@@ -48,8 +48,20 @@ void * memchr(const void * const src, const int val, size_t len)
     return nullptr;
 }
 
-void * memcpy(void * const dst, const void * const src, size_t len)
+void * memcpy(void * dst, const void * src, size_t len)
 {
+    void * ret = dst;
+
+    if (src != dst)
+    {
+        asm volatile ( "rep movsb \n\t"
+                     : "+D"(dst), "+S"(src), "+c"(len)
+                     : : "memory" );
+    }
+
+    return ret;
+
+    /* The following code is equivalent to the assembly above /*
     if (src == dst)
         return dst;
 
@@ -59,11 +71,38 @@ void * memcpy(void * const dst, const void * const src, size_t len)
     for (; len > 0; ++d, ++s, --len)
         *d = *s;
 
-    return dst;
+    return dst; //*/
 }
 
-void * memmove(void * const dst, const void * const src, size_t len)
+void * memmove(void * dst, const void * src, size_t len)
 {
+    void * ret = dst;
+
+    if (src > dst)
+    {
+        //  Loop forward.
+
+        asm volatile ( "rep movsb \n\t"
+                       : "+D"(dst), "+S"(src), "+c"(len)
+                       : : "memory" );
+    }
+    else if (src < dst)
+    {
+        //  Loop backward.
+
+        dst += len;
+        src += len;
+
+        asm volatile ( "std       \n\t"
+                       "rep movsb \n\t"
+                       "cld       \n\t"
+                       : "+D"(dst), "+S"(src), "+c"(len)
+                       : : "memory" );
+    }
+
+    return ret;
+
+    /* The following code is equivalent to the code & assembly above /*
     if (src == dst)
         return dst;
 
@@ -75,23 +114,32 @@ void * memmove(void * const dst, const void * const src, size_t len)
             *d = *s;
     else
     {
-        size_t i = 0;
+        dst += len;
+        src += len;
 
-        for (; i < len; ++d, ++s, ++i)
+        for (; i < len; --d, --s, --len)
             *d = *s;
     }
 
-    return dst;
+    return dst; //*/
 }
 
-void * memset(void * const dst, const int val, size_t len)
+void * memset(void * dst, const int val, size_t len)
 {
+    void * ret = dst;
+
+    asm volatile ( "rep stosb \n\t"
+                 : "+D" (dst), "+c" (len)
+                 : "a" (val)
+                 : "memory" );
+
+    /* The following code is equivalent to the assembly above /*
           byte * d = (byte *)dst;
     const byte   v = (byte  )val;
 
     for (; len > 0; ++d, --len)
-        *d = v;
+        *d = v; //*/
 
-    return dst;
+    return ret;
 }
 

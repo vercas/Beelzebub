@@ -27,10 +27,11 @@
 #include <keyboard.h>
 #include <lapic.h>
 #include <ports.h>
-#include <stdint.h>
+#include <metaprogramming.h>
 #include <ui.h>
 
 bool keyboard_escaped = false;
+volatile int breakpointEscaped = 0;
 
 void keyboard_init(void)
 {
@@ -57,21 +58,21 @@ void keyboard_handler(IsrState * const state)
 
     } else if (keyboard_escaped) {
         switch (code) {
-        case KEYBOARD_CODE_LEFT:
+        /*case KEYBOARD_CODE_LEFT:
             ui_switch_left();
-            break;
+            break;//*/
 
         case KEYBOARD_CODE_RIGHT:
-            ui_switch_right();
+            breakpointEscaped = 0;
             break;
 
-        case KEYBOARD_CODE_UP:
+        /*case KEYBOARD_CODE_UP:
             ui_scroll_up();
             break;
 
         case KEYBOARD_CODE_DOWN:
             ui_scroll_down();
-            break;
+            break;//*/
         }
 
         keyboard_escaped = false;

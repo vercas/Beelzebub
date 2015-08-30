@@ -1,4 +1,5 @@
 #include <terminals/base.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
@@ -44,8 +45,21 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
         tabWidth = term->GetTabulatorWidth();
     //  Tabulator width is required for proper handling of \t
 
+    WriteCharAtXyFunc WriteCharAtXy = term->Descriptor->WriteCharAtXy;
+
     int16_t x = pos.X, y = pos.Y;
     //  These are used for positioning characters.
+
+    //msg("Writing %s at %u2:%u2.%n", str, x, y);
+
+#define NEXTLINE do { \
+    if (y == size.Y) \
+    { \
+        y = 0; \
+        for (int16_t _x = 0; _x < size.X; ++_x) \
+            WriteCharAtXy(term, ' ', _x, y); \
+    } \
+} while (false)
 
     uint32_t i = 0;
     //  Declared here so I know how many characters have been written.
@@ -59,7 +73,10 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
         if (c == '\r')
             x = 0; //  Carriage return.
         else if (c == '\n')
+        {
             ++y;   //  Line feed does not return carriage.
+            NEXTLINE;
+        }
         else if (c == '\t')
             x = (x / tabWidth + 1) * tabWidth;
         else if (c == '\b')
@@ -71,9 +88,9 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
         else
         {
             if (x == size.X)
-            {  x = 0; y++;  }
+            {  x = 0; y++; NEXTLINE;  }
 
-            TerminalWriteResult tmp = term->WriteAt(c, x, y);
+            TerminalWriteResult tmp = WriteCharAtXy(term, c, x, y);
 
             if (!tmp.Result.IsOkayResult())
                 return {tmp.Result, i, {x, y}};
@@ -98,7 +115,10 @@ TerminalWriteResult TerminalBase::DefaultWriteChar(TerminalBase * const term, co
        && term->Descriptor->Capabilities.CanGetOutputPosition))
         return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
 
-    return term->WriteAt(c, term->GetCurrentPosition());
+    char temp[2] = " ";
+    temp[0] = c;
+
+    return term->WriteAt(temp, term->GetCurrentPosition());
 }
 
 TerminalWriteResult TerminalBase::DefaultWriteString(TerminalBase * const term, const char * const str)
@@ -489,6 +509,8 @@ uint16_t TerminalBase::DefaultGetTabulatorWidth(TerminalBase * const term)
 
 TerminalBase::TerminalBase(const TerminalDescriptor * const desc)
     : Descriptor(desc)
+    , CurrentPosition({0, 0})
+    , TabulatorWidth(4)
 {
 
 }

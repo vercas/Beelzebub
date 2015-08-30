@@ -6,6 +6,7 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 
 Spinlock Beelzebub::Debug::MsgSpinlock;
+TerminalBase * Beelzebub::Debug::DebugTerminal;
 
 namespace Beelzebub { namespace Debug
 {
@@ -16,23 +17,23 @@ namespace Beelzebub { namespace Debug
                  , const size_t line
                  , const char * const msg)
     {
-        if (MainTerminal != nullptr
-         && MainTerminal->Descriptor->Capabilities.CanOutput)
+        if (DebugTerminal != nullptr
+         && DebugTerminal->Descriptor->Capabilities.CanOutput)
         {
             (&MsgSpinlock)->Acquire();
 
-            MainTerminal->WriteLine("");
-            MainTerminal->Write("CAUGHT FIRE at line ");
-            MainTerminal->WriteUIntD(line);
-            MainTerminal->Write(" of \"");
-            MainTerminal->Write(file);
+            DebugTerminal->WriteLine("");
+            DebugTerminal->Write("CAUGHT FIRE at line ");
+            DebugTerminal->WriteUIntD(line);
+            DebugTerminal->Write(" of \"");
+            DebugTerminal->Write(file);
 
             if (msg == nullptr)
-                MainTerminal->WriteLine("\".");
+                DebugTerminal->WriteLine("\".");
             else
             {
-                MainTerminal->WriteLine("\":");
-                MainTerminal->WriteLine(msg);
+                DebugTerminal->WriteLine("\":");
+                DebugTerminal->WriteLine(msg);
             }
 
             (&MsgSpinlock)->Release();
@@ -50,23 +51,23 @@ namespace Beelzebub { namespace Debug
                  , const size_t line
                  , const char * const fmt, va_list args)
     {
-        if (MainTerminal != nullptr
-         && MainTerminal->Descriptor->Capabilities.CanOutput)
+        if (DebugTerminal != nullptr
+         && DebugTerminal->Descriptor->Capabilities.CanOutput)
         {
             (&MsgSpinlock)->Acquire();
 
-            MainTerminal->WriteLine("");
-            MainTerminal->Write("CAUGHT FIRE at line ");
-            MainTerminal->WriteUIntD(line);
-            MainTerminal->Write(" of \"");
-            MainTerminal->Write(file);
+            DebugTerminal->WriteLine("");
+            DebugTerminal->Write("CAUGHT FIRE at line ");
+            DebugTerminal->WriteUIntD(line);
+            DebugTerminal->Write(" of \"");
+            DebugTerminal->Write(file);
 
             if (fmt == nullptr)
-                MainTerminal->WriteLine("\".");
+                DebugTerminal->WriteLine("\".");
             else
             {
-                MainTerminal->WriteLine("\":");
-                MainTerminal->Write(fmt, args);
+                DebugTerminal->WriteLine("\":");
+                DebugTerminal->Write(fmt, args);
             }
 
             (&MsgSpinlock)->Release();
