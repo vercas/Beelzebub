@@ -6,6 +6,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Debug;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::System;
 
 /*********************************
     PageAllocationSpace struct
@@ -58,11 +59,59 @@ PageAllocationSpace::PageAllocationSpace(const paddr_t phys_start, const paddr_t
 
     this->Stack = (psize_t *)(this->Map + this->AllocablePageCount);
 
+    this->StackFreeTop = this->StackCacheTop = this->AllocablePageCount - 1;
+    this->AllocationStart = phys_start + (this->ControlPageCount * page_size);
+}
+
+Handle PageAllocationSpace::InitializeControlStructures()
+{
+    /*if (debug)
+    {
+        msg("%nMap at %Xp; stack at %Xp%n", this->Map, this->Stack);
+
+        TerminalCoordinates co = DebugTerminal->GetCurrentPosition();
+        DebugTerminal->SetCurrentPosition(60, 4);
+        DebugTerminal->WriteLine("Address         |P| NX|R/W|U/S|PWT|PCD|ACC|GLB|DRT|PAT|");
+        DebugTerminal->SetCurrentPosition(co);
+
+        for (size_t i = 0; i < this->AllocablePageCount; ++i)
+        {
+            if (((i >= 20000 && i <= 22500) && i % 100 == 0)
+             || ((i >= 525300 && i <= 525500)  && i % 10 == 0))
+            {
+                paddr_t paddr = i * this->PageSize + this->AllocationStart;
+
+                Cr3 cr3 = Cpu::GetCr3();
+                Pml4 & pml4 = *cr3.GetPml4Ptr();
+                Pml4Entry & e1 = pml4[{(void *)paddr}];
+                Pml3 & pml3 = *e1.GetPml3Ptr();
+                Pml3Entry & e2 = pml3[{(void *)paddr}];
+                Pml2 & pml2 = *e2.GetPml2Ptr();
+                Pml2Entry & e3 = pml2[{(void *)paddr}];
+
+                co = DebugTerminal->GetCurrentPosition();
+                DebugTerminal->SetCurrentPosition(60, 5);
+                e1.PrintToTerminal(DebugTerminal);
+                DebugTerminal->SetCurrentPosition(60, 6);
+                e2.PrintToTerminal(DebugTerminal);
+                DebugTerminal->SetCurrentPosition(60, 7);
+                e3.PrintToTerminal(DebugTerminal);
+                DebugTerminal->SetCurrentPosition(60, 8);
+                msg("%XP - page #%us ", paddr, i);
+                DebugTerminal->SetCurrentPosition(co);
+
+                breakpoint();
+            }
+
+            this->Map[i] = PageDescriptor(this->Stack[i] = i, PageDescriptorStatus::Free);
+        }
+    }
+    else //*/
+
     for (size_t i = 0; i < this->AllocablePageCount; ++i)
         this->Map[i] = PageDescriptor(this->Stack[i] = i, PageDescriptorStatus::Free);
 
-    this->StackFreeTop = this->StackCacheTop = this->AllocablePageCount - 1;
-    this->AllocationStart = phys_start + (this->ControlPageCount * page_size);
+    return HandleResult::Okay;
 }
 
 /*  Page manipulation  */
