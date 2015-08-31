@@ -55,7 +55,9 @@ void screen_write(const char *message, uint16_t x, uint16_t y)
 
 		SCREEN_VIDEOMEM[position++].character = message[i];
 
+#ifdef __JEGUDIEL__SERIAL
 		write_serial(COM1, message[i]);
+#endif
 	}
 }
 
@@ -193,7 +195,9 @@ void screen_clear(void)
 			        SPLASH_WIDTH, SPLASH_HEIGHT);
 	}
 
+#ifdef __JEGUDIEL__SERIAL
 	write_serial_str(COM1, "--- screen clear ---\r\n");
+#endif
 }
 
 size_t write_vga(const char * const s)
@@ -205,12 +209,14 @@ size_t write_vga(const char * const s)
 	{
 		size_t ret = SCREEN_WIDTH - x;
 
+#ifdef __JEGUDIEL__SERIAL
 		for (; x < SCREEN_WIDTH; x++)
 			write_serial(COM1, vmem[x * bypp + y * pitch] = '-');
 
 		curX = 0; ++curY;
 
 		write_serial_str(COM1, "\r\n");
+#endif
 
 		return ret;
 	}
@@ -248,7 +254,9 @@ size_t write_vga(const char * const s)
 			x++;
 		}
 
+#ifdef __JEGUDIEL__SERIAL
 		write_serial(COM1, c);
+#endif
 	}
 
 	curX = x; curY = y;
@@ -268,10 +276,12 @@ size_t write_vbe(const char * const s)
 		for (; w < frameWidth - 1; ++w)
 			pixel(w, y2) = VBE_TEXT;
 
+#ifdef __JEGUDIEL__SERIAL
 		for (; x < SCREEN_WIDTH; x++)
 			write_serial(COM1, '-');
 
 		write_serial_str(COM1, "\r\n");
+#endif
 
 		curX = 0; ++curY;
 
@@ -309,7 +319,9 @@ size_t write_vbe(const char * const s)
 			++x;
 		}
 
+#ifdef __JEGUDIEL__SERIAL
 		write_serial(COM1, c);
+#endif
 	}
 
 	curX = x; curY = y;

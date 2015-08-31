@@ -46,7 +46,9 @@ volatile uint8_t main_entry_barrier = 1;
 
 void main_bsp(void)
 {
+#ifdef __JEGUDIEL__SERIAL
 	init_serial(COM1);
+#endif
 	screen_init();
 
 	// Print header

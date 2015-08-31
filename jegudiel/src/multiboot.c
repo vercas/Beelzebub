@@ -38,24 +38,24 @@ multiboot_info_t *multiboot_info;
  * 
  * @param entry the entry to align
  */
-static void multiboot_align_mmap(jg_info_mmap_t *entry)
+static void multiboot_align_mmap(jg_info_mmap_t * entry)
 {
-    uintptr_t aligned_addr;
+    uintptr_t aligned_addr, end;
     
-    if (entry->available) {
-        aligned_addr = (entry->address + 0xFFF) & ~0xFFF;
+    if (entry->available)
+    {
+        aligned_addr = (uintptr_t)(entry->address + 0xFFF) & (uintptr_t)0xFFFFFFFFFFFFF000;
+        end = ((uintptr_t)entry->address + (uintptr_t)entry->length) & (uintptr_t)0xFFFFFFFFFFFFF000;
         
-        entry->length -= (entry->address - aligned_addr);
-        entry->length &= ~0xFFF;
-        
-    } else {
-        aligned_addr = entry->address & ~0xFFF;
-        
-        entry->length += (aligned_addr - entry->address);
-        entry->length = (entry->length + 0xFFF) & ~0xFFF;
+    }
+    else
+    {
+        aligned_addr = (uintptr_t)entry->address & (uintptr_t)0xFFFFFFFFFFFFF000;
+        end = ((uintptr_t)entry->address + (uintptr_t)entry->length + 0xFFF) & (uintptr_t)0xFFFFFFFFFFFFF000;
     }
     
     entry->address = aligned_addr;
+    entry->length = end - aligned_addr;
 }
 
 static void multiboot_parse_mmap(multiboot_mmap_t *mmap, size_t length)
