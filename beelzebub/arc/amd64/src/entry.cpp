@@ -224,7 +224,7 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
         PageAllocationSpace * space = new (currentSpaceLocation + currentSpaceIndex++) PageAllocationSpace(start, end, PageSize);
         //  One of the really neat things I like about C++.
 
-        space->InitializeControlStructures(true);
+        space->InitializeControlStructures();
 
         mainAllocator.PreppendAllocationSpace(space);
 
@@ -238,7 +238,7 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
     {
         new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
 
-        mainAllocationSpace.InitializeControlStructures(false);
+        mainAllocationSpace.InitializeControlStructures();
 
         new (&mainAllocator)       PageAllocator(&mainAllocationSpace);
 
