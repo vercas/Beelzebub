@@ -36,18 +36,21 @@ boot16_begin:
 
 ; Entry point for the APs starting in real mode.
 boot16:
-    jmp 0x0:.cs_cleared - boot16_begin + TARGET         ; Clear CS
+    jmp 0x0:.cs_cleared - boot16_begin + TARGET             ; Clear CS
 
 .cs_cleared:
-    cli                                                 ; Clear interrupts
-    in al, 0x92                                         ; Activate A20
-    or al, 2
-    out 0x92, al
-    lgdt [cs:boot16_gdtr - boot16_begin + TARGET]       ; Load GDT
-    mov eax, cr0                                        ; Enable PM
-    or al, 1
-    mov cr0, eax
-    jmp 0x8:boot16_trampoline - boot16_begin + TARGET   ; Jump to 32 bit trampoline
+    cli                                                     ; Clear interrupts
+
+    ;   The A20 line is a wire on the motherboard. There's only one motherboard.
+    ;   You only need to enable it ~once~.
+
+    lgdt    [cs:boot16_gdtr - boot16_begin + TARGET]        ; Load GDT
+
+    mov     eax, cr0                                        ; Load CR0
+    bts     ax, 0                                           ; Set bit 1 (Protected Mode)
+    mov     cr0, eax                                        ; Set CR0
+
+    jmp     0x8:boot16_trampoline - boot16_begin + TARGET   ; Jump to 32 bit trampoline
 
 boot16_gdtr:
     .Limit: dw 0x17

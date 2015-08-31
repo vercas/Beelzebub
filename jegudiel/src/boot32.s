@@ -77,9 +77,7 @@ boot32_common:
     bts     eax, 5                              ; Set bit 5.
     mov     cr4, eax                            ; Set CR4.
 
-    in al, 0x92                         ; Enable A20
-    or al, 2
-    out 0x92, al
+    ;   Die in a grease fire, A20 line.
 
     mov ecx, 0xC0000080                 ; Enable LM in MSR
     rdmsr
