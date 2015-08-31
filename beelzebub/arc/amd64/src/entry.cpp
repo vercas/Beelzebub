@@ -181,7 +181,7 @@ PageAllocationSpace * currentSpaceLocation;
 
 __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 {
-    msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
+    /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
 
     if (firstRegionCreated)
     {
@@ -196,7 +196,7 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
             currentSpaceLocation = nullptr;
             //  Nullify the location so it is recreated.
 
-            msg("MAX; ");//*/
+            /*msg("MAX; ");//*/
         }
 
         if (currentSpaceLocation == nullptr)
@@ -214,30 +214,32 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
                 , "Failed to reserve special page for further allocation space creation: %H"
                 , res);
 
-            msg("PAGE@%Xp; ", currentSpaceLocation);//*/
+            /*msg("PAGE@%Xp; ", currentSpaceLocation);//*/
         }
 
-        msg("SPA@%Xp; I=%u2; "
+        /*msg("SPA@%Xp; I=%u2; "
             , currentSpaceLocation + currentSpaceIndex
             , (uint16_t)currentSpaceIndex);//*/
-        breakpoint();
 
         PageAllocationSpace * space = new (currentSpaceLocation + currentSpaceIndex++) PageAllocationSpace(start, end, PageSize);
         //  One of the really neat things I like about C++.
 
+        space->InitializeControlStructures(true);
+
         mainAllocator.PreppendAllocationSpace(space);
 
-        msg("%XP-%XP;%n"
+        /*msg("%XP-%XP;%n"
             , space->GetAllocationStart()
             , space->GetAllocationEnd());//*/
-
-        breakpoint();
 
         return space;
     }
     else
     {
         new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
+
+        mainAllocationSpace.InitializeControlStructures(false);
+
         new (&mainAllocator)       PageAllocator(&mainAllocationSpace);
 
         firstRegionCreated = true;
@@ -246,7 +248,7 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
         currentSpaceLimit = PageSize / sizeof(PageAllocationSpace);
         currentSpaceLocation = nullptr;
 
-        msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
+        /*msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
             , &mainAllocationSpace, &mainAllocator
             , mainAllocationSpace.GetAllocationStart()
             , mainAllocationSpace.GetAllocationEnd()
@@ -313,7 +315,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
         jg_info_mmap_t & e = map[i];
         //  Current map.
 
-        if (e.available == 0) continue;
+        //if (e.available == 0) continue;
 
         initialVbeTerminal.WriteHex16((uint16_t)i);
         initialVbeTerminal.Write("|");
@@ -336,77 +338,6 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
                                                         , (size_t)(lastMap - map));
     initialVbeTerminal.WriteFormat(" Address rage: %X8-%X8.%n", start, end);
     initialVbeTerminal.WriteFormat(" Maps start at %Xp.%n", firstMap);
-
-    //  Mapping more momery, if available.
-
-    if (end > (64ULL << 30) && BootstrapProcessorId.CheckFeature(CpuFeature::Page1GB))
-    {
-        msg(" Available memory seems to be more than 64 GiB, and 1-GiB pages are supported.%n");
-
-        //  More than 64 gigs of memory means we need some serious 1-gig pages!
-
-        Cr3 cr3 = Cpu::GetCr3();
-        Pml4 & pml4 = *cr3.GetPml4Ptr();
-        Pml3 & pml3 = *pml4[(uint16_t)0].GetPml3Ptr();
-
-        if (pml3[(uint16_t)0].GetPageSize())
-            msg("  PDPT's first entry seems to be a 1-GiB page. Assuming all available memory is mapped!%n");
-        else
-        {
-            msg("  PDPT's first entry is a PD. Switching to 1-GiB pages.%n");
-
-            paddr_t oldPml2Start = pml3[(uint16_t)0].GetAddress();
-            size_t oldPml2Count = 0;
-            //  I'm making no assumption about the number of present PDs.
-
-            bool goOn = true;
-
-            for (uint16_t i = 0; i < 512; ++i)
-            {
-                if (pml3[i].GetPresent())
-                    ++oldPml2Count;
-
-                if (((uint64_t)i << 30) < end)
-                    pml3[i] = Pml3Entry((uint64_t)i << 30, true, true, false, false, false, false, false, false, false, false);
-                    //  This is a 1-GiB page!
-                else
-                    pml3[i].SetPresent(goOn = false);
-                    //  Just makin' sure.
-            }
-
-            if (goOn)
-            {
-                msg("   One PDPT did not suffice.%n");
-
-                assert(end <= ((uint64_t)oldPml2Count + 1ULL) * (512ULL << 30)
-                    , "   Where did you get so much RAM..? Can't map it all!");
-
-                for (uint16_t j = 0; j < oldPml2Count; ++j)
-                {
-                    goOn = true;
-                    //  Reused variable!!
-
-                    Pml3 & pml3N = *((Pml3 *)oldPml2Start + j);
-                    pml4[(uint16_t)(j + 1)] = Pml4Entry((paddr_t)(&pml3N), true, true, false, false);
-
-                    for (uint16_t i = 0; i < 512; ++i)
-                    {
-                        if (((uint64_t)i << 30) < end)
-                            pml3N[i] = Pml3Entry((uint64_t)i << 30, true, true, false, false);
-                            //  This is a 1-GiB page!
-                        else
-                            pml3N[i].SetPresent(goOn = false);
-                            //  NOT breaking because the rest of the entries need cleanup.
-                    }
-
-                    if (!goOn)
-                        break; // yourself fool
-                }
-            }
-        }
-
-        breakpoint();
-    }
 
     initialVbeTerminal.WriteLine();
 
