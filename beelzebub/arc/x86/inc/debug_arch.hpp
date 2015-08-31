@@ -10,12 +10,14 @@
 
 #include <kernel.hpp>
 
+#include <system/cpu.hpp>
+
 #ifdef __BEELZEBUB__DEBUG
 #define breakpoint(...) \
 do \
 { \
     breakpointEscaped = 1; \
-    if (Cpu::InterruptsEnabled()) \
+    if (Beelzebub::System::Cpu::InterruptsEnabled()) \
         do \
         { \
         asm volatile ( "hlt \n\t" : : : "memory" ); \
