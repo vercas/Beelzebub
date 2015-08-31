@@ -30,6 +30,10 @@ PageAllocationSpace::PageAllocationSpace()
     , ReservedPageCount(0)
     , Map(nullptr)
     , Locker()
+
+    //  Links
+    , Next(nullptr)
+    , Previous(nullptr)
 {
 
 }
@@ -51,6 +55,10 @@ PageAllocationSpace::PageAllocationSpace(const paddr_t phys_start, const paddr_t
     , ReservedPageCount(0)
     , Map((PageDescriptor *)phys_start)
     , Locker()
+
+    //  Links
+    , Next(nullptr)
+    , Previous(nullptr)
 {
     this->FreePageCount = this->AllocablePageCount;
     this->ControlPageCount = this->PageCount - this->FreePageCount;
@@ -691,9 +699,9 @@ void PageAllocator::RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr)
         const vaddr_t prevAddr = (vaddr_t)cur->Previous;
 
         if (nextAddr > 0 && nextAddr >= oldVaddr && nextAddr < oldVaddrEnd)
-            this->FirstSpace = (PageAllocationSpace *)((nextAddr - oldVaddr) + newVaddr);
+            cur->Next = (PageAllocationSpace *)((nextAddr - oldVaddr) + newVaddr);
         if (prevAddr > 0 && prevAddr >= oldVaddr && prevAddr < oldVaddrEnd)
-            this->LastSpace = (PageAllocationSpace *)((prevAddr - oldVaddr) + newVaddr);
+            cur->Previous = (PageAllocationSpace *)((prevAddr - oldVaddr) + newVaddr);
 
         cur = cur->Previous;
     }
