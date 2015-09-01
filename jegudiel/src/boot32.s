@@ -1,5 +1,6 @@
-; Dude I just had to fix 70-80% of this code.
-; It's mine now.
+; Dude I just had to fix 80-90% of your code.
+; And I added quite a lot of my own.
+; It's mine now. Shoo.
 
 section .text
 bits 32
@@ -20,6 +21,7 @@ extern page_idn_pd
 ;   BSP entrypoint, supposed to be called by a Multiboot-compliant bootloader.
 boot32_bsp:
     cli                                         ; Disable interrupts
+    cld                                         ; Clear direction flag.
 
     mov     esp, boot32_stack_bsp               ; Grab a stack as quickly as possible.
     add     esp, 0x1000                         ; Don't forget that it 'grows' backwards.
@@ -45,8 +47,20 @@ boot32_bsp:
 
 .long_mode_supported:
     ;   THESE FUNCTIONS HARDLY RESPECT THE ABI!
+
+    ;call    boot32_com1_init                    ; Initialize the COM1 port ASAP.
+    ;call    boot32_com2_init                    ; Also COM2.
+
     call    boot32_gdt                          ; Setup 64 bit GDT
     call    boot32_map                          ; Setup mapping
+
+    ;mov     edi, boot32_msg_a
+    ;call    boot32_com1_msg
+
+    ;mov     esi, page_pml4
+    ;mov     ecx, 4096 * 66
+    ;call    boot32_com2_dump
+
     call    boot32_common                       ; Common shenanigans
 
     mov ax, 0x10                        ; Setup data segment selectors
@@ -113,7 +127,7 @@ boot32_map:
     mov     eax, page_idn_pdp                   ; PDPT address.
     or      eax, 3                              ; Set it as present and writable.
     stosd                                       ; First entry in PML4.
-    add     edi, 4                              ; Align.
+    add     edi, 4                              ; Align. This will help mapping with 1-GiB pages.
 
     ;   Secondly, check for 1-GiB pages.
     mov     eax, 0x80000001                     ; This be the right value...
@@ -140,7 +154,7 @@ boot32_map:
 
 .map_2mib_pdes:
     ;   Finally, the PD entries!
-    mov     edi, page_idn_pdp                   ; Destination index = PDPT
+    mov     edi, page_idn_pd                    ; Destination index = PDPT
     mov     eax, 0b10000011                     ; EAX starts with the flags: present, writable, large (1-GiB page)
     xor     ebx, ebx                            ; Used as a null register.
     xor     edx, edx                            ; Used to extend EAX.
@@ -220,6 +234,190 @@ boot32_map:
     loop    .map_1gib_pdes_loop                 ; If it didn't just add the 512th PDPTe to the 64th PD, continue.
 
     ret     ; Done.
+
+
+;   Prepares the COM1 serial port for output.
+boot32_com1_init:
+    push    ebp
+
+    push    eax
+    push    edx
+
+    ;   Disable interrupts.
+    mov     dx, 0x3F8 + 1
+    mov     al, 0x00
+    out     dx, al
+
+    ;   Enable DLAB, setting baud rate divisor.
+    mov     dx, 0x3F8 + 3
+    mov     al, 0x80
+    out     dx, al
+
+    ;   Divisor will be 3. (low byte)
+    mov     dx, 0x3F8 + 0
+    mov     al, 0x03
+    out     dx, al
+
+    ;   (high byte)
+    mov     dx, 0x3F8 + 1
+    mov     al, 0x00
+    out     dx, al
+
+    ;   8 bits, no parity, one stop bit.
+    mov     dx, 0x3F8 + 3
+    mov     al, 0x03
+    out     dx, al
+
+    ;   Enable FIFO, clear, and 14-byte buffer.
+    mov     dx, 0x3F8 + 2
+    mov     al, 0xC7
+    out     dx, al
+
+    ;   And finally enable IRQs and set RTS/DSR.
+    mov     dx, 0x3F8 + 4
+    mov     al, 0x0B
+    out     dx, al
+
+    pop     edx
+    pop     eax
+
+    pop     ebp
+    ret
+
+
+; Writes a message to the COM1 serial port.
+;
+; Parameters:
+;   ESI - address of null-terminated string.
+boot32_com1_msg:
+    push    ebp                                 ; Preserve EBP... For whatever reason.
+
+    push    edx                                 ; Preserve EDX.
+    push    eax                                 ; Preserve EAX.
+
+.boot32_com1_msg_next_byte:
+    lodsb                                       ; Load character from string
+
+    cmp     al, 0                               ; If null...
+    je      .boot32_com1_msg_end                ; End.
+
+.boot32_com1_msg_check:
+    ; CHECK FIFO
+    mov     dx, 0x3F8 + 5                       ; This is where I check if the buffer's empty.
+    in      al, dx                              ; Grab the data...
+
+    bt      ax, 5                               ; If the bit's clear (buffer non-empty)
+    jnc     .boot32_com1_msg_check              ; Try again!
+
+    mov     dx, 0x3F8                           ; Set the correct port for output.
+    out     dx, al                              ; Output to COM1.
+
+    jmp .boot32_com1_msg_next_byte              ; Continue to the next character.
+
+.boot32_com1_msg_end:
+    pop     eax                                 ; Restore EAX.
+    pop     edx                                 ; Restore EDI.
+
+    pop     ebp                                 ; And restore EBP.
+    ret                                         ; Done.
+
+
+;   Prepares the COM2 serial port for output.
+boot32_com2_init:
+    push    ebp
+
+    push    eax
+    push    edx
+
+    ;   Disable interrupts.
+    mov     dx, 0x2F8 + 1
+    mov     al, 0x00
+    out     dx, al
+
+    ;   Enable DLAB, setting baud rate divisor.
+    mov     dx, 0x2F8 + 3
+    mov     al, 0x80
+    out     dx, al
+
+    ;   Divisor will be 3. (low byte)
+    mov     dx, 0x2F8 + 0
+    mov     al, 0x03
+    out     dx, al
+
+    ;   (high byte)
+    mov     dx, 0x2F8 + 1
+    mov     al, 0x00
+    out     dx, al
+
+    ;   8 bits, no parity, one stop bit.
+    mov     dx, 0x2F8 + 3
+    mov     al, 0x03
+    out     dx, al
+
+    ;   Enable FIFO, clear, and 14-byte buffer.
+    mov     dx, 0x2F8 + 2
+    mov     al, 0xC7
+    out     dx, al
+
+    ;   And finally enable IRQs and set RTS/DSR.
+    mov     dx, 0x2F8 + 4
+    mov     al, 0x0B
+    out     dx, al
+
+    pop     edx
+    pop     eax
+
+    pop     ebp
+    ret
+
+
+; Dumps memory to the COM2 serial port.
+;
+; Parameters:
+;   ESI - address of memory.
+;   ECX - number of bytes.
+boot32_com2_dump:
+    push    ebp                                 ; Preserve EBP... For whatever reason.
+
+    push    edx                                 ; Preserve EDX.
+    push    ebx                                 ; Preserve EBX.
+    push    eax                                 ; Preserve EAX.
+
+    mov     ebx, ecx                            ; EBX will now contain the number of bytes.
+
+.boot32_com2_dump_next_byte:
+    cmp     ebx, 0                              ; If the are no more bytes to dump...
+    jle     .boot32_com2_dump_end               ; End.
+
+.boot32_com2_dump_check:
+    ; CHECK FIFO
+    mov     dx, 0x2F8 + 5                       ; This is where I check if the buffer's empty.
+    in      al, dx                              ; Grab the data...
+
+    bt      ax, 5                               ; If the bit's clear (buffer non-empty)
+    jnc     .boot32_com2_dump_check             ; Try again!
+
+    ;   Dump no more than 14 bytes!
+    mov     ecx, 14                             ; Max 14 bytes.
+    cmp     ecx, ebx                            ; Compare ECX with EBX.
+    jle     .boot32_com2_dump_write             ; If ECX < EBX then skip the next statement
+    mov     ecx, ebx                            ; ECX will not me larger than EBX this way.
+
+.boot32_com2_dump_write:
+    sub     ebx, ecx                            ; Subtract the number of bytes to be written from the number of bytes left.
+
+    mov         dx, 0x2F8                       ; Set the correct port for output.
+    rep outsb                                   ; Output ECX bytes to COM2.
+
+    jmp .boot32_com2_dump_next_byte             ; Continue to the next character.
+
+.boot32_com2_dump_end:
+    pop     eax                                 ; Restore EAX.
+    pop     ebx                                 ; Restore EBX.
+    pop     edx                                 ; Restore EDI.
+
+    pop     ebp                                 ; And restore EBP.
+    ret                                         ; Done.
 
 
 ; Writes a message to the screen.

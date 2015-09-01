@@ -1,7 +1,10 @@
 OUTPUT_FORMAT(elf64-x86-64)
 ENTRY(boot32_bsp)
-SECTIONS {
-    .text 0x1000000 : {
+SECTIONS
+{
+    . = 0x1000000;
+
+    .text : {
         *(.multiboot)
         *(.text)
     }
@@ -25,16 +28,16 @@ SECTIONS {
         info_module_data = .; . += 4096;
         info_ioapic_data = .; . += 4096;
         info_strings_data = .; . += 4096;
-    } 
-    
-    /DISCARD/ : {
-        *(.eh_frame)
-        *(.comment)
     }
 
     .consts : {
         *(.rodata)
         *(.graphics)
+    }
+    
+    /DISCARD/ : {
+        *(.eh_frame)
+        *(.comment)
     }
 
     . = ALIGN(4096);
