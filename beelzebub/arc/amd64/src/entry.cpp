@@ -84,6 +84,7 @@ void kmain_bsp()
 
     IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
     keyboard_init();
+    IsrHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
 
     //breakpoint();
 
@@ -132,6 +133,13 @@ TerminalBase * InitializeTerminalProto()
     Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
 
     msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n", (uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
+
+    /*msg(" vbe_control_info: %X4%n", mbi->vbe_control_info);
+    msg(" vbe_mode_info: %X4%n", mbi->vbe_mode_info);
+    msg(" vbe_mode: %X4%n", mbi->vbe_mode);
+    msg(" vbe_interface_seg: %X4%n", mbi->vbe_interface_seg);
+    msg(" vbe_interface_off: %X2%n", mbi->vbe_interface_off);
+    msg(" vbe_interface_len: %X2%n", mbi->vbe_interface_len); //*/
 
     //  And returns it.
     //return &initialSerialTerminal; // termPtr;
@@ -259,6 +267,42 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
     }
 }
 
+__bland void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const space)
+{
+    Handle res;
+
+    if (terminal->Descriptor->Capabilities.Type == TerminalType::PixelMatrix)
+    {
+        VbeTerminal * const term = (VbeTerminal *)terminal;
+        const size_t size = (size_t)term->Pitch * (size_t)term->Height;
+
+        if (term->VideoMemory >= MemoryManagerAmd64::KernelModulesStart
+         && term->VideoMemory <  MemoryManagerAmd64::KernelModulesEnd)
+            return;
+        //  Nothing to do, folks.
+        
+        const uintptr_t loc = __atomic_fetch_add(&MemoryManagerAmd64::KernelModulesCursor, size, __ATOMIC_SEQ_CST);
+
+        size_t off = 0;
+
+        do
+        {
+            res = space->Map(loc + off, term->VideoMemory + off, PageFlags::Global | PageFlags::Writable);
+
+            assert(res.IsOkayResult()
+                , "Failed to map page for VBE terminal (%Xp to %Xp): %H"
+                , loc + off, term->VideoMemory + off
+                , res);
+
+            off += PageSize;
+        } while (off < size);
+
+        term->VideoMemory = loc;
+    }
+
+    //  TODO: Make a VGA text terminal and also handle it here.
+}
+
 void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t freeStart)
 {
     Handle res; //  Used for intermediary results.
@@ -341,6 +385,19 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     initialVbeTerminal.WriteLine();
 
+    /*Cr3 cr3 = Cpu::GetCr3();
+    Pml4 & pml4 = *cr3.GetPml4Ptr();
+
+    pml4.PrintToTerminal(&initialSerialTerminal);
+
+    for (uint16_t i = 0; i < 1; ++i)
+    {
+        Pml4Entry & e = pml4[i];
+        Pml3 & pml3 = *e.GetPml3Ptr();
+
+        pml3.PrintToTerminal(&initialSerialTerminal);
+    }*/
+
     //  SPACE CREATION
 
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
@@ -376,21 +433,24 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     //  PAGING INITIALIZATION
 
-    initialVbeTerminal.WriteFormat("Constructing bootstrap virtual allocation space... ");
+    //msg("Constructing bootstrap virtual allocation space... ");
     new (&bootstrapVas) VirtualAllocationSpace(&mainAllocator);
-    initialVbeTerminal.WriteFormat("Done.%n");
+    //msg("Done.%n");
 
-    initialVbeTerminal.WriteFormat("Bootstrapping the VAS... ");
+    //msg("Bootstrapping the VAS... ");
     bootstrapVas.Bootstrap();
-    initialVbeTerminal.WriteFormat("Done.%n");
+    //msg("Done.%n");
 
-    initialVbeTerminal.WriteFormat("Statically initializing the memory manager... ");
+    RemapTerminal(MainTerminal, &bootstrapVas);
+    RemapTerminal(Debug::DebugTerminal, &bootstrapVas);
+
+    //initialVbeTerminal.WriteFormat("Statically initializing the memory manager... ");
     MemoryManager::Initialize();
-    initialVbeTerminal.WriteFormat("Done.%n");
+    //initialVbeTerminal.WriteFormat("Done.%n");
 
-    initialVbeTerminal.WriteFormat("Constructing bootstrap memory manager... ");
+    //initialVbeTerminal.WriteFormat("Constructing bootstrap memory manager... ");
     new (&bootstrapMemMgr) MemoryManagerAmd64(&bootstrapVas);
-    initialVbeTerminal.WriteFormat("Done.%n");
+    //initialVbeTerminal.WriteFormat("Done.%n");
 
     BootstrapMemoryManager = &bootstrapMemMgr;
 

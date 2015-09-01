@@ -121,7 +121,21 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
 {
     void * const CR2 = Cpu::GetCr2();
 
+    const bool present = 0 != (state->ErrorCode & 1);
+    const bool write = 0 != (state->ErrorCode & 2);
+    const bool user = 0 != (state->ErrorCode & 4);
+    const bool reserved = 0 != (state->ErrorCode & 8);
+    const bool instruction = 0 != (state->ErrorCode & 16);
+
+    char status[6] = "     ";
+
+    if (present)     status[0] = 'P';
+    if (write)       status[1] = 'W'; else status[1] = 'r';
+    if (user)        status[2] = 'U'; else status[2] = 's';
+    if (reserved)    status[3] = '0';
+    if (instruction) status[4] = 'I'; else status[4] = 'd';
+
     assert(false
-        , "<<PAGE FAULT @ %Xp (%Xs); CR2: %Xp>>"
-        , INSTRUCTION_POINTER, state->ErrorCode, CR2);
+        , "<<PAGE FAULT @ %Xp (%s); CR2: %Xp>>"
+        , INSTRUCTION_POINTER, status, CR2);
 }

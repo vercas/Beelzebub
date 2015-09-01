@@ -173,3 +173,10 @@ TerminalCoordinates VbeTerminal::VbeGetSize(TerminalBase * const term)
 
     return {(int16_t)((int32_t)vterm.Width / (int32_t)FontWidth), (int16_t)((int32_t)vterm.Height / (int32_t)FontHeight)};
 }
+
+/*  Remapping  */
+
+void VbeTerminal::RemapMemory(uintptr_t newAddr)
+{
+    this->VideoMemory = newAddr;
+}

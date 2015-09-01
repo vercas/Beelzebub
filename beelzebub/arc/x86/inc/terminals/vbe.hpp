@@ -20,7 +20,7 @@ namespace Beelzebub { namespace Terminals
 
 		/*  Constructors  */
 
-		__bland VbeTerminal() : TerminalBase( nullptr ) { }
+		__bland VbeTerminal() : TerminalBase( nullptr ), VideoMemory(nullptr) { }
         __bland VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32_t pit, uint8_t bytesPerPixel);
 
 		/*  Writing  */
@@ -31,7 +31,11 @@ namespace Beelzebub { namespace Terminals
 
         static __bland TerminalCoordinates VbeGetSize(TerminalBase * const term);
 
-	private:
+        /*  Remapping  */
+
+        __cold __bland void RemapMemory(uintptr_t newAddr);
+
+	//private:
 
 		uint16_t Width, Height;
 		uint32_t Pitch;

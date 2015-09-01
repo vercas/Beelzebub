@@ -42,7 +42,7 @@ LDFILE		:=
 #   Toolchain settings   #
 ##########################
 
-GCCFLAGS	:= -ffreestanding -Wall -mcmodel=large
+GCCFLAGS	:= -ffreestanding -Wall -mcmodel=kernel
 GCCFLAGS	+= -D __BEELZEBUB
 GCCFLAGS	+= -mno-red-zone -O2
 GCCFLAGS	+= -flto -nostdlib -lgcc -static-libgcc
@@ -52,14 +52,14 @@ CFLAGS		:= $(GCCFLAGS) -std=gnu99
 
 CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 
-DFLAGS		:= -Wall -Werror -mcmodel=large -nostdinc
+DFLAGS		:= -Wall -Werror -mcmodel=kernel -nostdinc
 DFLAGS      += -I$(RUNTIME_DIR) -I$(SRC_DIR)
 DFLAGS      += -fno-assert -fno-emit-moduleinfo -fd-vtls -fproperty
 DLFAGS      += -fno-bounds-check
 
 ASFLAGS		:=  
 
-LOFLAGS		:= -flto -O2 -ffreestanding -Wall -mcmodel=large -mno-red-zone
+LOFLAGS		:= -flto -O2 -ffreestanding -Wall -mcmodel=kernel -mno-red-zone
 LOFLAGS		+= -nostdlib -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000
 LOFLAGS		+= -pipe
 
