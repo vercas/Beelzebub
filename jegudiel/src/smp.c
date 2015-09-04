@@ -35,18 +35,21 @@ volatile uint64_t smp_ready_count;
 
 static void smp_boot(jg_info_cpu_t *cpu)
 {
-    // Send INIT IPI
-    lapic_ipi(LAPIC_IPI_INIT, cpu->apic_id);
-
-    // Wait a moment (10ms)
-    lapic_timer_wait(10 * 1000);
-
-    // Backup ready count
     uint64_t ready_new = smp_ready_count + 1;
-
-    // Send STARTUP IPI
-    lapic_ipi(LAPIC_IPI_STARTUP(0x1000), cpu->apic_id);
-
+    
+    for (int i = 0; i < 2; i++)
+    {
+        // Send INIT IPI
+        lapic_ipi(LAPIC_IPI_INIT, cpu->apic_id);
+        // Wait 10 ms
+        lapic_timer_wait(10 * 1000);
+        // Send STARTUP IPI
+        lapic_ipi(LAPIC_IPI_STARTUP(0x1000), cpu->apic_id);
+        // Break in case it's already initialized
+        if (ready_new != smp_ready_count)
+            return;
+    }
+    
     // Wait for the AP to become ready
     while (ready_new != smp_ready_count);
 }
