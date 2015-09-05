@@ -85,7 +85,7 @@ namespace Beelzebub
         //  A/The target page is (already) unmapped.
         PageUnmapped              = 0x0000000000000042U, // Pag unmp.
         //  A given page is unaligned.
-        PageUnaligned             = 0x0000000000000042U, // Pag unal.
+        PageUnaligned             = 0x0000000000000043U, // Pag unal.
     };
 
     struct Handle
@@ -352,6 +352,8 @@ namespace Beelzebub
                     return "Pag mapped";
                 case HandleResult::PageUnmapped:
                     return "Pag unmp.";
+                case HandleResult::PageUnaligned:
+                    return "Pag unalig.";
 
                 default:
                     return "UNKNOWN";
