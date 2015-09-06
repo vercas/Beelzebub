@@ -204,6 +204,8 @@ bochsout.txt
 .project
 .cproject
 
+BochsLog.txt
+
 # vStuff
 .sync/
 *~
@@ -213,7 +215,16 @@ BOCHS.bat
 QEMU.bat
 
 /image/grub/
+
+beelzebub/inc/Jegudiel.d
+bochsrc.old.txt
+
 copy.bat
 copy.bat - Shortcut.lnk
-beelzebub/inc/Jegudiel.d
-BochsLog.txt
+
+# Cartman300's stuff
+
+ToUSB.bat
+
+Build.bat
+CleanBuild.bat
