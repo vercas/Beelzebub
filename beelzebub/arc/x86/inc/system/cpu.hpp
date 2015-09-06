@@ -108,12 +108,14 @@ namespace Beelzebub { namespace System
 
         static __bland __forceinline void EnableInterrupts()
         {
-            asm volatile ( "sti \n\t" );
+            asm volatile ( "sti \n\t" : : : "memory" );
+            //  This is a memory barrier to prevent the compiler from moving things around it.
         }
 
         static __bland __forceinline void DisableInterrupts()
         {
-            asm volatile ( "cli \n\t" );
+            asm volatile ( "cli \n\t" : : : "memory" );
+            //  This is a memory barrier to prevent the compiler from moving things around it.
         }
 
         static __bland __forceinline void LIDT(const uintptr_t base
