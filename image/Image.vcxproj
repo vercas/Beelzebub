@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -33,6 +33,12 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -65,7 +71,7 @@
     <NMakeReBuildCommandLine>bash makevs.sh clean amd64</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>__JEGUDIEL__DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <SourcePath>T:\GitHub\Beelzebub\image\grub</SourcePath>
-    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+    <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <NMakeBuildCommandLine>bash makevs.sh amd64 install</NMakeBuildCommandLine>
@@ -73,7 +79,7 @@
     <NMakeReBuildCommandLine>bash makevs.sh clean amd64 install</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <SourcePath>T:\GitHub\Beelzebub\image\grub</SourcePath>
-    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+    <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>

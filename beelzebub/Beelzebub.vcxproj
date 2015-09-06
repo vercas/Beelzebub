@@ -73,9 +73,9 @@
     <NMakeCleanCommandLine>bash makevs.sh clean</NMakeCleanCommandLine>
     <NMakeReBuildCommandLine>bash makevs.sh clean amd64</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>__BEELZEBUB__DEBUG;__BEELZEBUB__ARCH_AMD64;__BEELZEBUB__ARCH_X86;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
-    <IncludePath>T:\GitHub\Beelzebub\beelzebub\arc\amd64\inc;T:\GitHub\Beelzebub\beelzebub\arc\x86\inc;T:\GitHub\Beelzebub\beelzebub\inc;$(IncludePath)</IncludePath>
-    <SourcePath>T:\GitHub\Beelzebub\beelzebub\arc\amd64\src;T:\GitHub\Beelzebub\beelzebub\arc\x86\src;T:\GitHub\Beelzebub\beelzebub\src</SourcePath>
-    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+    <IncludePath>$(SolutionDir)beelzebub\arc\amd64\inc;$(SolutionDir)beelzebub\arc\x86\inc;$(SolutionDir)beelzebub\inc;$(IncludePath)</IncludePath>
+    <SourcePath>$(SolutionDir)beelzebub\arc\amd64\src;$(SolutionDir)beelzebub\arc\x86\src;$(SolutionDir)beelzebub\src</SourcePath>
+    <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <NMakeBuildCommandLine>bash makevs.sh ia32</NMakeBuildCommandLine>
@@ -91,9 +91,9 @@
     <NMakeCleanCommandLine>bash makevs.sh clean</NMakeCleanCommandLine>
     <NMakeReBuildCommandLine>bash makevs.sh clean amd64</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>__BEELZEBUB__ARCH_AMD64;__BEELZEBUB__ARCH_X86;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
-    <IncludePath>T:\GitHub\Beelzebub\beelzebub\arc\amd64\inc;T:\GitHub\Beelzebub\beelzebub\arc\x86\inc;T:\GitHub\Beelzebub\beelzebub\inc;$(IncludePath)</IncludePath>
-    <SourcePath>T:\GitHub\Beelzebub\beelzebub\arc\amd64\src;T:\GitHub\Beelzebub\beelzebub\arc\x86\src;T:\GitHub\Beelzebub\beelzebub\src</SourcePath>
-    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+    <IncludePath>$(SolutionDir)beelzebub\arc\amd64\inc;$(SolutionDir)beelzebub\arc\x86\inc;$(SolutionDir)beelzebub\inc;$(IncludePath)</IncludePath>
+    <SourcePath>$(SolutionDir)beelzebub\arc\amd64\src;$(SolutionDir)beelzebub\arc\x86\src;$(SolutionDir)beelzebub\src</SourcePath>
+    <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
