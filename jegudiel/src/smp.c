@@ -47,8 +47,14 @@ static void smp_boot(jg_info_cpu_t *cpu)
     // Send STARTUP IPI
     lapic_ipi(LAPIC_IPI_STARTUP(0x1000), cpu->apic_id);
 
-    // Wait for the AP to become ready
-    while (ready_new != smp_ready_count);
+    // One second timeout
+    for (int i = 0; i < 10; ++i)
+    {
+        // wait 100 ms
+        lapic_timer_wait(100 * 1000);
+        if (ready_new == smp_ready_count)
+            return;
+    }
 }
 
 static void smp_prepare_boot16(void)
