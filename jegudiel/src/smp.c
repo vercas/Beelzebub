@@ -37,7 +37,6 @@ volatile uint64_t smp_ready_count;
 
 static void smp_boot(jg_info_cpu_t *cpu)
 {
-    asm volatile ("cli");
     puthexs(cpu->apic_id);
     puts("; ");
 
@@ -64,7 +63,6 @@ static void smp_boot(jg_info_cpu_t *cpu)
 
     while (smp_ready_count != ready_new)
         ;
-    asm volatile ("sti");
 }
 
 static void smp_prepare_boot16(void)
