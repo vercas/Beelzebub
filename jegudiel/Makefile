@@ -22,7 +22,7 @@ LD			:= /usr/local/cross/bin/x86_64-elf-ld
 
 # Toolchain Flags
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
-CFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(INCFLAGS)
+CFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(INCFLAGS) -O0
 ASFLAGS		:= -f elf64
 LDFLAGS		:= -z max-page-size=0x1000
 
