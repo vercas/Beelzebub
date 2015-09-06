@@ -44,3 +44,6 @@ Make sure you restart Visual Studio if you added/changed this variable while it 
 
 The solution, projects and dependency settings are organized in such a way that the projects are built in the right order and you get all the output files where they belong.  
 Sadly, it doesn't support debugging or running a VM/emulator, at least yet.  
+
+**Also**, take the `makevs.sh` file and put it in *$(CYGWIN_BIN)* (*/usr/bin*).  
+It wraps *make* and translates its output in a way that Visual Studio can understand. (check file for credits)  
