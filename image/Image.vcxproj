@@ -44,9 +44,9 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <NMakeBuildCommandLine>bash makevs.sh ia32</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine>bash makevs.sh ia32 install</NMakeBuildCommandLine>
     <NMakeCleanCommandLine>bash makevs.sh clean</NMakeCleanCommandLine>
-    <NMakeReBuildCommandLine>bash makevs.sh clean ia32</NMakeReBuildCommandLine>
+    <NMakeReBuildCommandLine>bash makevs.sh clean ia32 install</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>__JEGUDIEL__DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <SourcePath>$(SolutionDir)image\grub</SourcePath>
     <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
@@ -60,9 +60,9 @@
     <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <NMakeBuildCommandLine>bash makevs.sh amd64</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine>bash makevs.sh amd64 install</NMakeBuildCommandLine>
     <NMakeCleanCommandLine>bash makevs.sh clean</NMakeCleanCommandLine>
-    <NMakeReBuildCommandLine>bash makevs.sh clean amd64</NMakeReBuildCommandLine>
+    <NMakeReBuildCommandLine>bash makevs.sh clean amd64 install</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>__JEGUDIEL__DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <SourcePath>$(SolutionDir)image\grub</SourcePath>
     <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
