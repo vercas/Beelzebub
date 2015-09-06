@@ -71,7 +71,7 @@
     <NMakeReBuildCommandLine>bash makevs.sh clean amd64</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>__JEGUDIEL__DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <SourcePath>T:\GitHub\Beelzebub\image\grub</SourcePath>
-    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+    <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <NMakeBuildCommandLine>bash makevs.sh amd64 install</NMakeBuildCommandLine>
@@ -79,7 +79,7 @@
     <NMakeReBuildCommandLine>bash makevs.sh clean amd64 install</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
     <SourcePath>T:\GitHub\Beelzebub\image\grub</SourcePath>
-    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+    <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
