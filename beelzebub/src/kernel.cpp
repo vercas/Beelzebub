@@ -21,8 +21,16 @@ bool Beelzebub::Scheduling;
 MemoryManager * Beelzebub::BootstrapMemoryManager;
 Thread BootstrapThread;
 
-/*  Main entry point  */
+static void ThreadTest() {
+    for (int i = 0; i < 10; ++i)
+    {
+        (&TerminalMessageLock)->Acquire();
+        MainTerminal->WriteLine("Hello Thread!");
+        (&TerminalMessageLock)->Release();
+    }
+}
 
+/*  Main entry point  */
 void Beelzebub::Main()
 {
     (&InitializationLock)->Acquire();
