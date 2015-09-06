@@ -197,6 +197,10 @@ void main_bsp(void)
 
 void main_ap(void)
 {
+    puts("0");
+
+    while(true);
+
     // Load the IDT
     idt_load((uintptr_t) &idt_data, IDT_LENGTH);
 
