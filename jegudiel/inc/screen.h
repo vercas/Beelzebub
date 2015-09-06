@@ -46,7 +46,7 @@ extern uintptr_t SCREEN_VIDEOMEM_PADDR;
 
 // Writes a message to the screen, then enters an infinite loop.
 #define SCREEN_PANIC(msg)       do { \
-    screen_write("PANIC: " msg, 0, 24); \
+    puts("\r[XX]\r\nPANIC: " msg); \
     while (true); \
 } while (false);
 

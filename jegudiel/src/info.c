@@ -29,6 +29,7 @@
 #include <info.h>
 #include <stdint.h>
 #include <string.h>
+#include <screen.h>
 
 extern uint8_t info_root_data INFO_SECTION;
 extern uint8_t info_mmap_data INFO_SECTION;
@@ -70,7 +71,7 @@ char *info_string_alloc(size_t length)
     ++length;
 
     if (length > info_string_space) {
-        // TODO: PANIC
+        SCREEN_PANIC("Ran out of space for strings!");
     }
 
     char *allocated = info_strings_next;

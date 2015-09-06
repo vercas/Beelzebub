@@ -27,6 +27,7 @@
 #include <multiboot.h>
 #include <stdint.h>
 #include <string.h>
+#include <screen.h>
 
 multiboot_info_t *multiboot_info;
 
@@ -78,19 +79,39 @@ static void multiboot_parse_mods(multiboot_mod_t *mods, size_t count)
 {
     size_t i;
     
-    for (i = 0; i < count; ++i) {
-        multiboot_mod_t *mod = &mods[i];
+    for (i = 0; i < count; ++i)
+    {
+        multiboot_mod_t * mod = &mods[i];
         
-        jg_info_module_t *jgmod = &info_module[info_root->module_count++];
+        jg_info_module_t * jgmod = &info_module[info_root->module_count++];
         jgmod->address = mod->start;
         jgmod->length = mod->end - mod->start;
         
-        char *name = (char *) (uintptr_t) mod->cmdline;
+        char *name = (char *)(uintptr_t)mod->cmdline;
+
         size_t name_len = strlen(name);
-        char *name_tbl = info_string_alloc(name_len);
-        memcpy(name_tbl, name, name_len);
+        size_t name_wlen = strwlen(name);
+
+        char * name_tbl = info_string_alloc(name_wlen);
+        memcpy(name_tbl, name, name_wlen);
         
-        jgmod->name = ((uintptr_t) name_tbl - (uintptr_t) info_strings);
+        jgmod->name = ((uintptr_t)name_tbl - (uintptr_t)info_strings);
+
+        puts("\r\n    Module ");
+        puts(name_tbl);
+
+        if (name_len > name_wlen)
+        {
+            char * cmdline_tbl = info_string_alloc(name_len - name_wlen - 1);
+            memcpy(cmdline_tbl, name + name_wlen + 1, name_len - name_wlen - 1);
+            
+            jgmod->cmdline = ((uintptr_t)cmdline_tbl - (uintptr_t)info_strings);
+
+            puts("; CL: ");
+            puts(cmdline_tbl);
+        }
+        else
+            jgmod->cmdline = 0xFFFFU;
     }
 }
 
