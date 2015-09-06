@@ -185,9 +185,9 @@ void main_bsp(void)
     puts("----");
 
     puts("Jumping to kernel's boot entry...\r\n");
-    puts("\r\nHanging!\r\n");
 
-    for(;;);
+    /*puts("\r\nHanging!\r\n");
+    for(;;);*/
 
     // Lower main entry barrier and jump to the kernel entry point
     //main_entry_barrier = 0;
@@ -197,36 +197,33 @@ void main_bsp(void)
 
 void main_ap(void)
 {
-    while(true);
-    puts("0");
-    
     // Load the IDT
     idt_load((uintptr_t) &idt_data, IDT_LENGTH);
 
-    puts("A");
+    //puts("A");
 
     // Enable LAPIC and calibrate the timer
     lapic_setup();
     lapic_timer_calibrate();
 
-    puts("B");
+    //puts("B");
 
     // Setup stack mapping
     kernel_map_stack();
 
-    puts("C");
+    //puts("C");
 
     // Setup fast syscall support
     syscall_init();
 
-    puts("D");
+    //puts("D");
 
     // Signal complete AP startup
     //++smp_ready_count;
     uint64_t incrementor = 1; // Staying on the safe side.
     __atomic_add_fetch(&smp_ready_count, incrementor, __ATOMIC_SEQ_CST);
 
-    puts("E");
+    //puts("E");
 
     // Wait for main entry barrier, then enter the kernel (or halt)
     while (main_entry_barrier == 1);
