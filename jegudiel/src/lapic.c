@@ -42,12 +42,22 @@ void lapic_detect(void)
     cpu_cpuid(0x1, &cpuid);
     bool x2apic_supported = (0 != ((1 << 21) & cpuid.c));
 
-    if (0 != (kernel_header->flags & JG_HEADER_FLAG_X2APIC_ALLOW)) {
-        if (x2apic_supported) {
+    if (0 != (kernel_header->flags & JG_HEADER_FLAG_X2APIC_ALLOW))
+    {
+        if (x2apic_supported)
+        {
             info_root->flags |= JG_INFO_FLAG_X2APIC;
 
-        } else if (0 != (kernel_header->flags & JG_HEADER_FLAG_X2APIC_REQUIRE)) {
-            SCREEN_PANIC("x2APIC required but not supported.");
+            puts(" x2APIC!");
+        }
+        else
+        {
+            puts(" No x2APIC...");
+
+            if (0 != (kernel_header->flags & JG_HEADER_FLAG_X2APIC_REQUIRE))
+            {
+                SCREEN_PANIC("x2APIC required but not supported.");
+            }
         }
     }
 }

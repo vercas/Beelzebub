@@ -89,6 +89,13 @@ size_t strlen(const int8_t *str)
     return len;
 }
 
+size_t strwlen(const int8_t *str)
+{
+    size_t len;
+    for (len = 0; 0 != str[len] && ' ' != str[len] && '\t' != str[len] && '\n' != str[len] && '\r' != str[len]; ++len);
+    return len;
+}
+
 int8_t *strstr(const int8_t *haystack, const int8_t *needle)
 {
     size_t str_pos, substr_pos;

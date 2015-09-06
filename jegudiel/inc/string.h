@@ -27,6 +27,7 @@
 #include <stdint.h>
 
 size_t strlen(const int8_t *str);
+size_t strwlen(const int8_t *str);
 uint8_t strcmp(const int8_t *a, const int8_t *b);
 int8_t *strcpy(int8_t *dest, const int8_t *src);
 int8_t *strstr(const int8_t *haystack, const int8_t *needle);
