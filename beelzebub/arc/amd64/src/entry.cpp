@@ -274,7 +274,8 @@ __bland void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace
     if (terminal->Descriptor->Capabilities.Type == TerminalType::PixelMatrix)
     {
         VbeTerminal * const term = (VbeTerminal *)terminal;
-        const size_t size = (size_t)term->Pitch * (size_t)term->Height;
+        const size_t size = ((size_t)term->Pitch * (size_t)term->Height + PageSize - 1) & ~0xFFFULL;
+        //  Yes, the size is aligned with page boundaries.
 
         if (term->VideoMemory >= MemoryManagerAmd64::KernelModulesStart
          && term->VideoMemory <  MemoryManagerAmd64::KernelModulesEnd)

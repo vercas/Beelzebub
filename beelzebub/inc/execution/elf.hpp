@@ -83,9 +83,9 @@ namespace Beelzebub { namespace Execution {
     };
 
     ENUMOPS(ElfFileType, uint16_t)
-
+    
     /**
-     *  Known object file types.
+     *  Known architectures supported by ELF files.
      */
     enum class ElfMachine : uint16_t
     {
@@ -124,6 +124,74 @@ namespace Beelzebub { namespace Execution {
     };
 
     ENUMOPS(ElfMachine, uint16_t)
+
+    /**
+     *  Types of ELF sections.
+     */
+    enum class ElfSectionHeaderType : uint32_t
+    {
+        Null = 0,
+        ProgramBits = 1,
+        StaticSymbolTable = 2,
+        StringTable = 3,
+        RelocationEntriesAppends = 4,
+        HashTable = 5,
+        Dynamic = 6,
+        Note = 7,
+        NoBits = 8,
+        RelocationEntries = 9,
+        SHLIB = 10,
+        DynamicSymbolTable = 11,
+
+        InitializationFunctions = 14,
+        TerminationFunctions = 15,
+        PreinitializationFunctions = 16,
+
+        SectionGroup = 17,
+        SymbolTableIndexes = 18,
+    };
+
+    ENUMOPS(ElfSectionHeaderType, uint32_t)
+
+    /**
+     *  Section flags for 32-bit ELF.
+     */
+    enum class ElfSectionHeaderFlags_32 : uint32_t
+    {
+        Writable = 0x1,
+        Allocated = 0x2,
+        Executable = 0x4,
+        Merge = 0x10,
+        Strings = 0x20,
+        InfoLink = 0x40,
+        LinkOrdering = 0x80,
+        OsNonconforming = 0x100,
+        GroupMember = 0x200,
+        ThreadLocalStorage = 0x400,
+        Compressed = 0x800,
+    };
+
+    ENUMOPS(ElfSectionHeaderFlags_32, uint32_t)
+
+    /**
+     *  Section flags for 64-bit ELF.
+     */
+    enum class ElfSectionHeaderFlags_64 : uint64_t
+    {
+        Writable = 0x1,
+        Allocated = 0x2,
+        Executable = 0x4,
+        Merge = 0x10,
+        Strings = 0x20,
+        InfoLink = 0x40,
+        LinkOrdering = 0x80,
+        OsNonconforming = 0x100,
+        GroupMember = 0x200,
+        ThreadLocalStorage = 0x400,
+        Compressed = 0x800,
+    };
+
+    ENUMOPS(ElfSectionHeaderFlags_64, uint64_t)
 
     /*  Structures  */
 
@@ -191,5 +259,39 @@ namespace Beelzebub { namespace Execution {
         uint16_t SectionHeaderTableEntrySize;  /* 46 - 47 | 58 - 59 */
         uint16_t SectionHeaderTableEntryCount; /* 48 - 49 | 60 - 61 */
         uint16_t SectionNameStringTableIndex;  /* 50 - 51 | 62 - 63 */
+    } __packed;
+
+    /**
+     *  Represents the header of a section in a 32-bit ELF.
+     */
+    struct ElfSectionHeader_32
+    {
+        uint32_t Name;                  /*  0 -  3 */
+        ElfSectionHeaderType Type;      /*  4 -  7 */
+        ElfSectionHeaderFlags_32 Flags; /*  8 - 11 */
+        uint32_t Address;               /* 12 - 15 */
+        uint32_t Offset;                /* 16 - 19 */
+        uint32_t Size;                  /* 20 - 23 */
+        uint32_t Link;                  /* 24 - 27 */
+        uint32_t Info;                  /* 28 - 31 */
+        uint32_t AddressAlignment;      /* 32 - 35 */
+        uint32_t EntrySize;             /* 36 - 39 */
+    } __packed;
+
+    /**
+     *  Represents the header of a section in a 64-bit ELF.
+     */
+    struct ElfSectionHeader_64
+    {
+        uint32_t Name;
+        ElfSectionHeaderType Type;
+        ElfSectionHeaderFlags_64 Flags;
+        uint64_t Address;
+        uint64_t Offset;
+        uint64_t Size;
+        uint32_t Link;
+        uint32_t Info;
+        uint64_t AddressAlignment;
+        uint64_t EntrySize;
     } __packed;
 }}
