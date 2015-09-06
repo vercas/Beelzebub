@@ -10,4 +10,6 @@ namespace Beelzebub { namespace Execution
     __bland void InitializeThreadState(Thread * const thread);
 
     __bland __cold Handle InitializeBootstrapThread(Thread * const bst);
+
+    __bland Handle SpawnThread(Thread * const thread, ThreadEntryPointFunction func);
 }}

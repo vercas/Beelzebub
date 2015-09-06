@@ -1,4 +1,5 @@
 #include <execution/thread_init.hpp>
+//#include <execution/thread.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -26,4 +27,10 @@ Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst)
 	bst->Next = bst->Previous = bst;
 
 	return Handle(HandleResult::Okay);
+}
+
+Handle Beelzebub::Execution::SpawnThread(Thread * const thread, ThreadEntryPointFunction func)
+{
+	thread->EntryPoint = func;
+	InitializeThreadState(thread);
 }

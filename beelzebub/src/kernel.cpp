@@ -21,13 +21,16 @@ bool Beelzebub::Scheduling;
 MemoryManager * Beelzebub::BootstrapMemoryManager;
 Thread BootstrapThread;
 
-static void ThreadTest() {
+__bland static void ThreadTest(void* arg) {
     for (int i = 0; i < 10; ++i)
     {
         (&TerminalMessageLock)->Acquire();
         MainTerminal->WriteLine("Hello Thread!");
         (&TerminalMessageLock)->Release();
     }
+
+    while (true)
+        ;
 }
 
 /*  Main entry point  */
@@ -104,9 +107,15 @@ void Beelzebub::Main()
             , res);
     }
 
-    MainTerminal->WriteLine("\\Halting indefinitely now.");
+    /*MainTerminal->WriteLine("\\Halting indefinitely now.");
+    (&TerminalMessageLock)->Release();*/
 
-    (&TerminalMessageLock)->Release();
+    Thread Thrd;
+    SpawnThread(&Thrd, ThreadTest);
+    SetNext(&BootstrapThread, &Thrd);
+    SwitchNext(&BootstrapThread);
+
+    MainTerminal->WriteLine("Done!");
 
     //  Allow the CPU to rest.
     while (true) if (Cpu::CanHalt) Cpu::Halt();
