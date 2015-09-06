@@ -40,18 +40,18 @@
     <NMakeCleanCommandLine>bash makevs.sh clean</NMakeCleanCommandLine>
     <NMakeReBuildCommandLine>bash makevs.sh clean amd64 install</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>__JEGUDIEL__DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
-    <IncludePath>T:\GitHub\Beelzebub\jegudiel\inc;$(IncludePath)</IncludePath>
-    <SourcePath>T:\GitHub\Beelzebub\jegudiel\src</SourcePath>
-    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+    <IncludePath>$(SolutionDir)jegudiel\inc;$(IncludePath)</IncludePath>
+    <SourcePath>$(SolutionDir)jegudiel\src</SourcePath>
+    <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <NMakeBuildCommandLine>bash makevs.sh amd64 install</NMakeBuildCommandLine>
     <NMakeCleanCommandLine>bash makevs.sh clean</NMakeCleanCommandLine>
     <NMakeReBuildCommandLine>bash makevs.sh clean amd64 install</NMakeReBuildCommandLine>
     <NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
-    <IncludePath>T:\GitHub\Beelzebub\jegudiel\inc;$(IncludePath)</IncludePath>
-    <SourcePath>T:\GitHub\Beelzebub\jegudiel\src</SourcePath>
-    <ExecutablePath>C:\cygwin64\bin</ExecutablePath>
+    <IncludePath>$(SolutionDir)jegudiel\inc;$(IncludePath)</IncludePath>
+    <SourcePath>$(SolutionDir)jegudiel\src</SourcePath>
+    <ExecutablePath>$(CYGWIN_BIN)</ExecutablePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
   </ItemDefinitionGroup>
