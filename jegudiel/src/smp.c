@@ -42,7 +42,7 @@ static void smp_boot(jg_info_cpu_t *cpu)
     lapic_timer_wait(10 * 1000);
 
     // Backup ready count
-    //uint64_t ready_new = smp_ready_count + 1;
+    uint64_t ready_new = smp_ready_count + 1;
 
     // Send STARTUP IPI
     lapic_ipi(LAPIC_IPI_STARTUP(0x1000), cpu->apic_id);

@@ -185,8 +185,9 @@ void main_bsp(void)
     puts("----");
 
     puts("Jumping to kernel's boot entry...\r\n");
+    puts("\r\nHanging!\r\n");
 
-    //for(;;);
+    for(;;);
 
     // Lower main entry barrier and jump to the kernel entry point
     //main_entry_barrier = 0;
@@ -196,9 +197,6 @@ void main_bsp(void)
 
 void main_ap(void)
 {
-    puts("Hanging instead!");
-    while(true);
-
     // Load the IDT
     idt_load((uintptr_t) &idt_data, IDT_LENGTH);
 
