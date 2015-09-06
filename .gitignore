@@ -216,3 +216,7 @@ QEMU.bat
 copy.bat
 copy.bat - Shortcut.lnk
 beelzebub/inc/Jegudiel.d
+ToUSB.bat
+Build.bat
+StartBochs.bat
+CleanBuild.bat
