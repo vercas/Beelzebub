@@ -40,7 +40,7 @@ static void acpi_add_cpu(uint32_t apic_id, uint32_t acpi_id, uint32_t flags)
 
     cpu->acpi_id = acpi_id;
     cpu->apic_id = apic_id;
-    cpu->flags |= 0;
+    cpu->flags = 0; //  Why |= 0? This must've been a typo.
     cpu->domain = 0;
 
     if (0 != (flags & ACPI_MADT_LAPIC_ENABLED)) {
@@ -54,14 +54,14 @@ static void acpi_add_cpu(uint32_t apic_id, uint32_t acpi_id, uint32_t flags)
     }
 }
 
-static void acpi_parse_madt_x2lapic(acpi_madt_x2lapic_t *entry)
+static void acpi_parse_madt_x2lapic(acpi_madt_x2lapic_t * entry)
 {
-    acpi_add_cpu(entry->x2apic_id, entry->acpi_id, entry->flags);
+    acpi_add_cpu((uint32_t)entry->x2apic_id, (uint32_t)entry->acpi_id, (uint32_t)entry->flags);
 }
 
-static void acpi_parse_madt_lapic(acpi_madt_lapic_t *entry)
+static void acpi_parse_madt_lapic(acpi_madt_lapic_t * entry)
 {
-    acpi_add_cpu(entry->apic_id, entry->acpi_id, entry->flags);
+    acpi_add_cpu((uint32_t)entry->apic_id, (uint32_t)entry->acpi_id, (uint32_t)entry->flags);
 }
 
 static void acpi_parse_madt_ioapic(acpi_madt_ioapic_t *entry)
@@ -101,34 +101,35 @@ static void acpi_parse_madt(acpi_madt_t *madt)
         info_root->flags |= JG_INFO_FLAG_PCAT_COMPAT;
     }
 
-    acpi_madt_entry_t *entry = (acpi_madt_entry_t *) ((uintptr_t) madt + sizeof (acpi_madt_t));
-    size_t size_left = madt->header.length - sizeof (acpi_madt_t);
+    acpi_madt_entry_t * entry = (acpi_madt_entry_t *) ((uintptr_t)madt + sizeof(acpi_madt_t));
+    size_t size_left = madt->header.length - sizeof(acpi_madt_t);
 
-    info_root->cpu_offset = heap_top - (uintptr_t) info_root;
-    info_cpu = (jg_info_cpu_t *) heap_top;
+    info_root->cpu_offset = heap_top - (uintptr_t)info_root;
+    info_cpu = (jg_info_cpu_t *)heap_top;
 
-    while (size_left > 0) {
-        size_left -= entry->length;
-
-        switch (entry->type) {
+    while (size_left > 0)
+    {
+        switch (entry->type)
+        {
         case ACPI_MADT_TYPE_LAPIC:
-            acpi_parse_madt_lapic((acpi_madt_lapic_t *) entry);
+            acpi_parse_madt_lapic((acpi_madt_lapic_t *)entry);
             break;
 
         case ACPI_MADT_TYPE_X2LAPIC:
-            acpi_parse_madt_x2lapic((acpi_madt_x2lapic_t *) entry);
+            acpi_parse_madt_x2lapic((acpi_madt_x2lapic_t *)entry);
             break;
 
         case ACPI_MADT_TYPE_IOAPIC:
-            acpi_parse_madt_ioapic((acpi_madt_ioapic_t *) entry);
+            acpi_parse_madt_ioapic((acpi_madt_ioapic_t *)entry);
             break;
 
         case ACPI_MADT_TYPE_ISO:
-            acpi_parse_madt_iso((acpi_madt_iso_t *) entry);
+            acpi_parse_madt_iso((acpi_madt_iso_t *)entry);
             break;
         }
 
-        entry = (acpi_madt_entry_t *) ((uintptr_t) entry + entry->length);
+        size_left -= entry->length;
+        entry = (acpi_madt_entry_t *)((uintptr_t)entry + entry->length);
     }
 
     size_t cpu_length = sizeof(jg_info_cpu_t) * info_root->cpu_count;
