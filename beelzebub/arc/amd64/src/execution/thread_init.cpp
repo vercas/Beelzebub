@@ -31,6 +31,13 @@ Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst)
 
 Handle Beelzebub::Execution::SpawnThread(Thread * const thread, ThreadEntryPointFunction func)
 {
+	// TODO: Use heap ASAP
+	static uint64_t dummy = 0x0036656263617300;
+	thread->KernelStackBottom = (uintptr_t)&dummy & ~(uintptr_t)0xFFF;
+	thread->KernelStackTop = ((uintptr_t)&dummy + 0xFFF) & ~(uintptr_t)0xFFF;
+	dummy -= 0x1000;
+
 	thread->EntryPoint = func;
 	InitializeThreadState(thread);
+	return Handle(HandleResult::Okay);
 }
