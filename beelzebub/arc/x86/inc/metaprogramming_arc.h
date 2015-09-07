@@ -8,37 +8,41 @@
 //  Some type definitions.
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-typedef unsigned long long paddr_t; //  Physical address.
-typedef unsigned long long vaddr_t; //  Virtual (linear) address.
-typedef unsigned long long psize_t; //  Physical size.
-typedef unsigned long long vsize_t; //  Virtual (linear) address.
-typedef unsigned long long pgind_t; //  Index of a memory page.
-typedef unsigned long long  creg_t; //  Control register.
+typedef uint64_t paddr_t; //  Physical address.
+typedef uint64_t vaddr_t; //  Virtual (linear) address.
+typedef uint64_t psize_t; //  Physical size.
+typedef uint64_t vsize_t; //  Virtual (linear) address.
+typedef uint64_t pgind_t; //  Index of a memory page.
+typedef uint64_t  creg_t; //  Control register.
 
-typedef unsigned long long uintptr_t;
-typedef   signed long long  intptr_t;
+typedef uint64_t uintptr_t;
+typedef  int64_t  intptr_t;
 //typedef   signed long long ptrdiff_t;
+
+typedef uint64_t int_cookie_t;
 
 #define KERNEL_CODE_SEPARATOR ((uintptr_t)0xFFFFFF8000000000ULL)
 
 #elif defined(__BEELZEBUB__ARCH_IA32)
 
 #if   defined(__BEELZEBUB__ARCH_IA32PAE)
-typedef unsigned long long paddr_t; //  Physical address.
-typedef unsigned long long psize_t; //  Physical size.
+typedef uint64_t paddr_t; //  Physical address.
+typedef uint64_t psize_t; //  Physical size.
 #else
-typedef unsigned    int    paddr_t; //  Physical address.
-typedef unsigned    int    psize_t; //  Physical size.
+typedef uint32_t paddr_t; //  Physical address.
+typedef uint32_t psize_t; //  Physical size.
 #endif
 
-typedef unsigned    int    vaddr_t; //  Virtual (linear) address.
-typedef unsigned    int    vsize_t; //  Virtual (linear) address.
-typedef unsigned    int    pgind_t; //  Index of a memory page.
-typedef unsigned    int     creg_t; //  Control register.
+typedef uint32_t vaddr_t; //  Virtual (linear) address.
+typedef uint32_t vsize_t; //  Virtual (linear) address.
+typedef uint32_t pgind_t; //  Index of a memory page.
+typedef uint32_t  creg_t; //  Control register.
 
-typedef unsigned    int    uintptr_t;
-typedef   signed    int     intptr_t;
+typedef uint32_t uintptr_t;
+typedef  int32_t  intptr_t;
 //typedef   signed    int    ptrdiff_t;
+
+typedef uint32_t int_cookie_t;
 
 #define KERNEL_CODE_SEPARATOR ((uintptr_t)0xC0000000U)
 

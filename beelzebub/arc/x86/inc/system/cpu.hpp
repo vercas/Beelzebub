@@ -68,7 +68,8 @@ namespace Beelzebub { namespace System
      */
     struct CpuData
     {
-        size_t Index;
+        uint32_t Index;
+        uint32_t InterruptDisableCount; /* PADDING */
         Execution::Thread * ActiveThread;
         Synchronization::spinlock_t HeapSpinlock;
         Synchronization::Spinlock * HeapSpinlockPointer;
@@ -91,46 +92,6 @@ namespace Beelzebub { namespace System
         static __bland __forceinline void Halt()
         {
             asm volatile ( "hlt \n\t" );
-        }
-
-        /*  Interrupts  */
-
-        static __bland __forceinline bool InterruptsEnabled()
-        {
-            size_t flags;
-
-            asm volatile ( "pushf\n\t"
-                           "pop %0\n\t"
-                           : "=r"(flags) );
-
-            return (flags & (size_t)(1 << 9)) != 0;
-        }
-
-        static __bland __forceinline void EnableInterrupts()
-        {
-            asm volatile ( "sti \n\t" : : : "memory" );
-            //  This is a memory barrier to prevent the compiler from moving things around it.
-        }
-
-        static __bland __forceinline void DisableInterrupts()
-        {
-            asm volatile ( "cli \n\t" : : : "memory" );
-            //  This is a memory barrier to prevent the compiler from moving things around it.
-        }
-
-        static __bland __forceinline void LIDT(const uintptr_t base
-                                             , const uint16_t size)
-        {
-            struct
-            {
-                uint16_t length;
-                uintptr_t base;
-            } __packed IDTR;
-
-            IDTR.length = size;
-            IDTR.base = base;
-
-            asm volatile ( "lidt (%0)\n\t" : : "p"(&IDTR) );
         }
 
         /*  Caching  */
@@ -549,14 +510,23 @@ namespace Beelzebub { namespace System
 
         static const size_t CpuDataSize = sizeof(CpuData);
 
-        static __bland __forceinline size_t GetIndex()
+        static __bland __forceinline uint32_t GetIndex()
         {
-            return GsGetSize(offsetof(struct CpuData, Index));
+            return GsGet32(offsetof(struct CpuData, Index));
         }
-        static __bland __forceinline size_t SetIndex(const size_t val)
+        static __bland __forceinline uint32_t SetIndex(const uint32_t val)
         {
-            return (size_t)GsSetSize(offsetof(struct CpuData, Index), (uintptr_t)val);
+            return (uint32_t)GsSet32(offsetof(struct CpuData, Index), val);
         }
+
+        /*static __bland __forceinline uint32_t GetInterruptDisableCount()
+        {
+            return GsGet32(offsetof(struct CpuData, InterruptDisableCount));
+        }
+        static __bland __forceinline uint32_t SetInterruptDisableCount(const uint32_t val)
+        {
+            return (uint32_t)GsSet32(offsetof(struct CpuData, InterruptDisableCount), val);
+        }*/
 
         static __bland __forceinline Execution::Thread * GetActiveThread()
         {
@@ -601,6 +571,115 @@ namespace Beelzebub { namespace System
         static __bland __forceinline vaddr_t SetKernelHeapEnd(const vaddr_t val)
         {
             return (vaddr_t)GsSetPointer(offsetof(struct CpuData, KernelHeapEnd), (uintptr_t)val);
+        }
+
+        /*  Interrupts  */
+
+        //static_assert(4 == offsetof(struct CpuData, InterruptDisableCount));
+        //  Protecting against accidental changes of the CpuData struct without updating the appropriate functions.
+
+        static __bland __forceinline bool InterruptsEnabled()
+        {
+            size_t flags;
+
+            asm volatile ( "pushf\n\t"
+                           "pop %0\n\t"
+                           : "=rm"(flags) );
+
+            return (flags & (size_t)(1 << 9)) != 0;
+        }
+
+        static __bland __forceinline void EnableInterrupts()
+        {
+            asm volatile ( "sti \n\t" : : : "memory" );
+            //  This is a memory barrier to prevent the compiler from moving things around it.
+        }
+
+        static __bland __forceinline void DisableInterrupts()
+        {
+            asm volatile ( "cli \n\t" : : : "memory" );
+            //  This is a memory barrier to prevent the compiler from moving things around it.
+        }
+
+        /**
+         *  Pushes the interrupt disabling counter and disables interrupts
+         *
+         *  @return Value of interrupt counter prior to calling the method.
+         *-/
+        static __bland __forceinline uint32_t PushDisableInterrupts()
+        {
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+            register size_t ret asm("rax") = 1;
+#else
+            register size_t ret asm("eax") = 1;
+#endif
+
+            asm volatile ( "cli \n\t"
+                           "xaddl %%eax, %%gs:($4) \n\t"
+                         : "+a"(ret)
+                         :
+                         : "memory" );
+            //  This is a memory barrier to prevent the compiler from moving things around it.
+
+            return (uint32_t)ret;
+        }//*/
+
+        /**
+         *  Disables interrupts and returns a cookie which allows restoring the interrupt state
+         *  as it was before executing this function.
+         *
+         *  @return A cookie which allows restoring the interrupt state as it was before executing this function.
+         */
+        static __bland __forceinline int_cookie_t PushDisableInterrupts()
+        {
+            int_cookie_t cookie;
+
+            asm volatile ( "pushf  \n\t"
+                           "cli    \n\t" // Yes, do it as soon as possible, to avoid interruption.
+                           "pop %0 \n\t"
+                         : "=r"(cookie)
+                         :
+                         : "memory");
+            
+            /*  A bit of wisdom from froggey: ``On second thought, the constraint for flags ["cookie"] in
+                interrupt_disable [PushDisableInterrupts] should be "=r", not "=rm". If the compiler decided
+                to store [the] flags on the stack and generated an (E|R)SP-relative address, the address would
+                end up being off by 4/8 [when passed onto the pop instruction because the stack pointer changed].'' */
+
+            return cookie;
+        }
+
+        /**
+         *  Restores interrupt state based on the given cookie.
+         *
+         *  @return True if interrupts are now enabled, otherwise false.
+         */
+        static __bland __forceinline bool RestoreInterruptState(const int_cookie_t cookie)
+        {
+            asm volatile ( "push %0 \n\t"   //  PUT THE COOKIE DOWN!
+                           "popf    \n\t"
+                         :
+                         : "rm"(cookie)
+                         : "memory", "cc" );
+
+            //  Here the cookie can safely be retrieved from the stack because RSP will change after
+            //  push, not before.
+
+            return (cookie & (int_cookie_t)(1 << 9)) == 0;
+        }
+
+        static __bland __forceinline void LIDT(const uintptr_t base, const uint16_t size)
+        {
+            struct
+            {
+                uint16_t length;
+                uintptr_t base;
+            } __packed IDTR;
+
+            IDTR.length = size;
+            IDTR.base = base;
+
+            asm volatile ( "lidt (%0)\n\t" : : "p"(&IDTR) );
         }
     };
 }}
