@@ -32,6 +32,6 @@ namespace Beelzebub { namespace Execution
 
         /*  Hierarchy  */
 
-
+        Process * Owner;
     };
 }}
