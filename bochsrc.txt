@@ -28,9 +28,9 @@ clock: sync=realtime, time0=local, rtc_sync=1
 # no loader
 log: -
 logprefix: %t%e%d
-debug: action=report
-info: action=report
-error: action=report
+debug: action=ignore
+info: action=ignore
+error: action=ignore
 panic: action=report
 keyboard: type=mf, serial_delay=250, paste_delay=100000, user_shortcut=none
 mouse: type=ps2, enabled=0, toggle=ctrl+mbutton

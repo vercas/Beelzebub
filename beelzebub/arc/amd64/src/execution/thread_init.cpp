@@ -1,5 +1,6 @@
 #include <execution/thread_init.hpp>
-//#include <execution/thread.hpp>
+#include <execution/thread_switching.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -25,19 +26,35 @@ Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst)
 	bst->KernelStackTop = ((uintptr_t)&dummy + 0xFFF) & ~(uintptr_t)0xFFF;
 
 	bst->Next = bst->Previous = bst;
-
+	bst->Completed = false;
+	bst->ThreadID = 0;
+	SwitchTo(bst);
 	return Handle(HandleResult::Okay);
 }
 
 Handle Beelzebub::Execution::SpawnThread(Thread * const thread, ThreadEntryPointFunction func)
 {
-	// TODO: Use heap ASAP
-	static uint64_t dummy = 0x0036656263617300;
+	static uint64_t FreeTID = 1;
+	Handle res;
+
+	// TODO: Use another way to allocate the space asap
+	static uint64_t dummy = 0x0046656263617000;
 	thread->KernelStackBottom = (uintptr_t)&dummy & ~(uintptr_t)0xFFF;
 	thread->KernelStackTop = ((uintptr_t)&dummy + 0xFFF) & ~(uintptr_t)0xFFF;
 	dummy -= 0x1000;
 
+	thread->Next = thread->Previous = thread;
 	thread->EntryPoint = func;
+	thread->Completed = false;
+	thread->Executing = false;
+	thread->ThreadID = FreeTID++;
 	InitializeThreadState(thread);
+
+	res = SetNext(GetCurrentThread(), thread);
+	if (!res.IsOkayResult())
+	{
+		assert(false, "Failed to set next thread: %H", res);
+	}
+
 	return Handle(HandleResult::Okay);
 }

@@ -28,6 +28,9 @@ namespace Beelzebub { namespace Execution
 
         /*  Parameters  */
 
+        uint64_t ThreadID;
+        bool Completed;
+        bool Executing;
         ThreadEntryPointFunction EntryPoint;
 
         /*  Hierarchy  */
