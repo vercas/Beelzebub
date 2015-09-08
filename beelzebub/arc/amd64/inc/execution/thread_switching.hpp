@@ -5,7 +5,7 @@
 
 __extern __hot void SwitchThread(uintptr_t * curStack, uintptr_t nextStack);
 
-namespace Beelzebub { namespace Execution
+/*namespace Beelzebub { namespace Execution
 {
-    __hot __bland void SwitchNext(Thread * const current);
-}}
+    
+}}//*/

@@ -203,6 +203,8 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
     pml4Alien[LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, NX);
 
     pml4Alien[511] = pml4Local[511];
+    //  Last page, where the kernel and bootloader-provided shenanigans sit
+    //  snuggly together and drink hot cocoa.
 
     return Handle(HandleResult::Okay);
 }

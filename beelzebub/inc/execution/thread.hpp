@@ -2,6 +2,7 @@
 
 #include <execution/process.hpp>
 #include <execution/thread_state.hpp>
+#include <handles.h>
 
 namespace Beelzebub { namespace Execution
 {
@@ -13,6 +14,10 @@ namespace Beelzebub { namespace Execution
     class Thread
     {
     public:
+
+        /*  Operations  */
+
+        __hot __bland Handle SwitchTo(Thread * const other);
 
         /*  Stack  */
 

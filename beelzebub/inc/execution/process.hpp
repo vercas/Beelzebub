@@ -14,6 +14,10 @@ namespace Beelzebub { namespace Execution
     {
     public:
 
+        /*  Operations  */
+
+        __hot __bland Handle SwitchTo(Process * const other);
+
         /*  Stack  */
 
         MemoryManager * VAS;
