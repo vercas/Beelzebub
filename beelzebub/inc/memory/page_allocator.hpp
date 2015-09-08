@@ -145,10 +145,15 @@ namespace Beelzebub { namespace Memory
 
         __bland __forceinline uint32_t DecrementReferenceCount()
         {
-            assert(this->ReferenceCount > 0,
+            uint32_t ret = __atomic_fetch_sub(&this->ReferenceCount, 1, __ATOMIC_SEQ_CST);
+
+            //  A potentially inconvenient race condition was detected here by Griwes during
+            //  a code review. Cheers! :D
+
+            assert(ret > 0,
                 "Attempting to decrement reference count of a page count 0!");
 
-            return __sync_sub_and_fetch(&this->ReferenceCount, 1);
+            return ret;
         }
 
         /*  Status  */
