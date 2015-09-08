@@ -15,7 +15,7 @@ namespace Beelzebub { namespace Terminals
 	/**
 	 * Known major terminal types.
 	 **/
-	enum class TerminalType : u8
+	enum class TerminalType : uint8_t
 	{
 		Unknown     = 0x00,
 

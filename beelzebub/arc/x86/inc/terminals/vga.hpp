@@ -9,15 +9,15 @@ namespace Beelzebub { namespace Terminals { namespace Vga
 	using namespace Colors;
 
 	void * const BufferPtr = (void *)0xB8000;
-	u8 const BufferWidth = 80;
-	u8 const BufferHeight = 25;
+	uint8_t const BufferWidth = 80;
+    uint8_t const BufferHeight = 25;
 
-	u8 const DefaultColor = 0x07;
+    uint8_t const DefaultColor = 0x07;
 
 	struct Cell
 	{
 		char Character;
-		u8 Colors;
+        uint8_t Colors;
 
 		/*	Constructors	*/
 		Cell() __bland;

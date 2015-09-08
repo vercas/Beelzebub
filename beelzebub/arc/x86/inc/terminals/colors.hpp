@@ -4,7 +4,7 @@
 
 namespace Beelzebub { namespace Terminals { namespace Colors {
 	///	Possible colors for 16-color terminals.
-	enum Color16 : u8
+	enum Color16 : uint8_t
 	{
 		Black = 0,
 		Blue = 1,
