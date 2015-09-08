@@ -30,11 +30,16 @@
 #include <smp.h>
 #include <stdint.h>
 #include <string.h>
+#include <cpu.h>
+#include <screen.h>
 
 volatile uint64_t smp_ready_count;
 
 static void smp_boot(jg_info_cpu_t *cpu)
 {
+    puts(" ");
+    puthexs(cpu->apic_id);
+ 
     // Send INIT IPI
     lapic_ipi(LAPIC_IPI_INIT, cpu->apic_id);
 
@@ -47,8 +52,8 @@ static void smp_boot(jg_info_cpu_t *cpu)
     // Send STARTUP IPI
     lapic_ipi(LAPIC_IPI_STARTUP(0x1000), cpu->apic_id);
 
-    // Wait for the AP to become ready
-    while (ready_new != smp_ready_count);
+    while (smp_ready_count != ready_new)
+        ;
 }
 
 static void smp_prepare_boot16(void)
@@ -66,14 +71,17 @@ void smp_setup(void)
 
     size_t i;
     for (i = 0; i < info_root->cpu_count; ++i) {
-        jg_info_cpu_t *cpu = &info_cpu[i];
+        if ((info_cpu[i].apic_id > 512)) {
+            //puts("SKIPPING INVALID; ");
+            continue;
+        }
 
-        if (0 == (cpu->flags & JG_INFO_CPU_FLAG_PRESENT))
+        if ((info_cpu[i].flags & JG_INFO_CPU_FLAG_PRESENT) == 0)
             continue;
 
-        if (0 != (cpu->flags & JG_INFO_CPU_FLAG_BSP))
+        if ((info_cpu[i].flags & JG_INFO_CPU_FLAG_BSP) != 0)
             continue;
 
-        smp_boot(cpu);
+        smp_boot(&info_cpu[i]);
     }
 }

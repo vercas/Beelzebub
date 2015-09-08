@@ -21,8 +21,44 @@ bool Beelzebub::Scheduling;
 MemoryManager * Beelzebub::BootstrapMemoryManager;
 Thread BootstrapThread;
 
-/*  Main entry point  */
+__bland static void ThreadTest(void* arg) {
+    Thread* CurrentThread = GetCurrentThread();
 
+    for (int i = 0; i < 3; ++i)
+    {
+        MainTerminal->Write("|Hello from Thread! (Msg #");
+        MainTerminal->WriteUIntD(i);
+        MainTerminal->Write(") Running on Core #");
+        MainTerminal->WriteUIntD(Cpu::ComputeIndex());
+        MainTerminal->Write(" Thread #");
+        MainTerminal->WriteUIntD(CurrentThread->ThreadID);
+        MainTerminal->WriteLine();
+    }
+
+    DestroyThread(CurrentThread);
+}
+
+__bland static void SpawnThreads() {
+    Thread Thrd1;
+    SpawnThread(&Thrd1, ThreadTest);
+    MainTerminal->WriteLine("Spawned thread ");
+    MainTerminal->WriteUIntD(Thrd1.ThreadID);
+    MainTerminal->WriteLine();
+
+    Thread Thrd2;
+    SpawnThread(&Thrd2, ThreadTest);
+    MainTerminal->WriteLine("Spawned thread ");
+    MainTerminal->WriteUIntD(Thrd2.ThreadID);
+    MainTerminal->WriteLine();
+
+    SwitchNext();
+    SwitchNext();
+    SwitchNext();
+    SwitchNext();
+    while(true);
+}
+
+/*  Main entry point  */
 void Beelzebub::Main()
 {
     (&InitializationLock)->Acquire();
@@ -68,20 +104,6 @@ void Beelzebub::Main()
     MainTerminal->WriteUIntD(Cpu::GetIndex());
     MainTerminal->WriteLine();
 
-    //  Enable interrupts so they can run.
-    MainTerminal->Write("|[....] Enabling interrupts...");
-    Cpu::EnableInterrupts();
-
-    if (Cpu::InterruptsEnabled())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
-        //  Can never bee too sure.
-    else
-    {
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
-
-        assert(false, "Enabling interrupts failed!");
-    }
-
     MainTerminal->Write("|[....] Initializing as bootstrap thread...");
 
     Handle res = InitializeBootstrapThread(&BootstrapThread);
@@ -96,8 +118,23 @@ void Beelzebub::Main()
             , res);
     }
 
-    MainTerminal->WriteLine("\\Halting indefinitely now.");
+    SpawnThreads();
 
+    //  Enable interrupts so they can run.
+    MainTerminal->Write("|[....] Enabling interrupts...");
+    Cpu::EnableInterrupts();
+
+    if (Cpu::InterruptsEnabled())
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        //  Can never bee too sure.
+    else
+    {
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+
+        assert(false, "Enabling interrupts failed!");
+    }
+
+    MainTerminal->WriteLine("\\Halting indefinitely now.");
     (&TerminalMessageLock)->Release();
 
     //  Allow the CPU to rest.
@@ -130,6 +167,7 @@ void Beelzebub::Secondary()
         MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
     //  Can never bee too sure.
 
+    SpawnThreads();
     MainTerminal->WriteLine("\\Halting indefinitely now.");
 
     (&TerminalMessageLock)->Release();
