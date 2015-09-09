@@ -55,10 +55,14 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
 #define NEXTLINE do { \
     if (y == size.Y) \
     { \
+        term->Overflown = true; \
         y = 0; \
         for (int16_t _x = 0; _x < size.X; ++_x) \
             WriteCharAtXy(term, ' ', _x, y); \
     } \
+    else if (term->Overflown) \
+        for (int16_t _x = 0; _x < size.X; ++_x) \
+            WriteCharAtXy(term, ' ', _x, y); \
 } while (false)
 
     uint32_t i = 0;
@@ -511,6 +515,7 @@ TerminalBase::TerminalBase(const TerminalDescriptor * const desc)
     : Descriptor(desc)
     , CurrentPosition({0, 0})
     , TabulatorWidth(4)
+    , Overflown(false)
 {
 
 }
