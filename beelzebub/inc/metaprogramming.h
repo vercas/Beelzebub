@@ -1,6 +1,7 @@
 #pragma once
 
 #define __BEELZEBUB__DEBUG  true
+#define __BEELZEBUB__TEST_MT  true
 
 #include <stdint.h>
 #include "stddef.h"
@@ -30,6 +31,8 @@
 #ifdef __GNUC__
 
 #define __forceinline      inline  __attribute__((always_inline))
+#define __noinline         __attribute__((noinline))
+
 #define __const            __attribute__((const))
 #define __cold             __attribute__((cold))
 #define __hot              __attribute__((hot))
