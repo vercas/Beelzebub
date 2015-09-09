@@ -48,6 +48,9 @@
 
 #define __build_data       __attribute__((section(".build_data")))
 
+#define __fastcall         __attribute__((fastcall))
+//  To be used on IA-32 on *some* functions.
+
 #else
 
 #define __forceinline      inline
