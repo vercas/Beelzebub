@@ -17,7 +17,7 @@ namespace Beelzebub { namespace Execution
 
         /*  Operations  */
 
-        __hot __bland Handle SwitchTo(Thread * const other);
+        __hot __bland Handle SwitchTo(Thread * const other);    //  Implemented in architecture-specific code.
 
         /*  Stack  */
 
