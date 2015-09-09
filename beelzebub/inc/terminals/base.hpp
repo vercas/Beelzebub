@@ -99,7 +99,7 @@ namespace Beelzebub { namespace Terminals
 		__bland TerminalWriteResult Write(const char * const str);
 		__bland TerminalWriteResult Write(const char * const fmt, va_list args);
 		__bland TerminalWriteResult WriteLine(const char * const str);
-		__bland TerminalWriteResult WriteFormat(const char * const fmt, ...);
+		__bland __noinline TerminalWriteResult WriteFormat(const char * const fmt, ...);
 
 		/*  Positioning  */
 
@@ -155,5 +155,6 @@ namespace Beelzebub { namespace Terminals
 
 		TerminalCoordinates CurrentPosition;
 		uint16_t TabulatorWidth;
+		bool Overflown;
 	};
 }}
