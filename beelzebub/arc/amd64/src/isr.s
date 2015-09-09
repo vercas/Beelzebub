@@ -70,8 +70,8 @@ isr_stub_common:
     mov ax, 0x10        ; Load kernel data segment
     mov ds, ax
     mov es, ax
-    mov fs, ax
-    mov gs, ax
+    ;mov fs, ax
+    ;mov gs, ax
 
     mov rdi, rsp        ; Stack pointer as parameter
     call isr_dispatch   ; Dispatch to right ISR
@@ -79,8 +79,8 @@ isr_stub_common:
     pop rax             ; Restore data segment
     mov ds, ax
     mov es, ax
-    mov fs, ax
-    mov gs, ax
+    ;mov fs, ax
+    ;mov gs, ax
 
     pop r15             ; Restore registers
     pop r14
