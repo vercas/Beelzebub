@@ -86,6 +86,9 @@ namespace Beelzebub
         PageUnmapped              = 0x0000000000000042U, // Pag unmp.
         //  A given page is unaligned.
         PageUnaligned             = 0x0000000000000043U, // Pag unal.
+
+        //  A thread is already linked.
+        ThreadAlreadyLinked       = 0x0000000000000050U, // Thr a. lnk.
     };
 
     struct Handle
@@ -354,6 +357,9 @@ namespace Beelzebub
                     return "Pag unmp.";
                 case HandleResult::PageUnaligned:
                     return "Pag unalig.";
+
+                case HandleResult::ThreadAlreadyLinked:
+                    return "Thr a. lnk.";
 
                 default:
                     return "UNKNOWN";
