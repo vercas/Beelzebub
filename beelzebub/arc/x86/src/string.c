@@ -61,7 +61,7 @@ void * memcpy(void * dst, const void * src, size_t len)
 
     return ret;
 
-    /* The following code is equivalent to the assembly above /*
+    /* The following code is equivalent to the assembly above
     if (src == dst)
         return dst;
 
@@ -102,7 +102,7 @@ void * memmove(void * dst, const void * src, size_t len)
 
     return ret;
 
-    /* The following code is equivalent to the code & assembly above /*
+    /* The following code is equivalent to the code & assembly above
     if (src == dst)
         return dst;
 
@@ -133,7 +133,7 @@ void * memset(void * dst, const int val, size_t len)
                  : "a" (val)
                  : "memory" );
 
-    /* The following code is equivalent to the assembly above /*
+    /* The following code is equivalent to the assembly above
           byte * d = (byte *)dst;
     const byte   v = (byte  )val;
 
