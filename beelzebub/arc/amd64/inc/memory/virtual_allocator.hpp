@@ -200,7 +200,8 @@ namespace Beelzebub { namespace Memory
         }
 
         template<typename cbk_t>
-        __hot __bland Handle TryTranslate(const vaddr_t vaddr, cbk_t cbk);
+        __hot __bland Handle TryTranslate(const vaddr_t vaddr, cbk_t cbk, bool const tolerate);
+        __hot __bland Handle GetEntry(const vaddr_t vaddr, Pml1Entry * & e, bool const tolerate);
 
         /*  Mapping  */
 

@@ -6,7 +6,7 @@
 
 namespace Beelzebub { namespace Execution
 {
-    typedef void (*ThreadEntryPointFunction)(void * const arg);
+    typedef void * (*ThreadEntryPointFunction)(void * const arg);
 
     /**
      *  A unit of execution.
@@ -15,9 +15,16 @@ namespace Beelzebub { namespace Execution
     {
     public:
 
+        /*  Constructors  */
+
+        Thread() = default;
+        Thread(Thread const &) = delete;
+        Thread & operator =(const Thread &) = delete;
+
         /*  Operations  */
 
-        __hot __bland Handle SwitchTo(Thread * const other);    //  Implemented in architecture-specific code.
+        __hot __bland Handle SwitchTo(Thread * const other, ThreadState * const dest);    //  Implemented in architecture-specific code.
+        __bland Handle SwitchToNext(ThreadState * const dest) { return this->SwitchTo(this->Next, dest); }
 
         /*  Stack  */
 
@@ -26,10 +33,18 @@ namespace Beelzebub { namespace Execution
 
         uintptr_t KernelStackPointer;
 
+        /*  State  */
+
+        ThreadState State;
+
         /*  Linkage  */
 
         Thread * Previous;
         Thread * Next;
+
+        __bland Handle IntroduceNext(Thread * const other);
+
+        //  TODO: Eventually implement a proper scheduler and drop the linkage system.
 
         /*  Parameters  */
 

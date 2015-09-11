@@ -1,13 +1,14 @@
 #pragma once
 
 #include <metaprogramming.h>
+#include <isr.h>
 
 namespace Beelzebub { namespace Execution
 {
     /**
      *  Represents the execution state of a thread.
      */
-    struct ThreadState
+    /*struct ThreadState
     {
         uint64_t RBX;
         uint64_t RCX;
@@ -17,5 +18,7 @@ namespace Beelzebub { namespace Execution
         uint64_t R15;
         uint64_t RBP;
         uint64_t RIP;
-    };
+    };//*/
+
+    typedef IsrState ThreadState;
 }}

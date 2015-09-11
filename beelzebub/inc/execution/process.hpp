@@ -14,6 +14,12 @@ namespace Beelzebub { namespace Execution
     {
     public:
 
+        /*  Constructors  */
+
+        Process() = default;
+        Process(Process const &) = delete;
+        Process & operator =(const Process &) = delete;
+
         /*  Operations  */
 
         __hot __bland Handle SwitchTo(Process * const other);

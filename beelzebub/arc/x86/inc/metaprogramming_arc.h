@@ -48,6 +48,8 @@ typedef uint32_t int_cookie_t;
 
 #endif
 
+typedef uint16_t seg_t; //  Segment register.
+
 #ifdef __GNUC__
 typedef union
 {

@@ -103,14 +103,11 @@
     <ClCompile Include="arc\amd64\src\execution\thread_state.cpp" />
     <ClCompile Include="arc\amd64\src\execution\thread_switching.cpp" />
     <ClCompile Include="arc\amd64\src\jegudiel.c" />
-    <ClCompile Include="arc\amd64\src\lapic.c" />
     <ClCompile Include="arc\amd64\src\memory\manager_amd64.cpp" />
     <ClCompile Include="arc\amd64\src\memory\paging.cpp" />
     <ClCompile Include="arc\amd64\src\memory\virtual_allocator.cpp" />
-    <ClCompile Include="arc\amd64\src\ports.c" />
-    <ClCompile Include="arc\amd64\src\screen.c" />
     <ClCompile Include="arc\amd64\src\system\registers.cpp" />
-    <ClCompile Include="arc\x86\src\keyboard.c" />
+    <ClCompile Include="arc\x86\src\keyboard.cpp" />
     <ClCompile Include="arc\x86\src\ports.cpp" />
     <ClCompile Include="arc\x86\src\string.c" />
     <ClCompile Include="arc\x86\src\string.cpp" />
@@ -118,6 +115,7 @@
     <ClCompile Include="arc\x86\src\system\cpu.cpp" />
     <ClCompile Include="arc\x86\src\system\cpuid.cpp" />
     <ClCompile Include="arc\x86\src\system\exceptions.cpp" />
+    <ClCompile Include="arc\x86\src\system\lapic.cpp" />
     <ClCompile Include="arc\x86\src\system\registers_x86.cpp" />
     <ClCompile Include="arc\x86\src\terminals\serial.cpp" />
     <ClCompile Include="arc\x86\src\terminals\vbe.cpp" />
@@ -127,6 +125,7 @@
     <ClCompile Include="src\cpp_support.cpp" />
     <ClCompile Include="src\debug.cpp" />
     <ClCompile Include="src\execution\elf.cpp" />
+    <ClCompile Include="src\execution\process.cpp" />
     <ClCompile Include="src\execution\thread.cpp" />
     <ClCompile Include="src\icxxabi.cpp" />
     <ClCompile Include="src\kernel.cpp" />
@@ -137,7 +136,6 @@
     <ClCompile Include="src\terminals\interface.cpp" />
     <ClCompile Include="src\terminals\splash.cpp" />
     <ClCompile Include="src\terminals\splash_text.cpp" />
-    <ClCompile Include="src\ui.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="arc\amd64\inc\entry.h" />
@@ -145,12 +143,9 @@
     <ClInclude Include="arc\amd64\inc\execution\thread_state.hpp" />
     <ClInclude Include="arc\amd64\inc\execution\thread_switching.hpp" />
     <ClInclude Include="arc\amd64\inc\isr.h" />
-    <ClInclude Include="arc\amd64\inc\lapic.h" />
     <ClInclude Include="arc\amd64\inc\memory\manager_amd64.hpp" />
     <ClInclude Include="arc\amd64\inc\memory\paging.hpp" />
     <ClInclude Include="arc\amd64\inc\memory\virtual_allocator.hpp" />
-    <ClInclude Include="arc\amd64\inc\ports.h" />
-    <ClInclude Include="arc\amd64\inc\screen.h" />
     <ClInclude Include="arc\amd64\inc\system\registers.hpp" />
     <ClInclude Include="arc\x86\inc\debug_arch.hpp" />
     <ClInclude Include="arc\x86\inc\keyboard.h" />
@@ -162,6 +157,7 @@
     <ClInclude Include="arc\x86\inc\system\cpu.hpp" />
     <ClInclude Include="arc\x86\inc\system\cpuid.hpp" />
     <ClInclude Include="arc\x86\inc\system\exceptions.hpp" />
+    <ClInclude Include="arc\x86\inc\system\lapic.hpp" />
     <ClInclude Include="arc\x86\inc\system\registers_x86.hpp" />
     <ClInclude Include="arc\x86\inc\terminals\colors.hpp" />
     <ClInclude Include="arc\x86\inc\terminals\serial.hpp" />
@@ -181,7 +177,6 @@
     <ClInclude Include="inc\memory\manager.hpp" />
     <ClInclude Include="inc\memory\page_allocator.hpp" />
     <ClInclude Include="inc\metaprogramming.h" />
-    <ClInclude Include="inc\stdint.h" />
     <ClInclude Include="inc\stdlib\enumerator.hpp" />
     <ClInclude Include="inc\stdlib\iterator.hpp" />
     <ClInclude Include="inc\string.h" />
@@ -190,7 +185,6 @@
     <ClInclude Include="inc\terminals\interface.hpp" />
     <ClInclude Include="inc\terminals\splash.hpp" />
     <ClInclude Include="inc\terminals\splash_text.hpp" />
-    <ClInclude Include="inc\ui.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="arc\amd64\link.ld" />

@@ -66,9 +66,9 @@ typedef void (*IsrHandlerFunction)(IsrState * const state);
 /**
  *  Array of pointers to all interrupt gates.
  */
-extern uint64_t IsrGates[ISR_COUNT];
+__extern uint64_t IsrGates[ISR_COUNT];
 
 /**
  *  Array of higher-level interrupt handlers.
  */
-extern IsrHandlerFunction IsrHandlers[ISR_COUNT];
+__extern IsrHandlerFunction IsrHandlers[ISR_COUNT];

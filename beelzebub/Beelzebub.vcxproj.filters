@@ -54,9 +54,6 @@
     <ClCompile Include="src\math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\ui.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="arc\amd64\src\execution\thread_init.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -84,15 +81,6 @@
     <ClCompile Include="arc\amd64\src\jegudiel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="arc\amd64\src\lapic.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="arc\amd64\src\ports.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="arc\amd64\src\screen.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="arc\x86\src\synchronization\spinlock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -117,9 +105,6 @@
     <ClCompile Include="arc\x86\src\terminals\vga.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="arc\x86\src\keyboard.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="arc\x86\src\ports.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -133,6 +118,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\execution\elf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\execution\process.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="arc\x86\src\keyboard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="arc\x86\src\system\lapic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -197,13 +191,7 @@
     <ClInclude Include="inc\metaprogramming.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="inc\stdint.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="inc\string.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\ui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="arc\amd64\inc\execution\thread_init.hpp">
@@ -233,15 +221,6 @@
     <ClInclude Include="arc\amd64\inc\isr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="arc\amd64\inc\lapic.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="arc\amd64\inc\ports.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="arc\amd64\inc\screen.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="arc\x86\inc\synchronization\spinlock.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -269,9 +248,6 @@
     <ClInclude Include="arc\x86\inc\terminals\vga.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="arc\x86\inc\keyboard.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="arc\x86\inc\memory.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -288,6 +264,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="arc\x86\inc\debug_arch.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="arc\x86\inc\system\lapic.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="arc\x86\inc\keyboard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

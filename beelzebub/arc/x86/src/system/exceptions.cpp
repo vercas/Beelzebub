@@ -1,8 +1,10 @@
 #include <system/exceptions.hpp>
 #include <system/cpu.hpp>
+#include <memory\manager_amd64.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Memory;
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
 #define INSTRUCTION_POINTER (state->RIP)
@@ -119,7 +121,7 @@ void Beelzebub::System::GeneralProtectionHandler(IsrState * const state)
  */
 void Beelzebub::System::PageFaultHandler(IsrState * const state)
 {
-    void * const CR2 = Cpu::GetCr2();
+    vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
 
     const bool present = 0 != (state->ErrorCode & 1);
     const bool write = 0 != (state->ErrorCode & 2);
@@ -135,7 +137,22 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
     if (reserved)    status[3] = '0';
     if (instruction) status[4] = 'I'; else status[4] = 'd';
 
-    assert(false
-        , "<<PAGE FAULT @ %Xp (%s); CR2: %Xp>>"
-        , INSTRUCTION_POINTER, status, CR2);
+    Pml1Entry * e = nullptr;
+
+    Handle res = ((MemoryManagerAmd64 *)BootstrapMemoryManager)->Vas->GetEntry(CR2 & ~((vaddr_t)0xFFF), e, true);
+
+    if (e != nullptr)
+    {
+        msg("<<PAGE FAULT @ %Xp (%s|%Xs); CR2: %Xp | "
+            , INSTRUCTION_POINTER, status, state->ErrorCode, CR2);
+
+        e->PrintToTerminal(Beelzebub::Debug::DebugTerminal);
+
+        msg(" >>");
+    }
+    else
+        msg("<<PAGE FAULT @ %Xp (%s|%Xs); CR2: %Xp | %H >>"
+            , INSTRUCTION_POINTER, status, state->ErrorCode, CR2, res);
+
+    assert(false, "<< ^ EXCEPTION ^ >>");
 }

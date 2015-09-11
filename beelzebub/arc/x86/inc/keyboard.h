@@ -46,18 +46,18 @@ __extern volatile int breakpointEscaped;
 /**
  * Initializes the keyboard support.
  */
-__extern void keyboard_init(void);
+__extern __bland void keyboard_init(void);
 
 /**
  * Sends a command to the keyboard controller.
  *
  * @param cmd the command to send
  */
-__extern void keyboard_send_command(uint8_t cmd);
+__extern __bland void keyboard_send_command(uint8_t cmd);
 
 /**
  * ISR for the keyboard IRQ.
  *
  * @param state state of the system
  */
-__extern void keyboard_handler(IsrState * const state);
+__extern __bland void keyboard_handler(IsrState * const state);

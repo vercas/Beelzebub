@@ -176,6 +176,8 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 {
     new (target) VirtualAllocationSpace(this->Allocator);
 
+    msg("Constructed target VAS;");
+
     PageDescriptor * desc;
 
     paddr_t pml4_paddr = target->Pml4Address = this->Allocator->AllocatePage(desc);
@@ -185,26 +187,40 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 
     desc->IncrementReferenceCount();
     //  Do the good deed.
+
+    msg(" Allocated PML4 for target;");
     
     target->Alienate();
     //  So it can be accessible.
 
+    msg(" Alienated;");
+
     Pml4 & pml4Local = *GetLocalPml4();
     Pml4 & pml4Alien = *GetAlienPml4();
+
+    msg(" Got PML4 references;");
 
     for (uint16_t i = 0; i < 256; ++i)
         pml4Alien[i] = Pml4Entry();
     //  Userland space will be empty.
+
+    msg(" Cleaned lower half;");
     
     for (uint16_t i = 256; i < AlienFractalIndex; ++i)
         pml4Alien[i] = pml4Local[i];
     //  Kernel-specific tables.
 
+    msg(" Copied up to AFI;");
+
     pml4Alien[LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, NX);
+
+    msg(" Set LFI to self;");
 
     pml4Alien[511] = pml4Local[511];
     //  Last page, where the kernel and bootloader-provided shenanigans sit
     //  snuggly together and drink hot cocoa.
+
+    msg(" Copied top entry!%n");
 
     return Handle(HandleResult::Okay);
 }
@@ -212,10 +228,11 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 /*  Translation  */
 
 template<typename cbk_t>
-Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, cbk_t cbk)
+Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, cbk_t cbk, bool const tolerate)
 {
-    if unlikely((vaddr >= FractalStart && vaddr < FractalEnd     )
-             || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart))
+    if unlikely(!tolerate && (
+                (vaddr >= FractalStart && vaddr < FractalEnd     )
+             || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart)))
         return Handle(HandleResult::PageMapIllegalRange);
 
     const bool nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
@@ -264,6 +281,16 @@ Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, cbk_t cbk)
     return cbk(pml1.Entries + ind);
 
     //  The status of the page is irrelevant.
+}
+
+Handle VirtualAllocationSpace::GetEntry(const vaddr_t vaddr, Pml1Entry * & e, bool const tolerate)
+{
+    return this->TryTranslate(vaddr, [&e](Pml1Entry * pE) __bland
+    {
+        e = pE;
+
+        return Handle(HandleResult::Okay);
+    }, tolerate);
 }
 
 /*  Mapping  */
@@ -408,7 +435,7 @@ Handle VirtualAllocationSpace::Unmap(const vaddr_t vaddr, paddr_t & paddr)
 
                 return Handle(HandleResult::PageUnmapped);
             }
-        });
+        }, false);
 }
 
 /*  Flags  */
@@ -437,7 +464,7 @@ Handle VirtualAllocationSpace::GetPageFlags(const vaddr_t vaddr, PageFlags & fla
 
                 return Handle(HandleResult::PageUnmapped);
             }
-        });
+        }, false);
 }
 
 Handle VirtualAllocationSpace::SetPageFlags(const vaddr_t vaddr, const PageFlags flags)
@@ -459,7 +486,7 @@ Handle VirtualAllocationSpace::SetPageFlags(const vaddr_t vaddr, const PageFlags
             }
             else
                 return Handle(HandleResult::PageUnmapped);
-        });
+        }, false);
 }
 
 /**********************************************

@@ -2,6 +2,7 @@
 
 #include <metaprogramming.h>
 #include <memory/manager.hpp>
+#include <execution/thread_init.hpp>
 #include <architecture.h>
 
 namespace Beelzebub
@@ -10,6 +11,8 @@ namespace Beelzebub
     extern bool Scheduling;
 
     extern Memory::MemoryManager * BootstrapMemoryManager;
+    extern Execution::Process BootstrapProcess;
+    extern Execution::Thread BootstrapThread;
 
     /**
      *  Entry point for the bootstrap processor.

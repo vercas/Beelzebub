@@ -5,16 +5,12 @@
 #include <memory/paging.hpp>
 #include <system/cpu.hpp>
 #include <system/cpuid.hpp>
+#include <system/lapic.hpp>
 
 #include <jegudiel.h>
 #include <multiboot.h>
 #include <isr.h>
 #include <keyboard.h>
-#include <screen.h>
-#include <ui.h>
-
-#include <lapic.h>
-#include <screen.h>
 
 #include <terminals/serial.hpp>
 #include <terminals/vbe.hpp>
@@ -32,6 +28,7 @@ using namespace Beelzebub::Ports;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Memory::Paging;
+using namespace Beelzebub::Execution;
 
 /*  Constants  */
 
@@ -73,7 +70,7 @@ __bland void InitializeCpuData()
         , "Failed to set CPU index..? It should be %us but it %us is returned."
         , ind, Cpu::GetIndex());
 
-    //msg("-- Core #%us @ %Xp.%n", ind, loc);
+    //msg("-- Core #%us @ %Xp. --%n", ind, gs_base);
 }
 
 /*  Entry points  */ 
@@ -130,7 +127,7 @@ TerminalBase * InitializeTerminalProto()
 
     new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
 
-    Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
+    //Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
 
     msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n", (uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
 
@@ -155,6 +152,8 @@ TerminalBase * InitializeTerminalMain()
 
 void InitializeInterrupts()
 {
+    Lapic::Initialize();
+
     for (size_t i = 0; i < 256; ++i)
     {
         IsrHandlers[i] = &MiscellaneousInterruptHandler;
@@ -353,7 +352,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     //  DUMPING MMAP
 
-    initialVbeTerminal.WriteLine("IND |A|    Address     |     Length     |       End      |");
+    /*initialVbeTerminal.WriteLine("IND |A|    Address     |     Length     |       End      |");
 
     for (uint32_t i = 0; i < cnt; i++)
     {
@@ -384,7 +383,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     initialVbeTerminal.WriteFormat(" Address rage: %X8-%X8.%n", start, end);
     initialVbeTerminal.WriteFormat(" Maps start at %Xp.%n", firstMap);
 
-    initialVbeTerminal.WriteLine();
+    initialVbeTerminal.WriteLine();//*/
 
     /*Cr3 cr3 = Cpu::GetCr3();
     Pml4 & pml4 = *cr3.GetPml4Ptr();
@@ -484,7 +483,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 			, vaddr, paddr
 			, res);
 
-        initialVbeTerminal.WriteFormat("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
+        //initialVbeTerminal.WriteFormat("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
     }
 
     InitializeCpuData();
@@ -493,7 +492,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     bootstrapReady = true;
 
-    initialVbeTerminal.WriteLine();
+    //initialVbeTerminal.WriteLine();
 
     //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
 }
@@ -540,3 +539,105 @@ void InitializeMemory()
 
     Cpu::WriteBackAndInvalidateCache();
 }
+
+#ifdef __BEELZEBUB__TEST_MT
+
+Thread tTa1;
+Thread tTa2;
+Thread tTa3;
+
+Thread tTb1;
+Thread tTb2;
+Thread tTb3;
+
+Process tPb;
+MemoryManagerAmd64 tMmB;
+VirtualAllocationSpace tVasB;
+
+__hot __bland void * TestThreadEntryPoint(void * const arg)
+{
+    while (true)
+    {
+        msg("Printing from thread %Xp!%n", Cpu::GetActiveThread());
+
+        Cpu::Halt();
+    }
+}
+
+__cold __bland void InitializeTestThread(Thread * const t, Process * const p)
+{
+    //new (t) Thread();
+
+    Handle res;
+    PageDescriptor * desc = nullptr;
+    //  Intermediate results.
+
+    const vaddr_t vaddr = __atomic_fetch_add(&MemoryManagerAmd64::KernelHeapCursor, 0x1000, __ATOMIC_SEQ_CST);
+    const paddr_t paddr = mainAllocator.AllocatePage(desc);
+    //  Stack page.
+
+    assert(paddr != nullptr && desc != nullptr
+        , "  Unable to allocate a physical page for test thread %Xp (process %Xp)!"
+        , t, p);
+
+    desc->IncrementReferenceCount();
+    //  Increment the reference count of the page because we're nice people.
+
+    res = BootstrapMemoryManager->MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+
+    assert(res.IsOkayResult()
+        , "  Failed to map page at %Xp (%XP) for CPU-specific data: %H."
+        , vaddr, paddr
+        , res);
+    //  FAILURE IS NOT TOLERATED.
+
+    t->KernelStackTop = (uintptr_t)vaddr + 0x1000;
+    t->KernelStackBottom = (uintptr_t)vaddr;
+
+    t->Owner = p;
+    t->EntryPoint = &TestThreadEntryPoint;
+
+    InitializeThreadState(t);
+    //  This sets up the thread so it goes directly to the entry point when switched to.
+}
+
+void StartMultitaskingTest()
+{
+    bootstrapVas.Clone(&tVasB);
+    //  Fork the VAS.
+
+    msg("VAS forked for process B.%n");
+
+    new (&tMmB) MemoryManagerAmd64(&tVasB);
+    //  Initialize a new memory manager with the given VAS.
+
+    new (&tPb) Process();
+    tPb.VAS = &tMmB;
+    //  Initialize a new process for thread series B.
+
+    msg("Initialized process B's memory manager and process.");
+
+    InitializeTestThread(&tTa1, &BootstrapProcess);
+    InitializeTestThread(&tTa2, &BootstrapProcess);
+    InitializeTestThread(&tTa3, &BootstrapProcess);
+    //  Initialize thread series A under the bootstrap process.
+
+    InitializeTestThread(&tTb1, &tPb);
+    InitializeTestThread(&tTb2, &tPb);
+    InitializeTestThread(&tTb3, &tPb);
+    //  Initialize thread series B under their own process.
+
+    BootstrapThread.IntroduceNext(&tTb3);
+    BootstrapThread.IntroduceNext(&tTb2);
+    //  Threads B2 and B3 are at the end of the cycle.
+
+    BootstrapThread.IntroduceNext(&tTa3);
+    BootstrapThread.IntroduceNext(&tTb1);
+    //  Threads B1 and A3 are intertwined.
+
+    BootstrapThread.IntroduceNext(&tTa2);
+    BootstrapThread.IntroduceNext(&tTa1);
+    //  Threads A1 and A2 are at the start, right after the bootstrap thread.
+}
+
+#endif

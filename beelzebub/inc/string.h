@@ -8,14 +8,14 @@
 
 #include <metaprogramming.h>
 
-__extern       bool   memeq  (const void * const src1, const void * const src2, size_t len);
-__extern       comp_t memcmp (const void * const src1, const void * const src2, size_t len);
+__extern __used       bool   memeq  (const void * const src1, const void * const src2, size_t len);
+__extern __used       comp_t memcmp (const void * const src1, const void * const src2, size_t len);
 #ifdef __cplusplus
-  extern const void * memchr (const void * const src , const int          val , size_t len);
-  extern       void * memchr (      void * const src , const int          val , size_t len);
+  extern __used const void * memchr (const void * const src , const int          val , size_t len);
+  extern __used       void * memchr (      void * const src , const int          val , size_t len);
 #else   //  C vs C++. :(
-__extern       void * memchr (const void * const src , const int          val , size_t len);
+__extern __used       void * memchr (const void * const src , const int          val , size_t len);
 #endif
-__extern       void * memcpy (      void *       dst , const void *       src , size_t len);
-__extern       void * memmove(      void *       dst , const void *       src , size_t len);
-__extern       void * memset (      void *       dst , const int          val , size_t len);
+__extern __used       void * memcpy (      void *       dst , const void *       src , size_t len);
+__extern __used       void * memmove(      void *       dst , const void *       src , size_t len);
+__extern __used       void * memset (      void *       dst , const int          val , size_t len);

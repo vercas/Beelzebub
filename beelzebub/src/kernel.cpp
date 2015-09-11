@@ -18,8 +18,10 @@ Spinlock TerminalMessageLock;
 
 TerminalBase * Beelzebub::MainTerminal;
 bool Beelzebub::Scheduling;
+
 MemoryManager * Beelzebub::BootstrapMemoryManager;
-Thread BootstrapThread;
+Process Beelzebub::BootstrapProcess;
+Thread Beelzebub::BootstrapThread;
 
 /*  Main entry point  */
 
@@ -84,7 +86,9 @@ void Beelzebub::Main()
 
     MainTerminal->Write("|[....] Initializing as bootstrap thread...");
 
-    Handle res = InitializeBootstrapThread(&BootstrapThread);
+    Handle res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, BootstrapMemoryManager);
+
+    Cpu::SetActiveThread(&BootstrapThread);
 
     if (res.IsOkayResult())
         MainTerminal->WriteLine(" Done.\r|[OKAY]");
@@ -96,12 +100,27 @@ void Beelzebub::Main()
             , res);
     }
 
+#ifdef __BEELZEBUB__TEST_MT
+    MainTerminal->Write("+Starting multitasking test...");
+
+    StartMultitaskingTest();
+
+    MainTerminal->WriteLine(" Done.");
+#endif
+
     MainTerminal->WriteLine("\\Halting indefinitely now.");
 
     (&TerminalMessageLock)->Release();
 
     //  Allow the CPU to rest.
-    while (true) if (Cpu::CanHalt) Cpu::Halt();
+    while (true)
+    {
+        if (Cpu::CanHalt) Cpu::Halt();
+
+        (&TerminalMessageLock)->Acquire();
+        MainTerminal->WriteLine(">>-- Rehalting! --<<");
+        (&TerminalMessageLock)->Release();
+    }
 }
 
 /*  Secondary entry point  */

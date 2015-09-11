@@ -30,6 +30,38 @@ __bland __forceinline void MCATS2(Set, name)(const bool val) \
 namespace Beelzebub { namespace System
 {
     /**
+     *  Flags in the (E|R)FLAGS register.
+     */
+    enum class FlagsRegisterFlags
+        : size_t
+    {
+        Carry                   = 0x00000001,
+        Reserved1               = 0x00000002,
+        Parity                  = 0x00000004,
+        Reserved2               = 0x00000008,
+        Adjust                  = 0x00000010,
+        Reserved3               = 0x00000020,
+        Zero                    = 0x00000040,
+        Sign                    = 0x00000080,
+        Trap                    = 0x00000100,
+        InterruptEnable         = 0x00000200,
+        Direction               = 0x00000400,
+        Overflow                = 0x00000800,
+        IoPrivilegeLevel        = 0x00003000,
+        NestedTask              = 0x00004000,
+        Reserved4               = 0x00008000,
+
+        Resume                  = 0x00010000,
+        Virtual8086Mode         = 0x00020000,
+        AlignmentCheck          = 0x00040000,
+        VirtualInterrupt        = 0x00080000,
+        VirtualInterruptPending = 0x00100000,
+        Cpuid                   = 0x00200000,
+    };
+
+    ENUMOPS(FlagsRegisterFlags, size_t)
+
+    /**
      *  Model-specific registers
      */
     enum class Msr : uint32_t
@@ -50,6 +82,9 @@ namespace Beelzebub { namespace System
         IA32_GS_BASE        = 0xC0000101,
         //  Swap Target of BASE Adddress of GS
         IA32_KERNEL_GS_BASE = 0xC0000102,
+
+        //  Base MSR for x2APIC registers
+        IA32_X2APIC_BASE    = 0x00000800,
     };
 
     /**

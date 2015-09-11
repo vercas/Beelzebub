@@ -16,7 +16,7 @@ static __bland __forceinline type MCATS2(Get, regu)()                \
     type ret;                                                        \
                                                                      \
     asm volatile ( "mov %%" #regl ", %0\n\t"                         \
-                 : "=a"(ret) );                                      \
+                 : "=r"(ret) );                                      \
                                                                      \
     return ret;                                                      \
 }                                                                    \
@@ -32,7 +32,7 @@ static __bland __forceinline type2 MCATS2(Get, regu)()               \
     type ret;                                                        \
                                                                      \
     asm volatile ( "mov %%" #regl ", %0\n\t"                         \
-                 : "=a"(ret) );                                      \
+                 : "=r"(ret) );                                      \
                                                                      \
     return type2(ret);                                               \
 }                                                                    \
@@ -47,6 +47,17 @@ static __bland __forceinline void MCATS2(Set, regu)(const type2 val) \
                                                                      \
     asm volatile ( "mov %0, %%" #regl "\n\t"                         \
                  : : "r"(innerVal) );                                \
+}
+
+#define REGFUNC3(regl, regu, type)                                   \
+static __bland __forceinline type MCATS2(Get, regu)()                \
+{                                                                    \
+    type ret;                                                        \
+                                                                     \
+    asm volatile ( "mov %%" #regl ", %0\n\t"                         \
+                 : "=r"(ret) );                                      \
+                                                                     \
+    return ret;                                                      \
 }
 
 #define MSRFUNC1(name, prettyName, type)                                  \
@@ -340,6 +351,15 @@ namespace Beelzebub { namespace System
             return ret;
         }
 
+        /*  Segment Registers  */
+
+        REGFUNC3(cs, Cs, seg_t)
+        REGFUNC3(ds, Ds, seg_t)
+        REGFUNC3(ss, Ss, seg_t)
+        REGFUNC3(es, Es, seg_t)
+        REGFUNC3(fs, Fs, seg_t)
+        REGFUNC3(gs, Gs, seg_t)
+
         /*  Port I/O  */
 
         static __bland __forceinline void Out8(const uint16_t port
@@ -476,6 +496,13 @@ namespace Beelzebub { namespace System
             asm volatile ( "wrmsr \n\t"
                          : 
                          : "c" (reg), "a" (val.Dwords.Low), "d" (val.Dwords.High) );
+        }
+
+        static __bland __forceinline void WriteMsr(const Msr reg, const uint32_t a, const uint32_t d)
+        {
+            asm volatile ( "wrmsr \n\t"
+                         : 
+                         : "c" (reg), "a" (a), "d" (d) );
         }
 
         static __bland __forceinline void WriteMsr(const Msr reg, const uint64_t val)
