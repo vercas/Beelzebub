@@ -78,9 +78,6 @@
     <ClCompile Include="arc\amd64\src\entry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="arc\amd64\src\jegudiel.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="arc\x86\src\synchronization\spinlock.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -127,6 +124,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="arc\x86\src\system\lapic.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="arc\amd64\src\system\isr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="arc\amd64\src\jegudiel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -218,9 +221,6 @@
     <ClInclude Include="arc\amd64\inc\entry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="arc\amd64\inc\isr.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="arc\x86\inc\synchronization\spinlock.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -269,13 +269,16 @@
     <ClInclude Include="arc\x86\inc\system\lapic.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="arc\x86\inc\keyboard.h">
+    <ClInclude Include="arc\amd64\inc\system\isr.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="arc\x86\inc\keyboard.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="arc\amd64\src\isr.s" />
     <None Include="arc\amd64\link.ld" />
     <None Include="arc\amd64\src\execution\thread_switching.s" />
+    <None Include="arc\amd64\src\system\isr.s" />
   </ItemGroup>
 </Project>

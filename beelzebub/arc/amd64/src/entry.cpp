@@ -9,8 +9,8 @@
 
 #include <jegudiel.h>
 #include <multiboot.h>
-#include <isr.h>
-#include <keyboard.h>
+#include <system\isr.hpp>
+#include <keyboard.hpp>
 
 #include <terminals/serial.hpp>
 #include <terminals/vbe.hpp>
@@ -606,16 +606,12 @@ void StartMultitaskingTest()
     bootstrapVas.Clone(&tVasB);
     //  Fork the VAS.
 
-    msg("VAS forked for process B.%n");
-
     new (&tMmB) MemoryManagerAmd64(&tVasB);
     //  Initialize a new memory manager with the given VAS.
 
     new (&tPb) Process();
     tPb.VAS = &tMmB;
     //  Initialize a new process for thread series B.
-
-    msg("Initialized process B's memory manager and process.");
 
     InitializeTestThread(&tTa1, &BootstrapProcess);
     InitializeTestThread(&tTa2, &BootstrapProcess);

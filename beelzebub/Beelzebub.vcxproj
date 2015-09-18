@@ -102,7 +102,8 @@
     <ClCompile Include="arc\amd64\src\execution\thread_init.cpp" />
     <ClCompile Include="arc\amd64\src\execution\thread_state.cpp" />
     <ClCompile Include="arc\amd64\src\execution\thread_switching.cpp" />
-    <ClCompile Include="arc\amd64\src\jegudiel.c" />
+    <ClCompile Include="arc\amd64\src\system\isr.cpp" />
+    <ClCompile Include="arc\amd64\src\jegudiel.cpp" />
     <ClCompile Include="arc\amd64\src\memory\manager_amd64.cpp" />
     <ClCompile Include="arc\amd64\src\memory\paging.cpp" />
     <ClCompile Include="arc\amd64\src\memory\virtual_allocator.cpp" />
@@ -142,13 +143,13 @@
     <ClInclude Include="arc\amd64\inc\execution\thread_init.hpp" />
     <ClInclude Include="arc\amd64\inc\execution\thread_state.hpp" />
     <ClInclude Include="arc\amd64\inc\execution\thread_switching.hpp" />
-    <ClInclude Include="arc\amd64\inc\isr.h" />
+    <ClInclude Include="arc\amd64\inc\system\isr.hpp" />
     <ClInclude Include="arc\amd64\inc\memory\manager_amd64.hpp" />
     <ClInclude Include="arc\amd64\inc\memory\paging.hpp" />
     <ClInclude Include="arc\amd64\inc\memory\virtual_allocator.hpp" />
     <ClInclude Include="arc\amd64\inc\system\registers.hpp" />
     <ClInclude Include="arc\x86\inc\debug_arch.hpp" />
-    <ClInclude Include="arc\x86\inc\keyboard.h" />
+    <ClInclude Include="arc\x86\inc\keyboard.hpp" />
     <ClInclude Include="arc\x86\inc\memory.hpp" />
     <ClInclude Include="arc\x86\inc\metaprogramming_arc.h" />
     <ClInclude Include="arc\x86\inc\multiboot.h" />
@@ -189,7 +190,7 @@
   <ItemGroup>
     <None Include="arc\amd64\link.ld" />
     <None Include="arc\amd64\src\execution\thread_switching.s" />
-    <None Include="arc\amd64\src\isr.s" />
+    <None Include="arc\amd64\src\system\isr.s" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

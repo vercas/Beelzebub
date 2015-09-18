@@ -1,7 +1,9 @@
 #pragma once
 
 #include <metaprogramming.h>
-#include <isr.h>
+#include <system/isr.hpp>
+
+using namespace Beelzebub::System;
 
 namespace Beelzebub { namespace Execution
 {

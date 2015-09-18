@@ -6,8 +6,6 @@
 #include <handles.h>
 #include <synchronization/spinlock.hpp>
 
-#include <debug_arch.hpp>
-
 #include <kernel.hpp>
 
 #ifdef __BEELZEBUB__DEBUG
@@ -28,10 +26,6 @@ if unlikely(!(cond))                                                    \
 #else
 #define assert(...) do {} while(false)
 #define msg(...) do {} while(false)
-#endif
-
-#ifndef breakpoint
-#define breakpoint(...) do {} while (false)
 #endif
 
 using namespace Beelzebub::Synchronization;
@@ -70,3 +64,8 @@ namespace Beelzebub { namespace Debug
                             , const char * const fmt, ...);
 }}
 
+#include <debug_arch.hpp>
+
+#ifndef breakpoint
+#define breakpoint(...) do {} while (false)
+#endif

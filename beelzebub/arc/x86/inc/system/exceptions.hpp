@@ -3,7 +3,7 @@
 #include <kernel.hpp>
 #include <handles.h>
 #include <debug.hpp>
-#include <isr.h>
+#include <system/isr.hpp>
 #include <metaprogramming.h>
 
 namespace Beelzebub { namespace System
@@ -48,5 +48,5 @@ namespace Beelzebub { namespace System
     __bland void SegmentNotPresentHandler(IsrState * const state);
     __bland void StackSegmentFaultHandler(IsrState * const state);
     __bland void GeneralProtectionHandler(IsrState * const state);
-    __bland void PageFaultHandler(IsrState * const state);
+    __hot __bland void PageFaultHandler(IsrState * const state);
 }}

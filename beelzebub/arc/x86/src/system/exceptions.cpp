@@ -1,6 +1,6 @@
 #include <system/exceptions.hpp>
 #include <system/cpu.hpp>
-#include <memory\manager_amd64.hpp>
+#include <memory/manager_amd64.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -129,6 +129,20 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
     const bool reserved = 0 != (state->ErrorCode & 8);
     const bool instruction = 0 != (state->ErrorCode & 16);
 
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+    const uint16_t ind1 = VirtualAllocationSpace::GetPml1Index(CR2)
+                 , ind2 = VirtualAllocationSpace::GetPml2Index(CR2)
+                 , ind3 = VirtualAllocationSpace::GetPml3Index(CR2)
+                 , ind4 = VirtualAllocationSpace::GetPml4Index(CR2);
+#elif defined(__BEELZEBUB__ARCH_IA32PAE)
+    const uint16_t ind1 = VirtualAllocationSpace::GetPml1Index(CR2)
+                 , ind2 = VirtualAllocationSpace::GetPml2Index(CR2)
+                 , ind3 = VirtualAllocationSpace::GetPml3Index(CR2);
+#elif defined(__BEELZEBUB__ARCH_IA32)
+    const uint16_t ind1 = VirtualAllocationSpace::GetPml1Index(CR2)
+                 , ind2 = VirtualAllocationSpace::GetPml2Index(CR2);
+#endif
+
     char status[6] = "     ";
 
     if (present)     status[0] = 'P';
@@ -137,22 +151,46 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
     if (reserved)    status[3] = '0';
     if (instruction) status[4] = 'I'; else status[4] = 'd';
 
+    msg("%n<<PAGE FAULT @ %Xp (%s|%X1); CR2: %Xp | "
+        , INSTRUCTION_POINTER, status, (uint8_t)state->ErrorCode, CR2);
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+    msg("%u2:%u2:%u2:%u2 | ", ind4, ind3, ind2, ind1);
+#elif defined(__BEELZEBUB__ARCH_IA32PAE)
+    msg("%u2:%u2:%u2 | ", ind3, ind2, ind1);
+#elif defined(__BEELZEBUB__ARCH_IA32)
+    msg("%u2:%u2 | ", ind2, ind1);
+#endif
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+    if (CR2 >= VirtualAllocationSpace::FractalStart && CR2 <= VirtualAllocationSpace::FractalEnd)
+    {
+        vaddr_t vaddr = (CR2 - VirtualAllocationSpace::LocalPml1Base) << 9;
+
+        if (0 != (vaddr & 0x0000800000000000ULL))
+            vaddr |= 0xFFFF000000000000ULL;
+
+        uint16_t vind1 = VirtualAllocationSpace::GetPml1Index(CR2)
+               , vind2 = VirtualAllocationSpace::GetPml2Index(CR2)
+               , vind3 = VirtualAllocationSpace::GetPml3Index(CR2)
+               , vind4 = VirtualAllocationSpace::GetPml4Index(CR2);
+
+        msg("Adr: %Xp - %u2:%u2:%u2:%u2 | ", vaddr, vind4, vind3, vind2, vind1);
+    }
+#endif
+
     Pml1Entry * e = nullptr;
 
     Handle res = ((MemoryManagerAmd64 *)BootstrapMemoryManager)->Vas->GetEntry(CR2 & ~((vaddr_t)0xFFF), e, true);
 
     if (e != nullptr)
     {
-        msg("<<PAGE FAULT @ %Xp (%s|%Xs); CR2: %Xp | "
-            , INSTRUCTION_POINTER, status, state->ErrorCode, CR2);
-
         e->PrintToTerminal(Beelzebub::Debug::DebugTerminal);
 
         msg(" >>");
     }
     else
-        msg("<<PAGE FAULT @ %Xp (%s|%Xs); CR2: %Xp | %H >>"
-            , INSTRUCTION_POINTER, status, state->ErrorCode, CR2, res);
+        msg("%H >>", res);
 
     assert(false, "<< ^ EXCEPTION ^ >>");
 }

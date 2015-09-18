@@ -1,5 +1,5 @@
-#include <isr.h>
-#include <keyboard.h>
+#include <system/isr.hpp>
+#include <keyboard.hpp>
 #include <system/cpu.hpp>
 #include <system/lapic.hpp>
 #include <kernel.hpp>

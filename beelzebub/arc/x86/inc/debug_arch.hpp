@@ -6,7 +6,7 @@
 #include <handles.h>
 #include <synchronization/spinlock.hpp>
 
-#include <keyboard.h>
+#include <keyboard.hpp>
 
 #include <kernel.hpp>
 

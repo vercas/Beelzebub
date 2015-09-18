@@ -2,7 +2,7 @@
 
 #include <system/cpu.hpp>
 #include <synchronization/spinlock.hpp>
-#include <isr.h>
+#include <system/isr.hpp>
 #include <metaprogramming.h>
 
 using namespace Beelzebub::System;
