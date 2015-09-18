@@ -1,6 +1,8 @@
 #include <ports.hpp>
 
+using namespace Beelzebub;
 using namespace Beelzebub::Ports;
+using namespace Beelzebub::System;
 
 ManagedSerialPort Beelzebub::Ports::COM1(0x03F8);
 ManagedSerialPort Beelzebub::Ports::COM2(0x02F8);
@@ -132,11 +134,11 @@ uint8_t ManagedSerialPort::Read(const bool wait)
 {
 	if (wait) while (!this->CanRead()) ;
 
-	(&this->ReadLock)->Acquire();
+	const int_cookie_t int_cookie = (&this->ReadLock)->Acquire();
 
 	return Cpu::In8(this->BasePort);
 
-	(&this->ReadLock)->Release();
+	(&this->ReadLock)->Release(int_cookie);
 }
 
 void ManagedSerialPort::Write(const uint8_t val, const bool wait)
@@ -147,12 +149,12 @@ void ManagedSerialPort::Write(const uint8_t val, const bool wait)
 	//	If the output count exceeds the queue size, I check whether I
 	//	can write or not. If I can, the count is reset anyway.
 
-	(&this->WriteLock)->Acquire();
+    const int_cookie_t int_cookie = (&this->WriteLock)->Acquire();
 
 	Cpu::Out8(this->BasePort, val);
 	++this->OutputCount;
 
-	(&this->WriteLock)->Release();
+	(&this->WriteLock)->Release(int_cookie);
 }
 
 size_t ManagedSerialPort::ReadNtString(char * const buffer, const size_t size)
@@ -160,7 +162,7 @@ size_t ManagedSerialPort::ReadNtString(char * const buffer, const size_t size)
 	size_t i = 0;
 	char c;
 
-	(&this->ReadLock)->Acquire();
+    const int_cookie_t int_cookie = (&this->ReadLock)->Acquire();
 
 	do
 	{
@@ -169,7 +171,7 @@ size_t ManagedSerialPort::ReadNtString(char * const buffer, const size_t size)
 		buffer[i++] = c = Cpu::In8(this->BasePort);
 	} while (c != 0 && i < size);
 
-	(&this->ReadLock)->Release();
+	(&this->ReadLock)->Release(int_cookie);
 
 	return i;
 }
@@ -179,7 +181,7 @@ size_t ManagedSerialPort::WriteNtString(const char * const str)
 	size_t i = 0, j;
 	const uint16_t p = this->BasePort;
 
-	(&this->WriteLock)->Acquire();
+    const int_cookie_t int_cookie = (&this->WriteLock)->Acquire();
 
 	while (str[i] != 0)
 	{
@@ -194,7 +196,7 @@ size_t ManagedSerialPort::WriteNtString(const char * const str)
 		i += j;
 	}
 
-	(&this->WriteLock)->Release();
+	(&this->WriteLock)->Release(int_cookie);
 
 	return i;
 }

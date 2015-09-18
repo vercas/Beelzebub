@@ -1,7 +1,7 @@
 #pragma once
 
 #include <system/cpu.hpp>
-#include <synchronization/spinlock.hpp>
+#include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/isr.hpp>
 #include <metaprogramming.h>
 
@@ -162,8 +162,8 @@ namespace Beelzebub { namespace Ports
         uint16_t BasePort;
         uint16_t  OutputCount;
 
-        Spinlock ReadLock;
-        Spinlock WriteLock;
+        SpinlockUninterruptible ReadLock;
+        SpinlockUninterruptible WriteLock;
     };
 
     extern ManagedSerialPort COM1;
