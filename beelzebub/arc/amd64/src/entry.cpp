@@ -556,9 +556,13 @@ VirtualAllocationSpace tVasB;
 
 __hot __bland void * TestThreadEntryPoint(void * const arg)
 {
+   char * const myChars = (char *)(uintptr_t)0x321000ULL;
+
     while (true)
     {
-        msg("Printing from thread %Xp!%n", Cpu::GetActiveThread());
+        Thread * activeThread = Cpu::GetActiveThread();
+
+        msg("Printing from thread %Xp! (%C)%n", activeThread, myChars);
 
         Cpu::Halt();
     }
@@ -586,7 +590,7 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     res = BootstrapMemoryManager->MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
 
     assert(res.IsOkayResult()
-        , "  Failed to map page at %Xp (%XP) for CPU-specific data: %H."
+        , "  Failed to map page at %Xp (%XP) for test thread stack: %H."
         , vaddr, paddr
         , res);
     //  FAILURE IS NOT TOLERATED.
@@ -601,6 +605,42 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     //  This sets up the thread so it goes directly to the entry point when switched to.
 }
 
+__cold __bland char * AllocateTestPage(Process * const p)
+{
+    Handle res;
+    PageDescriptor * desc = nullptr;
+    //  Intermediate results.
+
+    const vaddr_t vaddr1 = 0x321000;
+    const vaddr_t vaddr2 = __atomic_fetch_add(&MemoryManagerAmd64::KernelHeapCursor, 0x1000, __ATOMIC_SEQ_CST);
+    const paddr_t paddr = mainAllocator.AllocatePage(desc);
+    //  Test page.
+
+    assert(paddr != nullptr && desc != nullptr
+        , "  Unable to allocate a physical page for test page of process %Xp!"
+        , p);
+
+    desc->IncrementReferenceCount();
+    desc->IncrementReferenceCount();
+    //  Increment the reference count of the page twice because we're nice people.
+
+    res = p->VAS->MapPage(vaddr1, paddr, PageFlags::Writable);
+
+    assert(res.IsOkayResult()
+        , "  Failed to map page at %Xp (%XP) as test page in owning process: %H."
+        , vaddr1, paddr
+        , res);
+
+    res = BootstrapMemoryManager->MapPage(vaddr2, paddr, PageFlags::Global | PageFlags::Writable);
+
+    assert(res.IsOkayResult()
+        , "  Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
+        , vaddr2, paddr
+        , res);
+
+    return (char *)(uintptr_t)vaddr2;
+}
+
 void StartMultitaskingTest()
 {
     bootstrapVas.Clone(&tVasB);
@@ -612,6 +652,15 @@ void StartMultitaskingTest()
     new (&tPb) Process();
     tPb.VAS = &tMmB;
     //  Initialize a new process for thread series B.
+
+    char * tCa = AllocateTestPage(&BootstrapProcess);
+    //  Allocate and map a page for process B.
+
+    char * tCb = AllocateTestPage(&tPb);
+    //  Allocate and map a page for process B.
+
+    *tCa = 'A';
+    *tCb = 'B';
 
     InitializeTestThread(&tTa1, &BootstrapProcess);
     InitializeTestThread(&tTa2, &BootstrapProcess);
