@@ -92,7 +92,7 @@ Spinlock MemoryManagerAmd64::PasDescriptorsLock;
 
 Spinlock MemoryManagerAmd64::HandleTablesLock;
 
-volatile vaddr_t MemoryManagerAmd64::KernelHeapCursor = 0;
+volatile vaddr_t MemoryManagerAmd64::KernelHeapCursor = MemoryManagerAmd64::KernelHeapStart;
 volatile size_t MemoryManagerAmd64::KernelHeapLockCount = 0;
 Spinlock MemoryManagerAmd64::KernelHeapMasterLock;
 

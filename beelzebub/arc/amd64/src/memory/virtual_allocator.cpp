@@ -161,9 +161,7 @@ Handle VirtualAllocationSpace::Bootstrap()
     Pml4 & pml4 = *GetLocalPml4();
 
     for (uint16_t i = 0; i < 256; ++i)
-    {
         pml4[i] = Pml4Entry();
-    }
     //  Getting rid of those naughty identity maps.
 
     //  Re-activate, to flush the identity maps.
@@ -176,8 +174,6 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 {
     new (target) VirtualAllocationSpace(this->Allocator);
 
-    msg("Constructed target VAS;");
-
     PageDescriptor * desc;
 
     paddr_t pml4_paddr = target->Pml4Address = this->Allocator->AllocatePage(desc);
@@ -188,39 +184,25 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
     desc->IncrementReferenceCount();
     //  Do the good deed.
 
-    msg(" Allocated PML4 for target;");
-    
     target->Alienate();
     //  So it can be accessible.
 
-    msg(" Alienated;");
-
     Pml4 & pml4Local = *GetLocalPml4();
     Pml4 & pml4Alien = *GetAlienPml4();
-
-    msg(" Got PML4 references;");
 
     for (uint16_t i = 0; i < 256; ++i)
         pml4Alien[i] = Pml4Entry();
     //  Userland space will be empty.
 
-    msg(" Cleaned lower half;");
-    
     for (uint16_t i = 256; i < AlienFractalIndex; ++i)
         pml4Alien[i] = pml4Local[i];
     //  Kernel-specific tables.
 
-    msg(" Copied up to AFI;");
-
     pml4Alien[LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, NX);
-
-    msg(" Set LFI to self;");
 
     pml4Alien[511] = pml4Local[511];
     //  Last page, where the kernel and bootloader-provided shenanigans sit
     //  snuggly together and drink hot cocoa.
-
-    msg(" Copied top entry!%n");
 
     return Handle(HandleResult::Okay);
 }

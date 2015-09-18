@@ -64,13 +64,14 @@ namespace Beelzebub { namespace Memory
         static const vaddr_t LocalPml4Base = LocalPml3Base         + ((vaddr_t)LocalFractalIndex << 12);
 
         //  Start of the temporary PML4 tables.
-        static const vaddr_t AlienPml1Base = 0xFFFF000000000000ULL + ((vaddr_t)LocalFractalIndex << 39);
+        static const vaddr_t AlienPml1Base = 0xFFFF000000000000ULL + ((vaddr_t)AlienFractalIndex << 39);
         //  Start of the active PML3 tables (PDPTs).
         static const vaddr_t AlienPml2Base = AlienPml1Base         + ((vaddr_t)LocalFractalIndex << 30);
         //  Start of the active PML2 tables (PDs).
         static const vaddr_t AlienPml3Base = AlienPml2Base         + ((vaddr_t)LocalFractalIndex << 21);
         //  Start of the active PML1 tables (PTs).
-        static const vaddr_t AlienPml4Base = AlienPml3Base         + ((vaddr_t)LocalFractalIndex << 12);
+        //static const vaddr_t AlienPml4Base = AlienPml3Base         + ((vaddr_t)LocalFractalIndex << 12);
+        static const vaddr_t AlienPml4Base = LocalPml3Base         + ((vaddr_t)AlienFractalIndex << 12);
 
         static const vaddr_t FractalStart = LocalPml1Base;
         static const vaddr_t FractalEnd   = FractalStart + (1ULL << 39);
@@ -205,9 +206,9 @@ namespace Beelzebub { namespace Memory
 
         /*  Mapping  */
 
-        __hot __bland Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags, PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc);
-        __hot __bland Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
-        __hot __bland Handle Unmap(const vaddr_t vaddr, paddr_t & paddr);
+        __hot __bland __noinline Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags, PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc);
+        __hot __bland __noinline Handle Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
+        __hot __bland __noinline Handle Unmap(const vaddr_t vaddr, paddr_t & paddr);
 
         /*  Flags  */
 
