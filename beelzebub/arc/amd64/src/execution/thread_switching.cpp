@@ -48,8 +48,14 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     //SwitchThread(&this->KernelStackPointer, other->KernelStackPointer);
 
+    auto interruptVector = dest->Vector;
+    auto errorCode = dest->ErrorCode;
+
     *dest = other->State;
     //memcpy(dest, &other->State, sizeof(ThreadState));
+
+    dest->ErrorCode = errorCode;
+    dest->Vector = interruptVector;
 
     msg("C");
 

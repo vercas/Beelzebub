@@ -19,12 +19,17 @@ TerminalWriteResult IsrState::PrintToTerminal(TerminalBase * const term) const
         "\tStack Pointer: %Xp%n"
         "\tInstruction Pointer: %Xp%n"
         "\tFlags: %Xs%n"
+        "\t----%n"
+        "\tVector: %u1%n"
+        "\tError Code: %Xs%n"
         , this
         , (uint16_t)this->SS
         , (uint16_t)this->CS
         , this->RSP
         , this->RIP
-        , this->RFLAGS);
+        , this->RFLAGS
+        , (uint8_t)this->Vector
+        , this->ErrorCode);
 }
 
 TerminalWriteResult IsrState::PrintToDebugTerminal() const

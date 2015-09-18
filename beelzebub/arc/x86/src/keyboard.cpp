@@ -37,8 +37,6 @@ void keyboard_handler(IsrState * const state)
     uint8_t code = Cpu::In8(0x60);
     Cpu::Out8(0x61, Cpu::In8(0x61));
 
-    Lapic::EndOfInterrupt();
-
     if (KEYBOARD_CODE_ESCAPED == code)
     {
         keyboard_escaped = true;
@@ -60,12 +58,22 @@ void keyboard_handler(IsrState * const state)
         case KEYBOARD_CODE_UP:
             Thread * const activeThread = Cpu::GetActiveThread();
 
-            activeThread->State = *state;
-
-            msg("(( AT=%Xp; N=%Xp; P=%Xp; BST=%B ))%n", activeThread, activeThread->Next, activeThread->Previous, activeThread == &BootstrapThread);
-
             if (activeThread != nullptr)
+            {
+                activeThread->State = *state;
+
+                msg("PRE-SWITCH ");
+                state->PrintToDebugTerminal();
+                msg("%n");
+
+                msg("(( AT=%Xp; N=%Xp; P=%Xp; BST=%B ))%n", activeThread, activeThread->Next, activeThread->Previous, activeThread == &BootstrapThread);
+
                 activeThread->SwitchToNext(state);
+
+                msg("%nPOST-SWITCH ");
+                state->PrintToDebugTerminal();
+                msg("%n");
+            }
 
             break;
 
@@ -74,4 +82,6 @@ void keyboard_handler(IsrState * const state)
             break;//*/
         }
     }
+
+    Lapic::EndOfInterrupt();
 }

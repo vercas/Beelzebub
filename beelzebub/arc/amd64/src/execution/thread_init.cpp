@@ -1,5 +1,6 @@
 #include <execution/thread_init.hpp>
-#include <system\cpu.hpp>
+#include <system/cpu.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -44,6 +45,7 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
     initState->R14 = 0;
     initState->R15 = 0;
 
+    thread->State = *initState;
 }
 
 Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp, MemoryManager * const bsmm)
