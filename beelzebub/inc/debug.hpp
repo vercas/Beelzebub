@@ -16,16 +16,24 @@ if unlikely(!(cond))                                                    \
 
 //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
 #define msg(...) do {                                                   \
-    if likely(Beelzebub::Debug::DebugTerminal != nullptr)                       \
+    if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+    {                                                                   \
+        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
+    }                                                                   \
+} while (false)
+
+#define msg_(...) do {                                                  \
+    if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
     {                                                                   \
         (&Beelzebub::Debug::MsgSpinlock)->Acquire();                    \
-        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);              \
+        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
         (&Beelzebub::Debug::MsgSpinlock)->Release();                    \
     }                                                                   \
 } while (false)
 #else
 #define assert(...) do {} while(false)
 #define msg(...) do {} while(false)
+#define msg_(...) do {} while(false)
 #endif
 
 using namespace Beelzebub::Synchronization;
