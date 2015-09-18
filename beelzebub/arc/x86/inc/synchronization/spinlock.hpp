@@ -120,5 +120,5 @@ namespace Beelzebub { namespace Synchronization
     };
 }}
 
-//  Very sad note: GCC doesn't support protectign additional pointers in
+//  Very sad note: GCC doesn't support protecting additional pointers in
 //  the memory barrier. Nevertheless, I have added the feature.
