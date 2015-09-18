@@ -132,6 +132,9 @@
     <ClCompile Include="arc\amd64\src\jegudiel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="arc\x86\src\synchronization\spinlock_uninterruptible.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\execution\process.hpp">
@@ -273,6 +276,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="arc\x86\inc\keyboard.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="arc\x86\inc\synchronization\spinlock_uninterruptible.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

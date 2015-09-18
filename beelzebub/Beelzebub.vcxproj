@@ -113,6 +113,7 @@
     <ClCompile Include="arc\x86\src\string.c" />
     <ClCompile Include="arc\x86\src\string.cpp" />
     <ClCompile Include="arc\x86\src\synchronization\spinlock.cpp" />
+    <ClCompile Include="arc\x86\src\synchronization\spinlock_uninterruptible.cpp" />
     <ClCompile Include="arc\x86\src\system\cpu.cpp" />
     <ClCompile Include="arc\x86\src\system\cpuid.cpp" />
     <ClCompile Include="arc\x86\src\system\exceptions.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="arc\x86\inc\multiboot.h" />
     <ClInclude Include="arc\x86\inc\ports.hpp" />
     <ClInclude Include="arc\x86\inc\synchronization\spinlock.hpp" />
+    <ClInclude Include="arc\x86\inc\synchronization\spinlock_uninterruptible.hpp" />
     <ClInclude Include="arc\x86\inc\system\cpu.hpp" />
     <ClInclude Include="arc\x86\inc\system\cpuid.hpp" />
     <ClInclude Include="arc\x86\inc\system\exceptions.hpp" />
