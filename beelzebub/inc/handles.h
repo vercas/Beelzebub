@@ -368,6 +368,13 @@ namespace Beelzebub
                 case HandleResult::ThreadAlreadyLinked:
                     return "Thr a. lnk.";
 
+                case HandleResult::CmdOptionUnspecified:
+                    return "Cmdo n spc.";
+                case HandleResult::CmdOptionValueTypeInvalid:
+                    return "Cmdo vT inv";
+                case HandleResult::CmdOptionValueNotInTable:
+                    return "Cmdo v nit.";
+
                 default:
                     return "UNKNOWN";
             }
@@ -378,7 +385,8 @@ namespace Beelzebub
 }
 
 #else
+    
+    typedef struct Handle_t { uint64_t Value; } Handle;
+    //  Eh... Good enough.
 
 #endif
-
-//  TODO: C version.
