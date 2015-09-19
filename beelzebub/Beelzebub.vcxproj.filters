@@ -36,9 +36,6 @@
     <ClCompile Include="src\terminals\splash_text.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\buffer.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\cpp_support.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -135,6 +132,9 @@
     <ClCompile Include="arc\x86\src\synchronization\spinlock_uninterruptible.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\cmd_options.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\execution\process.hpp">
@@ -171,9 +171,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inc\architecture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inc\cpp_support.h">
@@ -279,6 +276,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="arc\x86\inc\synchronization\spinlock_uninterruptible.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\cmd_options.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

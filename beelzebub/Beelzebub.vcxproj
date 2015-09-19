@@ -122,8 +122,8 @@
     <ClCompile Include="arc\x86\src\terminals\serial.cpp" />
     <ClCompile Include="arc\x86\src\terminals\vbe.cpp" />
     <ClCompile Include="arc\x86\src\terminals\vga.cpp" />
-    <ClCompile Include="src\buffer.c" />
     <ClCompile Include="src\build_info.c" />
+    <ClCompile Include="src\cmd_options.cpp" />
     <ClCompile Include="src\cpp_support.cpp" />
     <ClCompile Include="src\debug.cpp" />
     <ClCompile Include="src\execution\elf.cpp" />
@@ -167,7 +167,7 @@
     <ClInclude Include="arc\x86\inc\terminals\vbe.hpp" />
     <ClInclude Include="arc\x86\inc\terminals\vga.hpp" />
     <ClInclude Include="inc\architecture.h" />
-    <ClInclude Include="inc\buffer.h" />
+    <ClInclude Include="inc\cmd_options.hpp" />
     <ClInclude Include="inc\cpp_support.h" />
     <ClInclude Include="inc\debug.hpp" />
     <ClInclude Include="inc\execution\elf.hpp" />
