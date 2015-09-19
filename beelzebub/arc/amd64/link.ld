@@ -5,12 +5,21 @@ SECTIONS
     . = 0xFFFFFFFF80000000;
 
     .text : {
+        *(.text.startup)
+        . = ALIGN(16);
+        *(.text.unlikely)
+        . = ALIGN(16);
         *(.text)
+        . = ALIGN(16);
+        *(.text.hot)
     }
 
     . = ALIGN(4096);
 
     .rodata : {
+        *(.rodata.str1.8)
+        *(.rodata.str1.1)
+        . = ALIGN(64);
         *(.rodata)
     }
 
