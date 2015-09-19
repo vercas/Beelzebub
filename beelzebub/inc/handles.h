@@ -89,6 +89,13 @@ namespace Beelzebub
 
         //  A thread is already linked.
         ThreadAlreadyLinked       = 0x0000000000000050U, // Thr a. lnk.
+
+        //  A command-line option was not specified.
+        CmdOptionUnspecified      = 0x0000000000000060U, // Cmdo n spc.
+        //  A command-line option's value seems to be of the wrong type.
+        CmdOptionValueTypeInvalid = 0x0000000000000061U, // Cmdo vT inv
+        //  A command-line option's value is not found in the given table.
+        CmdOptionValueNotInTable  = 0x0000000000000062U, // Cmdo v nit.
     };
 
     struct Handle
