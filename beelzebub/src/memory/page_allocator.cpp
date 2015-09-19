@@ -281,7 +281,7 @@ paddr_t PageAllocationSpace::AllocatePage(PageDescriptor * & desc)
 
     desc = nullptr;
 
-    return nullptr;
+    return nullpaddr;
 }
 
 paddr_t PageAllocationSpace::AllocatePages(const psize_t count)
@@ -293,11 +293,11 @@ paddr_t PageAllocationSpace::AllocatePages(const psize_t count)
         return this->AllocatePage(desc);
     }
     else if (count == 0)
-        return nullptr;
+        return nullpaddr;
 
     //  TODO: Implement this in the most noobish way imaginable.
 
-    return nullptr;
+    return nullpaddr;
 }
 
 /*  Utilitary Methods  */
@@ -517,7 +517,7 @@ Handle PageAllocator::FreePageAtAddress(const paddr_t phys_addr)
 
 paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options, PageDescriptor * & desc)
 {
-    paddr_t ret = nullptr;
+    paddr_t ret = nullpaddr;
     PageAllocationSpace * space;
 
     if (0 != (options & PageAllocationOptions::ThirtyTwoBit))
@@ -534,7 +534,7 @@ paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options, PageDes
 
                 ret = space->AllocatePage(desc);
 
-                if (ret != nullptr)
+                if (ret != nullpaddr)
                     return ret;
             }
 
@@ -549,7 +549,7 @@ paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options, PageDes
         {
             ret = space->AllocatePage(desc);
 
-            if (ret != nullptr)
+            if (ret != nullpaddr)
                 return ret;
 
             space = space->Next;
@@ -558,12 +558,12 @@ paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options, PageDes
 
     desc = nullptr;
 
-    return nullptr;
+    return nullpaddr;
 }
 
 paddr_t PageAllocator::AllocatePages(const psize_t count, const PageAllocationOptions options)
 {
-    paddr_t ret = nullptr;
+    paddr_t ret = nullpaddr;
     PageAllocationSpace * space;
 
     if (0 != (options & PageAllocationOptions::ThirtyTwoBit))
@@ -580,7 +580,7 @@ paddr_t PageAllocator::AllocatePages(const psize_t count, const PageAllocationOp
 
                 ret = space->AllocatePages(count);
 
-                if (ret != nullptr)
+                if (ret != nullpaddr)
                     return ret;
             }
 
@@ -595,14 +595,14 @@ paddr_t PageAllocator::AllocatePages(const psize_t count, const PageAllocationOp
         {
             ret = space->AllocatePages(count);
 
-            if (ret != nullptr)
+            if (ret != nullpaddr)
                 return ret;
 
             space = space->Next;
         }
     }
 
-    return nullptr;
+    return nullpaddr;
 }
 
 PageAllocationSpace * PageAllocator::GetSpaceContainingAddress(const paddr_t address)

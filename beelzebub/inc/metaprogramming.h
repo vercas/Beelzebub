@@ -7,16 +7,60 @@
 #include "stddef.h"
 #include <metaprogramming_arc.h>
 
+#ifdef __cplusplus
+//#include <type_traits>
+#endif
+
 /*  Some macro helpers. */
 
-#define MCATS2(A, B) A ## B
-#define MCATS3(A, B, C) A ## B ## C
-#define MCATS4(A, B, C, D) A ## B ## C ## D
+#define GET_MACRO2(_1, _2, NAME, ...) NAME
+#define GET_MACRO6(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
+//	Got this from http://stackoverflow.com/a/11763277
+
+#define MCATS1(A) A
+#define MCATS2(A, B) A##B
+#define MCATS3(A, B, C) A##B##C
+#define MCATS4(A, B, C, D) A##B##C##D
+#define MCATS5(A, B, C, D, E) A##B##C##D##E
+#define MCATS6(A, B, C, D, E, F) A##B##C##D##E##F
+#define MCATS(...) GET_MACRO6(__VA_ARGS__, MCATS6, MCATS5, MCATS4, MCATS3, MCATS2, MCATS1)(__VA_ARGS__)
 //  Macro conCATenate Symbols!
+
+#define __ARG_N(                              \
+     __1,__2,__3,__4,__5,__6,__7,__8,__9,_10, \
+     _11,_12,_13,_14,_15,_16,_17,_18,_19,_20, \
+     _21,_22,_23,_24,_25,_26,_27,_28,_29,_30, \
+     _31,_32,_33,_34,_35,_36,_37,_38,_39,_40, \
+     _41,_42,_43,_44,_45,_46,_47,_48,_49,_50, \
+     _51,_52,_53,_54,_55,_56,_57,_58,_59,_60, \
+     _61,_62,_63,_64,_65,_66,_67,_68,_69, N, ...) N
+#define __RSEQ_N()                  \
+     69,68,67,66,65,64,63,62,61,60, \
+     59,58,57,56,55,54,53,52,51,50, \
+     49,48,47,46,45,44,43,42,41,40, \
+     39,38,37,36,35,34,33,32,31,30, \
+     29,28,27,26,25,24,23,22,21,20, \
+     19,18,17,16,15,14,13,12,11,10, \
+      9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+#define __NARG_I_(...) __ARG_N(__VA_ARGS__)
+#define __NARG__(...)  __NARG_I_(__VA_ARGS__,__RSEQ_N())
+
+// general definition for any function name
+#define _VADEF_(name, n) name##n
+#define _VADEF(name, n) _VADEF_(name, n)
+#define VADEF(func, ...) _VADEF(func, __NARG__(__VA_ARGS__)) (__VA_ARGS__)
+//	Got this from http://stackoverflow.com/a/26408195
 
 /*  Constants/keywords..?   */
 
-#define nullptr (0)
+#ifdef __cplusplus
+#define nullpaddr ((paddr_t)(uintptr_t)nullptr)
+#define nullvaddr ((vaddr_t)(uintptr_t)nullptr)
+#else
+#define nullptr   ((void *) 0)
+#define nullpaddr ((paddr_t)0)
+#define nullvaddr ((vaddr_t)0)
+#endif
 
 /*  This is interesting.    */
 
@@ -82,7 +126,7 @@
 
 
 #ifdef __cplusplus
-#define ENUMOPS(T, U)                                                      \
+#define ENUMOPS(T, U)                                                     \
 inline  T   operator ~  (T  a     ) { return (T )(~((U )(a))          ); } \
 inline  T   operator |  (T  a, T b) { return (T )(  (U )(a) |  (U )(b)); } \
 inline  T   operator &  (T  a, T b) { return (T )(  (U )(a) &  (U )(b)); } \
@@ -95,6 +139,9 @@ inline bool operator != (U  a, T b) { return             a  != (U )(b);  } \
 inline bool operator == (T  a, U b) { return        (U )(a) ==      b ;  } \
 inline bool operator != (T  a, U b) { return        (U )(a) !=      b ;  }
 
+//#define ENUMOPS1(T) ENUMOPS2(T, std::underlying_type<T>::type)
+
+//#define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
+
 //  Why? For the glory of C++, of course.
 #endif
-    

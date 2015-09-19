@@ -20,6 +20,7 @@
 #include <debug.hpp>
 #include <math.h>
 #include <cpp_support.h>
+#include <string.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -473,7 +474,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 		const vaddr_t vaddr = CpuDataBase + (i << 12);
 		const paddr_t paddr = mainAllocator.AllocatePage(desc);
 
-		assert(paddr != nullptr && desc != nullptr
+		assert(paddr != nullpaddr && desc != nullptr
 			, "  Unable to allocate a physical page for CPU-specific data!");
 
 		res = BootstrapMemoryManager->MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
@@ -497,8 +498,53 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
 }
 
+__cold __bland Handle HandleKernelModule(const size_t index, const jg_info_module_t * const module, const size_t size)
+{
+    msg("THIS IS THE KERNEL MODULE!");
+
+    return HandleResult::Okay;
+}
+
+__cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * const module)
+{
+    Handle res = HandleResult::Okay;
+
+    const size_t size = (module->length + PageSize - 1) / PageSize;
+
+    msg("Module #%us:%n"
+        "\tName: (%X2) %s%n"
+        "\tCommand-line: (%X2) %s%n"
+        "\tPhysical Address: %XP%n"
+        "\tSize: %X4 (%Xs)%n"
+        , index
+        , module->name, JG_INFO_STRING_EX + module->name
+        , module->cmdline, JG_INFO_STRING_EX + module->cmdline
+        , module->address
+        , module->length, size);//*/
+
+    const vaddr_t vaddr = __atomic_fetch_add(&MemoryManagerAmd64::KernelModulesCursor, size, __ATOMIC_SEQ_CST);
+
+    for (vaddr_t offset = 0; offset < size; offset += PageSize)
+    {
+        res = BootstrapMemoryManager->MapPage(vaddr + offset, module->address + offset, PageFlags::Global | PageFlags::Writable);
+
+        assert(res.IsOkayResult()
+            , "  Failed to map page at %Xp (%XP) for module #%us (%s): %H."
+            , vaddr + offset, module->address + offset
+            , index, module->name
+            , res);
+    }
+
+    if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
+        return HandleKernelModule(index, module, size);
+
+    return res;
+}
+
 void InitializeMemory()
 {
+    Handle res;
+
     initialVbeTerminal.WriteLine();
     
     BootstrapProcessorId = CpuId();
@@ -538,6 +584,11 @@ void InitializeMemory()
     initialVbeTerminal.WriteLine();
 
     Cpu::WriteBackAndInvalidateCache();
+
+    auto moduleCount = JG_INFO_ROOT_EX->module_count;
+
+    for (size_t i = 0; i < moduleCount; ++i)
+        res = HandleModule(i, JG_INFO_MODULE_EX + i);
 }
 
 #ifdef __BEELZEBUB__TEST_MT
@@ -580,7 +631,7 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     const paddr_t paddr = mainAllocator.AllocatePage(desc);
     //  Stack page.
 
-    assert(paddr != nullptr && desc != nullptr
+    assert(paddr != nullpaddr && desc != nullptr
         , "  Unable to allocate a physical page for test thread %Xp (process %Xp)!"
         , t, p);
 
@@ -616,7 +667,7 @@ __cold __bland char * AllocateTestPage(Process * const p)
     const paddr_t paddr = mainAllocator.AllocatePage(desc);
     //  Test page.
 
-    assert(paddr != nullptr && desc != nullptr
+    assert(paddr != nullpaddr && desc != nullptr
         , "  Unable to allocate a physical page for test page of process %Xp!"
         , p);
 
@@ -661,6 +712,7 @@ void StartMultitaskingTest()
 
     *tCa = 'A';
     *tCb = 'B';
+    //  Assign different values.
 
     InitializeTestThread(&tTa1, &BootstrapProcess);
     InitializeTestThread(&tTa2, &BootstrapProcess);

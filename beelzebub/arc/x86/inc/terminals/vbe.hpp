@@ -20,7 +20,7 @@ namespace Beelzebub { namespace Terminals
 
 		/*  Constructors  */
 
-		__bland VbeTerminal() : TerminalBase( nullptr ), VideoMemory(nullptr) { }
+		__bland VbeTerminal() : TerminalBase( nullptr ), VideoMemory((uintptr_t)nullptr) { }
         __bland VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32_t pit, uint8_t bytesPerPixel);
 
 		/*  Writing  */

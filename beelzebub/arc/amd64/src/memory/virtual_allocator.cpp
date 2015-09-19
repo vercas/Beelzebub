@@ -59,7 +59,7 @@ Handle VirtualAllocationSpace::Bootstrap()
 
     paddr_t pml4_paddr = this->Allocator->AllocatePage(desc);
 
-    if (pml4_paddr == nullptr)
+    if (pml4_paddr == nullpaddr)
         return Handle(HandleResult::OutOfMemory);
 
     Pml4 & oldPml4 = *((Pml4 *)pml4_paddr);
@@ -178,7 +178,7 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 
     paddr_t pml4_paddr = target->Pml4Address = this->Allocator->AllocatePage(desc);
 
-    if (pml4_paddr == nullptr)
+    if (pml4_paddr == nullpaddr)
         return Handle(HandleResult::OutOfMemory);
 
     desc->IncrementReferenceCount();
