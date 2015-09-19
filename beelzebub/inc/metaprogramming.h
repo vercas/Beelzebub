@@ -13,6 +13,11 @@
 
 /*  Some macro helpers. */
 
+#define GET_ARG1(_1) _1
+#define GET_ARG2(_2, _1) _1
+#define GET_ARG3(_3, _2, _1) _1
+#define GET_ARG4(_4, _3, _2, _1) _1
+
 #define GET_MACRO2(_1, _2, NAME, ...) NAME
 #define GET_MACRO6(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
 //	Got this from http://stackoverflow.com/a/11763277
