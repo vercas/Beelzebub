@@ -44,6 +44,12 @@ void Beelzebub::Main()
     InitializeMemory();
     MainTerminal->WriteLine(" Done.\r[OKAY]");
 
+    //  Initialize the modules loaded with the kernel.
+    //  Also platform-specific.
+    MainTerminal->Write("[....] Initializing modules...");
+    InitializeModules();
+    MainTerminal->WriteLine(" Done.\r[OKAY]");
+
     //  Setting up basic interrupt handlers 'n stuff.
     //  Again, platform-specific.
     MainTerminal->Write("[....] Initializing interrupts...");

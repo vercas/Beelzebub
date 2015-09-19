@@ -151,7 +151,7 @@ TerminalBase * InitializeTerminalMain()
 
 /*  Interrupts  */
 
-void InitializeInterrupts()
+Handle InitializeInterrupts()
 {
     Lapic::Initialize();
 
@@ -176,6 +176,8 @@ void InitializeInterrupts()
     IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
 
     //initialVbeTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
+
+    return HandleResult::Okay;
 }
 
 /**********************************************/
@@ -541,10 +543,8 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
     return res;
 }
 
-void InitializeMemory()
+Handle InitializeMemory()
 {
-    Handle res;
-
     initialVbeTerminal.WriteLine();
     
     BootstrapProcessorId = CpuId();
@@ -585,10 +585,25 @@ void InitializeMemory()
 
     Cpu::WriteBackAndInvalidateCache();
 
-    auto moduleCount = JG_INFO_ROOT_EX->module_count;
+    return HandleResult::Okay;
+}
+
+/*  Modules  */
+
+Handle InitializeModules()
+{
+    Handle res;
+
+    const size_t moduleCount = (size_t)JG_INFO_ROOT_EX->module_count;
 
     for (size_t i = 0; i < moduleCount; ++i)
+    {
         res = HandleModule(i, JG_INFO_MODULE_EX + i);
+
+        //  TODO: Perhaps handle some (non-)fatal errors here..?
+    }
+
+    return res;
 }
 
 #ifdef __BEELZEBUB__TEST_MT
