@@ -301,9 +301,10 @@ boot32_com1_msg:
     cmp     al, 0                               ; If null...
     je      .boot32_com1_msg_end                ; End.
 
+    mov     dx, 0x3F8 + 5                       ; This is where I check if the buffer's empty.
+
 .boot32_com1_msg_check:
     ; CHECK FIFO
-    mov     dx, 0x3F8 + 5                       ; This is where I check if the buffer's empty.
     in      al, dx                              ; Grab the data...
 
     bt      ax, 5                               ; If the bit's clear (buffer non-empty)
@@ -312,7 +313,7 @@ boot32_com1_msg:
     mov     dx, 0x3F8                           ; Set the correct port for output.
     out     dx, al                              ; Output to COM1.
 
-    jmp .boot32_com1_msg_next_byte              ; Continue to the next character.
+    jmp     .boot32_com1_msg_next_byte          ; Continue to the next character.
 
 .boot32_com1_msg_end:
     pop     eax                                 ; Restore EAX.
@@ -409,7 +410,7 @@ boot32_com2_dump:
     mov         dx, 0x2F8                       ; Set the correct port for output.
     rep outsb                                   ; Output ECX bytes to COM2.
 
-    jmp .boot32_com2_dump_next_byte             ; Continue to the next character.
+    jmp     .boot32_com2_dump_next_byte         ; Continue to the next character.
 
 .boot32_com2_dump_end:
     pop     eax                                 ; Restore EAX.
@@ -442,7 +443,7 @@ boot32_msg:
     mov     ah, 0xF0                            ; Black on white
 
     stosw                                       ; Write to video memory.
-    jmp .boot32_msg_next_byte                   ; Continue to the next character.
+    jmp     .boot32_msg_next_byte               ; Continue to the next character.
 
 .boot32_msg_end:
     pop     eax                                 ; Restore EAX.
