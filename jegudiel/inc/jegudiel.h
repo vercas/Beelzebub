@@ -177,9 +177,9 @@ typedef struct jg_info_mmap {
 typedef struct jg_info_module {
     uint16_t name;              //< offset of the name in the string table
     uint16_t cmdline;           //  Offset of the command-line arguments in the string table.
-    uint64_t address;           //< physical address of the module
     uint32_t length;            //< length of the module in bytes
-    uint16_t padding;
+    uint64_t address;           //< physical address of the module
+    //uint16_t padding;         //  Padding is no longer necessary.
 } __attribute__((packed)) jg_info_module_t;
 
 //-----------------------------------------------------------------------------
