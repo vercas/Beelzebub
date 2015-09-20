@@ -6,6 +6,10 @@
 #include <execution/thread_switching.hpp>
 #include <execution/thread_init.hpp>
 
+#if __BEELZEBUB__TEST_STR
+#include <tests/string.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Memory;
@@ -106,8 +110,16 @@ void Beelzebub::Main()
             , res);
     }
 
+#ifdef __BEELZEBUB__TEST_STR
+    MainTerminal->Write(">Testing string.h implementation...");
+
+    TestStringLibrary();
+
+    MainTerminal->WriteLine(" Done.");
+#endif
+
 #ifdef __BEELZEBUB__TEST_MT
-    MainTerminal->Write("+Starting multitasking test...");
+    MainTerminal->Write(">Starting multitasking test...");
 
     StartMultitaskingTest();
 

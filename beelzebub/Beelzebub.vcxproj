@@ -138,6 +138,7 @@
     <ClCompile Include="src\terminals\interface.cpp" />
     <ClCompile Include="src\terminals\splash.cpp" />
     <ClCompile Include="src\terminals\splash_text.cpp" />
+    <ClCompile Include="src\tests\string.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="arc\amd64\inc\entry.h" />
@@ -188,6 +189,7 @@
     <ClInclude Include="inc\terminals\interface.hpp" />
     <ClInclude Include="inc\terminals\splash.hpp" />
     <ClInclude Include="inc\terminals\splash_text.hpp" />
+    <ClInclude Include="inc\tests\string.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="arc\amd64\link.ld" />

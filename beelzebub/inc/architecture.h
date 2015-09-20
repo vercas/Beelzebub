@@ -11,6 +11,7 @@
 #else
     #define TerminalBase void
     //  Hue hue hue.
+    //  Hue.
 #endif
 
 __extern __noinline __bland Handle InitializeMemory();

@@ -135,6 +135,9 @@
     <ClCompile Include="src\cmd_options.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\tests\string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\execution\process.hpp">
@@ -279,6 +282,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inc\cmd_options.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\tests\string.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

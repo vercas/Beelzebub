@@ -1,7 +1,8 @@
 #pragma once
 
-#define __BEELZEBUB__DEBUG  true
+#define __BEELZEBUB__DEBUG    true
 #define __BEELZEBUB__TEST_MT  true
+#define __BEELZEBUB__TEST_STR true
 
 #include <stdint.h>
 #include "stddef.h"
