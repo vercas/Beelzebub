@@ -12,7 +12,7 @@ Currently, Beelzebub requires the following to be built:
  4. binutils
 
 *Make* is required for the whole process.  
-*mkisofs* is required for construction an ISO file. You can skip this if you really want, but should you?  
+*mkisofs* is required for constructing an ISO file. You can skip this if you really want, but should you?  
 *GCC* is the only compiler supported right now, mainly because of the advanced inline assembly syntax. Also, **AMD64 code and ELF64 are required**.  
 *binutils* are required (used indirectly through GCC) for binary linkage.  
 
