@@ -15,8 +15,9 @@ namespace Beelzebub
         BooleanByPresence = 0,
         BooleanExplicit = 1,
         String = 2,
-        Integer = 3,
-        Float = 4,
+        SignedInteger = 3,
+        UnsignedInteger = 4,
+        Float = 5,
     };
 
     /**
@@ -50,5 +51,40 @@ namespace Beelzebub
         const CommandLineOptionFlags Flags;
 
         Handle ParsingResult;
+
+        union
+        {
+            char *   StringValue;
+            bool     BooleanValue;
+            int64_t  SignedIntegerValue;
+            uint64_t UnsignedIntegerValue;
+        };
     };
+
+    /**
+     *  Represents the state of a command-line option parser.
+     */
+    class CommandLineOptionParserState
+    {
+    public:
+
+        char * const InputString;
+        size_t Length;
+        size_t Offset;
+
+        bool Done;
+        bool Started;
+
+        __bland __forceinline CommandLineOptionParserState(char * const input)
+            : InputString(input)
+            , Length(0)
+            , Offset(0)
+            , Done(false)
+            , Started(false)
+        {
+            //  Nuthin'.
+        }
+    };
+
+    __bland Handle ParseCommandLineOptions(CommandLineOptionParserState & state);
 }
