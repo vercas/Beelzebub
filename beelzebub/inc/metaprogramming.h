@@ -86,6 +86,7 @@
 #define __used             __attribute__((used))
 #define __unused           __attribute__((unused))
 #define __must_check       __attribute__((warn_unused_result))
+#define __restrict         __restrict__
 
 #define likely(expr)       (__builtin_expect((expr), 1))
 #define unlikely(expr)     (__builtin_expect((expr), 0))
@@ -94,6 +95,7 @@
 #define __prefetch         __builtin_prefetch
 
 #define __packed           __attribute__((packed))
+#define __alignof(T)       __alignof__(T)
 
 #define __build_data       __attribute__((section(".build_data")))
 
@@ -103,6 +105,8 @@
 #else
 
 #define __forceinline      inline
+#define __noinline
+
 #define __const
 #define __cold
 #define __hot
