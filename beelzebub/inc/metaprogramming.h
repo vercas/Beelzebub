@@ -8,10 +8,6 @@
 #include "stddef.h"
 #include <metaprogramming_arc.h>
 
-#ifdef __cplusplus
-//#include <type_traits>
-#endif
-
 /*  Some macro helpers. */
 
 #define GET_ARG1(_1) _1
@@ -132,7 +128,8 @@
 
 
 #ifdef __cplusplus
-#define ENUMOPS(T, U)                                                     \
+
+#define ENUMOPS2(T, U)                                                     \
 inline  T   operator ~  (T  a     ) { return (T )(~((U )(a))          ); } \
 inline  T   operator |  (T  a, T b) { return (T )(  (U )(a) |  (U )(b)); } \
 inline  T   operator &  (T  a, T b) { return (T )(  (U )(a) &  (U )(b)); } \
@@ -145,9 +142,10 @@ inline bool operator != (U  a, T b) { return             a  != (U )(b);  } \
 inline bool operator == (T  a, U b) { return        (U )(a) ==      b ;  } \
 inline bool operator != (T  a, U b) { return        (U )(a) !=      b ;  }
 
-//#define ENUMOPS1(T) ENUMOPS2(T, std::underlying_type<T>::type)
+#define ENUMOPS1(T) ENUMOPS2(T, __underlying_type(T))
+//	All nice and dandy, but it uses a GCC extension for type traits because I can't include the type_traits.h header!
 
-//#define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
+#define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
 
 //  Why? For the glory of C++, of course.
 #endif
