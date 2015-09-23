@@ -150,7 +150,7 @@ __extern __used       size_t strnlen  (const char *       str                   
  *  </param>
  *  <return>The length of the string bound by <paramref name="len"/>.</return>
  */
-__extern __used       size_t strnlenex(const char *       str                          ,        size_t len, bool & reached);
+__extern __used       size_t strnlenex(const char *       str                          ,        size_t len, bool * reached);
 
 __extern __used       comp_t strcmp (const char *       src1, const char *       src2                   );
 
