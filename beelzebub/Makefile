@@ -43,7 +43,7 @@ LDFILE		:=
 ##########################
 
 GCCFLAGS	:= -ffreestanding -Wall -mcmodel=kernel
-GCCFLAGS	+= -D __BEELZEBUB
+GCCFLAGS	+= -D __BEELZEBUB -D __BEELZEBUB_KERNEL
 GCCFLAGS	+= -mno-red-zone -O2
 GCCFLAGS	+= -flto -nostdlib -lgcc -static-libgcc
 GCCFLAGS	+= -pipe
@@ -52,10 +52,10 @@ CFLAGS		:= $(GCCFLAGS) -std=gnu99
 
 CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 
-DFLAGS		:= -Wall -Werror -mcmodel=kernel -nostdinc
-DFLAGS      += -I$(RUNTIME_DIR) -I$(SRC_DIR)
-DFLAGS      += -fno-assert -fno-emit-moduleinfo -fd-vtls -fproperty
-DLFAGS      += -fno-bounds-check
+#DFLAGS		:= -Wall -Werror -mcmodel=kernel -nostdinc
+#DFLAGS      += -I$(RUNTIME_DIR) -I$(SRC_DIR)
+#DFLAGS      += -fno-assert -fno-emit-moduleinfo -fd-vtls -fproperty
+#DLFAGS      += -fno-bounds-check
 
 ASFLAGS		:=  
 
@@ -254,10 +254,10 @@ $(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp
 
 ##################
 # Build a D file #
-$(BUILD_DIR)/%.d.o: $(SRC_DIR)/%.d
-	@ echo "/STD/D__:" $<
-	@ mkdir -p $(@D)
-	@ $(DC) $(DFLAGS) -c $< -o $@
+#$(BUILD_DIR)/%.d.o: $(SRC_DIR)/%.d
+#	@ echo "/STD/D__:" $<
+#	@ mkdir -p $(@D)
+#	@ $(DC) $(DFLAGS) -c $< -o $@
 
 ####################################### ARCHITECTURE FILES ##########
 
