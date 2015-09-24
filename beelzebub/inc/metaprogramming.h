@@ -4,7 +4,7 @@
 #define __BEELZEBUB__TEST_MT  true
 #define __BEELZEBUB__TEST_STR true
 
-#include <stdint.h>
+#include "stdint.h"
 #include "stddef.h"
 #include <metaprogramming_arc.h>
 
