@@ -87,42 +87,82 @@ __bland __forceinline __const constexpr auto Maximum(const TNum1 & a, const TNum
 
 #pragma GCC diagnostic pop
 
+template<typename TNum>
+__bland __forceinline __const constexpr TNum GreatestCommonDivisor(const TNum a)
+{
+    return a;
+}
+
+template<typename TNum>
+__bland __forceinline __const constexpr TNum GreatestCommonDivisor(TNum a, TNum b)
+{
+    //  I hate homework.
+    
+    TNum t;
+
+    while (b != 0)
+    {
+        t = b;
+        b = a % b;
+        a = t;
+    }
+
+    return a;
+}
+
+template<typename TNum>
+__bland __forceinline __const constexpr TNum GreatestCommonDivisor(TNum a, TNum b, const TNum c)
+{
+    b = GreatestCommonDivisor(b, c);
+
+    TNum t;
+
+    while (b != 0)
+    {
+        t = b;
+        b = a % b;
+        a = t;
+    }
+
+    return a;
+}
+
 #else
 
 #ifdef __BEELZEBUB__ARCH_X86
-__bland __forceinline constexpr uint64_t RoundUp64(const uint64_t value, const uint64_t step) __const
+__bland __forceinline uint64_t RoundUp64(const uint64_t value, const uint64_t step) __const
 {
     return ((value + step - 1) / step) * step;
 }
-__bland __forceinline constexpr uint32_t RoundUp32(const uint32_t value, const uint32_t step) __const
+__bland __forceinline uint32_t RoundUp32(const uint32_t value, const uint32_t step) __const
 {
     return ((value + step - 1) / step) * step;
 }
 #else
-__bland __forceinline constexpr uint64_t RoundUp64(const uint64_t value, const uint64_t step) __const
+__bland __forceinline uint64_t RoundUp64(const uint64_t value, const uint64_t step) __const
 {
     return value + ((step - (value % step)) % step);
 }
-__bland __forceinline constexpr uint32_t RoundUp32(const uint32_t value, const uint32_t step) __const
+__bland __forceinline uint32_t RoundUp32(const uint32_t value, const uint32_t step) __const
 {
     return value + ((step - (value % step)) % step);
 }
 #endif
 
-__bland __forceinline constexpr uint64_t RoundDown64(const uint64_t value, const uint64_t step) __const
+__bland __forceinline uint64_t RoundDown64(const uint64_t value, const uint64_t step) __const
 {
     return value - (value & step);
 }
-__bland __forceinline constexpr uint32_t RoundDown32(const uint32_t value, const uint32_t step) __const
+__bland __forceinline uint32_t RoundDown32(const uint32_t value, const uint32_t step) __const
 {
     return value - (value & step);
 }
 
-__bland __forceinline constexpr uint64_t RoundUpDiff64(const uint64_t value, const uint64_t step) __const
+__bland __forceinline uint64_t RoundUpDiff64(const uint64_t value, const uint64_t step) __const
 {
     return (step - (value % step)) % step;
 }
-__bland __forceinline constexpr uint32_t RoundUpDiff32(const uint32_t value, const uint32_t step) __const
+__bland __forceinline uint32_t RoundUpDiff32(const uint32_t value, const uint32_t step) __const
 {
     return (step - (value % step)) % step;
 }
@@ -136,5 +176,33 @@ __bland __forceinline constexpr uint32_t RoundUpDiff32(const uint32_t value, con
        __typeof__ (b) _b = (bP); \
        _a > _b ? _a : _b;        })
 //  Courtesy of http://stackoverflow.com/a/3437484/485098
+
+__bland __forceinline uint64_t GreatestCommonDivisor64(uint64_t a, uint64_t b) __const
+{
+    uint64_t t;
+
+    while (b != 0)
+    {
+        t = b;
+        b = a % b;
+        a = t;
+    }
+
+    return a;
+}
+
+__bland __forceinline uint64_t GreatestCommonDivisor32(uint32_t a, uint32_t b) __const
+{
+    uint32_t t;
+
+    while (b != 0)
+    {
+        t = b;
+        b = a % b;
+        a = t;
+    }
+
+    return a;
+}
 
 #endif
