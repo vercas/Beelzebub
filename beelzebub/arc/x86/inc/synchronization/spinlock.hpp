@@ -30,7 +30,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline bool TryAcquire()
+        __bland __forceinline __must_check bool TryAcquire()
         {
             spinlock_t oldValue = __sync_lock_test_and_set(&this->Value, 1);
 
@@ -100,7 +100,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Checks whether the spinlock is free or not.
          */
-        __bland __forceinline bool Check()
+        __bland __forceinline __must_check bool Check()
         {
             return this->Value == 0;
         }

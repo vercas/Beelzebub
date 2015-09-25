@@ -1,3 +1,8 @@
+/**
+ *  The `__must_check` attributes are there to make sure that the SpinlockUninterruptible
+ *  is not used in place of a normal spinlock accidentally.
+ */
+
 #pragma once
 
 #include <metaprogramming.h>
@@ -35,9 +40,9 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline bool TryAcquire()
+        __bland __forceinline __must_check bool TryAcquire(int_cookie_t & int_cookie)
         {
-            const int_cookie_t int_cookie = Cpu::PushDisableInterrupts();
+            int_cookie = Cpu::PushDisableInterrupts();
 
             spinlock_t oldValue = __sync_lock_test_and_set(&this->Value, 1);
 
@@ -75,7 +80,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline int_cookie_t Acquire()
+        __bland __forceinline __must_check int_cookie_t Acquire()
         {
             const int_cookie_t int_cookie = Cpu::PushDisableInterrupts();
 
@@ -87,16 +92,11 @@ namespace Beelzebub { namespace Synchronization
 
         /**
          *  Acquire the spinlock, waiting if necessary.
-         *  Includes a pointer in the memory barrier, if supported.
          */
-        __bland __forceinline int_cookie_t Acquire(void * const ptr)
+        __bland __forceinline void SimplyAcquire()
         {
-            const int_cookie_t int_cookie = Cpu::PushDisableInterrupts();
-
-            while (__sync_lock_test_and_set(&this->Value, 1, ptr))
+            while (__sync_lock_test_and_set(&this->Value, 1))
                 this->Spin();
-
-            return int_cookie;
         }
 
         /**
@@ -111,19 +111,16 @@ namespace Beelzebub { namespace Synchronization
 
         /**
          *  Release the spinlock.
-         *  Includes a pointer in the memory barrier.
          */
-        __bland __forceinline void Release(const int_cookie_t int_cookie, void * const ptr)
+        __bland __forceinline void SimplyRelease()
         {
-            __sync_lock_release(&this->Value, ptr);
-
-            Cpu::RestoreInterruptState(int_cookie);
+            __sync_lock_release(&this->Value);
         }
 
         /**
          *  Checks whether the spinlock is free or not.
          */
-        __bland __forceinline bool Check()
+        __bland __forceinline __must_check bool Check()
         {
             return this->Value == 0;
         }
