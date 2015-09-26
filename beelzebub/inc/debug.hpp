@@ -44,32 +44,32 @@ namespace Beelzebub { namespace Debug
 
     extern Spinlock MsgSpinlock;
 
-    __cold __bland __noreturn void CatchFire(const char * const file
-                                           , const size_t line
-                                           , const char * const msg);
+    __cold __bland __noinline __noreturn void CatchFire(const char * const file
+                                                      , const size_t line
+                                                      , const char * const msg);
 
-    __cold __bland __noreturn void CatchFire(const char * const file
-                                           , const size_t line
-                                           , const char * const fmt, va_list args);
+    __cold __bland __noinline __noreturn void CatchFire(const char * const file
+                                                      , const size_t line
+                                                      , const char * const fmt, va_list args);
 
-    __cold __bland __noreturn void CatchFireFormat(const char * const file
-                                                 , const size_t line
-                                                 , const char * const fmt, ...);
+    __cold __bland __noinline __noreturn void CatchFireFormat(const char * const file
+                                                            , const size_t line
+                                                            , const char * const fmt, ...);
 
-    __bland void Assert(const bool condition
-                      , const char * const file
-                      , const size_t line
-                      , const char * const msg);
+    __bland __noinline void Assert(const bool condition
+                                 , const char * const file
+                                 , const size_t line
+                                 , const char * const msg);
 
-    __bland void Assert(const bool condition
-                      , const char * const file
-                      , const size_t line
-                      , const char * const msg, va_list args);
+    __bland __noinline void Assert(const bool condition
+                                 , const char * const file
+                                 , const size_t line
+                                 , const char * const msg, va_list args);
 
-    __bland void AssertFormat(const bool condition
-                            , const char * const file
-                            , const size_t line
-                            , const char * const fmt, ...);
+    __bland __noinline void AssertFormat(const bool condition
+                                       , const char * const file
+                                       , const size_t line
+                                       , const char * const fmt, ...);
 }}
 
 #include <debug_arch.hpp>
