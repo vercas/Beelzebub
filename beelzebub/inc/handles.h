@@ -1,3 +1,38 @@
+/** Handle Structure:
+ *      Bit     63            -  Global Flag (or Fatal if Type = Result)
+ *      Bits  8:62 (55 bits)  -  Content / Index
+ *      Bits  0: 7 ( 8 bits)  -  Handle Type
+ *
+ *  Result Handle Structure:
+ *      Bit     63            -  Fatal Flag (ignored if primary result = Okay)
+ *      Bits 60:62 ( 3 bits)  -  Results Count (value biased by +1)
+ *      Bits  8:59 (52 bits)  -  Content:
+ *          Bits  8:15 ( 8 bits)  -  Primary Result Value
+ *          Bits 16:23 ( 8 bits)  -  Secondary Result Value
+ *          Bits 24:31 ( 8 bits)  -  Tertiary Result Value
+ *          Bits 32:39 ( 8 bits)  -  Quaternary Result Value
+ *          Bits 40:47 ( 8 bits)  -  Quinary Result Value
+ *          Bits 48:55 ( 8 bits)  -  Senary Result Value
+ *      Bits  0: 7 ( 8 bits)  -  Handle Type (Result = 0x01)
+ *  * The result count will not go above 6. A value of 6 means that results were truncated.
+ *    A value of 0 means 1 result (the primary), and 5 means all results (primary to senary
+ *    included).
+ *  
+ *  The result is placed in the least significant bits to favor little endian architectures
+ *  which can encode integers as various sizes. with this format, a result only needs to be
+ *  encoded as a 16-bit constant if it does not contain any extras.
+ *
+ *  The fields are squeezed into byte boundaries because they are significantly easier to
+ *  extract. For platforms that are anal about alignment, the compiler will do all the
+ *  masking and shifting. For platforms with lesser alignment requirements (i.e. x86), the
+ *  code will be more efficient because the fields can be accessed directly with an address.
+ *  (or low/high byte registers; or still do mask-and-shift/shift-and-mask when it has to)
+ *  
+ *  Moreover, checking for an Okay Result handle now means testing for equality of the lower
+ *  word to 0x0001, which is much more efficient than equating to 0xFF00000000000000,
+ *  like it had to before... On 32-bit architectures, it even had to compare with two numbers!
+ */
+
 #pragma once
 
 #include <metaprogramming.h>
@@ -6,138 +41,138 @@
 
 namespace Beelzebub
 {
-    enum class HandleType : uint64_t
+    enum class HandleType : uint8_t
     {
-        //  DESCRIPTION                           | // ABBREVIATION
+        //  DESCRIPTION                  | // ABBREVIATION
 
         //  This be an invalid handle.
-        Invalid              = 0x0000000000000000U, // INVL
-
-        //  A miscellaneous/anonymous object belonging to the kernel.
-        KernelObject         = 0x0100000000000000U, // KOBJ
-        //  A miscellaneous/anonymous object belonging to a service.
-        ServiceObject        = 0x0200000000000000U, // SOBJ
-        //  A miscellaneous/anonymous object belonging to an application.
-        ApplicationObject    = 0x0300000000000000U, // AOBJ
-
-        //  A unit of execution.
-        Thread               = 0x1000000000000000U, // THRD
-        //  A unit of isolation.
-        Process              = 0x1100000000000000U, // PRCS
-        //  A unit of management.
-        Job                  = 0x1200000000000000U, // JOB
-
-        //  A virtual address space. ("linear" by x86 terminology)
-        VirtualAddressSpace  = 0x2000000000000000U, // VASP
-
-        //  An table which associates handles with resources.
-        HandleTable          = 0xF000000000000000U, // HTBL
-        //  A finite set of handles.
-        MultiHandle          = 0xF100000000000000U, // MHND
+        Invalid                   = 0x00U, // INVL
 
         //  A general result code.
-        Result               = 0xFF00000000000000U, // RES
+        Result                    = 0x01U, // RES
+
+        //  A unit of execution.
+        Thread                    = 0x10U, // THRD
+        //  A unit of isolation.
+        Process                   = 0x11U, // PRCS
+        //  A unit of management.
+        Job                       = 0x12U, // JOB
+
+        //  A miscellaneous/anonymous object belonging to the kernel.
+        KernelObject              = 0x21U, // KOBJ
+        //  A miscellaneous/anonymous object belonging to a service.
+        ServiceObject             = 0x22U, // SOBJ
+        //  A miscellaneous/anonymous object belonging to an application.
+        ApplicationObject         = 0x23U, // AOBJ
+
+        //  An table which associates handles with resources.
+        HandleTable               = 0xF0U, // HTBL
+        //  A finite set of handles.
+        MultiHandle               = 0xF1U, // MHND
     };
 
-    enum class HandleResult : uint64_t
+    enum class HandleResult : uint8_t
     {
-        //  DESCRIPTION                                | // SHORT NAME
+        //  DESCRIPTION                  | // SHORT NAME
 
         //  Saul Goodman!
-        Okay                      = 0x0000000000000000U, // Okay
+        Okay                      = 0x00U, // Okay
         //  Not enough memory available to complete an operation.
-        OutOfMemory               = 0x0000000000000001U, // No mem.
+        OutOfMemory               = 0x01U, // No mem.
         //  The requested operation isn't supported by the object/interface.
-        UnsupportedOperation      = 0x0000000000000009U, // Unsp. Op.
+        UnsupportedOperation      = 0x09U, // Unsp. Op.
         //  Operation not implemented by the object/interface.
-        NotImplemented            = 0x000000000000000AU, // Not Impl.
+        NotImplemented            = 0x0AU, // Not Impl.
 
         //  An argument given to a function/method is outside of the expected/supported range.
-        ArgumentOutOfRange        = 0x0000000000000010U, // Arg. OOR
+        ArgumentOutOfRange        = 0x10U, // Arg. OOR
         //  An argument given to a function/method shouldn't be null.
-        ArgumentNull              = 0x0000000000000011U, // Arg. Null
+        ArgumentNull              = 0x11U, // Arg. Null
 
         //  An unknown format specifier was encountered in the format string.
-        FormatBadSpecifier        = 0x0000000000000020U, // Frm. BSpc.
+        FormatBadSpecifier        = 0x20U, // Frm. BSpc.
         //  The size given for a format argument is invalid.
-        FormatBadArgumentSize     = 0x0000000000000021U, // Frm. BAS
+        FormatBadArgumentSize     = 0x21U, // Frm. BAS
 
         //  An operation was attempted on a range of pages that
         //  aren't covered by the page allocator.
-        PagesOutOfAllocatorRange  = 0x0000000000000030U, // Pag OOAR
+        PagesOutOfAllocatorRange  = 0x30U, // Pag OOAR
         //  An invalid operation was attempted on a reserved page.
-        PageReserved              = 0x0000000000000031U, // Pag Res.
+        PageReserved              = 0x31U, // Pag Res.
         //  An invalid operation was attempted on a free page.
-        PageFree                  = 0x0000000000000032U, // Pag Free
+        PageFree                  = 0x32U, // Pag Free
         //  An invalid operation was attempted on a used page.
-        PageInUse                 = 0x0000000000000033U, // Pag Used
+        PageInUse                 = 0x33U, // Pag Used
         //  An invalid operation was attempted on a caching page.
-        PageCaching               = 0x0000000000000034U, // Pag Cach.
+        PageCaching               = 0x34U, // Pag Cach.
         //  A page cannot be pushed to the stack because it is already on the stack.
-        PageStacked               = 0x0000000000000035U, // Pag Stkd
+        PageStacked               = 0x35U, // Pag Stkd
         //  A page cannot be popped off the stack because it is not on the stack.
-        PageNotStacked            = 0x0000000000000036U, // Pag N Stkd
+        PageNotStacked            = 0x36U, // Pag N Stkd
 
         //  A/The target page is in an illegal range.
-        PageMapIllegalRange       = 0x0000000000000040U, // Pag rng ill
+        PageMapIllegalRange       = 0x40U, // Pag rng ill
         //  A/The target page is (already) mapped.
-        PageMapped                = 0x0000000000000041U, // Pag mapped
+        PageMapped                = 0x41U, // Pag mapped
         //  A/The target page is (already) unmapped.
-        PageUnmapped              = 0x0000000000000042U, // Pag unmp.
+        PageUnmapped              = 0x42U, // Pag unmp.
         //  A given page is unaligned.
-        PageUnaligned             = 0x0000000000000043U, // Pag unal.
+        PageUnaligned             = 0x43U, // Pag unal.
 
         //  A thread is already linked.
-        ThreadAlreadyLinked       = 0x0000000000000050U, // Thr a. lnk.
+        ThreadAlreadyLinked       = 0x50U, // Thr a. lnk.
 
         //  A command-line option was not specified.
-        CmdOptionUnspecified      = 0x0000000000000060U, // Cmdo n spc.
+        CmdOptionUnspecified      = 0x60U, // Cmdo n spc.
         //  A command-line option's value seems to be of the wrong type.
-        CmdOptionValueTypeInvalid = 0x0000000000000061U, // Cmdo vT inv
+        CmdOptionValueTypeInvalid = 0x61U, // Cmdo vT inv
         //  A command-line option's value is not found in the given table.
-        CmdOptionValueNotInTable  = 0x0000000000000062U, // Cmdo v nit.
+        CmdOptionValueNotInTable  = 0x62U, // Cmdo v nit.
     };
 
     struct Handle
     {
         /*  Statics  */
 
-        static const uint64_t NullValue           = 0x0000000000000000ULL;
-        //static const Handle Null                  = {NullValue};
+        static const uint64_t NullValue                 = 0x0000000000000000ULL;
+        //static const Handle Null                        = {NullValue};
+        static const uint16_t OkayResultWord            = (uint16_t)(((uint16_t)HandleResult::Okay << 8) | (uint16_t)HandleType::Result);
 
-        static const uint64_t TypeBits            = 0xFF00000000000000ULL;
-        //static const uint32_t TypeOffset          = 56;
+        static const uint64_t TypeBits                  = 0x00000000000000FFULL;
+        //static const uint32_t TypeOffset                = 56;
 
-        static const uint64_t IndexBits           = 0x007FFFFFFFFFFFFFULL;
+        static const uint64_t IndexBits                 = 0x7FFFFFFFFFFFFF00ULL;
+        static const size_t   IndexOffset               = 8;
 
-        static const uint64_t GlobalFatalBit      = 0x0080000000000000ULL;
-        static const uint64_t GlobalOffset        = 55;
+        static const uint64_t GlobalFatalBit            = 0x8000000000000000ULL;
+        static const size_t   GlobalOffset              = 63;
+        static const size_t   GlobalFatalByteIndex      = 7;
+        static const size_t   GlobalFatalByteBit        = 0x80;
 
-        static const uint64_t ResultHasArgsBit    = 0x0040000000000000ULL;
-        static const uint64_t ResultHasArgsOffset = 54;
+        static const uint64_t ResultCountBits           = 0x7000000000000000ULL;
+        static const size_t   ResultCountOffset         = 60;
+        static const uint64_t ResultCountUnit           = 0x1000000000000000ULL;
+        static const size_t   ResultCountByteIndex      = 7;
+        static const size_t   ResultCountByteBits       = 0x70;
+        static const size_t   ResultCountByteOffset     = 4;
+        static const uint64_t ResultCountByteUnit       = 0x10;
 
-        static const uint64_t ResultExtrasBits    = 0x0030000000000000ULL;
-        static const uint64_t ResultExtrasOffset  = 52;
+        static const uint64_t ResultsBits               = 0x00FFFFFFFFFFFF00ULL;
+        static const uint64_t ResultsPreshiftBits       = 0x0000FFFFFFFFFF00ULL;
+        static const uint64_t ResultsShiftOffset        = 8;
 
-        static const uint64_t ResultValueBits     = 0x0080000000000FFFULL;
-        static const uint64_t ResultExtra1Bits    = 0x0000000000FFF000ULL;
-        static const uint64_t ResultExtra2Bits    = 0x0000000FFF000000ULL;
-        static const uint64_t ResultExtra3Bits    = 0x0000FFF000000000ULL;
-        static const uint64_t ResultArg1Bits      = 0x0000000000FFF000ULL;
-        static const uint64_t ResultArg12Bits     = 0x00000000FFFFF000ULL;
-        static const uint64_t ResultArg123Bits    = 0x000000FFFFFFF000ULL;
-        static const uint64_t ResultArg1234Bits   = 0x0000FFFFFFFFF000ULL;
-        static const uint64_t ResultArg12345Bits  = 0x003FFFFFFFFFF000ULL;
-        static const uint64_t ResultArg2345Bits   = 0x003FFFFFFF000000ULL;
-        static const uint64_t ResultArg5Bits      = 0x003F000000000000ULL;
-        static const uint64_t ResultExtra1Offset  = 12;
-        static const uint64_t ResultExtra2Offset  = 24;
-        static const uint64_t ResultExtra3Offset  = 36;
-        static const uint64_t ResultArg1Offset    = 12;
-        static const uint64_t ResultArg2Offset    = 24;
-        static const uint64_t ResultArg3Offset    = 32;
-        static const uint64_t ResultArg4Offset    = 40;
-        static const uint64_t ResultArg5Offset    = 48;
+        static const size_t   ResultPrimaryByteIndex    = 1;
+        static const size_t   ResultPrimaryOffset       = 8;
+        static const size_t   ResultSecondaryByteIndex  = 2;
+        static const size_t   ResultSecondaryOffset     = 16;
+        static const size_t   ResultTertiaryByteIndex   = 3;
+        static const size_t   ResultTertiaryOffset      = 24;
+        static const size_t   ResultQuaternaryByteIndex = 4;
+        static const size_t   ResultQuaternaryOffset    = 32;
+        static const size_t   ResultQuinaryByteIndex    = 5;
+        static const size_t   ResultQuinaryOffset       = 40;
+        static const size_t   ResultSenaryByteIndex     = 6;
+        static const size_t   ResultSenaryOffset        = 48;
 
         /*  Constructor(s)  */
 
@@ -145,57 +180,52 @@ namespace Beelzebub
         Handle(Handle const&) = default;
 
         //  Arbitrary-type handle.
-        __bland __forceinline Handle(const HandleType type
-                                   , const uint64_t index)
+        __bland __forceinline constexpr Handle(const HandleType type
+                                             , const uint64_t index
+                                             , const bool global = false)
             : Value((uint64_t)type
-                  | (index & IndexBits))
+                  | ((index & IndexBits) << IndexOffset)
+                  | (global ? GlobalFatalBit : 0))
         {
             
         }
 
         //  Result handle.
-        __bland __forceinline Handle(const HandleResult res)
-            : Value((uint64_t)HandleType::Result
-                  | ((uint64_t)res & ResultValueBits))
+        __bland __forceinline constexpr Handle(const HandleResult res)
+            : Value((uint64_t)( (uint16_t)HandleType::Result
+                             | ((uint16_t)res << ResultPrimaryOffset)))
         {
             
         }
 
-        //  Result handle with 5 arguments.
-        __bland __forceinline Handle(const HandleResult res
-                                   , const uint16_t     arg1
-                                   , const  uint8_t     arg2
-                                   , const  uint8_t     arg3
-                                   , const  uint8_t     arg4)
-            : Value(  (uint64_t)HandleType::Result
-                  |  ((uint64_t)res                       & ResultValueBits)
-                  | ResultHasArgsBit
-                  | (((uint64_t)arg1 << ResultArg1Offset) &  ResultArg1Bits)
-                  |  ((uint64_t)arg2 << ResultArg2Offset)
-                  |  ((uint64_t)arg3 << ResultArg3Offset)
-                  |  ((uint64_t)arg4 << ResultArg4Offset)
-                  | (((uint64_t)arg4 << ResultArg4Offset) & ResultArg5Bits))
+        //  Result handle, optionally fatal.
+        __bland __forceinline constexpr Handle(const HandleResult res
+                                             , const bool fatal)
+            : Value((uint64_t)( (uint16_t)HandleType::Result
+                             | ((uint16_t)res << ResultPrimaryOffset))
+                  | (fatal ? GlobalFatalBit : 0))
         {
-            
+            //  Why not a default parameter? Because this overload needs to work
+            //  with 64-bit numbers, while the other needs only 16-bit.
         }
 
         /*  Type  */
 
         __bland __forceinline HandleType GetType() const
         {
-            return (HandleType)(this->Value & TypeBits);
+            return (HandleType)(this->Bytes[0]);
         }
 
         __bland __forceinline bool IsType(const HandleType type) const
         {
-            return (HandleType)(this->Value & TypeBits) == type;
+            return this->Bytes[0] == (uint8_t)type;
         }
 
         __bland __forceinline bool IsGlobal() const
         {
             HandleType type = this->GetType();
 
-            return 0 != (this->Value & GlobalFatalBit)
+            return 0 != (this->Bytes[GlobalFatalByteIndex] & GlobalFatalByteBit)
                 && type != HandleType::Result
                 && type != HandleType::Invalid;
         }
@@ -218,48 +248,37 @@ namespace Beelzebub
 
         __bland __forceinline HandleResult GetResult() const
         {
-            return (HandleResult)(this->Value & ResultValueBits);
+            return (HandleResult)(this->Bytes[ResultPrimaryByteIndex]);
         }
+
+        __bland __forceinline size_t GetResultCount() const
+        {
+            return (size_t)((this->Bytes[ResultCountByteIndex] & ResultCountByteBits) >> ResultCountByteOffset);
+        }
+
+        __bland Handle WithResultCount(const size_t count) const;
+        __bland Handle WithPreppendedResult(const HandleResult res) const;
 
         __bland __forceinline bool IsResult(const HandleResult res) const
         {
-            return (this->Value & (TypeBits | ResultValueBits)) == ((uint64_t)HandleType::Result | (uint64_t)res);
+            return this->Bytes[ResultPrimaryByteIndex] == (uint8_t)res && this->GetType() == HandleType::Result;
         }
 
         __bland __forceinline bool IsFatalResult() const
         {
-            return 0 != (this->Value & GlobalFatalBit)
-                && this->IsType(HandleType::Result);
+            return 0 != (this->Bytes[GlobalFatalByteIndex] & GlobalFatalByteBit)
+                && this->GetType() == HandleType::Result;
+        }
+
+        __bland __forceinline bool IsGlobalOrFatal() const
+        {
+            return 0 != (this->Bytes[GlobalFatalByteIndex] & GlobalFatalByteBit);
         }
 
         __bland __forceinline bool IsOkayResult() const
         {
-            return this->Value == ((uint64_t)HandleType::Result | (uint64_t)HandleResult::Okay);
-        }
-
-        __bland __forceinline uint16_t GetResultArg1()
-        {
-            return (uint16_t)((this->Value & ResultArg1Bits) >> ResultArg1Offset);
-        }
-
-        __bland __forceinline uint8_t GetResultArg2()
-        {
-            return this->Bytes[3];
-        }
-
-        __bland __forceinline uint8_t GetResultArg3()
-        {
-            return this->Bytes[4];
-        }
-
-        __bland __forceinline uint8_t GetResultArg4()
-        {
-            return this->Bytes[5];
-        }
-
-        __bland __forceinline uint8_t GetResultArg5()
-        {
-            return this->Bytes[6] & 0x7F;
+            return this->Words[0] == OkayResultWord;
+            //  Other bits are irrelevant.
         }
 
         /*  Field(s)  */
@@ -274,111 +293,19 @@ namespace Beelzebub
             uint8_t  Bytes[8];
         };
 
+        //  Use is discouraged, but meh.
+        __bland __forceinline constexpr Handle(uint64_t val)
+            : Value( val)
+        {
+
+        }
+
     public:
 
         /*  Printing  */
 
-        __bland __forceinline const char * const GetTypeString() const
-        {
-            switch (this->GetType())
-            {
-                case HandleType::Invalid:
-                    return "INVL";
-
-                case HandleType::KernelObject:
-                    return "KOBJ";
-                case HandleType::ServiceObject:
-                    return "SOBJ";
-                case HandleType::ApplicationObject:
-                    return "AOBJ";
-
-                case HandleType::Thread:
-                    return "THRD";
-                case HandleType::Process:
-                    return "PROC";
-                case HandleType::Job:
-                    return "JOB ";
-
-                case HandleType::VirtualAddressSpace:
-                    return "VASP";
-
-                case HandleType::HandleTable:
-                    return "HTBL";
-                case HandleType::MultiHandle:
-                    return "MHND";
-
-                case HandleType::Result:
-                    return "RES ";
-
-                default:
-                    return "UNKN";
-            }
-        }
-
-        __bland __forceinline const char * const GetResultString() const
-        {
-            if (!this->IsType(HandleType::Result))
-                return nullptr;
-
-            switch (this->GetResult())
-            {
-                case HandleResult::Okay:
-                    return "Okay";
-                case HandleResult::OutOfMemory:
-                    return "No mem.";
-                case HandleResult::UnsupportedOperation:
-                    return "Uns. Op.";
-                case HandleResult::NotImplemented:
-                    return "Not Impl.";
-
-                case HandleResult::ArgumentOutOfRange:
-                    return "Arg. OOR";
-                case HandleResult::ArgumentNull:
-                    return "Arg. Null";
-
-                case HandleResult::FormatBadSpecifier:
-                    return "Frm. BSpc";
-                case HandleResult::FormatBadArgumentSize:
-                    return "Frm. BAS ";
-
-                case HandleResult::PagesOutOfAllocatorRange:
-                    return "Pag OOAR";
-                case HandleResult::PageFree:
-                    return "Pag Free";
-                case HandleResult::PageCaching:
-                    return "Pag Cach.";
-                case HandleResult::PageInUse:
-                    return "Pag Used";
-                case HandleResult::PageReserved:
-                    return "Pag Res.";
-                case HandleResult::PageStacked:
-                    return "Pag Stkd";
-                case HandleResult::PageNotStacked:
-                    return "Pag N Stkd";
-
-                case HandleResult::PageMapIllegalRange:
-                    return "Pag rng ill";
-                case HandleResult::PageMapped:
-                    return "Pag mapped";
-                case HandleResult::PageUnmapped:
-                    return "Pag unmp.";
-                case HandleResult::PageUnaligned:
-                    return "Pag unalig.";
-
-                case HandleResult::ThreadAlreadyLinked:
-                    return "Thr a. lnk.";
-
-                case HandleResult::CmdOptionUnspecified:
-                    return "Cmdo n spc.";
-                case HandleResult::CmdOptionValueTypeInvalid:
-                    return "Cmdo vT inv";
-                case HandleResult::CmdOptionValueNotInTable:
-                    return "Cmdo v nit.";
-
-                default:
-                    return "UNKNOWN";
-            }
-        }
+        __bland __noinline const char * const GetTypeString() const;
+        __bland __noinline const char * const GetResultString() const;
 
     } __packed;
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.
