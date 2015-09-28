@@ -15,9 +15,7 @@ typedef uint64_t vsize_t; //  Virtual (linear) address.
 typedef uint64_t pgind_t; //  Index of a memory page.
 typedef uint64_t  creg_t; //  Control register.
 
-typedef uint64_t uintptr_t;
-typedef  int64_t  intptr_t;
-//typedef   signed long long ptrdiff_t;
+typedef  int64_t ssize_t;
 
 typedef uint64_t int_cookie_t;
 
@@ -38,9 +36,7 @@ typedef uint32_t vsize_t; //  Virtual (linear) address.
 typedef uint32_t pgind_t; //  Index of a memory page.
 typedef uint32_t  creg_t; //  Control register.
 
-typedef uint32_t uintptr_t;
-typedef  int32_t  intptr_t;
-//typedef   signed    int    ptrdiff_t;
+typedef  int32_t ssize_t;
 
 typedef uint32_t int_cookie_t;
 
