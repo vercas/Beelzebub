@@ -22,13 +22,16 @@ Handle Handle::WithPreppendedResult(const HandleResult res) const
     uint64_t nonResultBits;
 
     if (resultCount < 6)
-    {
         nonResultBits = (((uint64_t)resultCount + 1) << ResultCountOffset) | (this->Value & (TypeBits | GlobalFatalBit));
-    }
+        //  The result count shouldn't make the result bits overflow.
     else
-    {
+        nonResultBits = this->Value & (TypeBits | GlobalFatalBit | ResultCountBits);
+        //  Preserve all.
 
-    }
+    return {nonResultBits | ((this->Value & ResultsPreshiftBits) << ResultsShiftOffset) | (((uint64_t)res) << ResultPrimaryOffset)};
+    
+    //  Whoever misused this method by passing an invalid result value (i.e. > 255) in the first parameter's register/address will only
+    //  affect themselves. Don't be a smartbutt.
 }
 
 /*  Printing  */
