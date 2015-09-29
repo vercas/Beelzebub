@@ -139,5 +139,17 @@ Handle ObjectAllocator::DeallocateObject(void * object)
     if unlikely(this->FirstPool == nullptr)
     {
         return HandleResult::ArgumentOutOfRange;
+        //  Aye. If there are no allocators, the object does not belong fo fhis
+        //  allocator.
     }
+
+    first = current = this->FirstPool;
+
+    do
+    {
+        if (current->Contains((uintptr_t)object, this->ObjectSize, this->HeaderSize))
+        {
+
+        }
+    } while (current != first);
 }
