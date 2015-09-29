@@ -135,7 +135,6 @@ namespace Beelzebub
         /*  Statics  */
 
         static const uint64_t NullValue                 = 0x0000000000000000ULL;
-        //static const Handle Null                        = {NullValue};
         static const uint16_t OkayResultWord            = (uint16_t)(((uint16_t)HandleResult::Okay << 8) | (uint16_t)HandleType::Result);
 
         static const uint64_t TypeBits                  = 0x00000000000000FFULL;
@@ -309,6 +308,8 @@ namespace Beelzebub
 
     } __packed;
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.
+
+    const Handle Null = Handle();
 }
 
 #else

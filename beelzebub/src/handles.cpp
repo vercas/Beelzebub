@@ -17,6 +17,9 @@ Handle Handle::WithResultCount(const size_t count) const
 
 Handle Handle::WithPreppendedResult(const HandleResult res) const
 {
+    if (!this->IsType(HandleType::Result))
+        return Null;
+
     const size_t resultCount = this->GetResultCount();
 
     uint64_t nonResultBits;
@@ -29,7 +32,7 @@ Handle Handle::WithPreppendedResult(const HandleResult res) const
         //  Preserve all.
 
     return {nonResultBits | ((this->Value & ResultsPreshiftBits) << ResultsShiftOffset) | (((uint64_t)res) << ResultPrimaryOffset)};
-    
+
     //  Whoever misused this method by passing an invalid result value (i.e. > 255) in the first parameter's register/address will only
     //  affect themselves. Don't be a smartbutt.
 }
