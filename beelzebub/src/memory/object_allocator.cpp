@@ -138,6 +138,6 @@ Handle ObjectAllocator::DeallocateObject(void * object)
 
     if unlikely(this->FirstPool == nullptr)
     {
-
+        return HandleResult::ArgumentOutOfRange;
     }
 }
