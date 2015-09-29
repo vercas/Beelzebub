@@ -73,7 +73,10 @@ void * memchr(const void * src, const int val, size_t len)
     //  `len - actual length` after the assembly block. `~ret` flips all the
     //  bits, so I return `len - ret`.
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
     return src;
+#pragma GCC diagnostic pop
 
     /* The following code is equivalent to the assembly above
     const byte * s = (byte *)src;
