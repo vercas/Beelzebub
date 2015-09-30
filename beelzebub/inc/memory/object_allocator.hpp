@@ -68,8 +68,12 @@ namespace Beelzebub { namespace Memory
     };
 
     typedef Handle (*AcquirePoolFunc)(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPool * & result);
+    //  The acquiring code need not lock the object pool.
     typedef Handle (*EnlargePoolFunc)(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPool * pool);
+    //  The enlarging code should release the lock on the object pool as soon as it can.
     typedef Handle (*ReleasePoolFunc)(size_t objectSize, size_t headerSize, ObjectPool * pool);
+    //  The release code need not (un)lock the object poool.
+
     //  Why so many parameters? So the provider can make the best decisions! :)
 
     /**
