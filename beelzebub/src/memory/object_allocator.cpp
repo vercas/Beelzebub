@@ -117,10 +117,18 @@ firstPoolCheck:
         }
         else
         {
-            current->FreeCount--;
+            obj_ind_t freeCount = --current->FreeCount;
 
             FreeObject * obj = current->GetFirstFreeObject(this->ObjectSize, this->HeaderSize);
             current->FirstFreeObject = obj->Next;
+
+            current->PropertiesLock.Release(cookie);
+            //  All allocators should skip it now.
+
+            if unlikely(freeCount == 0)
+            {
+                this->EnlargePool(this->ObjectSize, this->HeaderSize, estimatedLeft, current);
+            }
         }
     } while (current != first);
     //  Yes, the condition here is redundant. But it exists just so the compiler doesn't think this loops forever.
@@ -133,23 +141,50 @@ firstPoolCheck:
 Handle ObjectAllocator::DeallocateObject(void * object)
 {
     Handle res;
+    ObjectAllocatorLockCookie cookie;
 
     ObjectPool * first = nullptr, * current = nullptr;
 
     if unlikely(this->FirstPool == nullptr)
     {
         return HandleResult::ArgumentOutOfRange;
-        //  Aye. If there are no allocators, the object does not belong fo fhis
-        //  allocator.
+        //  Aye. If there are no allocators, the object does not belong to this allocator.
     }
 
     first = current = this->FirstPool;
+
+    cookie = current->PropertiesLock.Acquire();
 
     do
     {
         if (current->Contains((uintptr_t)object, this->ObjectSize, this->HeaderSize))
         {
 
+        }
+        else
+        {
+            //  If the current one doesn't contain the object, try the next.
+
+            ObjectPool * temp = current->Next;
+
+            if (temp == first)
+            {
+                //  THIS IS THE END! (of the chain)
+
+                current->PropertiesLock.Release(cookie);
+                //  Release the current pool and restore interrupts.
+
+                break;
+                //  Go to end of the loop.
+            }
+
+            //  Otherwise...
+
+            temp->PropertiesLock.SimplyAcquire();
+            current->PropertiesLock.SimplyRelease();
+            //  Lock the next, release the current.
+
+            current = temp;
         }
     } while (current != first);
 }
