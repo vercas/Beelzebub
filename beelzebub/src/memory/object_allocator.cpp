@@ -122,8 +122,8 @@ firstPoolCheck:
             FreeObject * obj = current->GetFirstFreeObject(this->ObjectSize, this->HeaderSize);
             current->FirstFreeObject = obj->Next;
 
-            current->PropertiesLock.Release(cookie);
-            //  All allocators should skip it now.
+            //  Don't unlock. All allocators should wait for this pool to
+            //  enlarge.
 
             if unlikely(freeCount == 0)
             {
