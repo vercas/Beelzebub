@@ -128,6 +128,9 @@ namespace Beelzebub
         CmdOptionValueTypeInvalid = 0x61U, // Cmdo vT inv
         //  A command-line option's value is not found in the given table.
         CmdOptionValueNotInTable  = 0x62U, // Cmdo v nit.
+
+        //  An object could not be allocated due to pool exhaustion.
+        ObjaPoolsExhausted        = 0x70U, // Obja P exh.
     };
 
     struct Handle

@@ -35,7 +35,7 @@ namespace Beelzebub { namespace Memory
         /*  Fields  */
 
         obj_ind_t Capacity;  //  This should help determine the size of the pool.
-        volatile obj_ind_t FreeCount;
+        obj_ind_t volatile FreeCount;
         obj_ind_t FirstFreeObject;      //  Used by the allocator.
         obj_ind_t LastFreeObject;       //  Used for enlarging, mainly.
         //  These should be creating an alignment of up to 16 if needed.
@@ -89,12 +89,12 @@ namespace Beelzebub { namespace Memory
         ObjectAllocator(ObjectAllocator const &) = delete;
         ObjectAllocator & operator =(const ObjectAllocator &) = delete;
 
-        __bland ObjectAllocator(const size_t objectSize, const size_t objectAlignment, AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser);
+        __bland ObjectAllocator(size_t const objectSize, size_t const objectAlignment, AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser, bool const canReleaseAll = false);
 
         /*  Methods  */
 
         __bland Handle AllocateObject(void * & result, size_t estimatedLeft = 1);
-        __bland Handle DeallocateObject(void * object);
+        __bland Handle DeallocateObject(void const * const object);
 
         /*  Parameters  */
 
@@ -102,19 +102,25 @@ namespace Beelzebub { namespace Memory
         EnlargePoolFunc EnlargePool;
         ReleasePoolFunc ReleasePool;
 
-        const size_t ObjectSize;
-        const size_t HeaderSize;
+        size_t const ObjectSize;
+        size_t const HeaderSize;
 
         /*  Links  */
 
-        ObjectPool * FirstPool;
-        ObjectPool * LastPool;
+        ObjectPool * volatile FirstPool;
+        ObjectPool * volatile LastPool;
 
         ObjectAllocatorLock LinkageLock;
+        ObjectAllocatorLock AcquisitionLock;
 
         /*  Stats  */
 
         size_t Capacity;
         size_t FreeCount;
+        size_t PoolCount;
+
+        /*  Config  */
+
+        bool const CanReleaseAllPools;
     };
 }}

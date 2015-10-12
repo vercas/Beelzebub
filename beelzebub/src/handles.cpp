@@ -133,6 +133,9 @@ const char * const Handle::GetResultString() const
         case HandleResult::CmdOptionValueNotInTable:
             return "Cmdo v nit.";
 
+        case HandleResult::ObjaPoolsExhausted:
+            return "Obja P exh.";
+
         default:
             return "UNKNOWN";
     }
