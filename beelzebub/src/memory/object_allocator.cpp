@@ -290,7 +290,11 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                     //  So, if there is a previois pool, or all pools can be released
                     res = this->ReleasePool(this->ObjectSize, this->HeaderSize, current);
 
-                    
+                    if (res.IsOkayResult())
+                    {
+                        __atomic_sub_fetch(&this->PoolCount, 1, __ATOMIC_SEQ_CST);
+                        //  We've got an extra pool!
+                    }
                 }
             }
         }
