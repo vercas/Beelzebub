@@ -45,7 +45,7 @@ ObjectAllocator::ObjectAllocator(size_t const objectSize, size_t const objectAli
 Handle ObjectAllocator::AllocateObject(void * & result, size_t estimatedLeft)
 {
     Handle res;
-    ObjectAllocatorLockCookie cookie;
+    ObjectAllocatorLockCookie volatile cookie;
 
     ObjectPool * first = nullptr, * last = nullptr, * current = nullptr, * justAllocated = nullptr;
 
@@ -76,7 +76,7 @@ firstPoolCheck:
             , "Object allocator %Xp apparently successfully acquired a pool (%H), which appears to be null!"
             , this, res);
 
-        __atomic_add_fetch(&this->PoolCount, 1, __ATOMIC_SEQ_CST);
+        ++this->PoolCount;
         //  We've got an extra pool!
 
         this->FirstPool = this->LastPool = justAllocated->Next = first = current = justAllocated;
@@ -195,7 +195,7 @@ poolLoop:
             , "Object allocator %Xp apparently successfully acquired a pool (%H), which appears to be null!"
             , this, res);
 
-        __atomic_add_fetch(&this->PoolCount, 1, __ATOMIC_SEQ_CST);
+        ++this->PoolCount;
         //  We've got an extra pool!
 
         last->PropertiesLock.SimplyAcquire();
@@ -242,7 +242,7 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
     //  I release that lock ASAP.
 
     Handle res;
-    ObjectAllocatorLockCookie cookie;
+    ObjectAllocatorLockCookie volatile cookie;
 
     ObjectPool * first = nullptr, * current = nullptr, * previous = nullptr;
 
@@ -292,8 +292,10 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
 
                     if (res.IsOkayResult())
                     {
-                        __atomic_sub_fetch(&this->PoolCount, 1, __ATOMIC_SEQ_CST);
+                        --this->PoolCount;
                         //  We've got an extra pool!
+
+                        return HandleResult::Okay;
                     }
                 }
             }

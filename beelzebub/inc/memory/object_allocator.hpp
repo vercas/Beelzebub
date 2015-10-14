@@ -3,6 +3,7 @@
 #include <metaprogramming.h>
 #include <handles.h>
 #include <synchronization/spinlock_uninterruptible.hpp>
+#include <synchronization/atomic.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
@@ -115,9 +116,9 @@ namespace Beelzebub { namespace Memory
 
         /*  Stats  */
 
-        size_t Capacity;
-        size_t FreeCount;
-        size_t PoolCount;
+        Atomic<size_t> Capacity;
+        Atomic<size_t> FreeCount;
+        Atomic<size_t> PoolCount;
 
         /*  Config  */
 
