@@ -40,7 +40,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline __must_check bool TryAcquire(int_cookie_t & int_cookie)
+        __bland __forceinline __must_check bool TryAcquire(int_cookie_t volatile & int_cookie)
         {
             int_cookie = Cpu::PushDisableInterrupts();
 
@@ -102,7 +102,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void Release(const int_cookie_t int_cookie)
+        __bland __forceinline void Release(int_cookie_t const volatile int_cookie)
         {
             __sync_lock_release(&this->Value);
 
