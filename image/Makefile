@@ -1,7 +1,6 @@
 .PHONY: prepare iso clean
 .SUFFIXES:  
 
-KERNEL_NAME			:= beelzebub
 PREFIX				:= ../build
 BUILD_DIR 			:= ./build
 

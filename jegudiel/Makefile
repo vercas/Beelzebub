@@ -1,4 +1,4 @@
-.PHONY: all amd64 install uninstall clean link build
+.PHONY: all amd64 smp no-smp install uninstall clean link build
 .SUFFIXES:  
 
 # Target
@@ -15,10 +15,10 @@ INC_DIR		:= ./inc
 OBJECTS		:= $(patsubst $(SOURCE_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SOURCE_DIR) -name "*.c"))
 OBJECTS		+= $(patsubst $(SOURCE_DIR)/%.s,$(BUILD_DIR)/%.s.o,$(shell find $(SOURCE_DIR) -name "*.s"))
 
-# Toolchain
-CC			:= /usr/local/cross/bin/x86_64-elf-gcc
-AS			:= nasm
-LD			:= /usr/local/cross/bin/x86_64-elf-ld
+#############
+# Toolchain #
+include ../Toolchain.mk
+#	That easy!
 
 # Toolchain Flags
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include

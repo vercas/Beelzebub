@@ -1,4 +1,4 @@
-.PHONY: all amd64 ia32 ia32pae install uninstall clean linku linko build headers
+.PHONY: all amd64 ia32 ia32pae smp no-smp install uninstall clean linku linko build headers
 .SUFFIXES:  
 
 ########################
@@ -7,9 +7,6 @@ all: amd64
 
 ##########
 # Target #
-KERNEL_NAME	:= beelzebub
-ARC			:= ''
-AUX			:= ''
 MTUNE		:= corei7-avx
 
 ###############
@@ -23,14 +20,12 @@ INC_DIR		:= ./inc
 INCARC_DIR	:= ./inc/arc
 RUNTIME_DIR := $(SRC_DIR)/runtime
 
+include ../Beelzebub.mk
+
 #############
 # Toolchain #
-CC			:= /usr/local/cross/bin/x86_64-elf-gcc
-CXXC		:= /usr/local/cross/bin/x86_64-elf-gcc
-DC			:= /usr/local/cross/bin/x86_64-elf-gdc
-AS			:= nasm
-LO			:= /usr/local/cross/bin/x86_64-elf-gcc
-LD			:= /usr/local/cross/bin/x86_64-elf-ld
+include ../Toolchain.mk
+#	That easy!
 
 #############################
 # Objects and linker script #
@@ -43,7 +38,7 @@ LDFILE		:=
 ##########################
 
 GCCFLAGS	:= -ffreestanding -Wall -mcmodel=kernel
-GCCFLAGS	+= -D __BEELZEBUB -D __BEELZEBUB_KERNEL
+GCCFLAGS	+= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 GCCFLAGS	+= -mno-red-zone -O2
 GCCFLAGS	+= -flto -nostdlib -lgcc -static-libgcc
 GCCFLAGS	+= -pipe
@@ -69,16 +64,14 @@ LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 #	ARCHITECTURE-SPECIFIC SETTINGS   #
 ######################################
 
-include ../Beelzebub.mk
-
 ##############
 # 64-bit x86 #
 ifeq ($(ARC),amd64)
 	LDFILE		:= $(ARC_DIR)/amd64/link.ld
 
 	ASFLAGS		+= -f elf64
-	CFLAGS		+= -m64 -D __BEELZEBUB__ARCH_AMD64
-	CXXFLAGS	+= -m64 -D __BEELZEBUB__ARCH_AMD64
+	CFLAGS		+= -m64
+	CXXFLAGS	+= -m64
 
 ####################################
 # 32-bit x86 with 36-bit addresses #
@@ -87,8 +80,8 @@ else ifeq ($(ARC),ia32pae)
 	#	There will be no specific linker file for PAE.
 
 	ASFLAGS		+= -f elf32
-	CFLAGS		+= -m32 -D __BEELZEBUB__ARCH_IA32 -D __BEELZEBUB__ARCH_IA32PAE
-	CXXFLAGS	+= -m32 -D __BEELZEBUB__ARCH_IA32 -D __BEELZEBUB__ARCH_IA32PAE
+	CFLAGS		+= -m32
+	CXXFLAGS	+= -m32
 
 ##############
 # 32-bit x86 #
@@ -96,16 +89,16 @@ else ifeq ($(ARC),ia32)
 	LDFILE		:= $(ARC_DIR)/ia32/link.ld
 
 	ASFLAGS		+= -f elf32
-	CFLAGS		+= -m32 -D __BEELZEBUB__ARCH_IA32
-	CXXFLAGS	+= -m32 -D __BEELZEBUB__ARCH_IA32
+	CFLAGS		+= -m32
+	CXXFLAGS	+= -m32
 
 endif
 
 ##############
 # Common x86 #
 ifeq ($(AUX),x86)
-	CFLAGS		+= -D __BEELZEBUB__ARCH_X86 -mtune=$(MTUNE)
-	CXXFLAGS	+= -D __BEELZEBUB__ARCH_X86 -mtune=$(MTUNE)
+	CFLAGS		+= -mtune=$(MTUNE)
+	CXXFLAGS	+= -mtune=$(MTUNE)
 endif
 
 # Output directories
@@ -145,9 +138,6 @@ ifneq ($(ARC),'')
 
 	HEADERS		+= $(patsubst $(ARC_DIR)/$(ARC)/inc/%.hpp,$(INCPCH_DIR)/%.hpp.arc.gch,$(shell find $(ARC_DIR)/$(ARC)/inc -name "*.hpp"))
 	HEADERS		+= $(patsubst $(ARC_DIR)/$(ARC)/inc/%.h,$(INCPCH_DIR)/%.h.arc.gch,$(shell find $(ARC_DIR)/$(ARC)/inc -name "*.h"))
-
-	CFLAGS		+= -D __BEELZEBUB__ARCH=$(ARC)
-	CXXFLAGS	+= -D __BEELZEBUB__ARCH=$(ARC)
 endif
 
 # When auxiliary files are present...
@@ -160,9 +150,6 @@ ifneq ($(AUX),'')
 
 	HEADERS		+= $(patsubst $(AUX_DIR)/$(AUX)/inc/%.hpp,$(INCPCH_DIR)/%.hpp.aux.gch,$(shell find $(AUX_DIR)/$(AUX)/inc -name "*.hpp"))
 	HEADERS		+= $(patsubst $(AUX_DIR)/$(AUX)/inc/%.h,$(INCPCH_DIR)/%.h.aux.gch,$(shell find $(AUX_DIR)/$(AUX)/inc -name "*.h"))
-
-	CFLAGS		+= -D __BEELZEBUB__AUX=$(AUX)
-	CXXFLAGS	+= -D __BEELZEBUB__AUX=$(AUX)
 endif
 
 # Bootstrapping

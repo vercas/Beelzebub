@@ -1,4 +1,4 @@
-.PHONY: run qemu qemu-serial clean jegudiel image kernel ia32 ia32pae amd64
+.PHONY: run qemu qemu-serial clean jegudiel image kernel ia32 ia32pae amd64 smp no-smp
 .SUFFIXES:  
 
 ########################
@@ -11,10 +11,9 @@ all:
 
 PREFIX		:= ./build
 
-KERNEL_NAME := beelzebub
-KERNEL_DIR	:= ./beelzebub
-
 include Beelzebub.mk
+
+KERNEL_DIR	:= ./$(KERNEL_NAME)
 
 ####################################### BASICS ##########
 
@@ -32,14 +31,17 @@ qemu-serial: $(ISO_PATH)
 	@ qemu-system-x86_64 -cdrom $(ISO_PATH) -smp 4 -nographic
 	
 jegudiel:
-	@ $(MAKE) -C jegudiel/ $(ARC) install -j 8
+	@ echo "$(SETTINGS)"
+	@ echo "$(PRECOMPILER_FLAGS)"
+	@ echo "$(GCC_PRECOMPILER_FLAGS)"
+	@ echo "/MAK:" $@
+	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install -j 8
 	
 image: kernel
-	@ $(MAKE) -C image/ $(ARC) iso
+	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso
 
 kernel:
-	@ echo "/MAK:" $@
-	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) install -j 8
+	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) $(SETTINGS) install -j 8
 
 clean:
 	@ $(MAKE) -C image/ clean
