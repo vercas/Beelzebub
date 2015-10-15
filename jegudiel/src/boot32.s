@@ -476,12 +476,12 @@ section .rodata
 boot32_err_nomb: db "Must be launched by a Multiboot-compliant bootloader.", 0
 boot32_err_nolm: db "64 bit long mode not supported on this CPU.", 0
 
-boot32_msg_a db "Point A", 0
-boot32_msg_b db "Point B", 0
-boot32_msg_c db "Point C", 0
-boot32_msg_d db "Point D", 0
-boot32_msg_e db "Point E", 0
-boot32_msg_f db "Point F", 0
+;boot32_msg_a db "Point A", 0
+;boot32_msg_b db "Point B", 0
+;boot32_msg_c db "Point C", 0
+;boot32_msg_d db "Point D", 0
+;boot32_msg_e db "Point E", 0
+;boot32_msg_f db "Point F", 0
 
 boot32_gdt_data:
     .null:
