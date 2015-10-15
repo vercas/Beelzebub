@@ -87,3 +87,8 @@ KERNEL_INSTALL_PATH		:= $(KERNEL_INSTALL_DIR)/$(KERNEL_BIN)
 
 # ISO
 ISO_PATH				:= $(PREFIX)/$(KERNEL_NAME).$(ARC).$(AUX).iso
+
+####################################### WRAP UP ##########
+
+$(SETTINGS):: $(ARC)
+#	Just makin' sure these don't error out.

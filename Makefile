@@ -31,16 +31,15 @@ qemu-serial: $(ISO_PATH)
 	@ qemu-system-x86_64 -cdrom $(ISO_PATH) -smp 4 -nographic
 	
 jegudiel:
-	@ echo "$(SETTINGS)"
-	@ echo "$(PRECOMPILER_FLAGS)"
-	@ echo "$(GCC_PRECOMPILER_FLAGS)"
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install -j 8
 	
 image: kernel
+	@ echo "/MAK:" $@
 	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso
 
 kernel:
+	@ echo "/MAK:" $@
 	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) $(SETTINGS) install -j 8
 
 clean:
