@@ -27,7 +27,7 @@ namespace Beelzebub { namespace Synchronization
 
         SpinlockUninterruptible() = default;
         SpinlockUninterruptible(SpinlockUninterruptible const &) = delete;
-        SpinlockUninterruptible & operator =(const SpinlockUninterruptible &) = delete;
+        SpinlockUninterruptible & operator =(SpinlockUninterruptible const &) = delete;
 
         /*  Destructor  */
 

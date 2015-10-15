@@ -78,6 +78,7 @@ namespace Beelzebub { namespace Memory
 
         PageDescriptor() = default;
         PageDescriptor(PageDescriptor const &) = delete;
+        PageDescriptor & operator =(PageDescriptor const &) = delete;
 
         __bland __forceinline PageDescriptor(const uint64_t stackIndex)
             : StackIndex( stackIndex )

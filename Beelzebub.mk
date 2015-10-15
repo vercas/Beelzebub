@@ -8,6 +8,13 @@
 ARC			:= ''
 AUX			:= ''
 
+############
+# Settings #
+PRECOMPILER_FLAGS	:= '__BEELZEBUB'
+
+SMP					:= 'true'
+#	Defaults to enabled.
+
 ######################################
 #	ARCHITECTURE-SPECIFIC SETTINGS   #
 ######################################
@@ -30,6 +37,18 @@ else ifneq (,$(findstring ia32,$(MAKECMDGOALS)))
 	ARC			:= ia32
 	AUX			:= x86
 
+endif
+
+####################################### Flags ##########
+
+###############
+# SMP disable #
+ifneq (,$(findstring no-smp,$(MAKECMDGOALS)))
+	SMP			:= ''
+
+	PRECOMPILER_FLAGS 	+= '__BEELZEBUB_SETTINGS_NO_SMP'
+else
+	PRECOMPILER_FLAGS 	+= '__BEELZEBUB_SETTINGS_SMP'
 endif
 
 ####################################### COMMON PATHS ##########

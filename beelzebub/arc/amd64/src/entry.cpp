@@ -33,7 +33,7 @@ using namespace Beelzebub::Execution;
 
 /*  Constants  */
 
-static const size_t PageSize = PAGE_SIZE;
+static size_t const PageSize = PAGE_SIZE;
 
 //uint8_t initialVbeTerminal[sizeof(SerialTerminal)];
 SerialTerminal initialSerialTerminal;
@@ -44,7 +44,7 @@ PageAllocator mainAllocator;
 VirtualAllocationSpace bootstrapVas;
 MemoryManagerAmd64 bootstrapMemMgr;
 
-volatile bool bootstrapReady = false;
+Atomic<bool> bootstrapReady {false};
 
 CpuId Beelzebub::System::BootstrapProcessorId;
 
@@ -55,12 +55,12 @@ Atomic<size_t> CpuIndexCounter {(size_t)0};
 
 __bland void InitializeCpuData()
 {
-    uintptr_t loc = CpuDataBase.FetchAdd(Cpu::CpuDataSize);
+    uintptr_t const loc = CpuDataBase.FetchAdd(Cpu::CpuDataSize);
     CpuData * data = (CpuData *)loc;
 
     Cpu::WriteMsr(Msr::IA32_GS_BASE, (uint64_t)loc);
 
-    size_t ind = CpuIndexCounter++;
+    size_t const ind = CpuIndexCounter++;
 
     data->Index = ind;
 
@@ -79,6 +79,7 @@ __bland void InitializeCpuData()
 void kmain_bsp()
 {
     bootstrapReady = false;
+    //  Just makin' sure.
 
     IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
     keyboard_init();

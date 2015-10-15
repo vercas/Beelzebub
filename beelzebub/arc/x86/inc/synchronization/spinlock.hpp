@@ -9,7 +9,14 @@ namespace Beelzebub { namespace Synchronization
     /**
      *  Busy-waiting re-entrant synchronization primitive.
      */
-    struct Spinlock
+    template<bool SMP = false>
+    struct Spinlock { };
+
+    /**
+     *  Busy-waiting re-entrant synchronization primitive.
+     */
+    template<>
+    struct Spinlock<false>
     {
     public:
 
@@ -17,7 +24,7 @@ namespace Beelzebub { namespace Synchronization
 
         Spinlock() = default;
         Spinlock(Spinlock const &) = delete;
-        Spinlock & operator =(const Spinlock &) = delete;
+        Spinlock & operator =(Spinlock const &) = delete;
 
         /*  Destructor  */
 
