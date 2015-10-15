@@ -42,18 +42,18 @@ namespace Beelzebub { namespace Memory
         static vsize_t const KernelHeapPageCount  = KernelHeapLength >> 12;
 
         static Atomic<vaddr_t> KernelModulesCursor;
-        static Spinlock KernelModulesLock;
+        static Spinlock<> KernelModulesLock;
 
         static Atomic<vaddr_t> PasDescriptorsCursor;
-        static Spinlock PasDescriptorsLock;
+        static Spinlock<> PasDescriptorsLock;
 
-        static Spinlock HandleTablesLock;
+        static Spinlock<> HandleTablesLock;
 
         static Atomic<vaddr_t> KernelHeapCursor;
-        static volatile size_t KernelHeapLockCount;
-        static Spinlock KernelHeapMasterLock;
+        static size_t volatile KernelHeapLockCount;
+        static Spinlock<> KernelHeapMasterLock;
 
-        static Spinlock KernelBinariesLock;
+        static Spinlock<> KernelBinariesLock;
 
         /*  Constructors  */
 
@@ -79,7 +79,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Locks  */
 
-        Spinlock UserLock;
+        Spinlock<> UserLock;
 
         /*  Cursors  */
 

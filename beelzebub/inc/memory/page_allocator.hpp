@@ -4,7 +4,7 @@
 #include <debug.hpp>
 #include <kernel.hpp>
 #include <terminals/base.hpp>
-#include <synchronization/spinlock.hpp>
+#include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
 #include <handles.h>
 
@@ -327,28 +327,16 @@ namespace Beelzebub { namespace Memory
                 && ((phys_start + length) <= this->AllocationEnd);
         }
 
-        /*  Synchronization  */
-
-        __bland __forceinline void Lock()
-        {
-            (&this->Locker)->Acquire();
-        }
-
-        __bland __forceinline void Unlock()
-        {
-            (&this->Locker)->Release();
-        }
-
         /*  Miscellaneous  */
 
         __cold __bland __forceinline void RemapControlStructures(vaddr_t const newAddr)
         {
-            this->Lock();
+            int_cookie_t const int_cookie = this->Locker.Acquire();
 
             this->Stack = (pgind_t *)((vaddr_t)this->Stack - (vaddr_t)this->Map + newAddr);
             this->Map = (PageDescriptor *)newAddr;
 
-            this->Unlock();
+            this->Locker.Release(int_cookie);
         }
 
         /**
@@ -378,7 +366,7 @@ namespace Beelzebub { namespace Memory
         pgind_t * Stack;
         //  El stacko de páginas libres. Lmao.
 
-        Spinlock Locker;
+        SpinlockUninterruptible<> Locker;
 
     public:
 
@@ -437,22 +425,7 @@ namespace Beelzebub { namespace Memory
 
         //  Used for mutual exclusion over the linking pointers of the
         //  allocation spaces.
-        Spinlock ChainLock;
-
-        __bland __forceinline void Lock()
-        {
-            (&this->ChainLock)->Acquire();
-        }
-
-        __bland __forceinline void Unlock()
-        {
-            (&this->ChainLock)->Release();
-        }
-
-        __bland __forceinline void Await()
-        {
-            (&this->ChainLock)->Await();
-        }
+        SpinlockUninterruptible<> ChainLock;
 
         /*  Space Chaining  */
 

@@ -11,7 +11,7 @@ using namespace Beelzebub::Synchronization;
 namespace Beelzebub { namespace Memory
 {
 #ifdef __BEELZEBUB_KERNEL
-    typedef SpinlockUninterruptible ObjectAllocatorLock;
+    typedef SpinlockUninterruptible<> ObjectAllocatorLock;
     typedef int_cookie_t ObjectAllocatorLockCookie;
 #else
     //  To do: userland will require a mutex here.
@@ -45,7 +45,7 @@ namespace Beelzebub { namespace Memory
         //ObjectPool * Previous;
 
         //ObjectPoolStatus Status;
-        SpinlockUninterruptible PropertiesLock;
+        ObjectAllocatorLock PropertiesLock;
 
         /*  Constructors  */
 

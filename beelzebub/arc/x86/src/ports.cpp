@@ -4,10 +4,10 @@ using namespace Beelzebub;
 using namespace Beelzebub::Ports;
 using namespace Beelzebub::System;
 
-ManagedSerialPort Beelzebub::Ports::COM1(0x03F8);
-ManagedSerialPort Beelzebub::Ports::COM2(0x02F8);
-ManagedSerialPort Beelzebub::Ports::COM3(0x03E8);
-ManagedSerialPort Beelzebub::Ports::COM4(0x02E8);
+ManagedSerialPort Beelzebub::Ports::COM1 {0x03F8};
+ManagedSerialPort Beelzebub::Ports::COM2 {0x02F8};
+ManagedSerialPort Beelzebub::Ports::COM3 {0x03E8};
+ManagedSerialPort Beelzebub::Ports::COM4 {0x02E8};
 
 /************************
 	SerialPort struct

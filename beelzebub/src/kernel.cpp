@@ -17,8 +17,8 @@ using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Execution;
 
 volatile bool InitializingLock = true;
-Spinlock InitializationLock;
-Spinlock TerminalMessageLock;
+Spinlock<> InitializationLock;
+Spinlock<> TerminalMessageLock;
 
 TerminalBase * Beelzebub::MainTerminal;
 bool Beelzebub::Scheduling;

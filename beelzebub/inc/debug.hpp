@@ -42,7 +42,7 @@ namespace Beelzebub { namespace Debug
 {
     extern TerminalBase * DebugTerminal;
 
-    extern Spinlock MsgSpinlock;
+    extern Spinlock<> MsgSpinlock;
 
     __cold __bland __noinline __noreturn void CatchFire(const char * const file
                                                       , const size_t line

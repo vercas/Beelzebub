@@ -64,8 +64,8 @@ __bland void InitializeCpuData()
 
     data->Index = ind;
 
-    data->HeapSpinlock = Spinlock().GetValue();
-    data->HeapSpinlockPointer = (Spinlock *)&data->HeapSpinlock;
+    data->HeapSpinlock = Spinlock<>().GetValue();
+    data->HeapSpinlockPointer = (Spinlock<> *)&data->HeapSpinlock;
 
     assert(Cpu::GetIndex() == ind
         , "Failed to set CPU index..? It should be %us but it %us is returned."

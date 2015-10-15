@@ -17,7 +17,7 @@ typedef uint64_t  creg_t; //  Control register.
 
 typedef  int64_t ssize_t;
 
-typedef uint64_t int_cookie_t;
+typedef uint64_t volatile int_cookie_t;
 
 #define KERNEL_CODE_SEPARATOR ((uintptr_t)0xFFFFFF8000000000ULL)
 
@@ -38,7 +38,7 @@ typedef uint32_t  creg_t; //  Control register.
 
 typedef  int32_t ssize_t;
 
-typedef uint32_t int_cookie_t;
+typedef uint32_t volatile int_cookie_t;
 
 #define KERNEL_CODE_SEPARATOR ((uintptr_t)0xC0000000U)
 

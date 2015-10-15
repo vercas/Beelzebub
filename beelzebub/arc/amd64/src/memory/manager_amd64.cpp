@@ -86,18 +86,18 @@ void MemoryManager::Initialize()
 }
 
 Atomic<vaddr_t> MemoryManagerAmd64::KernelModulesCursor {MemoryManagerAmd64::KernelModulesStart};
-Spinlock MemoryManagerAmd64::KernelModulesLock;
+Spinlock<> MemoryManagerAmd64::KernelModulesLock;
 
 Atomic<vaddr_t> MemoryManagerAmd64::PasDescriptorsCursor {MemoryManagerAmd64::PasDescriptorsStart};
-Spinlock MemoryManagerAmd64::PasDescriptorsLock;
+Spinlock<> MemoryManagerAmd64::PasDescriptorsLock;
 
-Spinlock MemoryManagerAmd64::HandleTablesLock;
+Spinlock<> MemoryManagerAmd64::HandleTablesLock;
 
 Atomic<vaddr_t> MemoryManagerAmd64::KernelHeapCursor {MemoryManagerAmd64::KernelHeapStart};
-volatile size_t MemoryManagerAmd64::KernelHeapLockCount = 0;
-Spinlock MemoryManagerAmd64::KernelHeapMasterLock;
+size_t volatile MemoryManagerAmd64::KernelHeapLockCount = 0;
+Spinlock<> MemoryManagerAmd64::KernelHeapMasterLock;
 
-Spinlock MemoryManagerAmd64::KernelBinariesLock;
+Spinlock<> MemoryManagerAmd64::KernelBinariesLock;
 
 /*  Status  */
 

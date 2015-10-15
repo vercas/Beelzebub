@@ -162,8 +162,8 @@ namespace Beelzebub { namespace Ports
         uint16_t BasePort;
         uint16_t  OutputCount;
 
-        SpinlockUninterruptible ReadLock;
-        SpinlockUninterruptible WriteLock;
+        SpinlockUninterruptible<> ReadLock;
+        SpinlockUninterruptible<> WriteLock;
     };
 
     extern ManagedSerialPort COM1;

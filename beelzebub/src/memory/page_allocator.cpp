@@ -130,16 +130,18 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
     if unlikely(start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
         return Handle(HandleResult::PagesOutOfAllocatorRange);
 
-    const bool inclCaching  = (0 != (options & PageReservationOptions::IncludeCaching));
-    const bool inclInUse    = (0 != (options & PageReservationOptions::IncludeInUse  ));
-    const bool ignrReserved = (0 != (options & PageReservationOptions::IgnoreReserved));
+    bool const inclCaching  = (0 != (options & PageReservationOptions::IncludeCaching));
+    bool const inclInUse    = (0 != (options & PageReservationOptions::IncludeInUse  ));
+    bool const ignrReserved = (0 != (options & PageReservationOptions::IgnoreReserved));
 
     PageDescriptor * const map = this->Map + start;
+
+    int_cookie_t int_cookie;
 
     for (pgind_t i = 0; i < count; ++i)
     {
         PageDescriptor * const page = map + i;
-        const PageDescriptorStatus status = page->Status;
+        PageDescriptorStatus const status = page->Status;
 
         /*msg("Reserving page #%us (%Xp @%us: %s).%n", start + i
             , this->MemoryStart + (start + i) * this->PageSize
@@ -152,7 +154,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
                 , this->StackFreeTop
                 , this->StackCacheTop);//*/
 
-            this->Lock();
+            int_cookie = this->Locker.Acquire();
 
             this->PopPage(start + i);
         }
@@ -164,7 +166,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
                     , page->StackIndex
                     , this->StackCacheTop);//*/
 
-                this->Lock();
+                int_cookie = this->Locker.Acquire();
 
                 //  TODO: Perhaps notify of this event?
 
@@ -176,7 +178,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
         else if (status == PageDescriptorStatus::InUse)
         {
             if (inclInUse)
-                this->Lock();
+                int_cookie = this->Locker.Acquire();
             else
                 return Handle(HandleResult::PageInUse);
 
@@ -189,7 +191,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
         page->Reserve();
 
-        this->Unlock();
+        this->Locker.Release(int_cookie);
     }
 
     this->FreePageCount -= count;
@@ -208,6 +210,8 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
 
     PageDescriptor * const map = this->Map + start;
 
+    int_cookie_t int_cookie;
+
     for (pgind_t i = 0; i < count; ++i)
     {
         PageDescriptor * const page = map + i;
@@ -215,7 +219,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
 
         if likely(status == PageDescriptorStatus::InUse)
         {
-            this->Lock();
+            int_cookie = this->Locker.Acquire();
 
             if (this->StackCacheTop != this->StackFreeTop)
                 this->Stack[++this->StackCacheTop] = this->Stack[this->StackFreeTop];
@@ -224,7 +228,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
         }
         else if (status == PageDescriptorStatus::Caching)
         {
-            this->Lock();
+            int_cookie = this->Locker.Acquire();
 
             //  TODO: Perhaps notify of this event?
 
@@ -248,7 +252,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
 
         page->Free();
 
-        this->Unlock();
+        this->Locker.Release(int_cookie);
     }
 
     return Handle(HandleResult::Okay);
@@ -258,7 +262,7 @@ paddr_t PageAllocationSpace::AllocatePage(PageDescriptor * & desc)
 {
     if likely(this->FreePageCount != 0)
     {
-        this->Lock();
+        int_cookie_t const int_cookie = this->Locker.Acquire();
 
         pgind_t i = this->Stack[this->StackFreeTop--];
 
@@ -275,7 +279,7 @@ paddr_t PageAllocationSpace::AllocatePage(PageDescriptor * & desc)
         this->FreeSize -= this->PageSize;
         //  Change the info accordingly.
 
-        this->Unlock();
+        this->Locker.Release(int_cookie);
 
         return this->AllocationStart + i * this->PageSize;
     }
@@ -655,29 +659,29 @@ bool PageAllocator::TryGetPageDescriptor(const paddr_t paddr, PageDescriptor * &
 
 void PageAllocator::PreppendAllocationSpace(PageAllocationSpace * const space)
 {
-    this->Lock();
+    int_cookie_t const int_cookie = this->ChainLock.Acquire();
 
     this->FirstSpace->Previous = space;
     space->Next = this->FirstSpace;
     this->FirstSpace = space;
 
-    this->Unlock();
+    this->ChainLock.Release(int_cookie);
 }
 
 void PageAllocator::AppendAllocationSpace(PageAllocationSpace * const space)
 {
-    this->Lock();
+    int_cookie_t const int_cookie = this->ChainLock.Acquire();
 
     this->LastSpace->Next = space;
     space->Previous = this->LastSpace;
     this->LastSpace = space;
 
-    this->Unlock();
+    this->ChainLock.Release(int_cookie);
 }
 
 void PageAllocator::RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr)
 {
-    this->Lock();
+    int_cookie_t const int_cookie = this->ChainLock.Acquire();
 
     const vaddr_t firstAddr   = (vaddr_t)this->FirstSpace;
     const vaddr_t lastAddr    = (vaddr_t)this->LastSpace;
@@ -707,5 +711,5 @@ void PageAllocator::RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr)
         cur = cur->Previous;
     }
 
-    this->Unlock();
+    this->ChainLock.Release(int_cookie);
 }

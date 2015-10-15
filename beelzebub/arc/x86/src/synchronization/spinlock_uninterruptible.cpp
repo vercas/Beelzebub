@@ -4,10 +4,14 @@
 using namespace Beelzebub::Synchronization;
 
 #ifdef __BEELZEBUB__DEBUG
-SpinlockUninterruptible::~SpinlockUninterruptible()
+template<bool SMP>
+SpinlockUninterruptible<SMP>::~SpinlockUninterruptible()
 {
     assert(this->Check(), "Spinlock (uninterruptible) @ %Xp was destructed while busy!", this);
 
     //this->Release();
 }//*/
 #endif
+
+template struct SpinlockUninterruptible<true>;
+template struct SpinlockUninterruptible<false>;

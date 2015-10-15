@@ -83,7 +83,7 @@ namespace Beelzebub { namespace System
         uint32_t InterruptDisableCount; /* PADDING */
         Execution::Thread * ActiveThread;
         Synchronization::spinlock_t HeapSpinlock;
-        Synchronization::Spinlock * HeapSpinlockPointer;
+        Synchronization::Spinlock<> * HeapSpinlockPointer;
         vaddr_t KernelHeapStart;
         vaddr_t KernelHeapCursor;
         vaddr_t KernelHeapEnd;
@@ -564,13 +564,13 @@ namespace Beelzebub { namespace System
             return (Execution::Thread *)GsSetPointer(offsetof(struct CpuData, ActiveThread), (uintptr_t)val);
         }
 
-        static __bland __forceinline Synchronization::Spinlock * GetKernelHeapSpinlock()
+        static __bland __forceinline Synchronization::Spinlock<> * GetKernelHeapSpinlock()
         {
-            return (Synchronization::Spinlock *)GsGetPointer(offsetof(struct CpuData, HeapSpinlockPointer));
+            return (Synchronization::Spinlock<> *)GsGetPointer(offsetof(struct CpuData, HeapSpinlockPointer));
         }
-        static __bland __forceinline Synchronization::Spinlock * SetKernelHeapSpinlock(Synchronization::Spinlock * const val)
+        static __bland __forceinline Synchronization::Spinlock<> * SetKernelHeapSpinlock(Synchronization::Spinlock<> * const val)
         {
-            return (Synchronization::Spinlock *)GsSetPointer(offsetof(struct CpuData, HeapSpinlockPointer), (uintptr_t)val);
+            return (Synchronization::Spinlock<> *)GsSetPointer(offsetof(struct CpuData, HeapSpinlockPointer), (uintptr_t)val);
         }
 
         static __bland __forceinline vaddr_t GetKernelHeapStart()
