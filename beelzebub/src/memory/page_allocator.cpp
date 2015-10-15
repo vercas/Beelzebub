@@ -117,7 +117,8 @@ Handle PageAllocationSpace::InitializeControlStructures()
     else //*/
 
     for (size_t i = 0; i < this->AllocablePageCount; ++i)
-        this->Map[i] = PageDescriptor(this->Stack[i] = i, PageDescriptorStatus::Free);
+        //this->Map[i] = PageDescriptor(this->Stack[i] = i, PageDescriptorStatus::Free);
+        new (this->Map + i) PageDescriptor(this->Stack[i] = i, PageDescriptorStatus::Free);
 
     return HandleResult::Okay;
 }

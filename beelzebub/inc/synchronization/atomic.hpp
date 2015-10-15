@@ -1,3 +1,5 @@
+#pragma once
+
 #include <metaprogramming.h>
 
 namespace Beelzebub { namespace Synchronization
@@ -31,9 +33,9 @@ namespace Beelzebub { namespace Synchronization
      
         Atomic() = default;
         inline constexpr Atomic(T const val) : InnerValue( val ) { }
-        Atomic(const Atomic &) = delete;
-        Atomic & operator =(const Atomic &) = delete;
-        Atomic & operator =(const Atomic &) volatile = delete;
+        Atomic(Atomic const &) = delete;
+        Atomic & operator =(Atomic const &) = delete;
+        Atomic & operator =(Atomic const &) volatile = delete;
 
         /*  Load & Store  */
 
@@ -43,6 +45,12 @@ namespace Beelzebub { namespace Synchronization
         }
 
         __bland inline T operator =(T const val) volatile
+        {
+            this->Store(val);
+
+            return val;
+        }
+        __bland inline T operator =(T const val)
         {
             this->Store(val);
 
@@ -188,9 +196,9 @@ namespace Beelzebub { namespace Synchronization
      
         Atomic() = default;
         inline constexpr Atomic(T const * const val) : InnerValue( val ) { }
-        Atomic(const Atomic &) = delete;
-        Atomic & operator =(const Atomic &) = delete;
-        Atomic & operator =(const Atomic &) volatile = delete;
+        Atomic(Atomic const &) = delete;
+        Atomic & operator =(Atomic const &) = delete;
+        Atomic & operator =(Atomic const &) volatile = delete;
 
         /*  Load & Store  */
 
@@ -200,6 +208,12 @@ namespace Beelzebub { namespace Synchronization
         }
 
         __bland inline T * operator =(T * const val) volatile
+        {
+            this->Store(val);
+
+            return val;
+        }
+        __bland inline T * operator =(T * const val)
         {
             this->Store(val);
 
@@ -227,22 +241,22 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Compare-Exchange  */
 
-        __bland inline bool CmpXchgWeak(T * & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        __bland inline bool CmpXchgWeak(T * const & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, true, (int)smo, (int)fmo);
         }
 
-        __bland inline bool CmpXchgStrong(T * & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        __bland inline bool CmpXchgStrong(T * const & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, false, (int)smo, (int)fmo);
         }
 
-        __bland inline bool CmpXchgWeak(T * & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        __bland inline bool CmpXchgWeak(T * const & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgWeak(expected, desired, mo, mo);
         }
 
-        __bland inline bool CmpXchgStrong(T * & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        __bland inline bool CmpXchgStrong(T * const & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgStrong(expected, desired, mo, mo);
         }

@@ -7,6 +7,7 @@
 #include "stdint.h"
 #include "stddef.h"
 #include <metaprogramming_arc.h>
+#include <cpp_support.h>
 
 /*  Some macro helpers. */
 
@@ -153,3 +154,20 @@ inline bool operator != (T  a, U b) { return        (U )(a) !=      b ;  }
 
 //  Why? For the glory of C++, of course.
 #endif
+
+/*	Some type aliases...  */
+
+typedef  int8_t    Int8;
+typedef  int16_t   Int16;
+typedef  int32_t   Int32;
+typedef  int64_t   Int64;
+
+typedef uint8_t   UInt8;
+typedef uint16_t  UInt16;
+typedef uint32_t  UInt32;
+typedef uint64_t  UInt64;
+
+typedef  intptr_t  IntPtr;
+typedef uintptr_t UIntPtr;
+
+//	I think these names are great... I just like to have 'em here.

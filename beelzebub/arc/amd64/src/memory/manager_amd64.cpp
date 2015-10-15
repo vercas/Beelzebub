@@ -3,6 +3,7 @@
 #include <math.h>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Memory;
 
 static __bland inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
@@ -84,15 +85,15 @@ void MemoryManager::Initialize()
 
 }
 
-volatile vaddr_t MemoryManagerAmd64::KernelModulesCursor = MemoryManagerAmd64::KernelModulesStart;
+Atomic<vaddr_t> MemoryManagerAmd64::KernelModulesCursor {MemoryManagerAmd64::KernelModulesStart};
 Spinlock MemoryManagerAmd64::KernelModulesLock;
 
-volatile vaddr_t MemoryManagerAmd64::PasDescriptorsCursor = MemoryManagerAmd64::PasDescriptorsStart;
+Atomic<vaddr_t> MemoryManagerAmd64::PasDescriptorsCursor {MemoryManagerAmd64::PasDescriptorsStart};
 Spinlock MemoryManagerAmd64::PasDescriptorsLock;
 
 Spinlock MemoryManagerAmd64::HandleTablesLock;
 
-volatile vaddr_t MemoryManagerAmd64::KernelHeapCursor = MemoryManagerAmd64::KernelHeapStart;
+Atomic<vaddr_t> MemoryManagerAmd64::KernelHeapCursor {MemoryManagerAmd64::KernelHeapStart};
 volatile size_t MemoryManagerAmd64::KernelHeapLockCount = 0;
 Spinlock MemoryManagerAmd64::KernelHeapMasterLock;
 

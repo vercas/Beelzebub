@@ -3,8 +3,11 @@
 #include <memory/manager.hpp>
 #include <memory/virtual_allocator.hpp>
 #include <synchronization/spinlock.hpp>
+#include <synchronization/atomic.hpp>
 #include <handles.h>
 #include <metaprogramming.h>
+
+using namespace Beelzebub::Synchronization;
 
 namespace Beelzebub { namespace Memory
 {
@@ -17,36 +20,36 @@ namespace Beelzebub { namespace Memory
 
         /*  Statics  */
 
-        static const vaddr_t IsaDmaStart          = 0xFFFF800000000000ULL;
-        static const vsize_t IsaDmaLength         = 1ULL << 24;  //  16 MiB
-        static const vaddr_t IsaDmaEnd            = IsaDmaStart + IsaDmaLength;
+        static vaddr_t const IsaDmaStart          = 0xFFFF800000000000ULL;
+        static vsize_t const IsaDmaLength         = 1ULL << 24;  //  16 MiB
+        static vaddr_t const IsaDmaEnd            = IsaDmaStart + IsaDmaLength;
 
-        static const vaddr_t KernelModulesStart   = IsaDmaEnd;
-        static const vaddr_t KernelModulesEnd     = 0xFFFF808000000000ULL;
-        static const vsize_t KernelModulesLength  = KernelModulesEnd - KernelModulesStart;
+        static vaddr_t const KernelModulesStart   = IsaDmaEnd;
+        static vaddr_t const KernelModulesEnd     = 0xFFFF808000000000ULL;
+        static vsize_t const KernelModulesLength  = KernelModulesEnd - KernelModulesStart;
 
-        static const vaddr_t PasDescriptorsStart  = KernelModulesEnd;
-        static const vaddr_t PasDescriptorsEnd    = 0xFFFF820000000000ULL;
-        static const vsize_t PasDescriptorsLength = PasDescriptorsEnd - PasDescriptorsStart;
+        static vaddr_t const PasDescriptorsStart  = KernelModulesEnd;
+        static vaddr_t const PasDescriptorsEnd    = 0xFFFF820000000000ULL;
+        static vsize_t const PasDescriptorsLength = PasDescriptorsEnd - PasDescriptorsStart;
 
-        static const vaddr_t HandleTablesStart    = PasDescriptorsEnd;
-        static const vaddr_t HandleTablesEnd      = 0xFFFF830000000000ULL;
-        static const vsize_t HandleTablesLength   = HandleTablesEnd - HandleTablesStart;
+        static vaddr_t const HandleTablesStart    = PasDescriptorsEnd;
+        static vaddr_t const HandleTablesEnd      = 0xFFFF830000000000ULL;
+        static vsize_t const HandleTablesLength   = HandleTablesEnd - HandleTablesStart;
 
-        static const vaddr_t KernelHeapStart      = HandleTablesEnd;
-        static const vaddr_t KernelHeapEnd        = 0xFFFFFE0000000000ULL;
-        static const vsize_t KernelHeapLength     = KernelHeapEnd - KernelHeapStart;
-        static const vsize_t KernelHeapPageCount  = KernelHeapLength >> 12;
+        static vaddr_t const KernelHeapStart      = HandleTablesEnd;
+        static vaddr_t const KernelHeapEnd        = 0xFFFFFE0000000000ULL;
+        static vsize_t const KernelHeapLength     = KernelHeapEnd - KernelHeapStart;
+        static vsize_t const KernelHeapPageCount  = KernelHeapLength >> 12;
 
-        static volatile vaddr_t KernelModulesCursor;
+        static Atomic<vaddr_t> KernelModulesCursor;
         static Spinlock KernelModulesLock;
 
-        static volatile vaddr_t PasDescriptorsCursor;
+        static Atomic<vaddr_t> PasDescriptorsCursor;
         static Spinlock PasDescriptorsLock;
 
         static Spinlock HandleTablesLock;
 
-        static volatile vaddr_t KernelHeapCursor;
+        static Atomic<vaddr_t> KernelHeapCursor;
         static volatile size_t KernelHeapLockCount;
         static Spinlock KernelHeapMasterLock;
 

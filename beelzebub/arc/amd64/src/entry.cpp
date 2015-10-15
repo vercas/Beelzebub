@@ -19,8 +19,8 @@
 #include <kernel.hpp>
 #include <debug.hpp>
 #include <math.h>
-#include <cpp_support.h>
 #include <string.h>
+#include <synchronization/atomic.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -50,17 +50,17 @@ CpuId Beelzebub::System::BootstrapProcessorId;
 
 /*  CPU data  */
 
-volatile uintptr_t CpuDataBase;
-volatile size_t CpuIndexCounter = (size_t)0;
+Atomic<uintptr_t> CpuDataBase;
+Atomic<size_t> CpuIndexCounter {(size_t)0};
 
 __bland void InitializeCpuData()
 {
-    uintptr_t loc = __atomic_fetch_add(&CpuDataBase, Cpu::CpuDataSize, __ATOMIC_SEQ_CST);
+    uintptr_t loc = CpuDataBase.FetchAdd(Cpu::CpuDataSize);
     CpuData * data = (CpuData *)loc;
 
     Cpu::WriteMsr(Msr::IA32_GS_BASE, (uint64_t)loc);
 
-    size_t ind = __atomic_fetch_add(&CpuIndexCounter, 1, __ATOMIC_SEQ_CST);
+    size_t ind = CpuIndexCounter++;
 
     data->Index = ind;
 
@@ -284,7 +284,7 @@ __bland void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace
             return;
         //  Nothing to do, folks.
         
-        const uintptr_t loc = __atomic_fetch_add(&MemoryManagerAmd64::KernelModulesCursor, size, __ATOMIC_SEQ_CST);
+        uintptr_t const loc = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(size);
 
         size_t off = 0;
 
@@ -459,11 +459,12 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
     //  CPU DATA
 
-    size_t cpuDataSize = JG_INFO_ROOT_EX->cpu_count * Cpu::CpuDataSize;
-    size_t cpuDataPageCount = (cpuDataSize + PageSize - 1) / PageSize;
+    size_t const cpuDataSize = JG_INFO_ROOT_EX->cpu_count * Cpu::CpuDataSize;
+    size_t const cpuDataPageCount = (cpuDataSize + PageSize - 1) / PageSize;
 
     //  This is where the CPU data will sit.
-    CpuDataBase = MemoryManagerAmd64::KernelModulesCursor;
+    CpuDataBase.Store(MemoryManagerAmd64::KernelModulesCursor.Load());
+    //  Ain't atomic and it doesn't need to be right now.
 
     MemoryManagerAmd64::KernelModulesCursor += cpuDataPageCount << 12;
     //  The CPU data will snuggle in with the kernel modules. Whoopsie!
@@ -473,8 +474,8 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
     {
 		PageDescriptor * desc = nullptr;
 
-		const vaddr_t vaddr = CpuDataBase + (i << 12);
-		const paddr_t paddr = mainAllocator.AllocatePage(desc);
+		vaddr_t const vaddr = CpuDataBase + (i << 12);
+		paddr_t const paddr = mainAllocator.AllocatePage(desc);
 
 		assert(paddr != nullpaddr && desc != nullptr
 			, "  Unable to allocate a physical page for CPU-specific data!");
@@ -511,7 +512,7 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
 {
     Handle res = HandleResult::Okay;
 
-    const size_t size = (module->length + PageSize - 1) / PageSize;
+    size_t const size = (module->length + PageSize - 1) / PageSize;
 
     msg("Module #%us:%n"
         "\tName: (%X2) %s%n"
@@ -524,7 +525,7 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
         , module->address
         , module->length, size);//*/
 
-    const vaddr_t vaddr = __atomic_fetch_add(&MemoryManagerAmd64::KernelModulesCursor, size, __ATOMIC_SEQ_CST);
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelModulesCursor.FetchAdd(size);
 
     for (vaddr_t offset = 0; offset < size; offset += PageSize)
     {
@@ -594,7 +595,7 @@ Handle InitializeModules()
 {
     Handle res;
 
-    const size_t moduleCount = (size_t)JG_INFO_ROOT_EX->module_count;
+    size_t const moduleCount = (size_t)JG_INFO_ROOT_EX->module_count;
 
     for (size_t i = 0; i < moduleCount; ++i)
     {
@@ -642,8 +643,8 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    const vaddr_t vaddr = __atomic_fetch_add(&MemoryManagerAmd64::KernelHeapCursor, 0x1000, __ATOMIC_SEQ_CST);
-    const paddr_t paddr = mainAllocator.AllocatePage(desc);
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(0x1000);
+    paddr_t const paddr = mainAllocator.AllocatePage(desc);
     //  Stack page.
 
     assert(paddr != nullpaddr && desc != nullptr
@@ -677,9 +678,9 @@ __cold __bland char * AllocateTestPage(Process * const p)
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    const vaddr_t vaddr1 = 0x321000;
-    const vaddr_t vaddr2 = __atomic_fetch_add(&MemoryManagerAmd64::KernelHeapCursor, 0x1000, __ATOMIC_SEQ_CST);
-    const paddr_t paddr = mainAllocator.AllocatePage(desc);
+    vaddr_t const vaddr1 = 0x321000;
+    vaddr_t const vaddr2 = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(0x1000);
+    paddr_t const paddr = mainAllocator.AllocatePage(desc);
     //  Test page.
 
     assert(paddr != nullpaddr && desc != nullptr
