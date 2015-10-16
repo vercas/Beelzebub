@@ -1,7 +1,5 @@
 # Beelzebub
 
----
-
 ### Building
 
 Currently, Beelzebub requires the following to be built:  
