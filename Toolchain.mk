@@ -9,6 +9,11 @@ AS			:= nasm
 LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
 LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-ld
 
+#################
+# Target Tuning #
+MTUNE		:= corei7-avx
+#	This is only used when targetting x86.
+
 #	You should modify this file according to your needs and add it to your
 #	.gitignore.
 

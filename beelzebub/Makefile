@@ -1,13 +1,8 @@
-.PHONY: all amd64 ia32 ia32pae smp no-smp install uninstall clean linku linko build headers
 .SUFFIXES:  
 
 ########################
 # Default architecture #
 all: amd64
-
-##########
-# Target #
-MTUNE		:= corei7-avx
 
 ###############
 # Directories #
@@ -21,6 +16,8 @@ INCARC_DIR	:= ./inc/arc
 RUNTIME_DIR := $(SRC_DIR)/runtime
 
 include ../Beelzebub.mk
+
+.PHONY: all install uninstall clean linku linko build headers $(ARC) $(SETTINGS)
 
 #############
 # Toolchain #
@@ -97,8 +94,10 @@ endif
 ##############
 # Common x86 #
 ifeq ($(AUX),x86)
-	CFLAGS		+= -mtune=$(MTUNE)
-	CXXFLAGS	+= -mtune=$(MTUNE)
+	ifneq (,$(MTUNE))
+		CFLAGS		+= -mtune=$(MTUNE)
+		CXXFLAGS	+= -mtune=$(MTUNE)
+	endif
 endif
 
 # Output directories
@@ -111,7 +110,7 @@ KERNEL_PATH		:= $(BUILD_HOST)/$(KERNEL_BIN)
 
 ###############################################
 # Build everything and link the target binary #
-ia32 ia32pae amd64:	linko
+$(ARC):	linko
 
 ####################################
 #   OBJECTS, SOURCES AND HEADERS   #
@@ -129,7 +128,7 @@ HEADERS		+= $(patsubst $(INC_DIR)/%.hpp,$(INCPCH_DIR)/%.hpp.gch,$(shell find $(I
 HEADERS		+= $(patsubst $(INC_DIR)/%.h,$(INCPCH_DIR)/%.h.gch,$(shell find $(INC_DIR) -name "*.h"))
 
 # When architecture-specific files are present...
-ifneq ($(ARC),'')
+ifneq (,$(ARC))
 	INCFLAGS	+= -I$(ARC_DIR)/$(ARC)/inc
 
 	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.c,$(BUILD_DIR)/%.c.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.c"))
@@ -141,7 +140,7 @@ ifneq ($(ARC),'')
 endif
 
 # When auxiliary files are present...
-ifneq ($(AUX),'')
+ifneq (,$(AUX))
 	INCFLAGS	+= -I$(AUX_DIR)/$(AUX)/inc
 
 	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.c,$(BUILD_DIR)/%.c.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.c"))

@@ -1,4 +1,3 @@
-.PHONY: run qemu qemu-serial clean jegudiel image kernel ia32 ia32pae amd64 smp no-smp
 .SUFFIXES:  
 
 ########################
@@ -16,6 +15,8 @@ include Beelzebub.mk
 KERNEL_DIR	:= ./$(KERNEL_NAME)
 
 ####################################### BASICS ##########
+
+.PHONY: run qemu qemu-serial clean jegudiel image kernel $(ARC) $(SETTINGS)
 
 ia32:		image
 ia32pae:	image

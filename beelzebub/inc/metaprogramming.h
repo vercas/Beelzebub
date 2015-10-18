@@ -1,9 +1,5 @@
 #pragma once
 
-#define __BEELZEBUB__DEBUG    true
-#define __BEELZEBUB__TEST_MT  true
-#define __BEELZEBUB__TEST_STR true
-
 #include "stdint.h"
 #include "stddef.h"
 #include <metaprogramming_arc.h>
@@ -26,7 +22,8 @@
 #define MCATS4(A, B, C, D) A##B##C##D
 #define MCATS5(A, B, C, D, E) A##B##C##D##E
 #define MCATS6(A, B, C, D, E, F) A##B##C##D##E##F
-#define MCATS(...) GET_MACRO6(__VA_ARGS__, MCATS6, MCATS5, MCATS4, MCATS3, MCATS2, MCATS1)(__VA_ARGS__)
+#define MCATS(...) GET_MACRO6(__VA_ARGS__, MCATS6, MCATS5, MCATS4, MCATS3, \
+                                           MCATS2, MCATS1)(__VA_ARGS__)
 //  Macro conCATenate Symbols!
 
 #define __ARG_N(                              \
@@ -135,20 +132,21 @@
 #ifdef __cplusplus
 
 #define ENUMOPS2(T, U)                                                     \
-inline  T   operator ~  (T  a     ) { return (T )(~((U )(a))          ); } \
-inline  T   operator |  (T  a, T b) { return (T )(  (U )(a) |  (U )(b)); } \
-inline  T   operator &  (T  a, T b) { return (T )(  (U )(a) &  (U )(b)); } \
-inline  T   operator ^  (T  a, T b) { return (T )(  (U )(a) ^  (U )(b)); } \
-inline  T&  operator |= (T& a, T b) { return (T&)(  (U&)(a) |= (U )(b)); } \
-inline  T&  operator &= (T& a, T b) { return (T&)(  (U&)(a) &= (U )(b)); } \
-inline  T&  operator ^= (T& a, T b) { return (T&)(  (U&)(a) ^= (U )(b)); } \
-inline bool operator == (U  a, T b) { return             a  == (U )(b);  } \
-inline bool operator != (U  a, T b) { return             a  != (U )(b);  } \
-inline bool operator == (T  a, U b) { return        (U )(a) ==      b ;  } \
-inline bool operator != (T  a, U b) { return        (U )(a) !=      b ;  }
+inline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
+inline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
+inline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
+inline  T   operator ^  (T   a, T b) { return (T  )(  (U  )(a) ^  (U )(b)); } \
+inline  T & operator |= (T & a, T b) { return (T &)(  (U &)(a) |= (U )(b)); } \
+inline  T & operator &= (T & a, T b) { return (T &)(  (U &)(a) &= (U )(b)); } \
+inline  T & operator ^= (T & a, T b) { return (T &)(  (U &)(a) ^= (U )(b)); } \
+inline bool operator == (U   a, T b) { return               a  == (U )(b);  } \
+inline bool operator != (U   a, T b) { return               a  != (U )(b);  } \
+inline bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
+inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
 #define ENUMOPS1(T) ENUMOPS2(T, __underlying_type(T))
-//	All nice and dandy, but it uses a GCC extension for type traits because I can't include the type_traits.h header!
+//	All nice and dandy, but it uses a GCC extension for type traits because
+//   I can't include the type_traits.h header!
 
 #define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
 
@@ -161,6 +159,11 @@ typedef  int8_t    Int8;
 typedef  int16_t   Int16;
 typedef  int32_t   Int32;
 typedef  int64_t   Int64;
+
+typedef  int8_t   SInt8;
+typedef  int16_t  SInt16;
+typedef  int32_t  SInt32;
+typedef  int64_t  SInt64;
 
 typedef uint8_t   UInt8;
 typedef uint16_t  UInt16;

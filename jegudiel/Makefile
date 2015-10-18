@@ -1,4 +1,3 @@
-.PHONY: all amd64 smp no-smp install uninstall clean link build
 .SUFFIXES:  
 
 # Target
@@ -11,6 +10,11 @@ SOURCE_DIR	:= ./src
 BUILD_DIR	:= ./build
 INC_DIR		:= ./inc
 
+include ../Beelzebub.mk
+
+.PHONY: all install uninstall clean link build amd64 $(SETTINGS)
+#	I write 'amd64' and not '$(ARC)' so other architectures will error out.
+
 # Object Files
 OBJECTS		:= $(patsubst $(SOURCE_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SOURCE_DIR) -name "*.c"))
 OBJECTS		+= $(patsubst $(SOURCE_DIR)/%.s,$(BUILD_DIR)/%.s.o,$(shell find $(SOURCE_DIR) -name "*.s"))
@@ -22,7 +26,7 @@ include ../Toolchain.mk
 
 # Toolchain Flags
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
-CFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(INCFLAGS) -O0
+CFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0
 ASFLAGS		:= -f elf64
 LDFLAGS		:= -z max-page-size=0x1000
 
