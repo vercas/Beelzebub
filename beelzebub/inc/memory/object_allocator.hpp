@@ -86,7 +86,24 @@ namespace Beelzebub { namespace Memory
 
         /*  Constructors  */
 
-        ObjectAllocator() = default;
+        ObjectAllocator()
+            : AcquirePool( nullptr)
+            , EnlargePool(nullptr)
+            , ReleasePool(nullptr)
+            , ObjectSize(0)
+            , HeaderSize(0)
+            , FirstPool(nullptr)
+            , LastPool(nullptr)
+            , LinkageLock()
+            , AcquisitionLock()
+            , Capacity(0)
+            , FreeCount(0)
+            , PoolCount(0)
+            , CanReleaseAllPools(true)
+        {
+            //  This constructor is required because of the const fields.
+        }
+             
         ObjectAllocator(ObjectAllocator const &) = delete;
         ObjectAllocator & operator =(const ObjectAllocator &) = delete;
 
