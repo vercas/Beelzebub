@@ -74,16 +74,16 @@
 
 #ifdef __GNUC__
 
-#define __forceinline      inline  __attribute__((always_inline))
-#define __noinline         __attribute__((noinline))
+#define __forceinline      inline  __attribute__((__always_inline__))
+#define __noinline         __attribute__((__noinline__))
 
-#define __const            __attribute__((const))
-#define __cold             __attribute__((cold))
-#define __hot              __attribute__((hot))
-#define __noreturn         __attribute__((noreturn))
-#define __used             __attribute__((used))
-#define __unused           __attribute__((unused))
-#define __must_check       __attribute__((warn_unused_result))
+#define __const            __attribute__((__const__))
+#define __cold             __attribute__((__cold__))
+#define __hot              __attribute__((__hot__))
+#define __noreturn         __attribute__((__noreturn__))
+#define __used             __attribute__((__used__))
+#define __unused           __attribute__((__unused__))
+#define __must_check       __attribute__((__warn_unused_result__))
 #define __restrict         __restrict__
 
 #define likely(expr)       (__builtin_expect((expr), 1))
@@ -92,12 +92,12 @@
 #define __unreachable_code __builtin_unreachable()
 #define __prefetch         __builtin_prefetch
 
-#define __packed           __attribute__((packed))
+#define __packed           __attribute__((__packed__))
 #define __alignof(T)       __alignof__(T)
 
-#define __build_data       __attribute__((section(".build_data")))
+#define __build_data       __attribute__((__section__(".build_data")))
 
-#define __fastcall         __attribute__((fastcall))
+#define __fastcall         __attribute__((__fastcall__))
 //  To be used on IA-32 on *some* functions.
 
 #else
