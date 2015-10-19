@@ -10,6 +10,10 @@
 #include <tests/string.hpp>
 #endif
 
+#if __BEELZEBUB__TEST_OBJA
+#include <tests/object_allocator.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Memory;
@@ -23,7 +27,9 @@ Spinlock<> TerminalMessageLock;
 TerminalBase * Beelzebub::MainTerminal;
 bool Beelzebub::Scheduling;
 
+PageAllocator * Beelzebub::MainPageAllocator;
 MemoryManager * Beelzebub::BootstrapMemoryManager;
+
 Process Beelzebub::BootstrapProcess;
 Thread Beelzebub::BootstrapThread;
 
@@ -114,6 +120,14 @@ void Beelzebub::Main()
     MainTerminal->Write(">Testing string.h implementation...");
 
     TestStringLibrary();
+
+    MainTerminal->WriteLine(" Done.");
+#endif
+
+#ifdef __BEELZEBUB__TEST_OBJA
+    MainTerminal->Write(">Testing fixed-sized object allocator...");
+
+    TestObjectAllocator();
 
     MainTerminal->WriteLine(" Done.");
 #endif
