@@ -1,29 +1,31 @@
+#ifdef __BEELZEBUB__TEST_STR
+
 #include <tests/string.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
 
-const char * const tStrA = "";
-const char * const tStrB = "a";
-const char * const tStrC = "ab";
-const char * const tStrD = "abc";
-const char * const tStrE = "A";
-const char * const tStrF = "AB";
-const char * const tStrG = "ABC";
-const char * const tStrH = "0000000000000000000000000000";
-const char * const tStrI = "ABC";
-const char * const tStrJ = "";
+char const * const tStrA = "";
+char const * const tStrB = "a";
+char const * const tStrC = "ab";
+char const * const tStrD = "abc";
+char const * const tStrE = "A";
+char const * const tStrF = "AB";
+char const * const tStrG = "ABC";
+char const * const tStrH = "0000000000000000000000000000";
+char const * const tStrI = "ABC";
+char const * const tStrJ = "";
 
-const size_t tStrAlen = 0;
-const size_t tStrBlen = 1;
-const size_t tStrClen = 2;
-const size_t tStrDlen = 3;
-const size_t tStrElen = 1;
-const size_t tStrFlen = 2;
-const size_t tStrGlen = 3;
-const size_t tStrHlen = 28;
-const size_t tStrIlen = 3;
-const size_t tStrJlen = 0;
+size_t const tStrAlen = 0;
+size_t const tStrBlen = 1;
+size_t const tStrClen = 2;
+size_t const tStrDlen = 3;
+size_t const tStrElen = 1;
+size_t const tStrFlen = 2;
+size_t const tStrGlen = 3;
+size_t const tStrHlen = 28;
+size_t const tStrIlen = 3;
+size_t const tStrJlen = 0;
 
 Handle TestStringLibrary()
 {
@@ -111,3 +113,5 @@ assert(MCATS(str, name, Nlen, tseq) == (size_t)(expctd)                 \
 
     return HandleResult::Okay;
 }
+
+#endif
