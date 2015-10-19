@@ -13,6 +13,9 @@
 if unlikely(!(cond))                                                    \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, __VA_ARGS__); \
 } while (false)
+#define assert_or(cond, ...) if unlikely(!(cond))                       \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, __VA_ARGS__); \
+else if (false)
 
 //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
 #define msg(...) do {                                                   \
@@ -32,6 +35,8 @@ if unlikely(!(cond))                                                    \
 } while (false)
 #else
 #define assert(...) do {} while(false)
+#define assert_or(cond, ...) if unlikely(!(cond))
+
 #define msg(...) do {} while(false)
 #define msg_(...) do {} while(false)
 #endif
