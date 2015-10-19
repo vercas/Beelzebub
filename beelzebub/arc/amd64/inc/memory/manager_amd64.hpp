@@ -61,7 +61,7 @@ namespace Beelzebub { namespace Memory
         MemoryManagerAmd64(MemoryManagerAmd64 const &) = delete;
         MemoryManagerAmd64 & operator =(const MemoryManagerAmd64 &) = delete;
 
-        __bland __forceinline MemoryManagerAmd64(VirtualAllocationSpace * const vas)
+        __bland __forceinline explicit MemoryManagerAmd64(VirtualAllocationSpace * const vas)
             : Vas(vas)
             , UserLock()
             , UserHeapCursor(1 << 12)
