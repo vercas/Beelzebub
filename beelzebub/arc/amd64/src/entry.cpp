@@ -506,7 +506,7 @@ void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t f
 
 __cold __bland Handle HandleKernelModule(const size_t index, const jg_info_module_t * const module, const size_t size)
 {
-    msg("THIS IS THE KERNEL MODULE!");
+    msg("THIS IS THE KERNEL MODULE!%n");
 
     return HandleResult::Okay;
 }
