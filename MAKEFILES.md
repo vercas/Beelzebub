@@ -1,6 +1,6 @@
 ## Beelzebub's Makefiles
 
-All the settings for building Beelzebub are given in its makefiles.
+All the options for building Beelzebub are given in its makefiles.
 In other words, the whole build process can be controlled imperatively.
 
 ### Partial builds, full builds
@@ -24,7 +24,7 @@ The following architectures are currently supported in the makefiles:
 ### Configurations
 
 There are 3 available configurations so far: `release`, `profile` and `debug`.  
-`debug` is the default configuration. This is so that the other configurations, which may let some erroneous situations slip because assertions are not included.
+`debug` is the default configuration. This is so that the other configurations, which may let some erroneous situations slip because assertions are not included, require explicit targetting, hopefully making the user more aware of the situation.
 
 The following targets are used to choose the configuration:
 - `conf-profile` for `profile`;
@@ -43,7 +43,7 @@ They are all documented below.
 
 Decides whether the built components (bootloader[s], kernel, system-bound libraries, system-bound services and system-bound applications) support symmetric multiprocessing (multi-core, hyperthreaded, possibly multi-CPU) or not.  
 
-When SMP support is enabled, the bootloader will initialize APs, the kernel's SMP-related spinlocks will activate, TLB shootdowns will be broadcast to other CPUs, mutexes will be hybridized.  
+When SMP support is enabled, the bootloader will initialize APs, the kernel's SMP-related spinlocks will activate, TLB shootdowns will be broadcast to other cores and mutexes will be hybridized.  
 
 When SMP support is disabled, the bootloader will not attempt to initialize APs, the kernel's SMP-related spinlocks will be disabled (always appearing free), TLB shootdowns will not require any broadcasts and mutexes will be simpler.  
 
