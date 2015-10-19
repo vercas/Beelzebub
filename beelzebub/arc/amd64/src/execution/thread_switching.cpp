@@ -17,12 +17,12 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 {
     Handle res;
 
-    Process * thisProc = this->Owner;
-    Process * otherProc = other->Owner;
+    Process * const thisProc = this->Owner;
+    Process * const otherProc = other->Owner;
 
     msg("++ ");
 
-    int_cookie_t int_cookie = Cpu::PushDisableInterrupts();
+    int_cookie_t const int_cookie = Cpu::PushDisableInterrupts();
 
     msg("A");
 

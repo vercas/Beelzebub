@@ -11,5 +11,5 @@ namespace Beelzebub { namespace Execution
 {
     __bland void InitializeThreadState(Thread * const thread);
 
-    __bland __cold Handle InitializeBootstrapThread(Thread * const bst, Process * const bsp, MemoryManager * const bsmm);
+    __cold __bland __noinline Handle InitializeBootstrapThread(Thread * const bst, Process * const bsp, MemoryManager * const bsmm);
 }}
