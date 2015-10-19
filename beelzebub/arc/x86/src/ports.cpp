@@ -45,21 +45,21 @@ void SerialPort::Initialize() const
 
 /*  I/O  */
 
-uint8_t SerialPort::Read(const bool wait) const
+uint8_t SerialPort::Read(bool const wait) const
 {
 	if (wait) while (!this->CanRead()) ;
 
 	return Cpu::In8(this->BasePort);
 }
 
-void SerialPort::Write(const uint8_t val, const bool wait) const
+void SerialPort::Write(uint8_t const val, bool const wait) const
 {
 	if (wait) while (!this->CanWrite()) ;
 
 	Cpu::Out8(this->BasePort, val);
 }
 
-size_t SerialPort::ReadNtString(char * const buffer, const size_t size) const
+size_t SerialPort::ReadNtString(char * const buffer, size_t const size) const
 {
 	size_t i = 0;
 	char c;
@@ -72,10 +72,10 @@ size_t SerialPort::ReadNtString(char * const buffer, const size_t size) const
 	return i;
 }
 
-size_t SerialPort::WriteNtString(const char * const str) const
+size_t SerialPort::WriteNtString(char const * const str) const
 {
 	size_t i = 0, j;
-	const uint16_t p = this->BasePort;
+	uint16_t const p = this->BasePort;
 
 	while (str[i] != 0)
 	{
@@ -130,18 +130,18 @@ void ManagedSerialPort::Initialize()
 
 /*  I/O  */
 
-uint8_t ManagedSerialPort::Read(const bool wait)
+uint8_t ManagedSerialPort::Read(bool const wait)
 {
 	if (wait) while (!this->CanRead()) ;
 
-	const int_cookie_t int_cookie = (&this->ReadLock)->Acquire();
+	int_cookie_t const int_cookie = this->ReadLock.Acquire();
 
 	return Cpu::In8(this->BasePort);
 
-	(&this->ReadLock)->Release(int_cookie);
+	this->ReadLock.Release(int_cookie);
 }
 
-void ManagedSerialPort::Write(const uint8_t val, const bool wait)
+void ManagedSerialPort::Write(uint8_t const val, bool const wait)
 {
 	if (wait)
 		while (this->OutputCount >= SerialPort::QueueSize
@@ -149,20 +149,20 @@ void ManagedSerialPort::Write(const uint8_t val, const bool wait)
 	//	If the output count exceeds the queue size, I check whether I
 	//	can write or not. If I can, the count is reset anyway.
 
-    const int_cookie_t int_cookie = (&this->WriteLock)->Acquire();
+    int_cookie_t const int_cookie = this->WriteLock.Acquire();
 
 	Cpu::Out8(this->BasePort, val);
 	++this->OutputCount;
 
-	(&this->WriteLock)->Release(int_cookie);
+	this->WriteLock.Release(int_cookie);
 }
 
-size_t ManagedSerialPort::ReadNtString(char * const buffer, const size_t size)
+size_t ManagedSerialPort::ReadNtString(char * const buffer, size_t const size)
 {
 	size_t i = 0;
 	char c;
 
-    const int_cookie_t int_cookie = (&this->ReadLock)->Acquire();
+    int_cookie_t const int_cookie = this->ReadLock.Acquire();
 
 	do
 	{
@@ -171,24 +171,24 @@ size_t ManagedSerialPort::ReadNtString(char * const buffer, const size_t size)
 		buffer[i++] = c = Cpu::In8(this->BasePort);
 	} while (c != 0 && i < size);
 
-	(&this->ReadLock)->Release(int_cookie);
+	this->ReadLock.Release(int_cookie);
 
 	return i;
 }
 
-size_t ManagedSerialPort::WriteNtString(const char * const str)
+size_t ManagedSerialPort::WriteNtString(char const * const str)
 {
 	size_t i = 0, j;
-	const uint16_t p = this->BasePort;
+	uint16_t const p = this->BasePort;
 
-    const int_cookie_t int_cookie = (&this->WriteLock)->Acquire();
+    int_cookie_t const int_cookie = this->WriteLock.Acquire();
 
 	while (str[i] != 0)
 	{
 		while (this->OutputCount >= SerialPort::QueueSize
 		    && !this->CanWrite()) ;
 
-		const char * const tmp = str + i;
+		char const * const tmp = str + i;
 
 		for (j = 0; this->OutputCount < SerialPort::QueueSize && tmp[j] != 0; ++j, ++this->OutputCount)
 			Cpu::Out8(p, tmp[j]);
@@ -196,7 +196,7 @@ size_t ManagedSerialPort::WriteNtString(const char * const str)
 		i += j;
 	}
 
-	(&this->WriteLock)->Release(int_cookie);
+	this->WriteLock.Release(int_cookie);
 
 	return i;
 }
