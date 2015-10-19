@@ -320,6 +320,7 @@ namespace Beelzebub { namespace Synchronization
     typedef Atomic<uint64_t>   AtomicUInt64;
     typedef Atomic<bool>       AtomicBool;
     typedef Atomic<float>      AtomicFloat;
+    typedef Atomic<float>      AtomicSingle;
     typedef Atomic<double>     AtomicDouble;
     typedef Atomic<intptr_t>   AtomicIntPtr;
     typedef Atomic<uintptr_t>  AtomicUIntPtr;
