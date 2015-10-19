@@ -26,8 +26,8 @@ ObjectAllocator::ObjectAllocator(size_t const objectSize, size_t const objectAli
     : AcquirePool (acquirer)
     , EnlargePool(enlarger)
     , ReleasePool(releaser)
-    , ObjectSize(RoundUp(Minimum(objectSize, sizeof(FreeObject)), objectAlignment))
-    , HeaderSize(RoundUp(sizeof(ObjectPool), RoundUp(Minimum(objectSize, sizeof(FreeObject)), objectAlignment)))
+    , ObjectSize(RoundUp(Maximum(objectSize, sizeof(FreeObject)), objectAlignment))
+    , HeaderSize(RoundUp(sizeof(ObjectPool), RoundUp(Maximum(objectSize, sizeof(FreeObject)), objectAlignment)))
     , FirstPool(nullptr)
     , LastPool(nullptr)
     , LinkageLock()
@@ -47,7 +47,7 @@ Handle ObjectAllocator::AllocateObject(void * & result, size_t estimatedLeft)
     Handle res;
     ObjectAllocatorLockCookie volatile cookie;
 
-    ObjectPool * first = nullptr, * last = nullptr, * current = nullptr, * justAllocated = nullptr;
+    ObjectPool * first = nullptr, * volatile last = nullptr, * current = nullptr, * justAllocated = nullptr;
 
     //  First, let's make sure there is a first pool.
 firstPoolCheck:
@@ -77,6 +77,8 @@ firstPoolCheck:
             , this, res);
 
         ++this->PoolCount;
+        this->Capacity += justAllocated->Capacity;
+        this->FreeCount += justAllocated->FreeCount;
         //  We've got an extra pool!
 
         this->FirstPool = this->LastPool = justAllocated->Next = first = current = justAllocated;
@@ -134,11 +136,23 @@ poolLoop:
 
             if unlikely(freeCount == 0)
             {
+                obj_ind_t const oldCapacity = current->Capacity;
+
                 this->EnlargePool(this->ObjectSize, this->HeaderSize, estimatedLeft, current);
                 //  This function will release the lock on the object pool as soon as it can.
                 //  Also, its return value is not really relevant right now. If it fails,
                 //  there's nothing to do... This method call already succeeded. Next one will
                 //  have to do something else.
+
+                if (current->Capacity != oldCapacity)
+                {
+                    //  This means the pool was enlarged. Under no circumstances
+                    //  should it be shrunk.
+
+                    this->Capacity += current->Capacity - oldCapacity;
+                    this->FreeCount += current->FreeCount;
+                    //  The free count was 0 before enlarging.
+                }
             }
             else
             {
@@ -196,11 +210,15 @@ poolLoop:
             , this, res);
 
         ++this->PoolCount;
+        this->Capacity += justAllocated->Capacity;
+        this->FreeCount += justAllocated->FreeCount;
         //  We've got an extra pool!
 
         last->PropertiesLock.SimplyAcquire();
 
+        ObjectPool * volatile oldNext = last->Next;
         this->LastPool = last->Next = justAllocated;
+        justAllocated->Next = oldNext;
 
         this->AcquisitionLock.SimplyRelease();
         last->PropertiesLock.Release(cookie);
@@ -269,7 +287,10 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
     {
         if (current->Contains((uintptr_t)object, this->ObjectSize, this->HeaderSize))
         {
-            if (current->FreeCount > 1)
+            obj_ind_t const currentCapacity = current->Capacity;
+            obj_ind_t const busyCount = currentCapacity - current->FreeCount;
+
+            if (busyCount > 1)
             {
                 //  Free count greater than one means that the pool won't require removal
                 //  after this object is deallocated. Therefore, we can release the
@@ -279,6 +300,8 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                     previous->PropertiesLock.SimplyRelease();
                 else if (this->CanReleaseAllPools)
                     this->LinkageLock.SimplyRelease();
+
+                //  TODO: actual removal.
             }
             else
             {
@@ -293,6 +316,8 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                     if (res.IsOkayResult())
                     {
                         --this->PoolCount;
+                        this->Capacity -= currentCapacity;
+                        this->FreeCount -= currentCapacity - busyCount;
                         //  We've got an extra pool!
 
                         return HandleResult::Okay;

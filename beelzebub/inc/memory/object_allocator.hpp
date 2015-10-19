@@ -1,9 +1,15 @@
 #pragma once
 
+#ifdef __BEELZEBUB__TEST_OBJA
+#define private public
+#define protected public
+#endif
+
 #include <metaprogramming.h>
 #include <handles.h>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
@@ -20,6 +26,12 @@ namespace Beelzebub { namespace Memory
     /** <summary>Type used to represent the index of an object.</summary> */
     typedef uint32_t obj_ind_t;
 
+    /** <summary>A set of predefined object index values with special meanings.</summary> */
+    enum obj_ind_special : obj_ind_t
+    {
+        obj_ind_invalid = 0xFFFFFFFFU,
+    };
+
     /**
      *  <summary>Represents the contents of a free object in the object pool.</summary>
      */
@@ -27,6 +39,7 @@ namespace Beelzebub { namespace Memory
     {
         obj_ind_t Next;
     };
+    //  GCC makes this 8 bytes on AMD64. Have it your way, [female dog].
 
     /**
      *  <summary>Represents an area of memory where objects can be allocated.</summary>
@@ -111,6 +124,28 @@ namespace Beelzebub { namespace Memory
 
         /*  Methods  */
 
+        template<typename T>
+        __bland inline Handle AllocateObject(T * & result, size_t estimatedLeft = 1)
+        {
+            assert_or(sizeof(T) <= this->ObjectSize
+                , "Attempted to allocate an object of size %us on allocator "
+                  "%Xp with size %us!"
+                , sizeof(T), this, this->ObjectSize)
+            {
+                return HandleResult::ArgumentTemplateInvalid;
+            }
+            
+            //  Yes, smaller objects will be accepted.
+
+            void * pRes;
+
+            Handle hRes = this->AllocateObject(pRes, estimatedLeft);
+
+            result = (T *)pRes;
+
+            return hRes;
+        }
+
         __bland Handle AllocateObject(void * & result, size_t estimatedLeft = 1);
         __bland Handle DeallocateObject(void const * const object);
 
@@ -142,3 +177,8 @@ namespace Beelzebub { namespace Memory
         bool const CanReleaseAllPools;
     };
 }}
+
+#ifdef __BEELZEBUB__TEST_OBJA
+#undef private
+#undef protected
+#endif
