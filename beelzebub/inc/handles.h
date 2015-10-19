@@ -84,10 +84,12 @@ namespace Beelzebub
         //  Operation not implemented by the object/interface.
         NotImplemented            = 0x0AU, // Not Impl.
 
+        //  An argument given to a function/method has been given an invalid template argument.
+        ArgumentTemplateInvalid   = 0x10U, // Arg. T inv.
         //  An argument given to a function/method is outside of the expected/supported range.
-        ArgumentOutOfRange        = 0x10U, // Arg. OOR
+        ArgumentOutOfRange        = 0x11U, // Arg. OOR
         //  An argument given to a function/method shouldn't be null.
-        ArgumentNull              = 0x11U, // Arg. Null
+        ArgumentNull              = 0x12U, // Arg. Null
 
         //  An unknown format specifier was encountered in the format string.
         FormatBadSpecifier        = 0x20U, // Frm. BSpc.
