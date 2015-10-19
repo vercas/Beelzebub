@@ -266,6 +266,8 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
             , (uint16_t)currentSpaceLimit
             , (uint16_t)sizeof(PageAllocationSpace));//*/
 
+        MainPageAllocator = &mainAllocator;
+
         return &mainAllocationSpace;
     }
 }
