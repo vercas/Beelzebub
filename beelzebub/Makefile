@@ -38,7 +38,7 @@ GCCFLAGS	:= -ffreestanding -Wall -mcmodel=kernel
 GCCFLAGS	+= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 GCCFLAGS	+= -mno-red-zone -O2
 GCCFLAGS	+= -flto -nostdlib -lgcc -static-libgcc
-GCCFLAGS	+= -pipe
+GCCFLAGS	+= -pipe -Wstack-usage=1000
 
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
 
@@ -53,7 +53,7 @@ ASFLAGS		:=
 
 LOFLAGS		:= -flto -O2 -ffreestanding -Wall -mcmodel=kernel -mno-red-zone
 LOFLAGS		+= -nostdlib -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000
-LOFLAGS		+= -pipe
+LOFLAGS		+= -pipe -Wstack-usage=1000
 
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 
