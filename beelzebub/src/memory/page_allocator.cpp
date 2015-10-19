@@ -8,6 +8,25 @@ using namespace Beelzebub::Debug;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 
+/****************************
+    PageDescriptor struct
+****************************/
+
+/*  Reference count  */
+
+uint32_t PageDescriptor::DecrementReferenceCount()
+{
+    uint32_t const ret = this->ReferenceCount--;
+
+    //  A potentially inconvenient race condition was detected here by Griwes during
+    //  a code review. Cheers! :D
+
+    assert(ret > 0,
+        "Attempting to decrement reference count of a page count 0!");
+
+    return ret;
+}
+
 /*********************************
     PageAllocationSpace struct
 *********************************/

@@ -1,11 +1,9 @@
 #pragma once
 
-#include <metaprogramming.h>
-#include <debug.hpp>
-#include <kernel.hpp>
-#include <terminals/base.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
+#include <terminals/base.hpp>
+#include <metaprogramming.h>
 #include <handles.h>
 
 using namespace Beelzebub::Terminals;
@@ -137,18 +135,7 @@ namespace Beelzebub { namespace Memory
             return ++this->ReferenceCount;
         }
 
-        __bland __forceinline uint32_t DecrementReferenceCount()
-        {
-            uint32_t const ret = this->ReferenceCount--;
-
-            //  A potentially inconvenient race condition was detected here by Griwes during
-            //  a code review. Cheers! :D
-
-            assert(ret > 0,
-                "Attempting to decrement reference count of a page count 0!");
-
-            return ret;
-        }
+        __bland uint32_t DecrementReferenceCount();
 
         /*  Status  */
 
