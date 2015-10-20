@@ -7,15 +7,16 @@
 #include <kernel.hpp>
 #include <debug.hpp>
 
-#define REPETITION_COUNT ((size_t)5)
+#define REPETITION_COUNT ((size_t)20)
+//  Tested with this being 100... 1,010,100 iterations... Works badass!
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 
-Atomic<size_t> ObjectAllocatorTestJunction1 {0};
-Atomic<size_t> ObjectAllocatorTestJunction2 {0};
-Atomic<size_t> ObjectAllocatorTestJunction3 {0};
+SmpBarrier ObjectAllocatorTestBarrier1 {};
+SmpBarrier ObjectAllocatorTestBarrier2 {};
+SmpBarrier ObjectAllocatorTestBarrier3 {};
 
 struct TestStructure
 {
@@ -189,15 +190,13 @@ Handle TestObjectAllocator(bool const bsp)
         TESTDIFF(3, 4)
     }
 
-    --ObjectAllocatorTestJunction1;
-    while (ObjectAllocatorTestJunction1 > 0) ;
-    //  Wait for all cores to be synced.
+    ObjectAllocatorTestBarrier1.Reach();
 
     size_t volatile freeCount1 = testAllocator.GetFreeCount();
 
-    --ObjectAllocatorTestJunction2;
-    while (ObjectAllocatorTestJunction2 > 0) ;
-    //  Wait for all cores to be synced.
+    ObjectAllocatorTestBarrier2.Reach();
+
+    ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
 
     for (size_t x = REPETITION_COUNT; x > 0; --x)
     {
@@ -249,9 +248,9 @@ Handle TestObjectAllocator(bool const bsp)
             , tOA, 1 + REPETITION_COUNT - x, res);
     }
 
-    --ObjectAllocatorTestJunction3;
-    while (ObjectAllocatorTestJunction3 > 0) ;
-    //  Wait for all cores to be synced.
+    ObjectAllocatorTestBarrier3.Reach();
+
+    ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
 
     assert(freeCount1 == testAllocator.GetFreeCount()
         , "Allocator's free count has a shady value: %us, expected %us."

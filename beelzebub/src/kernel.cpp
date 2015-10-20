@@ -135,9 +135,9 @@ void Beelzebub::Main()
     MainTerminal->WriteLine("\\Halting indefinitely now.");
 
 #ifdef __BEELZEBUB__TEST_OBJA
-    ObjectAllocatorTestJunction1.Store(Cpu::Count);
-    ObjectAllocatorTestJunction2.Store(Cpu::Count);
-    ObjectAllocatorTestJunction3.Store(Cpu::Count);
+    ObjectAllocatorTestBarrier1.Reset();
+    ObjectAllocatorTestBarrier2.Reset();
+    ObjectAllocatorTestBarrier3.Reset();
 #endif
 
     TerminalMessageLock.Release();
