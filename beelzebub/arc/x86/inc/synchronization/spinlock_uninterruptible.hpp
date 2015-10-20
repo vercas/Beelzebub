@@ -82,7 +82,7 @@ namespace Beelzebub { namespace Synchronization
         {
             do
             {
-                asm volatile ("pause");
+                Cpu::DoNothing();
             } while (this->Value);
         }
 
@@ -94,7 +94,7 @@ namespace Beelzebub { namespace Synchronization
         {
             while (this->Value)
             {
-                asm volatile ("pause");
+                Cpu::DoNothing();
             }
         }
 
@@ -157,7 +157,7 @@ namespace Beelzebub { namespace Synchronization
 
     private:
 
-        spinlock_t Value; 
+        spinlock_t Value;
     };
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
