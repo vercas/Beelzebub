@@ -8,6 +8,7 @@
 #include <execution/thread.hpp>
 
 #include <system/cpuid.hpp>
+#include <synchronization/atomic.hpp>
 #include <metaprogramming.h>
 
 #define REGFUNC1(regl, regu, type)                                   \
@@ -96,9 +97,17 @@ namespace Beelzebub { namespace System
     {
     public:
 
+        /*  Properties  */
+
+#if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+        static size_t const Count = 1;
+#else
+        static Synchronization::Atomic<size_t> Count;
+#endif
+
         /*  Control  */
 
-        static const bool CanHalt = true;
+        static bool const CanHalt = true;
 
         static __bland __forceinline void Halt()
         {

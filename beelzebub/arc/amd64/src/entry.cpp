@@ -81,6 +81,10 @@ void kmain_bsp()
     bootstrapReady = false;
     //  Just makin' sure.
 
+#if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    Cpu::Count = 1;
+#endif
+
     IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
     keyboard_init();
     IsrHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
@@ -94,6 +98,10 @@ void kmain_ap()
 {
     while (!bootstrapReady) ;
     //  Await!
+
+#if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    ++Cpu::Count;
+#endif
 
     if (VirtualAllocationSpace::NX)
         Cpu::EnableNxBit();

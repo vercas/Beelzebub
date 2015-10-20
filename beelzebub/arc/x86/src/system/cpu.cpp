@@ -2,10 +2,17 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Synchronization;
 
 /****************
     Cpu class
 ****************/
+
+/*  Properties  */
+
+#if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
+Atomic<size_t> Cpu::Count {0};
+#endif
 
 /*  Operations  */
 
