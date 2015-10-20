@@ -81,7 +81,7 @@ void Beelzebub::Main()
     (&InitializationLock)->Release();
 
     //  Now every core will print.
-    (&TerminalMessageLock)->Acquire();
+    TerminalMessageLock.Acquire();
     MainTerminal->Write("+-- Core #");
     MainTerminal->WriteUIntD(Cpu::GetIndex());
     MainTerminal->WriteLine();
@@ -124,14 +124,6 @@ void Beelzebub::Main()
     MainTerminal->WriteLine(" Done.");
 #endif
 
-#ifdef __BEELZEBUB__TEST_OBJA
-    MainTerminal->Write(">Testing fixed-sized object allocator...");
-
-    TestObjectAllocator();
-
-    MainTerminal->WriteLine(" Done.");
-#endif
-
 #ifdef __BEELZEBUB__TEST_MT
     MainTerminal->Write(">Starting multitasking test...");
 
@@ -142,16 +134,34 @@ void Beelzebub::Main()
 
     MainTerminal->WriteLine("\\Halting indefinitely now.");
 
-    (&TerminalMessageLock)->Release();
+#ifdef __BEELZEBUB__TEST_OBJA
+    ObjectAllocatorTestJunction1.Store(Cpu::Count);
+    ObjectAllocatorTestJunction2.Store(Cpu::Count);
+    ObjectAllocatorTestJunction3.Store(Cpu::Count);
+#endif
+
+    TerminalMessageLock.Release();
+
+#ifdef __BEELZEBUB__TEST_OBJA
+    TerminalMessageLock.Acquire();
+    MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetIndex());
+    TerminalMessageLock.Release();
+
+    TestObjectAllocator(true);
+
+    TerminalMessageLock.Acquire();
+    MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetIndex());
+    TerminalMessageLock.Release();
+#endif
 
     //  Allow the CPU to rest.
     while (true)
     {
         if (Cpu::CanHalt) Cpu::Halt();
 
-        (&TerminalMessageLock)->Acquire();
+        TerminalMessageLock.Acquire();
         MainTerminal->WriteLine(">>-- Rehalting! --<<");
-        (&TerminalMessageLock)->Release();
+        TerminalMessageLock.Release();
     }
 }
 
@@ -166,7 +176,7 @@ void Beelzebub::Secondary()
     (&InitializationLock)->Spin();
 
     //  Now every core will print.
-    (&TerminalMessageLock)->Acquire();
+    TerminalMessageLock.Acquire();
     MainTerminal->Write("+-- Core #");
     MainTerminal->WriteUIntD(Cpu::GetIndex());
     MainTerminal->WriteLine();
@@ -183,7 +193,19 @@ void Beelzebub::Secondary()
 
     MainTerminal->WriteLine("\\Halting indefinitely now.");
 
-    (&TerminalMessageLock)->Release();
+    TerminalMessageLock.Release();
+
+#ifdef __BEELZEBUB__TEST_OBJA
+    TerminalMessageLock.Acquire();
+    MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetIndex());
+    TerminalMessageLock.Release();
+
+    TestObjectAllocator(false);
+
+    TerminalMessageLock.Acquire();
+    MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetIndex());
+    TerminalMessageLock.Release();
+#endif
 
     //  Allow the CPU to rest.
     while (true) if (Cpu::CanHalt) Cpu::Halt();
