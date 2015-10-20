@@ -625,7 +625,8 @@ namespace Beelzebub { namespace System
 
             asm volatile ( "pushf\n\t"
                            "pop %0\n\t"
-                           : "=rm"(flags) );
+                           : "=r"(flags) );
+            //  Push and pop don't change any flags. Yay!
 
             return (flags & (size_t)(1 << 9)) != 0;
         }
