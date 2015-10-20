@@ -114,6 +114,11 @@ namespace Beelzebub { namespace System
             asm volatile ( "hlt \n\t" );
         }
 
+        static __bland __forceinline void DoNothing()
+        {
+            asm volatile ( "pause \n\t" );
+        }
+
         /*  Caching  */
 
         static __bland __forceinline void WriteBackAndInvalidateCache()
