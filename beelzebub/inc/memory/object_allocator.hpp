@@ -75,6 +75,30 @@ namespace Beelzebub { namespace Memory
             return object >= start && object <= (start + (this->Capacity - 1) * objectSize);
         }
 
+        __bland inline bool Contains(const uintptr_t object, obj_ind_t & ind, const size_t objectSize, const size_t headerSize) const
+        {
+            uintptr_t const start = ((uintptr_t)this) + headerSize;
+
+            if likely(object > start)
+            {
+                uintptr_t const offset = (object - start) / objectSize;
+
+                if likely(offset < (uintptr_t)this->Capacity)
+                {
+                    ind = (obj_ind_t)offset;
+                    return true;
+                }
+            }
+
+            ind = obj_ind_invalid;
+            return false;
+        }
+
+        __bland __forceinline obj_ind_t IndexOf(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
+        {
+            return (obj_ind_t)((object - headerSize - ((uintptr_t)this)) / objectSize);
+        }
+
         __bland __forceinline FreeObject * GetFirstFreeObject(const size_t objectSize, const size_t headerSize) const
         {
             return (FreeObject *)(uintptr_t)((uintptr_t)this + headerSize + this->FirstFreeObject * objectSize);
@@ -84,7 +108,7 @@ namespace Beelzebub { namespace Memory
     typedef Handle (*AcquirePoolFunc)(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPool * & result);
     //  The acquiring code need not lock the object pool.
     typedef Handle (*EnlargePoolFunc)(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPool * pool);
-    //  The enlarging code should release the lock on the object pool as soon as it can.
+    //  The enlarging code will operate with a fully-locked pool and will leave it as such.
     typedef Handle (*ReleasePoolFunc)(size_t objectSize, size_t headerSize, ObjectPool * pool);
     //  The release code need not (un)lock the object poool.
 
@@ -146,17 +170,36 @@ namespace Beelzebub { namespace Memory
             return hRes;
         }
 
-        __bland Handle AllocateObject(void * & result, size_t estimatedLeft = 1);
-        __bland Handle DeallocateObject(void const * const object);
+        __hot __bland __noinline Handle AllocateObject(void * & result, size_t estimatedLeft = 1);
+        __hot __bland __noinline Handle DeallocateObject(void const * const object);
+        //  These are complex methods and GCC will not be intimidated.
+
+        /*  Properties  */
+
+        __bland __forceinline size_t GetCapacity() const
+        {
+            return this->Capacity.Load();
+        }
+
+        __bland __forceinline size_t GetFreeCount() const
+        {
+            return this->FreeCount.Load();
+        }
 
         /*  Parameters  */
+
+    private:
 
         AcquirePoolFunc AcquirePool;
         EnlargePoolFunc EnlargePool;
         ReleasePoolFunc ReleasePool;
 
+    public:
+
         size_t const ObjectSize;
         size_t const HeaderSize;
+
+    private:
 
         /*  Links  */
 

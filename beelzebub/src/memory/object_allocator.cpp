@@ -139,8 +139,7 @@ poolLoop:
                 obj_ind_t const oldCapacity = current->Capacity;
 
                 this->EnlargePool(this->ObjectSize, this->HeaderSize, estimatedLeft, current);
-                //  This function will release the lock on the object pool as soon as it can.
-                //  Also, its return value is not really relevant right now. If it fails,
+                //  Its return value is not really relevant right now. If it fails,
                 //  there's nothing to do... This method call already succeeded. Next one will
                 //  have to do something else.
 
@@ -152,12 +151,16 @@ poolLoop:
                     this->Capacity += current->Capacity - oldCapacity;
                     this->FreeCount += current->FreeCount;
                     //  The free count was 0 before enlarging.
+
+                    //  Also, this part is done under a lock to prevent the ABA
+                    //  problem. Perhaps, between unlocking this pool and executing
+                    //  this block, the core/thread was interrupted long/often enough
+                    //  to allow another one to fill this pool to capacity.
+                    //  Thus, both increments above would have wrong values!
                 }
             }
-            else
-            {
-                current->PropertiesLock.Release(cookie);
-            }
+
+            current->PropertiesLock.Release(cookie);
 
             result = obj;
 
@@ -263,6 +266,7 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
     ObjectAllocatorLockCookie volatile cookie;
 
     ObjectPool * first = nullptr, * current = nullptr, * previous = nullptr;
+    obj_ind_t ind = obj_ind_invalid;
 
     if (this->CanReleaseAllPools)
         cookie = this->LinkageLock.Acquire();
@@ -285,7 +289,7 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
 
     do
     {
-        if (current->Contains((uintptr_t)object, this->ObjectSize, this->HeaderSize))
+        if (current->Contains((uintptr_t)object, ind, this->ObjectSize, this->HeaderSize))
         {
             obj_ind_t const currentCapacity = current->Capacity;
             obj_ind_t const busyCount = currentCapacity - current->FreeCount;
@@ -300,30 +304,76 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                     previous->PropertiesLock.SimplyRelease();
                 else if (this->CanReleaseAllPools)
                     this->LinkageLock.SimplyRelease();
-
-                //  TODO: actual removal.
             }
             else
             {
                 //  Well, there's no point in updating the pool now, wasting precious CPU cycles on cache misses and
                 //  memory loads.
 
-                if (previous != nullptr || this->CanReleaseAllPools)
+                if (previous != nullptr || this->CanReleaseAllPools || this->PoolCount > 1)
                 {
-                    //  So, if there is a previois pool, or all pools can be released
+                    //  So, if there was a previous pool, this one can be removed.
+                    //  If all pools can be released, this one can be.
+                    //  If there's more than one pool, what the heck, let's remove it.
+
+                    //  If any other pool is in the process of being removed, its
+                    //  previous pool will be locked, which means that it cannot be
+                    //  removed at the same time. Thus, there's no ABA problem.
+
+                    ObjectPool * const next = unlikely(current == current->Next) ? nullptr : current->Next;
+                    //  If it's the only pool, next is null!
+
                     res = this->ReleasePool(this->ObjectSize, this->HeaderSize, current);
 
                     if (res.IsOkayResult())
                     {
+                        //  So, the pool is now removed. Let's update stuff.
+
+                        if (previous != nullptr)
+                        {
+                            //  If there was a previous pool, then `current->Next`
+                            //  is not equal to `current`.
+
+                            previous->Next = next;
+                            previous->PropertiesLock.SimplyRelease();
+                        }
+                        else
+                        {
+                            if (next != current)
+                                this->FirstPool = next;
+                            else
+                                this->FirstPool = nullptr;
+
+                            this->LinkageLock.SimplyRelease();
+                        }
+
                         --this->PoolCount;
                         this->Capacity -= currentCapacity;
                         this->FreeCount -= currentCapacity - busyCount;
-                        //  We've got an extra pool!
 
                         return HandleResult::Okay;
                     }
+
+                    //  Reaching this point means standard-issue removal.
                 }
             }
+
+            //  TODO: actual removal.
+
+            /*msg("!! Removing object %Xp from allocator %Xp, pool %Xp, at index %us !!%n"
+                , object, this, current, ind);//*/
+
+            FreeObject * const freeObject = (FreeObject *)(uintptr_t)object;
+
+            freeObject->Next = current->FirstFreeObject;
+            current->FirstFreeObject = ind;
+
+            ++current->FreeCount;
+
+            current->PropertiesLock.Release(cookie);
+            //  Release the current pool and restore interrupts.
+
+            return HandleResult::Okay;
         }
         else
         {
