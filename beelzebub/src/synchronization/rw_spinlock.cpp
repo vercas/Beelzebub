@@ -4,7 +4,7 @@
 using namespace Beelzebub::Synchronization;
 
 #ifdef __BEELZEBUB__DEBUG
-RwLock::~RwLock()
+/*RwSpinlock::~RwSpinlock()
 {
     //assert(this->Check(), "Spinlock (uninterruptible) @ %Xp was destructed while busy!", this);
 

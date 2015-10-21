@@ -1,118 +1,198 @@
 #pragma once
 
-#include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
 #include <system/cpu.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
-	//	The first version (on non-SMP builds) is dumbed down.
+    //  The first version (on non-SMP builds) is dumbed down.
 
-	struct RwLock
-	{
+    struct RwSpinlock
+    {
     public:
 
         /*  Constructor(s)  */
 
-        RwLock() = default;
-        RwLock(RwLock const &) = delete;
-        RwLock & operator =(RwLock const &) = delete;
+        RwSpinlock() = default;
+        RwSpinlock(RwSpinlock const &) = delete;
+        RwSpinlock & operator =(RwSpinlock const &) = delete;
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
 
-        /*  Operations  */
+        /*  Acquisition Operations  */
 
         /**
-         *  Resets the barrier, so it will open when the specified number
-         *  of cores reach it.
+         *  <summary>Acquires the lock as a reader.</summary>
          */
-        __bland __forceinline void Reset(size_t const coreCount = 1) volatile
+        __bland __forceinline void AcquireAsReader() volatile
         {
-            this->Value = 1;
+            this->ReaderCount = 1;
         }
 
         /**
-         *  Reach the barrier, awaiting for other cores if necessary.
+         *  <summary>Acquires the lock as the writer.</summary>
          */
-        __bland __forceinline void Reach() volatile
+        __bland __forceinline void AcquireAsWriter() volatile
         {
-            this.Value = 0;
+            //  Nuthin'.
+        }
+
+        /**
+         *  <summary>Upgrades a reader to the writer.</summary>
+         */
+        __bland __forceinline void UpgradeToWriter() volatile
+        {
+            this->ReaderCount = 0;
+        }
+
+        /*  Release Operations  */
+
+        /**
+         *  <summary>Releases the lock as a reader.</summary>
+         */
+        __bland __forceinline void ReleaseAsReader() volatile
+        {
+            this->ReaderCount = 0;
+        }
+
+        /**
+         *  <summary>Releases the lock as the writer.</summary>
+         */
+        __bland __forceinline void ReleaseAsWriter() volatile
+        {
+            //  Nuthin'.
+        }
+
+        /**
+         *  <summary>Downgrades the writer to a reader.</summary>
+         */
+        __bland __forceinline void DowngradeToReader() volatile
+        {
+            this->ReaderCount = 1;
         }
 
         /*  Properties  */
 
         /**
-         *  Checks whether the spinlock is free or not.
+         *  Gets the number of active readers.</summary>
+         *  <return>The number of active readers.</return>
          */
-        __bland __forceinline __must_check bool IsOpen() const volatile
+        __bland __forceinline __must_check size_t GetReaderCount() const volatile
         {
-            return this->Value == (size_t)0;
-        }
-
-        __bland __forceinline size_t GetValue() const volatile
-        {
-            return this->Value;
+            return (size_t)this->ReaderCount;
         }
 
         /*  Fields  */
 
     private:
 
-        size_t volatile Value;
+        char volatile ReaderCount;
 
 #else
 
-        /*  Operations  */
+        /*  Acquisition Operations  */
 
         /**
-         *  Resets the barrier, so it will open when all cores reach it.
+         *  <summary>Acquires the lock as a reader.</summary>
          */
-        __bland __forceinline void Reset() volatile
+        __bland inline void AcquireAsReader() volatile
         {
-            this->Value.Store(System::Cpu::Count);
+            while (this->Lock.TestSet())
+                Cpu::DoNothing();
+            //  Lock.
+
+            ++this->ReaderCount;
+            //  Add reader.
+
+            this->Lock.Clear();
+            //  Unlock.
         }
 
         /**
-         *  Resets the barrier, so it will open when the specified number
-         *  of cores reach it.
+         *  <summary>Acquires the lock as the writer.</summary>
          */
-        __bland __forceinline void Reset(size_t const coreCount) volatile
+        __bland inline void AcquireAsWriter() volatile
         {
-            this->Value.Store(coreCount);
+            while (this->Lock.TestSet())
+                Cpu::DoNothing();
+            //  Lock.
+
+            while (this->ReaderCount.Load() > 0)
+                Cpu::DoNothing();
+            //  Wait for all readers to finish.
         }
 
         /**
-         *  Reach the barrier, awaiting for other cores if necessary.
+         *  <summary>Upgrades a reader to the writer.</summary>
          */
-        __bland inline void Reach() volatile
+        __bland inline void UpgradeToWriter() volatile
         {
-            --this->Value;
+            this->Lock.TestSet();
+            //  Cannot fail.
 
-            while (this->Value)
-            	System::Cpu::DoNothing();
+            --this->ReaderCount;
+            //  Remove reader.
+
+            while (this->ReaderCount.Load() > 0)
+                Cpu::DoNothing();
+            //  Wait for the rest of the readers to finish.
+        }
+
+        /*  Release Operations  */
+
+        /**
+         *  <summary>Releases the lock as a reader.</summary>
+         */
+        __bland inline void ReleaseAsReader() volatile
+        {
+            --this->ReaderCount;
+            //  Remove reader.
+
+            //  Nothing else really needs to be done.
+        }
+
+        /**
+         *  <summary>Releases the lock as the writer.</summary>
+         */
+        __bland inline void ReleaseAsWriter() volatile
+        {
+            this->Lock.Clear();
+            //  Unlock.
+
+            //  Nothing else really needs to be done here either.
+        }
+
+        /**
+         *  <summary>Downgrades the writer to a reader.</summary>
+         */
+        __bland inline void DowngradeToReader() volatile
+        {
+            ++this->ReaderCount;
+            //  Add reader.
+
+            this->Lock.Clear();
+            //  Unlock.
+
+            //  That's it, folks.
         }
 
         /*  Properties  */
 
         /**
-         *  Checks whether the spinlock is free or not.
+         *  Gets the number of active readers.</summary>
+         *  <return>The number of active readers.</return>
          */
-        __bland __forceinline __must_check bool IsOpen() const volatile
+        __bland __forceinline __must_check size_t GetReaderCount() const volatile
         {
-            return this->Value == (size_t)0;
-        }
-
-        __bland __forceinline size_t GetValue() const volatile
-        {
-            return this->Value.Load();
+            return this->ReaderCount.Load();
         }
 
         /*  Fields  */
 
     private:
 
-        Atomic<size_t> volatile Readers; 
-        SpinlockUninterruptible<> Writer;
+        Atomic<size_t> volatile ReaderCount;
+        Atomic<bool> Lock;
 #endif
-	};
+    };
 }}
