@@ -59,7 +59,7 @@ __bland void InitializeCpuData()
     uintptr_t const loc = CpuDataBase.FetchAdd(Cpu::CpuDataSize);
     CpuData * data = (CpuData *)loc;
 
-    Cpu::WriteMsr(Msr::IA32_GS_BASE, (uint64_t)loc);
+    Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)loc);
 
     size_t const ind = CpuIndexCounter++;
 

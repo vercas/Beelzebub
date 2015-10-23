@@ -1,10 +1,7 @@
 #pragma once
 
 #include <metaprogramming.h>
-#include <system\isr.hpp>
-
-using namespace Beelzebub;
-using namespace Beelzebub::System;
+#include <system/isr.hpp>
 
 #define KEYBOARD_CODE_ESCAPED   0xE0
 #define KEYBOARD_CODE_LEFT      0x4B
@@ -39,4 +36,4 @@ __extern __bland void keyboard_send_command(uint8_t cmd);
  *
  * @param state state of the system
  */
-__extern __bland void keyboard_handler(IsrState * const state);
+__extern __bland void keyboard_handler(Beelzebub::System::IsrState * const state);

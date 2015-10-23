@@ -1,7 +1,9 @@
-#include <system/isr.hpp>
 #include <keyboard.hpp>
+#include <system/cpu.hpp>   //  Only used for task switching right now...
 #include <system/io_ports.hpp>
 #include <system/lapic.hpp>
+#include <system/isr.hpp>
+
 #include <kernel.hpp>
 #include <debug.hpp>
 

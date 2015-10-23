@@ -1,6 +1,6 @@
 #pragma once
 
-#include <system\cpu.hpp>
+#include <metaprogramming.h>
 
 namespace Beelzebub { namespace System {
     /**

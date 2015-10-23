@@ -4,6 +4,7 @@
 #include <system/registers.hpp>
 #include <system/registers_x86.hpp>
 #include <system/cpu_instructions.hpp>
+#include <system/msrs.hpp>
 
 #include <synchronization/spinlock.hpp>
 #include <execution/thread.hpp>
@@ -62,18 +63,6 @@ static __bland __forceinline type MCATS2(Get, regu)()                \
     return ret;                                                      \
 }
 
-#define MSRFUNC1(name, prettyName, type)                                  \
-static __bland __forceinline type MCATS2(Get, prettyName)()               \
-{                                                                         \
-    uint64_t temp = 0;                                                    \
-    ReadMsr(Msr::name, temp);                                             \
-    return type(temp);                                                    \
-}                                                                         \
-static __bland __forceinline void MCATS2(Set, prettyName)(const type val) \
-{                                                                         \
-    WriteMsr(Msr::name, val.Value);                                       \
-}
-
 namespace Beelzebub { namespace System
 {
     /**
@@ -122,74 +111,6 @@ namespace Beelzebub { namespace System
         REGFUNC1(cr2, Cr2, void *)
         REGFUNC2(cr3, Cr3, creg_t, Beelzebub::System::Cr3)
         REGFUNC1(cr4, Cr4, creg_t)
-
-        /*  MSRs  */
-
-        static __bland __forceinline MsrValue ReadMsr(const Msr reg)
-        {
-            uint32_t a, d;
-
-            asm volatile ( "rdmsr \n\t"
-                         : "=a" (a), "=d" (d)
-                         : "c" (reg) );
-
-            return {{d, a}};
-        }
-
-        static __bland __forceinline uint64_t ReadMsr64(const Msr reg)
-        {
-            uint32_t a, d;
-
-            asm volatile ( "rdmsr \n\t"
-                         : "=a" (a), "=d" (d)
-                         : "c" (reg) );
-
-            return (uint64_t)a | ((uint64_t)d << 32);
-        }
-
-        static __bland __forceinline void ReadMsr(const Msr reg, uint32_t & a, uint32_t & d)
-        {
-            asm volatile ( "rdmsr \n\t"
-                         : "=a" (a), "=d" (d)
-                         : "c" (reg) );
-        }
-
-        static __bland __forceinline void ReadMsr(const Msr reg, uint64_t & val)
-        {
-            uint32_t a, d;
-
-            asm volatile ( "rdmsr \n\t"
-                         : "=a" (a), "=d" (d)
-                         : "c" (reg) );
-
-            val = (uint64_t)a | ((uint64_t)d << 32);
-        }
-
-        static __bland __forceinline void WriteMsr(const Msr reg, const MsrValue val)
-        {
-            asm volatile ( "wrmsr \n\t"
-                         : 
-                         : "c" (reg), "a" (val.Dwords.Low), "d" (val.Dwords.High) );
-        }
-
-        static __bland __forceinline void WriteMsr(const Msr reg, const uint32_t a, const uint32_t d)
-        {
-            asm volatile ( "wrmsr \n\t"
-                         : 
-                         : "c" (reg), "a" (a), "d" (d) );
-        }
-
-        static __bland __forceinline void WriteMsr(const Msr reg, const uint64_t val)
-        {
-            register uint32_t a asm("eax") = (uint32_t)val;
-            register uint32_t d asm("edx") = (uint32_t)(val >> 32);
-
-            asm volatile ( "wrmsr \n\t"
-                         : 
-                         : "c" (reg), "a" (a), "d" (d) );
-        }
-
-        MSRFUNC1(IA32_EFER, EFER, Ia32Efer)
 
         /*  Shortcuts  */
 
