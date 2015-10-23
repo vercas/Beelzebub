@@ -1,7 +1,7 @@
 #pragma once
 
 #include <synchronization/atomic.hpp>
-#include <system/cpu.hpp>
+#include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
@@ -98,7 +98,7 @@ namespace Beelzebub { namespace Synchronization
         __bland inline void AcquireAsReader() volatile
         {
             while (this->Lock.TestSet())
-                Cpu::DoNothing();
+                System::CpuInstructions::DoNothing();
             //  Lock.
 
             ++this->ReaderCount;
@@ -114,11 +114,11 @@ namespace Beelzebub { namespace Synchronization
         __bland inline void AcquireAsWriter() volatile
         {
             while (this->Lock.TestSet())
-                Cpu::DoNothing();
+                System::CpuInstructions::DoNothing();
             //  Lock.
 
             while (this->ReaderCount.Load() > 0)
-                Cpu::DoNothing();
+                System::CpuInstructions::DoNothing();
             //  Wait for all readers to finish.
         }
 
@@ -134,7 +134,7 @@ namespace Beelzebub { namespace Synchronization
             //  Remove reader.
 
             while (this->ReaderCount.Load() > 0)
-                Cpu::DoNothing();
+                System::CpuInstructions::DoNothing();
             //  Wait for the rest of the readers to finish.
         }
 

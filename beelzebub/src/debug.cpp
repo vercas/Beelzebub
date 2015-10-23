@@ -1,5 +1,6 @@
 #include <debug.hpp>
-#include <system/cpu.hpp>
+#include <system/cpu_instructions.hpp>
+#include <system/interrupts.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -39,10 +40,10 @@ namespace Beelzebub { namespace Debug
             (&MsgSpinlock)->Release();
         }
 
-        Cpu::DisableInterrupts();
+        Interrupts::Disable();
 
         //  Allow the CPU to rest.
-        while (true) if (Cpu::CanHalt) Cpu::Halt();
+        while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 
         __unreachable_code;
     }
@@ -73,10 +74,10 @@ namespace Beelzebub { namespace Debug
             (&MsgSpinlock)->Release();
         }
 
-        Cpu::DisableInterrupts();
+        Interrupts::Disable();
 
         //  Allow the CPU to rest... IN PEACE! :OOOOooOO00OOoO
-        while (true) if (Cpu::CanHalt) Cpu::Halt();
+        while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 
         __unreachable_code;
     }

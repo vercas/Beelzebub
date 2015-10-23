@@ -1,7 +1,7 @@
 /*
  *  Code taken from http://wiki.osdev.org/C%2B%2B
  *
- *  Its copyright(s) and licens(e) may be found there.
+ *  Its copyright(s) and licens(es) may be found there.
  */
 
 #include <icxxabi.h>

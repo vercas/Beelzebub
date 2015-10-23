@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metaprogramming.h>
+#include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
@@ -64,7 +64,7 @@ namespace Beelzebub { namespace Synchronization
         {
             do
             {
-                asm volatile ("pause");
+                System::CpuInstructions::DoNothing();
             } while (this->Value);
         }
 
@@ -76,7 +76,7 @@ namespace Beelzebub { namespace Synchronization
         {
             while (this->Value)
             {
-                asm volatile ("pause");
+                System::CpuInstructions::DoNothing();
             }
         }
 

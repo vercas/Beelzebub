@@ -2,11 +2,10 @@
 
 #include "stdarg.h"
 
-#include <metaprogramming.h>
-#include <handles.h>
+#include <terminals/base.hpp>
 #include <synchronization/spinlock.hpp>
 
-#include <kernel.hpp>
+//  NOTE: debug_arch.hpp is included near the end.
 
 #ifdef __BEELZEBUB__DEBUG
 #define assert(cond, ...) do {                                          \
@@ -41,40 +40,38 @@ else if (false)
 #define msg_(...) do {} while(false)
 #endif
 
-using namespace Beelzebub::Synchronization;
-
 namespace Beelzebub { namespace Debug
 {
-    extern TerminalBase * DebugTerminal;
+    extern Terminals::TerminalBase * DebugTerminal;
 
-    extern Spinlock<> MsgSpinlock;
+    extern Synchronization::Spinlock<> MsgSpinlock;
 
-    __cold __bland __noinline __noreturn void CatchFire(const char * const file
-                                                      , const size_t line
-                                                      , const char * const msg);
+    __cold __bland __noinline __noreturn void CatchFire(char const * const file
+                                                      , size_t const line
+                                                      , char const * const msg);
 
-    __cold __bland __noinline __noreturn void CatchFire(const char * const file
-                                                      , const size_t line
-                                                      , const char * const fmt, va_list args);
+    __cold __bland __noinline __noreturn void CatchFire(char const * const file
+                                                      , size_t const line
+                                                      , char const * const fmt, va_list args);
 
-    __cold __bland __noinline __noreturn void CatchFireFormat(const char * const file
-                                                            , const size_t line
-                                                            , const char * const fmt, ...);
+    __cold __bland __noinline __noreturn void CatchFireFormat(char const * const file
+                                                            , size_t const line
+                                                            , char const * const fmt, ...);
 
-    __bland __noinline void Assert(const bool condition
-                                 , const char * const file
-                                 , const size_t line
-                                 , const char * const msg);
+    __bland __noinline void Assert(bool const condition
+                                 , char const * const file
+                                 , size_t const line
+                                 , char const * const msg);
 
-    __bland __noinline void Assert(const bool condition
-                                 , const char * const file
-                                 , const size_t line
-                                 , const char * const msg, va_list args);
+    __bland __noinline void Assert(bool const condition
+                                 , char const * const file
+                                 , size_t const line
+                                 , char const * const msg, va_list args);
 
-    __bland __noinline void AssertFormat(const bool condition
-                                       , const char * const file
-                                       , const size_t line
-                                       , const char * const fmt, ...);
+    __bland __noinline void AssertFormat(bool const condition
+                                       , char const * const file
+                                       , size_t const line
+                                       , char const * const fmt, ...);
 }}
 
 #include <debug_arch.hpp>

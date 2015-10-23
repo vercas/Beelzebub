@@ -22,7 +22,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     msg("++ ");
 
-    int_cookie_t const int_cookie = Cpu::PushDisableInterrupts();
+    int_cookie_t const int_cookie = Interrupts::PushDisable();
 
     msg("A");
 
@@ -34,7 +34,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
         if (!res.IsOkayResult())
         {
-            Cpu::RestoreInterruptState(int_cookie);
+            Interrupts::RestoreState(int_cookie);
 
             return res;
         }
@@ -59,7 +59,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     msg("C");
 
-    Cpu::RestoreInterruptState(int_cookie);
+    Interrupts::RestoreState(int_cookie);
     //  Doing this (restoring the interrupt state after switching BACK to
     //  this thread) makes me question my sanity and the integrity of the
     //  spacetime fabric in our perceptible dimensions of reality.

@@ -1,26 +1,27 @@
-#include <architecture.h>
-#include <entry.h>
+#include <synchronization/atomic.hpp>
 #include <memory/manager_amd64.hpp>
 #include <memory/virtual_allocator.hpp>
 #include <memory/paging.hpp>
+#include <memory/page_allocator.hpp>
 #include <system/cpu.hpp>
 #include <system/cpuid.hpp>
 #include <system/lapic.hpp>
+#include <system/exceptions.hpp>
+#include <system/interrupts.hpp>
+#include <system/isr.hpp>
+#include <terminals/serial.hpp>
+#include <terminals/vbe.hpp>
 
 #include <jegudiel.h>
 #include <multiboot.h>
-#include <system\isr.hpp>
 #include <keyboard.hpp>
 
-#include <terminals/serial.hpp>
-#include <terminals/vbe.hpp>
-#include <memory/page_allocator.hpp>
-#include <system/exceptions.hpp>
 #include <kernel.hpp>
 #include <debug.hpp>
+#include <architecture.h>
+#include <entry.h>
 #include <math.h>
 #include <string.h>
-#include <synchronization/atomic.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -68,7 +69,7 @@ __bland void InitializeCpuData()
     data->HeapSpinlockPointer = (Spinlock<> *)&data->HeapSpinlock;
 
     assert(Cpu::GetIndex() == ind
-        , "Failed to set CPU index..? It should be %us but it %us is returned."
+        , "Failed to set CPU index..? It should be %us but %us is returned."
         , ind, Cpu::GetIndex());
 
     //msg("-- Core #%us @ %Xp. --%n", ind, gs_base);
@@ -139,7 +140,10 @@ TerminalBase * InitializeTerminalProto()
 
     //Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
 
-    msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n", (uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
+    msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
+        , (uintptr_t)mbi->framebuffer_addr
+        , (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height
+        , (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
 
     /*msg(" vbe_control_info: %X4%n", mbi->vbe_control_info);
     msg(" vbe_mode_info: %X4%n", mbi->vbe_mode_info);
@@ -595,7 +599,7 @@ Handle InitializeMemory()
 
     initialVbeTerminal.WriteLine();
 
-    Cpu::WriteBackAndInvalidateCache();
+    CpuInstructions::WriteBackAndInvalidateCache();
 
     return HandleResult::Okay;
 }
@@ -642,7 +646,7 @@ __hot __bland void * TestThreadEntryPoint(void * const arg)
 
         msg("Printing from thread %Xp! (%C)%n", activeThread, myChars);
 
-        Cpu::Halt();
+        CpuInstructions::Halt();
     }
 }
 

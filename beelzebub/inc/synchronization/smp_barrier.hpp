@@ -2,6 +2,7 @@
 
 #include <synchronization/atomic.hpp>
 #include <system/cpu.hpp>
+#include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
@@ -88,7 +89,7 @@ namespace Beelzebub { namespace Synchronization
             --this->Value;
 
             while (this->Value)
-            	System::Cpu::DoNothing();
+            	System::CpuInstructions::DoNothing();
         }
 
         /*  Properties  */

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <system/cpu.hpp>
+#include <system/io_ports.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/isr.hpp>
 #include <metaprogramming.h>
@@ -43,14 +43,14 @@ namespace Beelzebub { namespace Ports
         //  True if the serial port can be read from.
         __bland __forceinline bool CanRead() const
         {
-            return 0 != (Cpu::In8(this->BasePort + 5) & 0x01);
+            return 0 != (Io::In8(this->BasePort + 5) & 0x01);
             //  Bit 0 of the line status register.
         }
 
         //  True if the serial port can be written to.
         __bland __forceinline bool CanWrite() const
         {
-            return 0 != (Cpu::In8(this->BasePort + 5) & 0x20);
+            return 0 != (Io::In8(this->BasePort + 5) & 0x20);
             //  Bit 5 of the line status register.
         }
 
@@ -117,7 +117,7 @@ namespace Beelzebub { namespace Ports
         //  True if the serial port can be read from.
         __bland __forceinline bool CanRead() const
         {
-            return 0 != (Cpu::In8(this->BasePort + 5) & 0x01);
+            return 0 != (Io::In8(this->BasePort + 5) & 0x01);
             //  Bit 0 of the line status register.
         }
 
@@ -125,7 +125,7 @@ namespace Beelzebub { namespace Ports
         //  Also resets the output count if possible.
         __bland __forceinline bool CanWrite()
         {
-            if (0 != (Cpu::In8(this->BasePort + 5) & 0x20))
+            if (0 != (Io::In8(this->BasePort + 5) & 0x20))
             {
                 //  Bit 5 of the line status register.
 

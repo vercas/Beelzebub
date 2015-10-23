@@ -1,4 +1,5 @@
 #include <system/cpu.hpp>
+#include <system/interrupts.hpp>
 #include <synchronization/spinlock.hpp>
 #include <kernel.hpp>
 #include <debug.hpp>
@@ -88,9 +89,9 @@ void Beelzebub::Main()
 
     //  Enable interrupts so they can run.
     MainTerminal->Write("|[....] Enabling interrupts...");
-    Cpu::EnableInterrupts();
+    Interrupts::Enable();
 
-    if (Cpu::InterruptsEnabled())
+    if (Interrupts::AreEnabled())
         MainTerminal->WriteLine(" Done.\r|[OKAY]");
         //  Can never bee too sure.
     else
@@ -157,7 +158,7 @@ void Beelzebub::Main()
     //  Allow the CPU to rest.
     while (true)
     {
-        if (Cpu::CanHalt) Cpu::Halt();
+        if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 
         TerminalMessageLock.Acquire();
         MainTerminal->WriteLine(">>-- Rehalting! --<<");
@@ -183,9 +184,9 @@ void Beelzebub::Secondary()
 
     //  Enable interrupts so they can run.
     MainTerminal->Write("|[....] Enabling interrupts...");
-    Cpu::EnableInterrupts();
+    Interrupts::Enable();
 
-    if (Cpu::InterruptsEnabled())
+    if (Interrupts::AreEnabled())
         MainTerminal->WriteLine(" Done.\r|[OKAY]");
     else
         MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
@@ -208,5 +209,5 @@ void Beelzebub::Secondary()
 #endif
 
     //  Allow the CPU to rest.
-    while (true) if (Cpu::CanHalt) Cpu::Halt();
+    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 }

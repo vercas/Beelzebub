@@ -5,11 +5,9 @@
 
 #pragma once
 
-#include <metaprogramming.h>
-#include <system/cpu.hpp>
-
-using namespace Beelzebub;
-using namespace Beelzebub::System;
+#include <system/interrupts.hpp>
+#include <system/interrupts.hpp>
+#include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
@@ -63,12 +61,12 @@ namespace Beelzebub { namespace Synchronization
          */
         __bland __forceinline __must_check bool TryAcquire(int_cookie_t & int_cookie) volatile
         {
-            int_cookie = Cpu::PushDisableInterrupts();
+            int_cookie = System::Interrupts::PushDisable();
 
             spinlock_t oldValue = __sync_lock_test_and_set(&this->Value, 1);
 
             if (oldValue != 0)
-                Cpu::RestoreInterruptState(int_cookie);
+                System::Interrupts::RestoreState(int_cookie);
             //  If the spinlock was already locked, restore interrupt state.
 
             return !oldValue;
@@ -82,7 +80,7 @@ namespace Beelzebub { namespace Synchronization
         {
             do
             {
-                Cpu::DoNothing();
+                System::CpuInstructions::DoNothing();
             } while (this->Value);
         }
 
@@ -94,7 +92,7 @@ namespace Beelzebub { namespace Synchronization
         {
             while (this->Value)
             {
-                Cpu::DoNothing();
+                System::CpuInstructions::DoNothing();
             }
         }
 
@@ -103,7 +101,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __bland __forceinline __must_check int_cookie_t Acquire() volatile
         {
-            const int_cookie_t int_cookie = Cpu::PushDisableInterrupts();
+            const int_cookie_t int_cookie = System::Interrupts::PushDisable();
 
             while (__sync_lock_test_and_set(&this->Value, 1))
                 this->Spin();
@@ -127,7 +125,7 @@ namespace Beelzebub { namespace Synchronization
         {
             __sync_lock_release(&this->Value);
 
-            Cpu::RestoreInterruptState(int_cookie);
+            System::Interrupts::RestoreState(int_cookie);
         }
 
         /**
@@ -183,7 +181,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __bland __forceinline __must_check bool TryAcquire(int_cookie_t & int_cookie) const volatile
         {
-            int_cookie = Cpu::PushDisableInterrupts();
+            int_cookie = System::Interrupts::PushDisable();
 
             return true;
         }
@@ -211,7 +209,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __bland __forceinline __must_check int_cookie_t Acquire() const volatile
         {
-            return Cpu::PushDisableInterrupts();
+            return System::Interrupts::PushDisable();
         }
 
         /**
@@ -227,7 +225,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __bland __forceinline void Release(int_cookie_t const int_cookie) const volatile
         {
-            Cpu::RestoreInterruptState(int_cookie);
+            System::Interrupts::RestoreState(int_cookie);
         }
 
         /**
