@@ -1,4 +1,4 @@
-#include <system/isr.hpp>
+#include <_print/isr.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -9,9 +9,7 @@ using namespace Beelzebub::Terminals;
     IsrState Struct
 **********************/
 
-/*  Debug  */
-
-TerminalWriteResult IsrState::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult Beelzebub::System::PrintToTerminal(TerminalBase * const term, IsrState const * const val)
 {
     return term->WriteFormat("ISR state %Xp:%n"
         "\tStack Segment: %X2%n"
@@ -22,17 +20,17 @@ TerminalWriteResult IsrState::PrintToTerminal(TerminalBase * const term) const
         "\t----%n"
         "\tVector: %u1%n"
         "\tError Code: %Xs%n"
-        , this
-        , (uint16_t)this->SS
-        , (uint16_t)this->CS
-        , this->RSP
-        , this->RIP
-        , this->RFLAGS
-        , (uint8_t)this->Vector
-        , this->ErrorCode);
+        , val
+        , (uint16_t)val->SS
+        , (uint16_t)val->CS
+        , val->RSP
+        , val->RIP
+        , val->RFLAGS
+        , (uint8_t)val->Vector
+        , val->ErrorCode);
 }
 
-TerminalWriteResult IsrState::PrintToDebugTerminal() const
+TerminalWriteResult Beelzebub::System::PrintToDebugTerminal(IsrState const * const val)
 {
-    return this->PrintToTerminal(Beelzebub::Debug::DebugTerminal);
+    return PrintToTerminal(Beelzebub::Debug::DebugTerminal, val);
 }

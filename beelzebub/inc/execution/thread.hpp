@@ -2,7 +2,6 @@
 
 #include <execution/process.hpp>
 #include <execution/thread_state.hpp>
-#include <handles.h>
 
 namespace Beelzebub { namespace Execution
 {
@@ -19,7 +18,7 @@ namespace Beelzebub { namespace Execution
 
         Thread() = default;
         Thread(Thread const &) = delete;
-        Thread & operator =(const Thread &) = delete;
+        Thread & operator =(Thread const &) = delete;
 
         /*  Operations  */
 

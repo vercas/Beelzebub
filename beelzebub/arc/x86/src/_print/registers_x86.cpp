@@ -1,8 +1,9 @@
-#include <system/registers_x86_print.hpp>
+#include <_print/registers_x86.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Terminals;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
 
 /**********************
     Ia32Efer Struct
@@ -22,4 +23,9 @@ TerminalWriteResult Beelzebub::System::PrintToTerminal(TerminalBase * const term
         str[29] = '1';
 
     return term->Write(str);
+}
+
+TerminalWriteResult Beelzebub::System::PrintToDebugTerminal(Ia32Efer const val)
+{
+    return PrintToTerminal(Beelzebub::Debug::DebugTerminal, val);
 }

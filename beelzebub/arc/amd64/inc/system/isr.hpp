@@ -1,10 +1,6 @@
 #pragma once
 
 #include <metaprogramming.h>
-#include <terminals/base.hpp>
-
-using namespace Beelzebub;
-using namespace Beelzebub::Terminals;
 
 namespace Beelzebub { namespace System
 {
@@ -43,11 +39,6 @@ namespace Beelzebub { namespace System
         uint64_t RFLAGS;
         uint64_t RSP;
         uint64_t SS;
-
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
-        __cold __bland TerminalWriteResult PrintToDebugTerminal() const;
     } __packed;
 }}
 

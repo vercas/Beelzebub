@@ -1,6 +1,5 @@
 #pragma once
 
-#include <metaprogramming.h>
 #include <system/isr.hpp>
 
 using namespace Beelzebub::System;

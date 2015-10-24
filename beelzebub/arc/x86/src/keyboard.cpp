@@ -1,4 +1,5 @@
 #include <keyboard.hpp>
+
 #include <system/cpu.hpp>   //  Only used for task switching right now...
 #include <system/io_ports.hpp>
 #include <system/lapic.hpp>
@@ -6,6 +7,7 @@
 
 #include <kernel.hpp>
 #include <debug.hpp>
+#include <_print/isr.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -65,7 +67,7 @@ void keyboard_handler(IsrState * const state)
                 activeThread->State = *state;
 
                 msg("PRE-SWITCH ");
-                state->PrintToDebugTerminal();
+                PrintToDebugTerminal(state);
                 msg("%n");
 
                 msg("(( AT=%Xp; N=%Xp; P=%Xp; BST=%B ))%n", activeThread, activeThread->Next, activeThread->Previous, activeThread == &BootstrapThread);
@@ -73,7 +75,7 @@ void keyboard_handler(IsrState * const state)
                 activeThread->SwitchToNext(state);
 
                 msg("%nPOST-SWITCH ");
-                state->PrintToDebugTerminal();
+                PrintToDebugTerminal(state);
                 msg("%n");
             }
 

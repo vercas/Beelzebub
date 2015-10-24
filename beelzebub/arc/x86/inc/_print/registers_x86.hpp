@@ -6,4 +6,5 @@
 namespace Beelzebub { namespace System
 {
     __cold __bland __noinline Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term, Ia32Efer const val);
+    __cold __bland __noinline Terminals::TerminalWriteResult PrintToDebugTerminal(Ia32Efer const val);
 }}

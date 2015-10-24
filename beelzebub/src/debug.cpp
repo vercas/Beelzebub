@@ -5,6 +5,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
+using namespace Beelzebub::Terminals;
 
 Spinlock<> Beelzebub::Debug::MsgSpinlock;
 TerminalBase * Beelzebub::Debug::DebugTerminal;

@@ -1,14 +1,14 @@
 #pragma once
 
+#include <memory/manager.hpp>
 #include <handles.h>
-#include <memory\manager.hpp>
 
 using namespace Beelzebub::Memory;
 
 namespace Beelzebub { namespace Execution
 {
     /**
-     *  A unit of execution.
+     *  A unit of isolation.
      */
     class Process
     {
@@ -18,7 +18,7 @@ namespace Beelzebub { namespace Execution
 
         Process() = default;
         Process(Process const &) = delete;
-        Process & operator =(const Process &) = delete;
+        Process & operator =(Process const &) = delete;
 
         /*  Operations  */
 
