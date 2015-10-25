@@ -73,10 +73,10 @@ namespace Beelzebub { namespace System
         {
             int_cookie_t cookie;
 
-            asm volatile ( "pushf  \n\t"
-                           "cli    \n\t" // Yes, do it as soon as possible, to avoid interruption.
-                           "pop %0 \n\t"
-                         : "=r"(cookie)
+            asm volatile ( "pushf      \n\t"
+                           "cli        \n\t" // Yes, do it as soon as possible, to avoid interruption.
+                           "pop %[dst] \n\t"
+                         : [dst]"=r"(cookie)
                          :
                          : "memory");
             
@@ -95,10 +95,10 @@ namespace Beelzebub { namespace System
          */
         static __bland __forceinline bool RestoreState(const int_cookie_t cookie)
         {
-            asm volatile ( "push %0 \n\t"   //  PUT THE COOKIE DOWN!
-                           "popf    \n\t"
+            asm volatile ( "push %[src] \n\t"   //  PUT THE COOKIE DOWN!
+                           "popf        \n\t"
                          :
-                         : "rm"(cookie)
+                         : [src]"rm"(cookie)
                          : "memory", "cc" );
 
             //  Here the cookie can safely be retrieved from the stack because RSP will change after

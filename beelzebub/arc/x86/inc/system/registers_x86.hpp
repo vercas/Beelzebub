@@ -69,6 +69,11 @@ namespace Beelzebub { namespace System
         static uint64_t const LongModeActiveBit   = 1ULL << 10;
         static uint64_t const NonExecuteEnableBit = 1ULL << 11;
 
+        static uint64_t const SyscallEnableBitIndex       =  0;
+        static uint64_t const LongModeEnableBitIndex      =  8;
+        static uint64_t const LongModeActiveBitIndex      = 10;
+        static uint64_t const NonExecuteEnableBitIndex    = 11;
+
         /*  Constructors  */
 
         /**

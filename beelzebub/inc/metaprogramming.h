@@ -54,29 +54,55 @@
 
 /*  Bit properties!!1!  */
 
-#ifndef BITPROPRO
-//  Creates a getter for bit-based properties.
-#define BITPROPRO(name, value)                               \
-__bland __forceinline bool MCATS2(Get, name)() const         \
-{                                                            \
-    return 0 != (this->value & MCATS2(name, Bit));           \
-}
-#endif
+#ifdef __cplusplus
+    #ifndef BITPROPRO
+        //  Creates a getter for bit-based properties   .
+        #define BITPROPRO(name, value)                                      \
+        __bland __forceinline bool MCATS(Get, name)() const                 \
+        {                                                                   \
+            return 0 != (this->value & MCATS(name, Bit));                   \
+        }
+    #endif
 
-#ifndef BITPROPRW
-//  Creates a getter and setter for bit-based properties.
-#define BITPROPRW(name, value)                               \
-__bland __forceinline bool MCATS2(Get, name)() const         \
-{                                                            \
-    return 0 != (this->value & MCATS2(name, Bit));           \
-}                                                            \
-__bland __forceinline void MCATS2(Set, name)(bool const val) \
-{                                                            \
-    if (val)                                                 \
-        this->value |=  MCATS2(name, Bit);                   \
-    else                                                     \
-        this->value &= ~MCATS2(name, Bit);                   \
-}
+    #ifndef BITPROPRW
+        //  Creates a getter and setter for bit-based properties.
+        #define BITPROPRW(name, value)                                      \
+        __bland __forceinline bool MCATS(Get, name)() const                 \
+        {                                                                   \
+            return 0 != (this->value & MCATS(name, Bit));                   \
+        }                                                                   \
+        __bland __forceinline void MCATS(Set, name)(bool const val)         \
+        {                                                                   \
+            if (val)                                                        \
+                this->value |=  MCATS(name, Bit);                           \
+            else                                                            \
+                this->value &= ~MCATS(name, Bit);                           \
+        }                                                                   \
+        __bland __forceinline bool MCATS(FetchSet, name)()                  \
+        {                                                                   \
+            bool res = 0 != (this->value & MCATS(name, Bit));               \
+                                                                            \
+            this->value |=  MCATS(name, Bit);                               \
+                                                                            \
+            return res;                                                     \
+        }                                                                   \
+        __bland __forceinline bool MCATS(FetchClear, name)()                \
+        {                                                                   \
+            bool res = 0 != (this->value & MCATS(name, Bit));               \
+                                                                            \
+            this->value &= ~MCATS(name, Bit);                               \
+                                                                            \
+            return res;                                                     \
+        }                                                                   \
+        __bland __forceinline bool MCATS(FetchFlip, name)()                 \
+        {                                                                   \
+            bool res = 0 != (this->value & MCATS(name, Bit));               \
+                                                                            \
+            this->value ^=  MCATS(name, Bit);                               \
+                                                                            \
+            return res;                                                     \
+        }
+    #endif
 #endif
 
 /*  Constants/keywords..?   */

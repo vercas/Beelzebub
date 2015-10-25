@@ -40,6 +40,18 @@ namespace Beelzebub { namespace System
         static uint64_t const CacheDisableBit        = 1ULL << 30;
         static uint64_t const PagingBit              = 1ULL << 31;
 
+        static uint64_t const ProtectedModeEnableBitIndex    =  0;
+        static uint64_t const MonitorCoprocessorBitIndex     =  1;
+        static uint64_t const EmulationBitIndex              =  2;
+        static uint64_t const TaskSwitchedBitIndex           =  3;
+        static uint64_t const ExtensionTypeBitIndex          =  4;
+        static uint64_t const NumericErrorBitIndex           =  5;
+        static uint64_t const WriteProtectBitIndex           = 16;
+        static uint64_t const AlignmentMaskBitIndex          = 18;
+        static uint64_t const NotWriteThroughBitIndex        = 29;
+        static uint64_t const CacheDisableBitIndex           = 30;
+        static uint64_t const PagingBitIndex                 = 31;
+
         /*  Constructors  */
 
         /**
@@ -134,6 +146,9 @@ namespace Beelzebub { namespace System
 
         static uint64_t const PwtBit        = 1ULL <<  3;
         static uint64_t const PcdBit        = 1ULL <<  4;
+
+        static uint64_t const PwtBitIndex           =  3;
+        static uint64_t const PcdBitIndex           =  4;
 
         static uint64_t const AddressBits   = 0x000FFFFFFFFFF000ULL;
         static uint64_t const PcidBits      = 0x0000000000000FFFULL;

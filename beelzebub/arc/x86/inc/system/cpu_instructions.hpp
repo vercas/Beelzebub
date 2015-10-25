@@ -17,12 +17,12 @@ namespace Beelzebub { namespace System
 
         static __bland __forceinline void Halt()
         {
-            asm volatile ( "hlt \n\t" );
+            asm volatile ( "hlt \n\t" : : : "memory" );
         }
 
         static __bland __forceinline void DoNothing()
         {
-            asm volatile ( "pause \n\t" );
+            asm volatile ( "pause \n\t" : : : "memory" );
         }
 
         /*  Caching  */
@@ -31,6 +31,28 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "wbinvd \n\t" : : : "memory" );
         }
+
+        /*  Profiling  */
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        static __bland __forceinline uint64_t Rdtsc()
+        {
+            uint64_t low, high;
+
+            asm volatile ( "rdtsc \n\t" : "=a"(low), "=d"(high) );
+
+            return (high << 32) | low;
+        }
+#else
+        static __bland __forceinline uint64_t Rdtsc()
+        {
+            uint64_t res;
+
+            asm volatile ( "rdtsc \n\t" : "=A"(res) );
+
+            return res;
+        }
+#endif
 
         /*  Far memory ops  */
 
@@ -48,7 +70,8 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "movb %0, %%fs:(%1) \n\t"
                          :
-                         : "r"(val), "r"(off) );
+                         : "r"(val), "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -67,7 +90,8 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "movb %0, %%gs:(%1) \n\t"
                          :
-                         : "r"(val), "r"(off) );
+                         : "r"(val), "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -86,7 +110,8 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "movw %0, %%fs:(%1) \n\t"
                          :
-                         : "r"(val), "r"(off) );
+                         : "r"(val), "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -105,7 +130,8 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "movw %0, %%gs:(%1) \n\t"
                          :
-                         : "r"(val), "r"(off) );
+                         : "r"(val), "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -124,7 +150,8 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "movl %0, %%fs:(%1) \n\t"
                          :
-                         : "r"(val), "r"(off) );
+                         : "r"(val), "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -143,7 +170,8 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "movl %0, %%gs:(%1) \n\t"
                          :
-                         : "r"(val), "r"(off) );
+                         : "r"(val), "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -163,7 +191,8 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "movq %0, %%fs:(%1) \n\t"
                          :
-                         : "r"(val), "r"(off) );
+                         : "r"(val), "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -182,7 +211,8 @@ namespace Beelzebub { namespace System
         {
             asm volatile ( "movq %0, %%gs:(%1) \n\t"
                          :
-                         : "r"(val), "r"(off) );
+                         : "r"(val), "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -216,7 +246,8 @@ namespace Beelzebub { namespace System
                          : 
                          : "r"((uint32_t)val)
                          , "r"((uint32_t)(val >> 32))
-                         , "r"(off) );
+                         , "r"(off)
+                         : "memory" );
 
             return val;
         }
@@ -240,7 +271,8 @@ namespace Beelzebub { namespace System
                          : 
                          : "r"((uint32_t)val)
                          , "r"((uint32_t)(val >> 32))
-                         , "r"(off) );
+                         , "r"(off)
+                         : "memory" );
 
             return val;
         }

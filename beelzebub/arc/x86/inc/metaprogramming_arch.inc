@@ -54,8 +54,186 @@ typedef   signed     char    sbyte; //  Yeah...
 #ifndef __cplusplus
 typedef char bool;
 
-#define true	((bool)1)
-#define TRUE	((bool)1)
-#define false	((bool)0)
-#define FALSE	((bool)0)
+#define true    ((bool)1)
+#define TRUE    ((bool)1)
+#define false   ((bool)0)
+#define FALSE   ((bool)0)
+#endif
+
+/*  Bit properties!!!1!  */
+
+#ifdef __cplusplus
+#ifdef __GCC_ASM_FLAG_OUTPUTS__
+    #ifndef BITPROPRO
+        //  Creates a getter for bit-based properties.
+        #define BITPROPRO(name, value)                                      \
+        __bland __forceinline int MCATS2(Get, name)() const                 \
+        {                                                                   \
+            int res;                                                        \
+                                                                            \
+            asm ( "bt %[bit], %[src] \n\t"                                  \
+                : "=@ccc"(res) /* carry flag  */                            \
+                : [src]"rm"(this->value)                                    \
+                , [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }
+    #endif
+
+    #ifndef BITPROPRW
+        //  Creates a getter and setter for bit-based properties.
+        #define BITPROPRW(name, value)                                      \
+        __bland __forceinline int MCATS(Get, name)() const                  \
+        {                                                                   \
+            int res;                                                        \
+                                                                            \
+            asm ( "bt %[bit], %[src] \n\t"                                  \
+                : "=@ccc"(res) /* carry flag  */                            \
+                : [src]"rm"(this->value)                                    \
+                , [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }                                                                   \
+        __bland __forceinline int MCATS(Set, name)(bool const val)          \
+        {                                                                   \
+            if (val)                                                        \
+                asm ( "bts %[bit], %[dst] \n\t"                             \
+                    : [dst]"+rm"(this->value)                               \
+                    : [bit]"rN"(MCATS2(name, BitIndex))                     \
+                    : "cc" );                                               \
+            else                                                            \
+                asm ( "btr %[bit], %[dst] \n\t"                             \
+                    : [dst]"+rm"(this->value)                               \
+                    : [bit]"rN"(MCATS2(name, BitIndex))                     \
+                    : "cc" );                                               \
+                                                                            \
+            return val;                                                     \
+        }                                                                   \
+        __bland __forceinline int MCATS(FetchSet, name)()                   \
+        {                                                                   \
+            int res;                                                        \
+                                                                            \
+            asm ( "bts %[bit], %[dst] \n\t"                                 \
+                : [dst]"+rm"(this->value), "=@ccc"(res)                     \
+                : [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }                                                                   \
+        __bland __forceinline int MCATS(FetchClear, name)()                 \
+        {                                                                   \
+            int res;                                                        \
+                                                                            \
+            asm ( "btr %[bit], %[dst] \n\t"                                 \
+                : [dst]"+rm"(this->value), "=@ccc"(res)                     \
+                : [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }                                                                   \
+        __bland __forceinline int MCATS(FetchFlip, name)()                  \
+        {                                                                   \
+            int res;                                                        \
+                                                                            \
+            asm ( "btc %[bit], %[dst] \n\t"                                 \
+                : [dst]"+rm"(this->value), "=@ccc"(res)                     \
+                : [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }
+    #endif
+#else
+    #ifndef BITPROPRO
+        //  Creates a getter for bit-based properties.
+        #define BITPROPRO(name, value)                                      \
+        __bland __forceinline bool MCATS2(Get, name)() const                \
+        {                                                                   \
+            bool res;                                                       \
+                                                                            \
+            asm("bt    %[bit], %[src] \n\t"                                 \
+                "setcb %[res]         \n\t"                                 \
+                : [res]"=qm"(res) /* carry flag  */                         \
+                : [src]"rm"(this->value)                                    \
+                , [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }
+    #endif
+
+    #ifndef BITPROPRW
+        //  Creates a getter and setter for bit-based properties.
+        #define BITPROPRW(name, value)                                      \
+        __bland __forceinline bool MCATS(Get, name)() const                 \
+        {                                                                   \
+            bool res;                                                       \
+                                                                            \
+            asm("bt    %[bit], %[src] \n\t"                                 \
+                "setcb %[res]         \n\t"                                 \
+                : [res]"=qm"(res)                                           \
+                : [src]"rm"(this->value)                                    \
+                , [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }                                                                   \
+        __bland __forceinline bool MCATS(Set, name)(bool const val)         \
+        {                                                                   \
+            if (val)                                                        \
+                asm("bts   %[bit], %[dst] \n\t"                             \
+                    : [dst]"+rm"(this->value)                               \
+                    : [bit]"rN"(MCATS2(name, BitIndex))                     \
+                    : "cc" );                                               \
+            else                                                            \
+                asm("btr   %[bit], %[dst] \n\t"                             \
+                    : [dst]"+rm"(this->value)                               \
+                    : [bit]"rN"(MCATS2(name, BitIndex))                     \
+                    : "cc" );                                               \
+                                                                            \
+            return val;                                                     \
+        }                                                                   \
+        __bland __forceinline bool MCATS(FetchSet, name)()                  \
+        {                                                                   \
+            bool res;                                                       \
+                                                                            \
+            asm("bts   %[bit], %[dst] \n\t"                                 \
+                "setcb %[res]         \n\t"                                 \
+                : [dst]"+rm"(this->value)                                   \
+                , [res]"=qm"(res)                                           \
+                : [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }                                                                   \
+        __bland __forceinline bool MCATS(FetchClear, name)()                \
+        {                                                                   \
+            bool res;                                                       \
+                                                                            \
+            asm("btr   %[bit], %[dst] \n\t"                                 \
+                "setcb %[res]         \n\t"                                 \
+                : [dst]"+rm"(this->value)                                   \
+                , [res]"=qm"(res)                                           \
+                : [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }                                                                   \
+        __bland __forceinline bool MCATS(FetchFlip, name)()                 \
+        {                                                                   \
+            bool res;                                                       \
+                                                                            \
+            asm("btc   %[bit], %[dst] \n\t"                                 \
+                "setcb %[res]         \n\t"                                 \
+                : [dst]"+rm"(this->value)                                   \
+                , [res]"=qm"(res)                                           \
+                : [bit]"rN"(MCATS2(name, BitIndex))                         \
+                : "cc" );                                                   \
+                                                                            \
+            return res;                                                     \
+        }
+    #endif
+#endif
 #endif
