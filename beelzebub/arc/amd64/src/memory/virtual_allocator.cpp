@@ -10,17 +10,14 @@
 #include <memory/manager_amd64.hpp>
 #include <system/cpuid.hpp>
 #include <system/cpu.hpp>
-#include <debug.hpp>
 #include <string.h>
 #include <math.h>
-#include <cpp_support.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Debug;
-using namespace Beelzebub::Memory;
-using namespace Beelzebub::Memory::Paging;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
 
 /************************************
     VirtualAllocationSpace struct

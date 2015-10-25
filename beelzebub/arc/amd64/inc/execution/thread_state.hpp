@@ -2,8 +2,6 @@
 
 #include <system/isr.hpp>
 
-using namespace Beelzebub::System;
-
 namespace Beelzebub { namespace Execution
 {
     /**
@@ -21,5 +19,5 @@ namespace Beelzebub { namespace Execution
         uint64_t RIP;
     };//*/
 
-    typedef IsrState ThreadState;
+    typedef Beelzebub::System::IsrState ThreadState;
 }}

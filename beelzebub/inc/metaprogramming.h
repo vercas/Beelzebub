@@ -2,8 +2,9 @@
 
 #include "stdint.h"
 #include "stddef.h"
-#include <metaprogramming_arc.h>
 #include <cpp_support.h>
+
+#include <metaprogramming_arch.inc>
 
 /*  Some macro helpers. */
 
@@ -50,6 +51,33 @@
 #define _VADEF(name, n) _VADEF_(name, n)
 #define VADEF(func, ...) _VADEF(func, __NARG__(__VA_ARGS__)) (__VA_ARGS__)
 //	Got this from http://stackoverflow.com/a/26408195
+
+/*  Bit properties!!1!  */
+
+#ifndef BITPROPRO
+//  Creates a getter for bit-based properties.
+#define BITPROPRO(name, value)                               \
+__bland __forceinline bool MCATS2(Get, name)() const         \
+{                                                            \
+    return 0 != (this->value & MCATS2(name, Bit));           \
+}
+#endif
+
+#ifndef BITPROPRW
+//  Creates a getter and setter for bit-based properties.
+#define BITPROPRW(name, value)                               \
+__bland __forceinline bool MCATS2(Get, name)() const         \
+{                                                            \
+    return 0 != (this->value & MCATS2(name, Bit));           \
+}                                                            \
+__bland __forceinline void MCATS2(Set, name)(bool const val) \
+{                                                            \
+    if (val)                                                 \
+        this->value |=  MCATS2(name, Bit);                   \
+    else                                                     \
+        this->value &= ~MCATS2(name, Bit);                   \
+}
+#endif
 
 /*  Constants/keywords..?   */
 

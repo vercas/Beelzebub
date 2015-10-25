@@ -57,11 +57,18 @@ namespace Beelzebub { namespace Memory
 
         /*  Constructors  */
 
-        MemoryManagerAmd64() = default;
-        MemoryManagerAmd64(MemoryManagerAmd64 const &) = delete;
-        MemoryManagerAmd64 & operator =(const MemoryManagerAmd64 &) = delete;
+        __bland inline MemoryManagerAmd64()
+            : Vas(nullptr)
+            , UserLock()
+            , UserHeapCursor(0)
+        {
 
-        __bland __forceinline explicit MemoryManagerAmd64(VirtualAllocationSpace * const vas)
+        }
+
+        MemoryManagerAmd64(MemoryManagerAmd64 const &) = delete;
+        MemoryManagerAmd64 & operator =(MemoryManagerAmd64 const &) = delete;
+
+        __bland inline explicit MemoryManagerAmd64(VirtualAllocationSpace * const vas)
             : Vas(vas)
             , UserLock()
             , UserHeapCursor(1 << 12)
@@ -69,13 +76,9 @@ namespace Beelzebub { namespace Memory
 
         }
 
-        /*  CPU data mapping  */
-
-        __bland vaddr_t GetCpuDataLocation();
-
         /*  Components  */
 
-        VirtualAllocationSpace * Vas;
+        VirtualAllocationSpace * const Vas;
 
         /*  Locks  */
 

@@ -1,6 +1,9 @@
 #include <system/exceptions.hpp>
-#include <system/cpu.hpp>
 #include <memory/manager_amd64.hpp>
+#include <system/cpu.hpp>
+#include "kernel.hpp"
+#include <_print/paging.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -185,7 +188,7 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
 
     if (e != nullptr)
     {
-        e->PrintToTerminal(Beelzebub::Debug::DebugTerminal);
+        PrintToTerminal(Beelzebub::Debug::DebugTerminal, *e);
 
         msg(" >>");
     }

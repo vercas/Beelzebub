@@ -1,26 +1,21 @@
-#include <memory/paging.hpp>
-#include <terminals/base.hpp>
-#include <handles.h>
+#include <_print/paging.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
-using namespace Beelzebub::Memory::Paging;
 using namespace Beelzebub::Terminals;
 
 /***********************
     Pml1Entry Struct
 ***********************/
 
-/*  Debug  */
-
-TerminalWriteResult Pml1Entry::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml1Entry const val)
 {
 	char str[58] = "                | |   |   |   |   |   |   |   |   |   |\r\n";
 	//str[60] = '\r'; str[61] = '\n'; str[62] = 0;
 
 	//	Address writing.
 
-	uint64_t adr = (uint64_t)this->GetAddress();
+	uint64_t adr = (uint64_t)val.GetAddress();
 
 	for (size_t i = 0; i < 16; ++i)
 	{
@@ -29,33 +24,33 @@ TerminalWriteResult Pml1Entry::PrintToTerminal(TerminalBase * const term) const
 		str[15 - i] = (nib > 9 ? '7' : '0') + nib;
 	}
 
-	if (this->GetPresent())
+	if (val.GetPresent())
 		str[17] = 'P';
 
-	if (this->GetXd())
+	if (val.GetXd())
 		{ str[19] = 'E'; str[20] = 'X'; str[21] = 'D'; }
 
-	if (this->GetWritable())
+	if (val.GetWritable())
 		{ str[23] = 'R'; str[24] = '/'; str[25] = 'W'; }
 	else
 		str[24] = 'R';
 
-	if (this->GetUserland())
+	if (val.GetUserland())
 		{ str[27] = 'U'; str[28] = '/'; str[29] = 'S'; }
 	else
 		str[28] = 'S';
 
-	if (this->GetPwt())
+	if (val.GetPwt())
 		{ str[31] = 'P'; str[32] = 'W'; str[33] = 'T'; }
-	if (this->GetPcd())
+	if (val.GetPcd())
 		{ str[35] = 'P'; str[36] = 'C'; str[37] = 'D'; }
-	if (this->GetAccessed())
+	if (val.GetAccessed())
 		{ str[39] = 'A'; str[40] = 'C'; str[41] = 'C'; }
-	if (this->GetGlobal())
+	if (val.GetGlobal())
 		{ str[43] = 'G'; str[44] = 'L'; str[45] = 'B'; }
-	if (this->GetDirty())
+	if (val.GetDirty())
 		{ str[47] = 'D'; str[48] = 'R'; str[49] = 'T'; }
-	if (this->GetPat())
+	if (val.GetPat())
 		{ str[51] = 'P'; str[52] = 'A'; str[53] = 'T'; }
 
 	return term->Write(str);
@@ -65,9 +60,7 @@ TerminalWriteResult Pml1Entry::PrintToTerminal(TerminalBase * const term) const
     Pml1 Struct
 ******************/
 
-/*  Debug  */
-
-TerminalWriteResult Pml1::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml1 const & val)
 {
 	TerminalWriteResult tret;
 	
@@ -80,7 +73,7 @@ TerminalWriteResult Pml1::PrintToTerminal(TerminalBase * const term) const
 		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
 		TERMTRY1(term->Write("|"), tret, cnt);
 		
-		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt);
+		TERMTRY1(PrintToTerminal(term, val.Entries[i]), tret, cnt);
 	}
 
 	return tret;
@@ -90,16 +83,14 @@ TerminalWriteResult Pml1::PrintToTerminal(TerminalBase * const term) const
     Pml2Entry Struct
 ***********************/
 
-/*  Debug  */
-
-TerminalWriteResult Pml2Entry::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml2Entry const val)
 {
 	char str[58] = "                | |   |   |   |   |   |   |   |   |   |\r\n";
 	//str[60] = '\r'; str[61] = '\n'; str[62] = 0;
 
 	//	Address writing.
 
-	uint64_t adr = (uint64_t)this->GetPml1Ptr();
+	uint64_t adr = (uint64_t)val.GetPml1Ptr();
 
 	for (size_t i = 0; i < 16; ++i)
 	{
@@ -108,38 +99,38 @@ TerminalWriteResult Pml2Entry::PrintToTerminal(TerminalBase * const term) const
 		str[15 - i] = (nib > 9 ? '7' : '0') + nib;
 	}
 
-	if (this->GetPresent())
+	if (val.GetPresent())
 	{
-		if (this->GetPageSize())
+		if (val.GetPageSize())
 			str[17] = 'P';
 		else
 			str[17] = 'T';
 	}
 
-	if (this->GetXd())
+	if (val.GetXd())
 		{ str[19] = 'E'; str[20] = 'X'; str[21] = 'D'; }
 
-	if (this->GetWritable())
+	if (val.GetWritable())
 		{ str[23] = 'R'; str[24] = '/'; str[25] = 'W'; }
 	else
 		str[24] = 'R';
 
-	if (this->GetUserland())
+	if (val.GetUserland())
 		{ str[27] = 'U'; str[28] = '/'; str[29] = 'S'; }
 	else
 		str[28] = 'S';
 
-	if (this->GetPwt())
+	if (val.GetPwt())
 		{ str[31] = 'P'; str[32] = 'W'; str[33] = 'T'; }
-	if (this->GetPcd())
+	if (val.GetPcd())
 		{ str[35] = 'P'; str[36] = 'C'; str[37] = 'D'; }
-	if (this->GetAccessed())
+	if (val.GetAccessed())
 		{ str[39] = 'A'; str[40] = 'C'; str[41] = 'C'; }
-	if (this->GetGlobal())
+	if (val.GetGlobal())
 		{ str[43] = 'G'; str[44] = 'L'; str[45] = 'B'; }
-	if (this->GetDirty())
+	if (val.GetDirty())
 		{ str[47] = 'D'; str[48] = 'R'; str[49] = 'T'; }
-	if (this->GetPat())
+	if (val.GetPat())
 		{ str[51] = 'P'; str[52] = 'A'; str[53] = 'T'; }
 
 	return term->Write(str);
@@ -149,9 +140,7 @@ TerminalWriteResult Pml2Entry::PrintToTerminal(TerminalBase * const term) const
     Pml2 Struct
 ******************/
 
-/*  Debug  */
-
-TerminalWriteResult Pml2::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml2 const & val)
 {
 	TerminalWriteResult tret;
 	
@@ -164,7 +153,7 @@ TerminalWriteResult Pml2::PrintToTerminal(TerminalBase * const term) const
 		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
 		TERMTRY1(term->Write("|"), tret, cnt);
 		
-		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt);
+		TERMTRY1(PrintToTerminal(term, val.Entries[i]), tret, cnt);
 	}
 
 	return tret;
@@ -174,16 +163,14 @@ TerminalWriteResult Pml2::PrintToTerminal(TerminalBase * const term) const
     Pml3Entry Struct
 ***********************/
 
-/*  Debug  */
-
-TerminalWriteResult Pml3Entry::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml3Entry const val)
 {
 	char str[58] = "                | |   |   |   |   |   |   |   |   |   |\r\n";
 	//str[60] = '\r'; str[61] = '\n'; str[62] = 0;
 
 	//	Address writing.
 
-	uint64_t adr = (uint64_t)this->GetPml2Ptr();
+	uint64_t adr = (uint64_t)val.GetPml2Ptr();
 
 	for (size_t i = 0; i < 16; ++i)
 	{
@@ -192,38 +179,38 @@ TerminalWriteResult Pml3Entry::PrintToTerminal(TerminalBase * const term) const
 		str[15 - i] = (nib > 9 ? '7' : '0') + nib;
 	}
 
-	if (this->GetPresent())
+	if (val.GetPresent())
 	{
-		if (this->GetPageSize())
+		if (val.GetPageSize())
 			str[17] = 'P';
 		else
 			str[17] = 'T';
 	}
 
-	if (this->GetXd())
+	if (val.GetXd())
 		{ str[19] = 'E'; str[20] = 'X'; str[21] = 'D'; }
 
-	if (this->GetWritable())
+	if (val.GetWritable())
 		{ str[23] = 'R'; str[24] = '/'; str[25] = 'W'; }
 	else
 		str[24] = 'R';
 
-	if (this->GetUserland())
+	if (val.GetUserland())
 		{ str[27] = 'U'; str[28] = '/'; str[29] = 'S'; }
 	else
 		str[28] = 'S';
 
-	if (this->GetPwt())
+	if (val.GetPwt())
 		{ str[31] = 'P'; str[32] = 'W'; str[33] = 'T'; }
-	if (this->GetPcd())
+	if (val.GetPcd())
 		{ str[35] = 'P'; str[36] = 'C'; str[37] = 'D'; }
-	if (this->GetAccessed())
+	if (val.GetAccessed())
 		{ str[39] = 'A'; str[40] = 'C'; str[41] = 'C'; }
-	if (this->GetGlobal())
+	if (val.GetGlobal())
 		{ str[43] = 'G'; str[44] = 'L'; str[45] = 'B'; }
-	if (this->GetDirty())
+	if (val.GetDirty())
 		{ str[47] = 'D'; str[48] = 'R'; str[49] = 'T'; }
-	if (this->GetPat())
+	if (val.GetPat())
 		{ str[51] = 'P'; str[52] = 'A'; str[53] = 'T'; }
 
 	return term->Write(str);
@@ -233,9 +220,7 @@ TerminalWriteResult Pml3Entry::PrintToTerminal(TerminalBase * const term) const
     Pml3 Struct
 ******************/
 
-/*  Debug  */
-
-TerminalWriteResult Pml3::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml3 const & val)
 {
 	TerminalWriteResult tret;
 	
@@ -248,7 +233,7 @@ TerminalWriteResult Pml3::PrintToTerminal(TerminalBase * const term) const
 		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
 		TERMTRY1(term->Write("|"), tret, cnt);
 		
-		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt);
+		TERMTRY1(PrintToTerminal(term, val.Entries[i]), tret, cnt);
 	}
 
 	return tret;
@@ -258,16 +243,14 @@ TerminalWriteResult Pml3::PrintToTerminal(TerminalBase * const term) const
     Pml4Entry Struct
 ***********************/
 
-/*  Debug  */
-
-TerminalWriteResult Pml4Entry::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml4Entry const val)
 {
 	char str[58] = "                | |   |   |   |   |   |   |\r\n";
 	//str[60] = '\r'; str[61] = '\n'; str[62] = 0;
 
 	//	Address writing.
 
-	uint64_t adr = (uint64_t)this->GetPml3Ptr();
+	uint64_t adr = (uint64_t)val.GetPml3Ptr();
 
 	for (size_t i = 0; i < 16; ++i)
 	{
@@ -276,27 +259,27 @@ TerminalWriteResult Pml4Entry::PrintToTerminal(TerminalBase * const term) const
 		str[15 - i] = (nib > 9 ? '7' : '0') + nib;
 	}
 
-	if (this->GetPresent())
+	if (val.GetPresent())
 		str[17] = 'T';
 
-	if (this->GetXd())
+	if (val.GetXd())
 		{ str[19] = 'E'; str[20] = 'X'; str[21] = 'D'; }
 
-	if (this->GetWritable())
+	if (val.GetWritable())
 		{ str[23] = 'R'; str[24] = '/'; str[25] = 'W'; }
 	else
 		str[24] = 'R';
 
-	if (this->GetUserland())
+	if (val.GetUserland())
 		{ str[27] = 'U'; str[28] = '/'; str[29] = 'S'; }
 	else
 		str[28] = 'S';
 
-	if (this->GetPwt())
+	if (val.GetPwt())
 		{ str[31] = 'P'; str[32] = 'W'; str[33] = 'T'; }
-	if (this->GetPcd())
+	if (val.GetPcd())
 		{ str[35] = 'P'; str[36] = 'C'; str[37] = 'D'; }
-	if (this->GetAccessed())
+	if (val.GetAccessed())
 		{ str[39] = 'A'; str[40] = 'C'; str[41] = 'C'; }
 
 	return term->Write(str);
@@ -306,9 +289,7 @@ TerminalWriteResult Pml4Entry::PrintToTerminal(TerminalBase * const term) const
     Pml4 Struct
 ******************/
 
-/*  Debug  */
-
-TerminalWriteResult Pml4::PrintToTerminal(TerminalBase * const term) const
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml4 const & val)
 {
 	TerminalWriteResult tret;
 	
@@ -321,7 +302,7 @@ TerminalWriteResult Pml4::PrintToTerminal(TerminalBase * const term) const
 		TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
 		TERMTRY1(term->Write("|"), tret, cnt);
 		
-		TERMTRY1(this->Entries[i].PrintToTerminal(term), tret, cnt);
+		TERMTRY1(PrintToTerminal(term, val.Entries[i]), tret, cnt);
 	}
 
 	return tret;

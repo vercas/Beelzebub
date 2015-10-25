@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory/paging.hpp>
 #include <system/registers.hpp>
 #include <system/registers_x86.hpp>
 #include <system/cpu_instructions.hpp>
@@ -9,9 +8,7 @@
 #include <synchronization/spinlock.hpp>
 #include <execution/thread.hpp>
 
-#include <system/cpuid.hpp>
 #include <synchronization/atomic.hpp>
-#include <metaprogramming.h>
 
 #define REGFUNC1(regl, regu, type)                                   \
 static __bland __forceinline type MCATS2(Get, regu)()                \

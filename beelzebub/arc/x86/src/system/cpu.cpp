@@ -1,4 +1,5 @@
 #include <system/cpu.hpp>
+#include <system/cpuid.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;

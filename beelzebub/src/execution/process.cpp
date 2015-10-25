@@ -13,16 +13,16 @@ Handle Process::SwitchTo(Process * const other)
 {
     Handle res;
 
-    if (other == nullptr)
+    if unlikely(other == nullptr)
         return HandleResult::ArgumentNull;
 
-    if (this != other)
+    if likely(this != other)
     {
-        if (this->VAS != other->VAS)
+        if likely(this->Memory != other->Memory)
         {
-            res = this->VAS->Switch(other->VAS);
+            res = this->Memory->Switch(other->Memory);
 
-            if (!res.IsOkayResult())
+            if unlikely(!res.IsOkayResult())
                 return res;
         }
     }

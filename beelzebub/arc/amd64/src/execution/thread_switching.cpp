@@ -1,5 +1,5 @@
-#include <execution/thread_switching.hpp>
-#include <system\cpu.hpp>
+#include <execution/thread.hpp>
+#include <system/cpu.hpp>
 #include <debug.hpp>
 #include <string.h>
 

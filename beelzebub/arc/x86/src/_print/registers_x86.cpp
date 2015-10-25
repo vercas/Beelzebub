@@ -2,6 +2,7 @@
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Debug;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
@@ -9,7 +10,7 @@ using namespace Beelzebub::Terminals;
     Ia32Efer Struct
 **********************/
 
-TerminalWriteResult Beelzebub::System::PrintToTerminal(TerminalBase * const term, Ia32Efer const val)
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, Ia32Efer const val)
 {
     char str[32] = "{IA32_EFER|SCE0|LME0|LMA0|NXE0}";
 
@@ -25,7 +26,7 @@ TerminalWriteResult Beelzebub::System::PrintToTerminal(TerminalBase * const term
     return term->Write(str);
 }
 
-TerminalWriteResult Beelzebub::System::PrintToDebugTerminal(Ia32Efer const val)
+TerminalWriteResult PrintToDebugTerminal(Ia32Efer const val)
 {
-    return PrintToTerminal(Beelzebub::Debug::DebugTerminal, val);
+    return PrintToTerminal(DebugTerminal, val);
 }

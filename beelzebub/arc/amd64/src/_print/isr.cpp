@@ -2,6 +2,7 @@
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Debug;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
@@ -9,7 +10,7 @@ using namespace Beelzebub::Terminals;
     IsrState Struct
 **********************/
 
-TerminalWriteResult Beelzebub::System::PrintToTerminal(TerminalBase * const term, IsrState const * const val)
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * const val)
 {
     return term->WriteFormat("ISR state %Xp:%n"
         "\tStack Segment: %X2%n"
@@ -30,7 +31,7 @@ TerminalWriteResult Beelzebub::System::PrintToTerminal(TerminalBase * const term
         , val->ErrorCode);
 }
 
-TerminalWriteResult Beelzebub::System::PrintToDebugTerminal(IsrState const * const val)
+TerminalWriteResult PrintToDebugTerminal(IsrState const * const val)
 {
-    return PrintToTerminal(Beelzebub::Debug::DebugTerminal, val);
+    return PrintToTerminal(DebugTerminal, val);
 }

@@ -2,27 +2,6 @@
 
 #include <metaprogramming.h>
 
-//  Creates a getter for bit-based properties.
-#define BITPROPRO(name)                                      \
-__bland __forceinline bool MCATS2(Get, name)() const         \
-{                                                            \
-    return 0 != (this->Value & MCATS2(name, Bit));           \
-}
-
-//  Creates a getter and setter for bit-based properties.
-#define BITPROPRW(name)                                      \
-__bland __forceinline bool MCATS2(Get, name)() const         \
-{                                                            \
-    return 0 != (this->Value & MCATS2(name, Bit));           \
-}                                                            \
-__bland __forceinline void MCATS2(Set, name)(const bool val) \
-{                                                            \
-    if (val)                                                 \
-        this->Value |=  MCATS2(name, Bit);                   \
-    else                                                     \
-        this->Value &= ~MCATS2(name, Bit);                   \
-}
-
 namespace Beelzebub { namespace System
 {
     /**
@@ -95,7 +74,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure from the given MSR value.
          */
-        __bland __forceinline Ia32Efer(const MsrValue val)
+        __bland __forceinline Ia32Efer(MsrValue const val)
         {
             this->Value = val.Qword;
         }
@@ -103,7 +82,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure from the given raw value.
          */
-        __bland __forceinline Ia32Efer(const uint64_t val)
+        __bland __forceinline Ia32Efer(uint64_t const val)
         {
             this->Value = val;
         }
@@ -111,9 +90,9 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure with the given flags.
          */
-        __bland __forceinline Ia32Efer(const bool syscallEnable
-                                     , const bool longModeEnable
-                                     , const bool nonExecuteEnable)
+        __bland __forceinline Ia32Efer(bool const syscallEnable
+                                     , bool const longModeEnable
+                                     , bool const nonExecuteEnable)
         {
             this->Value = (syscallEnable    ? SyscallEnableBit    : 0)
                         | (longModeEnable   ? LongModeEnableBit   : 0)
@@ -122,17 +101,17 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITPROPRW(SyscallEnable)
-        BITPROPRW(LongModeEnable)
-        BITPROPRO(LongModeActive)
-        BITPROPRW(NonExecuteEnable)
+        BITPROPRW(SyscallEnable, Value)
+        BITPROPRW(LongModeEnable, Value)
+        BITPROPRO(LongModeActive, Value)
+        BITPROPRW(NonExecuteEnable, Value)
 
         /*  Operators  */
 
         /**
          *  Gets the value of a bit.
          */
-        __bland __forceinline bool operator[](const uint8_t bit) const
+        __bland __forceinline bool operator[](uint8_t const bit) const
         {
             return 0 != (this->Value & (1 << bit));
         }

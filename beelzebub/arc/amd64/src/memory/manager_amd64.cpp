@@ -280,10 +280,3 @@ Handle MemoryManager::SetPageFlags(const vaddr_t vaddr, const PageFlags flags)
 
     return res;
 }
-
-/*  CPU data mapping  */
-
-vaddr_t MemoryManagerAmd64::GetCpuDataLocation()
-{
-
-}

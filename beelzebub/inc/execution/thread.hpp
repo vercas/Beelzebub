@@ -16,9 +16,34 @@ namespace Beelzebub { namespace Execution
 
         /*  Constructors  */
 
-        Thread() = default;
+        __bland inline Thread()
+            : KernelStackTop()
+            , KernelStackBottom()
+            , KernelStackPointer()
+            , State()
+            , Previous()
+            , Next()
+            , EntryPoint()
+            , Owner(nullptr) 
+        {
+
+        }
+
         Thread(Thread const &) = delete;
         Thread & operator =(Thread const &) = delete;
+
+        __bland inline Thread(Process * const owner)
+            : KernelStackTop()
+            , KernelStackBottom()
+            , KernelStackPointer()
+            , State()
+            , Previous()
+            , Next()
+            , EntryPoint()
+            , Owner(owner) 
+        {
+
+        }
 
         /*  Operations  */
 
@@ -51,6 +76,6 @@ namespace Beelzebub { namespace Execution
 
         /*  Hierarchy  */
 
-        Process * Owner;
+        Process * const Owner;
     };
 }}

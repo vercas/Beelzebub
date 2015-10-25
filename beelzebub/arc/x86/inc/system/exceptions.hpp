@@ -1,10 +1,6 @@
 #pragma once
 
-#include <kernel.hpp>
-#include <handles.h>
-#include <debug.hpp>
 #include <system/isr.hpp>
-#include <metaprogramming.h>
 
 namespace Beelzebub { namespace System
 {

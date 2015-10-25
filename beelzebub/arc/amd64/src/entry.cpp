@@ -24,13 +24,12 @@
 #include <string.h>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Execution;
+using namespace Beelzebub::Memory;
+using namespace Beelzebub::Ports;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
-using namespace Beelzebub::Ports;
 using namespace Beelzebub::Terminals;
-using namespace Beelzebub::Memory;
-using namespace Beelzebub::Memory::Paging;
-using namespace Beelzebub::Execution;
 
 /*  Constants  */
 
@@ -321,7 +320,7 @@ __bland void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace
     //  TODO: Make a VGA text terminal and also handle it here.
 }
 
-void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t freeStart)
+__cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t freeStart)
 {
     Handle res; //  Used for intermediary results.
 
@@ -652,7 +651,7 @@ __hot __bland void * TestThreadEntryPoint(void * const arg)
 
 __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
 {
-    //new (t) Thread();
+    new (t) Thread(p);
 
     Handle res;
     PageDescriptor * desc = nullptr;
@@ -680,7 +679,6 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     t->KernelStackTop = (uintptr_t)vaddr + 0x1000;
     t->KernelStackBottom = (uintptr_t)vaddr;
 
-    t->Owner = p;
     t->EntryPoint = &TestThreadEntryPoint;
 
     InitializeThreadState(t);
@@ -706,7 +704,7 @@ __cold __bland char * AllocateTestPage(Process * const p)
     desc->IncrementReferenceCount();
     //  Increment the reference count of the page twice because we're nice people.
 
-    res = p->VAS->MapPage(vaddr1, paddr, PageFlags::Writable);
+    res = p->Memory->MapPage(vaddr1, paddr, PageFlags::Writable);
 
     assert(res.IsOkayResult()
         , "  Failed to map page at %Xp (%XP) as test page in owning process: %H."
@@ -731,8 +729,7 @@ void StartMultitaskingTest()
     new (&tMmB) MemoryManagerAmd64(&tVasB);
     //  Initialize a new memory manager with the given VAS.
 
-    new (&tPb) Process();
-    tPb.VAS = &tMmB;
+    new (&tPb) Process(&tMmB);
     //  Initialize a new process for thread series B.
 
     char * tCa = AllocateTestPage(&BootstrapProcess);

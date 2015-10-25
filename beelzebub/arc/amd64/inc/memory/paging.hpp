@@ -4,13 +4,7 @@
 
 #pragma once
 
-#include <terminals/base.hpp>
-//#include <system/registers.hpp>
-//#include <system/cpu.hpp>
 #include <handles.h>
-#include <metaprogramming.h>
-
-using namespace Beelzebub::Terminals;
 
 //  Creates a getter and setter for bit-based properties.
 #define BITPROP(name)                                        \
@@ -18,7 +12,7 @@ __bland __forceinline bool MCATS2(Get, name)() const         \
 {                                                            \
     return (this->Value & (1ULL << MCATS2(name, Bit)));      \
 }                                                            \
-__bland __forceinline void MCATS2(Set, name)(const bool val) \
+__bland __forceinline void MCATS2(Set, name)(bool const val) \
 {                                                            \
     if (val)                                                 \
         this->Value |=  (1ULL << MCATS2(name, Bit));         \
@@ -72,7 +66,7 @@ __bland __forceinline bool MCATS2(Check, name)()             \
     /*  A simple AND operation works very well here.  */     \
 }
 
-namespace Beelzebub { namespace Memory { namespace Paging
+namespace Beelzebub { namespace Memory
 {
     /**
      *  Page Map Level 1 Entry
@@ -211,10 +205,6 @@ namespace Beelzebub { namespace Memory { namespace Paging
             return 0 != (this->Value & (1 << bit));
         }
 
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
-
     //private:
 
         uint64_t Value;
@@ -259,10 +249,6 @@ namespace Beelzebub { namespace Memory { namespace Paging
             //  And use that as an index! :D
             return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
         }
-
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -485,10 +471,6 @@ namespace Beelzebub { namespace Memory { namespace Paging
             return 0 != (this->Value & (1 << bit));
         }
 
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
-
     //private:
 
         uint64_t Value;
@@ -533,10 +515,6 @@ namespace Beelzebub { namespace Memory { namespace Paging
             //  And use that as an index! :D
             return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
         }
-
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -759,10 +737,6 @@ namespace Beelzebub { namespace Memory { namespace Paging
             return 0 != (this->Value & (1 << bit));
         }
 
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
-
     //private:
 
         uint64_t Value;
@@ -807,10 +781,6 @@ namespace Beelzebub { namespace Memory { namespace Paging
             //  And use that as an index! :D
             return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
         }
-
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -959,10 +929,6 @@ namespace Beelzebub { namespace Memory { namespace Paging
             return 0 != (this->Value & (1 << bit));
         }
 
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
-
     //private:
 
         uint64_t Value;
@@ -1007,14 +973,10 @@ namespace Beelzebub { namespace Memory { namespace Paging
             return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
         }
 
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
-
         /*  Field(s)  */
 
     //private:
 
         Pml4Entry Entries[512]; //  Yeah...
     };
-}}}
+}}

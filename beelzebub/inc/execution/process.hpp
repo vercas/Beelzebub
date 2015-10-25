@@ -16,9 +16,20 @@ namespace Beelzebub { namespace Execution
 
         /*  Constructors  */
 
-        Process() = default;
+        __bland inline Process()
+            : Memory( nullptr)
+        {
+
+        }
+
         Process(Process const &) = delete;
         Process & operator =(Process const &) = delete;
+
+        __bland inline Process(MemoryManager * const memory)
+            : Memory( memory)
+        {
+
+        }
 
         /*  Operations  */
 
@@ -26,6 +37,6 @@ namespace Beelzebub { namespace Execution
 
         /*  Stack  */
 
-        MemoryManager * VAS;
+        MemoryManager * const Memory;
     };
 }}

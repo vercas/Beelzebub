@@ -1,11 +1,8 @@
-#include <system/cpu.hpp>
-#include <system/interrupts.hpp>
-#include <synchronization/spinlock.hpp>
 #include <kernel.hpp>
-#include <debug.hpp>
-
-#include <execution/thread_switching.hpp>
 #include <execution/thread_init.hpp>
+#include <system/cpu.hpp>
+#include <synchronization/spinlock.hpp>
+#include <debug.hpp>
 
 #if __BEELZEBUB__TEST_STR
 #include <tests/string.hpp>

@@ -50,7 +50,8 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
 
 Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp, MemoryManager * const bsmm)
 {
-    //new (bst) Thread();
+    new (bsp) Process(bsmm);
+    new (bst) Thread(bsp);
 
 	uint64_t dummy = 0x0056657263617300;
 	//	Just a dummy value.
@@ -60,11 +61,5 @@ Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Proce
 
 	bst->Next = bst->Previous = bst;
 
-    //new (bsp) Process();
-
-    bsp->VAS = bsmm;
-
-    bst->Owner = bsp;
-
-	return Handle(HandleResult::Okay);
+	return HandleResult::Okay;
 }

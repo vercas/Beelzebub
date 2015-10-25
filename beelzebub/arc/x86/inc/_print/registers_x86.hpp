@@ -1,10 +1,6 @@
 #pragma once
 
 #include <system/registers_x86.hpp>
-#include <terminals/base.hpp>
+#include <_print/print_template.hpp>
 
-namespace Beelzebub { namespace System
-{
-    __cold __bland __noinline Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term, Ia32Efer const val);
-    __cold __bland __noinline Terminals::TerminalWriteResult PrintToDebugTerminal(Ia32Efer const val);
-}}
+PRINT_FUNCS_CONST(Beelzebub::System::Ia32Efer)
