@@ -7,8 +7,10 @@
 #include <kernel.hpp>
 #include <debug.hpp>
 
-#define REPETITION_COUNT ((size_t)20)
+#define REPETITION_COUNT ((size_t)200)
 //  Tested with this being 100... 1,010,100 iterations... Works badass!
+
+#define __BEELZEBUB__TEST_OBJA_ASSERTIONS
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
@@ -67,6 +69,9 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
     ObjectPool * pool = result = (ObjectPool *)(uintptr_t)vaddr;
     //  I use a local variable here so `result` isn't dereferenced every time.
 
+    new (pool) ObjectPool();
+    //  Construct in place to initialize the fields.
+
     size_t const objectCount = ((pageCount * 0x1000) - headerSize) / objectSize;
 
     pool->Capacity = pool->FreeCount = objectCount;
@@ -101,10 +106,8 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
     pool->LastFreeObject = (obj_ind_t)objectCount - 1;
     last->Next = obj_ind_invalid;
 
-    //  Now, let's make sure the pool is in a correct state.
-
-    pool->Next = nullptr;
-    pool->PropertiesLock.SimplyRelease();
+    //  The pool was constructed in place, so the rest of the fields should
+    //  be in a good state.
 
     return HandleResult::Okay;
 }
@@ -192,27 +195,37 @@ Handle TestObjectAllocator(bool const bsp)
 
     ObjectAllocatorTestBarrier1.Reach();
 
+#ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
     size_t volatile freeCount1 = testAllocator.GetFreeCount();
+#endif
 
     ObjectAllocatorTestBarrier2.Reach();
 
     ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
 
+    uint64_t perfAcc = 0;
+
     for (size_t x = REPETITION_COUNT; x > 0; --x)
     {
+        uint64_t perfStart = CpuInstructions::Rdtsc();
+
         TESTALLOC2(TestStructure, A)
 
+#ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
         assert(res.IsOkayResult()
             , "Failed to allocate test object A for repetition %us: %H"
             , 1 + REPETITION_COUNT - x, res);
+#endif        
 
         for (size_t y = REPETITION_COUNT; y > 0; --y)
         {
             TESTALLOC2(TestStructure, B)
 
+#ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
             assert(res.IsOkayResult()
                 , "Failed to allocate test object B for repetition %us->%us: %H"
                 , 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, res);
+#endif            
 
             TESTDIFF(A, B)
 
@@ -220,41 +233,57 @@ Handle TestObjectAllocator(bool const bsp)
             {
                 TESTALLOC2(TestStructure, C)
 
+#ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
                 assert(res.IsOkayResult()
                     , "Failed to allocate test object C for repetition %us->%us->%us: %H"
                     , 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, 1 + REPETITION_COUNT - z, res);
+#endif                
 
                 TESTDIFF(A, C)
                 TESTDIFF(B, C)
 
                 TESTREMOV2(C)
 
+#ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
                 assert(res.IsOkayResult()
                     , "Failed to remove test object C (%Xp) for repetition %us->%us->%us: %H"
                     , tOC, 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, 1 + REPETITION_COUNT - z, res);
+#endif                
             }
 
             TESTREMOV2(B)
 
+#ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
             assert(res.IsOkayResult()
                 , "Failed to remove test object B (%Xp) for repetition %us->%us: %H"
                 , tOB, 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, res);
+#endif            
         }
 
         TESTREMOV2(A)
 
+#ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
         assert(res.IsOkayResult()
             , "Failed to remove test object A (%Xp) for repetition %us: %H"
             , tOA, 1 + REPETITION_COUNT - x, res);
+#endif        
+
+        uint64_t perfEnd = CpuInstructions::Rdtsc();
+
+        perfAcc += perfEnd - perfStart;
     }
+
+    msg_("Core %us: %u8 / %us = %u8.%n", Cpu::GetIndex(), perfAcc, REPETITION_COUNT, perfAcc / REPETITION_COUNT);
 
     ObjectAllocatorTestBarrier3.Reach();
 
     ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
 
+#ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
     assert(freeCount1 == testAllocator.GetFreeCount()
         , "Allocator's free count has a shady value: %us, expected %us."
         , testAllocator.GetFreeCount(), freeCount1);
+#endif    
 
     return HandleResult::Okay;
 }
