@@ -89,17 +89,17 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITPROPRW(ProtectedModeEnable, Value)
-        BITPROPRW(MonitorCoprocessor, Value)
-        BITPROPRW(Emulation, Value)
-        BITPROPRW(TaskSwitched, Value)
-        BITPROPRW(ExtensionType, Value)
-        BITPROPRW(NumericError, Value)
-        BITPROPRW(WriteProtect, Value)
-        BITPROPRW(AlignmentMask, Value)
-        BITPROPRW(NotWriteThrough, Value)
-        BITPROPRW(CacheDisable, Value)
-        BITPROPRW(Paging, Value)
+        BITPROPRW(ProtectedModeEnable, this->Value, __bland, const)
+        BITPROPRW(MonitorCoprocessor, this->Value, __bland, const)
+        BITPROPRW(Emulation, this->Value, __bland, const)
+        BITPROPRW(TaskSwitched, this->Value, __bland, const)
+        BITPROPRW(ExtensionType, this->Value, __bland, const)
+        BITPROPRW(NumericError, this->Value, __bland, const)
+        BITPROPRW(WriteProtect, this->Value, __bland, const)
+        BITPROPRW(AlignmentMask, this->Value, __bland, const)
+        BITPROPRW(NotWriteThrough, this->Value, __bland, const)
+        BITPROPRW(CacheDisable, this->Value, __bland, const)
+        BITPROPRW(Paging, this->Value, __bland, const)
 
         /*  Field(s)  */
 
@@ -170,8 +170,8 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITPROPRW(Pwt, Value)
-        BITPROPRW(Pcd, Value)
+        BITPROPRW(Pwt, this->Value, __bland, const)
+        BITPROPRW(Pcd, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the PML4 table.

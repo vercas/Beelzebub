@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <utils/bitfields.hpp>
 
 //  Creates the functions necessary for operating a spinlock over an entry.
 #define SPINLOCK(name, bit)                                  \
@@ -155,16 +155,16 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITPROPRW(Present, Value)
-        BITPROPRW(Writable, Value)
-        BITPROPRW(Userland, Value)
-        BITPROPRW(Pwt, Value)
-        BITPROPRW(Pcd, Value)
-        BITPROPRW(Accessed, Value)
-        BITPROPRW(Dirty, Value)
-        BITPROPRW(Pat, Value)
-        BITPROPRW(Global, Value)
-        BITPROPRW(Xd, Value)
+        BITPROPRW(Present, this->Value, __bland, const)
+        BITPROPRW(Writable, this->Value, __bland, const)
+        BITPROPRW(Userland, this->Value, __bland, const)
+        BITPROPRW(Pwt, this->Value, __bland, const)
+        BITPROPRW(Pcd, this->Value, __bland, const)
+        BITPROPRW(Accessed, this->Value, __bland, const)
+        BITPROPRW(Dirty, this->Value, __bland, const)
+        BITPROPRW(Pat, this->Value, __bland, const)
+        BITPROPRW(Global, this->Value, __bland, const)
+        BITPROPRW(Xd, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the 4-KiB page.
@@ -416,17 +416,17 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITPROPRW(Present, Value)
-        BITPROPRW(Writable, Value)
-        BITPROPRW(Userland, Value)
-        BITPROPRW(Pwt, Value)
-        BITPROPRW(Pcd, Value)
-        BITPROPRW(Accessed, Value)
-        BITPROPRW(Dirty, Value)
-        BITPROPRW(PageSize, Value)
-        BITPROPRW(Global, Value)
-        BITPROPRW(Pat, Value)
-        BITPROPRW(Xd, Value)
+        BITPROPRW(Present, this->Value, __bland, const)
+        BITPROPRW(Writable, this->Value, __bland, const)
+        BITPROPRW(Userland, this->Value, __bland, const)
+        BITPROPRW(Pwt, this->Value, __bland, const)
+        BITPROPRW(Pcd, this->Value, __bland, const)
+        BITPROPRW(Accessed, this->Value, __bland, const)
+        BITPROPRW(Dirty, this->Value, __bland, const)
+        BITPROPRW(PageSize, this->Value, __bland, const)
+        BITPROPRW(Global, this->Value, __bland, const)
+        BITPROPRW(Pat, this->Value, __bland, const)
+        BITPROPRW(Xd, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the PML1 (PT) table.
@@ -694,17 +694,17 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITPROPRW(Present, Value)
-        BITPROPRW(Writable, Value)
-        BITPROPRW(Userland, Value)
-        BITPROPRW(Pwt, Value)
-        BITPROPRW(Pcd, Value)
-        BITPROPRW(Accessed, Value)
-        BITPROPRW(Dirty, Value)
-        BITPROPRW(PageSize, Value)
-        BITPROPRW(Global, Value)
-        BITPROPRW(Pat, Value)
-        BITPROPRW(Xd, Value)
+        BITPROPRW(Present, this->Value, __bland, const)
+        BITPROPRW(Writable, this->Value, __bland, const)
+        BITPROPRW(Userland, this->Value, __bland, const)
+        BITPROPRW(Pwt, this->Value, __bland, const)
+        BITPROPRW(Pcd, this->Value, __bland, const)
+        BITPROPRW(Accessed, this->Value, __bland, const)
+        BITPROPRW(Dirty, this->Value, __bland, const)
+        BITPROPRW(PageSize, this->Value, __bland, const)
+        BITPROPRW(Global, this->Value, __bland, const)
+        BITPROPRW(Pat, this->Value, __bland, const)
+        BITPROPRW(Xd, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the PML2 (PD) table.
@@ -898,13 +898,13 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITPROPRW(Present, Value)
-        BITPROPRW(Writable, Value)
-        BITPROPRW(Userland, Value)
-        BITPROPRW(Pwt, Value)
-        BITPROPRW(Pcd, Value)
-        BITPROPRW(Accessed, Value)
-        BITPROPRW(Xd, Value)
+        BITPROPRW(Present, this->Value, __bland, const)
+        BITPROPRW(Writable, this->Value, __bland, const)
+        BITPROPRW(Userland, this->Value, __bland, const)
+        BITPROPRW(Pwt, this->Value, __bland, const)
+        BITPROPRW(Pcd, this->Value, __bland, const)
+        BITPROPRW(Accessed, this->Value, __bland, const)
+        BITPROPRW(Xd, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the PML3 (PDPT) table.

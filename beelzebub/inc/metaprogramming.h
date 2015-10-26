@@ -52,59 +52,6 @@
 #define VADEF(func, ...) _VADEF(func, __NARG__(__VA_ARGS__)) (__VA_ARGS__)
 //	Got this from http://stackoverflow.com/a/26408195
 
-/*  Bit properties!!1!  */
-
-#ifdef __cplusplus
-    #ifndef BITPROPRO
-        //  Creates a getter for bit-based properties   .
-        #define BITPROPRO(name, value)                                      \
-        __bland __forceinline bool MCATS(Get, name)() const                 \
-        {                                                                   \
-            return 0 != (this->value & MCATS(name, Bit));                   \
-        }
-    #endif
-
-    #ifndef BITPROPRW
-        //  Creates a getter and setter for bit-based properties.
-        #define BITPROPRW(name, value)                                      \
-        __bland __forceinline bool MCATS(Get, name)() const                 \
-        {                                                                   \
-            return 0 != (this->value & MCATS(name, Bit));                   \
-        }                                                                   \
-        __bland __forceinline void MCATS(Set, name)(bool const val)         \
-        {                                                                   \
-            if (val)                                                        \
-                this->value |=  MCATS(name, Bit);                           \
-            else                                                            \
-                this->value &= ~MCATS(name, Bit);                           \
-        }                                                                   \
-        __bland __forceinline bool MCATS(FetchSet, name)()                  \
-        {                                                                   \
-            bool res = 0 != (this->value & MCATS(name, Bit));               \
-                                                                            \
-            this->value |=  MCATS(name, Bit);                               \
-                                                                            \
-            return res;                                                     \
-        }                                                                   \
-        __bland __forceinline bool MCATS(FetchClear, name)()                \
-        {                                                                   \
-            bool res = 0 != (this->value & MCATS(name, Bit));               \
-                                                                            \
-            this->value &= ~MCATS(name, Bit);                               \
-                                                                            \
-            return res;                                                     \
-        }                                                                   \
-        __bland __forceinline bool MCATS(FetchFlip, name)()                 \
-        {                                                                   \
-            bool res = 0 != (this->value & MCATS(name, Bit));               \
-                                                                            \
-            this->value ^=  MCATS(name, Bit);                               \
-                                                                            \
-            return res;                                                     \
-        }
-    #endif
-#endif
-
 /*  Constants/keywords..?   */
 
 #ifdef __cplusplus
@@ -142,6 +89,7 @@
 
 #define likely(expr)       (__builtin_expect((expr), 1))
 #define unlikely(expr)     (__builtin_expect((expr), 0))
+#define ctconst(val)       (__builtin_constant_p((val)))
 
 #define __unreachable_code __builtin_unreachable()
 #define __prefetch         __builtin_prefetch
@@ -169,6 +117,7 @@
 
 #define likely(expr)       (expr)
 #define unlikely(expr)     (expr)
+#define ctconst(val)       (false)
 
 #define __unreachable_code do { } while (false)
 #define __prefetch(...)    do { } while (false)

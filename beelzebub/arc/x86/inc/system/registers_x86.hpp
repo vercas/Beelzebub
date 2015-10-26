@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metaprogramming.h>
+#include <utils/bitfields.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -106,10 +106,10 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITPROPRW(SyscallEnable, Value)
-        BITPROPRW(LongModeEnable, Value)
-        BITPROPRO(LongModeActive, Value)
-        BITPROPRW(NonExecuteEnable, Value)
+        BITPROPRW(SyscallEnable, this->Value, __bland, const)
+        BITPROPRW(LongModeEnable, this->Value, __bland, const)
+        BITPROPRO(LongModeActive, this->Value, __bland, const)
+        BITPROPRW(NonExecuteEnable, this->Value, __bland, const)
 
         /*  Field(s)  */
 
