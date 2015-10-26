@@ -236,7 +236,7 @@ $(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c
 $(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp
 	@ echo "/STD/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXXC) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@ $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 ##################
 # Build a D file #
@@ -266,7 +266,7 @@ $(BUILD_DIR)/%.c.arc.o: $(ARC_DIR)/$(ARC)/src/%.c
 $(BUILD_DIR)/%.cpp.arc.o: $(ARC_DIR)/$(ARC)/src/%.cpp
 	@ echo "/ARC/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXXC) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@ $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 ####################################### AUXILIARY FILES ##########
 
@@ -289,7 +289,7 @@ $(BUILD_DIR)/%.c.aux.o: $(AUX_DIR)/$(AUX)/src/%.c
 $(BUILD_DIR)/%.cpp.aux.o: $(AUX_DIR)/$(AUX)/src/%.cpp
 	@ echo "/AUX/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXXC) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@ $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 ####################################### DEPENDENCIES ##########
 
@@ -312,7 +312,7 @@ $(INCPCH_DIR)/%.h.gch: $(INC_DIR)/%.h
 $(INCPCH_DIR)/%.hpp.gch: $(INC_DIR)/%.hpp
 	@ echo "/HED/C++:" $^
 	@ mkdir -p $(@D)
-	@# $(CXXC) $(CXXFLAGS) -c $< -o $@
+	@# $(CXX) $(CXXFLAGS) -c $< -o $@
 	@ touch $@
 
 ####################################### ARCHITECTURE HEADER FILES ##########
@@ -330,7 +330,7 @@ $(INCPCH_DIR)/%.h.arc.gch: $(ARC_DIR)/$(ARC)/inc/%.h
 $(INCPCH_DIR)/%.hpp.arc.gch: $(ARC_DIR)/$(ARC)/inc/%.hpp
 	@ echo "/HED/C++:" $^
 	@ mkdir -p $(@D)
-	@# $(CXXC) $(CXXFLAGS) -c $< -o $(@:arc.gch=gch)
+	@# $(CXX) $(CXXFLAGS) -c $< -o $(@:arc.gch=gch)
 	@ touch $@
 
 ####################################### AUXILIARY HEADER FILES ##########
@@ -348,7 +348,7 @@ $(INCPCH_DIR)/%.h.aux.gch: $(AUX_DIR)/$(AUX)/inc/%.h
 $(INCPCH_DIR)/%.hpp.aux.gch: $(AUX_DIR)/$(AUX)/inc/%.hpp
 	@ echo "/HED/C++:" $^
 	@ mkdir -p $(@D)
-	@# $(CXXC) $(CXXFLAGS) -c $< -o $(@:aux.gch=gch)
+	@# $(CXX) $(CXXFLAGS) -c $< -o $(@:aux.gch=gch)
 	@ touch $@
 
 

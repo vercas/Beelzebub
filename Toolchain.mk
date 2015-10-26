@@ -1,9 +1,9 @@
-CROSSCOMPILER_DIRECTORY	:= /usr/local/cross/bin
+CROSSCOMPILER_DIRECTORY	:= /usr/local/gcc-x86_64-elf/bin
 
 #############
 # Toolchain #
 CC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
-CXXC		:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
+CXX			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
 DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gdc
 AS			:= nasm
 LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
