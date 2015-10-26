@@ -2,10 +2,7 @@
 
 #include <system/registers_x86.hpp>
 #include <memory/paging.hpp>
-#include <terminals/base.hpp>
 #include <handles.h>
-
-using namespace Beelzebub::Terminals;
 
 namespace Beelzebub { namespace System
 {
@@ -103,20 +100,6 @@ namespace Beelzebub { namespace System
         BITPROPRW(NotWriteThrough, Value)
         BITPROPRW(CacheDisable, Value)
         BITPROPRW(Paging, Value)
-
-        /*  Operators  */
-
-        /**
-         *  Gets the value of a bit.
-         */
-        __bland __forceinline bool operator[](uint8_t const bit) const
-        {
-            return 0 != (this->Value & (1 << bit));
-        }
-
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 
@@ -263,20 +246,6 @@ namespace Beelzebub { namespace System
             this->Value = (pcid        &  PcidBits)
                         | (this->Value & ~PcidBits);
         }
-
-        /*  Operators  */
-
-        /**
-         *  Gets the value of a bit.
-         */
-        __bland __forceinline bool operator[](uint8_t const bit) const
-        {
-            return 0 != (this->Value & (1 << bit));
-        }
-
-        /*  Debug  */
-
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
 
         /*  Field(s)  */
 

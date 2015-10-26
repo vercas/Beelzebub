@@ -116,7 +116,15 @@ boot32_gdt:
     mov     ecx, boot32_gdt_data.end            ; Source GDT end
     sub     ecx, esi                            ; Subtract base from end and you obtain the length!
 
-    rep movsb                                   ; Copy the GDT!
+    rep movsb                                   ; Copy the GDT entries.
+
+    mov     ecx, edi
+    and     ecx, 0xFFF
+    neg     ecx
+    add     ecx, 0x1000                         ; ecx = 0x1000 - (&GDT & 0xFFF)!
+
+    mov     eax, 0
+    rep stosb                                   ; And we clear out the rest of the bytes in the GDT's page!
 
     ret                                         ; Done!
 
@@ -485,21 +493,34 @@ boot32_err_nolm: db "64 bit long mode not supported on this CPU.", 0
 
 boot32_gdt_data:
     .null:
-        dd 0x0
-        dd 0x0
-    .kernel_code:
-        dd 0x0
-        dd 0x209800
-    .kernel_data:
-        dd 0x0
-        dd 0x209200
-    .user_code:
-        dd 0x0
-        dd 0x20F800
-    .user_data:
-        dd 0x0
-        dd 0x20F200
+        dq 0x0000000000000000
+    .kernel_code:       ;   64-bit kernel code
+        dd 0x00000000
+        dd 0x00209800
+    .kernel_data:       ;   64-bit kernel data
+        dd 0x00000000
+        dd 0x00209200
+    .user_code_32:      ;   32-bit user code
+        dd 0x00000000
+        dd 0x0040FA00
+    .user_data_32:      ;   I think this is 32-bit user data.
+        dd 0x00000000
+        dd 0x0040F200
+    .user_code:         ;   64-bit user code
+        dd 0x00000000
+        dd 0x0020F800
+    .user_data:         ;   64-bit user data..?
+        dd 0x00000000
+        dd 0x0020F200
     .end:
+
+;dd 0, 0
+;dd 0x00000000, 0x00209A00   ; 0x08: 64-bit Code
+;dd 0x00000000, 0x00009200   ; 0x10: 64-bit Data
+;dd 0x00000000, 0x0040FA00   ; 0x18: 32-bit User Code
+;dd 0x00000000, 0x0040F200   ; 0x20: User Data
+;dd 0x00000000, 0x0020FA00   ; 0x28: 64-bit User Code
+;dd 0x00000000, 0x0000F200   ; 0x30: User Data (64 version)
 
 section .bss
 

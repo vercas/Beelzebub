@@ -79,7 +79,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure from the given MSR value.
          */
-        __bland __forceinline Ia32Efer(MsrValue const val)
+        __bland inline explicit Ia32Efer(MsrValue const val)
         {
             this->Value = val.Qword;
         }
@@ -87,7 +87,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure from the given raw value.
          */
-        __bland __forceinline Ia32Efer(uint64_t const val)
+        __bland inline explicit Ia32Efer(uint64_t const val)
         {
             this->Value = val;
         }
@@ -95,7 +95,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure with the given flags.
          */
-        __bland __forceinline Ia32Efer(bool const syscallEnable
+        __bland inline Ia32Efer(bool const syscallEnable
                                      , bool const longModeEnable
                                      , bool const nonExecuteEnable)
         {
@@ -110,16 +110,6 @@ namespace Beelzebub { namespace System
         BITPROPRW(LongModeEnable, Value)
         BITPROPRO(LongModeActive, Value)
         BITPROPRW(NonExecuteEnable, Value)
-
-        /*  Operators  */
-
-        /**
-         *  Gets the value of a bit.
-         */
-        __bland __forceinline bool operator[](uint8_t const bit) const
-        {
-            return 0 != (this->Value & (1 << bit));
-        }
 
         /*  Field(s)  */
 

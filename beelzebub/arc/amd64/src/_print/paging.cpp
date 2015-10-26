@@ -1,6 +1,8 @@
 #include <_print/paging.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Debug;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Terminals;
 
@@ -56,6 +58,11 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml1Entry const v
 	return term->Write(str);
 }
 
+TerminalWriteResult PrintToDebugTerminal(Pml1Entry const val)
+{
+    return PrintToTerminal(DebugTerminal, val);
+}
+
 /******************
     Pml1 Struct
 ******************/
@@ -77,6 +84,11 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml1 const & val)
 	}
 
 	return tret;
+}
+
+TerminalWriteResult PrintToDebugTerminal(Pml1 const & val)
+{
+    return PrintToTerminal(DebugTerminal, val);
 }
 
 /***********************
@@ -136,6 +148,11 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml2Entry const v
 	return term->Write(str);
 }
 
+TerminalWriteResult PrintToDebugTerminal(Pml2Entry const val)
+{
+    return PrintToTerminal(DebugTerminal, val);
+}
+
 /******************
     Pml2 Struct
 ******************/
@@ -157,6 +174,11 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml2 const & val)
 	}
 
 	return tret;
+}
+
+TerminalWriteResult PrintToDebugTerminal(Pml2 const & val)
+{
+    return PrintToTerminal(DebugTerminal, val);
 }
 
 /***********************
@@ -216,6 +238,11 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml3Entry const v
 	return term->Write(str);
 }
 
+TerminalWriteResult PrintToDebugTerminal(Pml3Entry const val)
+{
+    return PrintToTerminal(DebugTerminal, val);
+}
+
 /******************
     Pml3 Struct
 ******************/
@@ -237,6 +264,11 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml3 const & val)
 	}
 
 	return tret;
+}
+
+TerminalWriteResult PrintToDebugTerminal(Pml3 const & val)
+{
+    return PrintToTerminal(DebugTerminal, val);
 }
 
 /***********************
@@ -285,6 +317,11 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml4Entry const v
 	return term->Write(str);
 }
 
+TerminalWriteResult PrintToDebugTerminal(Pml4Entry const val)
+{
+    return PrintToTerminal(DebugTerminal, val);
+}
+
 /******************
     Pml4 Struct
 ******************/
@@ -306,4 +343,9 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml4 const & val)
 	}
 
 	return tret;
+}
+
+TerminalWriteResult PrintToDebugTerminal(Pml4 const & val)
+{
+    return PrintToTerminal(DebugTerminal, val);
 }

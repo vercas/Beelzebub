@@ -13,11 +13,11 @@ __extern __used jg_header_root_t jegudiel_header = {
 	FLAGS,                                  // flags
 	0xFFFFFFFFFFF00000,                     // stack_vaddr
 	JG_INFO_ROOT_BASE ,                     // info_vaddr
-	0xFFFFFFFFFFCFF000,                     // idt_vaddr
-	0xFFFFFFFFFFCFE000,                     // gdt_vaddr
+	0xFFFFFFFFFFCEF000,                     // idt_vaddr
+	0xFFFFFFFFFFCF0000,                     // gdt_vaddr
 	(uintptr_t)&kmain_ap,                   // ap_entry
 	0,                                      // syscall_entry
-	(uintptr_t)&IsrGates,                  // isr_entry_table
+	(uintptr_t)&IsrGates,                   // isr_entry_table
 	{
 		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ0
 		{0                      , KEYBOARD_IRQ_VECTOR    },   // IRQ1

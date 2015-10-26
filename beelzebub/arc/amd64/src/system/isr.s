@@ -98,7 +98,8 @@ isr_stub_common:
     pop rbx
     pop rax
     add rsp, 16         ; Remove error code and vector number
-    sti
+
+    ;sti                ; Interrupts push RFLAGS, so returning will restore the interrupt state.
     iretq
 
 %macro ISR_NOERRCODE 1

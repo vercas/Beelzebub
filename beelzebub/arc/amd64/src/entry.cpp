@@ -23,6 +23,8 @@
 #include <math.h>
 #include <string.h>
 
+#include <_print/registers.hpp>
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -582,14 +584,14 @@ Handle InitializeMemory()
 
     //  DUMPING CONTROL REGISTERS
 
-    Cpu::GetCr0().PrintToTerminal(&initialVbeTerminal);
+    PrintToTerminal(&initialVbeTerminal, Cpu::GetCr0());
     initialVbeTerminal.WriteLine();
 
     initialVbeTerminal.Write("CR2: ");
     initialVbeTerminal.WriteHex64((uint64_t)Cpu::GetCr2());
     initialVbeTerminal.WriteLine();
 
-    Cpu::GetCr3().PrintToTerminal(&initialVbeTerminal);
+    PrintToTerminal(&initialVbeTerminal, Cpu::GetCr3());
     initialVbeTerminal.WriteLine();
 
     initialVbeTerminal.Write("CR4: ");
