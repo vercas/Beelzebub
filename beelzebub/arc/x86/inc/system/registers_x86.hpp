@@ -106,10 +106,10 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITPROPRW(SyscallEnable, this->Value, __bland, const)
-        BITPROPRW(LongModeEnable, this->Value, __bland, const)
-        BITPROPRO(LongModeActive, this->Value, __bland, const)
-        BITPROPRW(NonExecuteEnable, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(SyscallEnableBitIndex   , SyscallEnable   , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(LongModeEnableBitIndex  , LongModeEnable  , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RO(LongModeActiveBitIndex  , LongModeActive  , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(NonExecuteEnableBitIndex, NonExecuteEnable, uint64_t, this->Value, __bland, const)
 
         /*  Field(s)  */
 

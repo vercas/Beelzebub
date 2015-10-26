@@ -89,17 +89,17 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITPROPRW(ProtectedModeEnable, this->Value, __bland, const)
-        BITPROPRW(MonitorCoprocessor, this->Value, __bland, const)
-        BITPROPRW(Emulation, this->Value, __bland, const)
-        BITPROPRW(TaskSwitched, this->Value, __bland, const)
-        BITPROPRW(ExtensionType, this->Value, __bland, const)
-        BITPROPRW(NumericError, this->Value, __bland, const)
-        BITPROPRW(WriteProtect, this->Value, __bland, const)
-        BITPROPRW(AlignmentMask, this->Value, __bland, const)
-        BITPROPRW(NotWriteThrough, this->Value, __bland, const)
-        BITPROPRW(CacheDisable, this->Value, __bland, const)
-        BITPROPRW(Paging, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(ProtectedModeEnableBitIndex, ProtectedModeEnable, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(MonitorCoprocessorBitIndex , MonitorCoprocessor , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(EmulationBitIndex          , Emulation          , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(TaskSwitchedBitIndex       , TaskSwitched       , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(ExtensionTypeBitIndex      , ExtensionType      , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(NumericErrorBitIndex       , NumericError       , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(WriteProtectBitIndex       , WriteProtect       , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(AlignmentMaskBitIndex      , AlignmentMask      , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(NotWriteThroughBitIndex    , NotWriteThrough    , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(CacheDisableBitIndex       , CacheDisable       , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(PagingBitIndex             , Paging             , uint64_t, this->Value, __bland, const)
 
         /*  Field(s)  */
 
@@ -170,8 +170,8 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITPROPRW(Pwt, this->Value, __bland, const)
-        BITPROPRW(Pcd, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(PwtBitIndex, Pwt, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(PcdBitIndex, Pcd, uint64_t, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the PML4 table.

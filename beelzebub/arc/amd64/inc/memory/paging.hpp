@@ -86,17 +86,6 @@ namespace Beelzebub { namespace Memory
         static const uint64_t PatBit      = 1ULL <<  7;
         static const uint64_t GlobalBit   = 1ULL <<  8;
         static const uint64_t XdBit       = 1ULL << 63;
-        
-        static const uint64_t PresentBitIndex     =  0;
-        static const uint64_t WritableBitIndex    =  1;
-        static const uint64_t UserlandBitIndex    =  2;
-        static const uint64_t PwtBitIndex         =  3;
-        static const uint64_t PcdBitIndex         =  4;
-        static const uint64_t AccessedBitIndex    =  5;
-        static const uint64_t DirtyBitIndex       =  6;
-        static const uint64_t PatBitIndex         =  7;
-        static const uint64_t GlobalBitIndex      =  8;
-        static const uint64_t XdBitIndex          = 63;
 
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
@@ -155,16 +144,16 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITPROPRW(Present, this->Value, __bland, const)
-        BITPROPRW(Writable, this->Value, __bland, const)
-        BITPROPRW(Userland, this->Value, __bland, const)
-        BITPROPRW(Pwt, this->Value, __bland, const)
-        BITPROPRW(Pcd, this->Value, __bland, const)
-        BITPROPRW(Accessed, this->Value, __bland, const)
-        BITPROPRW(Dirty, this->Value, __bland, const)
-        BITPROPRW(Pat, this->Value, __bland, const)
-        BITPROPRW(Global, this->Value, __bland, const)
-        BITPROPRW(Xd, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 0, Present , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 1, Writable, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 2, Userland, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 3, Pwt     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 4, Pcd     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 5, Accessed, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 6, Dirty   , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 7, Pat     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 8, Global  , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(63, Xd      , uint64_t, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the 4-KiB page.
@@ -307,18 +296,6 @@ namespace Beelzebub { namespace Memory
         static const uint64_t PatBit      = 1ULL << 12;
         static const uint64_t XdBit       = 1ULL << 63;
 
-        static const uint64_t PresentBitIndex     =  0;
-        static const uint64_t WritableBitIndex    =  1;
-        static const uint64_t UserlandBitIndex    =  2;
-        static const uint64_t PwtBitIndex         =  3;
-        static const uint64_t PcdBitIndex         =  4;
-        static const uint64_t AccessedBitIndex    =  5;
-        static const uint64_t DirtyBitIndex       =  6;
-        static const uint64_t PageSizeBitIndex    =  7;
-        static const uint64_t GlobalBitIndex      =  8;
-        static const uint64_t PatBitIndex         = 12;
-        static const uint64_t XdBitIndex          = 63;
-
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
         /*  Constructors  */
@@ -416,17 +393,17 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITPROPRW(Present, this->Value, __bland, const)
-        BITPROPRW(Writable, this->Value, __bland, const)
-        BITPROPRW(Userland, this->Value, __bland, const)
-        BITPROPRW(Pwt, this->Value, __bland, const)
-        BITPROPRW(Pcd, this->Value, __bland, const)
-        BITPROPRW(Accessed, this->Value, __bland, const)
-        BITPROPRW(Dirty, this->Value, __bland, const)
-        BITPROPRW(PageSize, this->Value, __bland, const)
-        BITPROPRW(Global, this->Value, __bland, const)
-        BITPROPRW(Pat, this->Value, __bland, const)
-        BITPROPRW(Xd, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 0, Present , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 1, Writable, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 2, Userland, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 3, Pwt     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 4, Pcd     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 5, Accessed, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 6, Dirty   , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 7, PageSize, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 8, Global  , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(12, Pat     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(63, Xd      , uint64_t, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the PML1 (PT) table.
@@ -585,18 +562,6 @@ namespace Beelzebub { namespace Memory
         static const uint64_t PatBit      = 1ULL << 12;
         static const uint64_t XdBit       = 1ULL << 63;
 
-        static const uint64_t PresentBitIndex     =  0;
-        static const uint64_t WritableBitIndex    =  1;
-        static const uint64_t UserlandBitIndex    =  2;
-        static const uint64_t PwtBitIndex         =  3;
-        static const uint64_t PcdBitIndex         =  4;
-        static const uint64_t AccessedBitIndex    =  5;
-        static const uint64_t DirtyBitIndex       =  6;
-        static const uint64_t PageSizeBitIndex    =  7;
-        static const uint64_t GlobalBitIndex      =  8;
-        static const uint64_t PatBitIndex         = 12;
-        static const uint64_t XdBitIndex          = 63;
-
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
         /*  Constructors  */
@@ -694,17 +659,17 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITPROPRW(Present, this->Value, __bland, const)
-        BITPROPRW(Writable, this->Value, __bland, const)
-        BITPROPRW(Userland, this->Value, __bland, const)
-        BITPROPRW(Pwt, this->Value, __bland, const)
-        BITPROPRW(Pcd, this->Value, __bland, const)
-        BITPROPRW(Accessed, this->Value, __bland, const)
-        BITPROPRW(Dirty, this->Value, __bland, const)
-        BITPROPRW(PageSize, this->Value, __bland, const)
-        BITPROPRW(Global, this->Value, __bland, const)
-        BITPROPRW(Pat, this->Value, __bland, const)
-        BITPROPRW(Xd, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 0, Present , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 1, Writable, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 2, Userland, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 3, Pwt     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 4, Pcd     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 5, Accessed, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 6, Dirty   , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 7, PageSize, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 8, Global  , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(12, Pat     , uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(63, Xd      , uint64_t, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the PML2 (PD) table.
@@ -841,14 +806,6 @@ namespace Beelzebub { namespace Memory
         static const uint64_t AccessedBit = 1ULL <<  5;
         static const uint64_t XdBit       = 1ULL << 63;
 
-        static const uint64_t PresentBitIndex     =  0;
-        static const uint64_t WritableBitIndex    =  1;
-        static const uint64_t UserlandBitIndex    =  2;
-        static const uint64_t PwtBitIndex         =  3;
-        static const uint64_t PcdBitIndex         =  4;
-        static const uint64_t AccessedBitIndex    =  5;
-        static const uint64_t XdBitIndex          = 63;
-
         static const uint64_t AddressBits = 0x000FFFFFFFFFF000ULL;
 
         /*  Constructors  */
@@ -898,13 +855,13 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITPROPRW(Present, this->Value, __bland, const)
-        BITPROPRW(Writable, this->Value, __bland, const)
-        BITPROPRW(Userland, this->Value, __bland, const)
-        BITPROPRW(Pwt, this->Value, __bland, const)
-        BITPROPRW(Pcd, this->Value, __bland, const)
-        BITPROPRW(Accessed, this->Value, __bland, const)
-        BITPROPRW(Xd, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 0, Present, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 1, Writable, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 2, Userland, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 3, Pwt, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 4, Pcd, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW( 5, Accessed, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(63, Xd, uint64_t, this->Value, __bland, const)
 
         /**
          *  Gets the physical address of the PML3 (PDPT) table.
