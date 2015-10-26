@@ -51,6 +51,17 @@ More differences will be listed here as they surface.
 
 When you plan on running Beelzebub on a single-core (and single-hyperthreaded) system, a build with SMP support disabled will be much more efficient: cache lines won't be locked unnecessarily, page/TLB changes don't need broadcasting and mutexes will never be busy-waited for.
 
+#### `obja-spinlock` (default) and `obja-rrspinlock`
+
+Indicates the type of lock used in the fixed-size object allocator. The choice can greatly affect the performance on a system.  
+
+For systems with few cores (a sensible upper bound is 16 at the time of writing), a vanilla spinlock will very likely offer the best performance. The default option (`obja-spinlock`) will provide this lock.  
+
+For systems with many cores, contention over a lock can become a problem, and an upper bound to the waiting time may be more desirable to make sure that a consumer will not get live-locked. The upcoming solution to this is the *Round-Robin Spinlock*, which allows CPUs to queue up orderly and take their turn in a deterministic order. This lock comes with a rather large performance overhead which makes it a rather bad choice for systems where it is not really needed.  
+
+Although this option exists, the `Round-Ribn Spinlock` is **not implemented** yet.
+**This option may be removed later.**  
+
 ### Tests
 
 The codebases includes tests for various libraries, (sub)systems and implementations. These are normally completely ignored when building, unless enabled specifically.  

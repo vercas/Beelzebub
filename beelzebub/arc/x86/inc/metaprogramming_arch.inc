@@ -237,3 +237,11 @@ typedef char bool;
     #endif
 #endif
 #endif
+
+/*  Memory barriers and forced ordering  */
+
+#define COMPILER_MEMORY_BARRIER() asm volatile ( "" : : : "memory" )
+
+#define FORCE_ORDER(before, after) asm volatile ( ""                  \
+                                                : [out]"=m"(after )   \
+                                                : [in ] "m"(before) )

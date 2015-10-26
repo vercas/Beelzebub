@@ -1,23 +1,34 @@
 #pragma once
 
-#ifdef __BEELZEBUB__TEST_OBJA
-#define private public
-#define protected public
+#if   defined(__BEELZEBUB__TEST_OBJA)
+    #define private public
+    #define protected public
 #endif
 
-#include <metaprogramming.h>
-#include <handles.h>
-#include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
 #include <debug.hpp>
+#include <handles.h>
+
+#if   defined(__BEELZEBUB_KERNEL)
+    #if   defined(__BEELZEBUB_SETTINGS_OBJA_RRSPINLOCK)
+        #include <synchronization/round_robin_spinlock.hpp>
+    #endif
+
+    #include <synchronization/spinlock_uninterruptible.hpp>
+#endif
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
 
 namespace Beelzebub { namespace Memory
 {
-#ifdef __BEELZEBUB_KERNEL
-    typedef SpinlockUninterruptible<> ObjectAllocatorLock;
+#if defined(__BEELZEBUB_KERNEL)
+    #if   defined(__BEELZEBUB_SETTINGS_OBJA_RRSPINLOCK)
+        typedef LOCK NAME GOES HERE ObjectAllocatorLock;
+    #else
+        typedef SpinlockUninterruptible<> ObjectAllocatorLock;
+    #endif
+
     typedef int_cookie_t ObjectAllocatorLockCookie;
 #else
     //  To do: userland will require a mutex here.
@@ -48,8 +59,8 @@ namespace Beelzebub { namespace Memory
     {
         /*  Fields  */
 
-        obj_ind_t Capacity;  //  This should help determine the size of the pool.
         obj_ind_t volatile FreeCount;
+        obj_ind_t Capacity;  //  This should help determine the size of the pool.
         obj_ind_t FirstFreeObject;      //  Used by the allocator.
         obj_ind_t LastFreeObject;       //  Used for enlarging, mainly.
         //  These should be creating an alignment of up to 16 if needed.
@@ -62,7 +73,17 @@ namespace Beelzebub { namespace Memory
 
         /*  Constructors  */
 
-        ObjectPool() = default;
+        __bland inline ObjectPool()
+            : FreeCount( 0)
+            , Capacity(0)
+            , FirstFreeObject(obj_ind_invalid)
+            , LastFreeObject(obj_ind_invalid)
+            , Next(nullptr)
+            , PropertiesLock()
+        {
+
+        }
+
         ObjectPool(ObjectPool const &) = delete;
         ObjectPool & operator =(const ObjectPool &) = delete;
         //  Aye - no copying.
@@ -123,7 +144,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Constructors  */
 
-        ObjectAllocator()
+        __bland inline ObjectAllocator()
             : AcquirePool( nullptr)
             , EnlargePool(nullptr)
             , ReleasePool(nullptr)
@@ -207,7 +228,7 @@ namespace Beelzebub { namespace Memory
         ObjectPool * volatile LastPool;
 
         ObjectAllocatorLock LinkageLock;
-        ObjectAllocatorLock AcquisitionLock;
+        SpinlockUninterruptible<> AcquisitionLock;
 
         /*  Stats  */
 
@@ -221,7 +242,7 @@ namespace Beelzebub { namespace Memory
     };
 }}
 
-#ifdef __BEELZEBUB__TEST_OBJA
-#undef private
-#undef protected
+#if   defined(__BEELZEBUB__TEST_OBJA)
+    #undef private
+    #undef protected
 #endif

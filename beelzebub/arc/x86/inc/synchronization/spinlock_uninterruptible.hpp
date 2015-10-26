@@ -6,7 +6,6 @@
 #pragma once
 
 #include <system/interrupts.hpp>
-#include <system/interrupts.hpp>
 #include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
@@ -42,6 +41,8 @@ namespace Beelzebub { namespace Synchronization
     {
     public:
 
+        typedef int_cookie_t Cookie;
+
         /*  Constructor(s)  */
 
         SpinlockUninterruptible() = default;
@@ -59,14 +60,14 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline __must_check bool TryAcquire(int_cookie_t & int_cookie) volatile
+        __bland __forceinline __must_check bool TryAcquire(Cookie & cookie) volatile
         {
-            int_cookie = System::Interrupts::PushDisable();
+            cookie = System::Interrupts::PushDisable();
 
             spinlock_t oldValue = __sync_lock_test_and_set(&this->Value, 1);
 
             if (oldValue != 0)
-                System::Interrupts::RestoreState(int_cookie);
+                System::Interrupts::RestoreState(cookie);
             //  If the spinlock was already locked, restore interrupt state.
 
             return !oldValue;
@@ -99,14 +100,14 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline __must_check int_cookie_t Acquire() volatile
+        __bland __forceinline __must_check Cookie Acquire() volatile
         {
-            const int_cookie_t int_cookie = System::Interrupts::PushDisable();
+            Cookie const cookie = System::Interrupts::PushDisable();
 
             while (__sync_lock_test_and_set(&this->Value, 1))
                 this->Spin();
 
-            return int_cookie;
+            return cookie;
         }
 
         /**
@@ -121,11 +122,11 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void Release(int_cookie_t const int_cookie) volatile
+        __bland __forceinline void Release(Cookie const cookie) volatile
         {
             __sync_lock_release(&this->Value);
 
-            System::Interrupts::RestoreState(int_cookie);
+            System::Interrupts::RestoreState(cookie);
         }
 
         /**
@@ -168,6 +169,8 @@ namespace Beelzebub { namespace Synchronization
     {
     public:
 
+        typedef int_cookie_t Cookie;
+
         /*  Constructor(s)  */
 
         SpinlockUninterruptible() = default;
@@ -179,9 +182,9 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline __must_check bool TryAcquire(int_cookie_t & int_cookie) const volatile
+        __bland __forceinline __must_check bool TryAcquire(Cookie & cookie) const volatile
         {
-            int_cookie = System::Interrupts::PushDisable();
+            cookie = System::Interrupts::PushDisable();
 
             return true;
         }
@@ -207,7 +210,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline __must_check int_cookie_t Acquire() const volatile
+        __bland __forceinline __must_check Cookie Acquire() const volatile
         {
             return System::Interrupts::PushDisable();
         }
@@ -223,9 +226,9 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void Release(int_cookie_t const int_cookie) const volatile
+        __bland __forceinline void Release(Cookie const cookie) const volatile
         {
-            System::Interrupts::RestoreState(int_cookie);
+            System::Interrupts::RestoreState(cookie);
         }
 
         /**

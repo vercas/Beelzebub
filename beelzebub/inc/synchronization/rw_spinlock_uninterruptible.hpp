@@ -1,27 +1,30 @@
 #pragma once
 
 #include <synchronization/atomic.hpp>
+#include <system/interrupts.hpp>
 #include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
     //  The first version (on non-SMP builds) is dumbed down.
 
-    struct RwSpinlock
+    struct RwSpinlockUninterruptible
     {
     public:
 
+        typedef int_cookie_t Cookie;
+
         /*  Constructor(s)  */
 
-        __bland inline RwSpinlock()
+        __bland inline RwSpinlockUninterruptible()
             : ReaderCount( 0)
             , Lock(false)
         {
             //  Just make sure it's not in a bad state.
         }
 
-        RwSpinlock(RwSpinlock const &) = delete;
-        RwSpinlock & operator =(RwSpinlock const &) = delete;
+        RwSpinlockUninterruptible(RwSpinlockUninterruptible const &) = delete;
+        RwSpinlockUninterruptible & operator =(RwSpinlockUninterruptible const &) = delete;
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
 
@@ -30,7 +33,17 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Acquires the lock as a reader.</summary>
          */
-        __bland __forceinline void AcquireAsReader() volatile
+        __bland __forceinline Cookie AcquireAsReader() volatile
+        {
+            this->ReaderCount = 1;
+            
+            return System::Interrupts::PushDisable();
+        }
+
+        /**
+         *  <summary>Acquires the lock as a reader.</summary>
+         */
+        __bland __forceinline void SimplyAcquireAsReader() volatile
         {
             this->ReaderCount = 1;
         }
@@ -38,9 +51,17 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Acquires the lock as the writer.</summary>
          */
-        __bland __forceinline void AcquireAsWriter() volatile
+        __bland __forceinline Cookie AcquireAsWriter() volatile
         {
-            //  Nuthin'.
+            return System::Interrupts::PushDisable();
+        }
+
+        /**
+         *  <summary>Acquires the lock as the writer.</summary>
+         */
+        __bland __forceinline void SimplyAcquireAsWriter() volatile
+        {
+            //  Nothing.
         }
 
         /**
@@ -58,7 +79,17 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Releases the lock as a reader.</summary>
          */
-        __bland __forceinline void ReleaseAsReader() volatile
+        __bland __forceinline void ReleaseAsReader(Cookie const cookie) volatile
+        {
+            this->ReaderCount = 0;
+
+            System::Interrupts::RestoreState(cookie);
+        }
+
+        /**
+         *  <summary>Releases the lock as a reader.</summary>
+         */
+        __bland __forceinline void SimplyReleaseAsReader() volatile
         {
             this->ReaderCount = 0;
         }
@@ -66,9 +97,17 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Releases the lock as the writer.</summary>
          */
-        __bland __forceinline void ReleaseAsWriter() volatile
+        __bland __forceinline void ReleaseAsWriter(Cookie const cookie) volatile
         {
-            //  Nuthin'.
+            System::Interrupts::RestoreState(cookie);
+        }
+
+        /**
+         *  <summary>Releases the lock as the writer.</summary>
+         */
+        __bland __forceinline void SimplyReleaseAsWriter() volatile
+        {
+            //  Nothing.
         }
 
         /**
@@ -103,7 +142,19 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Acquires the lock as a reader.</summary>
          */
-        __bland inline void AcquireAsReader() volatile
+        __bland inline Cookie AcquireAsReader() volatile
+        {
+            Cookie const cookie = System::Interrupts::PushDisable();
+            
+            this->SimplyAcquireAsReader();
+
+            return cookie;
+        }
+
+        /**
+         *  <summary>Acquires the lock as a reader.</summary>
+         */
+        __bland inline void SimplyAcquireAsReader() volatile
         {
             while (this->Lock.TestSet())
                 System::CpuInstructions::DoNothing();
@@ -119,7 +170,19 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Acquires the lock as the writer.</summary>
          */
-        __bland inline void AcquireAsWriter() volatile
+        __bland inline Cookie AcquireAsWriter() volatile
+        {
+            Cookie const cookie = System::Interrupts::PushDisable();
+            
+            this->SimplyAcquireAsWriter();
+
+            return cookie;
+        }
+
+        /**
+         *  <summary>Acquires the lock as the writer.</summary>
+         */
+        __bland inline void SimplyAcquireAsWriter() volatile
         {
             while (this->Lock.TestSet())
                 System::CpuInstructions::DoNothing();
@@ -137,8 +200,7 @@ namespace Beelzebub { namespace Synchronization
         {
             if (this->Lock.TestSet())
             {
-                //  Well, it seems the writer lock is busy. The only thing that
-                //  can be done is notify the reader.
+                //  There's nothing to do.
 
                 return false;
             }
@@ -162,23 +224,39 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Releases the lock as a reader.</summary>
          */
-        __bland inline void ReleaseAsReader() volatile
+        __bland inline void ReleaseAsReader(Cookie const cookie) volatile
+        {
+            this->SimplyReleaseAsReader();
+
+            System::Interrupts::RestoreState(cookie);
+        }
+
+        /**
+         *  <summary>Releases the lock as a reader.</summary>
+         */
+        __bland inline void SimplyReleaseAsReader() volatile
         {
             --this->ReaderCount;
             //  Remove reader.
-
-            //  Nothing else really needs to be done.
         }
 
         /**
          *  <summary>Releases the lock as the writer.</summary>
          */
-        __bland inline void ReleaseAsWriter() volatile
+        __bland inline void ReleaseAsWriter(Cookie const cookie) volatile
+        {
+            this->SimplyReleaseAsWriter();
+
+            System::Interrupts::RestoreState(cookie);
+        }
+
+        /**
+         *  <summary>Releases the lock as the writer.</summary>
+         */
+        __bland inline void SimplyReleaseAsWriter() volatile
         {
             this->Lock.Clear();
             //  Unlock.
-
-            //  Nothing else really needs to be done here either.
         }
 
         /**

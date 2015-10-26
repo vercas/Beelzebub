@@ -31,6 +31,7 @@ ObjectAllocator::ObjectAllocator(size_t const objectSize, size_t const objectAli
     , FirstPool(nullptr)
     , LastPool(nullptr)
     , LinkageLock()
+    , AcquisitionLock()
     , Capacity(0)
     , FreeCount(0)
     , PoolCount(0)
@@ -57,17 +58,23 @@ firstPoolCheck:
         cookie = this->LinkageLock.Acquire();
 
         if unlikely(this->FirstPool != nullptr)
-        {   //  Maybe another core allocated the first pool in the meantime.
+        {
+            //  Maybe another core allocated the first pool in the meantime.
+
             this->LinkageLock.Release(cookie);  //  Release lock.
 
             goto firstPoolCheck;                //  Check again.
         }
 
-        res = this->AcquirePool(this->ObjectSize, this->HeaderSize, Minimum(estimatedLeft, 1), justAllocated);
+        res = this->AcquirePool(this->ObjectSize, this->HeaderSize, Minimum(estimatedLeft, 2), justAllocated);
+        //  A minimum of two is given here so the current allocation can happen
+        //  and the next crawler can attempt to enlarge the pool if needed.
 
         if (!res.IsOkayResult())
         {
             this->LinkageLock.Release(cookie);
+
+            //  Failed to acquire. Oh, well...
 
             return res;
         }
@@ -136,6 +143,9 @@ poolLoop:
 
             if unlikely(freeCount == 0)
             {
+                current->LastFreeObject = obj_ind_invalid;
+                //  There's no last free object anymoar!
+
                 obj_ind_t const oldCapacity = current->Capacity;
 
                 this->EnlargePool(this->ObjectSize, this->HeaderSize, estimatedLeft, current);
@@ -199,7 +209,9 @@ poolLoop:
         //  If the lock can be acquired, then this core/thread is the one which must allocate the space.
         //  The rest will await nicely.
 
-        res = this->AcquirePool(this->ObjectSize, this->HeaderSize, Minimum(estimatedLeft, 1), justAllocated);
+        res = this->AcquirePool(this->ObjectSize, this->HeaderSize, Minimum(estimatedLeft, 2), justAllocated);
+        //  A minimum of two is given here so the current allocation can happen
+        //  and the next crawler can attempt to enlarge the pool if needed.
 
         if (!res.IsOkayResult())
         {
@@ -214,14 +226,28 @@ poolLoop:
 
         ++this->PoolCount;
         this->Capacity += justAllocated->Capacity;
-        this->FreeCount += justAllocated->FreeCount;
         //  We've got an extra pool!
+
+        FreeObject * obj;
+        result = obj = justAllocated->GetFirstFreeObject(this->ObjectSize, this->HeaderSize);
+        justAllocated->FirstFreeObject = obj->Next;
+        //  This allocator gets the first object as a reward for taking its time
+        //  to allocate a new pool.
+
+        this->FreeCount += --justAllocated->FreeCount;
+        //  More book-keeping...
 
         last->PropertiesLock.SimplyAcquire();
 
-        ObjectPool * volatile oldNext = last->Next;
-        this->LastPool = last->Next = justAllocated;
+        ObjectPool * oldNext = last->Next;
+        last->Next = justAllocated;
         justAllocated->Next = oldNext;
+
+        COMPILER_MEMORY_BARRIER();
+        //  Gotta make sure that the last pool is set after the ex-last is
+        //  modified.
+
+        this->LastPool = justAllocated;
 
         this->AcquisitionLock.SimplyRelease();
         last->PropertiesLock.Release(cookie);
@@ -304,6 +330,8 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                     previous->PropertiesLock.SimplyRelease();
                 else if (this->CanReleaseAllPools)
                     this->LinkageLock.SimplyRelease();
+
+                //  This will proceed to actual removal.
             }
             else
             {
@@ -335,7 +363,8 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                             //  is not equal to `current`.
 
                             previous->Next = next;
-                            previous->PropertiesLock.SimplyRelease();
+                            
+                            previous->PropertiesLock.Release(cookie);
                         }
                         else
                         {
@@ -344,12 +373,13 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                             else
                                 this->FirstPool = nullptr;
 
-                            this->LinkageLock.SimplyRelease();
+                            this->LinkageLock.Release(cookie);
                         }
 
                         --this->PoolCount;
                         this->Capacity -= currentCapacity;
-                        this->FreeCount -= currentCapacity - busyCount;
+                        this->FreeCount -= currentCapacity - busyCount + 1;
+                        //  The +1 is the current object.
 
                         return HandleResult::Okay;
                     }
@@ -364,10 +394,9 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                 , object, this, current, ind);//*/
 
             FreeObject * const freeObject = (FreeObject *)(uintptr_t)object;
-
             freeObject->Next = current->FirstFreeObject;
-            current->FirstFreeObject = ind;
 
+            current->FirstFreeObject = ind;
             ++current->FreeCount;
 
             current->PropertiesLock.Release(cookie);
