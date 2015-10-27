@@ -16,6 +16,7 @@ then
 	pushd "$MISC_TOOLS_DIR"
 
 	$PRECMD wget "http://u.vercas.com/genisoimage"
+	chmod +x genisoimage
 
 	popd
 fi
