@@ -12,6 +12,7 @@ addons:
     - texinfo
 
 before_install:
+- export CROSSCOMPILERS_DIR="$HOME/beelzebub-cross-compilers"
 - sudo apt-get install -y mkisofs
 - bash grab_cc_linux-amd64.sh
 
@@ -58,6 +59,6 @@ cache:
   - $HOME/beelzebub-cross-compilers
 
 env:
-  - LANG="en_US.UTF-8" CROSSCOMPILERS_DIR="$HOME/beelzebub-cross-compilers"
+  - LANG="en_US.UTF-8"
 
 os: linux
