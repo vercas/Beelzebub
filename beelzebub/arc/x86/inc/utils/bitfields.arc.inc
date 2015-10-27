@@ -5,7 +5,8 @@
 #ifdef __GCC_ASM_FLAG_OUTPUTS__
     #ifndef BITFIELD_FLAG_RO
     //  Creates a getter for bit-based properties.
-    #define BITFIELD_FLAG_RO(bitInd, name, varT, var, decB, decG)              \
+    #define BITFIELD_FLAG_RO(bitInd, name, varT, var, decB, decG, decV)        \
+    decV varT const MCATS(name, Bit) = ((varT)1) << bitInd;                    \
     decB inline int MCATS2(Get, name)() decG                                   \
     {                                                                          \
         int res;                                                               \
@@ -22,7 +23,8 @@
 
     #ifndef BITFIELD_FLAG_RW
     //  Creates a getter and setter for bit-based properties.
-    #define BITFIELD_FLAG_RW(bitInd, name, varT, var, decB, decG)              \
+    #define BITFIELD_FLAG_RW(bitInd, name, varT, var, decB, decG, decV)        \
+    decV varT const MCATS(name, Bit) = ((varT)1) << bitInd;                    \
     decB inline int MCATS(Get, name)() decG                                    \
     {                                                                          \
         int res;                                                               \
@@ -87,7 +89,8 @@
 #else
     #ifndef BITFIELD_FLAG_RO
     //  Creates a getter for bit-based properties.
-    #define BITFIELD_FLAG_RO(bitInd, name, varT, var, decB, decG)              \
+    #define BITFIELD_FLAG_RO(bitInd, name, varT, var, decB, decG, decV)        \
+    decV varT const MCATS(name, Bit) = ((varT)1) << bitInd;                    \
     decB inline bool MCATS2(Get, name)() decG                                  \
     {                                                                          \
         bool res;                                                              \
@@ -105,7 +108,8 @@
 
     #ifndef BITFIELD_FLAG_RW
     //  Creates a getter and setter for bit-based properties.
-    #define BITFIELD_FLAG_RW(bitInd, name, varT, var, decB, decG)              \
+    #define BITFIELD_FLAG_RW(bitInd, name, varT, var, decB, decG, decV)        \
+    decV varT const MCATS(name, Bit) = ((varT)1) << bitInd;                    \
     decB inline bool MCATS(Get, name)() decG                                   \
     {                                                                          \
         bool res;                                                              \

@@ -64,11 +64,6 @@ namespace Beelzebub { namespace System
          *      11       : Execute Disable Bit Enable
          */
 
-        static uint64_t const SyscallEnableBit    = 1ULL <<  0;
-        static uint64_t const LongModeEnableBit   = 1ULL <<  8;
-        static uint64_t const LongModeActiveBit   = 1ULL << 10;
-        static uint64_t const NonExecuteEnableBit = 1ULL << 11;
-
         static uint64_t const SyscallEnableBitIndex       =  0;
         static uint64_t const LongModeEnableBitIndex      =  8;
         static uint64_t const LongModeActiveBitIndex      = 10;
@@ -106,10 +101,10 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITFIELD_FLAG_RW(SyscallEnableBitIndex   , SyscallEnable   , uint64_t, this->Value, __bland, const)
-        BITFIELD_FLAG_RW(LongModeEnableBitIndex  , LongModeEnable  , uint64_t, this->Value, __bland, const)
-        BITFIELD_FLAG_RO(LongModeActiveBitIndex  , LongModeActive  , uint64_t, this->Value, __bland, const)
-        BITFIELD_FLAG_RW(NonExecuteEnableBitIndex, NonExecuteEnable, uint64_t, this->Value, __bland, const)
+        BITFIELD_FLAG_RW(SyscallEnableBitIndex   , SyscallEnable   , uint64_t, this->Value, __bland, const, static)
+        BITFIELD_FLAG_RW(LongModeEnableBitIndex  , LongModeEnable  , uint64_t, this->Value, __bland, const, static)
+        BITFIELD_FLAG_RO(LongModeActiveBitIndex  , LongModeActive  , uint64_t, this->Value, __bland, const, static)
+        BITFIELD_FLAG_RW(NonExecuteEnableBitIndex, NonExecuteEnable, uint64_t, this->Value, __bland, const, static)
 
         /*  Field(s)  */
 
