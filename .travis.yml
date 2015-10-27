@@ -56,8 +56,9 @@ notifications:
 cache:
   directories:
   - $HOME/beelzebub-cross-compilers
+  - $HOME/beelzebub-miscellaneous-tools
 
 env:
-  - LANG="en_US.UTF-8" CROSSCOMPILERS_DIR="$HOME/beelzebub-cross-compilers"
+  - LANG="en_US.UTF-8" CROSSCOMPILERS_DIR="$HOME/beelzebub-cross-compilers" MISC_TOOLS_DIR="$HOME/beelzebub-miscellaneous-tools"
 
 os: linux

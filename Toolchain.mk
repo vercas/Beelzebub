@@ -18,6 +18,16 @@ DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gdc
 AS			:= nasm
 LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
 LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-ld
+MKISO		:= mkisofs
+
+ifneq ($(shell $(MKISO) --version; echo $$?),0)
+	#	So, mkisofs may not be absent.
+	#	Maybe it comes from an external source?
+	ifdef MISC_TOOLS_DIR
+		MKISO	:= $(MISC_TOOLS_DIR)/genisoimage
+	endif
+endif
+
 
 #################
 # Target Tuning #

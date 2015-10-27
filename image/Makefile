@@ -6,6 +6,9 @@ BUILD_DIR 			:= ./build
 
 include ../Beelzebub.mk
 
+include ../Toolchain.mk
+#	MKISO is defined here.
+
 ####################################### VARIABLES ##########
 
 ISO_TARGET_DIR		:= $(BUILD_DIR)/iso
@@ -48,7 +51,7 @@ $(ISO_PATH): $(ISO_TARGET_DIR)/$(ISO_TARGET_KERNEL) \
 			 $(ISO_TARGET_DIR)/$(ISO_TARGET_FONT) \
 			 $(MISCELLANEOUS_TARGETS)
 	@ echo "/ISO:" $@
-	@ mkisofs -R -b $(ISO_TARGET_ELTORITO) -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(ISO_TARGET_DIR) 2> /dev/null
+	@ $(MKISO) -R -b $(ISO_TARGET_ELTORITO) -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(ISO_TARGET_DIR) 2> /dev/null
 ######################################
 # The dependencies are the following:
 # - Kernel binary blob
