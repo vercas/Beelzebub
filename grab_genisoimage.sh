@@ -16,8 +16,8 @@ pushd "$MISC_TOOLS_DIR"
 if [ ! -e "$MISC_TOOLS_DIR/genisoimage" ]
 then
 	$PRECMD wget "http://u.vercas.com/genisoimage"
-fi
 
-chmod +x genisoimage
+	chmod +x genisoimage
+fi
 
 popd
