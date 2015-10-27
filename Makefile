@@ -10,7 +10,10 @@ all:
 
 PREFIX		:= ./build
 
-include Beelzebub.mk
+include ./Beelzebub.mk
+
+include ./Toolchain.mk
+#	We need this one to determine whether we can use -j or not.
 
 KERNEL_DIR	:= ./$(KERNEL_NAME)
 
@@ -33,7 +36,7 @@ qemu-serial: $(ISO_PATH)
 	
 jegudiel:
 	@ echo "/MAK:" $@
-	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install -j 8
+	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 	
 image: kernel
 	@ echo "/MAK:" $@
@@ -41,7 +44,7 @@ image: kernel
 
 kernel:
 	@ echo "/MAK:" $@
-	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) $(SETTINGS) install -j 8
+	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 clean:
 	@ $(MAKE) -C image/ clean

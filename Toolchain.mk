@@ -1,8 +1,13 @@
-CROSSCOMPILER_DIRECTORY	:= /usr/local/gcc-x86_64-elf/bin
+CROSSCOMPILER_DIRECTORY		:= /usr/local/gcc-x86_64-elf/bin
 #	Default
 
+MAKE_FLAGS	:= -j
+
 ifdef CROSSCOMPILERS_DIR
-	CROSSCOMPILER_DIRECTORY := $(CROSSCOMPILER_DIRECTORY)
+	CROSSCOMPILER_DIRECTORY	:= $(CROSSCOMPILER_DIRECTORY)
+
+	MAKE_FLAGS	:=  
+	#	The environment variables will fail to propagate...
 endif
 
 #############
