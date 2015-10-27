@@ -2,6 +2,8 @@ language: cpp
 
 compiler: gcc
 
+sudo: false
+
 addons:
   apt:
     packages:
@@ -12,8 +14,8 @@ addons:
     - texinfo
 
 before_install:
-- sudo apt-get install -y mkisofs
 - bash grab_cc_linux-amd64.sh
+- bash grab_genisoimage.sh
 
 #before_script:
 #  - travis_retry bundle
