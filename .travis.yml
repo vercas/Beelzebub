@@ -53,8 +53,11 @@ notifications:
     template:
     - "%{repository}/%{branch} (%{commit} - %{author}): %{build_url}: %{message}"
 
+cache:
+  directories:
+  - $HOME/beelzebub-cross-compilers
+
 env:
-  - LANG="en_US.UTF-8"
-  - CROSSCOMPILERS_DIR="$HOME/beelzebub-cross-compilers"
+  - LANG="en_US.UTF-8" CROSSCOMPILERS_DIR="$HOME/beelzebub-cross-compilers"
 
 os: linux
