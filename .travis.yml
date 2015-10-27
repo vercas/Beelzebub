@@ -19,6 +19,7 @@ after_success:
 
 before_deploy:
 - echo before deploy
+- chmod +x disassemble-kernel.sh # Fine!
 - ./disassemble-kernel.sh > build/beelzebub.beelzebub.amd64.x86.disassembly.txt
 - pushd build
 - zip -r Beelzebub.zip *
