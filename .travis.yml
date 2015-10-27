@@ -1,0 +1,51 @@
+language: cpp
+
+compiler: gcc
+
+before_install:
+- echo $LC_ALL
+- sudo apt-get update
+- sudo apt-get install -y mkisofs nasm zip
+- if [ ! -d "/usr/local/gcc-x86_64-elf" ]; then pushd "/usr/local" && sudo wget "https://u.vercas.com/gcc-x86_64-elf.tar.xz" && sudo xJf "gcc-x86_64-elf.tar.xz" && popd; fi
+
+#before_script:
+#  - travis_retry bundle
+#  - if [ $TRAVIS_OS_NAME == linux ]; then travis_retry ./configure --llvm-config llvm-config-3.4; fi
+#  - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ./configure; fi
+
+script: make amd64 test-all
+
+after_success:
+- echo after success
+
+before_deploy:
+- echo before deploy
+- ./disassemble-kernel.sh > build/beelzebub.beelzebub.amd64.x86.disassembly.txt
+- pushd build
+- zip -r Beelzebub.zip *
+- popd
+
+deploy:
+  provider: releases
+  api_key:
+    secure: njiJBssMxtcacuaev8I5HZenqWw3HjC0v2Vmkn3iBaGUYU5Rdlm6c+Kv9lIDmTnqJ9bwOtrpJOfuyg5VaDBBjg4EPLugVwgSRUm7tGlrxlQv/5Af+qcBERVCQ92m6GTc1kWp59hAAmmfhak2YrKwZqtJ9qNnGRdgRfzCqdkhFgBAQiM2aIbS+188eBnN/8l3Y/l8gKlqsuqbLEWIxGTqzu8HOgGoIwrs0xGOok3KT9uPSYuI7WyR+WDIrSKYn5CjgN9VKjmEq1ag5n7ymwkMOsQdQwku8ws0aaQXuAeuAaT3UKBCXU3cYxrwEsnDPGK7cP0KcMJQONxHnpjWo67MMRfXWMu491xfZMwcxOiJUsLsMfQKJQt+s8pEqCEXM1qgmTNM7bf+Et4i1ZA2R0BTmeNCEcxQKjU8q6W2QA6mUVUlikkOwvwngsavjktsqCgQ/WjfMw2YC/adLD7kL+Tq5EKahoErCBjbbOv5oAvqiVLMj2Wi9yH8VEken14imNxN1xWn1zwOsNa4uyOQvOTahD8ugfUNATn0BctKEZ55AisiDuhBMjx0ooVsK1KZ4uUX31LeBv2HlcBCi9+eY5y5sN0O9MxuM0Ka+qOEbbOqJvMHzk2BdqO6HvCK3+MY3HmfTVk1/IdFPpgqtjHb9ETjBYv3mcMSagCFqsoglJvVj9Q=
+  file: "Beelzebub.zip"
+  on:
+    repo: vercas/Beelzebub
+
+after_deploy:
+- echo after deploy
+- rm -f Beelzebub.zip
+
+notifications:
+  email: false
+  irc:
+    channels:
+    - "chat.freenode.net##beelzebub"
+    template:
+    - "%{repository}/%{branch} (%{commit} - %{author}): %{build_url}: %{message}"
+
+env:
+  - LANG="en_US.UTF-8"
+
+os: linux
