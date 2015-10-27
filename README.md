@@ -49,7 +49,9 @@ It wraps *make* and translates its output in a way that Visual Studio can unders
 #### (Pre-)build scripts
 
 I have included some Bash scripts for grabbing the build tools, mainly for Travis.
-For usage, check `.travis.yml`.
+For usage, check `.travis.yml`.  
+
+The cross-compiler and `genisoimage` are guarenteed to work on Ubuntu 12.04 and 14.04. It is very likely that it will work on all version in-between, and other distros as well.
 
 ##### `grab_xcs_linux-amd64.sh`
 
