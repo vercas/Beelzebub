@@ -14,7 +14,7 @@ addons:
     - texinfo
 
 before_install:
-- bash grab_cc_linux-amd64.sh
+- bash grab_xcs_linux-amd64.sh
 - bash grab_genisoimage.sh
 
 #before_script:
