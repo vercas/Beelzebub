@@ -15,7 +15,7 @@ addons:
 
 before_install:
 - bash grab_xcs_linux-amd64.sh
-- bash grab_genisoimage.sh
+- mkisofs --version || bash grab_genisoimage.sh
 
 #before_script:
 #  - travis_retry bundle
