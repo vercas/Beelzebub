@@ -213,7 +213,6 @@ BochsLog.txt
 *.sublime-workspace
 BOCHS.bat
 QEMU.bat
-disassemble-kernel.sh
 
 /image/grub/
 
