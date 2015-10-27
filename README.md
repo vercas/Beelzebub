@@ -1,4 +1,4 @@
-# Beelzebub
+# Beelzebub [![Build Status](https://travis-ci.org/vercas/Beelzebub.svg?branch=master)](https://travis-ci.org/vercas/Beelzebub)
 
 ### Building
 
