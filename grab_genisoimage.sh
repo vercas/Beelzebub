@@ -11,12 +11,13 @@ fi
 
 mkdir -p $MISC_TOOLS_DIR
 
+pushd "$MISC_TOOLS_DIR"
+
 if [ ! -e "$MISC_TOOLS_DIR/genisoimage" ]
 then
-	pushd "$MISC_TOOLS_DIR"
-
 	$PRECMD wget "http://u.vercas.com/genisoimage"
-	chmod +x genisoimage
-
-	popd
 fi
+
+chmod +x genisoimage
+
+popd
