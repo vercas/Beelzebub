@@ -12,9 +12,8 @@ addons:
     - texinfo
 
 before_install:
-- sudo apt-get update > /dev/null # I DON'T WANT YOUR OUTPUT!
 - sudo apt-get install -y mkisofs
-- if [ ! -d "/usr/local/gcc-x86_64-elf" ]; then pushd "/usr/local" && sudo wget "http://u.vercas.com/gcc-x86_64-elf.tar.xz" | sudo tar --no-same-owner -xJf && popd; fi
+- bash grab_cc_linux-amd64.sh
 
 #before_script:
 #  - travis_retry bundle
@@ -28,8 +27,7 @@ after_success:
 
 before_deploy:
 - echo before deploy
-- chmod +x disassemble-kernel.sh # Fine!
-- ./disassemble-kernel.sh > build/beelzebub.beelzebub.amd64.x86.disassembly.txt
+- sh disassemble-kernel.sh > build/beelzebub.beelzebub.amd64.x86.disassembly.txt
 - pushd build
 - zip -r Beelzebub.zip *
 - popd
@@ -57,5 +55,6 @@ notifications:
 
 env:
   - LANG="en_US.UTF-8"
+  - CROSSCOMPILERS_DIR="$HOME/beelzebub-cross-compilers"
 
 os: linux

@@ -1,4 +1,9 @@
 CROSSCOMPILER_DIRECTORY	:= /usr/local/gcc-x86_64-elf/bin
+#	Default
+
+ifdef CROSSCOMPILERS_DIR
+	CROSSCOMPILER_DIRECTORY := $(CROSSCOMPILER_DIRECTORY)
+endif
 
 #############
 # Toolchain #
