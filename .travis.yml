@@ -3,9 +3,8 @@ language: cpp
 compiler: gcc
 
 before_install:
-- echo $LC_ALL
 - sudo apt-get update > /dev/null # I DON'T WANT YOUR OUTPUT!
-- sudo apt-get install -y mkisofs nasm zip libisl10
+- sudo apt-get install -y mkisofs nasm zip libisl10 libmpc3 libgmp10 libgmpxx4ldbl libmpfr4 libcloog-isl4 texinfo
 - if [ ! -d "/usr/local/gcc-x86_64-elf" ]; then pushd "/usr/local" && sudo wget "http://u.vercas.com/gcc-x86_64-elf.tar.xz" && sudo tar --no-same-owner -xJf "gcc-x86_64-elf.tar.xz" && popd; fi
 
 #before_script:
