@@ -75,6 +75,19 @@ namespace Beelzebub { namespace Memory
          *      52 -  62 : Ignored
          *      63       : XD (eXecute Disable, if 1)
          */
+
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, Present )
+        BITFIELD_DEFAULT_1W( 1, Writable)
+        BITFIELD_DEFAULT_1W( 2, Userland)
+        BITFIELD_DEFAULT_1W( 3, Pwt     )
+        BITFIELD_DEFAULT_1W( 4, Pcd     )
+        BITFIELD_DEFAULT_1W( 5, Accessed)
+        BITFIELD_DEFAULT_1W( 6, Dirty   )
+        BITFIELD_DEFAULT_1W( 7, Pat     )
+        BITFIELD_DEFAULT_1W( 8, Global  )
+        BITFIELD_DEFAULT_1W(63, Xd      )
         
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
@@ -132,17 +145,6 @@ namespace Beelzebub { namespace Memory
         }
 
         /*  Properties  */
-
-        BITFIELD_FLAG_RW( 0, Present , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 1, Writable, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 2, Userland, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 3, Pwt     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 4, Pcd     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 5, Accessed, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 6, Dirty   , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 7, Pat     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 8, Global  , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(63, Xd      , uint64_t, this->Value, __bland, const, static)
 
         /**
          *  Gets the physical address of the 4-KiB page.
@@ -273,6 +275,20 @@ namespace Beelzebub { namespace Memory
          *      63       : XD (eXecute Disable, if 1)
          */
 
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, Present )
+        BITFIELD_DEFAULT_1W( 1, Writable)
+        BITFIELD_DEFAULT_1W( 2, Userland)
+        BITFIELD_DEFAULT_1W( 3, Pwt     )
+        BITFIELD_DEFAULT_1W( 4, Pcd     )
+        BITFIELD_DEFAULT_1W( 5, Accessed)
+        BITFIELD_DEFAULT_1W( 6, Dirty   )
+        BITFIELD_DEFAULT_1W( 7, PageSize)
+        BITFIELD_DEFAULT_1W( 8, Global  )
+        BITFIELD_DEFAULT_1W(12, Pat     )
+        BITFIELD_DEFAULT_1W(63, Xd      )
+
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
         /*  Constructors  */
@@ -369,18 +385,6 @@ namespace Beelzebub { namespace Memory
         }
 
         /*  Properties  */
-
-        BITFIELD_FLAG_RW( 0, Present , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 1, Writable, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 2, Userland, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 3, Pwt     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 4, Pcd     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 5, Accessed, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 6, Dirty   , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 7, PageSize, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 8, Global  , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(12, Pat     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(63, Xd      , uint64_t, this->Value, __bland, const, static)
 
         /**
          *  Gets the physical address of the PML1 (PT) table.
@@ -527,6 +531,20 @@ namespace Beelzebub { namespace Memory
          *      63       : XD (eXecute Disable, if 1)
          */
 
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, Present )
+        BITFIELD_DEFAULT_1W( 1, Writable)
+        BITFIELD_DEFAULT_1W( 2, Userland)
+        BITFIELD_DEFAULT_1W( 3, Pwt     )
+        BITFIELD_DEFAULT_1W( 4, Pcd     )
+        BITFIELD_DEFAULT_1W( 5, Accessed)
+        BITFIELD_DEFAULT_1W( 6, Dirty   )
+        BITFIELD_DEFAULT_1W( 7, PageSize)
+        BITFIELD_DEFAULT_1W( 8, Global  )
+        BITFIELD_DEFAULT_1W(12, Pat     )
+        BITFIELD_DEFAULT_1W(63, Xd      )
+
         static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
 
         /*  Constructors  */
@@ -623,18 +641,6 @@ namespace Beelzebub { namespace Memory
         }
 
         /*  Properties  */
-
-        BITFIELD_FLAG_RW( 0, Present , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 1, Writable, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 2, Userland, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 3, Pwt     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 4, Pcd     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 5, Accessed, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 6, Dirty   , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 7, PageSize, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 8, Global  , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(12, Pat     , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(63, Xd      , uint64_t, this->Value, __bland, const, static)
 
         /**
          *  Gets the physical address of the PML2 (PD) table.
@@ -763,6 +769,16 @@ namespace Beelzebub { namespace Memory
          *      63       : XD (eXecute Disable, if 1)
          */
 
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, Present)
+        BITFIELD_DEFAULT_1W( 1, Writable)
+        BITFIELD_DEFAULT_1W( 2, Userland)
+        BITFIELD_DEFAULT_1W( 3, Pwt)
+        BITFIELD_DEFAULT_1W( 4, Pcd)
+        BITFIELD_DEFAULT_1W( 5, Accessed)
+        BITFIELD_DEFAULT_1W(63, Xd)
+
         static const uint64_t AddressBits = 0x000FFFFFFFFFF000ULL;
 
         /*  Constructors  */
@@ -811,14 +827,6 @@ namespace Beelzebub { namespace Memory
         }
 
         /*  Properties  */
-
-        BITFIELD_FLAG_RW( 0, Present, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 1, Writable, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 2, Userland, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 3, Pwt, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 4, Pcd, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW( 5, Accessed, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(63, Xd, uint64_t, this->Value, __bland, const, static)
 
         /**
          *  Gets the physical address of the PML3 (PDPT) table.

@@ -59,21 +59,21 @@ decB inline bool MCATS(FetchFlip, name)()                                      \
 
 #ifndef BITFIELD_STRM_RO
 //  Creates a getter for bit-based masked strings.
-#define BITFIELD_STRM_RO(bitInd, bitLen, fldT, name, varT, var, decB, decG, decV) \
-decB inline fldT MCATS(Get, name)() decG                                       \
+#define BITFIELD_STRM_RO(bitInd, bitLen, valT, name, varT, var, decB, decG, decV) \
+decB inline valT MCATS(Get, name)() decG                                       \
 {                                                                              \
-    return (fldT)(var & MCATS(name, Bits));                                    \
+    return (valT)(var & MCATS(name, Bits));                                    \
 }
 #endif
 
 #ifndef BITFIELD_STRM_RW
 //  Creates a getter and setter for bit-based masked strings.
-#define BITFIELD_STRM_RW(bitInd, bitLen, fldT, name, varT, var, decB, decG, decV) \
-decB inline fldT MCATS(Get, name)() decG                                       \
+#define BITFIELD_STRM_RW(bitInd, bitLen, valT, name, varT, var, decB, decG, decV) \
+decB inline valT MCATS(Get, name)() decG                                       \
 {                                                                              \
-    return (fldT)(var & MCATS(name, Bits));                                    \
+    return (valT)(var & MCATS(name, Bits));                                    \
 }                                                                              \
-decB inline void MCATS(Set, name)(fldT const val)                              \
+decB inline void MCATS(Set, name)(valT const val)                              \
 {                                                                              \
     var = ((varT)val &  MCATS(name, Bits))                                     \
         | (      var & ~MCATS(name, Bits));                                    \
@@ -82,23 +82,33 @@ decB inline void MCATS(Set, name)(fldT const val)                              \
 
 #ifndef BITFIELD_STRO_RO
 //  Creates a getter for bit-based masked & offset strings.
-#define BITFIELD_STRO_RO(bitInd, bitLen, fldT, name, varT, var, decB, decG, decV) \
-decB inline fldT MCATS(Get, name)() decG                                       \
+#define BITFIELD_STRO_RO(bitInd, bitLen, valT, name, varT, var, decB, decG, decV) \
+decB inline valT MCATS(Get, name)() decG                                       \
 {                                                                              \
-    return (fldT)((var & MCATS(name, Bits)) >> MCATS(name, Offset));           \
+    return (valT)((var & MCATS(name, Bits)) >> bitInd);                        \
 }
 #endif
 
 #ifndef BITFIELD_STRO_RW
 //  Creates a getter and setter for bit-based masked & offset strings.
-#define BITFIELD_STRO_RW(bitInd, bitLen, fldT, name, varT, var, decB, decG, decV) \
-decB inline fldT MCATS(Get, name)() decG                                       \
+#define BITFIELD_STRO_RW(bitInd, bitLen, valT, name, varT, var, decB, decG, decV) \
+decV varT const MCATS(name, Offset) = bitInd;                                  \
+decV varT const MCATS(name, Bits) = (((varT)1) << (bitLen) - 1) << bitInd;     \
+decB inline valT MCATS(Get, name)() decG                                       \
 {                                                                              \
-    return (fldT)((var & MCATS(name, Bits)) >> MCATS(name, Offset));           \
+    return (valT)((var & MCATS(name, Bits)) >> bitInd);                        \
 }                                                                              \
-decB inline void MCATS(Set, name)(fldT const val)                              \
+decB inline void MCATS(Set, name)(valT const val)                              \
 {                                                                              \
-    var = (((varT)val << MCATS(name, Offset)) &  MCATS(name, Bits))            \
-        | (       var                         & ~MCATS(name, Bits));           \
+    var = (((varT)val << bitInd) &  MCATS(name, Bits))                         \
+        | (       var            & ~MCATS(name, Bits));                        \
 }
 #endif
+
+/*  Some defaults  */
+
+#define BITFIELD_DEFAULT_1W(bitInd, name) \
+BITFIELD_FLAG_RW(bitInd, name, uint64_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_1O(bitInd, name) \
+BITFIELD_FLAG_RO(bitInd, name, uint64_t, this->Value, __bland, const, static)

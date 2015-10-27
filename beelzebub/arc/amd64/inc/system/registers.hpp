@@ -25,17 +25,19 @@ namespace Beelzebub { namespace System
          *      31       : Paging
          */
 
-        static uint64_t const ProtectedModeEnableBitIndex    =  0;
-        static uint64_t const MonitorCoprocessorBitIndex     =  1;
-        static uint64_t const EmulationBitIndex              =  2;
-        static uint64_t const TaskSwitchedBitIndex           =  3;
-        static uint64_t const ExtensionTypeBitIndex          =  4;
-        static uint64_t const NumericErrorBitIndex           =  5;
-        static uint64_t const WriteProtectBitIndex           = 16;
-        static uint64_t const AlignmentMaskBitIndex          = 18;
-        static uint64_t const NotWriteThroughBitIndex        = 29;
-        static uint64_t const CacheDisableBitIndex           = 30;
-        static uint64_t const PagingBitIndex                 = 31;
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, ProtectedModeEnable)
+        BITFIELD_DEFAULT_1W( 1, MonitorCoprocessor )
+        BITFIELD_DEFAULT_1W( 2, Emulation          )
+        BITFIELD_DEFAULT_1W( 3, TaskSwitched       )
+        BITFIELD_DEFAULT_1W( 4, ExtensionType      )
+        BITFIELD_DEFAULT_1W( 5, NumericError       )
+        BITFIELD_DEFAULT_1W(16, WriteProtect       )
+        BITFIELD_DEFAULT_1W(18, AlignmentMask      )
+        BITFIELD_DEFAULT_1W(29, NotWriteThrough    )
+        BITFIELD_DEFAULT_1W(30, CacheDisable       )
+        BITFIELD_DEFAULT_1W(31, Paging             )
 
         /*  Constructors  */
 
@@ -75,20 +77,6 @@ namespace Beelzebub { namespace System
                         | (paging              ? PagingBit              : 0);
         }
 
-        /*  Properties  */
-
-        BITFIELD_FLAG_RW(ProtectedModeEnableBitIndex, ProtectedModeEnable, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(MonitorCoprocessorBitIndex , MonitorCoprocessor , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(EmulationBitIndex          , Emulation          , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(TaskSwitchedBitIndex       , TaskSwitched       , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(ExtensionTypeBitIndex      , ExtensionType      , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(NumericErrorBitIndex       , NumericError       , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(WriteProtectBitIndex       , WriteProtect       , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(AlignmentMaskBitIndex      , AlignmentMask      , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(NotWriteThroughBitIndex    , NotWriteThrough    , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(CacheDisableBitIndex       , CacheDisable       , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(PagingBitIndex             , Paging             , uint64_t, this->Value, __bland, const, static)
-
         /*  Field(s)  */
 
     //private:
@@ -115,8 +103,10 @@ namespace Beelzebub { namespace System
          *       M -  63 : Reserved (must be 0)
          */
 
-        static uint64_t const PwtBitIndex           =  3;
-        static uint64_t const PcdBitIndex           =  4;
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 3, Pwt)
+        BITFIELD_DEFAULT_1W( 4, Pcd)
 
         static uint64_t const AddressBits   = 0x000FFFFFFFFFF000ULL;
         static uint64_t const PcidBits      = 0x0000000000000FFFULL;
@@ -154,9 +144,6 @@ namespace Beelzebub { namespace System
         }
 
         /*  Properties  */
-
-        BITFIELD_FLAG_RW(PwtBitIndex, Pwt, uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(PcdBitIndex, Pcd, uint64_t, this->Value, __bland, const, static)
 
         /**
          *  Gets the physical address of the PML4 table.

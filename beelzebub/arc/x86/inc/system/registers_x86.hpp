@@ -64,10 +64,12 @@ namespace Beelzebub { namespace System
          *      11       : Execute Disable Bit Enable
          */
 
-        static uint64_t const SyscallEnableBitIndex       =  0;
-        static uint64_t const LongModeEnableBitIndex      =  8;
-        static uint64_t const LongModeActiveBitIndex      = 10;
-        static uint64_t const NonExecuteEnableBitIndex    = 11;
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, SyscallEnable   )
+        BITFIELD_DEFAULT_1W( 8, LongModeEnable  )
+        BITFIELD_DEFAULT_1O(10, LongModeActive  )
+        BITFIELD_DEFAULT_1W(11, NonExecuteEnable)
 
         /*  Constructors  */
 
@@ -98,13 +100,6 @@ namespace Beelzebub { namespace System
                         | (longModeEnable   ? LongModeEnableBit   : 0)
                         | (nonExecuteEnable ? NonExecuteEnableBit : 0);
         }
-
-        /*  Properties  */
-
-        BITFIELD_FLAG_RW(SyscallEnableBitIndex   , SyscallEnable   , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(LongModeEnableBitIndex  , LongModeEnable  , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RO(LongModeActiveBitIndex  , LongModeActive  , uint64_t, this->Value, __bland, const, static)
-        BITFIELD_FLAG_RW(NonExecuteEnableBitIndex, NonExecuteEnable, uint64_t, this->Value, __bland, const, static)
 
         /*  Field(s)  */
 
