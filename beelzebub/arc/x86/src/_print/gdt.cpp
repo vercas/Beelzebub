@@ -12,11 +12,11 @@ using namespace Beelzebub::Terminals;
 
 TerminalWriteResult PrintToTerminal(TerminalBase * const term, GdtEntryShort const val)
 {
-    return term->WriteFormat("%X4|%X4|%t| %t | %t |%t|%t|%t|%t|%t|%t|%t|%n"
-        , val.GetBase(), val.GetLimit(), val.GetAccessed(), val.GetRw()
-        , val.GetDc(), val.GetEx(), val.GetSystem(), val.GetPresent()
-        , val.GetAvailable(), val.GetLong(), val.GetSize()
-        , val.GetGranularity());
+    return term->WriteFormat("%X4|%X4|%b%b|%t| %t | %t |%t|%t|%t|%t|%t|%t|%t|%n"
+        , val.GetBase(), val.GetLimit(), val.GetDplLow(), val.GetDplHigh()
+        , val.GetAccessed(), val.GetRw(), val.GetDc(), val.GetEx()
+        , val.GetSystem(), val.GetPresent(), val.GetAvailable(), val.GetLong()
+        , val.GetSize(), val.GetGranularity());
 }
 
 TerminalWriteResult PrintToDebugTerminal(GdtEntryShort const val)
@@ -32,12 +32,12 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, GdtRegister const
 {
     TerminalWriteResult tret;
     
-    TERMTRY0(term->WriteFormat("GDT Register: %Xp %X2;%nAddr|  Base  | Length |A|R/W|D/C|X|S|P|A|L|s|g|%n"
+    TERMTRY0(term->WriteFormat("GDT Register: %Xp %X2;%nAddr|  Base  | Length |PL|A|R/W|D/C|X|S|P|A|L|s|g|%n"
         , val.Pointer, val.Size), tret);
 
     uint32_t cnt;
 
-    for (size_t i = 0, j = 0; j < val.Size / 8; ++i, j += 8)
+    for (size_t i = 0, j = 0; j < val.Size; ++i, j += 8)
     {
         TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
         TERMTRY1(term->Write("|"), tret, cnt);

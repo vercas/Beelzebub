@@ -166,3 +166,9 @@ BITFIELD_STRC_RW(offL, lenL, offH, lenH, valT, name, uint64_t, this->Value, __bl
 
 #define BITFIELD_DEFAULT_3O(offL, lenL, offH, lenH, valT, name) \
 BITFIELD_STRC_RO(offL, lenL, offH, lenH, valT, name, uint64_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_4W(bitInd, bitLen, valT, name) \
+BITFIELD_STRO_RW(bitInd, bitLen, valT, name, uint64_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_4O(bitInd, bitLen, valT, name) \
+BITFIELD_STRO_RO(bitInd, bitLen, valT, name, uint64_t, this->Value, __bland, const, static)
