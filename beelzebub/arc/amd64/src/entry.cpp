@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include <_print/registers.hpp>
+#include <_print/gdt.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -601,6 +602,12 @@ Handle InitializeMemory()
     initialVbeTerminal.WriteLine();
 
     CpuInstructions::WriteBackAndInvalidateCache();
+
+    auto GDTR = GdtRegister::Retrieve();
+
+    PrintToDebugTerminal(GDTR);
+
+    msg("%n%n");
 
     return HandleResult::Okay;
 }
