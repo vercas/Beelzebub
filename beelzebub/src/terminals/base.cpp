@@ -341,6 +341,12 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                 
                 TERMTRY1(writeChar(term, (bool)val ? '1' : '0'), res, cnt);
             }
+            else if (c == 't')  //  Tick (X/ )
+            {
+                uint32_t val = va_arg(args, uint32_t);
+                
+                TERMTRY1(writeChar(term, (bool)val ? 'X' : ' '), res, cnt);
+            }
             else if (c == 's')  //  String.
             {
                 char * str = va_arg(args, char *);
