@@ -9,7 +9,14 @@ namespace Beelzebub { namespace System
      */
     class CpuInstructions
     {
+        /*  Constructor(s)  */
+
+    protected:
+        CpuInstructions() = default;
+
     public:
+        CpuInstructions(CpuInstructions const &) = delete;
+        CpuInstructions & operator =(CpuInstructions const &) = delete;
 
         /*  Control  */
 

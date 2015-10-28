@@ -83,7 +83,14 @@ namespace Beelzebub { namespace System
      */
     class Cpu
     {
+        /*  Constructor(s)  */
+
+    protected:
+        Cpu() = default;
+
     public:
+        Cpu(Cpu const &) = delete;
+        Cpu & operator =(Cpu const &) = delete;
 
         /*  Properties  */
 

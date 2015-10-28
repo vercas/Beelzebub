@@ -47,7 +47,14 @@ namespace Beelzebub { namespace System
      */
     class Msrs
     {
+        /*  Constructor(s)  */
+
+    protected:
+        Msrs() = default;
+
     public:
+        Msrs(Msrs const &) = delete;
+        Msrs & operator =(Msrs const &) = delete;
 
         /*  MSRs  */
 
