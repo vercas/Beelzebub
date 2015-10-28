@@ -9,7 +9,14 @@ namespace Beelzebub { namespace System
      */
     class Interrupts
     {
+        /*  Constructor(s)  */
+
+    protected:
+        Interrupts() = default;
+
     public:
+        Interrupts(Interrupts const &) = delete;
+        Interrupts & operator =(Interrupts const &) = delete;
 
         /*  Interrupts  */
 

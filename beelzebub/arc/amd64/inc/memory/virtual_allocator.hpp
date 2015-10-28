@@ -74,72 +74,72 @@ namespace Beelzebub { namespace Memory
 
         /*  Static Translation Methods  */
 
-        static __bland __forceinline uint16_t GetPml4Index(vaddr_t const addr)
+        static __bland inline uint16_t GetPml4Index(vaddr_t const addr)
         {
             return (uint16_t)((addr >> 39) & 511);
         }
 
-        static __bland __forceinline uint16_t GetPml3Index(vaddr_t const addr)
+        static __bland inline uint16_t GetPml3Index(vaddr_t const addr)
         {
             return (uint16_t)((addr >> 30) & 511);
         }
 
-        static __bland __forceinline uint16_t GetPml2Index(vaddr_t const addr)
+        static __bland inline uint16_t GetPml2Index(vaddr_t const addr)
         {
             return (uint16_t)((addr >> 21) & 511);
         }
 
-        static __bland __forceinline uint16_t GetPml1Index(vaddr_t const addr)
+        static __bland inline uint16_t GetPml1Index(vaddr_t const addr)
         {
             return (uint16_t)((addr >> 12) & 511);
         }
 
         //  Local Map.
 
-        static __bland __forceinline Pml4 * const GetLocalPml4()          { return (Pml4 *)LocalPml4Base; }
-        static __bland __forceinline Pml4 * const GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base; }
+        static __bland inline Pml4 * const GetLocalPml4()          { return (Pml4 *)LocalPml4Base; }
+        static __bland inline Pml4 * const GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base; }
 
-        static __bland __forceinline Pml3 * const GetLocalPml3(vaddr_t const addr)
+        static __bland inline Pml3 * const GetLocalPml3(vaddr_t const addr)
         {
             return (Pml3 *)(LocalPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
         }
 
-        static __bland __forceinline Pml2 * const GetLocalPml2(vaddr_t const addr)
+        static __bland inline Pml2 * const GetLocalPml2(vaddr_t const addr)
         {
             return (Pml2 *)(LocalPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
         }
 
-        static __bland __forceinline Pml1 * const GetLocalPml1(vaddr_t const addr)
+        static __bland inline Pml1 * const GetLocalPml1(vaddr_t const addr)
         {
             return (Pml1 *)(LocalPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
         }
 
-        static __bland __forceinline Pml1Entry & GetLocalPml1Entry(vaddr_t const addr)
+        static __bland inline Pml1Entry & GetLocalPml1Entry(vaddr_t const addr)
         {
             return (*GetLocalPml1(addr))[GetPml1Index(addr)];
         }
 
         //  Alien Map.
 
-        static __bland __forceinline Pml4 * const GetAlienPml4()          { return (Pml4 *)AlienPml4Base; }
-        static __bland __forceinline Pml4 * const GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base; }
+        static __bland inline Pml4 * const GetAlienPml4()          { return (Pml4 *)AlienPml4Base; }
+        static __bland inline Pml4 * const GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base; }
 
-        static __bland __forceinline Pml3 * const GetAlienPml3(vaddr_t const addr)
+        static __bland inline Pml3 * const GetAlienPml3(vaddr_t const addr)
         {
             return (Pml3 *)(AlienPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
         }
 
-        static __bland __forceinline Pml2 * const GetAlienPml2(vaddr_t const addr)
+        static __bland inline Pml2 * const GetAlienPml2(vaddr_t const addr)
         {
             return (Pml2 *)(AlienPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
         }
 
-        static __bland __forceinline Pml1 * const GetAlienPml1(vaddr_t const addr)
+        static __bland inline Pml1 * const GetAlienPml1(vaddr_t const addr)
         {
             return (Pml1 *)(AlienPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
         }
 
-        static __bland __forceinline Pml1Entry & GetAlienPml1Entry(vaddr_t const addr)
+        static __bland inline Pml1Entry & GetAlienPml1Entry(vaddr_t const addr)
         {
             return (*GetAlienPml1(addr))[GetPml1Index(addr)];
         }
@@ -150,7 +150,12 @@ namespace Beelzebub { namespace Memory
         VirtualAllocationSpace(VirtualAllocationSpace const &) = delete;
         VirtualAllocationSpace & operator =(VirtualAllocationSpace const &) = delete;
 
-        __bland VirtualAllocationSpace(PageAllocator * const allocator);
+        __bland inline explicit VirtualAllocationSpace(PageAllocator * const allocator)
+            : Allocator( allocator)
+            , Pml4Address(nullpaddr)
+        {
+
+        }
 
         /*  Main Operations  */
 
@@ -175,14 +180,14 @@ namespace Beelzebub { namespace Memory
         {
             Pml4 & pml4 = *GetLocalPml4();
 
-            return pml4[LocalFractalIndex].GetAddress() == this->Pml4Address;
+            return pml4[LocalFractalIndex].GetPml3Address() == this->Pml4Address;
         }
 
         __bland __forceinline bool IsAlien() const
         {
             Pml4 & pml4 = *GetLocalPml4();
 
-            return pml4[AlienFractalIndex].GetAddress() == this->Pml4Address;
+            return pml4[AlienFractalIndex].GetPml3Address() == this->Pml4Address;
         }
 
         /*  Translation  */
@@ -190,7 +195,7 @@ namespace Beelzebub { namespace Memory
         //  Translates the address with the current VAS.
         static __bland __forceinline paddr_t TranslateLocal(vaddr_t const vaddr)
         {
-            return GetLocalPml1Entry(vaddr).GetAddress() + (paddr_t)(vaddr & 4095);
+            return GetLocalPml1Entry(vaddr).GetAddress() + (paddr_t)(vaddr & 0xFFF);
             //  Yeah, the offset within the page is preserved.
         }
 
@@ -316,7 +321,7 @@ namespace Beelzebub { namespace Memory
             Pml1Entry * Entry;
         };
 
-        __hot __bland __forceinline Handle GetIterator(Iterator & dst, vaddr_t const vaddr)
+        __hot __bland inline Handle GetIterator(Iterator & dst, vaddr_t const vaddr)
         {
             return Iterator::Create(dst, this, vaddr);
         }

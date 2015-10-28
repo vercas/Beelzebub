@@ -88,99 +88,74 @@ namespace Beelzebub { namespace Memory
         BITFIELD_DEFAULT_1W( 7, Pat     )
         BITFIELD_DEFAULT_1W( 8, Global  )
         BITFIELD_DEFAULT_1W(63, Xd      )
+        BITFIELD_DEFAULT_2W(12, 40, paddr_t, Address)
         
-        static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
-
         /*  Constructors  */
 
         /**
          *  Creates an empty PML1 (PT) entry structure.
          */
-        __bland __forceinline Pml1Entry() : Value( 0ULL ) { }
+        __bland inline Pml1Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
          */
-        __bland __forceinline Pml1Entry(const paddr_t paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    global
-                                      , const bool    XD)
+        __bland inline Pml1Entry(const paddr_t paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    global
+                               , const bool    XD)
+            : Value((paddr & AddressBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (global         ? GlobalBit   : 0ULL)
+                  | (XD             ? XdBit       : 0ULL))
         {
-            this->Value = (paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+
         }
 
         /**
          *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
          */
-        __bland __forceinline Pml1Entry(const paddr_t paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    PWT
-                                      , const bool    PCD
-                                      , const bool    accessed
-                                      , const bool    dirty
-                                      , const bool    global
-                                      , const bool    PAT
-                                      , const bool    XD)
+        __bland inline Pml1Entry(const paddr_t paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    PWT
+                               , const bool    PCD
+                               , const bool    accessed
+                               , const bool    dirty
+                               , const bool    global
+                               , const bool    PAT
+                               , const bool    XD)
+            : Value((paddr & AddressBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (PWT            ? PwtBit      : 0ULL)
+                  | (PCD            ? PcdBit      : 0ULL)
+                  | (accessed       ? AccessedBit : 0ULL)
+                  | (dirty          ? DirtyBit    : 0ULL)
+                  | (PAT            ? PatBit      : 0ULL)
+                  | (global         ? GlobalBit   : 0ULL)
+                  | (XD             ? XdBit       : 0ULL))
         {
-            this->Value = (paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (dirty          ? DirtyBit    : 0ULL)
-                        | (PAT            ? PatBit      : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+
         }
 
         /*  Properties  */
 
-        /**
-         *  Gets the physical address of the 4-KiB page.
-         */
-        __bland __forceinline paddr_t GetAddress() const
+        __bland inline bool IsNull()
         {
-            return (paddr_t)(this->Value & AddressBits);
-        }
-        /**
-         *  Sets the physical address of the 4-KiB page.
-         */
-        __bland __forceinline void SetAddress(const paddr_t paddr)
-        {
-            this->Value = (paddr       &  AddressBits)
-                        | (this->Value & ~AddressBits);
-        }
-
-        __bland __forceinline bool IsNull()
-        {
-            return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
+            return (this->GetAddress() == nullpaddr) && !this->GetPresent();
         }
 
         /*  Synchronization  */
 
         SPINLOCK(ContentLock, 10);
         SPINLOCK(PropertiesLock, 11);
-
-        /*  Operators  */
-
-        /**
-         *  Gets the value of a bit.
-         */
-        __bland __forceinline bool operator [](const uint8_t bit) const
-        {
-            return 0 != (this->Value & (1 << bit));
-        }
 
     //private:
 
@@ -204,14 +179,14 @@ namespace Beelzebub { namespace Memory
         /*  Constructors  */
 
         Pml1() = default;
-        Pml1(Pml1 const&) = default;
+        Pml1(Pml1 const &) = default;
 
         /*  Operators  */
 
         /**
          *  Gets the entrry at a given index.
          */
-        __bland __forceinline Pml1Entry & operator [](const uint16_t ind)
+        __bland inline Pml1Entry & operator [](uint16_t const ind)
         {
             return this->Entries[ind];
         }
@@ -219,7 +194,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland __forceinline Pml1Entry & operator [](const vaddrptr_t vaddr)
+        __bland inline Pml1Entry & operator [](vaddrptr_t const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
@@ -288,155 +263,118 @@ namespace Beelzebub { namespace Memory
         BITFIELD_DEFAULT_1W( 8, Global  )
         BITFIELD_DEFAULT_1W(12, Pat     )
         BITFIELD_DEFAULT_1W(63, Xd      )
-
-        static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
+        BITFIELD_DEFAULT_2W(12, 40, Pml1 * , Pml1Ptr)
+        BITFIELD_DEFAULT_2W(12, 40, paddr_t, Pml1Address)
+        BITFIELD_DEFAULT_2W(21, 31, paddr_t, Address)
 
         /*  Constructors  */
 
         /**
          *  Creates an empty PML2 (PD) entry structure.
          */
-        __bland __forceinline Pml2Entry() : Value( 0ULL ) { }
+        __bland inline Pml2Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
-        __bland __forceinline Pml2Entry(const paddr_t pml1_paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    XD)
+        __bland inline Pml2Entry(const paddr_t pml1_paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    XD)
+            : Value((pml1_paddr & Pml1PtrBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (XD             ? XdBit       : 0ULL))
         {
-            this->Value = (pml1_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+
         }
 
         /**
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
-        __bland __forceinline Pml2Entry(const paddr_t pml1_paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    PWT
-                                      , const bool    PCD
-                                      , const bool    accessed
-                                      , const bool    XD)
+        __bland inline Pml2Entry(const paddr_t pml1_paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    PWT
+                               , const bool    PCD
+                               , const bool    accessed
+                               , const bool    XD)
+            : Value((pml1_paddr & Pml1PtrBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (PWT            ? PwtBit      : 0ULL)
+                  | (PCD            ? PcdBit      : 0ULL)
+                  | (accessed       ? AccessedBit : 0ULL)
+                  | (XD             ? XdBit       : 0ULL))
         {
-            this->Value = (pml1_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+
         }
 
         /**
          *  Creates a new PML2 (PD) entry structure that maps a 2-MiB page.
          */
-        __bland __forceinline Pml2Entry(const paddr_t paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    global
-                                      , const bool    XD)
+        __bland inline Pml2Entry(const paddr_t paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    global
+                               , const bool    XD)
+            : Value(((uint64_t)paddr & AddressBits)
+                    | (present        ? PresentBit  : 0ULL)
+                    | (writable       ? WritableBit : 0ULL)
+                    | (userAccessible ? UserlandBit : 0ULL)
+                    | (global         ? GlobalBit   : 0ULL)
+                    | (XD             ? XdBit       : 0ULL)
+                    |                   PageSizeBit        )
         {
-            this->Value = ((uint64_t)paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (XD             ? XdBit       : 0ULL)
-                        |                   PageSizeBit        ;
+
         }
 
         /**
          *  Creates a new PML2 (PD) entry structure that maps a 2-MiB page.
          */
-        __bland __forceinline Pml2Entry(const paddr_t paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    PWT
-                                      , const bool    PCD
-                                      , const bool    accessed
-                                      , const bool    dirty
-                                      , const bool    global
-                                      , const bool    PAT
-                                      , const bool    XD)
+        __bland inline Pml2Entry(const paddr_t paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    PWT
+                               , const bool    PCD
+                               , const bool    accessed
+                               , const bool    dirty
+                               , const bool    global
+                               , const bool    PAT
+                               , const bool    XD)
+            : Value(((uint64_t)paddr & AddressBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (PWT            ? PwtBit      : 0ULL)
+                  | (PCD            ? PcdBit      : 0ULL)
+                  | (accessed       ? AccessedBit : 0ULL)
+                  | (dirty          ? DirtyBit    : 0ULL)
+                  | (global         ? GlobalBit   : 0ULL)
+                  | (PAT            ? PatBit      : 0ULL)
+                  | (XD             ? XdBit       : 0ULL)
+                  |                   PageSizeBit        )
         {
-            this->Value = ((uint64_t)paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (dirty          ? DirtyBit    : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (PAT            ? PatBit      : 0ULL)
-                        | (XD             ? XdBit       : 0ULL)
-                        |                   PageSizeBit        ;
+
         }
 
         /*  Properties  */
 
-        /**
-         *  Gets the physical address of the PML1 (PT) table.
-         */
-        __bland __forceinline Pml1 * GetPml1Ptr() const
+        __bland inline bool IsNull()
         {
-            return (Pml1 *)(this->Value & AddressBits);
-        }
-        /**
-         *  Sets the physical address of the PML1 (PT) table.
-         */
-        __bland __forceinline void SetPml1Ptr(const paddr_t paddr)
-        {
-            this->Value = (paddr       &  AddressBits)
-                        | (this->Value & ~AddressBits);
-        }
-
-        /**
-         *  Gets the physical address of the 2-MiB page.
-         */
-        __bland __forceinline paddr_t GetAddress() const
-        {
-            return (paddr_t)(this->Value & AddressBits);
-        }
-        /**
-         *  Sets the physical address of the 2-MiB page.
-         */
-        __bland __forceinline void SetAddress(const paddr_t paddr)
-        {
-            this->Value = (paddr       &  AddressBits)
-                        | (this->Value & ~AddressBits);
-        }
-
-        __bland __forceinline bool IsNull()
-        {
-            return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
+            return (this->GetPml1Address() == nullpaddr) && !this->GetPresent();
         }
 
         /*  Synchronization  */
 
         SPINLOCK(ContentLock, 10);
         SPINLOCK(PropertiesLock, 11);
-
-        /*  Operators  */
-
-        /**
-         *  Gets the value of a bit.
-         */
-        __bland __forceinline bool operator [](const uint8_t bit) const
-        {
-            return 0 != (this->Value & (1 << bit));
-        }
 
     //private:
 
@@ -460,14 +398,14 @@ namespace Beelzebub { namespace Memory
         /*  Constructors  */
 
         Pml2() = default;
-        Pml2(Pml2 const&) = default;
+        Pml2(Pml2 const &) = default;
 
         /*  Operators  */
 
         /**
          *  Gets the entrry at a given index.
          */
-        __bland __forceinline Pml2Entry & operator [](const uint16_t ind)
+        __bland inline Pml2Entry & operator [](uint16_t const ind)
         {
             return this->Entries[ind];
         }
@@ -475,7 +413,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland __forceinline Pml2Entry & operator [](const vaddrptr_t vaddr)
+        __bland inline Pml2Entry & operator [](vaddrptr_t const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
@@ -544,155 +482,118 @@ namespace Beelzebub { namespace Memory
         BITFIELD_DEFAULT_1W( 8, Global  )
         BITFIELD_DEFAULT_1W(12, Pat     )
         BITFIELD_DEFAULT_1W(63, Xd      )
-
-        static const uint64_t AddressBits   = 0x000FFFFFFFFFF000ULL;
+        BITFIELD_DEFAULT_2W(12, 40, Pml2 * , Pml2Ptr)
+        BITFIELD_DEFAULT_2W(12, 40, paddr_t, Pml2Address)
+        BITFIELD_DEFAULT_2W(30, 22, paddr_t, Address)
 
         /*  Constructors  */
 
         /**
          *  Creates an empty PML3 (PDPT) entry structure.
          */
-        __bland __forceinline Pml3Entry() : Value( 0ULL ) { }
+        __bland inline Pml3Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML3 entry structure that points to a PML2 table.
          */
-        __bland __forceinline Pml3Entry(const paddr_t pml2_paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    XD)
+        __bland inline Pml3Entry(const paddr_t pml2_paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    XD)
+            : Value((pml2_paddr & Pml2PtrBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (XD             ? XdBit       : 0ULL))
         {
-            this->Value = (pml2_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+
         }
 
         /**
          *  Creates a new PML3 entry structure that points to a PML2 table.
          */
-        __bland __forceinline Pml3Entry(const paddr_t pml2_paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    PWT
-                                      , const bool    PCD
-                                      , const bool    accessed
-                                      , const bool    XD)
+        __bland inline Pml3Entry(const paddr_t pml2_paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    PWT
+                               , const bool    PCD
+                               , const bool    accessed
+                               , const bool    XD)
+            : Value((pml2_paddr & Pml2PtrBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (PWT            ? PwtBit      : 0ULL)
+                  | (PCD            ? PcdBit      : 0ULL)
+                  | (accessed       ? AccessedBit : 0ULL)
+                  | (XD             ? XdBit       : 0ULL))
         {
-            this->Value = (pml2_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+
         }
 
         /**
          *  Creates a new PML3 entry structure that points to a 1-GiB page.
          */
-        __bland __forceinline Pml3Entry(const paddr_t paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    global
-                                      , const bool    XD)
+        __bland inline Pml3Entry(const paddr_t paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    global
+                               , const bool    XD)
+            : Value((paddr & AddressBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (global         ? GlobalBit   : 0ULL)
+                  | (XD             ? XdBit       : 0ULL)
+                  |                   PageSizeBit        )
         {
-            this->Value = (paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (XD             ? XdBit       : 0ULL)
-                        |                   PageSizeBit        ;
+
         }
 
         /**
          *  Creates a new PML3 entry structure that points to a 1-GiB page.
          */
-        __bland __forceinline Pml3Entry(const paddr_t paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    PWT
-                                      , const bool    PCD
-                                      , const bool    accessed
-                                      , const bool    dirty
-                                      , const bool    global
-                                      , const bool    PAT
-                                      , const bool    XD)
+        __bland inline Pml3Entry(const paddr_t paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    PWT
+                               , const bool    PCD
+                               , const bool    accessed
+                               , const bool    dirty
+                               , const bool    global
+                               , const bool    PAT
+                               , const bool    XD)
+            : Value((paddr & AddressBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (PWT            ? PwtBit      : 0ULL)
+                  | (PCD            ? PcdBit      : 0ULL)
+                  | (accessed       ? AccessedBit : 0ULL)
+                  | (dirty          ? DirtyBit    : 0ULL)
+                  | (global         ? GlobalBit   : 0ULL)
+                  | (PAT            ? PatBit      : 0ULL)
+                  | (XD             ? XdBit       : 0ULL)
+                  |                   PageSizeBit        )
         {
-            this->Value = (paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (dirty          ? DirtyBit    : 0ULL)
-                        | (global         ? GlobalBit   : 0ULL)
-                        | (PAT            ? PatBit      : 0ULL)
-                        | (XD             ? XdBit       : 0ULL)
-                        |                   PageSizeBit        ;
+
         }
 
         /*  Properties  */
 
-        /**
-         *  Gets the physical address of the PML2 (PD) table.
-         */
-        __bland __forceinline Pml2 * GetPml2Ptr() const
+        __bland inline bool IsNull()
         {
-            return (Pml2 *)(this->Value & AddressBits);
-        }
-        /**
-         *  Sets the physical address of the PML2 (PD) table.
-         */
-        __bland __forceinline void SetPml2Ptr(const paddr_t paddr)
-        {
-            this->Value = (paddr       &  AddressBits)
-                        | (this->Value & ~AddressBits);
-        }
-
-        /**
-         *  Gets the physical address of the 1-GiB page.
-         */
-        __bland __forceinline paddr_t GetAddress() const
-        {
-            return (paddr_t)(this->Value & AddressBits);
-        }
-        /**
-         *  Sets the physical address of the 1-GiB page.
-         */
-        __bland __forceinline void SetAddress(const paddr_t paddr)
-        {
-            this->Value = (paddr       &  AddressBits)
-                        | (this->Value & ~AddressBits);
-        }
-
-        __bland __forceinline bool IsNull()
-        {
-            return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
+            return (this->GetPml2Address() == nullpaddr) && !this->GetPresent();
         }
 
         /*  Synchronization  */
 
         SPINLOCK(ContentLock, 10);
         SPINLOCK(PropertiesLock, 11);
-
-        /*  Operators  */
-
-        /**
-         *  Gets the value of a bit.
-         */
-        __bland __forceinline bool operator [](const uint8_t bit) const
-        {
-            return 0 != (this->Value & (1 << bit));
-        }
 
     //private:
 
@@ -716,14 +617,14 @@ namespace Beelzebub { namespace Memory
         /*  Constructors  */
 
         Pml3() = default;
-        Pml3(Pml3 const&) = default;
+        Pml3(Pml3 const &) = default;
 
         /*  Operators  */
 
         /**
          *  Gets the entrry at a given index.
          */
-        __bland __forceinline Pml3Entry & operator [](const uint16_t ind)
+        __bland inline Pml3Entry & operator [](uint16_t const ind)
         {
             return this->Entries[ind];
         }
@@ -731,7 +632,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland __forceinline Pml3Entry & operator [](const vaddrptr_t vaddr)
+        __bland inline Pml3Entry & operator [](vaddrptr_t const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
@@ -778,107 +679,67 @@ namespace Beelzebub { namespace Memory
         BITFIELD_DEFAULT_1W( 4, Pcd)
         BITFIELD_DEFAULT_1W( 5, Accessed)
         BITFIELD_DEFAULT_1W(63, Xd)
-
-        static const uint64_t AddressBits = 0x000FFFFFFFFFF000ULL;
+        BITFIELD_DEFAULT_2W(12, 40, Pml3 * , Pml3Ptr)
+        BITFIELD_DEFAULT_2W(12, 40, paddr_t, Pml3Address)
 
         /*  Constructors  */
 
         /**
          *  Creates an empty PML4 (PT) entry structure.
          */
-        __bland __forceinline Pml4Entry() : Value( 0ULL ) { }
+        __bland inline Pml4Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML4 entry structure that points to a PML3 table.
          */
-        __bland __forceinline Pml4Entry(const paddr_t pml3_paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    XD)
+        __bland inline Pml4Entry(const paddr_t pml3_paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    XD)
+            : Value((pml3_paddr & Pml3PtrBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (XD             ? XdBit       : 0ULL))
         {
-            this->Value = (pml3_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+
         }
 
         /**
          *  Creates a new PML4 entry structure that points to a PML3 table.
          */
-        __bland __forceinline Pml4Entry(const paddr_t pml3_paddr
-                                      , const bool    present
-                                      , const bool    writable
-                                      , const bool    userAccessible
-                                      , const bool    PWT
-                                      , const bool    PCD
-                                      , const bool    accessed
-                                      , const bool    XD)
+        __bland inline Pml4Entry(const paddr_t pml3_paddr
+                               , const bool    present
+                               , const bool    writable
+                               , const bool    userAccessible
+                               , const bool    PWT
+                               , const bool    PCD
+                               , const bool    accessed
+                               , const bool    XD)
+            : Value((pml3_paddr & Pml3PtrBits)
+                  | (present        ? PresentBit  : 0ULL)
+                  | (writable       ? WritableBit : 0ULL)
+                  | (userAccessible ? UserlandBit : 0ULL)
+                  | (PWT            ? PwtBit      : 0ULL)
+                  | (PCD            ? PcdBit      : 0ULL)
+                  | (accessed       ? AccessedBit : 0ULL)
+                  | (XD             ? XdBit       : 0ULL))
         {
-            this->Value = (pml3_paddr & AddressBits)
-                        | (present        ? PresentBit  : 0ULL)
-                        | (writable       ? WritableBit : 0ULL)
-                        | (userAccessible ? UserlandBit : 0ULL)
-                        | (PWT            ? PwtBit      : 0ULL)
-                        | (PCD            ? PcdBit      : 0ULL)
-                        | (accessed       ? AccessedBit : 0ULL)
-                        | (XD             ? XdBit       : 0ULL);
+
         }
 
         /*  Properties  */
 
-        /**
-         *  Gets the physical address of the PML3 (PDPT) table.
-         */
-        __bland __forceinline Pml3 * GetPml3Ptr() const
+        __bland inline bool IsNull()
         {
-            return (Pml3 *)(this->Value & AddressBits);
-        }
-        /**
-         *  Sets the physical address of the PML3 (PDPT) table.
-         */
-        __bland __forceinline void SetPml3Ptr(const paddr_t paddr)
-        {
-            this->Value = (paddr       &  AddressBits)
-                        | (this->Value & ~AddressBits);
-        }
-
-        /**
-         *  Gets the physical address of the PML3 (PDPT) page.
-         */
-        __bland __forceinline paddr_t GetAddress() const
-        {
-            return (paddr_t)(this->Value & AddressBits);
-        }
-        /**
-         *  Sets the physical address of the PML3 (PDPT) page.
-         */
-        __bland __forceinline void SetAddress(const paddr_t paddr)
-        {
-            this->Value = (paddr       &  AddressBits)
-                        | (this->Value & ~AddressBits);
-        }
-
-        __bland __forceinline bool IsNull()
-        {
-            return (this->GetAddress() == (paddr_t)0) && !this->GetPresent();
+            return (this->GetPml3Address() == nullpaddr) && !this->GetPresent();
         }
 
         /*  Synchronization  */
 
         SPINLOCK(ContentLock, 10);
         SPINLOCK(PropertiesLock, 11);
-
-        /*  Operators  */
-
-        /**
-         *  Gets the value of a bit.
-         */
-        __bland __forceinline bool operator [](const uint8_t bit) const
-        {
-            return 0 != (this->Value & (1 << bit));
-        }
 
     //private:
 
@@ -901,14 +762,14 @@ namespace Beelzebub { namespace Memory
         /*  Constructors  */
 
         Pml4() = default;
-        Pml4(Pml4 const&) = default;
+        Pml4(Pml4 const &) = default;
 
         /*  Operators  */
 
         /**
          *  Gets the entrry at a given index.
          */
-        __bland __forceinline Pml4Entry & operator [](const uint16_t ind)
+        __bland inline Pml4Entry & operator [](uint16_t const ind)
         {
             return this->Entries[ind];
         }
@@ -916,7 +777,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland __forceinline Pml4Entry & operator [](const vaddrptr_t vaddr)
+        __bland inline Pml4Entry & operator [](vaddrptr_t const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...

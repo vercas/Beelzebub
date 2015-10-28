@@ -28,16 +28,6 @@ using namespace Beelzebub::Terminals;
 bool VirtualAllocationSpace::Page1GB;
 bool VirtualAllocationSpace::NX;
 
-/*  Constructors    */
-
-VirtualAllocationSpace::VirtualAllocationSpace(PageAllocator * const allocator)
-    : Allocator( allocator )
-    //, FreePagesCount(0)
-    //, MappedPagesCount(0)
-{
-
-}
-
 /*  Main Operations  */
 
 Handle VirtualAllocationSpace::Bootstrap()
@@ -47,14 +37,14 @@ Handle VirtualAllocationSpace::Bootstrap()
     //  a proper kernel space.
 
     VirtualAllocationSpace::Page1GB = BootstrapProcessorId.CheckFeature(CpuFeature::Page1GB);
-    VirtualAllocationSpace::NX      = BootstrapProcessorId.CheckFeature(CpuFeature::NX);
+    VirtualAllocationSpace::NX      = BootstrapProcessorId.CheckFeature(CpuFeature::NX     );
 
     if (NX)
         Cpu::EnableNxBit();
 
     PageDescriptor * desc = nullptr;
 
-    paddr_t pml4_paddr = this->Allocator->AllocatePage(desc);
+    paddr_t const pml4_paddr = this->Allocator->AllocatePage(desc);
 
     if (pml4_paddr == nullpaddr)
         return Handle(HandleResult::OutOfMemory);
@@ -62,7 +52,7 @@ Handle VirtualAllocationSpace::Bootstrap()
     Pml4 & oldPml4 = *((Pml4 *)pml4_paddr);
     //  Cheap.
 
-    memset((void *)pml4_paddr, 0, 4096);
+    memset((void *)pml4_paddr, 0, 0x1000);
     //  Clear it all out!
     desc->IncrementReferenceCount();
     //  Increment reference count...
@@ -81,7 +71,7 @@ Handle VirtualAllocationSpace::Bootstrap()
     {
         paddr_t pml3_paddr = this->Allocator->AllocatePage(desc);
 
-        memset((void *)pml3_paddr, 0, 4096);
+        memset((void *)pml3_paddr, 0, 0x1000);
         //  Clear again.
         desc->IncrementReferenceCount();
         //  Increment reference count...
@@ -91,6 +81,8 @@ Handle VirtualAllocationSpace::Bootstrap()
 
     oldPml4[LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, NX);
     oldPml4[AlienFractalIndex] = oldPml4[LocalFractalIndex];
+    //  Very important note: the user-accessible bit is cleared.
+    //  This means userland code will not be able to look at the fractal mapping.
 
     this->Pml4Address = pml4_paddr;
 
@@ -128,21 +120,21 @@ Handle VirtualAllocationSpace::Bootstrap()
             //  Increment the current location.
         }
 
-        const paddr_t pasStart = cur->GetMemoryStart();
-        const size_t controlStructuresSize = (cur->GetAllocationStart() - pasStart);
+        paddr_t const pasStart = cur->GetMemoryStart();
+        size_t const controlStructuresSize = (cur->GetAllocationStart() - pasStart);
         //  Size of control pages.
 
         if (curLoc + controlStructuresSize > PasControlStructuresEnd)
             break;
         //  Well, we reached our maximum!
 
-        for (size_t i = 0; i < controlStructuresSize; i += 4096)
+        for (size_t i = 0; i < controlStructuresSize; i += 0x1000)
         {
             res = this->Map(curLoc + i, pasStart + i, PageFlags::Global | PageFlags::Writable);
 
             assert(res.IsOkayResult()
                 , "Failed to map page #%u8 (%Xp to %XP): %H"
-                , i / 4096, curLoc + i, pasStart + i, res);
+                , i / 0x1000, curLoc + i, pasStart + i, res);
             //  Failure is fatal.
         }
 
@@ -173,10 +165,10 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 
     PageDescriptor * desc;
 
-    paddr_t pml4_paddr = target->Pml4Address = this->Allocator->AllocatePage(desc);
+    paddr_t const pml4_paddr = target->Pml4Address = this->Allocator->AllocatePage(desc);
 
     if (pml4_paddr == nullpaddr)
-        return Handle(HandleResult::OutOfMemory);
+        return HandleResult::OutOfMemory;
 
     desc->IncrementReferenceCount();
     //  Do the good deed.
@@ -201,20 +193,20 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
     //  Last page, where the kernel and bootloader-provided shenanigans sit
     //  snuggly together and drink hot cocoa.
 
-    return Handle(HandleResult::Okay);
+    return HandleResult::Okay;
 }
 
 /*  Translation  */
 
 template<typename cbk_t>
-Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, cbk_t cbk, bool const tolerate)
+Handle VirtualAllocationSpace::TryTranslate(vaddr_t const vaddr, cbk_t cbk, bool const tolerate)
 {
     if unlikely(!tolerate && (
                 (vaddr >= FractalStart && vaddr < FractalEnd     )
              || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart)))
-        return Handle(HandleResult::PageMapIllegalRange);
+        return HandleResult::PageMapIllegalRange;
 
-    const bool nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
+    bool const nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
     uint16_t ind;   //  Used to hold the current index.
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
@@ -262,7 +254,7 @@ Handle VirtualAllocationSpace::TryTranslate(const vaddr_t vaddr, cbk_t cbk, bool
     //  The status of the page is irrelevant.
 }
 
-Handle VirtualAllocationSpace::GetEntry(const vaddr_t vaddr, Pml1Entry * & e, bool const tolerate)
+Handle VirtualAllocationSpace::GetEntry(vaddr_t const vaddr, Pml1Entry * & e, bool const tolerate)
 {
     return this->TryTranslate(vaddr, [&e](Pml1Entry * pE) __bland
     {
@@ -274,16 +266,16 @@ Handle VirtualAllocationSpace::GetEntry(const vaddr_t vaddr, Pml1Entry * & e, bo
 
 /*  Mapping  */
 
-Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags, PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc)
+Handle VirtualAllocationSpace::Map(vaddr_t const vaddr, paddr_t const paddr, const PageFlags flags, PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc)
 {
     if unlikely((vaddr >= FractalStart && vaddr < FractalEnd     )
              || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart))
-        return Handle(HandleResult::PageMapIllegalRange);
+        return HandleResult::PageMapIllegalRange;
 
     if unlikely((vaddr & 0xFFFULL) != 0 || (paddr & 0xFFFULL) != 0)
-        return Handle(HandleResult::PageUnaligned);
+        return HandleResult::PageUnaligned;
 
-    const bool nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
+    bool const nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
     uint16_t ind;   //  Used to hold the current index.
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
@@ -314,7 +306,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
             , "Absent PML4 entry (#%u2 for %Xp) is non-null!"
             , ind, vaddr);
 
-        const paddr_t newPml3 = this->Allocator->AllocatePage(pml3desc);
+        paddr_t const newPml3 = this->Allocator->AllocatePage(pml3desc);
 
         if (newPml3 == 0)
             return Handle(HandleResult::OutOfMemory);
@@ -322,7 +314,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
         pml4[ind] = Pml4Entry(newPml3, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml3p, 0, 4096);
+        memset(pml3p, 0, 0x1000);
     }
 
     Pml3 & pml3 = *pml3p;
@@ -334,7 +326,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
             , "Absent PDPT entry (#%u2 for %Xp) is non-null!"
             , ind, vaddr);
 
-        const paddr_t newPml2 = this->Allocator->AllocatePage(pml2desc);
+        paddr_t const newPml2 = this->Allocator->AllocatePage(pml2desc);
 
         if (newPml2 == 0)
             return Handle(HandleResult::OutOfMemory);
@@ -342,7 +334,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
         pml3[ind] = Pml3Entry(newPml2, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml2p, 0, 4096);
+        memset(pml2p, 0, 0x1000);
     }
     
     Pml2 & pml2 = *pml2p;
@@ -354,7 +346,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
             , "Absent PD entry (#%u2 for %Xp) is non-null!"
             , ind, vaddr);
 
-        const paddr_t newPml1 = this->Allocator->AllocatePage(pml1desc);
+        paddr_t const newPml1 = this->Allocator->AllocatePage(pml1desc);
 
         if (newPml1 == 0)
             return Handle(HandleResult::OutOfMemory);
@@ -362,7 +354,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
         pml2[ind] = Pml2Entry(newPml1, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml1p, 0, 4096);
+        memset(pml1p, 0, 0x1000);
     }
     
     Pml1 & pml1 = *pml1p;
@@ -381,7 +373,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
     return Handle(HandleResult::Okay);
 }
 
-Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags)
+Handle VirtualAllocationSpace::Map(vaddr_t const vaddr, paddr_t const paddr, const PageFlags flags)
 {
     PageDescriptor * pml3desc = nullptr;
     PageDescriptor * pml2desc = nullptr;
@@ -396,7 +388,7 @@ Handle VirtualAllocationSpace::Map(const vaddr_t vaddr, const paddr_t paddr, con
     return res;
 }
 
-Handle VirtualAllocationSpace::Unmap(const vaddr_t vaddr, paddr_t & paddr)
+Handle VirtualAllocationSpace::Unmap(vaddr_t const vaddr, paddr_t & paddr)
 {
     return this->TryTranslate(vaddr, [&paddr](Pml1Entry * pE) __bland
         {
@@ -419,13 +411,13 @@ Handle VirtualAllocationSpace::Unmap(const vaddr_t vaddr, paddr_t & paddr)
 
 /*  Flags  */
 
-Handle VirtualAllocationSpace::GetPageFlags(const vaddr_t vaddr, PageFlags & flags)
+Handle VirtualAllocationSpace::GetPageFlags(vaddr_t const vaddr, PageFlags & flags)
 {
     return this->TryTranslate(vaddr, [&flags](Pml1Entry * pE) __bland
         {
             if likely(pE->GetPresent())
             {
-                const Pml1Entry e = *pE;
+                Pml1Entry const e = *pE;
                 PageFlags f = PageFlags::None;
 
                 if (  e.GetGlobal())    f |= PageFlags::Global;
@@ -446,7 +438,7 @@ Handle VirtualAllocationSpace::GetPageFlags(const vaddr_t vaddr, PageFlags & fla
         }, false);
 }
 
-Handle VirtualAllocationSpace::SetPageFlags(const vaddr_t vaddr, const PageFlags flags)
+Handle VirtualAllocationSpace::SetPageFlags(vaddr_t const vaddr, const PageFlags flags)
 {
     return this->TryTranslate(vaddr, [flags](Pml1Entry * pE) __bland
         {
@@ -474,7 +466,7 @@ Handle VirtualAllocationSpace::SetPageFlags(const vaddr_t vaddr, const PageFlags
 
 /*  Constructor(s)  */
 
-Handle VirtualAllocationSpace::Iterator::Create(Iterator & dst, VirtualAllocationSpace * const space, const vaddr_t vaddr)
+Handle VirtualAllocationSpace::Iterator::Create(Iterator & dst, VirtualAllocationSpace * const space, vaddr_t const vaddr)
 {
     if unlikely(0 != (vaddr & 0xFFF))
         return Handle(HandleResult::PageUnaligned);
@@ -490,8 +482,8 @@ Handle VirtualAllocationSpace::Iterator::Create(Iterator & dst, VirtualAllocatio
 
 Handle VirtualAllocationSpace::Iterator::Initialize()
 {
-    const vaddr_t vaddr = this->VirtualAddress;
-    const bool nonLocal = (vaddr < LowerHalfEnd) && !this->AllocationSpace->IsLocal();
+    vaddr_t const vaddr = this->VirtualAddress;
+    bool const nonLocal = (vaddr < LowerHalfEnd) && !this->AllocationSpace->IsLocal();
 
     if (nonLocal)
         this->AllocationSpace->Alienate();
@@ -547,8 +539,8 @@ Handle VirtualAllocationSpace::Iterator::Initialize()
 
 const VirtualAllocationSpace::Iterator & VirtualAllocationSpace::Iterator::operator +=(const VirtualAllocationSpace::Iterator::DifferenceType diff)
 {
-    const vaddr_t vaddr = this->VirtualAddress;
-    const vaddr_t target = vaddr + (diff << 12);
+    vaddr_t const vaddr = this->VirtualAddress;
+    vaddr_t const target = vaddr + (diff << 12);
 
     //  Must not go over the gap!
 
@@ -560,12 +552,12 @@ const VirtualAllocationSpace::Iterator & VirtualAllocationSpace::Iterator::opera
 
     if (diff > 0)
         assert((vaddr_t)(diff << 12) < (~((vaddr_t)0) - vaddr)
-        , "Paging table crawling iterator attempted to overflow! (%Xp + %us pages [%Xp])"
-        , vaddr, diff, diff << 12);
+            , "Paging table crawling iterator attempted to overflow! (%Xp + %us pages [%Xp])"
+            , vaddr, diff, diff << 12);
     else if (diff < 0)
         assert(vaddr >= (vaddr_t)(-(diff << 12))
-        , "Paging table crawling iterator attempted to underflow! (%Xp - %us pages [%Xp])"
-        , vaddr, diff, diff << 12);
+            , "Paging table crawling iterator attempted to underflow! (%Xp - %us pages [%Xp])"
+            , vaddr, diff, diff << 12);
     else
         return *this;
 
@@ -579,8 +571,8 @@ const VirtualAllocationSpace::Iterator & VirtualAllocationSpace::Iterator::opera
 
 const VirtualAllocationSpace::Iterator VirtualAllocationSpace::Iterator::operator +(const VirtualAllocationSpace::Iterator::DifferenceType diff)
 {
-    const vaddr_t vaddr = this->VirtualAddress;
-    const vaddr_t target = vaddr + (diff << 12);
+    vaddr_t const vaddr = this->VirtualAddress;
+    vaddr_t const target = vaddr + (diff << 12);
 
     //  Must not go over the gap!
 
@@ -617,8 +609,8 @@ const VirtualAllocationSpace::Iterator VirtualAllocationSpace::Iterator::operato
 
 Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc)
 {
-    const vaddr_t vaddr = this->VirtualAddress;
-    const bool nonLocal = (vaddr < LowerHalfEnd) && !this->AllocationSpace->IsLocal();
+    vaddr_t const vaddr = this->VirtualAddress;
+    bool const nonLocal = (vaddr < LowerHalfEnd) && !this->AllocationSpace->IsLocal();
     uint16_t ind;   //  Used to hold the current index.
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
@@ -649,7 +641,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
             , "Absent PML4 entry (#%u2 for %Xp) is non-null!"
             , ind, vaddr);
 
-        const paddr_t newPml3 = this->AllocationSpace->Allocator->AllocatePage(pml3desc);
+        paddr_t const newPml3 = this->AllocationSpace->Allocator->AllocatePage(pml3desc);
 
         if (newPml3 == 0)
             return Handle(HandleResult::OutOfMemory);
@@ -657,7 +649,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
         pml4[ind] = Pml4Entry(newPml3, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml3p, 0, 4096);
+        memset(pml3p, 0, 0x1000);
     }
 
     Pml3 & pml3 = *pml3p;
@@ -669,7 +661,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
             , "Absent PDPT entry (#%u2 for %Xp) is non-null!"
             , ind, vaddr);
 
-        const paddr_t newPml2 = this->AllocationSpace->Allocator->AllocatePage(pml2desc);
+        paddr_t const newPml2 = this->AllocationSpace->Allocator->AllocatePage(pml2desc);
 
         if (newPml2 == 0)
             return Handle(HandleResult::OutOfMemory);
@@ -677,7 +669,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
         pml3[ind] = Pml3Entry(newPml2, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml2p, 0, 4096);
+        memset(pml2p, 0, 0x1000);
     }
 
     Pml2 & pml2 = *pml2p;
@@ -690,7 +682,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
             , "Absent PD entry (#%u2 for %Xp) is non-null!"
             , ind, vaddr);
 
-        const paddr_t newPml1 = this->AllocationSpace->Allocator->AllocatePage(pml1desc);
+        paddr_t const newPml1 = this->AllocationSpace->Allocator->AllocatePage(pml1desc);
 
         if (newPml1 == 0)
             return Handle(HandleResult::OutOfMemory);
@@ -698,7 +690,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
         pml2[ind] = Pml2Entry(newPml1, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml1p, 0, 4096);
+        memset(pml1p, 0, 0x1000);
     }
 
     Pml1 & pml1 = *pml1p;
