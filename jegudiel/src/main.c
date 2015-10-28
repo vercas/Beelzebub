@@ -122,7 +122,7 @@ void main_bsp(void)
 
     // Boot APs
     info_cpu[lapic_id()].flags |= JG_INFO_CPU_FLAG_BSP;
-    smp_setup();
+    //smp_setup();
 
     puts("\r[OK]\r\n");
 
