@@ -2,7 +2,8 @@
 
 #include <metaprogramming.h>
 
-namespace Beelzebub { namespace System {
+namespace Beelzebub { namespace System
+{
     /**
      *  Contains methods for interacting with the local APIC.
      */
@@ -24,6 +25,15 @@ namespace Beelzebub { namespace System {
      */
     class Lapic
     {
+        /*  Constructor(s)  */
+
+    protected:
+        Lapic() = default;
+
+    public:
+        Lapic(Lapic const &) = delete;
+        Lapic & operator =(Lapic const &) = delete;
+
     public:
         /*  Initialization  */
 

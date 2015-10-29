@@ -20,7 +20,7 @@ static __bland inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, co
             MemoryManagerAmd64::HandleTablesLock.Acquire();
         else if (vaddr <= MemoryManagerAmd64::KernelHeapEnd)
         {
-            if (alloc || (vaddr >= Cpu::GetKernelHeapStart() && vaddr < Cpu::GetKernelHeapEnd()))
+            /*if (alloc || (vaddr >= Cpu::GetKernelHeapStart() && vaddr < Cpu::GetKernelHeapEnd()))
             {
                 MemoryManagerAmd64::KernelHeapMasterLock.Await();
                 //  The master lock must be free!
@@ -30,7 +30,7 @@ static __bland inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, co
                 //  Increment the number of heap locks and acquire this CPU's heap lock.
             }
             else
-            {
+            {*/
                 MemoryManagerAmd64::KernelHeapMasterLock.Acquire();
 
                 while (MemoryManagerAmd64::KernelHeapLockCount > 0)
@@ -39,7 +39,7 @@ static __bland inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, co
 
                     //  Yeah...
                 }
-            }
+            //}
         }
         else
             MemoryManagerAmd64::KernelBinariesLock.Acquire();
@@ -60,13 +60,13 @@ static __bland inline void Unlock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, 
             MemoryManagerAmd64::HandleTablesLock.Release();
         else if (vaddr <= MemoryManagerAmd64::KernelHeapEnd)
         {
-            if (alloc || (vaddr >= Cpu::GetKernelHeapStart() && vaddr < Cpu::GetKernelHeapEnd()))
+            /*if (alloc || (vaddr >= Cpu::GetKernelHeapStart() && vaddr < Cpu::GetKernelHeapEnd()))
             {
                 __sync_sub_and_fetch(&MemoryManagerAmd64::KernelHeapLockCount, 1);
                 Cpu::GetKernelHeapSpinlock()->Release();
                 //  Decrement the number of heap locks and release this CPU's heap lock.
             }
-            else
+            else*/
                 MemoryManagerAmd64::KernelHeapMasterLock.Release();
         }
         else

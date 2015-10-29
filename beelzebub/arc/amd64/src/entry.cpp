@@ -27,6 +27,7 @@
 #include <_print/gdt.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Debug;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Ports;
@@ -396,14 +397,14 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
     initialVbeTerminal.Write("Free memory start: ");
     initialVbeTerminal.WriteHex64(freeStart);
 
-    initialVbeTerminal.WriteLine();
+    msg("%n");
 
     initialVbeTerminal.WriteFormat("Initializing memory over entries #%us-%us...%n", (size_t)(firstMap - map)
                                                         , (size_t)(lastMap - map));
     initialVbeTerminal.WriteFormat(" Address rage: %X8-%X8.%n", start, end);
     initialVbeTerminal.WriteFormat(" Maps start at %Xp.%n", firstMap);
 
-    initialVbeTerminal.WriteLine();//*/
+    msg("%n");//*/
 
     /*Cr3 cr3 = Cpu::GetCr3();
     Pml4 & pml4 = *cr3.GetPml4Ptr();
@@ -509,11 +510,13 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
 
     InitializeCpuData();
 
+    //  TODO: Parse ACPI, get LAPIC paddr.
+
     //  RELEASING APs
 
     bootstrapReady = true;
 
-    //initialVbeTerminal.WriteLine();
+    //msg("%n");
 
     //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
 }
@@ -563,43 +566,37 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
 
 Handle InitializeMemory()
 {
-    initialVbeTerminal.WriteLine();
-    
     BootstrapProcessorId = CpuId();
     BootstrapProcessorId.Initialize();
     //  This is required to page all the available memory.
 
     //breakpoint();
 
-    //BootstrapProcessorId.PrintToTerminal(&initialVbeTerminal);
+    BootstrapProcessorId.PrintToTerminal(DebugTerminal);
 
     //breakpoint();
 
-    initialVbeTerminal.WriteLine();
+    msg("%n");
 
     //  TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
 
     SanitizeAndInitializeMemory(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, JG_INFO_ROOT_EX->free_paddr);
 
-    initialVbeTerminal.WriteLine();
+    msg("%n");
 
     //  DUMPING CONTROL REGISTERS
 
-    PrintToTerminal(&initialVbeTerminal, Cpu::GetCr0());
-    initialVbeTerminal.WriteLine();
+    PrintToDebugTerminal(Cpu::GetCr0());
+    msg("%n");
 
-    initialVbeTerminal.Write("CR2: ");
-    initialVbeTerminal.WriteHex64((uint64_t)Cpu::GetCr2());
-    initialVbeTerminal.WriteLine();
+    msg("CR2: %Xs%n", (uint64_t)Cpu::GetCr2());
 
-    PrintToTerminal(&initialVbeTerminal, Cpu::GetCr3());
-    initialVbeTerminal.WriteLine();
+    PrintToDebugTerminal(Cpu::GetCr3());
+    msg("%n");
 
-    initialVbeTerminal.Write("CR4: ");
-    initialVbeTerminal.WriteHex64(Cpu::GetCr4());
-    initialVbeTerminal.WriteLine();
+    msg("CR2: %Xs%n", (uint64_t)Cpu::GetCr4());
 
-    initialVbeTerminal.WriteLine();
+    msg("%n");
 
     CpuInstructions::WriteBackAndInvalidateCache();
 

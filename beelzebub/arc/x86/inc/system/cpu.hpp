@@ -73,9 +73,8 @@ namespace Beelzebub { namespace System
         Synchronization::spinlock_t HeapSpinlock;
         Synchronization::Spinlock<> * HeapSpinlockPointer;
 
-        vaddr_t KernelHeapStart;
-        vaddr_t KernelHeapCursor;
-        vaddr_t KernelHeapEnd;
+        vaddr_t LapicAddress;
+        bool X2ApicMode;
     } __packed;
 
     /**
@@ -172,31 +171,22 @@ namespace Beelzebub { namespace System
             return (Synchronization::Spinlock<> *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, HeapSpinlockPointer), (uintptr_t)val);
         }
 
-        static __bland __forceinline vaddr_t GetKernelHeapStart()
+        static __bland __forceinline vaddr_t GetLapicAddress()
         {
-            return (vaddr_t)CpuInstructions::GsGetPointer(offsetof(struct CpuData, KernelHeapStart));
+            return (vaddr_t)CpuInstructions::GsGetPointer(offsetof(struct CpuData, LapicAddress));
         }
-        static __bland __forceinline vaddr_t SetKernelHeapStart(const vaddr_t val)
+        static __bland __forceinline vaddr_t SetLapicAddress(const vaddr_t val)
         {
-            return (vaddr_t)CpuInstructions::GsSetPointer(offsetof(struct CpuData, KernelHeapStart), (uintptr_t)val);
-        }
-
-        static __bland __forceinline vaddr_t GetKernelHeapCursor()
-        {
-            return (vaddr_t)CpuInstructions::GsGetPointer(offsetof(struct CpuData, KernelHeapCursor));
-        }
-        static __bland __forceinline vaddr_t SetKernelHeapCursor(const vaddr_t val)
-        {
-            return (vaddr_t)CpuInstructions::GsSetPointer(offsetof(struct CpuData, KernelHeapCursor), (uintptr_t)val);
+            return (vaddr_t)CpuInstructions::GsSetPointer(offsetof(struct CpuData, LapicAddress), (uintptr_t)val);
         }
 
-        static __bland __forceinline vaddr_t GetKernelHeapEnd()
+        static __bland __forceinline bool GetX2ApicMode()
         {
-            return (vaddr_t)CpuInstructions::GsGetPointer(offsetof(struct CpuData, KernelHeapEnd));
+            return (bool)CpuInstructions::GsGet8(offsetof(struct CpuData, X2ApicMode));
         }
-        static __bland __forceinline vaddr_t SetKernelHeapEnd(const vaddr_t val)
+        static __bland __forceinline bool SetX2ApicMode(const bool val)
         {
-            return (vaddr_t)CpuInstructions::GsSetPointer(offsetof(struct CpuData, KernelHeapEnd), (uintptr_t)val);
+            return (bool)CpuInstructions::GsSet8(offsetof(struct CpuData, X2ApicMode), (uint8_t)val);
         }
     };
 }}
