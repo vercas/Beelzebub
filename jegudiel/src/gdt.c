@@ -27,4 +27,4 @@
 #include <info.h>
 #include <stdint.h>
 
-gdt_pointer_t gdt_pointer = {56, (uintptr_t) &gdt_data};
+gdt_pointer_t gdt_pointer = {0x37, (uintptr_t) &gdt_data};
