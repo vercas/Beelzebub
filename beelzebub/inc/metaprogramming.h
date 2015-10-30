@@ -86,6 +86,8 @@
 #define __unused           __attribute__((__unused__))
 #define __must_check       __attribute__((__warn_unused_result__))
 #define __restrict         __restrict__
+#define __nonnull(...)     __attribute__((__nonnull__(__VA_ARGS__)))
+#define __returns_nonnull  __attribute__((__returns_nonnull__))
 
 #define likely(expr)       (__builtin_expect((expr), 1))
 #define unlikely(expr)     (__builtin_expect((expr), 0))
@@ -97,6 +99,7 @@
 #define __packed           __attribute__((__packed__))
 #define __alignof(T)       __alignof__(T)
 
+#define __section(name)    __attribute__((__section__("." #name)))
 #define __build_data       __attribute__((__section__(".build_data")))
 
 #define __fastcall         __attribute__((__fastcall__))
@@ -114,6 +117,9 @@
 #define __used
 #define __unused
 #define __must_check
+#define __restrict
+#define __nonnull(...)  
+#define __returns_nonnull  
 
 #define likely(expr)       (expr)
 #define unlikely(expr)     (expr)
@@ -122,9 +128,10 @@
 #define __unreachable_code do { } while (false)
 #define __prefetch(...)    do { } while (false)
 
-#define __packed
+#define __packed  
 
-#define __build_data
+#define __section(name)  
+#define __build_data  
 
 #endif
 
