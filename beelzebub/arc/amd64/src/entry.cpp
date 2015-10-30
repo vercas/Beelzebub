@@ -45,7 +45,9 @@ Atomic<bool> bootstrapReady {false};
 
 CpuId Beelzebub::System::BootstrapProcessorId;
 
-/*  CPU data  */
+/***************
+    CPU DATA
+***************/
 
 Atomic<uintptr_t> CpuDataBase;
 Atomic<size_t> CpuIndexCounter {(size_t)0};
@@ -72,7 +74,9 @@ __bland void InitializeCpuData()
     //msg("-- Core #%us @ %Xp. --%n", ind, gs_base);
 }
 
-/*  Entry points  */ 
+/*******************
+    ENTRY POINTS
+*******************/
 
 void kmain_bsp()
 {
@@ -115,7 +119,9 @@ void kmain_ap()
     Beelzebub::Secondary();
 }
 
-/*  Terminal  */
+/****************
+    TERMINALS
+****************/
 
 TerminalBase * InitializeTerminalProto()
 {
@@ -159,7 +165,9 @@ TerminalBase * InitializeTerminalMain()
     return &initialVbeTerminal;
 }
 
-/*  Interrupts  */
+/*****************
+    INTERRUPTS
+*****************/
 
 Handle InitializeInterrupts()
 {
@@ -190,15 +198,53 @@ Handle InitializeInterrupts()
     return HandleResult::Okay;
 }
 
-/**********************************************/
-/*  Memory map sanitation and initialization  */
-/**********************************************/
+__bland void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const space)
+{
+    Handle res;
+
+    if (terminal->Descriptor->Capabilities.Type == TerminalType::PixelMatrix)
+    {
+        VbeTerminal * const term = (VbeTerminal *)terminal;
+        const size_t size = ((size_t)term->Pitch * (size_t)term->Height + PageSize - 1) & ~0xFFFULL;
+        //  Yes, the size is aligned with page boundaries.
+
+        if (term->VideoMemory >= MemoryManagerAmd64::KernelModulesStart
+         && term->VideoMemory <  MemoryManagerAmd64::KernelModulesEnd)
+            return;
+        //  Nothing to do, folks.
+        
+        uintptr_t const loc = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(size);
+
+        size_t off = 0;
+
+        do
+        {
+            res = space->Map(loc + off, term->VideoMemory + off, PageFlags::Global | PageFlags::Writable);
+
+            assert(res.IsOkayResult()
+                , "Failed to map page for VBE terminal (%Xp to %Xp): %H"
+                , loc + off, term->VideoMemory + off
+                , res);
+
+            off += PageSize;
+        } while (off < size);
+
+        term->VideoMemory = loc;
+    }
+
+    //  TODO: Make a VGA text terminal and also handle it here.
+}
+
+/*************
+    MEMORY
+*************/
 
 bool firstRegionCreated;
 
 psize_t currentSpaceIndex, currentSpaceLimit;
 PageAllocationSpace * currentSpaceLocation;
 
+/** <summary>Creates an allocation space over the given physical range.</summary> */
 __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 {
     /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
@@ -279,43 +325,12 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
     }
 }
 
-__bland void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const space)
-{
-    Handle res;
-
-    if (terminal->Descriptor->Capabilities.Type == TerminalType::PixelMatrix)
-    {
-        VbeTerminal * const term = (VbeTerminal *)terminal;
-        const size_t size = ((size_t)term->Pitch * (size_t)term->Height + PageSize - 1) & ~0xFFFULL;
-        //  Yes, the size is aligned with page boundaries.
-
-        if (term->VideoMemory >= MemoryManagerAmd64::KernelModulesStart
-         && term->VideoMemory <  MemoryManagerAmd64::KernelModulesEnd)
-            return;
-        //  Nothing to do, folks.
-        
-        uintptr_t const loc = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(size);
-
-        size_t off = 0;
-
-        do
-        {
-            res = space->Map(loc + off, term->VideoMemory + off, PageFlags::Global | PageFlags::Writable);
-
-            assert(res.IsOkayResult()
-                , "Failed to map page for VBE terminal (%Xp to %Xp): %H"
-                , loc + off, term->VideoMemory + off
-                , res);
-
-            off += PageSize;
-        } while (off < size);
-
-        term->VideoMemory = loc;
-    }
-
-    //  TODO: Make a VGA text terminal and also handle it here.
-}
-
+/**
+ *  <summary>
+ *  Sanitizes the memory map and initializes the page allocator over the local
+ *  region's available entries.
+ *  </summary>
+ */
 __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t cnt, uintptr_t freeStart)
 {
     Handle res; //  Used for intermediary results.
@@ -365,7 +380,7 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
 
     //  DUMPING MMAP
 
-    /*initialVbeTerminal.WriteLine("IND |A|    Address     |     Length     |       End      |");
+    msg("%nIND |A|    Address     |     Length     |       End      |%n");
 
     for (uint32_t i = 0; i < cnt; i++)
     {
@@ -374,42 +389,22 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
 
         //if (e.available == 0) continue;
 
-        initialVbeTerminal.WriteHex16((uint16_t)i);
-        initialVbeTerminal.Write("|");
-        initialVbeTerminal.Write(e.available ? "A" : " ");
-        initialVbeTerminal.Write("|");
-        initialVbeTerminal.WriteHex64(e.address);
-        initialVbeTerminal.Write("|");
-        initialVbeTerminal.WriteHex64(e.length);
-        initialVbeTerminal.Write("|");
-        initialVbeTerminal.WriteHex64(e.address + e.length);
-        initialVbeTerminal.WriteLine("|");
+        msg("%X2|%c|%X8|%X8|%X8|%n"
+            , (uint16_t)i
+            , e.available ? 'A' : ' '
+            , e.address
+            , e.length
+            , e.address + e.length);
     }
 
-    initialVbeTerminal.Write("Free memory start: ");
-    initialVbeTerminal.WriteHex64(freeStart);
+    msg("Free memory start: %X8%n", freeStart);
 
-    msg("%n");
-
-    initialVbeTerminal.WriteFormat("Initializing memory over entries #%us-%us...%n", (size_t)(firstMap - map)
+    msg("Initializing memory over entries #%us-%us...%n", (size_t)(firstMap - map)
                                                         , (size_t)(lastMap - map));
-    initialVbeTerminal.WriteFormat(" Address rage: %X8-%X8.%n", start, end);
-    initialVbeTerminal.WriteFormat(" Maps start at %Xp.%n", firstMap);
+    msg(" Address rage: %X8-%X8.%n", start, end);
+    msg(" Maps start at %Xp.%n", firstMap);
 
     msg("%n");//*/
-
-    /*Cr3 cr3 = Cpu::GetCr3();
-    Pml4 & pml4 = *cr3.GetPml4Ptr();
-
-    pml4.PrintToTerminal(&initialSerialTerminal);
-
-    for (uint16_t i = 0; i < 1; ++i)
-    {
-        Pml4Entry & e = pml4[i];
-        Pml3 & pml3 = *e.GetPml3Ptr();
-
-        pml3.PrintToTerminal(&initialSerialTerminal);
-    }*/
 
     //  SPACE CREATION
 
@@ -425,10 +420,6 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
 
     //  PAGE RESERVATION
 
-#ifdef __BEELZEBUB__DEBUG
-    //mainAllocationSpace.PrintStackToTerminal(&initialVbeTerminal, true);
-#endif
-
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
         if (m->available == 0)
         {
@@ -439,10 +430,6 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
                 , m->address, m->address + m->length
                 , res);
         }
-
-#ifdef __BEELZEBUB__DEBUG
-    //mainAllocationSpace.PrintStackToTerminal(&initialVbeTerminal, true);
-#endif
 
     //  PAGING INITIALIZATION
 
@@ -457,13 +444,13 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
     RemapTerminal(MainTerminal, &bootstrapVas);
     RemapTerminal(Debug::DebugTerminal, &bootstrapVas);
 
-    //initialVbeTerminal.WriteFormat("Statically initializing the memory manager... ");
+    //msg("Statically initializing the memory manager... ");
     MemoryManager::Initialize();
-    //initialVbeTerminal.WriteFormat("Done.%n");
+    //msg("Done.%n");
 
-    //initialVbeTerminal.WriteFormat("Constructing bootstrap memory manager... ");
+    //msg("Constructing bootstrap memory manager... ");
     new (&BootstrapMemoryManager) MemoryManagerAmd64(&bootstrapVas);
-    //initialVbeTerminal.WriteFormat("Done.%n");
+    //msg("Done.%n");
 
     //  CPU DATA
 
@@ -495,7 +482,7 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
 			, vaddr, paddr
 			, res);
 
-        //initialVbeTerminal.WriteFormat("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
+        //msg("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
     }
 
     InitializeCpuData();
@@ -511,6 +498,58 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
     //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
 }
 
+/**
+ *  <summary>
+ *  Initializes the system memory for the boostrap processor.
+ *  </summary>
+ */
+Handle InitializeMemory()
+{
+    BootstrapProcessorId = CpuId();
+    BootstrapProcessorId.Initialize();
+    //  This is required to page all the available memory.
+
+    BootstrapProcessorId.PrintToTerminal(DebugTerminal);
+    msg("%n");
+
+    //  TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
+
+    SanitizeAndInitializeMemory(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, JG_INFO_ROOT_EX->free_paddr);
+
+    msg("%n");
+
+    //  DUMPING CONTROL REGISTERS
+
+    PrintToDebugTerminal(Cpu::GetCr0());
+    msg("%n");
+
+    msg("CR2: %Xs%n", (uint64_t)Cpu::GetCr2());
+
+    PrintToDebugTerminal(Cpu::GetCr3());
+    msg("%n");
+
+    msg("CR2: %Xs%n", (uint64_t)Cpu::GetCr4());
+    msg("%n");
+
+    CpuInstructions::WriteBackAndInvalidateCache();
+
+    auto GDTR = GdtRegister::Retrieve();
+
+    PrintToDebugTerminal(GDTR);
+    msg("%n%n");
+
+    return HandleResult::Okay;
+}
+
+/**************
+    MODULES
+**************/
+
+/**
+ *  <summary>
+ *  Does something with the kernel's module...
+ *  </summary>
+ */
 __cold __bland Handle HandleKernelModule(const size_t index, const jg_info_module_t * const module, const size_t size)
 {
     msg("THIS IS THE KERNEL MODULE!%n");
@@ -518,6 +557,11 @@ __cold __bland Handle HandleKernelModule(const size_t index, const jg_info_modul
     return HandleResult::Okay;
 }
 
+/**
+ *  <summary>
+ *  Processes a module.
+ *  </summary>
+ */
 __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * const module)
 {
     Handle res = HandleResult::Okay;
@@ -554,53 +598,11 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
     return res;
 }
 
-Handle InitializeMemory()
-{
-    BootstrapProcessorId = CpuId();
-    BootstrapProcessorId.Initialize();
-    //  This is required to page all the available memory.
-
-    //breakpoint();
-
-    BootstrapProcessorId.PrintToTerminal(DebugTerminal);
-
-    //breakpoint();
-
-    msg("%n");
-
-    //  TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
-
-    SanitizeAndInitializeMemory(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, JG_INFO_ROOT_EX->free_paddr);
-
-    msg("%n");
-
-    //  DUMPING CONTROL REGISTERS
-
-    PrintToDebugTerminal(Cpu::GetCr0());
-    msg("%n");
-
-    msg("CR2: %Xs%n", (uint64_t)Cpu::GetCr2());
-
-    PrintToDebugTerminal(Cpu::GetCr3());
-    msg("%n");
-
-    msg("CR2: %Xs%n", (uint64_t)Cpu::GetCr4());
-
-    msg("%n");
-
-    CpuInstructions::WriteBackAndInvalidateCache();
-
-    auto GDTR = GdtRegister::Retrieve();
-
-    PrintToDebugTerminal(GDTR);
-
-    msg("%n%n");
-
-    return HandleResult::Okay;
-}
-
-/*  Modules  */
-
+/**
+ *  <summary>
+ *  Initializes the kernel modules.
+ *  </summary>
+ */
 Handle InitializeModules()
 {
     Handle res;
