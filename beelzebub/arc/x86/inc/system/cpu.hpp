@@ -3,6 +3,7 @@
 #include <system/registers.hpp>
 #include <system/registers_x86.hpp>
 #include <system/cpu_instructions.hpp>
+#include <system/domain.hpp>
 #include <system/msrs.hpp>
 
 #include <synchronization/spinlock.hpp>
@@ -67,13 +68,15 @@ namespace Beelzebub { namespace System
      */
     struct CpuData
     {
-        uint32_t Index;
-        uint32_t InterruptDisableCount; /* PADDING */
+        size_t Index;
+        Domain * DomainDescriptor;
+
         Execution::Thread * ActiveThread;
         Synchronization::spinlock_t HeapSpinlock;
         Synchronization::Spinlock<> * HeapSpinlockPointer;
 
         vaddr_t LapicAddress;
+        uint16_t GdtLength;
         bool X2ApicMode;
     } __packed;
 
@@ -135,23 +138,23 @@ namespace Beelzebub { namespace System
 
         static const size_t CpuDataSize = sizeof(CpuData);
 
-        static __bland __forceinline uint32_t GetIndex()
+        static __bland __forceinline size_t GetIndex()
         {
-            return CpuInstructions::GsGet32(offsetof(struct CpuData, Index));
+            return CpuInstructions::GsGetSize(offsetof(struct CpuData, Index));
         }
-        static __bland __forceinline uint32_t SetIndex(const uint32_t val)
+        static __bland __forceinline size_t SetIndex(const size_t val)
         {
-            return (uint32_t)CpuInstructions::GsSet32(offsetof(struct CpuData, Index), val);
+            return (size_t)CpuInstructions::GsSetSize(offsetof(struct CpuData, Index), val);
         }
 
-        /*static __bland __forceinline uint32_t GetInterruptDisableCount()
+        static __bland __forceinline Domain * GetDomain()
         {
-            return CpuInstructions::GsGet32(offsetof(struct CpuData, InterruptDisableCount));
+            return (Domain *)CpuInstructions::GsGetPointer(offsetof(struct CpuData, DomainDescriptor));
         }
-        static __bland __forceinline uint32_t SetInterruptDisableCount(const uint32_t val)
+        static __bland __forceinline Domain * SetDomain(Domain * const val)
         {
-            return (uint32_t)CpuInstructions::GsSet32(offsetof(struct CpuData, InterruptDisableCount), val);
-        }*/
+            return (Domain *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, DomainDescriptor), (uintptr_t)val);
+        }
 
         static __bland __forceinline Execution::Thread * GetActiveThread()
         {

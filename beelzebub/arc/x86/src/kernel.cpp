@@ -1,6 +1,7 @@
 #include <kernel.hpp>
-#include <execution/thread_init.hpp>
+#include <entry.h>
 #include <system/cpu.hpp>
+#include <execution/thread_init.hpp>
 #include <synchronization/spinlock.hpp>
 #include <debug.hpp>
 
@@ -25,11 +26,10 @@ Spinlock<> TerminalMessageLock;
 TerminalBase * Beelzebub::MainTerminal;
 bool Beelzebub::Scheduling;
 
-PageAllocator * Beelzebub::MainPageAllocator;
-MemoryManager * Beelzebub::BootstrapMemoryManager;
-
 Process Beelzebub::BootstrapProcess;
 Thread Beelzebub::BootstrapThread;
+
+Domain Beelzebub::Domain0;
 
 /*  Main entry point  */
 
@@ -37,6 +37,9 @@ void Beelzebub::Main()
 {
     (&InitializationLock)->Acquire();
     InitializingLock = false;
+
+    new (&Domain0) Domain();
+    //  Initialize domain 0. Make sure it's not in a possibly-invalid state.
 
     //  First step is getting a simple terminal running for the most
     //  basic of output. This is a platform-specific function.
@@ -100,7 +103,7 @@ void Beelzebub::Main()
 
     MainTerminal->Write("|[....] Initializing as bootstrap thread...");
 
-    Handle res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, BootstrapMemoryManager);
+    Handle res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, &BootstrapMemoryManager);
 
     Cpu::SetActiveThread(&BootstrapThread);
 

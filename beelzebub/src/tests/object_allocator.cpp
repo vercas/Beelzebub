@@ -43,7 +43,7 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
 
     for (size_t i = 0; i < pageCount; ++i)
     {
-        paddr_t const paddr = MainPageAllocator->AllocatePage(desc);
+        paddr_t const paddr = Cpu::GetDomain()->PhysicalAllocator.AllocatePage(desc);
         //  Test page.
 
         assert(paddr != nullpaddr && desc != nullptr
@@ -53,7 +53,7 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
 
         desc->IncrementReferenceCount();
 
-        res = BootstrapMemoryManager->MapPage(vaddr + i * 0x1000, paddr, PageFlags::Global | PageFlags::Writable);
+        res = Cpu::GetActiveThread()->Owner->Memory->MapPage(vaddr + i * 0x1000, paddr, PageFlags::Global | PageFlags::Writable);
 
         assert_or(res.IsOkayResult()
             , "  Failed to map page at %Xp (%XP; #%us) for an object pool (%us, %us, %us, %us): %H."

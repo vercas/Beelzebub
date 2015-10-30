@@ -1,7 +1,8 @@
 #include <system/exceptions.hpp>
 #include <memory/manager_amd64.hpp>
 #include <system/cpu.hpp>
-#include "kernel.hpp"
+#include <kernel.hpp>
+#include <entry.h>
 #include <_print/paging.hpp>
 #include <debug.hpp>
 
@@ -184,7 +185,7 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
 
     Pml1Entry * e = nullptr;
 
-    Handle res = ((MemoryManagerAmd64 *)BootstrapMemoryManager)->Vas->GetEntry(CR2 & ~((vaddr_t)0xFFF), e, true);
+    Handle res = BootstrapMemoryManager.Vas->GetEntry(CR2 & ~((vaddr_t)0xFFF), e, true);
 
     if (e != nullptr)
     {

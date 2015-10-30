@@ -1,9 +1,4 @@
 #include <synchronization/atomic.hpp>
-#include <memory/manager_amd64.hpp>
-#include <memory/virtual_allocator.hpp>
-#include <memory/paging.hpp>
-#include <memory/page_allocator.hpp>
-#include <system/cpu.hpp>
 #include <system/cpuid.hpp>
 #include <system/lapic.hpp>
 #include <system/exceptions.hpp>
@@ -11,14 +6,13 @@
 #include <system/isr.hpp>
 #include <terminals/serial.hpp>
 #include <terminals/vbe.hpp>
+#include <execution/thread_init.hpp>
 
-#include <jegudiel.h>
 #include <multiboot.h>
 #include <keyboard.hpp>
 
 #include <kernel.hpp>
 #include <debug.hpp>
-#include <architecture.h>
 #include <entry.h>
 #include <math.h>
 #include <string.h>
@@ -37,16 +31,15 @@ using namespace Beelzebub::Terminals;
 
 /*  Constants  */
 
-static size_t const PageSize = PAGE_SIZE;
+static size_t const PageSize = 0x1000;
 
 //uint8_t initialVbeTerminal[sizeof(SerialTerminal)];
 SerialTerminal initialSerialTerminal;
 VbeTerminal initialVbeTerminal;
 
 PageAllocationSpace mainAllocationSpace;
-PageAllocator mainAllocator;
 VirtualAllocationSpace bootstrapVas;
-MemoryManagerAmd64 bootstrapMemMgr;
+MemoryManagerAmd64 Beelzebub::BootstrapMemoryManager;
 
 Atomic<bool> bootstrapReady {false};
 
@@ -67,6 +60,7 @@ __bland void InitializeCpuData()
     size_t const ind = CpuIndexCounter++;
 
     data->Index = ind;
+    data->DomainDescriptor = &Domain0;
 
     data->HeapSpinlock = Spinlock<>().GetValue();
     data->HeapSpinlockPointer = (Spinlock<> *)&data->HeapSpinlock;
@@ -111,7 +105,7 @@ void kmain_ap()
         Cpu::EnableNxBit();
 
     bootstrapVas.Activate();
-    //bootstrapMemMgr.Activate();
+    //BootstrapMemoryManager.Activate();
     //  Perfectly valid solution.
 
     InitializeCpuData();
@@ -229,12 +223,12 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
         {
             PageDescriptor * desc = nullptr;
 
-            currentSpaceLocation = (PageAllocationSpace *)mainAllocator.AllocatePage(desc);
+            currentSpaceLocation = (PageAllocationSpace *)Domain0.PhysicalAllocator.AllocatePage(desc);
 
             assert(currentSpaceLocation != nullptr && desc != nullptr
                 , "Unable to allocate a special page for creating more allocation spaces!");
 
-            Handle res = mainAllocator.ReserveByteRange((paddr_t)currentSpaceLocation, PageSize, PageReservationOptions::IncludeInUse);
+            Handle res = Domain0.PhysicalAllocator.ReserveByteRange((paddr_t)currentSpaceLocation, PageSize, PageReservationOptions::IncludeInUse);
 
             assert(res.IsOkayResult()
                 , "Failed to reserve special page for further allocation space creation: %H"
@@ -252,7 +246,7 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 
         space->InitializeControlStructures();
 
-        mainAllocator.PreppendAllocationSpace(space);
+        Domain0.PhysicalAllocator.PreppendAllocationSpace(space);
 
         /*msg("%XP-%XP;%n"
             , space->GetAllocationStart()
@@ -266,7 +260,7 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
 
         mainAllocationSpace.InitializeControlStructures();
 
-        new (&mainAllocator)       PageAllocator(&mainAllocationSpace);
+        new (&(Domain0.PhysicalAllocator)) PageAllocator(&mainAllocationSpace);
 
         firstRegionCreated = true;
 
@@ -275,13 +269,11 @@ __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end)
         currentSpaceLocation = nullptr;
 
         /*msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
-            , &mainAllocationSpace, &mainAllocator
+            , &mainAllocationSpace, &Domain0.PhysicalAllocator
             , mainAllocationSpace.GetAllocationStart()
             , mainAllocationSpace.GetAllocationEnd()
             , (uint16_t)currentSpaceLimit
             , (uint16_t)sizeof(PageAllocationSpace));//*/
-
-        MainPageAllocator = &mainAllocator;
 
         return &mainAllocationSpace;
     }
@@ -440,7 +432,7 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
         if (m->available == 0)
         {
-            res = mainAllocator.ReserveByteRange(m->address, m->length);
+            res = Domain0.PhysicalAllocator.ReserveByteRange(m->address, m->length);
 
             assert(res.IsOkayResult() || res.IsResult(HandleResult::PagesOutOfAllocatorRange)
                 , "Failed to reserve page range %XP-%XP: %H."
@@ -455,7 +447,7 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
     //  PAGING INITIALIZATION
 
     //msg("Constructing bootstrap virtual allocation space... ");
-    new (&bootstrapVas) VirtualAllocationSpace(&mainAllocator);
+    new (&bootstrapVas) VirtualAllocationSpace(&Domain0.PhysicalAllocator);
     //msg("Done.%n");
 
     //msg("Bootstrapping the VAS... ");
@@ -470,10 +462,8 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
     //initialVbeTerminal.WriteFormat("Done.%n");
 
     //initialVbeTerminal.WriteFormat("Constructing bootstrap memory manager... ");
-    new (&bootstrapMemMgr) MemoryManagerAmd64(&bootstrapVas);
+    new (&BootstrapMemoryManager) MemoryManagerAmd64(&bootstrapVas);
     //initialVbeTerminal.WriteFormat("Done.%n");
-
-    BootstrapMemoryManager = &bootstrapMemMgr;
 
     //  CPU DATA
 
@@ -493,12 +483,12 @@ __cold __bland void SanitizeAndInitializeMemory(jg_info_mmap_t * map, uint32_t c
 		PageDescriptor * desc = nullptr;
 
 		vaddr_t const vaddr = CpuDataBase + (i << 12);
-		paddr_t const paddr = mainAllocator.AllocatePage(desc);
+		paddr_t const paddr = Domain0.PhysicalAllocator.AllocatePage(desc);
 
 		assert(paddr != nullpaddr && desc != nullptr
 			, "  Unable to allocate a physical page for CPU-specific data!");
 
-		res = BootstrapMemoryManager->MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+		res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
 
 		assert(res.IsOkayResult()
 			, "  Failed to map page at %Xp (%XP) for CPU-specific data: %H."
@@ -549,7 +539,7 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
 
     for (vaddr_t offset = 0; offset < size; offset += PageSize)
     {
-        res = BootstrapMemoryManager->MapPage(vaddr + offset, module->address + offset, PageFlags::Global | PageFlags::Writable);
+        res = BootstrapMemoryManager.MapPage(vaddr + offset, module->address + offset, PageFlags::Global | PageFlags::Writable);
 
         assert(res.IsOkayResult()
             , "  Failed to map page at %Xp (%XP) for module #%us (%s): %H."
@@ -664,7 +654,7 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     //  Intermediate results.
 
     vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(0x1000);
-    paddr_t const paddr = mainAllocator.AllocatePage(desc);
+    paddr_t const paddr = Domain0.PhysicalAllocator.AllocatePage(desc);
     //  Stack page.
 
     assert(paddr != nullpaddr && desc != nullptr
@@ -674,7 +664,7 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     desc->IncrementReferenceCount();
     //  Increment the reference count of the page because we're nice people.
 
-    res = BootstrapMemoryManager->MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+    res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
 
     assert(res.IsOkayResult()
         , "  Failed to map page at %Xp (%XP) for test thread stack: %H."
@@ -699,7 +689,7 @@ __cold __bland char * AllocateTestPage(Process * const p)
 
     vaddr_t const vaddr1 = 0x321000;
     vaddr_t const vaddr2 = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(0x1000);
-    paddr_t const paddr = mainAllocator.AllocatePage(desc);
+    paddr_t const paddr = Domain0.PhysicalAllocator.AllocatePage(desc);
     //  Test page.
 
     assert(paddr != nullpaddr && desc != nullptr
@@ -717,7 +707,7 @@ __cold __bland char * AllocateTestPage(Process * const p)
         , vaddr1, paddr
         , res);
 
-    res = BootstrapMemoryManager->MapPage(vaddr2, paddr, PageFlags::Global | PageFlags::Writable);
+    res = BootstrapMemoryManager.MapPage(vaddr2, paddr, PageFlags::Global | PageFlags::Writable);
 
     assert(res.IsOkayResult()
         , "  Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
