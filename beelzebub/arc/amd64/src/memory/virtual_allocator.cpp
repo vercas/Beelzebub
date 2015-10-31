@@ -8,8 +8,6 @@
 
 #include <memory/virtual_allocator.hpp>
 #include <memory/manager_amd64.hpp>
-#include <system/cpuid.hpp>
-#include <system/cpu.hpp>
 #include <string.h>
 #include <math.h>
 #include <debug.hpp>
@@ -30,14 +28,14 @@ bool VirtualAllocationSpace::NX;
 
 /*  Main Operations  */
 
-Handle VirtualAllocationSpace::Bootstrap()
+Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
 {
     //  The bootstrap function prepares the FIRST virtual allocation space
     //  for use. 'Tis necessary because of identity-mapping and the lack of
     //  a proper kernel space.
 
-    VirtualAllocationSpace::Page1GB = BootstrapProcessorId.CheckFeature(CpuFeature::Page1GB);
-    VirtualAllocationSpace::NX      = BootstrapProcessorId.CheckFeature(CpuFeature::NX     );
+    VirtualAllocationSpace::Page1GB = bspcpuid->CheckFeature(CpuFeature::Page1GB);
+    VirtualAllocationSpace::NX      = bspcpuid->CheckFeature(CpuFeature::NX     );
 
     if (NX)
         Cpu::EnableNxBit();

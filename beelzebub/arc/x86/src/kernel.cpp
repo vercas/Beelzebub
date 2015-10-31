@@ -1,7 +1,13 @@
 #include <kernel.hpp>
 #include <entry.h>
+
+#include <terminals/serial.hpp>
+#include <terminals/vbe.hpp>
+#include <multiboot.h>
+
 #include <system/cpu.hpp>
 #include <execution/thread_init.hpp>
+
 #include <synchronization/spinlock.hpp>
 #include <debug.hpp>
 
@@ -14,14 +20,17 @@
 #endif
 
 using namespace Beelzebub;
-using namespace Beelzebub::System;
+using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
-using namespace Beelzebub::Execution;
+using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
 
 volatile bool InitializingLock = true;
 Spinlock<> InitializationLock;
 Spinlock<> TerminalMessageLock;
+
+/*  System Globals  */
 
 TerminalBase * Beelzebub::MainTerminal;
 bool Beelzebub::Scheduling;
@@ -31,41 +40,104 @@ Thread Beelzebub::BootstrapThread;
 
 Domain Beelzebub::Domain0;
 
+/*******************
+    ENTRY POINTS
+*******************/
+
 /*  Main entry point  */
 
 void Beelzebub::Main()
 {
+    InitializingLock = true;    //  Makin' sure.
     (&InitializationLock)->Acquire();
     InitializingLock = false;
+
+    Handle res;
+    //  Used for intermediary results.
 
     new (&Domain0) Domain();
     //  Initialize domain 0. Make sure it's not in a possibly-invalid state.
 
     //  First step is getting a simple terminal running for the most
-    //  basic of output. This is a platform-specific function.
+    //  basic of output. This should be x86-common.
     MainTerminal = InitializeTerminalProto();
 
-    MainTerminal->WriteLine("Prototerminal initialized.");
-
-    //breakpoint();
-
-    //  Initialize the memory for partition and allocation.
-    //  Also platform-specific.
-    MainTerminal->Write("[....] Initializing memory...");
-    InitializeMemory();
-    MainTerminal->WriteLine(" Done.\r[OKAY]");
-
-    //  Initialize the modules loaded with the kernel.
-    //  Also platform-specific.
-    MainTerminal->Write("[....] Initializing modules...");
-    InitializeModules();
-    MainTerminal->WriteLine(" Done.\r[OKAY]");
+    MainTerminal->WriteLine("Prototerminal initialized!");
 
     //  Setting up basic interrupt handlers 'n stuff.
     //  Again, platform-specific.
     MainTerminal->Write("[....] Initializing interrupts...");
-    InitializeInterrupts();
-    MainTerminal->WriteLine(" Done.\r[OKAY]");
+    res = InitializeInterrupts();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+    else
+    {
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+
+        assert(false, "Failed to initialize interrupts: %H"
+            , res);
+    }
+
+    //  Initialize the memory by partition and allocation.
+    //  Differs on IA-32 and AMD64. May tweak virtual memory in the process.
+    MainTerminal->Write("[....] Initializing physical memory...");
+    res = InitializePhysicalMemory();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+    else
+    {
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+
+        assert(false, "Failed to initialize physical memory: %H"
+            , res);
+    }
+
+    //  Initialize the virtual memory for use by the kernel.
+    //  Differs on IA-32 and AMD64.
+    MainTerminal->Write("[....] Initializing virtual memory...");
+    res = InitializeVirtualMemory();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+    else
+    {
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+
+        assert(false, "Failed to initialize virtual memory: %H"
+            , res);
+    }
+
+    //  Initialize the memory for partition and allocation.
+    //  Mostly common on x86.
+    MainTerminal->Write("[....] Initializing other processing units...");
+    res = InitializeProcessingUnits();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+    else
+    {
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+
+        assert(false, "Failed to initialize the other processing units: %H"
+            , res);
+    }
+
+    //  Initialize the modules loaded with the kernel.
+    //  Mostly common.
+    MainTerminal->Write("[....] Initializing modules...");
+    res = InitializeModules();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+    else
+    {
+        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+
+        assert(false, "Failed to initialize modules: %H"
+            , res);
+    }
 
     //  Upgrade the terminal to a more capable and useful one.
     //  Yet again, platform-specific.
@@ -103,7 +175,7 @@ void Beelzebub::Main()
 
     MainTerminal->Write("|[....] Initializing as bootstrap thread...");
 
-    Handle res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, &BootstrapMemoryManager);
+    res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, &BootstrapMemoryManager);
 
     Cpu::SetActiveThread(&BootstrapThread);
 
@@ -210,4 +282,53 @@ void Beelzebub::Secondary()
 
     //  Allow the CPU to rest.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+}
+
+/****************
+    TERMINALS
+****************/
+
+SerialTerminal initialSerialTerminal;
+VbeTerminal initialVbeTerminal;
+
+TerminalBase * InitializeTerminalProto()
+{
+    //  TODO: Properly retrieve these addresses.
+
+    //  Initializes COM1.
+    //COM1 = ManagedSerialPort(0x3F8);
+    new (&COM1) ManagedSerialPort(0x3F8);
+    COM1.Initialize();
+
+    //  Initializes the serial terminal.
+    new (&initialSerialTerminal) SerialTerminal(&COM1);
+
+    Beelzebub::Debug::DebugTerminal = &initialSerialTerminal;
+
+    auto mbi = (multiboot_info_t *)JG_INFO_ROOT_EX->multiboot_paddr;
+
+    new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
+
+    //Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
+
+    msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
+        , (uintptr_t)mbi->framebuffer_addr
+        , (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height
+        , (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
+
+    /*msg(" vbe_control_info: %X4%n", mbi->vbe_control_info);
+    msg(" vbe_mode_info: %X4%n", mbi->vbe_mode_info);
+    msg(" vbe_mode: %X4%n", mbi->vbe_mode);
+    msg(" vbe_interface_seg: %X4%n", mbi->vbe_interface_seg);
+    msg(" vbe_interface_off: %X2%n", mbi->vbe_interface_off);
+    msg(" vbe_interface_len: %X2%n", mbi->vbe_interface_len); //*/
+
+    //  And returns it.
+    //return &initialSerialTerminal; // termPtr;
+    return &initialVbeTerminal;
+}
+
+TerminalBase * InitializeTerminalMain()
+{
+    return &initialVbeTerminal;
 }

@@ -1,7 +1,7 @@
 #include <terminals/serial.hpp>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Ports;
+using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
 /*  Serial terminal descriptor  */
@@ -91,7 +91,7 @@ SerialTerminal::SerialTerminal(ManagedSerialPort * const port)
 
 TerminalWriteResult SerialTerminal::WriteChar(TerminalBase * const term, const char c)
 {
-    SerialTerminal * sterm = (SerialTerminal *)term;
+    SerialTerminal * const sterm = (SerialTerminal *)term;
 
     sterm->Port->Write(c, true);
 
@@ -100,14 +100,14 @@ TerminalWriteResult SerialTerminal::WriteChar(TerminalBase * const term, const c
 
 TerminalWriteResult SerialTerminal::WriteString(TerminalBase * const term, const char * const str)
 {
-    SerialTerminal * sterm = (SerialTerminal *)term;
+    SerialTerminal * const sterm = (SerialTerminal *)term;
 
     return {Handle(HandleResult::Okay), (uint32_t)sterm->Port->WriteNtString(str), InvalidCoordinates};
 }
 
 TerminalWriteResult SerialTerminal::WriteStringLine(TerminalBase * const term, const char * const str)
 {
-    SerialTerminal * sterm = (SerialTerminal *)term;
+    SerialTerminal * const sterm = (SerialTerminal *)term;
 
     size_t n = sterm->Port->WriteNtString(str);
     n += sterm->Port->WriteNtString("\r\n");

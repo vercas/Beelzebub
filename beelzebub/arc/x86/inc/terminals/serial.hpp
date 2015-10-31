@@ -1,31 +1,29 @@
 #pragma once
 
 #include <terminals/base.hpp>
-#include <ports.hpp>
+#include <system/serial_ports.hpp>
 
 namespace Beelzebub { namespace Terminals
 {
-	using namespace Ports;
+    //TerminalDescriptor SerialTerminalDescriptor;
 
-	//TerminalDescriptor SerialTerminalDescriptor;
+    class SerialTerminal : public TerminalBase
+    {
+    public:
 
-	class SerialTerminal : public TerminalBase
-	{
-	public:
+        /*  Constructors  */
 
-		/*  Constructors  */
+        __bland SerialTerminal() : TerminalBase( nullptr ), Port(0) { }
+        __bland SerialTerminal(System::ManagedSerialPort * const port);
 
-		__bland SerialTerminal() : TerminalBase( nullptr ), Port(0) { }
-		__bland SerialTerminal(ManagedSerialPort * const port);
+        /*  Writing  */
 
-		/*  Writing  */
+        static __bland TerminalWriteResult WriteChar(TerminalBase * const term, const char c);
+        static __bland TerminalWriteResult WriteString(TerminalBase * const term, const char * const str);
+        static __bland TerminalWriteResult WriteStringLine(TerminalBase * const term, const char * const str);
 
-		static __bland TerminalWriteResult WriteChar(TerminalBase * const term, const char c);
-		static __bland TerminalWriteResult WriteString(TerminalBase * const term, const char * const str);
-		static __bland TerminalWriteResult WriteStringLine(TerminalBase * const term, const char * const str);
+    private:
 
-	private:
-
-		ManagedSerialPort * Port;
-	};
+        System::ManagedSerialPort * Port;
+    };
 }}

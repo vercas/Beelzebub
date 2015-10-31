@@ -9,6 +9,7 @@
 #include <memory/page_allocator.hpp>
 #include <memory/manager.hpp>
 #include <system/cpu.hpp>
+#include <system/cpuid.hpp>
 
 #include <stdlib/iterator.hpp>
 
@@ -157,10 +158,13 @@ namespace Beelzebub { namespace Memory
 
         }
 
-        /*  Main Operations  */
+        /*  Setup  */
 
-        __cold __bland Handle Bootstrap();
+        __cold __bland Handle Bootstrap(System::CpuId const * const bspcpuid);
+
         __bland Handle Clone(VirtualAllocationSpace * const target);
+
+        /*  Main Operations  */
 
         __bland __forceinline void Activate() const
         {

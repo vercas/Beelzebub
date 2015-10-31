@@ -20,6 +20,6 @@ namespace Beelzebub { namespace System
 
         size_t Index;
         GdtRegister Gdt;
-        Memory::PageAllocator PhysicalAllocator;
+        Memory::PageAllocator * PhysicalAllocator;
     };
 }}

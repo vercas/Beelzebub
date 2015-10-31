@@ -43,7 +43,7 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
 
     for (size_t i = 0; i < pageCount; ++i)
     {
-        paddr_t const paddr = Cpu::GetDomain()->PhysicalAllocator.AllocatePage(desc);
+        paddr_t const paddr = Cpu::GetDomain()->PhysicalAllocator->AllocatePage(desc);
         //  Test page.
 
         assert(paddr != nullpaddr && desc != nullptr

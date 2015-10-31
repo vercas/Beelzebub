@@ -3,12 +3,8 @@
 #include <system/io_ports.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/isr.hpp>
-#include <metaprogramming.h>
 
-using namespace Beelzebub::System;
-using namespace Beelzebub::Synchronization;
-
-namespace Beelzebub { namespace Ports
+namespace Beelzebub { namespace System
 {
     /**
      * Represents a serial port.
@@ -28,15 +24,14 @@ namespace Beelzebub { namespace Ports
 
         /*  Construction  */
 
-        __bland SerialPort(const uint16_t basePort) : BasePort(basePort) { }
+        __bland inline explicit constexpr SerialPort(const uint16_t basePort)
+            : BasePort(basePort)
+        {
+
+        }
 
         //  Prepares the serial port for nominal operation.
         __bland void Initialize() const;
-
-        /*  Properties  */
-
-        //  Retrieves the base port of the serial port.
-        __bland __forceinline uint16_t GetBasePort() const { return this->BasePort; }
 
         /*  I/O  */
 
@@ -72,9 +67,9 @@ namespace Beelzebub { namespace Ports
         //  This method awaits.
         __bland size_t WriteNtString(const char * const str) const;
 
-    private:
+        /*  Fields  */
 
-        uint16_t BasePort;
+        uint16_t const BasePort;
     } __packed;
 
     /**
@@ -95,7 +90,7 @@ namespace Beelzebub { namespace Ports
 
         /*  Construction  */
 
-        __bland ManagedSerialPort(const uint16_t basePort) 
+        __bland inline explicit constexpr ManagedSerialPort(const uint16_t basePort) 
             : BasePort(basePort)
             , OutputCount(0)
             , ReadLock()
@@ -106,11 +101,6 @@ namespace Beelzebub { namespace Ports
 
         //  Prepares the serial port for nominal operation.
         __bland void Initialize();
-
-        /*  Properties  */
-
-        //  Retrieves the base port of the serial port.
-        __bland __forceinline uint16_t GetBasePort() { return this->BasePort; }
 
         /*  I/O  */
 
@@ -123,7 +113,7 @@ namespace Beelzebub { namespace Ports
 
         //  True if the serial port can be written to.
         //  Also resets the output count if possible.
-        __bland __forceinline bool CanWrite()
+        __bland inline bool CanWrite()
         {
             if (0 != (Io::In8(this->BasePort + 5) & 0x20))
             {
@@ -155,15 +145,16 @@ namespace Beelzebub { namespace Ports
         //  This method awaits.
         __bland size_t WriteNtString(const char * const str);
 
-    private:
-
         /*  Fields  */
 
-        uint16_t BasePort;
-        uint16_t  OutputCount;
+        uint16_t const BasePort;
 
-        SpinlockUninterruptible<> ReadLock;
-        SpinlockUninterruptible<> WriteLock;
+    private:
+
+        uint16_t OutputCount;
+
+        Synchronization::SpinlockUninterruptible<> ReadLock;
+        Synchronization::SpinlockUninterruptible<> WriteLock;
     };
 
     extern ManagedSerialPort COM1;

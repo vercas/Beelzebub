@@ -228,6 +228,4 @@ namespace Beelzebub { namespace System
 
         __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
     };
-
-    extern CpuId BootstrapProcessorId;
 }}
