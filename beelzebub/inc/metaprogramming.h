@@ -184,3 +184,11 @@ typedef  intptr_t  IntPtr;
 typedef uintptr_t UIntPtr;
 
 //	I think these names are great... I just like to have 'em here.
+
+/*  Memory barriers and forced ordering  */
+
+#define COMPILER_MEMORY_BARRIER() asm volatile ( "" : : : "memory" )
+
+#define FORCE_ORDER(before, after) asm volatile ( ""                  \
+                                                : [out]"=m"(after )   \
+                                                : [in ] "m"(before) )

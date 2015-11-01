@@ -60,10 +60,10 @@ typedef char bool;
 #define FALSE   ((bool)0)
 #endif
 
-/*  Memory barriers and forced ordering  */
+/*  Constants  */
 
-#define COMPILER_MEMORY_BARRIER() asm volatile ( "" : : : "memory" )
-
-#define FORCE_ORDER(before, after) asm volatile ( ""                  \
-                                                : [out]"=m"(after )   \
-                                                : [in ] "m"(before) )
+#if   defined(__cplusplus)
+static size_t const PageSize = 0x1000;
+#else
+#define PAGE_SIZE ((size_t)0x1000)
+#endif

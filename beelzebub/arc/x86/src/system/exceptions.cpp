@@ -4,6 +4,7 @@
 #include <kernel.hpp>
 #include <entry.h>
 #include <_print/paging.hpp>
+#include <math.h>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -185,7 +186,7 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
 
     Pml1Entry * e = nullptr;
 
-    Handle res = BootstrapMemoryManager.Vas->GetEntry(CR2 & ~((vaddr_t)0xFFF), e, true);
+    Handle res = BootstrapMemoryManager.Vas->GetEntry(RoundDown(CR2, PageSize), e, true);
 
     if (e != nullptr)
     {

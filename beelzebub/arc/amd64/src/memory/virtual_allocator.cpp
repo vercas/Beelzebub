@@ -50,7 +50,7 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
     Pml4 & oldPml4 = *((Pml4 *)pml4_paddr);
     //  Cheap.
 
-    memset((void *)pml4_paddr, 0, 0x1000);
+    memset((void *)pml4_paddr, 0, PageSize);
     //  Clear it all out!
     desc->IncrementReferenceCount();
     //  Increment reference count...
@@ -69,7 +69,7 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
     {
         paddr_t pml3_paddr = this->Allocator->AllocatePage(desc);
 
-        memset((void *)pml3_paddr, 0, 0x1000);
+        memset((void *)pml3_paddr, 0, PageSize);
         //  Clear again.
         desc->IncrementReferenceCount();
         //  Increment reference count...
@@ -98,9 +98,9 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
     {
         if ((vaddr_t)cur < HigherHalfStart && pendingLinksMapping)
         {
-            //msg("Mapping links from %XP to %Xp. ", (paddr_t)cur & ~0xFFFULL, curLoc);
+            //msg("Mapping links from %XP to %Xp. ", RoundDown((paddr_t)cur, PageSize), curLoc);
 
-            res = this->Map(curLoc, (paddr_t)cur & ~0xFFFULL, PageFlags::Global | PageFlags::Writable);
+            res = this->Map(curLoc, RoundDown((paddr_t)cur, PageSize), PageFlags::Global | PageFlags::Writable);
             //  Global because it's shared by processes, and writable for hotplug.
 
             assert(res.IsOkayResult()
@@ -108,13 +108,13 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
                 , res);
             //  Failure is fatal.
 
-            this->Allocator->RemapLinks((vaddr_t)cur & ~0xFFFULL, curLoc);
+            this->Allocator->RemapLinks(RoundDown((vaddr_t)cur, PageSize), curLoc);
             //  Do the actual remapping.
 
             pendingLinksMapping = false;
             //  One page is the maximum.
 
-            curLoc += 0x1000ULL;
+            curLoc += PageSize;
             //  Increment the current location.
         }
 
@@ -126,13 +126,13 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
             break;
         //  Well, we reached our maximum!
 
-        for (size_t i = 0; i < controlStructuresSize; i += 0x1000)
+        for (size_t i = 0; i < controlStructuresSize; i += PageSize)
         {
             res = this->Map(curLoc + i, pasStart + i, PageFlags::Global | PageFlags::Writable);
 
             assert(res.IsOkayResult()
                 , "Failed to map page #%u8 (%Xp to %XP): %H"
-                , i / 0x1000, curLoc + i, pasStart + i, res);
+                , i / PageSize, curLoc + i, pasStart + i, res);
             //  Failure is fatal.
         }
 
@@ -270,7 +270,7 @@ Handle VirtualAllocationSpace::Map(vaddr_t const vaddr, paddr_t const paddr, con
              || (vaddr >= LowerHalfEnd && vaddr < HigherHalfStart))
         return HandleResult::PageMapIllegalRange;
 
-    if unlikely((vaddr & 0xFFFULL) != 0 || (paddr & 0xFFFULL) != 0)
+    if unlikely((vaddr & (PageSize - 1)) != 0 || (paddr & (PageSize - 1)) != 0)
         return HandleResult::PageUnaligned;
 
     bool const nonLocal = (vaddr < LowerHalfEnd) && !this->IsLocal();
@@ -312,7 +312,7 @@ Handle VirtualAllocationSpace::Map(vaddr_t const vaddr, paddr_t const paddr, con
         pml4[ind] = Pml4Entry(newPml3, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml3p, 0, 0x1000);
+        memset(pml3p, 0, PageSize);
     }
 
     Pml3 & pml3 = *pml3p;
@@ -332,7 +332,7 @@ Handle VirtualAllocationSpace::Map(vaddr_t const vaddr, paddr_t const paddr, con
         pml3[ind] = Pml3Entry(newPml2, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml2p, 0, 0x1000);
+        memset(pml2p, 0, PageSize);
     }
     
     Pml2 & pml2 = *pml2p;
@@ -352,7 +352,7 @@ Handle VirtualAllocationSpace::Map(vaddr_t const vaddr, paddr_t const paddr, con
         pml2[ind] = Pml2Entry(newPml1, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml1p, 0, 0x1000);
+        memset(pml1p, 0, PageSize);
     }
     
     Pml1 & pml1 = *pml1p;
@@ -466,7 +466,7 @@ Handle VirtualAllocationSpace::SetPageFlags(vaddr_t const vaddr, const PageFlags
 
 Handle VirtualAllocationSpace::Iterator::Create(Iterator & dst, VirtualAllocationSpace * const space, vaddr_t const vaddr)
 {
-    if unlikely(0 != (vaddr & 0xFFF))
+    if unlikely(0 != (vaddr & (PageSize - 1)))
         return Handle(HandleResult::PageUnaligned);
 
     if unlikely((vaddr >= FractalStart && vaddr < FractalEnd     )
@@ -647,7 +647,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
         pml4[ind] = Pml4Entry(newPml3, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml3p, 0, 0x1000);
+        memset(pml3p, 0, PageSize);
     }
 
     Pml3 & pml3 = *pml3p;
@@ -667,7 +667,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
         pml3[ind] = Pml3Entry(newPml2, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml2p, 0, 0x1000);
+        memset(pml2p, 0, PageSize);
     }
 
     Pml2 & pml2 = *pml2p;
@@ -688,7 +688,7 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
         pml2[ind] = Pml2Entry(newPml1, true, true, true, false);
         //  Present, writable, user-accessible, executable.
 
-        memset(pml1p, 0, 0x1000);
+        memset(pml1p, 0, PageSize);
     }
 
     Pml1 & pml1 = *pml1p;

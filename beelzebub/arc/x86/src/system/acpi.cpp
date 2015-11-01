@@ -73,10 +73,10 @@ RsdtXsdtPtr Acpi::FindRsdtXsdt(RsdpPtr const rsdp)
 
     paddr_t const tableHeaderEnd = tableHeaderStart + sizeof(acpi_table_header);
 
-    paddr_t const tableStartPage = RoundDown(tableHeaderStart, 4096);
-    paddr_t const tableEndPage   = RoundUp  (tableHeaderEnd  , 4096);
+    paddr_t const tableStartPage = RoundDown(tableHeaderStart, PageSize);
+    paddr_t const tableEndPage   = RoundUp  (tableHeaderEnd  , PageSize);
 
-    for (paddr_t paddr = tableStartPage; paddr < tableEndPage; paddr += 4096)
+    for (paddr_t paddr = tableStartPage; paddr < tableEndPage; paddr += PageSize)
     {
 
     }

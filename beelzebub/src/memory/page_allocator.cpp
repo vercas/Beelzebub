@@ -706,7 +706,7 @@ void PageAllocator::RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr)
     const vaddr_t lastAddr    = (vaddr_t)this->LastSpace;
     const vaddr_t oldVaddr    = oldAddr;
     const vaddr_t newVaddr    = newAddr;
-    const vaddr_t oldVaddrEnd = oldVaddr + 0x1000U;
+    const vaddr_t oldVaddrEnd = oldVaddr + PageSize;
 
     if (firstAddr > 0 && firstAddr >= oldVaddr && firstAddr < oldVaddrEnd)
         this->FirstSpace = (PageAllocationSpace *)((firstAddr - oldVaddr) + newVaddr);

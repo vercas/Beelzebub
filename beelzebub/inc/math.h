@@ -21,7 +21,7 @@ __bland __forceinline __const constexpr auto RoundUp(const TNum1 value, const TN
 template<typename TNum1, typename TNum2>
 __bland __forceinline __const constexpr auto RoundDown(const TNum1 value, const TNum2 step) -> decltype(value - (value & step))
 {
-    return value - (value & step);
+    return value - (value % step);
 }
 
 template<typename TNum1, typename TNum2>

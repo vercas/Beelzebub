@@ -27,10 +27,6 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
-/*  Constants  */
-
-static size_t const PageSize = 0x1000;
-
 //uint8_t initialVbeTerminal[sizeof(SerialTerminal)];
 
 VirtualAllocationSpace bootstrapVas;
@@ -670,7 +666,7 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(0x1000);
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
     paddr_t const paddr = mainAllocator.AllocatePage(desc);
     //  Stack page.
 
@@ -689,7 +685,7 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
         , res);
     //  FAILURE IS NOT TOLERATED.
 
-    t->KernelStackTop = (uintptr_t)vaddr + 0x1000;
+    t->KernelStackTop = (uintptr_t)vaddr + PageSize;
     t->KernelStackBottom = (uintptr_t)vaddr;
 
     t->EntryPoint = &TestThreadEntryPoint;
@@ -705,7 +701,7 @@ __cold __bland char * AllocateTestPage(Process * const p)
     //  Intermediate results.
 
     vaddr_t const vaddr1 = 0x321000;
-    vaddr_t const vaddr2 = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(0x1000);
+    vaddr_t const vaddr2 = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
     paddr_t const paddr = mainAllocator.AllocatePage(desc);
     //  Test page.
 

@@ -1,5 +1,6 @@
 #include <execution/thread_init.hpp>
 #include <system/cpu.hpp>
+#include <math.h>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -56,8 +57,8 @@ Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Proce
 	uint64_t dummy = 0x0056657263617300;
 	//	Just a dummy value.
 
-	bst->KernelStackBottom = (uintptr_t)&dummy & ~(uintptr_t)0xFFF;
-	bst->KernelStackTop = ((uintptr_t)&dummy + 0xFFF) & ~(uintptr_t)0xFFF;
+	bst->KernelStackBottom = RoundDown((uintptr_t)&dummy, PageSize);
+	bst->KernelStackTop = RoundUp((uintptr_t)&dummy, PageSize);
 
 	bst->Next = bst->Previous = bst;
 

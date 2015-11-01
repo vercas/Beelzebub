@@ -199,7 +199,7 @@ namespace Beelzebub { namespace Memory
         //  Translates the address with the current VAS.
         static __bland __forceinline paddr_t TranslateLocal(vaddr_t const vaddr)
         {
-            return GetLocalPml1Entry(vaddr).GetAddress() + (paddr_t)(vaddr & 0xFFF);
+            return GetLocalPml1Entry(vaddr).GetAddress() + (paddr_t)(vaddr & (PageSize - 1));
             //  Yeah, the offset within the page is preserved.
         }
 

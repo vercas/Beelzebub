@@ -5,6 +5,7 @@
 #include <memory/page_allocator.hpp>
 #include <memory/manager_amd64.hpp>
 #include <kernel.hpp>
+#include <math.h>
 #include <debug.hpp>
 
 #define REPETITION_COUNT   ((size_t)200)
@@ -33,13 +34,13 @@ SpinlockUninterruptible<> syncer;
 
 __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPool * & result)
 {
-    size_t const pageCount = (objectSize + minimumObjects * headerSize + 0xFFF) / 0x1000;
+    size_t const pageCount = RoundUp(objectSize + minimumObjects * headerSize, PageSize);
 
     Handle res;
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(pageCount * 0x1000);
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(pageCount * PageSize);
 
     for (size_t i = 0; i < pageCount; ++i)
     {
@@ -53,11 +54,11 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
 
         desc->IncrementReferenceCount();
 
-        res = Cpu::GetActiveThread()->Owner->Memory->MapPage(vaddr + i * 0x1000, paddr, PageFlags::Global | PageFlags::Writable);
+        res = Cpu::GetActiveThread()->Owner->Memory->MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable);
 
         assert_or(res.IsOkayResult()
             , "  Failed to map page at %Xp (%XP; #%us) for an object pool (%us, %us, %us, %us): %H."
-            , vaddr + i * 0x1000, paddr, i
+            , vaddr + i * PageSize, paddr, i
             , objectSize, headerSize, minimumObjects, pageCount
             , res)
         {
@@ -72,7 +73,7 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
     new (pool) ObjectPool();
     //  Construct in place to initialize the fields.
 
-    size_t const objectCount = ((pageCount * 0x1000) - headerSize) / objectSize;
+    size_t const objectCount = ((pageCount * PageSize) - headerSize) / objectSize;
 
     pool->Capacity = pool->FreeCount = objectCount;
 
