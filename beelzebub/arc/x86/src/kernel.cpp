@@ -8,6 +8,7 @@
 #include <system/cpu.hpp>
 #include <execution/thread_init.hpp>
 
+#include <memory/manager_amd64.hpp>
 #include <system/acpi.hpp>
 
 #include <synchronization/spinlock.hpp>
@@ -346,7 +347,13 @@ TerminalBase * InitializeTerminalMain()
  */
 Handle InitializeProcessingUnits()
 {
-    
+    RsdpTable rsdp = Acpi::Initialize(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
+                                    , MemoryManagerAmd64::IsaDmaStart + 0x100000);
+
+    if (rsdp.GetVersion() == AcpiVersion::v1)
+        msg("[[ RSDP @ %Xp, v1 ]]%n", rsdp.GetVersion1());
+    else
+        msg("[[ RSDP @ %Xp, v2 ]]%n", rsdp.GetVersion2());
 
     return HandleResult::Okay;
 }

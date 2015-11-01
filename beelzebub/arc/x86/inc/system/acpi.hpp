@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metaprogramming.h>
+#include <utils/tagged_pointer.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -23,7 +23,21 @@ namespace Beelzebub { namespace System
     //  This file ain't a tru' header!
 
     /**
-     *  Contains methods for interfacing with the ACPI.
+     *  <summary>Known ACPI versions.</summary>
+     */
+    enum class AcpiVersion : uint8_t
+    {
+        v1  = 0,
+        v2  = 1,
+    };
+
+    TAGPTR_BEGIN(RsdpTable, Version, 4, AcpiVersion)
+        TAGPTR_TYPE(RsdpTable, AcpiVersion::v1, Version1, acpi_rsdp_common *)
+        TAGPTR_TYPE(RsdpTable, AcpiVersion::v2, Version2, acpi_table_rsdp *)
+    TAGPTR_END()
+
+    /**
+     *  <summary>Contains methods for interfacing with the ACPI.</summary>
      */
     class Acpi
     {
@@ -39,8 +53,8 @@ namespace Beelzebub { namespace System
     public:
         /*  Initialization  */
 
-        static __cold __bland acpi_table_rsdp * Initialize(uintptr_t const start
-                                                         , uintptr_t const end);
+        static __cold __bland RsdpTable Initialize(uintptr_t const start
+                                                 , uintptr_t const end);
 
         
     };

@@ -451,7 +451,7 @@ Handle InitializeVirtualMemory()
 
     for (size_t offset = 0; offset < MemoryManagerAmd64::IsaDmaLength; offset += PageSize)
     {
-        vaddr_t const vaddr = CpuDataBase + (i << 12);
+        vaddr_t const vaddr = MemoryManagerAmd64::IsaDmaStart + offset;
         paddr_t const paddr = (paddr_t)offset;
 
         res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
