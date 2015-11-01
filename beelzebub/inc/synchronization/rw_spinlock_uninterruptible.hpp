@@ -18,7 +18,9 @@ namespace Beelzebub { namespace Synchronization
 
         __bland inline RwSpinlockUninterruptible()
             : ReaderCount( 0)
+#if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
             , Lock(false)
+#endif
         {
             //  Just make sure it's not in a bad state.
         }

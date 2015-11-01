@@ -369,8 +369,6 @@ Handle InitializePhysicalMemory()
         , "Failed to initialize the physical memory allocator for domain 0: %H.%n"
         , res);
 
-    //  TODO: Take care of the 1-MiB to 16-MiB region for ISA DMA.
-
     return HandleResult::Okay;
 }
 
@@ -427,31 +425,44 @@ Handle InitializeVirtualMemory()
 
     for (size_t i = 0; i < cpuDataPageCount; ++i)
     {
-		PageDescriptor * desc = nullptr;
+        PageDescriptor * desc = nullptr;
 
-		vaddr_t const vaddr = CpuDataBase + (i << 12);
-		paddr_t const paddr = mainAllocator.AllocatePage(desc);
+        vaddr_t const vaddr = CpuDataBase + (i << 12);
+        paddr_t const paddr = mainAllocator.AllocatePage(desc);
 
-		assert(paddr != nullpaddr && desc != nullptr
-			, "  Unable to allocate a physical page for CPU-specific data!");
+        assert(paddr != nullpaddr && desc != nullptr
+            , "  Unable to allocate a physical page for CPU-specific data!");
 
-		res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+        desc->IncrementReferenceCount();
 
-		assert(res.IsOkayResult()
-			, "  Failed to map page at %Xp (%XP) for CPU-specific data: %H."
-			, vaddr, paddr
-			, res);
+        res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+
+        assert(res.IsOkayResult()
+            , "  Failed to map page at %Xp (%XP) for CPU-specific data: %H."
+            , vaddr, paddr
+            , res);
 
         //msg("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
     }
 
     InitializeCpuData();
 
-    //  TODO: Parse ACPI, get LAPIC paddr.
+    //  Now mapping the lower 16 MiB.
 
-    //msg("%n");
+    for (size_t offset = 0; offset < MemoryManagerAmd64::IsaDmaLength; offset += PageSize)
+    {
+        vaddr_t const vaddr = CpuDataBase + (i << 12);
+        paddr_t const paddr = (paddr_t)offset;
 
-    //Beelzebub::Memory::Initialize(&mainAllocationSpace, 1);
+        res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+
+        assert(res.IsOkayResult()
+            , "  Failed to map page at %Xp (%XP) for ISA DMA: %H."
+            , vaddr, paddr
+            , res);
+    }
+
+    //  TODO: Management for ISA DMA.
 
     return HandleResult::Okay;
 }
@@ -502,12 +513,12 @@ void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const
  *  Initializes the other processing units in the system.
  *  </summary>
  */
-Handle InitializeProcessingUnits()
+/*Handle InitializeProcessingUnits()
 {
 
 
     return HandleResult::Okay;
-}
+}//*/
 
 /**
  *  <summary>

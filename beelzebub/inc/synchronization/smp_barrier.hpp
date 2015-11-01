@@ -36,7 +36,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __bland __forceinline void Reach() volatile
         {
-            this.Value = 0;
+            this->Value = 0;
         }
 
         /*  Properties  */

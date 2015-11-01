@@ -8,6 +8,8 @@
 #include <system/cpu.hpp>
 #include <execution/thread_init.hpp>
 
+#include <system/acpi.hpp>
+
 #include <synchronization/spinlock.hpp>
 #include <debug.hpp>
 
@@ -331,4 +333,20 @@ TerminalBase * InitializeTerminalProto()
 TerminalBase * InitializeTerminalMain()
 {
     return &initialVbeTerminal;
+}
+
+/***********************
+    PROCESSING UNITS
+***********************/
+
+/**
+ *  <summary>
+ *  Initializes the other processing units in the system.
+ *  </summary>
+ */
+Handle InitializeProcessingUnits()
+{
+    
+
+    return HandleResult::Okay;
 }

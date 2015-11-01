@@ -119,6 +119,7 @@ $(ARC):	linko
 # Standard
 # INCFLAGS	:= -I$(INCPCH_DIR) -I$(INC_DIR) -I$(PREFIX)/include
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
+INCFLAGS	+= -I./../acpica/include
 
 OBJECTS		+= $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SRC_DIR) -name "*.c"))
 OBJECTS		+= $(patsubst $(SRC_DIR)/%.s,$(BUILD_DIR)/%.s.o,$(shell find $(SRC_DIR) -name "*.s"))

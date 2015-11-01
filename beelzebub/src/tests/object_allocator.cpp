@@ -7,8 +7,8 @@
 #include <kernel.hpp>
 #include <debug.hpp>
 
-#define REPETITION_COUNT ((size_t)200)
-//  Tested with this being 100... 1,010,100 iterations... Works badass!
+#define REPETITION_COUNT   ((size_t)200)
+#define REPETITION_COUNT_3 (REPETITION_COUNT * REPETITION_COUNT * REPETITION_COUNT)
 
 #define __BEELZEBUB__TEST_OBJA_ASSERTIONS
 
@@ -273,7 +273,10 @@ Handle TestObjectAllocator(bool const bsp)
         perfAcc += perfEnd - perfStart;
     }
 
-    msg_("Core %us: %u8 / %us = %u8.%n", Cpu::GetIndex(), perfAcc, REPETITION_COUNT, perfAcc / REPETITION_COUNT);
+    msg_("Core %us: %u8 / %us = %u8; %u8 / %us = %u8; %n"
+        , Cpu::GetIndex()
+        , perfAcc, REPETITION_COUNT, perfAcc / REPETITION_COUNT
+        , perfAcc, REPETITION_COUNT_3, perfAcc / REPETITION_COUNT_3);
 
     ObjectAllocatorTestBarrier3.Reach();
 
