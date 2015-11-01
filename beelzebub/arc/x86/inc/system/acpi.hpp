@@ -36,6 +36,11 @@ namespace Beelzebub { namespace System
         TAGPTR_TYPE(RsdpPtr, AcpiVersion::v2, Version2, acpi_table_rsdp *)
     TAGPTR_END()
 
+    TAGPTR_BEGIN(RsdtXsdtPtr, Version, 4, AcpiVersion)
+        TAGPTR_TYPE(RsdtXsdtPtr, AcpiVersion::v1, Rsdt, acpi_table_rsdt *)
+        TAGPTR_TYPE(RsdtXsdtPtr, AcpiVersion::v2, Xsdt, acpi_table_xsdt *)
+    TAGPTR_END()
+
     /**
      *  <summary>Contains methods for interfacing with the ACPI.</summary>
      */
@@ -43,7 +48,8 @@ namespace Beelzebub { namespace System
     {
         /*  Statics  */
 
-        static RsdpPtr RsdpPointer;
+        static     RsdpPtr     RsdpPointer;
+        static RsdtXsdtPtr RsdtXsdtPointer;
 
         /*  Constructor(s)  */
 
@@ -60,6 +66,6 @@ namespace Beelzebub { namespace System
         static __cold __bland RsdpPtr FindRsdp(uintptr_t const start
                                              , uintptr_t const end);
 
-        
+        static __cold __bland RsdtXsdtPtr FindRsdtXsdt(RsdpPtr const rsdp);
     };
 }}

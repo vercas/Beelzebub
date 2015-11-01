@@ -1,7 +1,9 @@
 #include <system/acpi.hpp>
+#include <memory/manager_amd64.hpp>
 #include <utils/checksum.hpp>
 #include <string.h>
 #include <math.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -57,4 +59,27 @@ RsdpPtr Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
     }
 
     return Acpi::RsdpPointer = res;
+}
+
+RsdtXsdtPtr Acpi::FindRsdtXsdt(RsdpPtr const rsdp)
+{
+    RsdtXsdtPtr res {};
+
+    acpi_table_header * ptr;
+
+    paddr_t const tableHeaderStart = (rsdp.GetVersion() == AcpiVersion::v1)
+        ? (paddr_t)rsdp.GetVersion1()->RsdtPhysicalAddress
+        : (paddr_t)rsdp.GetVersion2()->XsdtPhysicalAddress;
+
+    paddr_t const tableHeaderEnd = tableHeaderStart + sizeof(acpi_table_header);
+
+    paddr_t const tableStartPage = RoundDown(tableHeaderStart, 4096);
+    paddr_t const tableEndPage   = RoundUp  (tableHeaderEnd  , 4096);
+
+    for (paddr_t paddr = tableStartPage; paddr < tableEndPage; paddr += 4096)
+    {
+
+    }
+
+    return Acpi::RsdtXsdtPointer = res;
 }
