@@ -10,9 +10,21 @@ union name                                                                  \
         __bland, const, static)                                             \
     BITFIELD_STRM_RW(0, tagLen, tagType, Tag    , uintptr_t, this->Tagger,  \
         __bland, const, static)                                             \
-    __bland inline constexpr name() : Tagger(0) { }
+    __bland inline constexpr name() : Tagger(0) { }                         \
+    __bland inline bool IsNull()                                            \
+    {                                                                       \
+        return 0 == (this->Tagger & ~TagBits);                              \
+    }                                                                       \
+    __bland inline bool operator ==(void const * const other)               \
+    {                                                                       \
+        return (uintptr_t)other == (this->Tagger & ~TagBits);               \
+    }                                                                       \
+    __bland inline bool operator !=(void const * const other)               \
+    {                                                                       \
+        return (uintptr_t)other != (this->Tagger & ~TagBits);               \
+    }                                                                       \
 
-//  NOTE: The bitfield is declared twice `tagName` is an alias for "Tag".
+//  NOTE: The bitfield is declared twice so `tagName` is an alias for "Tag".
 
 #define TAGPTR_TYPE(uName, tagValue, name, type)                            \
     type name;                                                              \
