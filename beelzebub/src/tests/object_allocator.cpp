@@ -47,14 +47,16 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
         paddr_t const paddr = Cpu::GetDomain()->PhysicalAllocator->AllocatePage(desc);
         //  Test page.
 
-        assert(paddr != nullpaddr && desc != nullptr
+        assert_or(paddr != nullpaddr && desc != nullptr
             , "  Unable to allocate physical page #%us for an object pool (%us, %us, %us, %us)!"
             , i
-            , objectSize, headerSize, minimumObjects, pageCount);
+            , objectSize, headerSize, minimumObjects, pageCount)
+        {
+            return res;
+            //  Maybe the test is built in release mode.
+        }
 
-        desc->IncrementReferenceCount();
-
-        res = Cpu::GetActiveThread()->Owner->Memory->MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable);
+        res = Cpu::GetActiveThread()->Owner->Memory->MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
         assert_or(res.IsOkayResult()
             , "  Failed to map page at %Xp (%XP; #%us) for an object pool (%us, %us, %us, %us): %H."
@@ -63,7 +65,7 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
             , res)
         {
             return res;
-            //  Maybe the test is built in release mode.
+            //  Again, maybe the test is built in release mode.
         }
     }
 

@@ -6,8 +6,8 @@
 
 #pragma once
 
+#include <memory/page_allocator.hpp>
 #include <handles.h>
-#include <metaprogramming.h>
 
 namespace Beelzebub { namespace Memory
 {
@@ -107,16 +107,17 @@ namespace Beelzebub { namespace Memory
 
         /*  Page Management  */
 
-        __hot __bland Handle MapPage(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags);
-        __hot __bland Handle UnmapPage(const vaddr_t vaddr);
-        __hot __bland Handle TryTranslate(const vaddr_t address, paddr_t & res);
+        __hot __bland Handle MapPage(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags, PageDescriptor * const desc);
+        __hot __bland Handle MapPage(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags);
+        __hot __bland Handle UnmapPage(vaddr_t const vaddr);
+        __hot __bland Handle TryTranslate(vaddr_t const address, paddr_t & res);
 
-        __hot __bland Handle AllocatePages(const size_t count, const AllocatedPageType type, const PageFlags flags, vaddr_t & vaddr);
-        __hot __bland Handle FreePages(const vaddr_t vaddr, const size_t count);
+        __hot __bland Handle AllocatePages(const size_t count, AllocatedPageType const type, PageFlags const flags, vaddr_t & vaddr);
+        __hot __bland Handle FreePages(vaddr_t const vaddr, const size_t count);
 
         /*  Flags  */
 
-        __bland Handle GetPageFlags(const vaddr_t vaddr, PageFlags & flags);
-        __bland Handle SetPageFlags(const vaddr_t vaddr, const PageFlags flags);
+        __bland Handle GetPageFlags(vaddr_t const vaddr, PageFlags & flags);
+        __bland Handle SetPageFlags(vaddr_t const vaddr, PageFlags const flags);
     };
 }}

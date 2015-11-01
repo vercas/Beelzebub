@@ -128,6 +128,32 @@ bool MemoryManager::IsActive()
 
 /*  Page Management  */
 
+Handle MemoryManager::MapPage(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags, PageDescriptor * const desc)
+{
+    MemoryManagerAmd64 & mm = *((MemoryManagerAmd64 *)this);
+
+    PageDescriptor * pml3desc = nullptr;
+    PageDescriptor * pml2desc = nullptr;
+    PageDescriptor * pml1desc = nullptr;
+
+    Lock(mm, vaddr);
+
+    Handle res = mm.Vas->Map(vaddr, paddr, flags, pml3desc, pml2desc, pml1desc);
+
+    Unlock(mm, vaddr);
+
+    if likely(desc != nullptr)
+        desc->IncrementReferenceCount();
+    //  The page doesn't have to be in an allocation space, in which case the
+    //  descriptor is null.
+
+    if unlikely(pml3desc != nullptr) pml3desc->IncrementReferenceCount();
+    if unlikely(pml2desc != nullptr) pml2desc->IncrementReferenceCount();
+    if unlikely(pml1desc != nullptr) pml1desc->IncrementReferenceCount();
+
+    return res;
+}
+
 Handle MemoryManager::MapPage(const vaddr_t vaddr, const paddr_t paddr, const PageFlags flags)
 {
     MemoryManagerAmd64 & mm = *((MemoryManagerAmd64 *)this);
@@ -171,7 +197,8 @@ Handle MemoryManager::UnmapPage(const vaddr_t vaddr)
 
     if (mm.Vas->Allocator->TryGetPageDescriptor(paddr, desc))
         desc->DecrementReferenceCount();
-    //  The page doesn't have to be in an allocation space.
+    //  TODO: The page may be in another domain's allocator.
+    //  That needs to be handled!
 
     return res;
 }

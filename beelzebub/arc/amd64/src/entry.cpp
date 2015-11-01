@@ -429,9 +429,7 @@ Handle InitializeVirtualMemory()
         assert(paddr != nullpaddr && desc != nullptr
             , "  Unable to allocate a physical page for CPU-specific data!");
 
-        desc->IncrementReferenceCount();
-
-        res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+        res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
         assert(res.IsOkayResult()
             , "  Failed to map page at %Xp (%XP) for CPU-specific data: %H."
@@ -674,10 +672,7 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
         , "  Unable to allocate a physical page for test thread %Xp (process %Xp)!"
         , t, p);
 
-    desc->IncrementReferenceCount();
-    //  Increment the reference count of the page because we're nice people.
-
-    res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+    res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
     assert(res.IsOkayResult()
         , "  Failed to map page at %Xp (%XP) for test thread stack: %H."
@@ -709,18 +704,14 @@ __cold __bland char * AllocateTestPage(Process * const p)
         , "  Unable to allocate a physical page for test page of process %Xp!"
         , p);
 
-    desc->IncrementReferenceCount();
-    desc->IncrementReferenceCount();
-    //  Increment the reference count of the page twice because we're nice people.
-
-    res = p->Memory->MapPage(vaddr1, paddr, PageFlags::Writable);
+    res = p->Memory->MapPage(vaddr1, paddr, PageFlags::Writable, desc);
 
     assert(res.IsOkayResult()
         , "  Failed to map page at %Xp (%XP) as test page in owning process: %H."
         , vaddr1, paddr
         , res);
 
-    res = BootstrapMemoryManager.MapPage(vaddr2, paddr, PageFlags::Global | PageFlags::Writable);
+    res = BootstrapMemoryManager.MapPage(vaddr2, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
     assert(res.IsOkayResult()
         , "  Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
