@@ -31,9 +31,9 @@ namespace Beelzebub { namespace System
         v2  = 1,
     };
 
-    TAGPTR_BEGIN(RsdpTable, Version, 4, AcpiVersion)
-        TAGPTR_TYPE(RsdpTable, AcpiVersion::v1, Version1, acpi_rsdp_common *)
-        TAGPTR_TYPE(RsdpTable, AcpiVersion::v2, Version2, acpi_table_rsdp *)
+    TAGPTR_BEGIN(RsdpPtr, Version, 4, AcpiVersion)
+        TAGPTR_TYPE(RsdpPtr, AcpiVersion::v1, Version1, acpi_rsdp_common *)
+        TAGPTR_TYPE(RsdpPtr, AcpiVersion::v2, Version2, acpi_table_rsdp *)
     TAGPTR_END()
 
     /**
@@ -41,6 +41,10 @@ namespace Beelzebub { namespace System
      */
     class Acpi
     {
+        /*  Statics  */
+
+        static RsdpPtr RsdpPointer;
+
         /*  Constructor(s)  */
 
     protected:
@@ -53,8 +57,8 @@ namespace Beelzebub { namespace System
     public:
         /*  Initialization  */
 
-        static __cold __bland RsdpTable Initialize(uintptr_t const start
-                                                 , uintptr_t const end);
+        static __cold __bland RsdpPtr FindRsdp(uintptr_t const start
+                                             , uintptr_t const end);
 
         
     };

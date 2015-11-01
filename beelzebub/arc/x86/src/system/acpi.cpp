@@ -11,11 +11,15 @@ using namespace Beelzebub::Utils;
     ACPI class
 *****************/
 
+/*  Statics  */
+
+RsdpPtr Acpi::RsdpPointer;
+
 /*  Initialization  */
 
-RsdpTable Acpi::Initialize(uintptr_t const start, uintptr_t const end)
+RsdpPtr Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
 {
-    RsdpTable res {};
+    RsdpPtr res {};
 
     for (uintptr_t location = RoundDown(start, 16); location < end; location += 16)
     {
@@ -29,7 +33,7 @@ RsdpTable Acpi::Initialize(uintptr_t const start, uintptr_t const end)
 
         acpi_table_rsdp * const table = (acpi_table_rsdp *)location;
 
-        res = RsdpTable(table);
+        res = RsdpPtr(table);
         res.SetVersion(AcpiVersion::v1);
 
         if (table->Revision >= 1)
@@ -52,5 +56,5 @@ RsdpTable Acpi::Initialize(uintptr_t const start, uintptr_t const end)
         break;
     }
 
-    return res;
+    return Acpi::RsdpPointer = res;
 }

@@ -73,10 +73,10 @@ void Beelzebub::Main()
     res = InitializeInterrupts();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
 
         assert(false, "Failed to initialize interrupts: %H"
             , res);
@@ -88,10 +88,10 @@ void Beelzebub::Main()
     res = InitializePhysicalMemory();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
 
         assert(false, "Failed to initialize physical memory: %H"
             , res);
@@ -103,10 +103,10 @@ void Beelzebub::Main()
     res = InitializeVirtualMemory();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
 
         assert(false, "Failed to initialize virtual memory: %H"
             , res);
@@ -118,10 +118,10 @@ void Beelzebub::Main()
     res = InitializeProcessingUnits();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
 
         assert(false, "Failed to initialize the other processing units: %H"
             , res);
@@ -133,10 +133,10 @@ void Beelzebub::Main()
     res = InitializeModules();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
 
         assert(false, "Failed to initialize modules: %H"
             , res);
@@ -347,8 +347,8 @@ TerminalBase * InitializeTerminalMain()
  */
 Handle InitializeProcessingUnits()
 {
-    RsdpTable rsdp = Acpi::Initialize(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
-                                    , MemoryManagerAmd64::IsaDmaStart + 0x100000);
+    RsdpPtr rsdp = Acpi::FindRsdp(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
+                                , MemoryManagerAmd64::IsaDmaStart + 0x100000);
 
     if (rsdp.GetVersion() == AcpiVersion::v1)
         msg("[[ RSDP @ %Xp, v1 ]]%n", rsdp.GetVersion1());
