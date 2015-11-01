@@ -350,6 +350,9 @@ Handle InitializeProcessingUnits()
     RsdpPtr rsdp = Acpi::FindRsdp(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
                                 , MemoryManagerAmd64::IsaDmaStart + 0x100000);
 
+    assert(rsdp != nullptr
+        , "Unable to find RSDP!");
+
     if (rsdp.GetVersion() == AcpiVersion::v1)
         msg("[[ RSDP @ %Xp, v1 ]]%n", rsdp.GetVersion1());
     else
