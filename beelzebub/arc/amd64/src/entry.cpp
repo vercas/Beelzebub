@@ -427,12 +427,12 @@ Handle InitializeVirtualMemory()
         paddr_t const paddr = mainAllocator.AllocatePage(desc);
 
         assert(paddr != nullpaddr && desc != nullptr
-            , "  Unable to allocate a physical page for CPU-specific data!");
+            , "Unable to allocate a physical page for CPU-specific data!");
 
         res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
         assert(res.IsOkayResult()
-            , "  Failed to map page at %Xp (%XP) for CPU-specific data: %H."
+            , "Failed to map page at %Xp (%XP) for CPU-specific data: %H."
             , vaddr, paddr
             , res);
 
@@ -451,7 +451,7 @@ Handle InitializeVirtualMemory()
         res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, nullptr);
 
         assert(res.IsOkayResult()
-            , "  Failed to map page at %Xp (%XP) for ISA DMA: %H."
+            , "Failed to map page at %Xp (%XP) for ISA DMA: %H."
             , vaddr, paddr
             , res);
     }
@@ -595,7 +595,7 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
         res = BootstrapMemoryManager.MapPage(vaddr + offset, module->address + offset, PageFlags::Global | PageFlags::Writable);
 
         assert(res.IsOkayResult()
-            , "  Failed to map page at %Xp (%XP) for module #%us (%s): %H."
+            , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
             , vaddr + offset, module->address + offset
             , index, module->name
             , res);
@@ -669,13 +669,13 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     //  Stack page.
 
     assert(paddr != nullpaddr && desc != nullptr
-        , "  Unable to allocate a physical page for test thread %Xp (process %Xp)!"
+        , "Unable to allocate a physical page for test thread %Xp (process %Xp)!"
         , t, p);
 
     res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
     assert(res.IsOkayResult()
-        , "  Failed to map page at %Xp (%XP) for test thread stack: %H."
+        , "Failed to map page at %Xp (%XP) for test thread stack: %H."
         , vaddr, paddr
         , res);
     //  FAILURE IS NOT TOLERATED.
@@ -701,20 +701,20 @@ __cold __bland char * AllocateTestPage(Process * const p)
     //  Test page.
 
     assert(paddr != nullpaddr && desc != nullptr
-        , "  Unable to allocate a physical page for test page of process %Xp!"
+        , "Unable to allocate a physical page for test page of process %Xp!"
         , p);
 
     res = p->Memory->MapPage(vaddr1, paddr, PageFlags::Writable, desc);
 
     assert(res.IsOkayResult()
-        , "  Failed to map page at %Xp (%XP) as test page in owning process: %H."
+        , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
         , vaddr1, paddr
         , res);
 
     res = BootstrapMemoryManager.MapPage(vaddr2, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
     assert(res.IsOkayResult()
-        , "  Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
+        , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
         , vaddr2, paddr
         , res);
 

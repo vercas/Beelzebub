@@ -48,7 +48,7 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
         //  Test page.
 
         assert_or(paddr != nullpaddr && desc != nullptr
-            , "  Unable to allocate physical page #%us for an object pool (%us, %us, %us, %us)!"
+            , "Unable to allocate physical page #%us for an object pool (%us, %us, %us, %us)!"
             , i
             , objectSize, headerSize, minimumObjects, pageCount)
         {
@@ -59,7 +59,7 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
         res = Cpu::GetActiveThread()->Owner->Memory->MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
         assert_or(res.IsOkayResult()
-            , "  Failed to map page at %Xp (%XP; #%us) for an object pool (%us, %us, %us, %us): %H."
+            , "Failed to map page at %Xp (%XP; #%us) for an object pool (%us, %us, %us, %us): %H."
             , vaddr + i * PageSize, paddr, i
             , objectSize, headerSize, minimumObjects, pageCount
             , res)
