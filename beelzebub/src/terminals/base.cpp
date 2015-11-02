@@ -353,6 +353,14 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                 
                 TERMTRY1(writeString(term, str), res, cnt);
             }
+            else if (c == 'S')  //  Solid String.
+            {
+                size_t len = va_arg(args, size_t);
+                char * str = va_arg(args, char *);
+                
+                for (size_t i = 0; i < len; ++i)
+                    TERMTRY1(writeChar(term, str[i]), res, cnt);
+            }
             else if (c == 'C')  //  Character from pointer.
             {
                 char * chr = va_arg(args, char *);
