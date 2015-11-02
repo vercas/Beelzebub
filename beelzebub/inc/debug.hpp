@@ -40,6 +40,26 @@ else if (false)
 #define msg_(...) do {} while(false)
 #endif
 
+#define ASSERT(cond, ...) do {                                          \
+if unlikely(!(cond))                                                    \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, __VA_ARGS__); \
+} while (false)
+#define MSG(...) do {                                                   \
+    if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+    {                                                                   \
+        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
+    }                                                                   \
+} while (false)
+#define MSG_(...) do {                                                  \
+    if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+    {                                                                   \
+        (&Beelzebub::Debug::MsgSpinlock)->Acquire();                    \
+        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
+        (&Beelzebub::Debug::MsgSpinlock)->Release();                    \
+    }                                                                   \
+} while (false)
+//  Thse three are available for all configurations!
+
 namespace Beelzebub { namespace Debug
 {
     extern Terminals::TerminalBase * DebugTerminal;
