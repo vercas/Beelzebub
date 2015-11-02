@@ -356,9 +356,14 @@ Handle InitializeProcessingUnits()
         , "Unable to find RSDP!");
 
     if (Acpi::RsdpPointer.GetVersion() == AcpiVersion::v1)
-        msg("[[ RSDP @ %Xp, v1 ]]%n", Acpi::RsdpPointer.GetVersion1());
+        msg("<[ RSDP @ %Xp, v1 ]>%n", Acpi::RsdpPointer.GetVersion1());
     else
-        msg("[[ RSDP @ %Xp, v2 ]]%n", Acpi::RsdpPointer.GetVersion2());
+        msg("<[ RSDP @ %Xp, v2 ]>%n", Acpi::RsdpPointer.GetVersion2());
+
+    Acpi::FindRsdtXsdt();
+
+    msg("<[ XSDT @ %Xp ]>%n", Acpi::XsdtPointer);
+    msg("<[ RSDT @ %Xp ]>%n", Acpi::RsdtPointer);
 
     return HandleResult::Okay;
 }

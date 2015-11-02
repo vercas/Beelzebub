@@ -50,8 +50,9 @@ namespace Beelzebub { namespace System
     public:
         /*  Statics  */
 
-        static     RsdpPtr     RsdpPointer;
-        static RsdtXsdtPtr RsdtXsdtPointer;
+        static RsdpPtr           RsdpPointer;
+        static acpi_table_rsdt * RsdtPointer;
+        static acpi_table_xsdt * XsdtPointer;
 
         /*  Constructor(s)  */
 
@@ -62,12 +63,16 @@ namespace Beelzebub { namespace System
         Acpi(Acpi const &) = delete;
         Acpi & operator =(Acpi const &) = delete;
 
-    public:
         /*  Initialization  */
 
         static __cold __bland Handle FindRsdp(uintptr_t const start
                                             , uintptr_t const end);
 
         static __cold __bland Handle FindRsdtXsdt();
+
+    private:
+        /*  Utilities  */
+
+        static __cold __bland Handle MapTable(paddr_t const header, vaddr_t & ptr);
     };
 }}

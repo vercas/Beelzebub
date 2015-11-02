@@ -17,8 +17,9 @@ using namespace Beelzebub::Utils;
 
 /*  Statics  */
 
-RsdpPtr     Acpi::RsdpPointer;
-RsdtXsdtPtr Acpi::RsdtXsdtPointer;
+RsdpPtr           Acpi::RsdpPointer;
+acpi_table_rsdt * Acpi::RsdtPointer;
+acpi_table_xsdt * Acpi::XsdtPointer;
 
 /*  Initialization  */
 
@@ -74,38 +75,109 @@ Handle Acpi::FindRsdtXsdt()
     Handle res;
     auto rsdp = Acpi::RsdpPointer;
 
-    acpi_table_header * ptr;
+    //  So, first we attempt to find and parse the XSDT, if any.
+    //  If that fails or there is no XSDT, it tries the RSDT.
 
-    paddr_t const tableHeaderStart = (rsdp.GetVersion() == AcpiVersion::v1)
-        ? (paddr_t)rsdp.GetVersion1()->RsdtPhysicalAddress
-        : (paddr_t)rsdp.GetVersion2()->XsdtPhysicalAddress;
-
-    paddr_t const tableHeaderEnd = tableHeaderStart + sizeof(acpi_table_header);
-
-    paddr_t const tableStartPage     = RoundDown(tableHeaderStart, PageSize);
-    paddr_t const tableHeaderEndPage = RoundUp  (tableHeaderEnd  , PageSize);
-    psize_t const tableHeaderLength  = tableHeaderEndPage - tableStartPage;
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(tableHeaderLength);
-
-    for (paddr_t offset = 0; offset < tableHeaderLength; offset += PageSize)
+    if likely(rsdp.GetVersion() == AcpiVersion::v2)
     {
-        res = BootstrapMemoryManager.MapPage(vaddr + offset, tableStartPage + offset
+        //  Why likely? So GCC doesn't attempt to initialize the locals beyond
+        //  this if statement prior to executing it.
+
+        vaddr_t xsdtVaddr = nullvaddr;
+        res = Acpi::MapTable((paddr_t)rsdp.GetVersion2()->XsdtPhysicalAddress, xsdtVaddr);
+
+        assert_or(res.IsOkayResult()
+            , "Failed to map XSDT: %H."
+            , res)
+        {
+            return res;
+        }
+
+        Acpi::XsdtPointer = (acpi_table_xsdt *)xsdtVaddr;
+    }
+
+    paddr_t const rsdtHeaderStart = (paddr_t)((acpi_rsdp_common *)rsdp.GetInvariantValue())->RsdtPhysicalAddress;
+
+    ASSERT(rsdtHeaderStart != nullpaddr
+        , "RSDT physical address seems to be null!");
+    //  Cawme awn!
+
+    vaddr_t rsdtVaddr = nullvaddr;
+    res = Acpi::MapTable(rsdtHeaderStart, rsdtVaddr);
+
+    assert_or(res.IsOkayResult()
+        , "Failed to map RSDT: %H."
+        , res)
+    {
+        return res;
+    }
+
+    Acpi::RsdtPointer = (acpi_table_rsdt *)rsdtVaddr;
+
+    if (rsdtVaddr == nullvaddr)
+        return HandleResult::NotFound;
+    else
+        return HandleResult::Okay;
+}
+
+/*  Utilities  */
+
+Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
+{
+    Handle res;
+
+    //  First the table headers and the fields that we are sure to find.
+
+    paddr_t const tabHeaderEnd = header + sizeof(acpi_table_header);
+
+    paddr_t const tabStartPage     = RoundDown(header      , PageSize);
+    paddr_t const tabHeaderEndPage = RoundUp  (tabHeaderEnd, PageSize);
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(tabHeaderEndPage - tabStartPage);
+    paddr_t offset1 = 0;
+
+    for (/* nothing */; tabStartPage + offset1 < tabHeaderEndPage; offset1 += PageSize)
+    {
+        res = BootstrapMemoryManager.MapPage(vaddr + offset1
+                                           , tabStartPage + offset1
                                            , PageFlags::Global, nullptr);
 
         assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for %s: %H."
-            , vaddr + offset, tableStartPage + offset
-            , (rsdp.GetVersion() == AcpiVersion::v1) ? "RSDT" : "XSDT"
+            , "Failed to map page at %Xp (%XP) for XSDT header: %H."
+            , vaddr + offset1, tabStartPage + offset1
             , res)
         {
             return res;
         }
     }
 
-    //Acpi::RsdtXsdtPointer = ptr;
+    //  Then the rest of the table.
 
-    if (ptr == nullptr)
-        return HandleResult::NotFound;
-    else
-        return HandleResult::Okay;
+    ptr = (vaddr_t)(vaddr + (header - tabStartPage));
+    auto const tabPtr = (acpi_table_header *)(uintptr_t)ptr;
+
+    paddr_t const tabEnd = header + tabPtr->Length;
+    paddr_t const tabEndPage = RoundUp(tabEnd, PageSize);
+    vaddr_t const vaddrExtra = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(tabEndPage - tabHeaderEndPage);
+
+    assert(vaddrExtra - vaddr == tabHeaderEndPage - tabStartPage
+        , "Discrepancy observed while mapping XSDT - virtual addresses are "
+          "not contiguous: %Xp-%Xp + %Xp-...%n"
+        , vaddr, vaddr + tabHeaderEndPage - tabStartPage, vaddrExtra);
+
+    for (/* nothing */; tabStartPage + offset1 < tabEndPage; offset1 += PageSize)
+    {
+        res = BootstrapMemoryManager.MapPage(vaddr + offset1
+                                           , tabStartPage + offset1
+                                           , PageFlags::Global, nullptr);
+
+        assert_or(res.IsOkayResult()
+            , "Failed to map page at %Xp (%XP) for XSDT body: %H."
+            , vaddr + offset1, tabStartPage + offset1
+            , res)
+        {
+            return res;
+        }
+    }
+
+    return HandleResult::Okay;
 }
