@@ -448,7 +448,7 @@ Handle InitializeVirtualMemory()
         vaddr_t const vaddr = MemoryManagerAmd64::IsaDmaStart + offset;
         paddr_t const paddr = (paddr_t)offset;
 
-        res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable);
+        res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, nullptr);
 
         assert(res.IsOkayResult()
             , "  Failed to map page at %Xp (%XP) for ISA DMA: %H."
