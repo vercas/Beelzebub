@@ -79,12 +79,14 @@ namespace Beelzebub
         Okay                      = 0x00U, // Okay
         //  Not enough memory available to complete an operation.
         OutOfMemory               = 0x01U, // No mem.
+        //  An object that was looked for was not found.
+        NotFound                  = 0x02U, // Not Found
+        //  An object or data set failed an integrity check
+        IntegrityFailure          = 0x03U, // Intg Fail
         //  The requested operation isn't supported by the object/interface.
         UnsupportedOperation      = 0x09U, // Unsp. Op.
         //  Operation not implemented by the object/interface.
         NotImplemented            = 0x0AU, // Not Impl.
-        //  An object that was looked for was not found.
-        NotFound                  = 0x0BU, // Not Found
 
         //  An argument given to a function/method has been given an invalid template argument.
         ArgumentTemplateInvalid   = 0x10U, // Arg. T inv.
