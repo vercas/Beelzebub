@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utils/tagged_pointer.hpp>
+#include <handles.h>
 
 namespace Beelzebub { namespace System
 {
@@ -46,6 +47,7 @@ namespace Beelzebub { namespace System
      */
     class Acpi
     {
+    public:
         /*  Statics  */
 
         static     RsdpPtr     RsdpPointer;
@@ -63,9 +65,9 @@ namespace Beelzebub { namespace System
     public:
         /*  Initialization  */
 
-        static __cold __bland RsdpPtr FindRsdp(uintptr_t const start
-                                             , uintptr_t const end);
+        static __cold __bland Handle FindRsdp(uintptr_t const start
+                                            , uintptr_t const end);
 
-        static __cold __bland RsdtXsdtPtr FindRsdtXsdt(RsdpPtr const rsdp);
+        static __cold __bland Handle FindRsdtXsdt();
     };
 }}

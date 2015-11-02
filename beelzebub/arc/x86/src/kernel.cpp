@@ -76,9 +76,9 @@ void Beelzebub::Main()
         MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        assert(false, "Failed to initialize interrupts: %H"
+        ASSERT(false, "Failed to initialize interrupts: %H"
             , res);
     }
 
@@ -91,9 +91,9 @@ void Beelzebub::Main()
         MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        assert(false, "Failed to initialize physical memory: %H"
+        ASSERT(false, "Failed to initialize physical memory: %H"
             , res);
     }
 
@@ -106,9 +106,9 @@ void Beelzebub::Main()
         MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        assert(false, "Failed to initialize virtual memory: %H"
+        ASSERT(false, "Failed to initialize virtual memory: %H"
             , res);
     }
 
@@ -121,9 +121,9 @@ void Beelzebub::Main()
         MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        assert(false, "Failed to initialize the other processing units: %H"
+        ASSERT(false, "Failed to initialize the other processing units: %H"
             , res);
     }
 
@@ -136,9 +136,9 @@ void Beelzebub::Main()
         MainTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r[FAIL]");
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        assert(false, "Failed to initialize modules: %H"
+        ASSERT(false, "Failed to initialize modules: %H"
             , res);
     }
 
@@ -173,24 +173,24 @@ void Beelzebub::Main()
     {
         MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
 
-        assert(false, "Enabling interrupts failed!");
+        ASSERT(false, "Enabling interrupts failed!");
     }
 
     MainTerminal->Write("|[....] Initializing as bootstrap thread...");
 
     res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, &BootstrapMemoryManager);
 
-    Cpu::SetActiveThread(&BootstrapThread);
-
     if (res.IsOkayResult())
         MainTerminal->WriteLine(" Done.\r|[OKAY]");
     else
     {
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+        MainTerminal->WriteFormat(" Fail..? %H\r|[FAIL]%n", res);
 
-        assert(false, "Failed to initialize main entry point as bootstrap thread: %H"
+        ASSERT(false, "Failed to initialize main entry point as bootstrap thread: %H"
             , res);
     }
+
+    Cpu::SetActiveThread(&BootstrapThread);
 
 #ifdef __BEELZEBUB__TEST_STR
     MainTerminal->Write(">Testing string.h implementation...");
@@ -312,7 +312,9 @@ TerminalBase * InitializeTerminalProto()
 
     new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
 
-    //Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
+#ifdef __BEELZEBUB__RELEASE
+    Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
+#endif
 
     msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
         , (uintptr_t)mbi->framebuffer_addr
@@ -347,16 +349,16 @@ TerminalBase * InitializeTerminalMain()
  */
 Handle InitializeProcessingUnits()
 {
-    RsdpPtr rsdp = Acpi::FindRsdp(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
-                                , MemoryManagerAmd64::IsaDmaStart + 0x100000);
+    Handle res = Acpi::FindRsdp(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
+                              , MemoryManagerAmd64::IsaDmaStart + 0x100000);
 
-    assert(rsdp != nullptr
+    ASSERT(res.IsOkayResult()
         , "Unable to find RSDP!");
 
-    if (rsdp.GetVersion() == AcpiVersion::v1)
-        msg("[[ RSDP @ %Xp, v1 ]]%n", rsdp.GetVersion1());
+    if (Acpi::RsdpPointer.GetVersion() == AcpiVersion::v1)
+        msg("[[ RSDP @ %Xp, v1 ]]%n", Acpi::RsdpPointer.GetVersion1());
     else
-        msg("[[ RSDP @ %Xp, v2 ]]%n", rsdp.GetVersion2());
+        msg("[[ RSDP @ %Xp, v2 ]]%n", Acpi::RsdpPointer.GetVersion2());
 
     return HandleResult::Okay;
 }

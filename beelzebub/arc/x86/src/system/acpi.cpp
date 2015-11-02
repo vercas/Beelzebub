@@ -1,11 +1,13 @@
 #include <system/acpi.hpp>
-#include <memory/manager_amd64.hpp>
+#include <entry.h>
+
 #include <utils/checksum.hpp>
 #include <string.h>
 #include <math.h>
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Utils;
 
@@ -15,13 +17,14 @@ using namespace Beelzebub::Utils;
 
 /*  Statics  */
 
-RsdpPtr Acpi::RsdpPointer;
+RsdpPtr     Acpi::RsdpPointer;
+RsdtXsdtPtr Acpi::RsdtXsdtPointer;
 
 /*  Initialization  */
 
-RsdpPtr Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
+Handle Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
 {
-    RsdpPtr res {};
+    RsdpPtr ptr {};
 
     for (uintptr_t location = RoundDown(start, 16); location < end; location += 16)
     {
@@ -35,8 +38,8 @@ RsdpPtr Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
 
         acpi_table_rsdp * const table = (acpi_table_rsdp *)location;
 
-        res = RsdpPtr(table);
-        res.SetVersion(AcpiVersion::v1);
+        ptr = RsdpPtr(table);
+        ptr.SetVersion(AcpiVersion::v1);
 
         if (table->Revision >= 1)
         {
@@ -48,7 +51,7 @@ RsdpPtr Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
                 //  The first 20 bytes already sum to 0, so there's no neeed to
                 //  add them to the sum again...
 
-                res.SetVersion(AcpiVersion::v2);
+                ptr.SetVersion(AcpiVersion::v2);
             }
 
             //  Oh, and if this checksum fails, perhaps a vendor messed up.
@@ -58,12 +61,18 @@ RsdpPtr Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
         break;
     }
 
-    return Acpi::RsdpPointer = res;
+    Acpi::RsdpPointer = ptr;
+
+    if (ptr == nullptr)
+        return HandleResult::NotFound;
+    else
+        return HandleResult::Okay;
 }
 
-RsdtXsdtPtr Acpi::FindRsdtXsdt(RsdpPtr const rsdp)
+Handle Acpi::FindRsdtXsdt()
 {
-    RsdtXsdtPtr res {};
+    Handle res;
+    auto rsdp = Acpi::RsdpPointer;
 
     acpi_table_header * ptr;
 
@@ -73,13 +82,30 @@ RsdtXsdtPtr Acpi::FindRsdtXsdt(RsdpPtr const rsdp)
 
     paddr_t const tableHeaderEnd = tableHeaderStart + sizeof(acpi_table_header);
 
-    paddr_t const tableStartPage = RoundDown(tableHeaderStart, PageSize);
-    paddr_t const tableEndPage   = RoundUp  (tableHeaderEnd  , PageSize);
+    paddr_t const tableStartPage     = RoundDown(tableHeaderStart, PageSize);
+    paddr_t const tableHeaderEndPage = RoundUp  (tableHeaderEnd  , PageSize);
+    psize_t const tableHeaderLength  = tableHeaderEndPage - tableStartPage;
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(tableHeaderLength);
 
-    for (paddr_t paddr = tableStartPage; paddr < tableEndPage; paddr += PageSize)
+    for (paddr_t offset = 0; offset < tableHeaderLength; offset += PageSize)
     {
+        res = BootstrapMemoryManager.MapPage(vaddr + offset, tableStartPage + offset
+                                           , PageFlags::Global, nullptr);
 
+        assert_or(res.IsOkayResult()
+            , "Failed to map page at %Xp (%XP) for %s: %H."
+            , vaddr + offset, tableStartPage + offset
+            , (rsdp.GetVersion() == AcpiVersion::v1) ? "RSDT" : "XSDT"
+            , res)
+        {
+            return res;
+        }
     }
 
-    return Acpi::RsdtXsdtPointer = res;
+    //Acpi::RsdtXsdtPointer = ptr;
+
+    if (ptr == nullptr)
+        return HandleResult::NotFound;
+    else
+        return HandleResult::Okay;
 }
