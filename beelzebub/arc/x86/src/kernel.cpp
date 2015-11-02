@@ -349,21 +349,37 @@ TerminalBase * InitializeTerminalMain()
  */
 Handle InitializeProcessingUnits()
 {
-    Handle res = Acpi::FindRsdp(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
-                              , MemoryManagerAmd64::IsaDmaStart + 0x100000);
+    Handle res;
+
+    res = Acpi::FindRsdp(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
+                       , MemoryManagerAmd64::IsaDmaStart + 0x100000);
 
     ASSERT(res.IsOkayResult()
-        , "Unable to find RSDP!");
+        , "Unable to find RSDP! %H%n"
+        , res);
 
     if (Acpi::RsdpPointer.GetVersion() == AcpiVersion::v1)
         msg("<[ RSDP @ %Xp, v1 ]>%n", Acpi::RsdpPointer.GetVersion1());
     else
         msg("<[ RSDP @ %Xp, v2 ]>%n", Acpi::RsdpPointer.GetVersion2());
 
-    Acpi::FindRsdtXsdt();
+    res = Acpi::FindRsdtXsdt();
+
+    ASSERT(res.IsOkayResult() && (Acpi::RsdtPointer != nullptr || Acpi::XsdtPointer != nullptr)
+        , "Unable to find a valid RSDT or XSDT!%n"
+          "RSDT @ %Xp; XSDT @ %X;%n"
+          "Result = %H"
+        , Acpi::RsdtPointer, Acpi::XsdtPointer, res);
 
     msg("<[ XSDT @ %Xp ]>%n", Acpi::XsdtPointer);
     msg("<[ RSDT @ %Xp ]>%n", Acpi::RsdtPointer);
+
+    res = Acpi::FindSystemDescriptorTables();
+
+    ASSERT(res.IsOkayResult()
+        , "Failure finding system descriptor tables!%n"
+          "Result = %H"
+        , res);
 
     return HandleResult::Okay;
 }

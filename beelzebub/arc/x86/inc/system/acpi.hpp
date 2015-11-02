@@ -67,7 +67,12 @@ namespace Beelzebub { namespace System
 
         static __cold __bland Handle FindRsdtXsdt();
 
+        static __cold __bland Handle FindSystemDescriptorTables();
+
     private:
+
+        static __cold __bland Handle HandleSystemDescriptorTable(paddr_t const paddr);
+
         /*  Utilities  */
 
         static __cold __bland Handle MapTable(paddr_t const header, vaddr_t & ptr);

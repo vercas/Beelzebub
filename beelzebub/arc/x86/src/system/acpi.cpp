@@ -178,6 +178,90 @@ find_rsdt:
     return HandleResult::Okay;
 }
 
+Handle Acpi::FindSystemDescriptorTables()
+{
+    Handle res;
+
+    size_t totalEntries = 0;
+
+    if (XsdtPointer != nullptr)
+    {
+        size_t entryCount = (XsdtPointer->Header.Length - sizeof(acpi_table_header)) / 8;
+
+        for (size_t i = 0; i < entryCount; ++i)
+        {
+            res = HandleSystemDescriptorTable((paddr_t)XsdtPointer->TableOffsetEntry[i]);
+
+            assert_or(res.IsOkayResult()
+                , "Failed to handle a system descriptor table from the XSDT: %H%n"
+                , res)
+            {
+                return res;
+            }
+
+            ++totalEntries;
+        }
+    }
+
+    if (RsdtPointer != nullptr)
+    {
+        size_t entryCount = (RsdtPointer->Header.Length - sizeof(acpi_table_header)) / 4;
+
+        for (size_t i = 0; i < entryCount; ++i)
+        {
+            res = HandleSystemDescriptorTable((paddr_t)RsdtPointer->TableOffsetEntry[i]);
+
+            assert_or(res.IsOkayResult()
+                , "Failed to handle a system descriptor table from the RSDT: %H%n"
+                , res)
+            {
+                return res;
+            }
+
+            ++totalEntries;
+        }
+    }
+
+    if (totalEntries > 0)
+        return HandleResult::Okay;
+    else
+        return HandleResult::NotFound;
+    //  Well, no tables were found? :C
+}
+
+Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr)
+{
+    Handle res;
+
+    vaddr_t tabVaddr = nullvaddr;
+    res = Acpi::MapTable(paddr, tabVaddr);
+
+    assert_or(res.IsOkayResult()
+        , "Failed to map a system descriptor table: %H%n"
+        , res)
+    {
+        return res;
+    }
+
+    auto headerPtr = (acpi_table_header *)tabVaddr;
+
+    uint8_t sumXsdt = Checksum8(headerPtr, headerPtr->Length);
+
+    assert_or(0 == sumXsdt
+        , "XSDT checksum failed: %u1%n"
+        , sumXsdt)
+    {
+        headerPtr = nullptr;
+
+        return HandleResult::IntegrityFailure;
+    }
+
+    msg("~[ FOUND TABLE \"%S\" ]~%n"
+        , ACPI_NAME_SIZE, headerPtr->Signature);
+
+    return HandleResult::Okay;
+}
+
 /*  Utilities  */
 
 Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
