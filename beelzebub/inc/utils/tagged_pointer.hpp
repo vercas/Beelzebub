@@ -23,6 +23,10 @@ union name                                                                  \
     {                                                                       \
         return (uintptr_t)other != (this->Tagger & ~TagBits);               \
     }                                                                       \
+    __bland inline void * GetInvariantValue() const                         \
+    {                                                                       \
+        return (void *)((uintptr_t)this->Tagger & ~TagBits);                \
+    }
 
 //  NOTE: The bitfield is declared twice so `tagName` is an alias for "Tag".
 
