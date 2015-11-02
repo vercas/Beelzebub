@@ -20,6 +20,8 @@ using namespace Beelzebub::Utils;
 RsdpPtr           Acpi::RsdpPointer;
 acpi_table_rsdt * Acpi::RsdtPointer = nullptr;
 acpi_table_xsdt * Acpi::XsdtPointer = nullptr;
+acpi_table_madt * Acpi::MadtPointer = nullptr;
+acpi_table_srat * Acpi::SratPointer = nullptr;
 
 /*  Initialization  */
 
@@ -95,17 +97,35 @@ Handle Acpi::FindRsdtXsdt()
 
         XsdtPointer = (acpi_table_xsdt *)xsdtVaddr;
 
+        assert_or(memeq(XsdtPointer->Header.Signature, ACPI_SIG_XSDT, ACPI_NAME_SIZE)
+            , "XSDT signature doesn't appear to be valid..? (\"%S\")%n"
+            , ACPI_NAME_SIZE, XsdtPointer->Header.Signature)
+        {
+            XsdtPointer = nullptr;
+
+            goto find_rsdt;
+
+            //  Under these circumstances, the next statement cannot be allowed
+            //  to execute because it will result in a page fault when
+            //  attempting to access a null pointer.
+        }
+
         uint8_t sumXsdt = Checksum8(XsdtPointer, XsdtPointer->Header.Length);
 
-        if (0 == sumXsdt)
-            return HandleResult::Okay;
-
-        assert(sumXsdt == 0
+        assert_or(0 == sumXsdt
             , "XSDT checksum failed: %u1%n"
-            , sumXsdt);
+            , sumXsdt)
+        {
+            XsdtPointer = nullptr;
+        }
 
         //  If the checksum fails in release mode... Maybe we try the RSDT?
+        //  Nulling the XSDT pointer indicates that it's either absent or
+        //  invalid. Both cases would be rather weird, but adaptation means
+        //  survival.
     }
+
+find_rsdt:
 
     paddr_t const rsdtHeaderStart = (paddr_t)((acpi_rsdp_common *)rsdp.GetInvariantValue())->RsdtPhysicalAddress;
 
@@ -128,16 +148,32 @@ Handle Acpi::FindRsdtXsdt()
     if (rsdtVaddr == nullvaddr)
         return HandleResult::NotFound;
 
+    assert_or(memeq(RsdtPointer->Header.Signature, ACPI_SIG_RSDT, ACPI_NAME_SIZE)
+        , "RSDT signature doesn't appear to be valid..? (\"%S\")%n"
+        , ACPI_NAME_SIZE, RsdtPointer->Header.Signature)
+    {
+        if (XsdtPointer == nullptr)
+            return HandleResult::IntegrityFailure;
+        else
+            return HandleResult::Okay;
+
+        //  Signature invalid? Try to return with a valid XSDT at least.
+    }
+
     uint8_t sumRsdt = Checksum8(RsdtPointer, RsdtPointer->Header.Length);
 
     assert_or(0 == sumRsdt
         , "RSDT checksum failed: %u1%n"
         , sumRsdt)
     {
-        return HandleResult::IntegrityFailure;
-    }
+        if (XsdtPointer == nullptr)
+            return HandleResult::IntegrityFailure;
+        else
+            return HandleResult::Okay;
 
-    //  If this checksum fails... There's nothing else to try. :(
+        //  Okay, so maybe this checksum fails, but all is not lost if the XSDT
+        //  is valid.
+    }
     
     return HandleResult::Okay;
 }
@@ -146,6 +182,13 @@ Handle Acpi::FindRsdtXsdt()
 
 Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
 {
+    if unlikely(header == nullpaddr)
+    {
+        ptr = nullvaddr;
+
+        return HandleResult::ArgumentNull;
+    }
+
     Handle res;
 
     //  First the table headers and the fields that we are sure to find.
@@ -164,10 +207,12 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
                                            , PageFlags::Global, nullptr);
 
         assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for XSDT header: %H%n"
+            , "Failed to map page at %Xp (%XP) for table header: %H%n"
             , vaddr + offset1, tabStartPage + offset1
             , res)
         {
+            ptr = nullvaddr;
+
             return res;
         }
     }
@@ -182,7 +227,7 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
     vaddr_t const vaddrExtra = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(tabEndPage - tabHeaderEndPage);
 
     assert(vaddrExtra - vaddr == tabHeaderEndPage - tabStartPage
-        , "Discrepancy observed while mapping XSDT - virtual addresses are "
+        , "Discrepancy observed while mapping table - virtual addresses are "
           "not contiguous: %Xp-%Xp + %Xp-...%n"
         , vaddr, vaddr + tabHeaderEndPage - tabStartPage, vaddrExtra);
 
@@ -193,10 +238,12 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
                                            , PageFlags::Global, nullptr);
 
         assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for XSDT body: %H%n"
+            , "Failed to map page at %Xp (%XP) for table body: %H%n"
             , vaddr + offset1, tabStartPage + offset1
             , res)
         {
+            ptr = nullvaddr;
+
             return res;
         }
     }

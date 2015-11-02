@@ -48,6 +48,8 @@ namespace Beelzebub { namespace System
         static RsdpPtr           RsdpPointer;
         static acpi_table_rsdt * RsdtPointer;
         static acpi_table_xsdt * XsdtPointer;
+        static acpi_table_madt * MadtPointer;
+        static acpi_table_srat * SratPointer;
 
         /*  Constructor(s)  */
 
