@@ -83,6 +83,8 @@ namespace Beelzebub
         UnsupportedOperation      = 0x09U, // Unsp. Op.
         //  Operation not implemented by the object/interface.
         NotImplemented            = 0x0AU, // Not Impl.
+        //  An object that was looked for was not found.
+        NotFound                  = 0x0BU, // Not Found
 
         //  An argument given to a function/method has been given an invalid template argument.
         ArgumentTemplateInvalid   = 0x10U, // Arg. T inv.

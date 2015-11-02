@@ -88,6 +88,8 @@ const char * const Handle::GetResultString() const
             return "Uns. Op.";
         case HandleResult::NotImplemented:
             return "Not Impl.";
+        case HandleResult::NotFound:
+            return "Not Found";
 
         case HandleResult::ArgumentTemplateInvalid:
             return "Arg. T inv.";
