@@ -29,9 +29,14 @@ union name                                                                  \
 #define TAGPTR_TYPE(uName, tagValue, name, type)                            \
     type name;                                                              \
     __bland inline constexpr uName(type val)                                \
-        : name((type)((uintptr_t)val | ((uintptr_t)tagValue & TagBits)))    \
+        : Tagger((uintptr_t)val | ((uintptr_t)tagValue & TagBits))          \
     {                                                                       \
-                                                                            \
+        /* nothing */                                                       \
+    }                                                                       \
+    __bland inline uName & operator =(type const val)                       \
+    {                                                                       \
+        this->Tagger = (uintptr_t)val | ((uintptr_t)tagValue & TagBits);    \
+        return *this;                                                       \
     }                                                                       \
     __bland inline type MCATS(Get, name)() const                            \
     {                                                                       \
