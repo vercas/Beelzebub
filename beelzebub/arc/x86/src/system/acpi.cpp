@@ -18,8 +18,8 @@ using namespace Beelzebub::Utils;
 /*  Statics  */
 
 RsdpPtr           Acpi::RsdpPointer;
-acpi_table_rsdt * Acpi::RsdtPointer;
-acpi_table_xsdt * Acpi::XsdtPointer;
+acpi_table_rsdt * Acpi::RsdtPointer = nullptr;
+acpi_table_xsdt * Acpi::XsdtPointer = nullptr;
 
 /*  Initialization  */
 
@@ -73,7 +73,7 @@ Handle Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
 Handle Acpi::FindRsdtXsdt()
 {
     Handle res;
-    auto rsdp = Acpi::RsdpPointer;
+    auto rsdp = RsdpPointer;
 
     //  So, first we attempt to find and parse the XSDT, if any.
     //  If that fails or there is no XSDT, it tries the RSDT.
@@ -87,13 +87,24 @@ Handle Acpi::FindRsdtXsdt()
         res = Acpi::MapTable((paddr_t)rsdp.GetVersion2()->XsdtPhysicalAddress, xsdtVaddr);
 
         assert_or(res.IsOkayResult()
-            , "Failed to map XSDT: %H."
+            , "Failed to map XSDT: %H%n"
             , res)
         {
             return res;
         }
 
-        Acpi::XsdtPointer = (acpi_table_xsdt *)xsdtVaddr;
+        XsdtPointer = (acpi_table_xsdt *)xsdtVaddr;
+
+        uint8_t sumXsdt = Checksum8(XsdtPointer, XsdtPointer->Header.Length);
+
+        if (0 == sumXsdt)
+            return HandleResult::Okay;
+
+        assert(sumXsdt == 0
+            , "XSDT checksum failed: %u1%n"
+            , sumXsdt);
+
+        //  If the checksum fails in release mode... Maybe we try the RSDT?
     }
 
     paddr_t const rsdtHeaderStart = (paddr_t)((acpi_rsdp_common *)rsdp.GetInvariantValue())->RsdtPhysicalAddress;
@@ -106,18 +117,29 @@ Handle Acpi::FindRsdtXsdt()
     res = Acpi::MapTable(rsdtHeaderStart, rsdtVaddr);
 
     assert_or(res.IsOkayResult()
-        , "Failed to map RSDT: %H."
+        , "Failed to map RSDT: %H%n"
         , res)
     {
         return res;
     }
 
-    Acpi::RsdtPointer = (acpi_table_rsdt *)rsdtVaddr;
+    RsdtPointer = (acpi_table_rsdt *)rsdtVaddr;
 
     if (rsdtVaddr == nullvaddr)
         return HandleResult::NotFound;
-    else
-        return HandleResult::Okay;
+
+    uint8_t sumRsdt = Checksum8(RsdtPointer, RsdtPointer->Header.Length);
+
+    assert_or(0 == sumRsdt
+        , "RSDT checksum failed: %u1%n"
+        , sumRsdt)
+    {
+        return HandleResult::IntegrityFailure;
+    }
+
+    //  If this checksum fails... There's nothing else to try. :(
+    
+    return HandleResult::Okay;
 }
 
 /*  Utilities  */
@@ -142,7 +164,7 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
                                            , PageFlags::Global, nullptr);
 
         assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for XSDT header: %H."
+            , "Failed to map page at %Xp (%XP) for XSDT header: %H%n"
             , vaddr + offset1, tabStartPage + offset1
             , res)
         {
@@ -171,7 +193,7 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
                                            , PageFlags::Global, nullptr);
 
         assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for XSDT body: %H."
+            , "Failed to map page at %Xp (%XP) for XSDT body: %H%n"
             , vaddr + offset1, tabStartPage + offset1
             , res)
         {
