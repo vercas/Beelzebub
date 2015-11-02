@@ -203,6 +203,22 @@ Handle MemoryManager::UnmapPage(const vaddr_t vaddr)
     return res;
 }
 
+Handle MemoryManager::TryTranslate(vaddr_t const vaddr, paddr_t & paddr)
+{
+    MemoryManagerAmd64 & mm = *((MemoryManagerAmd64 *)this);
+
+    Pml1Entry * e;
+
+    Handle res = mm.Vas->GetEntry(vaddr, e, false);
+
+    if (res.IsOkayResult())
+        paddr = e->GetAddress();
+    else
+        paddr = nullpaddr;
+
+    return res;
+}
+
 Handle MemoryManager::AllocatePages(const size_t count, const AllocatedPageType type, const PageFlags flags, vaddr_t & vaddr)
 {
     MemoryManagerAmd64 & mm = *((MemoryManagerAmd64 *)this);
