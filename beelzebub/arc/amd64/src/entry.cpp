@@ -187,12 +187,12 @@ __cold __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_
 
             currentAllocationSpacePtr = (PageAllocationSpace *)(domain->PhysicalAllocator->AllocatePage(desc));
 
-            assert(currentAllocationSpacePtr != nullptr && desc != nullptr
+            ASSERT(currentAllocationSpacePtr != nullptr && desc != nullptr
                 , "Unable to allocate a special page for creating more allocation spaces!");
 
             Handle res = domain->PhysicalAllocator->ReserveByteRange((paddr_t)currentAllocationSpacePtr, PageSize, PageReservationOptions::IncludeInUse);
 
-            assert(res.IsOkayResult()
+            ASSERT(res.IsOkayResult()
                 , "Failed to reserve special page for further allocation space creation: %H"
                 , res);
 
@@ -286,6 +286,7 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
 
     //  DUMPING MMAP ?
 
+#ifdef __BEELZEBUB__DEBUG
     if (domain == &Domain0)
     {
         msg("%nIND |A|    Address     |     Length     |       End      |%n");
@@ -314,6 +315,7 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
 
         msg("%n");//*/
     }
+#endif
 
     //  SPACE CREATION
 
@@ -361,7 +363,7 @@ Handle InitializePhysicalMemory()
 
     res = InitializePhysicalAllocator(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, JG_INFO_ROOT_EX->free_paddr, &Domain0);
 
-    assert(res.IsOkayResult()
+    ASSERT(res.IsOkayResult()
         , "Failed to initialize the physical memory allocator for domain 0: %H.%n"
         , res);
 
@@ -396,7 +398,9 @@ Handle InitializeVirtualMemory()
     //msg("Done.%n");
 
     RemapTerminal(MainTerminal, &bootstrapVas);
-    RemapTerminal(Debug::DebugTerminal, &bootstrapVas);
+
+    if (MainTerminal != Debug::DebugTerminal)
+        RemapTerminal(Debug::DebugTerminal, &bootstrapVas);
 
     //msg("Statically initializing the memory manager... ");
     MemoryManager::Initialize();
@@ -426,12 +430,12 @@ Handle InitializeVirtualMemory()
         vaddr_t const vaddr = CpuDataBase + (i << 12);
         paddr_t const paddr = mainAllocator.AllocatePage(desc);
 
-        assert(paddr != nullpaddr && desc != nullptr
+        ASSERT(paddr != nullpaddr && desc != nullptr
             , "Unable to allocate a physical page for CPU-specific data!");
 
         res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
-        assert(res.IsOkayResult()
+        ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for CPU-specific data: %H."
             , vaddr, paddr
             , res);
@@ -450,7 +454,7 @@ Handle InitializeVirtualMemory()
 
         res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, nullptr);
 
-        assert(res.IsOkayResult()
+        ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for ISA DMA: %H."
             , vaddr, paddr
             , res);
@@ -484,7 +488,7 @@ void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const
         {
             res = space->Map(loc + off, term->VideoMemory + off, PageFlags::Global | PageFlags::Writable);
 
-            assert(res.IsOkayResult()
+            ASSERT(res.IsOkayResult()
                 , "Failed to map page for VBE terminal (%Xp to %Xp): %H"
                 , loc + off, term->VideoMemory + off
                 , res);
@@ -594,7 +598,7 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
     {
         res = BootstrapMemoryManager.MapPage(vaddr + offset, module->address + offset, PageFlags::Global | PageFlags::Writable);
 
-        assert(res.IsOkayResult()
+        ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
             , vaddr + offset, module->address + offset
             , index, module->name
@@ -650,7 +654,7 @@ __hot __bland void * TestThreadEntryPoint(void * const arg)
     {
         Thread * activeThread = Cpu::GetActiveThread();
 
-        msg("Printing from thread %Xp! (%C)%n", activeThread, myChars);
+        MSG("Printing from thread %Xp! (%C)%n", activeThread, myChars);
 
         CpuInstructions::Halt();
     }
@@ -668,13 +672,13 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     paddr_t const paddr = mainAllocator.AllocatePage(desc);
     //  Stack page.
 
-    assert(paddr != nullpaddr && desc != nullptr
+    ASSERT(paddr != nullpaddr && desc != nullptr
         , "Unable to allocate a physical page for test thread %Xp (process %Xp)!"
         , t, p);
 
     res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
-    assert(res.IsOkayResult()
+    ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for test thread stack: %H."
         , vaddr, paddr
         , res);
@@ -700,20 +704,20 @@ __cold __bland char * AllocateTestPage(Process * const p)
     paddr_t const paddr = mainAllocator.AllocatePage(desc);
     //  Test page.
 
-    assert(paddr != nullpaddr && desc != nullptr
+    ASSERT(paddr != nullpaddr && desc != nullptr
         , "Unable to allocate a physical page for test page of process %Xp!"
         , p);
 
     res = p->Memory->MapPage(vaddr1, paddr, PageFlags::Writable, desc);
 
-    assert(res.IsOkayResult()
+    ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
         , vaddr1, paddr
         , res);
 
     res = BootstrapMemoryManager.MapPage(vaddr2, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
-    assert(res.IsOkayResult()
+    ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
         , vaddr2, paddr
         , res);

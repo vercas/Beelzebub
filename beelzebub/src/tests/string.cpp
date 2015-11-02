@@ -31,7 +31,7 @@ Handle TestStringLibrary()
 {
 #define testlen(name)                                        \
 size_t MCATS(str, name, len) = strlen(MCATS(tStr, name));    \
-assert(MCATS(str, name, len) == MCATS(tStr, name, len)       \
+ASSERT(MCATS(str, name, len) == MCATS(tStr, name, len)       \
     , "Failed string length test for string %s (\"%s\"): "   \
       "got %us, expected %us!"                               \
     , #name, MCATS(tStr, name), MCATS(str, name, len)        \
@@ -39,7 +39,7 @@ assert(MCATS(str, name, len) == MCATS(tStr, name, len)       \
 
 #define testNlen(tseq, name, nl, expctd)                                \
 size_t MCATS(str, name, Nlen, tseq) = strnlen(MCATS(tStr, name), (nl)); \
-assert(MCATS(str, name, Nlen, tseq) == (size_t)(expctd)                 \
+ASSERT(MCATS(str, name, Nlen, tseq) == (size_t)(expctd)                 \
     , "Failed string capped length test for string %s (\"%s\"): "       \
       "got %us, expected %us (cap: %us; test sequence %us)!"            \
     , #name, MCATS(tStr, name), MCATS(str, name, Nlen, tseq)            \

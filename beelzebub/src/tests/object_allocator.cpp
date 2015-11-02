@@ -149,17 +149,17 @@ Handle TestObjectAllocator(bool const bsp)
 #define TESTALLOC3(T, n)                                                   \
     T * MCATS(tO, n) = nullptr;                                            \
     res = testAllocator.AllocateObject(MCATS(tO, n));                      \
-    assert(res.IsOkayResult()                                              \
+    ASSERT(res.IsOkayResult()                                              \
         , "Failed to allocate object \"" #n "\": %H%n"                     \
         , res);
 
 #define TESTREMOV3(n)                                                      \
     res = testAllocator.DeallocateObject(MCATS(tO, n));                    \
-    assert(res.IsOkayResult()                                              \
+    ASSERT(res.IsOkayResult()                                              \
         , "Failed to delete object \"" #n "\" (%Xp): %H%n"                 \
         , MCATS(tO, n), res);
 
-#define TESTDIFF(n1, n2) assert(MCATS(tO, n1) != MCATS(tO, n2)             \
+#define TESTDIFF(n1, n2) ASSERT(MCATS(tO, n1) != MCATS(tO, n2)             \
     , "Test objects \"" #n1 "\" and \"" #n2 "\" should be different: %Xp." \
     , MCATS(tO, n1));
 
@@ -184,7 +184,7 @@ Handle TestObjectAllocator(bool const bsp)
 
         TESTALLOC3(TestStructure, 5)
 
-        assert(tO2 == tO5
+        ASSERT(tO2 == tO5
             , "2nd and 5th test objects should be identical: %Xp vs %Xp"
             , tO2, tO5);
 
@@ -215,7 +215,7 @@ Handle TestObjectAllocator(bool const bsp)
         TESTALLOC2(TestStructure, A)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-        assert(res.IsOkayResult()
+        ASSERT(res.IsOkayResult()
             , "Failed to allocate test object A for repetition %us: %H"
             , 1 + REPETITION_COUNT - x, res);
 #endif        
@@ -225,7 +225,7 @@ Handle TestObjectAllocator(bool const bsp)
             TESTALLOC2(TestStructure, B)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-            assert(res.IsOkayResult()
+            ASSERT(res.IsOkayResult()
                 , "Failed to allocate test object B for repetition %us->%us: %H"
                 , 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, res);
 #endif            
@@ -237,7 +237,7 @@ Handle TestObjectAllocator(bool const bsp)
                 TESTALLOC2(TestStructure, C)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-                assert(res.IsOkayResult()
+                ASSERT(res.IsOkayResult()
                     , "Failed to allocate test object C for repetition %us->%us->%us: %H"
                     , 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, 1 + REPETITION_COUNT - z, res);
 #endif                
@@ -248,7 +248,7 @@ Handle TestObjectAllocator(bool const bsp)
                 TESTREMOV2(C)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-                assert(res.IsOkayResult()
+                ASSERT(res.IsOkayResult()
                     , "Failed to remove test object C (%Xp) for repetition %us->%us->%us: %H"
                     , tOC, 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, 1 + REPETITION_COUNT - z, res);
 #endif                
@@ -257,7 +257,7 @@ Handle TestObjectAllocator(bool const bsp)
             TESTREMOV2(B)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-            assert(res.IsOkayResult()
+            ASSERT(res.IsOkayResult()
                 , "Failed to remove test object B (%Xp) for repetition %us->%us: %H"
                 , tOB, 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, res);
 #endif            
@@ -266,7 +266,7 @@ Handle TestObjectAllocator(bool const bsp)
         TESTREMOV2(A)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-        assert(res.IsOkayResult()
+        ASSERT(res.IsOkayResult()
             , "Failed to remove test object A (%Xp) for repetition %us: %H"
             , tOA, 1 + REPETITION_COUNT - x, res);
 #endif        
@@ -276,7 +276,7 @@ Handle TestObjectAllocator(bool const bsp)
         perfAcc += perfEnd - perfStart;
     }
 
-    msg_("Core %us: %u8 / %us = %u8; %u8 / %us = %u8; %n"
+    MSG_("Core %us: %u8 / %us = %u8; %u8 / %us = %u8; %n"
         , Cpu::GetIndex()
         , perfAcc, REPETITION_COUNT, perfAcc / REPETITION_COUNT
         , perfAcc, REPETITION_COUNT_3, perfAcc / REPETITION_COUNT_3);
@@ -286,7 +286,7 @@ Handle TestObjectAllocator(bool const bsp)
     ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-    assert(freeCount1 == testAllocator.GetFreeCount()
+    ASSERT(freeCount1 == testAllocator.GetFreeCount()
         , "Allocator's free count has a shady value: %us, expected %us."
         , testAllocator.GetFreeCount(), freeCount1);
 #endif    

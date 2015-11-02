@@ -103,7 +103,7 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
             res = this->Map(curLoc, RoundDown((paddr_t)cur, PageSize), PageFlags::Global | PageFlags::Writable);
             //  Global because it's shared by processes, and writable for hotplug.
 
-            assert(res.IsOkayResult()
+            ASSERT(res.IsOkayResult()
                 , "Failed to map links between allocation spaces: %H"
                 , res);
             //  Failure is fatal.
@@ -130,7 +130,7 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
         {
             res = this->Map(curLoc + i, pasStart + i, PageFlags::Global | PageFlags::Writable);
 
-            assert(res.IsOkayResult()
+            ASSERT(res.IsOkayResult()
                 , "Failed to map page #%u8 (%Xp to %XP): %H"
                 , i / PageSize, curLoc + i, pasStart + i, res);
             //  Failure is fatal.
@@ -597,7 +597,7 @@ const VirtualAllocationSpace::Iterator VirtualAllocationSpace::Iterator::operato
 
     Handle res = Create(other, this->AllocationSpace, target);
 
-    assert(res.IsOkayResult()
+    ASSERT(res.IsOkayResult()
         , "Failed to create new Iterator instance: %H. (%Xp - %us pages [%Xp])"
         , res, vaddr, diff, diff << 12);
     //  Must not fail.

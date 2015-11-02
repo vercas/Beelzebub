@@ -22,7 +22,7 @@ using namespace Beelzebub::Memory;
  */
 void Beelzebub::System::MiscellaneousInterruptHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<MISC INT @ %Xp (%Xs) - vector %u1>>", INSTRUCTION_POINTER, state->ErrorCode, state->Vector);
 }
 
@@ -31,7 +31,7 @@ void Beelzebub::System::MiscellaneousInterruptHandler(IsrState * const state)
  */
 void Beelzebub::System::DivideErrorHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<DIVIDE ERROR @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -40,7 +40,7 @@ void Beelzebub::System::DivideErrorHandler(IsrState * const state)
  */
 void Beelzebub::System::OverflowHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<OVERFLOW @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -49,7 +49,7 @@ void Beelzebub::System::OverflowHandler(IsrState * const state)
  */
 void Beelzebub::System::BoundRangeExceededHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<BOUNDS EXCEEDED @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -58,7 +58,7 @@ void Beelzebub::System::BoundRangeExceededHandler(IsrState * const state)
  */
 void Beelzebub::System::InvalidOpcodeHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<INVALID OPCODE @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -67,7 +67,7 @@ void Beelzebub::System::InvalidOpcodeHandler(IsrState * const state)
  */
 void Beelzebub::System::DoubleFaultHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<DOUBLE FAULT @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
     asm volatile ("cli \n\t");
     while (true) { asm volatile ("hlt \n\t"); }
@@ -78,7 +78,7 @@ void Beelzebub::System::DoubleFaultHandler(IsrState * const state)
  */
 void Beelzebub::System::InvalidTssHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<INVALID TSS @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
 }
 
@@ -95,7 +95,7 @@ void Beelzebub::System::SegmentNotPresentHandler(IsrState * const state)
                    "mov %%gs, %2 \n\t"
                  : "=r"(ES), "=r"(FS), "=r"(GS));
 
-    assert(false
+    ASSERT(false
         , "<<SEGMENT NOT PRESENT @ %Xp (%Xs): CS%X2 DS%X2 SS%X2 ES%X2 FS%X2 GS%X2>>"
         , INSTRUCTION_POINTER, state->ErrorCode
         , (uint16_t)state->CS, (uint16_t)state->DS, (uint16_t)state->SS, ES, FS, GS);
@@ -106,7 +106,7 @@ void Beelzebub::System::SegmentNotPresentHandler(IsrState * const state)
  */
 void Beelzebub::System::StackSegmentFaultHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<STACK SEGMENT FAULT @ %Xp (%Xs): SS%X2>>"
         , INSTRUCTION_POINTER, state->ErrorCode, (uint16_t)state->SS);
 }
@@ -116,7 +116,7 @@ void Beelzebub::System::StackSegmentFaultHandler(IsrState * const state)
  */
 void Beelzebub::System::GeneralProtectionHandler(IsrState * const state)
 {
-    assert(false
+    ASSERT(false
         , "<<GENERAL PROTECTION FAULT @ %Xp (%Xs)>>"
         , INSTRUCTION_POINTER, state->ErrorCode);
 }
@@ -156,15 +156,15 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
     if (reserved)    status[3] = '0';
     if (instruction) status[4] = 'I'; else status[4] = 'd';
 
-    msg("%n<<PAGE FAULT @ %Xp (%s|%X1); CR2: %Xp | "
+    MSG("%n<<PAGE FAULT @ %Xp (%s|%X1); CR2: %Xp | "
         , INSTRUCTION_POINTER, status, (uint8_t)state->ErrorCode, CR2);
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-    msg("%u2:%u2:%u2:%u2 | ", ind4, ind3, ind2, ind1);
+    MSG("%u2:%u2:%u2:%u2 | ", ind4, ind3, ind2, ind1);
 #elif defined(__BEELZEBUB__ARCH_IA32PAE)
-    msg("%u2:%u2:%u2 | ", ind3, ind2, ind1);
+    MSG("%u2:%u2:%u2 | ", ind3, ind2, ind1);
 #elif defined(__BEELZEBUB__ARCH_IA32)
-    msg("%u2:%u2 | ", ind2, ind1);
+    MSG("%u2:%u2 | ", ind2, ind1);
 #endif
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
@@ -180,7 +180,7 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
                , vind3 = VirtualAllocationSpace::GetPml3Index(CR2)
                , vind4 = VirtualAllocationSpace::GetPml4Index(CR2);
 
-        msg("Adr: %Xp - %u2:%u2:%u2:%u2 | ", vaddr, vind4, vind3, vind2, vind1);
+        MSG("Adr: %Xp - %u2:%u2:%u2:%u2 | ", vaddr, vind4, vind3, vind2, vind1);
     }
 #endif
 
@@ -192,10 +192,10 @@ void Beelzebub::System::PageFaultHandler(IsrState * const state)
     {
         PrintToTerminal(Beelzebub::Debug::DebugTerminal, *e);
 
-        msg(" >>");
+        MSG(" >>");
     }
     else
-        msg("%H >>", res);
+        MSG("%H >>", res);
 
-    assert(false, "<< ^ EXCEPTION ^ >>");
+    ASSERT(false, "<< ^ EXCEPTION ^ >>");
 }
