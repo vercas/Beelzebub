@@ -388,6 +388,9 @@ Handle InitializeApic()
         return res;
     }
 
+    if (Cpu::GetX2ApicMode())
+        MainTerminal->Write(" x2APIC mode...");
+
     return HandleResult::Okay;
 }   
 

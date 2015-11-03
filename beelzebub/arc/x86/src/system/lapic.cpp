@@ -1,11 +1,24 @@
 #include <system/lapic.hpp>
 #include <system/cpu.hpp>
 #include <system/msrs.hpp>
-#include <system/cpuid.hpp>
 #include <entry.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+
+static bool supportsX2APIC()
+{
+    //  No, we ain't computing the whole CPUID shenanigans for the sake of one
+    //  flag. We get what we want.
+
+    uint32_t cpuidLeaf = 0x00000001U, ecx, dummy;
+
+    asm volatile ( "cpuid"
+                 : "+a" (cpuidLeaf), "=b" (dummy), "=c" (ecx), "=d" (dummy));
+    //  Yes, this will trash `cupidLeaf`.
+
+    return 0 != ((1 << 21) & ecx);
+}
 
 /******************
     Lapic class
@@ -15,7 +28,7 @@ using namespace Beelzebub::System;
 
 Handle Lapic::Initialize()
 {
-    //  Uh...?
+    Cpu::SetX2ApicMode(supportsX2APIC());
 
     return HandleResult::Okay;
 }
