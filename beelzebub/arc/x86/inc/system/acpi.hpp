@@ -92,5 +92,8 @@ namespace Beelzebub { namespace System
         /*  Utilities  */
 
         static __cold __bland Handle MapTable(paddr_t const header, vaddr_t & ptr);
+
+    public:
+        static __cold __bland Handle FindLapicPaddr(paddr_t & paddr);
     };
 }}

@@ -302,7 +302,7 @@ Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTa
 
 Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src)
 {
-    if (MadtPaddr == paddr || MadtSrc != src)
+    if (MadtPaddr == paddr || (MadtSrc != src && MadtSrc != SystemDescriptorTableSource::None))
         return HandleResult::Okay;
     //  Same physical address or different source table? No problemo, then.
 
@@ -316,7 +316,7 @@ Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
         return HandleResult::CardinalityViolation;
     }
 
-    MadtPointer = (acpi_table_madt *)vaddr;
+    MadtPointer = (acpi_table_madt *)(uintptr_t)vaddr;
     MadtPaddr = paddr;
     MadtSrc = src;
 
@@ -325,7 +325,7 @@ Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
 
 Handle Acpi::HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src)
 {
-    if (SratPaddr == paddr || SratSrc != src)
+    if (SratPaddr == paddr || (SratSrc != src && SratSrc != SystemDescriptorTableSource::None))
         return HandleResult::Okay;
     //  Same physical address or different source table? No problemo, then.
 
@@ -339,7 +339,7 @@ Handle Acpi::HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
         return HandleResult::CardinalityViolation;
     }
 
-    SratPointer = (acpi_table_srat *)vaddr;
+    SratPointer = (acpi_table_srat *)(uintptr_t)vaddr;
     SratPaddr = paddr;
     SratSrc = src;
 
@@ -415,6 +415,20 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
             return res;
         }
     }
+
+    return HandleResult::Okay;
+}
+
+Handle Acpi::FindLapicPaddr(paddr_t & paddr)
+{
+    Handle res;
+
+    if (MadtPointer == nullptr)
+        return HandleResult::UnsupportedOperation;
+
+    paddr = (paddr_t)MadtPointer->Address;
+
+    //uintptr_t MadtEntriesStart = (uintptr_t)MadtPointer + sizeof(acpi_table_madt);
 
     return HandleResult::Okay;
 }
