@@ -33,7 +33,15 @@ paddr_t Lapic::PhysicalAddress = nullpaddr;
 
 Handle Lapic::Initialize()
 {
-    Cpu::SetX2ApicMode(supportsX2APIC());
+    auto apicBase = Msrs::GetApicBase();
+    bool const x2ApicSupported = supportsX2APIC();
+
+    apicBase.SetGlobalLapicEnabled(true);   //  Just makin' sure.
+    apicBase.SetX2ApicEnabled(x2ApicSupported);
+
+    Cpu::SetX2ApicMode(x2ApicSupported);
+
+    Msrs::SetApicBase(apicBase);
 
     return HandleResult::Okay;
 }

@@ -21,6 +21,9 @@ namespace Beelzebub { namespace System
      */
     enum class Msr : uint32_t
     {
+        //  (L)APIC/x2APIC
+        IA32_APIC_BASE      = 0x0000001B,
+
         //  Extended Feature Enables
         IA32_EFER           = 0xC0000080,
 
@@ -122,7 +125,8 @@ namespace Beelzebub { namespace System
                          : "c" (reg), "a" (a), "d" (d) );
         }
 
-        MSRFUNC1(IA32_EFER, EFER, Ia32Efer)
+        MSRFUNC1(IA32_EFER     , EFER    , Ia32Efer    )
+        MSRFUNC1(IA32_APIC_BASE, ApicBase, Ia32ApicBase)
 
         /*  Shortcuts  */
 

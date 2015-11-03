@@ -53,7 +53,7 @@ namespace Beelzebub { namespace System
     };
 
     /**
-     * Represents the contents of the IA32_EFER MSR.
+     *  <summary>Represents the contents of the IA32_EFER MSR.</summary>
      */
     struct Ia32Efer
     {
@@ -99,6 +99,58 @@ namespace Beelzebub { namespace System
             this->Value = (syscallEnable    ? SyscallEnableBit    : 0)
                         | (longModeEnable   ? LongModeEnableBit   : 0)
                         | (nonExecuteEnable ? NonExecuteEnableBit : 0);
+        }
+
+        /*  Field(s)  */
+
+    //private:
+
+        uint64_t Value;
+    };
+
+    /**
+     *  <summary>Represents the contents of the IA32_APIC_BASE MSR.</summary>
+     */
+    struct Ia32ApicBase
+    {
+        /*  Bit structure:
+         *       0 -   7 : Reserved (must be 0)
+         *       8       : Bootstrap Processor
+         *       9       : Reserved (must be 0)
+         *      10       : Enable x2APIC
+         *      11       : Globally Enable LAPIC
+         *      12 -  35 : APIC Base
+         *      36 -  63 : Reserved (must be 0)
+         *
+         *  The manual is unclear about the actual maximum size of the APIC base
+         *  address. One diagram shows it as bieng 36-bit specifically.
+         *  However, the MSR table says "MAXPHYWID".
+         */
+
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1O( 8, BootstrapProcessor)
+        BITFIELD_DEFAULT_1W(10, X2ApicEnabled     )
+        BITFIELD_DEFAULT_1W(11, GlobalLapicEnabled)
+
+        BITFIELD_DEFAULT_2W(12,  24, paddr_t, ApicBase)
+
+        /*  Constructors  */
+
+        /**
+         *  Creates a new IA32_APIC_BASE structure from the given MSR value.
+         */
+        __bland inline explicit Ia32ApicBase(MsrValue const val)
+        {
+            this->Value = val.Qword;
+        }
+
+        /**
+         *  Creates a new IA32_APIC_BASE structure from the given raw value.
+         */
+        __bland inline explicit Ia32ApicBase(uint64_t const val)
+        {
+            this->Value = val;
         }
 
         /*  Field(s)  */
