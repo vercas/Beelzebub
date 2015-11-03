@@ -40,11 +40,11 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITFIELD_DEFAULT_1O( 8, BootstrapProcessor)
-        BITFIELD_DEFAULT_1W(10, X2ApicEnabled     )
-        BITFIELD_DEFAULT_1W(11, GlobalLapicEnabled)
+        BITFIELD_DEFAULT_1W32( 8, SoftwareEnabled              )
+        BITFIELD_DEFAULT_1W32( 9, DisableFocusProcessorChecking)
+        BITFIELD_DEFAULT_1W32(12, EoiBroadcastSuppression      )
 
-        BITFIELD_DEFAULT_2W(12,  24, paddr_t, ApicBase)
+        BITFIELD_DEFAULT_2W32( 0,  8, uint8_t, SpuriousVector)
 
         /*  Constructor  */
 

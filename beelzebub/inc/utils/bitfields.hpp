@@ -172,3 +172,27 @@ BITFIELD_STRO_RW(bitInd, bitLen, valT, name, uint64_t, this->Value, __bland, con
 
 #define BITFIELD_DEFAULT_4O(bitInd, bitLen, valT, name) \
 BITFIELD_STRO_RO(bitInd, bitLen, valT, name, uint64_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_1W32(bitInd, name) \
+BITFIELD_FLAG_RW(bitInd, name, uint32_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_1O32(bitInd, name) \
+BITFIELD_FLAG_RO(bitInd, name, uint32_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_2W32(bitInd, bitLen, valT, name) \
+BITFIELD_STRM_RW(bitInd, bitLen, valT, name, uint32_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_2O32(bitInd, bitLen, valT, name) \
+BITFIELD_STRM_RO(bitInd, bitLen, valT, name, uint32_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_3W32(offL, lenL, offH, lenH, valT, name) \
+BITFIELD_STRC_RW(offL, lenL, offH, lenH, valT, name, uint32_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_3O32(offL, lenL, offH, lenH, valT, name) \
+BITFIELD_STRC_RO(offL, lenL, offH, lenH, valT, name, uint32_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_4W32(bitInd, bitLen, valT, name) \
+BITFIELD_STRO_RW(bitInd, bitLen, valT, name, uint32_t, this->Value, __bland, const, static)
+
+#define BITFIELD_DEFAULT_4O32(bitInd, bitLen, valT, name) \
+BITFIELD_STRO_RO(bitInd, bitLen, valT, name, uint32_t, this->Value, __bland, const, static)

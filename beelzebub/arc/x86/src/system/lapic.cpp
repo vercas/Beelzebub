@@ -40,8 +40,14 @@ Handle Lapic::Initialize()
     apicBase.SetX2ApicEnabled(x2ApicSupported);
 
     Cpu::SetX2ApicMode(x2ApicSupported);
-
     Msrs::SetApicBase(apicBase);
+    //  Now the LAPIC should be usable.
+
+    auto svr = GetSvr();
+
+    svr.SetSoftwareEnabled(true);
+    svr.SetSpuriousVector(32);
+    SetSvr(svr);
 
     return HandleResult::Okay;
 }
