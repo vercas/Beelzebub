@@ -511,7 +511,7 @@ void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const
  *  Initializes the other processing units in the system.
  *  </summary>
  */
-/*Handle InitializeProcessingUnits()
+/*Handle InitializeAcpiTables()
 {
 
 

@@ -47,6 +47,7 @@ __extern __cold __bland __noinline Handle InitializePhysicalAllocator(jg_info_mm
 __extern __cold __bland __noinline Handle InitializePhysicalMemory();
 __extern __cold __bland __noinline Handle InitializeVirtualMemory();
 
+__extern __cold __bland __noinline Handle InitializeAcpiTables();
 __extern __cold __bland __noinline Handle InitializeProcessingUnits();
 
 __extern __cold __bland __noinline Handle InitializeModules();

@@ -112,9 +112,24 @@ void Beelzebub::Main()
             , res);
     }
 
-    //  Initialize the memory for partition and allocation.
+    //  Initialize the ACPI tables for easier use.
     //  Mostly common on x86.
-    MainTerminal->Write("[....] Initializing other processing units...");
+    MainTerminal->Write("[....] Initializing ACPI tables...");
+    res = InitializeAcpiTables();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize the ACPI tables: %H"
+            , res);
+    }
+
+    //  Initialize the other processing units in the system.
+    //  Mostly common on x86, but branches on AMD64.
+    MainTerminal->Write("[....] Initializing extra processing units...");
     res = InitializeProcessingUnits();
 
     if (res.IsOkayResult())
@@ -123,7 +138,7 @@ void Beelzebub::Main()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize the other processing units: %H"
+        ASSERT(false, "Failed to initialize the extra processing units: %H"
             , res);
     }
 
@@ -338,16 +353,16 @@ TerminalBase * InitializeTerminalMain()
     return &initialVbeTerminal;
 }
 
-/***********************
-    PROCESSING UNITS
-***********************/
+/***********
+    ACPI
+***********/
 
 /**
  *  <summary>
- *  Initializes the other processing units in the system.
+ *  Initializes the ACPI tables to make them easier to use by the system.
  *  </summary>
  */
-Handle InitializeProcessingUnits()
+Handle InitializeAcpiTables()
 {
     Handle res;
 
@@ -380,6 +395,37 @@ Handle InitializeProcessingUnits()
         , "Failure finding system descriptor tables!%n"
           "Result = %H"
         , res);
+
+    return HandleResult::Okay;
+}
+
+/***********************
+    PROCESSING UNITS
+***********************/
+
+/**
+ *  <summary>
+ *  Initializes the other processing units in the system.
+ *  </summary>
+ */
+Handle InitializeProcessingUnits()
+{
+    Handle res;
+
+    paddr_t const paddr = 0 /* bootstrap code page here */;
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
+    //  This's gonna be for AP bootstrappin' code.
+
+    res = BootstrapMemoryManager.MapPage(vaddr, paddr
+                                       , PageFlags::Global | PageFlags::Executable
+                                       , nullptr);
+
+    assert_or(res.IsOkayResult()
+        , "Failed to map page at %Xp (%XP) for table header: %H%n"
+        , vaddr, paddr, res)
+    {
+        return res;
+    }
 
     return HandleResult::Okay;
 }
