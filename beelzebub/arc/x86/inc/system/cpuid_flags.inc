@@ -55,6 +55,11 @@ CPUID_FEATURE(MOVBE                       ,  1, 22, MOVBE                       
 CPUID_FEATURE(POPCNT                      ,  1, 23, POPCNT                      )
 CPUID_FEATURE(TscDeadline                 ,  1, 24, TSC-Deadline                )
 CPUID_FEATURE(AES                         ,  1, 25, AES                         )
+CPUID_FEATURE(XSAVE                       ,  1, 26, XSAVE                       )
+CPUID_FEATURE(OSXSAVE                     ,  1, 27, OSXSAVE                     )
+CPUID_FEATURE(AVX                         ,  1, 28, AVX                         )
+CPUID_FEATURE(F16C                        ,  1, 29, F16C                        )
+CPUID_FEATURE(RDRAND                      ,  1, 30, RDRAND                      )
 CPUID_FEATURE(SMEP                        , 99, 99, SMEP                        )  //  TODO
 CPUID_FEATURE(SMAP                        , 99, 99, SMAP                        )  //  TODO
 CPUID_FEATURE(SyscallSysret               ,  2, 11, SyscallSysret               )
