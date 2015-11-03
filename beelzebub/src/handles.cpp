@@ -83,15 +83,17 @@ const char * const Handle::GetResultString() const
         case HandleResult::Okay:
             return "Okay";
         case HandleResult::OutOfMemory:
-            return "No mem.";
+            return "Out of mem.";
         case HandleResult::NotFound:
             return "Not Found";
         case HandleResult::IntegrityFailure:
-            return "Intg Fail";
+            return "Integrity F";
+        case HandleResult::CardinalityViolation:
+            return "Cardin Viol";
         case HandleResult::UnsupportedOperation:
-            return "Uns. Op.";
+            return "Unsupp. Op.";
         case HandleResult::NotImplemented:
-            return "Not Impl.";
+            return "Not Implem.";
 
         case HandleResult::ArgumentTemplateInvalid:
             return "Arg. T inv.";
@@ -101,48 +103,48 @@ const char * const Handle::GetResultString() const
             return "Arg. Null";
 
         case HandleResult::FormatBadSpecifier:
-            return "Frm. BSpc";
+            return "Frm. B Spec";
         case HandleResult::FormatBadArgumentSize:
-            return "Frm. BAS ";
+            return "Frm. B Ar S";
 
         case HandleResult::PagesOutOfAllocatorRange:
-            return "Pag OOAR";
+            return "Page OOAR";
         case HandleResult::PageFree:
-            return "Pag Free";
+            return "Page Free";
         case HandleResult::PageCaching:
-            return "Pag Cach.";
+            return "Page Cached";
         case HandleResult::PageInUse:
-            return "Pag Used";
+            return "Page In Use";
         case HandleResult::PageReserved:
-            return "Pag Res.";
+            return "Page Reserv";
         case HandleResult::PageStacked:
-            return "Pag Stkd";
+            return "Page Stackd";
         case HandleResult::PageNotStacked:
-            return "Pag N Stkd";
+            return "Page N Stkd";
 
         case HandleResult::PageMapIllegalRange:
             return "Pag rng ill";
         case HandleResult::PageMapped:
-            return "Pag mapped";
+            return "Page mapped";
         case HandleResult::PageUnmapped:
-            return "Pag unmp.";
+            return "Page unmapd";
         case HandleResult::PageUnaligned:
-            return "Pag unalig.";
+            return "Pag unaligd";
 
         case HandleResult::ThreadAlreadyLinked:
-            return "Thr a. lnk.";
+            return "Thr a. lnkd";
 
         case HandleResult::CmdOptionUnspecified:
-            return "Cmdo n spc.";
+            return "Cmdo unspec";
         case HandleResult::CmdOptionValueTypeInvalid:
             return "Cmdo vT inv";
         case HandleResult::CmdOptionValueNotInTable:
-            return "Cmdo v nit.";
+            return "Cmdo v NIT";
 
         case HandleResult::ObjaPoolsExhausted:
             return "Obja P exh.";
 
         default:
-            return "UNKNOWN";
+            return "!!UNKNOWN!!";
     }
 }

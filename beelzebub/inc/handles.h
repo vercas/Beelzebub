@@ -83,6 +83,8 @@ namespace Beelzebub
         NotFound                  = 0x02U, // Not Found
         //  An object or data set failed an integrity check
         IntegrityFailure          = 0x03U, // Intg Fail
+        //  Too many or not enough instances of an object/entity are ecnountered.
+        CardinalityViolation      = 0x04U, // Card Viol
         //  The requested operation isn't supported by the object/interface.
         UnsupportedOperation      = 0x09U, // Unsp. Op.
         //  Operation not implemented by the object/interface.
