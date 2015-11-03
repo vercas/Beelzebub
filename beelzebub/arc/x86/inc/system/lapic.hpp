@@ -25,6 +25,13 @@ namespace Beelzebub { namespace System
      */
     class Lapic
     {
+    public:
+        /*  Addresses  */
+
+        static paddr_t PhysicalAddress;
+        static vaddr_t const VirtualAddress = 0xFFFFFFFFFFFFF000;
+        //  Very last page - why not?
+
         /*  Constructor(s)  */
 
     protected:

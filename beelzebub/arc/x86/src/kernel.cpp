@@ -424,15 +424,30 @@ Handle InitializeApic()
 {
     Handle res;
 
+    paddr_t lapicPaddr = nullpaddr;
+
+    res = Acpi::FindLapicPaddr(lapicPaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to obtain LAPIC physical address! %H%n"
+        , res);
+
+    MainTerminal->WriteFormat(" @ %X4...", (uint32_t)lapicPaddr);
+
+    res = BootstrapMemoryManager.MapPage(Lapic::VirtualAddress, lapicPaddr
+                                       , PageFlags::Global | PageFlags::Writable
+                                       , nullptr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to map page at %Xp (%XP) for LAPIC: %H%n"
+        , Lapic::VirtualAddress, lapicPaddr, res);
+
     res = Lapic::Initialize();
     //  This initializes the LAPIC for the BSP.
 
-    assert_or(res.IsOkayResult()
+    ASSERT(res.IsOkayResult()
         , "Failed to initialize the LAPIC?! %H%n"
-        , res)
-    {
-        return res;
-    }
+        , res);
 
     if (Cpu::GetX2ApicMode())
         MainTerminal->Write(" x2APIC mode...");
@@ -461,12 +476,9 @@ Handle InitializeProcessingUnits()
                                        , PageFlags::Global | PageFlags::Executable
                                        , nullptr);
 
-    assert_or(res.IsOkayResult()
+    ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for table header: %H%n"
-        , vaddr, paddr, res)
-    {
-        return res;
-    }
+        , vaddr, paddr, res);
 
     return HandleResult::Okay;
 }

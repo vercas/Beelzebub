@@ -24,6 +24,11 @@ static bool supportsX2APIC()
     Lapic class
 ******************/
 
+/*  Addresses  */
+
+paddr_t Lapic::PhysicalAddress = nullpaddr;
+//vaddr_t Lapic::VirtualAddress = nullvaddr;
+
 /*  Initialization  */
 
 Handle Lapic::Initialize()
@@ -48,7 +53,7 @@ uint32_t Lapic::ReadRegister(LapicRegister const reg)
     }
     else
     {
-        return *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + Cpu::GetLapicAddress()));
+        return *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress));
     }
 }
 
@@ -63,6 +68,6 @@ void Lapic::WriteRegister(LapicRegister const reg, uint32_t const value)
     }
     else
     {
-        *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + Cpu::GetLapicAddress())) = value;
+        *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress)) = value;
     }
 }

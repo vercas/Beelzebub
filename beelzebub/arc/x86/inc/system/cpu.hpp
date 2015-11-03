@@ -75,7 +75,6 @@ namespace Beelzebub { namespace System
         Synchronization::spinlock_t HeapSpinlock;
         Synchronization::Spinlock<> * HeapSpinlockPointer;
 
-        vaddr_t LapicAddress;
         uint16_t GdtLength;
         bool X2ApicMode;
     } __packed;
@@ -174,13 +173,13 @@ namespace Beelzebub { namespace System
             return (Synchronization::Spinlock<> *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, HeapSpinlockPointer), (uintptr_t)val);
         }
 
-        static __bland __forceinline vaddr_t GetLapicAddress()
+        static __bland __forceinline uint16_t GetGdtLength()
         {
-            return (vaddr_t)CpuInstructions::GsGetPointer(offsetof(struct CpuData, LapicAddress));
+            return CpuInstructions::GsGet16(offsetof(struct CpuData, GdtLength));
         }
-        static __bland __forceinline vaddr_t SetLapicAddress(const vaddr_t val)
+        static __bland __forceinline uint16_t SetGdtLength(const uint16_t val)
         {
-            return (vaddr_t)CpuInstructions::GsSetPointer(offsetof(struct CpuData, LapicAddress), (uintptr_t)val);
+            return CpuInstructions::GsSet16(offsetof(struct CpuData, GdtLength), (uintptr_t)val);
         }
 
         static __bland __forceinline bool GetX2ApicMode()
