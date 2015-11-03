@@ -1,6 +1,5 @@
 #include <synchronization/atomic.hpp>
 #include <system/cpuid.hpp>
-#include <system/lapic.hpp>
 #include <system/exceptions.hpp>
 #include <system/interrupts.hpp>
 #include <system/isr.hpp>
@@ -115,8 +114,6 @@ void kmain_ap()
 
 Handle InitializeInterrupts()
 {
-    Lapic::Initialize();
-
     for (size_t i = 0; i < 256; ++i)
     {
         IsrHandlers[i] = &MiscellaneousInterruptHandler;

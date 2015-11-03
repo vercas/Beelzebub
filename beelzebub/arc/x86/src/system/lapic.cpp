@@ -1,6 +1,7 @@
 #include <system/lapic.hpp>
 #include <system/cpu.hpp>
 #include <system/msrs.hpp>
+#include <system/cpuid.hpp>
 #include <entry.h>
 
 using namespace Beelzebub;
@@ -12,9 +13,11 @@ using namespace Beelzebub::System;
 
 /*  Initialization  */
 
-void Lapic::Initialize()
+Handle Lapic::Initialize()
 {
     //  Uh...?
+
+    return HandleResult::Okay;
 }
 
 /*  Registers  */

@@ -8,6 +8,8 @@
 #include <system/cpu.hpp>
 #include <execution/thread_init.hpp>
 
+#include <system/lapic.hpp>
+
 #include <memory/manager_amd64.hpp>
 #include <system/acpi.hpp>
 
@@ -109,6 +111,21 @@ void Beelzebub::Main()
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         ASSERT(false, "Failed to initialize virtual memory: %H"
+            , res);
+    }
+
+    //  Initialize the LAPIC for the BSP and the I/O APIC.
+    //  Mostly common on x86.
+    MainTerminal->Write("[....] Initializing APIC...");
+    res = InitializeApic();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize the APIC: %H"
             , res);
     }
 
@@ -352,6 +369,27 @@ TerminalBase * InitializeTerminalMain()
 {
     return &initialVbeTerminal;
 }
+
+/***********
+    APIC
+***********/
+
+Handle InitializeApic()
+{
+    Handle res;
+
+    res = Lapic::Initialize();
+    //  This initializes the LAPIC for the BSP.
+
+    assert_or(res.IsOkayResult()
+        , "Failed to initialize the LAPIC?! %H%n"
+        , res)
+    {
+        return res;
+    }
+
+    return HandleResult::Okay;
+}   
 
 /***********
     ACPI

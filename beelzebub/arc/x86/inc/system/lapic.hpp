@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metaprogramming.h>
+#include <handles.h>
 
 namespace Beelzebub { namespace System
 {
@@ -37,7 +37,7 @@ namespace Beelzebub { namespace System
     public:
         /*  Initialization  */
 
-        static __cold __bland void Initialize();
+        static __cold __bland Handle Initialize();
 
         /*  Registers  */
 
