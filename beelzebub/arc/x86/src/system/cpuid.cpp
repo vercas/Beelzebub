@@ -11,6 +11,10 @@ using namespace Beelzebub;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
+#ifdef CPUID_FEATURE
+#undef CPUID_FEATURE
+#endif
+
 /******************
     CpuId class
 ******************/
@@ -203,69 +207,11 @@ TerminalWriteResult CpuId::PrintToTerminal(TerminalBase * const term) const
 
 #define PRINTFLAG2(name, prettyName) \
     if (this->CheckFeature(CpuFeature::name)) TERMTRY1(term->Write(" " #prettyName), tret, cnt);
-#define PRINTFLAG1(name) PRINTFLAG2(name, name)
 
-    PRINTFLAG1(FPU);
-    PRINTFLAG1(VME);
-    PRINTFLAG1(DE);
-    PRINTFLAG1(PSE);
-    PRINTFLAG1(TSC);
-    PRINTFLAG1(MSR);
-    PRINTFLAG1(PAE);
-    PRINTFLAG1(MCE);
-    PRINTFLAG1(CX8);
-    PRINTFLAG1(APIC);
-    PRINTFLAG1(SEP);
-    PRINTFLAG1(MTRR);
-    PRINTFLAG1(PGE);
-    PRINTFLAG1(MCA);
-    PRINTFLAG1(CMOV);
-    PRINTFLAG1(PAT);
-    PRINTFLAG1(PSE36);
-    PRINTFLAG1(PSN);
-    PRINTFLAG1(CLFSH);
-    PRINTFLAG1(DS);
-    PRINTFLAG1(ACPI_Thermal_Monitor);
-    PRINTFLAG1(MMX);
-    PRINTFLAG1(FXSR);
-    PRINTFLAG1(SSE);
-    PRINTFLAG1(SSE2);
-    PRINTFLAG1(SS);
-    PRINTFLAG1(HTT);
-    PRINTFLAG1(TM);
-    PRINTFLAG1(PBE);
-    PRINTFLAG1(SSE3);
-    PRINTFLAG1(PCLMULQDQ);
-    PRINTFLAG1(DTES64);
-    PRINTFLAG1(MONITOR);
-    PRINTFLAG1(DS_CPL);
-    PRINTFLAG1(VMX);
-    PRINTFLAG1(SMX);
-    PRINTFLAG1(EST);
-    PRINTFLAG1(TM2);
-    PRINTFLAG1(SSSE3);
-    PRINTFLAG1(CNXT_ID);
-    PRINTFLAG1(SDBG);
-    PRINTFLAG1(FMA);
-    PRINTFLAG1(CMPXCHG16B);
-    PRINTFLAG1(xTPR_Update_Control);
-    PRINTFLAG1(PDCM);
-    PRINTFLAG1(PCID);
-    PRINTFLAG1(DCA);
-    PRINTFLAG1(SSE41);
-    PRINTFLAG1(SSE42);
-    PRINTFLAG1(x2APIC);
-    PRINTFLAG1(MOVBE);
-    PRINTFLAG1(POPCNT);
-    PRINTFLAG2(TscDeadline, TSC-Deadline);
-    PRINTFLAG1(AES);
-    PRINTFLAG1(SMEP);
-    PRINTFLAG1(SMAP);
-    PRINTFLAG1(NX);
-    PRINTFLAG1(SyscallSysret);
-    PRINTFLAG1(Page1GB);
-    PRINTFLAG1(RDTSP);
-    PRINTFLAG1(LM);
+#define CPUID_FEATURE(name, _, __, prettyName) \
+    if (this->CheckFeature(CpuFeature::name)) TERMTRY1(term->Write(" " #prettyName), tret, cnt);
+
+#include <system/cpuid_flags.inc>
 
     return tret;
 }
