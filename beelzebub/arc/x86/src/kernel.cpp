@@ -114,21 +114,6 @@ void Beelzebub::Main()
             , res);
     }
 
-    //  Initialize the LAPIC for the BSP and the I/O APIC.
-    //  Mostly common on x86.
-    MainTerminal->Write("[....] Initializing APIC...");
-    res = InitializeApic();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        ASSERT(false, "Failed to initialize the APIC: %H"
-            , res);
-    }
-
     //  Initialize the ACPI tables for easier use.
     //  Mostly common on x86.
     MainTerminal->Write("[....] Initializing ACPI tables...");
@@ -141,6 +126,21 @@ void Beelzebub::Main()
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         ASSERT(false, "Failed to initialize the ACPI tables: %H"
+            , res);
+    }
+
+    //  Initialize the LAPIC for the BSP and the I/O APIC.
+    //  Mostly common on x86.
+    MainTerminal->Write("[....] Initializing APIC...");
+    res = InitializeApic();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize the APIC: %H"
             , res);
     }
 
@@ -371,30 +371,6 @@ TerminalBase * InitializeTerminalMain()
 }
 
 /***********
-    APIC
-***********/
-
-Handle InitializeApic()
-{
-    Handle res;
-
-    res = Lapic::Initialize();
-    //  This initializes the LAPIC for the BSP.
-
-    assert_or(res.IsOkayResult()
-        , "Failed to initialize the LAPIC?! %H%n"
-        , res)
-    {
-        return res;
-    }
-
-    if (Cpu::GetX2ApicMode())
-        MainTerminal->Write(" x2APIC mode...");
-
-    return HandleResult::Okay;
-}   
-
-/***********
     ACPI
 ***********/
 
@@ -436,6 +412,30 @@ Handle InitializeAcpiTables()
         , "Failure finding system descriptor tables!%n"
           "Result = %H"
         , res);
+
+    return HandleResult::Okay;
+}
+
+/***********
+    APIC
+***********/
+
+Handle InitializeApic()
+{
+    Handle res;
+
+    res = Lapic::Initialize();
+    //  This initializes the LAPIC for the BSP.
+
+    assert_or(res.IsOkayResult()
+        , "Failed to initialize the LAPIC?! %H%n"
+        , res)
+    {
+        return res;
+    }
+
+    if (Cpu::GetX2ApicMode())
+        MainTerminal->Write(" x2APIC mode...");
 
     return HandleResult::Okay;
 }
