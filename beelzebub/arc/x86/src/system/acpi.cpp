@@ -11,6 +11,14 @@ using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Utils;
 
+/*  For internal use  */
+
+paddr_t                     MadtPaddr = nullpaddr;
+SystemDescriptorTableSource MadtSrc   = SystemDescriptorTableSource::None;
+
+paddr_t                     SratPaddr = nullpaddr;
+SystemDescriptorTableSource SratSrc   = SystemDescriptorTableSource::None;
+
 /*****************
     ACPI class
 *****************/
@@ -190,13 +198,25 @@ Handle Acpi::FindSystemDescriptorTables()
 
         for (size_t i = 0; i < entryCount; ++i)
         {
-            res = HandleSystemDescriptorTable((paddr_t)XsdtPointer->TableOffsetEntry[i]);
+            res = HandleSystemDescriptorTable((paddr_t)XsdtPointer->TableOffsetEntry[i]
+                                            , SystemDescriptorTableSource::Xsdt);
 
-            assert_or(res.IsOkayResult()
-                , "Failed to handle a system descriptor table from the XSDT: %H%n"
-                , res)
+            if (res.IsResult(HandleResult::CardinalityViolation))
             {
-                return res;
+                MSG("Found duplicate table in XSDT!");
+
+                res = HandleResult::Okay;
+
+                //  Yes, we let the user know if possible and move on.
+            }
+            else
+            {
+                assert_or(res.IsOkayResult()
+                    , "Failed to handle a system descriptor table from the XSDT: %H%n"
+                    , res)
+                {
+                    return res;
+                }
             }
 
             ++totalEntries;
@@ -209,13 +229,23 @@ Handle Acpi::FindSystemDescriptorTables()
 
         for (size_t i = 0; i < entryCount; ++i)
         {
-            res = HandleSystemDescriptorTable((paddr_t)RsdtPointer->TableOffsetEntry[i]);
+            res = HandleSystemDescriptorTable((paddr_t)RsdtPointer->TableOffsetEntry[i]
+                                            , SystemDescriptorTableSource::Rsdt);
 
-            assert_or(res.IsOkayResult()
-                , "Failed to handle a system descriptor table from the RSDT: %H%n"
-                , res)
+            if (res.IsResult(HandleResult::CardinalityViolation))
             {
-                return res;
+                MSG("Found duplicate table in RSDT!");
+
+                res = HandleResult::Okay;
+            }
+            else
+            {
+                assert_or(res.IsOkayResult()
+                    , "Failed to handle a system descriptor table from the RSDT: %H%n"
+                    , res)
+                {
+                    return res;
+                }
             }
 
             ++totalEntries;
@@ -229,12 +259,14 @@ Handle Acpi::FindSystemDescriptorTables()
     //  Well, no tables were found? :C
 }
 
-Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr)
+/*  Specific table handling  */
+
+Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTableSource const src)
 {
     Handle res;
 
-    vaddr_t tabVaddr = nullvaddr;
-    res = Acpi::MapTable(paddr, tabVaddr);
+    vaddr_t vaddr = nullvaddr;
+    res = Acpi::MapTable(paddr, vaddr);
 
     assert_or(res.IsOkayResult()
         , "Failed to map a system descriptor table: %H%n"
@@ -243,12 +275,12 @@ Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr)
         return res;
     }
 
-    auto headerPtr = (acpi_table_header *)tabVaddr;
+    auto headerPtr = (acpi_table_header *)vaddr;
 
     uint8_t sumXsdt = Checksum8(headerPtr, headerPtr->Length);
 
     assert_or(0 == sumXsdt
-        , "XSDT checksum failed: %u1%n"
+        , "System descriptor table checksum failed: %u1%n"
         , sumXsdt)
     {
         headerPtr = nullptr;
@@ -256,8 +288,60 @@ Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr)
         return HandleResult::IntegrityFailure;
     }
 
-    msg("~[ FOUND TABLE \"%S\" ]~%n"
-        , ACPI_NAME_SIZE, headerPtr->Signature);
+    msg("~[ FOUND TABLE \"%S\" @ %Xp (%XP) in %s ]~%n"
+        , ACPI_NAME_SIZE, headerPtr->Signature, vaddr, paddr
+        , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT);
+
+    if (memeq(headerPtr->Signature, ACPI_SIG_MADT, ACPI_NAME_SIZE))
+        return Acpi::HandleMadt(vaddr, paddr, src);
+    else if (memeq(headerPtr->Signature, ACPI_SIG_SRAT, ACPI_NAME_SIZE))
+        return Acpi::HandleSrat(vaddr, paddr, src);
+
+    return HandleResult::Okay;
+}
+
+Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src)
+{
+    if (MadtPaddr == paddr || MadtSrc != src)
+        return HandleResult::Okay;
+    //  Same physical address or different source table? No problemo, then.
+
+    assert_or(MadtPointer == nullptr
+        , "Duplicate (different) MADTs found under the same table (%s)?!%n"
+          "First @ %Xp (%XP);%n"
+          "Second @ %Xp (%XP)."
+        , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT
+        , MadtPointer, MadtPaddr, vaddr, paddr)
+    {
+        return HandleResult::CardinalityViolation;
+    }
+
+    MadtPointer = (acpi_table_madt *)vaddr;
+    MadtPaddr = paddr;
+    MadtSrc = src;
+
+    return HandleResult::Okay;
+}
+
+Handle Acpi::HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src)
+{
+    if (SratPaddr == paddr || SratSrc != src)
+        return HandleResult::Okay;
+    //  Same physical address or different source table? No problemo, then.
+
+    assert_or(SratPointer == nullptr
+        , "Duplicate (different) SRATs found under the same table (%s)?!%n"
+          "First @ %Xp (%XP);%n"
+          "Second @ %Xp (%XP)."
+        , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT
+        , SratPointer, SratPaddr, vaddr, paddr)
+    {
+        return HandleResult::CardinalityViolation;
+    }
+
+    SratPointer = (acpi_table_srat *)vaddr;
+    SratPaddr = paddr;
+    SratSrc = src;
 
     return HandleResult::Okay;
 }

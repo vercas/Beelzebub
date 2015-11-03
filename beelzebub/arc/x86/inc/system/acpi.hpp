@@ -32,6 +32,18 @@ namespace Beelzebub { namespace System
         v2  = 1,
     };
 
+    /**
+     *  <summary>
+     *  Known ACPI tables pointing to system descriptor tables.
+     *  </summary>
+     */
+    enum class SystemDescriptorTableSource
+    {
+        None = 0,
+        Rsdt = 1,
+        Xsdt = 2,
+    };
+
     TAGPTR_BEGIN(RsdpPtr, Version, 4, AcpiVersion)
         TAGPTR_TYPE(RsdpPtr, AcpiVersion::v1, Version1, acpi_rsdp_common *)
         TAGPTR_TYPE(RsdpPtr, AcpiVersion::v2, Version2, acpi_table_rsdp *)
@@ -70,8 +82,12 @@ namespace Beelzebub { namespace System
         static __cold __bland Handle FindSystemDescriptorTables();
 
     private:
+        /*  Specific table handling  */
 
-        static __cold __bland Handle HandleSystemDescriptorTable(paddr_t const paddr);
+        static __cold __bland Handle HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTableSource const src);
+
+        static __cold __bland Handle HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src);
+        static __cold __bland Handle HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src);
 
         /*  Utilities  */
 
