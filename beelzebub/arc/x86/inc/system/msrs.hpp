@@ -6,12 +6,12 @@
 static __bland __forceinline type MCATS2(Get, prettyName)()               \
 {                                                                         \
     uint64_t temp = 0;                                                    \
-    Read(Msr::name, temp);                                             \
+    Read(Msr::name, temp);                                                \
     return type(temp);                                                    \
 }                                                                         \
 static __bland __forceinline void MCATS2(Set, prettyName)(const type val) \
 {                                                                         \
-    Write(Msr::name, val.Value);                                       \
+    Write(Msr::name, val.Value);                                          \
 }
 
 namespace Beelzebub { namespace System
