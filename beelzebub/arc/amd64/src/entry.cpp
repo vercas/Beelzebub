@@ -130,7 +130,7 @@ Handle InitializeInterrupts()
     IsrHandlers[(uint8_t)KnownExceptionVectors::GeneralProtectionFault] = &GeneralProtectionHandler;
     IsrHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
 
-    IsrHandlers[32] = &SerialPort::IrqHandler;
+    IsrHandlers[33] = &SerialPort::IrqHandler;
 
     IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
 

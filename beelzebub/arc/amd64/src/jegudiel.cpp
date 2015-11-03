@@ -22,8 +22,8 @@ __extern __used jg_header_root_t jegudiel_header = {
 		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ0
 		{0                      , KEYBOARD_IRQ_VECTOR    },   // IRQ1
 		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ2
-		{0                      , 32                     },   // IRQ3 - COM2&4
-		{0                      , 32                     },   // IRQ4 - COM1&3
+		{0                      , 33                     },   // IRQ3 - COM2&4
+		{0                      , 33                     },   // IRQ4 - COM1&3
 		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ5
 		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ6
 		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ7
