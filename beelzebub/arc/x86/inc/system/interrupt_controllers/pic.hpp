@@ -1,7 +1,6 @@
 #pragma once
 
 #include <system/interrupts.hpp>
-#include <utils/bitfields.hpp>
 
 namespace Beelzebub { namespace System { namespace InterruptControllers
 {
@@ -19,6 +18,7 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         static uint16_t const SlaveDataPort = 0xA1;
 
         static uint8_t VectorOffset;
+        static bool Active;
 
         /*  Ender  */
 
@@ -41,7 +41,13 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
 
         /*  Subscription  */
 
-        static __bland bool Subscribe(uint8_t const irq, InterruptHandlerFunction const handler);
-        static __bland bool Unsubscribe(uint8_t const irq);
+        static __bland bool Subscribe(uint8_t const irq, InterruptHandlerFunction const handler, bool const unmask = false);
+        static __bland bool Unsubscribe(uint8_t const irq, bool const mask = false);
+        static __bland bool IsSubscribed(uint8_t const irq);
+
+        /*  Masking  */
+
+        static __bland bool SetMasked(uint8_t const irq, bool const masked);
+        static __bland bool GetMasked(uint8_t const irq);
     };
 }}}

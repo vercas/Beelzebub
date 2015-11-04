@@ -4,6 +4,7 @@
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
 
@@ -11,11 +12,15 @@ using namespace Beelzebub::System::Timers;
     Pit class
 ****************/
 
+/*  Statics  */
+
+Atomic<size_t> Pit::Counter {0};
+
 /*  IRQ Handler  */
 
 void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS)
 {
-    //msg("PIT!");
+    ++Counter;
 
     END_OF_INTERRUPT();
 }

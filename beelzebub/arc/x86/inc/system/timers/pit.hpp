@@ -2,6 +2,7 @@
 
 #include <system/interrupts.hpp>
 #include <utils/bitfields.hpp>
+#include <synchronization/atomic.hpp>
 
 namespace Beelzebub { namespace System { namespace Timers
 {
@@ -105,6 +106,8 @@ namespace Beelzebub { namespace System { namespace Timers
         /*  Statics  */
 
         static uint32_t const BaseFrequency = 1193182;
+
+        static Synchronization::Atomic<size_t> Counter;
 
         /*  IRQ Handler  */
 
