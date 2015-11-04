@@ -29,9 +29,9 @@ namespace Beelzebub { namespace System
         {
             size_t flags;
 
-            asm volatile ( "pushf\n\t"
-                           "pop %0\n\t"
-                           : "=r"(flags) );
+            asm volatile ( "pushf        \n\t"
+                           "pop %[flags] \n\t"
+                           : [flags]"=r"(flags) );
             //  Push and pop don't change any flags. Yay!
 
             return (flags & (size_t)(1 << 9)) != 0;
@@ -99,23 +99,40 @@ namespace Beelzebub { namespace System
         }
     };
 
-    typedef void (*InterruptEnderFunction)(Beelzebub::System::IsrState * const state);
-    typedef void (*InterruptHandlerFunction)(Beelzebub::System::IsrState * const state, InterruptEnderFunction const ender);
+    #define INTERRUPT_ENDER_ARGS                                \
+          Beelzebub::System::IsrState * const state             \
+        , void const * const handler                            \
+        , uint8_t const vector
 
-    #define ISR_COUNT 256
+    typedef void (*InterruptEnderFunction)(INTERRUPT_ENDER_ARGS);
+
+    #define INTERRUPT_HANDLER_ARGS                              \
+          Beelzebub::System::IsrState * const state             \
+        , Beelzebub::System::InterruptEnderFunction const ender \
+        , void const * const handler                            \
+        , uint8_t const vector
+
+    typedef void (*InterruptHandlerFunction)(INTERRUPT_HANDLER_ARGS);
+
+    #define END_OF_INTERRUPT()                 \
+        do                                     \
+        {                                      \
+            if (ender != nullptr)              \
+                ender(state, handler, vector); \
+        } while (false)
 
     /**
      *  The actual IDT.
      */
-    __extern uint64_t IsrGates[ISR_COUNT];
+    __extern uint64_t IsrGates[Interrupts::Count];
 
     /**
      *  Array of higher-level interrupt handlers.
      */
-    __extern InterruptHandlerFunction InterruptHandlers[ISR_COUNT];
+    __extern InterruptHandlerFunction InterruptHandlers[Interrupts::Count];
 
     /**
      *  Array of higher-level interrupt handlers.
      */
-    __extern InterruptEnderFunction InterruptEnders[ISR_COUNT];
+    __extern InterruptEnderFunction InterruptEnders[Interrupts::Count];
 }}

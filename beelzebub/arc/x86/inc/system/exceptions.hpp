@@ -33,16 +33,16 @@ namespace Beelzebub { namespace System
         SimdFloatingPointException = 19,
     };
 
-    __bland void MiscellaneousInterruptHandler(IsrState * const state, InterruptEnderFunction const ender);
+    __bland void MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS);
 
-    __bland void DivideErrorHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __bland void OverflowHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __bland void BoundRangeExceededHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __bland void InvalidOpcodeHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __bland void DoubleFaultHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __bland void InvalidTssHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __bland void SegmentNotPresentHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __bland void StackSegmentFaultHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __bland void GeneralProtectionHandler(IsrState * const state, InterruptEnderFunction const ender);
-    __hot __bland void PageFaultHandler(IsrState * const state, InterruptEnderFunction const ender);
+    __bland void DivideErrorHandler(INTERRUPT_HANDLER_ARGS);
+    __bland void OverflowHandler(INTERRUPT_HANDLER_ARGS);
+    __bland void BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS);
+    __bland void InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS);
+    __bland void DoubleFaultHandler(INTERRUPT_HANDLER_ARGS);
+    __bland void InvalidTssHandler(INTERRUPT_HANDLER_ARGS);
+    __bland void SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS);
+    __bland void StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS);
+    __bland void GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS);
+    __hot __bland void PageFaultHandler(INTERRUPT_HANDLER_ARGS);
 }}

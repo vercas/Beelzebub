@@ -35,7 +35,7 @@ void keyboard_send_command(uint8_t cmd)
     Io::Out8(0x60, cmd);
 }
 
-void keyboard_handler(IsrState * const state, InterruptEnderFunction const ender)
+void keyboard_handler(INTERRUPT_HANDLER_ARGS)
 {
     uint8_t code = Io::In8(0x60);
     Io::Out8(0x61, Io::In8(0x61));
@@ -87,4 +87,5 @@ void keyboard_handler(IsrState * const state, InterruptEnderFunction const ender
     }
 
     Lapic::EndOfInterrupt();
+    END_OF_INTERRUPT();
 }

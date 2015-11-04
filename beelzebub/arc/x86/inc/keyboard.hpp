@@ -35,4 +35,4 @@ __extern __bland void keyboard_send_command(uint8_t cmd);
  *
  * @param state state of the system
  */
-__extern __bland void keyboard_handler(Beelzebub::System::IsrState * const state, Beelzebub::System::InterruptEnderFunction const ender);
+__extern __bland void keyboard_handler(INTERRUPT_HANDLER_ARGS);

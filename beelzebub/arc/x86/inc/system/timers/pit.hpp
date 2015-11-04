@@ -108,7 +108,7 @@ namespace Beelzebub { namespace System { namespace Timers
 
         /*  IRQ Handler  */
 
-        static __bland void IrqHandler(IsrState * const state, InterruptEnderFunction const ender);
+        static __bland void IrqHandler(INTERRUPT_HANDLER_ARGS);
 
         /*  Constructor(s)  */
 

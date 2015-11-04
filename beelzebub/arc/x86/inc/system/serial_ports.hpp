@@ -20,7 +20,7 @@ namespace Beelzebub { namespace System
 
         /*  Static methods  */
 
-        static __bland void IrqHandler(IsrState * const state, InterruptEnderFunction const ender);
+        static __bland void IrqHandler(INTERRUPT_HANDLER_ARGS);
 
         /*  Construction  */
 
