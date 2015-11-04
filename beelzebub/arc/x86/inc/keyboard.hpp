@@ -9,7 +9,7 @@
 #define KEYBOARD_CODE_UP        0x48
 #define KEYBOARD_CODE_DOWN      0x50
 
-#define KEYBOARD_IRQ_VECTOR     0x40
+#define KEYBOARD_IRQ_VECTOR     0xEF
 
 /**
  * Whether the escape scan code has been sent and the next
