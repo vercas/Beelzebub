@@ -40,11 +40,11 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITFIELD_DEFAULT_1W32( 8, SoftwareEnabled              )
-        BITFIELD_DEFAULT_1W32( 9, DisableFocusProcessorChecking)
-        BITFIELD_DEFAULT_1W32(12, EoiBroadcastSuppression      )
+        BITFIELD_DEFAULT_1WEx( 8, SoftwareEnabled              , 32)
+        BITFIELD_DEFAULT_1WEx( 9, DisableFocusProcessorChecking, 32)
+        BITFIELD_DEFAULT_1WEx(12, EoiBroadcastSuppression      , 32)
 
-        BITFIELD_DEFAULT_2W32( 0,  8, uint8_t, SpuriousVector)
+        BITFIELD_DEFAULT_2WEx( 0,  8, uint8_t, SpuriousVector  , 32)
 
         /*  Constructor  */
 
