@@ -15,7 +15,7 @@ ManagedSerialPort Beelzebub::System::COM4 {0x02E8};
 
 /*  Static methods  */
 
-void SerialPort::IrqHandler(IsrState * const state)
+void SerialPort::IrqHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     COM1.WriteNtString("IRQ!");
 

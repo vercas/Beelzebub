@@ -2,7 +2,7 @@
 
 #include <system/io_ports.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
-#include <system/isr.hpp>
+#include <system/interrupts.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -20,7 +20,7 @@ namespace Beelzebub { namespace System
 
         /*  Static methods  */
 
-        static __bland void IrqHandler(IsrState * const state);
+        static __bland void IrqHandler(IsrState * const state, InterruptEnderFunction const ender);
 
         /*  Construction  */
 

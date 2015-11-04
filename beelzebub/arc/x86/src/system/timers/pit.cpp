@@ -13,7 +13,7 @@ using namespace Beelzebub::System::Timers;
 
 /*  IRQ Handler  */
 
-void Pit::IrqHandler(IsrState * const state)
+void Pit::IrqHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     msg("PIT!");
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metaprogramming.h>
+#include <system/isr.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -9,6 +9,11 @@ namespace Beelzebub { namespace System
      */
     class Interrupts
     {
+    public:
+        /*  Statics  */
+
+        static size_t const Count = 256;
+
         /*  Constructor(s)  */
 
     protected:
@@ -19,9 +24,6 @@ namespace Beelzebub { namespace System
         Interrupts & operator =(Interrupts const &) = delete;
 
         /*  Interrupts  */
-
-        //static_assert(4 == offsetof(struct CpuData, InterruptDisableCount));
-        //  Protecting against accidental changes of the CpuData struct without updating the appropriate functions.
 
         static __bland __forceinline bool AreEnabled()
         {
@@ -48,33 +50,14 @@ namespace Beelzebub { namespace System
         }
 
         /**
-         *  Pushes the interrupt disabling counter and disables interrupts
-         *
-         *  @return Value of interrupt counter prior to calling the method.
-         *-/
-        static __bland __forceinline uint32_t PushDisableInterrupts()
-        {
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-            register size_t ret asm("rax") = 1;
-#else
-            register size_t ret asm("eax") = 1;
-#endif
-
-            asm volatile ( "cli \n\t"
-                           "xaddl %%eax, %%gs:($4) \n\t"
-                         : "+a"(ret)
-                         :
-                         : "memory" );
-            //  This is a memory barrier to prevent the compiler from moving things around it.
-
-            return (uint32_t)ret;
-        }//*/
-
-        /**
-         *  Disables interrupts and returns a cookie which allows restoring the interrupt state
-         *  as it was before executing this function.
-         *
-         *  @return A cookie which allows restoring the interrupt state as it was before executing this function.
+         *  <summary>
+         *  Disables interrupts and returns a cookie which allows restoring the
+         *  interrupt state as it was before executing this function.
+         *  </summary>
+         *  <return>
+         *  A cookie which allows restoring the interrupt state as it was before
+         *  executing this function.
+         *  </return>
          */
         static __bland __forceinline int_cookie_t PushDisable()
         {
@@ -96,9 +79,10 @@ namespace Beelzebub { namespace System
         }
 
         /**
+         *  <summary>
          *  Restores interrupt state based on the given cookie.
-         *
-         *  @return True if interrupts are now enabled, otherwise false.
+         *  </summary>
+         *  <return>True if interrupts are now enabled, otherwise false.</return>
          */
         static __bland __forceinline bool RestoreState(const int_cookie_t cookie)
         {
@@ -108,10 +92,30 @@ namespace Beelzebub { namespace System
                          : [src]"rm"(cookie)
                          : "memory", "cc" );
 
-            //  Here the cookie can safely be retrieved from the stack because RSP will change after
-            //  push, not before.
+            //  Here the cookie can safely be retrieved from the stack because
+            //  RSP will change after push, not before.
 
             return (cookie & (int_cookie_t)(1 << 9)) == 0;
         }
     };
+
+    typedef void (*InterruptEnderFunction)(Beelzebub::System::IsrState * const state);
+    typedef void (*InterruptHandlerFunction)(Beelzebub::System::IsrState * const state, InterruptEnderFunction const ender);
+
+    #define ISR_COUNT 256
+
+    /**
+     *  The actual IDT.
+     */
+    __extern uint64_t IsrGates[ISR_COUNT];
+
+    /**
+     *  Array of higher-level interrupt handlers.
+     */
+    __extern InterruptHandlerFunction InterruptHandlers[ISR_COUNT];
+
+    /**
+     *  Array of higher-level interrupt handlers.
+     */
+    __extern InterruptEnderFunction InterruptEnders[ISR_COUNT];
 }}

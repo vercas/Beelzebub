@@ -1,6 +1,6 @@
 #pragma once
 
-#include <system/isr.hpp>
+#include <system/interrupts.hpp>
 #include <utils/bitfields.hpp>
 
 namespace Beelzebub { namespace System { namespace Timers
@@ -108,7 +108,7 @@ namespace Beelzebub { namespace System { namespace Timers
 
         /*  IRQ Handler  */
 
-        static __bland void IrqHandler(IsrState * const state);
+        static __bland void IrqHandler(IsrState * const state, InterruptEnderFunction const ender);
 
         /*  Constructor(s)  */
 

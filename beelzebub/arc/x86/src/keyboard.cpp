@@ -3,7 +3,6 @@
 #include <system/cpu.hpp>   //  Only used for task switching right now...
 #include <system/io_ports.hpp>
 #include <system/lapic.hpp>
-#include <system/isr.hpp>
 
 #include <kernel.hpp>
 #include <debug.hpp>
@@ -36,7 +35,7 @@ void keyboard_send_command(uint8_t cmd)
     Io::Out8(0x60, cmd);
 }
 
-void keyboard_handler(IsrState * const state)
+void keyboard_handler(IsrState * const state, InterruptEnderFunction const ender)
 {
     uint8_t code = Io::In8(0x60);
     Io::Out8(0x61, Io::In8(0x61));

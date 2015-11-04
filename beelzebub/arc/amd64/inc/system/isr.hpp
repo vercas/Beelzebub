@@ -41,17 +41,3 @@ namespace Beelzebub { namespace System
         uint64_t SS;
     } __packed;
 }}
-
-typedef void (*IsrHandlerFunction)(Beelzebub::System::IsrState * const state);
-
-#define ISR_COUNT 256
-
-/**
-*  Array of pointers to all interrupt gates.
-*/
-__extern uint64_t IsrGates[ISR_COUNT];
-
-/**
-*  Array of higher-level interrupt handlers.
-*/
-__extern IsrHandlerFunction IsrHandlers[ISR_COUNT];

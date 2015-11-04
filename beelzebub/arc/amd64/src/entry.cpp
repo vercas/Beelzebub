@@ -78,9 +78,9 @@ void kmain_bsp()
     Cpu::Count = 1;
 #endif
 
-    IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
+    InterruptHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
     keyboard_init();
-    IsrHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
 
     //breakpoint();
 
@@ -118,24 +118,24 @@ Handle InitializeInterrupts()
 {
     for (size_t i = 0; i < 256; ++i)
     {
-        IsrHandlers[i] = &MiscellaneousInterruptHandler;
+        InterruptHandlers[i] = &MiscellaneousInterruptHandler;
     }
 
-    IsrHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::InvalidOpcode] = &InvalidOpcodeHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::DoubleFault] = &DoubleFaultHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::InvalidTss] = &InvalidTssHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::SegmentNotPresent] = &SegmentNotPresentHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::StackSegmentFault] = &StackSegmentFaultHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::GeneralProtectionFault] = &GeneralProtectionHandler;
-    IsrHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidOpcode] = &InvalidOpcodeHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::DoubleFault] = &DoubleFaultHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidTss] = &InvalidTssHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::SegmentNotPresent] = &SegmentNotPresentHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::StackSegmentFault] = &StackSegmentFaultHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::GeneralProtectionFault] = &GeneralProtectionHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
 
-    IsrHandlers[0xED] = &SerialPort::IrqHandler;
-    IsrHandlers[0xEE] = &Pit::IrqHandler;
+    InterruptHandlers[0xED] = &SerialPort::IrqHandler;
+    InterruptHandlers[0xEE] = &Pit::IrqHandler;
 
-    IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
+    InterruptHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
 
     //initialVbeTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
 

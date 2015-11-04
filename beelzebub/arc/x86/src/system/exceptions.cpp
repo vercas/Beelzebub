@@ -20,7 +20,7 @@ using namespace Beelzebub::Memory;
 /**
  *  Interrupt handler for miscellaneous interrupts that do not represent an exception.
  */
-void Beelzebub::System::MiscellaneousInterruptHandler(IsrState * const state)
+void Beelzebub::System::MiscellaneousInterruptHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<MISC INT @ %Xp (%Xs) - vector %u1>>", INSTRUCTION_POINTER, state->ErrorCode, state->Vector);
@@ -29,7 +29,7 @@ void Beelzebub::System::MiscellaneousInterruptHandler(IsrState * const state)
 /**
  *  Interrupt handler for division by 0.
  */
-void Beelzebub::System::DivideErrorHandler(IsrState * const state)
+void Beelzebub::System::DivideErrorHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<DIVIDE ERROR @ %Xp>>", INSTRUCTION_POINTER);
@@ -38,7 +38,7 @@ void Beelzebub::System::DivideErrorHandler(IsrState * const state)
 /**
  *  Interrupt handler for checked arithmetic overflows.
  */
-void Beelzebub::System::OverflowHandler(IsrState * const state)
+void Beelzebub::System::OverflowHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<OVERFLOW @ %Xp>>", INSTRUCTION_POINTER);
@@ -47,7 +47,7 @@ void Beelzebub::System::OverflowHandler(IsrState * const state)
 /**
  *  Interrupt handler for checked exceeded array bounds.
  */
-void Beelzebub::System::BoundRangeExceededHandler(IsrState * const state)
+void Beelzebub::System::BoundRangeExceededHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<BOUNDS EXCEEDED @ %Xp>>", INSTRUCTION_POINTER);
@@ -56,7 +56,7 @@ void Beelzebub::System::BoundRangeExceededHandler(IsrState * const state)
 /**
  *  Interrupt handler for invalid opcode exceptions.
  */
-void Beelzebub::System::InvalidOpcodeHandler(IsrState * const state)
+void Beelzebub::System::InvalidOpcodeHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<INVALID OPCODE @ %Xp>>", INSTRUCTION_POINTER);
@@ -65,7 +65,7 @@ void Beelzebub::System::InvalidOpcodeHandler(IsrState * const state)
 /**
  *  Interrupt handler for double faults.
  */
-void Beelzebub::System::DoubleFaultHandler(IsrState * const state)
+void Beelzebub::System::DoubleFaultHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<DOUBLE FAULT @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
@@ -76,7 +76,7 @@ void Beelzebub::System::DoubleFaultHandler(IsrState * const state)
 /**
  *  Interrupt handler for invalid TSS exceptions.
  */
-void Beelzebub::System::InvalidTssHandler(IsrState * const state)
+void Beelzebub::System::InvalidTssHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<INVALID TSS @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
@@ -85,7 +85,7 @@ void Beelzebub::System::InvalidTssHandler(IsrState * const state)
 /**
  *  Interrupt handler for invalid segment descriptors.
  */
-void Beelzebub::System::SegmentNotPresentHandler(IsrState * const state)
+void Beelzebub::System::SegmentNotPresentHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     uint16_t ES = 0xFFFF, FS = 0xFFFF, GS = 0xFFFF;
     //  Used for retrieving the registers.
@@ -104,7 +104,7 @@ void Beelzebub::System::SegmentNotPresentHandler(IsrState * const state)
 /**
  *  Interrupt handler for invalid stack segmrnt exception.
  */
-void Beelzebub::System::StackSegmentFaultHandler(IsrState * const state)
+void Beelzebub::System::StackSegmentFaultHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<STACK SEGMENT FAULT @ %Xp (%Xs): SS%X2>>"
@@ -114,7 +114,7 @@ void Beelzebub::System::StackSegmentFaultHandler(IsrState * const state)
 /**
  *  Interrupt handler for general protection exceptions.
  */
-void Beelzebub::System::GeneralProtectionHandler(IsrState * const state)
+void Beelzebub::System::GeneralProtectionHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     ASSERT(false
         , "<<GENERAL PROTECTION FAULT @ %Xp (%Xs)>>"
@@ -124,7 +124,7 @@ void Beelzebub::System::GeneralProtectionHandler(IsrState * const state)
 /**
  *  Interrupt handler for page faults.
  */
-void Beelzebub::System::PageFaultHandler(IsrState * const state)
+void Beelzebub::System::PageFaultHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
     vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
 

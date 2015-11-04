@@ -25,7 +25,8 @@ section .text
 bits 64
 
 global IsrGates
-global IsrHandlers
+global InterruptHandlers
+global InterruptEnders
 
 isr_dispatch:
     mov rax, rdi        ; Get vector
@@ -33,7 +34,7 @@ isr_dispatch:
     mov rax, qword [rax]
 
     mov rbx, rax        ; Get handler
-    mov rax, IsrHandlers
+    mov rax, InterruptHandlers
     shl rbx, 3
     add rax, rbx
     mov rax, qword [rax]
@@ -167,5 +168,5 @@ IsrGates:
 
 section .bss
 
-IsrHandlers:
+InterruptHandlers:
     resb 8 * 256
