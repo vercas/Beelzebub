@@ -46,7 +46,7 @@ Handle Lapic::Initialize()
     auto svr = GetSvr();
 
     svr.SetSoftwareEnabled(true);
-    svr.SetSpuriousVector(32);
+    svr.SetSpuriousVector(0xF0);
     SetSvr(svr);
 
     return HandleResult::Okay;
@@ -108,7 +108,7 @@ void Lapic::SendIpi(LapicIcr const icr)
         do
         {
             COMPILER_MEMORY_BARRIER();
-            
+
             low = *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress));
         } while (0 != (low & LapicIcr::DeliveryStatusBit));
 

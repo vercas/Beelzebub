@@ -9,6 +9,7 @@
 #include <execution/thread_init.hpp>
 
 #include <system/lapic.hpp>
+#include <system/interrupt_controllers/pic.hpp>
 #include <system/timers/pit.hpp>
 
 #include <memory/manager_amd64.hpp>
@@ -31,6 +32,7 @@ using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
+using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Terminals;
 
 volatile bool InitializingLock = true;
