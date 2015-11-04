@@ -19,7 +19,7 @@ void SerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
 {
     //COM1.WriteNtString("IRQ!");
 
-    Lapic::EndOfInterrupt();
+    END_OF_INTERRUPT();
 }
 
 /*  Construction  */

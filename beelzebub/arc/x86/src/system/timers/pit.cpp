@@ -15,9 +15,9 @@ using namespace Beelzebub::System::Timers;
 
 void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS)
 {
-    msg("PIT!");
+    //msg("PIT!");
 
-    Lapic::EndOfInterrupt();
+    END_OF_INTERRUPT();
 }
 
 /*  Initialization  */

@@ -1,21 +1,22 @@
-#include <synchronization/atomic.hpp>
 #include <system/cpuid.hpp>
-#include <system/exceptions.hpp>
-#include <system/interrupts.hpp>
-#include <system/isr.hpp>
 #include <execution/thread_init.hpp>
 #include <terminals/vbe.hpp>
+
+#include <system/exceptions.hpp>
+#include <system/interrupt_controllers/pic.hpp>
 
 #include <keyboard.hpp>
 #include <system/serial_ports.hpp>
 #include <system/timers/pit.hpp>
 
 #include <kernel.hpp>
-#include <debug.hpp>
 #include <entry.h>
+
+#include <synchronization/atomic.hpp>
 #include <math.h>
 #include <string.h>
 
+#include <debug.hpp>
 #include <_print/registers.hpp>
 #include <_print/gdt.hpp>
 
@@ -25,6 +26,7 @@ using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
+using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
@@ -116,7 +118,7 @@ void kmain_ap()
 
 Handle InitializeInterrupts()
 {
-    for (size_t i = 0; i < 256; ++i)
+    for (size_t i = 0; i < Interrupts::Count; ++i)
     {
         InterruptHandlers[i] = &MiscellaneousInterruptHandler;
         InterruptEnders[i] = nullptr;
@@ -133,10 +135,17 @@ Handle InitializeInterrupts()
     InterruptHandlers[(uint8_t)KnownExceptionVectors::GeneralProtectionFault] = &GeneralProtectionHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
 
-    InterruptHandlers[0xED] = &SerialPort::IrqHandler;
-    InterruptHandlers[0xEE] = &Pit::IrqHandler;
+    Pic::Initialize(0xE0);  //  Just below the spurious interrupt shenanigans.
 
-    InterruptHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
+    Pic::Subscribe(0, &Pit::IrqHandler);
+    Pic::Subscribe(1, &keyboard_handler);
+    Pic::Subscribe(3, &SerialPort::IrqHandler);
+    Pic::Subscribe(4, &SerialPort::IrqHandler);
+
+    //InterruptHandlers[Pic::VectorOffset + 0] = &Pit::IrqHandler;
+    //InterruptHandlers[Pic::VectorOffset + 1] = &keyboard_handler;
+    //InterruptHandlers[Pic::VectorOffset + 3] = &SerialPort::IrqHandler;
+    //InterruptHandlers[Pic::VectorOffset + 4] = &SerialPort::IrqHandler;
 
     //initialVbeTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
 

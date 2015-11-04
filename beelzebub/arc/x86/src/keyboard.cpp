@@ -86,6 +86,5 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS)
         }
     }
 
-    Lapic::EndOfInterrupt();
     END_OF_INTERRUPT();
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <system/isr.hpp>
+#include <system/interrupts.hpp>
 #include <utils/bitfields.hpp>
 
 namespace Beelzebub { namespace System { namespace InterruptControllers
@@ -18,6 +18,12 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         static uint16_t const SlaveCommandPort = 0xA0;
         static uint16_t const SlaveDataPort = 0xA1;
 
+        static uint8_t VectorOffset;
+
+        /*  Ender  */
+
+        static __hot __bland void IrqEnder(INTERRUPT_ENDER_ARGS);
+
         /*  Constructor(s)  */
 
     protected:
@@ -28,8 +34,14 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         Pic & operator =(Pic const &) = delete;
 
     public:
-        /*  Initialization  */
+        /*  (De)initialization  */
 
-        static __cold __bland void Initialize();
+        static __cold __bland void Initialize(uint8_t const vecOff);
+        static __cold __bland void Disable();
+
+        /*  Subscription  */
+
+        static __bland bool Subscribe(uint8_t const irq, InterruptHandlerFunction const handler);
+        static __bland bool Unsubscribe(uint8_t const irq);
     };
 }}}
