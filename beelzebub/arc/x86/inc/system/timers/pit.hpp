@@ -1,6 +1,5 @@
 #pragma once
 
-#include <system/io_ports.hpp>
 #include <system/isr.hpp>
 #include <utils/bitfields.hpp>
 
@@ -124,6 +123,8 @@ namespace Beelzebub { namespace System { namespace Timers
         /*  Initialization  */
 
         static __cold __bland void SetFrequency(uint32_t & freq);
+
+        static __cold __bland void SendCommand(PitCommand const cmd);
 
         /*  Utilities  */
 

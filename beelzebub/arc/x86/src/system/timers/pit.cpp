@@ -1,5 +1,6 @@
 #include <system/timers/pit.hpp>
 #include <system/lapic.hpp>
+#include <system/io_ports.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -28,4 +29,9 @@ void Pit::SetFrequency(uint32_t & freq)
 
     Io::Out8(0x40, (uint8_t)(divfreq.Divider     ));  //  Low byte
     Io::Out8(0x40, (uint8_t)(divfreq.Divider >> 8));  //  High byte
+}
+
+void Pit::SendCommand(PitCommand const cmd)
+{
+    Io::Out8(0x43, cmd.Value);
 }

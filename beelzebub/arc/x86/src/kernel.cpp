@@ -454,6 +454,8 @@ Handle InitializeApic()
     if (Cpu::GetX2ApicMode())
         MainTerminal->Write(" x2APIC mode...");
 
+    PitCommand pitCmd {0x36};
+    Pit::SendCommand(pitCmd);
     uint32_t pitFreq = 100;
     Pit::SetFrequency(pitFreq);
 
