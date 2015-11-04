@@ -1,4 +1,6 @@
 #include <system/timers/pit.hpp>
+#include <system/lapic.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -8,9 +10,22 @@ using namespace Beelzebub::System::Timers;
     Pit class
 ****************/
 
+/*  IRQ Handler  */
+
+void Pit::IrqHandler(IsrState * const state)
+{
+    msg("PIT!");
+
+    Lapic::EndOfInterrupt();
+}
+
 /*  Initialization  */
 
-void Pit::Initialize()
+void Pit::SetFrequency(uint32_t & freq)
 {
-    //  Uh...?
+    DividerFrequency divfreq = GetRealFrequency(freq);
+    freq = divfreq.Frequency;
+
+    Io::Out8(0x40, (uint8_t)(divfreq.Divider     ));  //  Low byte
+    Io::Out8(0x40, (uint8_t)(divfreq.Divider >> 8));  //  High byte
 }

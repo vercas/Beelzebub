@@ -9,6 +9,7 @@
 #include <execution/thread_init.hpp>
 
 #include <system/lapic.hpp>
+#include <system/timers/pit.hpp>
 
 #include <memory/manager_amd64.hpp>
 #include <system/acpi.hpp>
@@ -29,6 +30,7 @@ using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
+using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::Terminals;
 
 volatile bool InitializingLock = true;
@@ -451,6 +453,11 @@ Handle InitializeApic()
 
     if (Cpu::GetX2ApicMode())
         MainTerminal->Write(" x2APIC mode...");
+
+    uint32_t pitFreq = 100;
+    Pit::SetFrequency(pitFreq);
+
+    MainTerminal->WriteFormat(" @ %u4...", pitFreq);
 
     return HandleResult::Okay;
 }

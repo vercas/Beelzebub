@@ -19,7 +19,7 @@ __extern __used jg_header_root_t jegudiel_header = {
 	0,                                      // syscall_entry
 	(uintptr_t)&IsrGates,                   // isr_entry_table
 	{
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ0
+		{0                      , 34                     },   // IRQ0
 		{0                      , KEYBOARD_IRQ_VECTOR    },   // IRQ1
 		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ2
 		{0                      , 33                     },   // IRQ3 - COM2&4

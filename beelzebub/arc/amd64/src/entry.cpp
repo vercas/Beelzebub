@@ -3,11 +3,12 @@
 #include <system/exceptions.hpp>
 #include <system/interrupts.hpp>
 #include <system/isr.hpp>
-#include <system/serial_ports.hpp>
 #include <execution/thread_init.hpp>
 #include <terminals/vbe.hpp>
 
 #include <keyboard.hpp>
+#include <system/serial_ports.hpp>
+#include <system/timers/pit.hpp>
 
 #include <kernel.hpp>
 #include <debug.hpp>
@@ -23,6 +24,7 @@ using namespace Beelzebub::Debug;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
+using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
@@ -131,6 +133,7 @@ Handle InitializeInterrupts()
     IsrHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
 
     IsrHandlers[33] = &SerialPort::IrqHandler;
+    IsrHandlers[34] = &Pit::IrqHandler;
 
     IsrHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
 
