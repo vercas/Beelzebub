@@ -41,7 +41,7 @@ Handle Lapic::Initialize()
 
     Cpu::SetX2ApicMode(x2ApicSupported);
     Msrs::SetApicBase(apicBase);
-    //  Now the LAPIC should be usable.
+    //  Now the LAPIC/x2APIC should be usable.
 
     auto svr = GetSvr();
 
@@ -83,5 +83,36 @@ void Lapic::WriteRegister(LapicRegister const reg, uint32_t const value)
     else
     {
         *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress)) = value;
+    }
+}
+
+/*  Shortcuts  */
+
+void Lapic::SendIpi(LapicIcr const icr)
+{
+    if (Cpu::GetX2ApicMode())
+    {
+        //  x2APIC mode does not require any checking prior to sending.
+
+        Msr msr = (Msr)((uint32_t)Msr::IA32_X2APIC_BASE
+            + (uint32_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow);
+
+        Msrs::Write(msr, icr.Low, icr.High);
+    }
+    else
+    {
+        //  In xAPIC/LAPIC mode, the delivery status needs to be checked.
+
+        uint32_t volatile low = 0xFFFFFFFFU;
+
+        do
+        {
+            COMPILER_MEMORY_BARRIER();
+            
+            low = *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress));
+        } while (0 != (low & LapicIcr::DeliveryStatusBit));
+
+        *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterHigh << 4) + VirtualAddress)) = icr.High;
+        *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress)) = icr.Low ;
     }
 }

@@ -58,6 +58,8 @@ namespace Beelzebub { namespace System
             WriteRegister(LapicRegister::EndOfInterrupt, 0);
         }
 
+        static __bland void SendIpi(LapicIcr const icr);
+
         LAPICREGFUNC1(SpuriousInterruptVector, Svr, LapicSvr)
     };
 }}
