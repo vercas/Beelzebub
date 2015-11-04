@@ -119,6 +119,7 @@ Handle InitializeInterrupts()
     for (size_t i = 0; i < 256; ++i)
     {
         InterruptHandlers[i] = &MiscellaneousInterruptHandler;
+        InterruptEnders[i] = nullptr;
     }
 
     InterruptHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;

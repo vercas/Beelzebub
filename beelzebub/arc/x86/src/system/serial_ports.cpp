@@ -17,7 +17,7 @@ ManagedSerialPort Beelzebub::System::COM4 {0x02E8};
 
 void SerialPort::IrqHandler(IsrState * const state, InterruptEnderFunction const ender)
 {
-    COM1.WriteNtString("IRQ!");
+    //COM1.WriteNtString("IRQ!");
 
     Lapic::EndOfInterrupt();
 }
@@ -37,7 +37,7 @@ void SerialPort::Initialize() const
     Io::Out8(this->BasePort + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
 
     Io::Out8(this->BasePort + 4, 0x0B);    // IRQs enabled, RTS/DSR set
-    Io::Out8(this->BasePort + 1, 0x0F);    // Enable some interrupts
+    //Io::Out8(this->BasePort + 1, 0x0F);    // Enable some interrupts
 }
 
 /*  I/O  */
