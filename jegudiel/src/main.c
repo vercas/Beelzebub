@@ -104,8 +104,8 @@ void main_bsp(void)
     // Initialize interrupt controllers
     lapic_detect();
     lapic_setup();
-    ioapic_setup_loader();
-    pic_setup();
+    //ioapic_setup_loader();
+    //pic_setup();
 
     puts("\r[OK]\r\n");
 
@@ -113,7 +113,7 @@ void main_bsp(void)
     puts("[  ] Calibrating LAPIC timer...");
 
     // Calibrate the LAPIC timer
-    lapic_timer_calibrate();
+    //lapic_timer_calibrate();
 
     puts("\r[OK]\r\n");
 
@@ -131,7 +131,7 @@ void main_bsp(void)
 
     // Setup IDT and IOAPIC according to kernel header
     idt_setup_kernel();
-    ioapic_setup_kernel();
+    //ioapic_setup_kernel();
 
     puts("\r[OK]\r\n");
 
@@ -203,7 +203,7 @@ void main_ap(void)
 
     // Enable LAPIC and calibrate the timer
     lapic_setup();
-    lapic_timer_calibrate();
+    //lapic_timer_calibrate();
 
     puts("B");
 
