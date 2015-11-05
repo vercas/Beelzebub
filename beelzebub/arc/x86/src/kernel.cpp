@@ -288,9 +288,9 @@ void Beelzebub::Main()
     {
         if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 
-        TerminalMessageLock.Acquire();
-        MainTerminal->WriteLine(">>-- Rehalting! --<<");
-        TerminalMessageLock.Release();
+        //TerminalMessageLock.Acquire();
+        //MainTerminal->WriteLine(">>-- Rehalting! --<<");
+        //TerminalMessageLock.Release();
     }
 }
 
@@ -509,7 +509,76 @@ Handle InitializeProcessingUnits()
 {
     Handle res;
 
-    paddr_t const paddr = 0 /* bootstrap code page here */;
+    if (Acpi::MadtPointer == nullptr)
+    {
+        MainTerminal->WriteLine(" No MADT?");
+
+        return HandleResult::Okay;
+
+        //  If there is no MADT, I'll just assume there's no APs to initialize.
+    }
+
+    size_t ioapicCount = 0, lapicCount = 0;
+
+    uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
+
+    auto e = (acpi_subtable_header *)((uint8_t *)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer));
+
+    MainTerminal->WriteLine();
+
+    while ((uintptr_t)e < madtEnd)
+    {
+        switch (e->Type)
+        {
+        case ACPI_MADT_TYPE_LOCAL_APIC:
+            {
+                auto lapic = (acpi_madt_local_apic *)e;
+
+                MainTerminal->WriteFormat("(( MADTe: LAPIC LID-%u1 PID-%u1 F-%X4 ))%n"
+                    , lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
+
+                ++lapicCount;
+            }
+            break;
+
+        case ACPI_MADT_TYPE_IO_APIC:
+            {
+                auto ioapic = (acpi_madt_io_apic *)e;
+
+                MainTerminal->WriteFormat("(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))%n"
+                    , ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);
+
+                ++ioapicCount;
+            }
+            break;
+
+        case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
+            {
+                auto intovr = (acpi_madt_interrupt_override *)e;
+
+                MainTerminal->WriteFormat("(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))%n"
+                    , intovr->Bus, intovr->SourceIrq, intovr->GlobalIrq, intovr->IntiFlags);
+            }
+            break;
+
+        case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
+            {
+                auto lanmi = (acpi_madt_local_apic_nmi *)e;
+
+                MainTerminal->WriteFormat("(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))%n"
+                    , lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
+            }
+            break;
+
+        default:
+            MainTerminal->WriteFormat("(( MADTe: T%u1 L%u1 ))%n", e->Type, e->Length);
+            break;
+        }
+
+        e = (acpi_subtable_header *)((uint8_t *)e + e->Length);
+    }
+
+    paddr_t const paddr = 0x1000;
     vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
     //  This's gonna be for AP bootstrappin' code.
 
@@ -518,7 +587,7 @@ Handle InitializeProcessingUnits()
                                        , nullptr);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) for table header: %H%n"
+        , "Failed to map page at %Xp (%XP) for init code: %H%n"
         , vaddr, paddr, res);
 
     return HandleResult::Okay;
