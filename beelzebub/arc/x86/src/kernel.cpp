@@ -16,6 +16,7 @@
 #include <system/acpi.hpp>
 
 #include <synchronization/spinlock.hpp>
+#include <utils/wait.hpp>
 #include <debug.hpp>
 
 #if __BEELZEBUB__TEST_STR
@@ -34,6 +35,7 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Terminals;
+using namespace Beelzebub::Utils;
 
 volatile bool InitializingLock = true;
 Spinlock<> InitializationLock;
@@ -85,6 +87,21 @@ void Beelzebub::Main()
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         ASSERT(false, "Failed to initialize interrupts: %H"
+            , res);
+    }
+
+    //  Preparing the PIT for basic timing.
+    //  Common on x86.
+    MainTerminal->Write("[....] Initializing PIT...");
+    res = InitializePit();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize the PIT: %H"
             , res);
     }
 
@@ -372,6 +389,26 @@ TerminalBase * InitializeTerminalProto()
 TerminalBase * InitializeTerminalMain()
 {
     return &initialVbeTerminal;
+}
+
+/**********
+    PIT
+**********/
+
+Handle InitializePit()
+{
+    PitCommand pitCmd {};
+    pitCmd.SetAccessMode(PitAccessMode::LowHigh);
+    pitCmd.SetOperatingMode(PitOperatingMode::SquareWaveGenerator);
+
+    Pit::SendCommand(pitCmd);
+    
+    uint32_t pitFreq = 100;
+    Pit::SetFrequency(pitFreq);
+
+    MainTerminal->WriteFormat(" @ %u4 Hz...", pitFreq);
+
+    return HandleResult::Okay;
 }
 
 /***********

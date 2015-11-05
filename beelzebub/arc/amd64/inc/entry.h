@@ -39,6 +39,9 @@ namespace Beelzebub
 }
 #endif
 
+__extern __cold __bland __noinline Handle InitializeInterrupts();
+__extern __cold __bland __noinline Handle InitializePit();
+
 // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
 __extern __cold __bland __noinline Handle InitializePhysicalAllocator(jg_info_mmap_t * map
 					                                                , size_t cnt
@@ -53,8 +56,6 @@ __extern __cold __bland __noinline Handle InitializeAcpiTables();
 __extern __cold __bland __noinline Handle InitializeProcessingUnits();
 
 __extern __cold __bland __noinline Handle InitializeModules();
-
-__extern __cold __bland __noinline Handle InitializeInterrupts();
 
 __extern __cold __bland __noinline TerminalBase * InitializeTerminalProto();
 __extern __cold __bland __noinline TerminalBase * InitializeTerminalMain();
