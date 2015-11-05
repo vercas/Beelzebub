@@ -1,5 +1,4 @@
 #include <system/timers/pit.hpp>
-#include <system/lapic.hpp>
 #include <system/io_ports.hpp>
 #include <debug.hpp>
 
@@ -31,7 +30,7 @@ void Pit::SetFrequency(uint32_t & freq)
 {
     if (freq < MinimumFrequency)
         freq = MinimumFrequency;
-    
+
     DividerFrequency divfreq = GetRealFrequency(freq);
     freq = divfreq.Frequency;
 

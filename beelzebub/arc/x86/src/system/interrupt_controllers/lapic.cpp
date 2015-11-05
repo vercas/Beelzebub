@@ -1,10 +1,11 @@
-#include <system/lapic.hpp>
+#include <system/interrupt_controllers/lapic.hpp>
 #include <system/cpu.hpp>
 #include <system/msrs.hpp>
 #include <entry.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+using namespace Beelzebub::System::InterruptControllers;
 
 static bool supportsX2APIC()
 {

@@ -13,7 +13,7 @@ static __bland __forceinline void MCATS2(Set, prettyName)(const type val) \
     WriteRegister(LapicRegister::name, val.Value);                        \
 }
 
-namespace Beelzebub { namespace System
+namespace Beelzebub { namespace System { namespace InterruptControllers
 {
     /**
      *  <summary>Contains methods for interacting with the local APIC.</summary>
@@ -61,4 +61,4 @@ namespace Beelzebub { namespace System
 
         LAPICREGFUNC1(SpuriousInterruptVector, Svr, LapicSvr)
     };
-}}
+}}}

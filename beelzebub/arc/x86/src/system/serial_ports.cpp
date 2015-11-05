@@ -1,5 +1,4 @@
 #include <system/serial_ports.hpp>
-#include <system/lapic.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
