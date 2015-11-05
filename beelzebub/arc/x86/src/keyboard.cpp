@@ -52,7 +52,7 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS)
         switch (code)
         {
         case KEYBOARD_CODE_LEFT:
-            {
+            /*{
                 PitCommand pitCmd {};
                 pitCmd.SetAccessMode(PitAccessMode::LowHigh);
                 Pit::SendCommand(pitCmd);
@@ -61,7 +61,7 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS)
                 Pit::SetFrequency(pitFreq);
 
                 //  This is merely a test of the PIT.
-            }
+            }*/
 
             break;
 
