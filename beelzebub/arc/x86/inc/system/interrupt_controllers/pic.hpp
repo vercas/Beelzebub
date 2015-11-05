@@ -33,7 +33,6 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         Pic(Pic const &) = delete;
         Pic & operator =(Pic const &) = delete;
 
-    public:
         /*  (De)initialization  */
 
         static __cold __bland void Initialize(uint8_t const vecOff);

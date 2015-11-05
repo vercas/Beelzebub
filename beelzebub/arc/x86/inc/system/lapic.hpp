@@ -36,7 +36,6 @@ namespace Beelzebub { namespace System
         Lapic(Lapic const &) = delete;
         Lapic & operator =(Lapic const &) = delete;
 
-    public:
         /*  Initialization  */
 
         static __cold __bland Handle Initialize();

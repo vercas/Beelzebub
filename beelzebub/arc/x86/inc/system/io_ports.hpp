@@ -9,7 +9,15 @@ namespace Beelzebub { namespace System
      */
     class Io
     {
+        /*  Constructor(s)  */
+
+    protected:
+        Io() = default;
+
     public:
+        Io(Io const &) = delete;
+        Io & operator =(Io const &) = delete;
+
         /*  Port I/O  */
 
         static __bland __forceinline void Out8(uint16_t const port

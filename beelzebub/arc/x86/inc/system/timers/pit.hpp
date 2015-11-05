@@ -131,7 +131,6 @@ namespace Beelzebub { namespace System { namespace Timers
         Pit(Pit const &) = delete;
         Pit & operator =(Pit const &) = delete;
 
-    public:
         /*  Initialization  */
 
         static __cold __bland void SetFrequency(uint32_t & freq);
