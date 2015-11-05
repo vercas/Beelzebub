@@ -73,7 +73,15 @@ namespace Beelzebub { namespace System { namespace Timers
         /*  Constructor  */
 
         /**
-         *  Creates a new PIT command register structure from the given raw value.
+         *  <summary>Creates a null PIT command register structure.</summary>
+         */
+        __bland inline constexpr PitCommand() : Value(0) { }
+
+        /**
+         *  <summary>
+         *  Creates a new PIT command register structure from the given raw
+         *  value.
+         *  </summary>
          */
         __bland inline explicit constexpr PitCommand(uint8_t const val)
             : Value(val)
@@ -106,6 +114,7 @@ namespace Beelzebub { namespace System { namespace Timers
         /*  Statics  */
 
         static uint32_t const BaseFrequency = 1193182;
+        static uint32_t const MinimumFrequency = 19;
 
         static Synchronization::Atomic<size_t> Counter;
 

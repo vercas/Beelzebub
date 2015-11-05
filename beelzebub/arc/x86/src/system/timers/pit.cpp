@@ -29,6 +29,9 @@ void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS)
 
 void Pit::SetFrequency(uint32_t & freq)
 {
+    if (freq < MinimumFrequency)
+        freq = MinimumFrequency;
+    
     DividerFrequency divfreq = GetRealFrequency(freq);
     freq = divfreq.Frequency;
 

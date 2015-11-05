@@ -2,7 +2,7 @@
 
 #include <system/cpu.hpp>   //  Only used for task switching right now...
 #include <system/io_ports.hpp>
-#include <system/lapic.hpp>
+#include <system/timers/pit.hpp>
 
 #include <kernel.hpp>
 #include <debug.hpp>
@@ -11,6 +11,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::System;
+using namespace Beelzebub::System::Timers;
 
 bool keyboard_escaped = false;
 volatile int breakpointEscaped = 0;
@@ -50,12 +51,23 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS)
 
         switch (code)
         {
-        /*case KEYBOARD_CODE_LEFT:
-            ui_switch_left();
-            break;//*/
+        case KEYBOARD_CODE_LEFT:
+            {
+                PitCommand pitCmd {};
+                pitCmd.SetAccessMode(PitAccessMode::LowHigh);
+                Pit::SendCommand(pitCmd);
+                
+                uint32_t pitFreq = 50;
+                Pit::SetFrequency(pitFreq);
+
+                //  This is merely a test of the PIT.
+            }
+
+            break;
 
         case KEYBOARD_CODE_RIGHT:
             breakpointEscaped = 0;
+
             break;
 
         case KEYBOARD_CODE_UP:
