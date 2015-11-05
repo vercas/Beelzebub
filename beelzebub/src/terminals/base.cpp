@@ -375,11 +375,11 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
             }
             else if (c == '#')  //  Get current character count.
             {
-                *(va_arg(args, uint32_t *)) = res.Size;
+                *(va_arg(args, size_t *)) = res.Size;
             }
             else if (c == '*')  //  Fill with spaces.
             {
-                uint32_t n = va_arg(args, uint32_t);
+                uint32_t n = va_arg(args, size_t);
 
                 TERMTRY2(n, writeChar(term, ' '), res, cnt);
             }

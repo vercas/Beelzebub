@@ -19,6 +19,7 @@ namespace Beelzebub
      */
     __cold __bland void Main();
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
     /**
      *  <summary>Entry point for application processors.</summary>
      */
@@ -28,4 +29,5 @@ namespace Beelzebub
      *  <summary>Entry point for other domains.</summary>
      */
     __cold __bland void Ternary();
+#endif
 }

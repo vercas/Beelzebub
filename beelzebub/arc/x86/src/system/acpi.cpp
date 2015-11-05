@@ -4,6 +4,8 @@
 #include <utils/checksum.hpp>
 #include <string.h>
 #include <math.h>
+
+#include <kernel.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -30,6 +32,10 @@ acpi_table_rsdt * Acpi::RsdtPointer = nullptr;
 acpi_table_xsdt * Acpi::XsdtPointer = nullptr;
 acpi_table_madt * Acpi::MadtPointer = nullptr;
 acpi_table_srat * Acpi::SratPointer = nullptr;
+
+size_t Acpi::LapicCount = 0;
+size_t Acpi::PresentLapicCount = 0;
+size_t Acpi::IoapicCount = 0;
 
 /*  Initialization  */
 
@@ -288,9 +294,9 @@ Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTa
         return HandleResult::IntegrityFailure;
     }
 
-    msg("~[ FOUND TABLE \"%S\" @ %Xp (%XP) in %s ]~%n"
+    /*msg("~[ FOUND TABLE \"%S\" @ %Xp (%XP) in %s ]~%n"
         , ACPI_NAME_SIZE, headerPtr->Signature, vaddr, paddr
-        , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT);
+        , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT);//*/
 
     if (memeq(headerPtr->Signature, ACPI_SIG_MADT, ACPI_NAME_SIZE))
         return Acpi::HandleMadt(vaddr, paddr, src);
@@ -319,6 +325,44 @@ Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
     MadtPointer = (acpi_table_madt *)(uintptr_t)vaddr;
     MadtPaddr = paddr;
     MadtSrc = src;
+
+    uintptr_t madtEnd = vaddr + Acpi::MadtPointer->Header.Length;
+    uintptr_t e = vaddr + sizeof(*Acpi::MadtPointer);
+    for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    {
+        switch (((acpi_subtable_header *)e)->Type)
+        {
+        case ACPI_MADT_TYPE_LOCAL_APIC:
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+            {
+                auto lapic = (acpi_madt_local_apic *)e;
+
+                if (0 != (ACPI_MADT_ENABLED & lapic->LapicFlags))
+                    ++PresentLapicCount;
+
+                ++LapicCount;
+            }
+#endif
+            break;
+
+        case ACPI_MADT_TYPE_IO_APIC:
+            ++IoapicCount;
+            break;
+
+        case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
+            break;
+
+        case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
+            break;
+
+        default:
+            MainTerminal->WriteFormat("%n%*(( MADTe: T%u1 L%u1 ))"
+                , 50
+                , ((acpi_subtable_header *)e)->Type
+                , ((acpi_subtable_header *)e)->Length);
+            break;
+        }
+    }
 
     return HandleResult::Okay;
 }

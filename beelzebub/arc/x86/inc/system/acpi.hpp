@@ -63,6 +63,13 @@ namespace Beelzebub { namespace System
         static acpi_table_madt * MadtPointer;
         static acpi_table_srat * SratPointer;
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+        static size_t LapicCount;
+        static size_t PresentLapicCount;
+#endif
+        
+        static size_t IoapicCount;
+
         /*  Constructor(s)  */
 
     protected:

@@ -8,8 +8,9 @@
 #include <system/cpu.hpp>
 #include <execution/thread_init.hpp>
 
-#include <system/lapic.hpp>
 #include <system/interrupt_controllers/pic.hpp>
+#include <system/interrupt_controllers/lapic.hpp>
+#include <system/interrupt_controllers/ioapic.hpp>
 #include <system/timers/pit.hpp>
 
 #include <memory/manager_amd64.hpp>
@@ -37,7 +38,6 @@ using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Utils;
 
-volatile bool InitializingLock = true;
 Spinlock<> InitializationLock;
 Spinlock<> TerminalMessageLock;
 
@@ -59,9 +59,7 @@ Domain Beelzebub::Domain0;
 
 void Beelzebub::Main()
 {
-    InitializingLock = true;    //  Makin' sure.
-    (&InitializationLock)->Acquire();
-    InitializingLock = false;
+    InitializationLock.Acquire();
 
     Handle res;
     //  Used for intermediary results.
@@ -73,7 +71,7 @@ void Beelzebub::Main()
     //  basic of output. This should be x86-common.
     MainTerminal = InitializeTerminalProto();
 
-    MainTerminal->WriteLine("Prototerminal initialized!");
+    MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
 
     //  Setting up basic interrupt handlers 'n stuff.
     //  Again, platform-specific.
@@ -165,20 +163,31 @@ void Beelzebub::Main()
             , res);
     }
 
+#if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
+#else
     //  Initialize the other processing units in the system.
-    //  Mostly common on x86, but branches on AMD64.
-    MainTerminal->Write("[....] Initializing extra processing units...");
-    res = InitializeProcessingUnits();
+    //  Mostly common on x86, but the executed code differs by arch.
+    if (Acpi::PresentLapicCount > 1)
+    {
+        MainTerminal->Write("[....] Initializing extra processing units...");
+        res = InitializeProcessingUnits();
 
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize the extra processing units: %H"
+                , res);
+        }
+    }
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        ASSERT(false, "Failed to initialize the extra processing units: %H"
-            , res);
+        MainTerminal->WriteLine("[SKIP] No extra processing units available.");
     }
+#endif
 
     //  Initialize the modules loaded with the kernel.
     //  Mostly common.
@@ -207,7 +216,7 @@ void Beelzebub::Main()
     //  Permit other processors to initialize themselves.
     MainTerminal->WriteLine("Initialization complete!");
     MainTerminal->WriteLine();
-    (&InitializationLock)->Release();
+    InitializationLock.Release();
 
     //  Now every core will print.
     TerminalMessageLock.Acquire();
@@ -294,15 +303,13 @@ void Beelzebub::Main()
     }
 }
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
 /*  Secondary entry point  */
 
 void Beelzebub::Secondary()
 {
-    //  Wait for the initialization spinlock to be ready.
-    while (InitializingLock) ;
-
     //  Wait for the system to initialize.
-    (&InitializationLock)->Spin();
+    InitializationLock.Spin();
 
     //  Now every core will print.
     TerminalMessageLock.Acquire();
@@ -339,6 +346,7 @@ void Beelzebub::Secondary()
     //  Allow the CPU to rest.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 }
+#endif
 
 /****************
     TERMINALS
@@ -431,10 +439,10 @@ Handle InitializeAcpiTables()
         , "Unable to find RSDP! %H%n"
         , res);
 
-    if (Acpi::RsdpPointer.GetVersion() == AcpiVersion::v1)
+    /*if (Acpi::RsdpPointer.GetVersion() == AcpiVersion::v1)
         msg("<[ RSDP @ %Xp, v1 ]>%n", Acpi::RsdpPointer.GetVersion1());
     else
-        msg("<[ RSDP @ %Xp, v2 ]>%n", Acpi::RsdpPointer.GetVersion2());
+        msg("<[ RSDP @ %Xp, v2 ]>%n", Acpi::RsdpPointer.GetVersion2());//*/
 
     res = Acpi::FindRsdtXsdt();
 
@@ -444,8 +452,8 @@ Handle InitializeAcpiTables()
           "Result = %H"
         , Acpi::RsdtPointer, Acpi::XsdtPointer, res);
 
-    msg("<[ XSDT @ %Xp ]>%n", Acpi::XsdtPointer);
-    msg("<[ RSDT @ %Xp ]>%n", Acpi::RsdtPointer);
+    //msg("<[ XSDT @ %Xp ]>%n", Acpi::XsdtPointer);
+    //msg("<[ RSDT @ %Xp ]>%n", Acpi::RsdtPointer);
 
     res = Acpi::FindSystemDescriptorTables();
 
@@ -453,6 +461,15 @@ Handle InitializeAcpiTables()
         , "Failure finding system descriptor tables!%n"
           "Result = %H"
         , res);
+
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    MainTerminal->WriteFormat(" %us LAPIC%s, %us I/O APIC%s..."
+        , Acpi::PresentLapicCount, Acpi::PresentLapicCount != 1 ? "s" : ""
+        , Acpi::IoapicCount, Acpi::IoapicCount != 1 ? "s" : "");
+#else
+    MainTerminal->WriteFormat(" %us I/O APIC%s..."
+        , Acpi::IoapicCount, Acpi::IoapicCount != 1 ? "s" : "");
+#endif
 
     return HandleResult::Okay;
 }
@@ -473,8 +490,6 @@ Handle InitializeApic()
         , "Failed to obtain LAPIC physical address! %H%n"
         , res);
 
-    MainTerminal->WriteFormat(" @ %X4...", (uint32_t)lapicPaddr);
-
     res = BootstrapMemoryManager.MapPage(Lapic::VirtualAddress, lapicPaddr
                                        , PageFlags::Global | PageFlags::Writable
                                        , nullptr);
@@ -491,7 +506,55 @@ Handle InitializeApic()
         , res);
 
     if (Cpu::GetX2ApicMode())
-        MainTerminal->Write(" x2APIC mode...");
+        MainTerminal->Write(" Local x2APIC...");
+    else
+        MainTerminal->Write(" LAPIC...");
+
+    if (Acpi::IoapicCount < 1)
+    {
+        MainTerminal->Write(" no I/O APIC...");
+
+        return HandleResult::Okay;
+    }
+    
+    uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
+
+    uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
+    for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    {
+        if (ACPI_MADT_TYPE_IO_APIC != ((acpi_subtable_header *)e)->Type)
+            continue;
+
+        auto ioapic = (acpi_madt_io_apic *)e;
+
+        /*MainTerminal->WriteFormat("%n%*(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))"
+            , (size_t)25, ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);//*/
+    }
+
+    e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
+    for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    {
+        switch (((acpi_subtable_header *)e)->Type)
+        {
+        case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
+            {
+                auto intovr = (acpi_madt_interrupt_override *)e;
+
+                MainTerminal->WriteFormat("%n%*(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))"
+                    , (size_t)23, intovr->Bus, intovr->SourceIrq, intovr->GlobalIrq, intovr->IntiFlags);
+            }
+            break;
+
+        case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
+            {
+                auto lanmi = (acpi_madt_local_apic_nmi *)e;
+
+                MainTerminal->WriteFormat("%n%*(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))"
+                    , (size_t)34, lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
+            }
+            break;
+        }
+    }
 
     return HandleResult::Okay;
 }
@@ -509,75 +572,6 @@ Handle InitializeProcessingUnits()
 {
     Handle res;
 
-    if (Acpi::MadtPointer == nullptr)
-    {
-        MainTerminal->WriteLine(" No MADT?");
-
-        return HandleResult::Okay;
-
-        //  If there is no MADT, I'll just assume there's no APs to initialize.
-    }
-
-    size_t ioapicCount = 0, lapicCount = 0;
-
-    uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
-
-    auto e = (acpi_subtable_header *)((uint8_t *)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer));
-
-    MainTerminal->WriteLine();
-
-    while ((uintptr_t)e < madtEnd)
-    {
-        switch (e->Type)
-        {
-        case ACPI_MADT_TYPE_LOCAL_APIC:
-            {
-                auto lapic = (acpi_madt_local_apic *)e;
-
-                MainTerminal->WriteFormat("(( MADTe: LAPIC LID-%u1 PID-%u1 F-%X4 ))%n"
-                    , lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
-
-                ++lapicCount;
-            }
-            break;
-
-        case ACPI_MADT_TYPE_IO_APIC:
-            {
-                auto ioapic = (acpi_madt_io_apic *)e;
-
-                MainTerminal->WriteFormat("(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))%n"
-                    , ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);
-
-                ++ioapicCount;
-            }
-            break;
-
-        case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
-            {
-                auto intovr = (acpi_madt_interrupt_override *)e;
-
-                MainTerminal->WriteFormat("(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))%n"
-                    , intovr->Bus, intovr->SourceIrq, intovr->GlobalIrq, intovr->IntiFlags);
-            }
-            break;
-
-        case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
-            {
-                auto lanmi = (acpi_madt_local_apic_nmi *)e;
-
-                MainTerminal->WriteFormat("(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))%n"
-                    , lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
-            }
-            break;
-
-        default:
-            MainTerminal->WriteFormat("(( MADTe: T%u1 L%u1 ))%n", e->Type, e->Length);
-            break;
-        }
-
-        e = (acpi_subtable_header *)((uint8_t *)e + e->Length);
-    }
-
     paddr_t const paddr = 0x1000;
     vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
     //  This's gonna be for AP bootstrappin' code.
@@ -589,6 +583,24 @@ Handle InitializeProcessingUnits()
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for init code: %H%n"
         , vaddr, paddr, res);
+
+    uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
+    uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
+    for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    {
+        if (ACPI_MADT_TYPE_LOCAL_APIC != ((acpi_subtable_header *)e)->Type)
+            continue;
+
+        auto lapic = (acpi_madt_local_apic *)e;
+
+        MainTerminal->WriteFormat("%n%*(( MADTe: LAPIC LID-%u1 PID-%u1 F-%X4 ))"
+            , (size_t)35, lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
+
+        if (0 != (ACPI_MADT_ENABLED & lapic->LapicFlags))
+        {
+
+        }
+    }
 
     return HandleResult::Okay;
 }
