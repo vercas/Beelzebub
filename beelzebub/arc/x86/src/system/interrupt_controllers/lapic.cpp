@@ -1,7 +1,8 @@
 #include <system/interrupt_controllers/lapic.hpp>
 #include <system/cpu.hpp>
 #include <system/msrs.hpp>
-#include <entry.h>
+
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;

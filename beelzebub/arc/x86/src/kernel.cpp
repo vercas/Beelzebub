@@ -16,8 +16,12 @@
 #include <memory/manager_amd64.hpp>
 #include <system/acpi.hpp>
 
+#include <ap_bootstrap.hpp>
+
 #include <synchronization/spinlock.hpp>
 #include <utils/wait.hpp>
+#include <string.h>
+
 #include <debug.hpp>
 
 #if __BEELZEBUB__TEST_STR
@@ -37,6 +41,10 @@ using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Utils;
+
+/*  Synchronization  */
+
+//SmpBarrier InitializationBarrier {};
 
 Spinlock<> InitializationLock;
 Spinlock<> TerminalMessageLock;
@@ -308,10 +316,14 @@ void Beelzebub::Main()
 
 void Beelzebub::Secondary()
 {
-    //  Wait for the system to initialize.
+    Lapic::Initialize();
+    //  Quickly get the local APIC initialized.
+
     InitializationLock.Spin();
+    //  Wait for the system to initialize.
 
     //  Now every core will print.
+
     TerminalMessageLock.Acquire();
     MainTerminal->Write("+-- Core #");
     MainTerminal->WriteUIntD(Cpu::GetIndex());
@@ -363,6 +375,9 @@ TerminalBase * InitializeTerminalProto()
     //COM1 = ManagedSerialPort(0x3F8);
     new (&COM1) ManagedSerialPort(0x3F8);
     COM1.Initialize();
+
+    new (&COM2) ManagedSerialPort(0x2F8);
+    COM2.Initialize();
 
     //  Initializes the serial terminal.
     new (&initialSerialTerminal) SerialTerminal(&COM1);
@@ -563,6 +578,10 @@ Handle InitializeApic()
     PROCESSING UNITS
 ***********************/
 
+__cold __bland Handle InitializeAp(uint32_t const lapicId
+                                 , uint32_t const procId
+                                 , size_t const apIndex);
+
 /**
  *  <summary>
  *  Initializes the other processing units in the system.
@@ -571,18 +590,35 @@ Handle InitializeApic()
 Handle InitializeProcessingUnits()
 {
     Handle res;
+    size_t apCount = 0;
 
-    paddr_t const paddr = 0x1000;
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
+    paddr_t const bootstrapPaddr = 0x1000;
+    vaddr_t const bootstrapVaddr = 0x1000;
     //  This's gonna be for AP bootstrappin' code.
 
-    res = BootstrapMemoryManager.MapPage(vaddr, paddr
+    res = BootstrapMemoryManager.MapPage(bootstrapVaddr, bootstrapPaddr
                                        , PageFlags::Global | PageFlags::Executable
                                        , nullptr);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for init code: %H%n"
-        , vaddr, paddr, res);
+        , bootstrapVaddr, bootstrapPaddr, res);
+
+    BootstrapPml4Address = BootstrapMemoryManager.Vas->Pml4Address;
+
+    COMPILER_MEMORY_BARRIER();
+    //  We need to make sure that the PML4 address is copied over.
+
+    memcpy((void *)bootstrapVaddr, &ApBootstrapBegin, (uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin);
+    //  This makes sure the code can be executed by the AP.
+
+    msg("AP bootstrap code @ %Xp:%us%n"
+        , &ApBootstrapBegin, (size_t)((uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin));
+
+    KernelGdtPointer = GdtRegister::Retrieve();
+
+    MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
+        , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
 
     uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
     uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
@@ -593,13 +629,121 @@ Handle InitializeProcessingUnits()
 
         auto lapic = (acpi_madt_local_apic *)e;
 
-        MainTerminal->WriteFormat("%n%*(( MADTe: LAPIC LID-%u1 PID-%u1 F-%X4 ))"
-            , (size_t)35, lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
+        MainTerminal->WriteFormat("%n%*(( MADTe: %s LAPIC LID-%u1 PID-%u1 F-%X4 ))"
+            , (size_t)30, lapic->Id == Lapic::GetId() ? "BSP" : " AP"
+            , lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
 
-        if (0 != (ACPI_MADT_ENABLED & lapic->LapicFlags))
+        if (0 != (ACPI_MADT_ENABLED & lapic->LapicFlags)
+            && lapic->Id != Lapic::GetId())
         {
+            //  "Absent" LAPICs and the BSP need not be reset!
 
+            ++apCount;
+
+            res = InitializeAp(lapic->Id, lapic->ProcessorId, apCount);
+
+            if unlikely(!res.IsOkayResult())
+            {
+                msg("Failed to initialize AP #%us (LAPIC ID %u1, processor ID %u1)"
+                    ": %H%n"
+                    , apCount, lapic->Id, lapic->ProcessorId, res);
+
+                assert(false, "FAILED AP INIT!");
+                //  This will only catch fire in debug mode.
+            }
         }
+    }
+
+    Wait(10 * 1000);
+    //  Wait a bitsy before unmapping the page.
+
+    res = BootstrapMemoryManager.UnmapPage(bootstrapVaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to unmap unneeded page at %Xp (%XP) for init code: %H%n"
+        , bootstrapVaddr, bootstrapPaddr, res);
+
+    msg("Got %us cores.", Cpu::Count.Load());
+
+    return HandleResult::Okay;
+}
+
+Handle InitializeAp(uint32_t const lapicId
+                  , uint32_t const procId
+                  , size_t const apIndex)
+{
+    Handle res;
+    PageDescriptor * desc = nullptr;
+    //  Intermediate results.
+
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
+    paddr_t const paddr = Domain0.PhysicalAllocator->AllocatePage(desc);
+    //  Stack page.
+
+    assert_or(paddr != nullpaddr && desc != nullptr
+        , "Unable to allocate a physical page for stack of AP #%us"
+          " (LAPIC ID %u4, processor ID %u4)!"
+        , apIndex, lapicId, procId)
+    {
+        return HandleResult::OutOfMemory;
+    }
+
+    res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
+
+    assert_or(res.IsOkayResult()
+        , "Failed to map page at %Xp (%XP) for stack of AP #%us"
+          " (LAPIC ID %u4, processor ID %u4): %H."
+        , vaddr, paddr
+        , apIndex, lapicId, procId
+        , res)
+    {
+        return res;
+    }
+
+    ApStackTopPointer = vaddr + PageSize;
+    ApInitializationLock = 1;
+
+    msg("Stack for AP #%us is at %Xp (%Xp, %XP).%n", apIndex, ApStackTopPointer, vaddr, paddr);
+
+    LapicIcr initIcr = LapicIcr(0)
+    .SetDeliveryMode(InterruptDeliveryModes::Init)
+    .SetDestinationShorthand(IcrDestinationShorthand::None)
+    .SetAssert(true)
+    .SetDestination(lapicId);
+
+    Lapic::SendIpi(initIcr);
+
+    //msg("Send INIT IPI to %u4.%n", lapicId);
+
+    Wait(10 * 1000);
+    //  Much more than the recommended amount, but this may be handy for busy
+    //  virtualized environments.
+
+    LapicIcr startupIcr = LapicIcr(0)
+    .SetDeliveryMode(InterruptDeliveryModes::StartUp)
+    .SetDestinationShorthand(IcrDestinationShorthand::None)
+    .SetAssert(true)
+    .SetVector(0x1000 >> 12)
+    .SetDestination(lapicId);
+
+    Lapic::SendIpi(startupIcr);
+
+    //msg("Send first startup IPI to %u4.%n", lapicId);
+
+    Wait(10 * 1000);
+
+    if (ApInitializationLock != 0)
+    {
+        //  It should be ready. Let's try again.
+
+        Lapic::SendIpi(startupIcr);
+
+        //msg("Send second startup IPI to %u4.%n", lapicId);
+
+        Wait(1000 * 1000);
+
+        if (ApInitializationLock != 0)
+            return HandleResult::Timeout;
     }
 
     return HandleResult::Okay;

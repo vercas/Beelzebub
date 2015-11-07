@@ -74,7 +74,7 @@ namespace Beelzebub { namespace System
         SMI       = 2,
         Reserved2 = 3,
         NMI       = 4,
-        INIT      = 5,
+        Init      = 5,
         StartUp   = 6,
         Reserved3 = 7,
     };
@@ -95,7 +95,7 @@ namespace Beelzebub { namespace System
 
     /**
      *  <summary>
-     *  Represents the contents of the Spurious-Interrupt Vector Register of the
+     *  Represents the contents of the Interrupt Command Register of the
      *  LAPIC.
      *  </summary>
      */
@@ -119,8 +119,8 @@ namespace Beelzebub { namespace System
 
         BITFIELD_DEFAULT_1W(11, DestinationLogical)
         BITFIELD_DEFAULT_1O(12, DeliveryStatus)
-        BITFIELD_DEFAULT_1O(14, Assert)
-        BITFIELD_DEFAULT_1O(15, LevelTriggered)
+        BITFIELD_DEFAULT_1W(14, Assert)
+        BITFIELD_DEFAULT_1W(15, LevelTriggered)
 
         BITFIELD_DEFAULT_2W( 0,  8,  uint8_t               , Vector              )
         BITFIELD_DEFAULT_4W( 8,  3, InterruptDeliveryModes , DeliveryMode        )
@@ -130,7 +130,7 @@ namespace Beelzebub { namespace System
         /*  Constructor  */
 
         /**
-         *  Creates a new LAPIC SVR structure from the given raw value.
+         *  Creates a new LAPIC ICR structure from the given raw value.
          */
         __bland inline explicit constexpr LapicIcr(uint64_t const val)
             : Value(val)
@@ -139,7 +139,7 @@ namespace Beelzebub { namespace System
         }
 
         /**
-         *  Creates a new LAPIC SVR structure from the given low and high values.
+         *  Creates a new LAPIC ICR structure from the given low and high values.
          */
         __bland inline constexpr LapicIcr(uint32_t const low, uint32_t const high)
             : Low(low), High(high)

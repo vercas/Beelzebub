@@ -49,7 +49,7 @@ CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 #DFLAGS      += -fno-assert -fno-emit-moduleinfo -fd-vtls -fproperty
 #DLFAGS      += -fno-bounds-check
 
-ASFLAGS		:=  
+ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 
 LOFLAGS		:= -flto -O2 -ffreestanding -Wall -mcmodel=kernel -mno-red-zone
 LOFLAGS		+= -nostdlib -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000

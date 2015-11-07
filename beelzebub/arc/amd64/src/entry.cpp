@@ -35,8 +35,6 @@ using namespace Beelzebub::Terminals;
 VirtualAllocationSpace bootstrapVas;
 MemoryManagerAmd64 Beelzebub::BootstrapMemoryManager;
 
-Atomic<bool> bootstrapReady {false};
-
 CpuId Beelzebub::BootstrapCpuid;
 
 /***************
@@ -65,7 +63,7 @@ __bland void InitializeCpuData()
         , "Failed to set CPU index..? It should be %us but %us is returned."
         , ind, Cpu::GetIndex());
 
-    //msg("-- Core #%us @ %Xp. --%n", ind, gs_base);
+    msg("-- Core #%us @ %Xp. --%n", ind, loc);
 }
 
 /*******************
@@ -74,25 +72,18 @@ __bland void InitializeCpuData()
 
 void kmain_bsp()
 {
-    bootstrapReady = false;
-    
 #if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
     Cpu::Count = 1;
 #endif
-
-    InterruptHandlers[KEYBOARD_IRQ_VECTOR] = &keyboard_handler;
-    keyboard_init();
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
-
-    //breakpoint();
 
     Beelzebub::Main();
 }
 
 void kmain_ap()
 {
-    while (!bootstrapReady) ;
-    //  Await!
+    Io::Out8(0x3F8, 'H');
+    
+    CpuInstructions::LIDT((uintptr_t)&IsrGates, 0xFFF);
 
 #if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
     ++Cpu::Count;
@@ -101,13 +92,11 @@ void kmain_ap()
     if (VirtualAllocationSpace::NX)
         Cpu::EnableNxBit();
 
-    bootstrapVas.Activate();
-    //BootstrapMemoryManager.Activate();
+    //bootstrapVas.Activate();
+    BootstrapMemoryManager.Activate();
     //  Perfectly valid solution.
 
     InitializeCpuData();
-
-    //while (true) { }
 
     Beelzebub::Secondary();
 }

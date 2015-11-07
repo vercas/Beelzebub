@@ -37,7 +37,7 @@
                                                                                \
         return res;                                                            \
     }                                                                          \
-    decB inline int MCATS(Set, name)(bool const val)                           \
+    decB inline auto MCATS(Set, name)(bool const val)                          \
     {                                                                          \
         if (val)                                                               \
             asm ( "bts %[bit], %[dst] \n\t"                                    \
@@ -50,7 +50,7 @@
                 : [bit]"rN"(bitInd)                                            \
                 : "cc" );                                                      \
                                                                                \
-        return val;                                                            \
+        return *this;                                                          \
     }                                                                          \
     decB inline int MCATS(FetchSet, name)()                                    \
     {                                                                          \
@@ -123,7 +123,7 @@
                                                                                \
         return res;                                                            \
     }                                                                          \
-    decB inline bool MCATS(Set, name)(bool const val)                          \
+    decB inline auto MCATS(Set, name)(bool const val)                          \
     {                                                                          \
         if (val)                                                               \
             asm("bts   %[bit], %[dst] \n\t"                                    \
@@ -136,7 +136,7 @@
                 : [bit]"rN"(bitInd)                                            \
                 : "cc" );                                                      \
                                                                                \
-        return val;                                                            \
+        return *this;                                                          \
     }                                                                          \
     decB inline bool MCATS(FetchSet, name)()                                   \
     {                                                                          \

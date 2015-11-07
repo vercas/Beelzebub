@@ -24,12 +24,13 @@ decB inline bool MCATS(Get, name)() decG                                       \
 {                                                                              \
     return 0 != (var & MCATS(name, Bit));                                      \
 }                                                                              \
-decB inline void MCATS(Set, name)(bool const val)                              \
+decB inline auto MCATS(Set, name)(bool const val)                              \
 {                                                                              \
     if (val)                                                                   \
         var |=  MCATS(name, Bit);                                              \
     else                                                                       \
         var &= ~MCATS(name, Bit);                                              \
+    return *this;                                                              \
 }                                                                              \
 decB inline bool MCATS(FetchSet, name)()                                       \
 {                                                                              \
@@ -77,10 +78,11 @@ decB inline valT MCATS(Get, name)() decG                                       \
 {                                                                              \
     return (valT)(var & MCATS(name, Bits));                                    \
 }                                                                              \
-decB inline void MCATS(Set, name)(valT const val)                              \
+decB inline auto MCATS(Set, name)(valT const val)                              \
 {                                                                              \
     var = ((varT)val &  MCATS(name, Bits))                                     \
         | (      var & ~MCATS(name, Bits));                                    \
+    return *this;                                                              \
 }
 #endif
 
@@ -104,10 +106,11 @@ decB inline valT MCATS(Get, name)() decG                                       \
 {                                                                              \
     return (valT)((var & MCATS(name, Bits)) >> bitInd);                        \
 }                                                                              \
-decB inline void MCATS(Set, name)(valT const val)                              \
+decB inline auto MCATS(Set, name)(valT const val)                              \
 {                                                                              \
     var = (((varT)val << bitInd) &  MCATS(name, Bits))                         \
         | (       var            & ~MCATS(name, Bits));                        \
+    return *this;                                                              \
 }
 #endif
 
@@ -139,11 +142,12 @@ decB inline valT MCATS(Get, name)() decG                                       \
     return (valT)(((var & MCATS(name,  LowBits)) >>         offL)              \
                 | ((var & MCATS(name, HighBits)) >> (offH - offL)));           \
 }                                                                              \
-decB inline void MCATS(Set, name)(valT const val)                              \
+decB inline auto MCATS(Set, name)(valT const val)                              \
 {                                                                              \
     var = (((varT)val <<  offL        ) &  MCATS(name,  LowBits))              \
         | (((varT)val << (offH - lenL)) &  MCATS(name, HighBits))              \
         | (       var                   & ~MCATS(name, Bits));                 \
+    return *this;                                                              \
 }
 #endif
 

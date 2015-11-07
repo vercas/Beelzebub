@@ -90,6 +90,8 @@ const char * const Handle::GetResultString() const
             return "Integrity F";
         case HandleResult::CardinalityViolation:
             return "Cardin Viol";
+        case HandleResult::Timeout:
+            return "Timeout";
         case HandleResult::UnsupportedOperation:
             return "Unsupp. Op.";
         case HandleResult::NotImplemented:

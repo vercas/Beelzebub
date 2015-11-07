@@ -80,6 +80,30 @@ namespace Beelzebub { namespace System
 
         /**
          *  <summary>
+         *  Enables interrupts and returns a cookie which allows restoring the
+         *  interrupt state as it was before executing this function.
+         *  </summary>
+         *  <return>
+         *  A cookie which allows restoring the interrupt state as it was before
+         *  executing this function.
+         *  </return>
+         */
+        static __bland __forceinline int_cookie_t PushEnable()
+        {
+            int_cookie_t cookie;
+
+            asm volatile ( "pushf      \n\t"
+                           "sti        \n\t"
+                           "pop %[dst] \n\t"
+                         : [dst]"=r"(cookie)
+                         :
+                         : "memory");
+            
+            return cookie;
+        }
+
+        /**
+         *  <summary>
          *  Restores interrupt state based on the given cookie.
          *  </summary>
          *  <return>True if interrupts are now enabled, otherwise false.</return>

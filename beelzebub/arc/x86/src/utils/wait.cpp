@@ -16,9 +16,13 @@ void Utils::Wait(uint64_t const microseconds)
 
     size_t volatile counterStart = Pit::Counter;
 
+    int_cookie_t const cookie = Interrupts::PushEnable();
+
     do
     {
         CpuInstructions::Halt();
     } while (Pit::Counter.Load() - counterStart < difference);
     //  Yes, we can actually halt the CPU!
+
+    Interrupts::RestoreState(cookie);
 }

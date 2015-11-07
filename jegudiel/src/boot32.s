@@ -86,10 +86,11 @@ boot32_ap:
 
 ; Common initialization for both, the BSP and the APs.
 boot32_common:
-    ;   Enabling PAE.
-    mov     eax, cr4                            ; Load CR4 (Control Register 4).
-    bts     eax, 5                              ; Set bit 5.
-    mov     cr4, eax                            ; Set CR4.
+    ;   Enabling PAE and PGE.
+    mov     eax, cr4
+    bts     eax, 5
+    bts     eax, 7
+    mov     cr4, eax
 
     ;   Die in a grease fire, A20 line.
 

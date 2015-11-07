@@ -42,7 +42,7 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
 
     PageDescriptor * desc = nullptr;
 
-    paddr_t const pml4_paddr = this->Allocator->AllocatePage(desc);
+    paddr_t const pml4_paddr = this->Allocator->AllocatePage(PageAllocationOptions::ThirtyTwoBit, desc);
 
     if (pml4_paddr == nullpaddr)
         return Handle(HandleResult::OutOfMemory);
