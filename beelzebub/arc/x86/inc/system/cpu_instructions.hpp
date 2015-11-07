@@ -323,7 +323,7 @@ namespace Beelzebub { namespace System
             IDTR.length = size;
             IDTR.base = base;
 
-            asm volatile ( "lidt (%0)\n\t" : : "p"(&IDTR) );
+            asm volatile ( "lidt %0 \n\t" : : "m"(IDTR) );
         }
     };
 }}

@@ -81,20 +81,15 @@ void kmain_bsp()
 
 void kmain_ap()
 {
-    Io::Out8(0x3F8, 'H');
-    
     CpuInstructions::LIDT((uintptr_t)&IsrGates, 0xFFF);
 
 #if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
     ++Cpu::Count;
 #endif
 
-    if (VirtualAllocationSpace::NX)
-        Cpu::EnableNxBit();
-
     //bootstrapVas.Activate();
     BootstrapMemoryManager.Activate();
-    //  Perfectly valid solution.
+    //  Perfectly valid solution. Just to make sure.
 
     InitializeCpuData();
 

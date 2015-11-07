@@ -705,6 +705,9 @@ Handle InitializeAp(uint32_t const lapicId
 
     msg("Stack for AP #%us is at %Xp (%Xp, %XP).%n", apIndex, ApStackTopPointer, vaddr, paddr);
 
+    memset((void *)vaddr, 0xF0, PageSize);
+    //  Make sure it's writable.
+
     LapicIcr initIcr = LapicIcr(0)
     .SetDeliveryMode(InterruptDeliveryModes::Init)
     .SetDestinationShorthand(IcrDestinationShorthand::None)
