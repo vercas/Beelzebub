@@ -5,14 +5,14 @@
 #include <jegudiel.h>
 #include <idt.h>
 #include <info.h>
-#include <ioapic.h>
+//#include <ioapic.h>
 #include <kernel.h>
-#include <lapic.h>
+//#include <lapic.h>
 #include <main.h>
 #include <multiboot.h>
-#include <pic.h>
+//#include <pic.h>
 #include <screen.h>
-#include <smp.h>
+//#include <smp.h>
 #include <stdint.h>
 #include <syscall.h>
 #include <ports.h>
@@ -81,13 +81,6 @@ void main_bsp(void)
     puts("\r[OK]\r\n");
 
 
-    puts("[  ] Analyzing IOAPIC...");
-
-    ioapic_analyze();
-
-    puts("\r[OK]\r\n");
-
-
     puts("[  ] Deciphering kernel...");
 
     // Find, check and load the kernel binary
@@ -99,39 +92,9 @@ void main_bsp(void)
     puts("\r[OK]\r\n");
 
 
-    puts("[  ] Initializing LAPIC...");
+    puts("[  ] Setting up IDT according to the kernel header...");
 
-    // Initialize interrupt controllers
-    lapic_detect();
-    lapic_setup();
-    //ioapic_setup_loader();
-    //pic_setup();
-
-    puts("\r[OK]\r\n");
-
-
-    puts("[  ] Calibrating LAPIC timer...");
-
-    // Calibrate the LAPIC timer
-    //lapic_timer_calibrate();
-
-    puts("\r[OK]\r\n");
-
-
-    puts("[  ] Booting application processors...");
-
-    // Boot APs
-    info_cpu[lapic_id()].flags |= JG_INFO_CPU_FLAG_BSP;
-    //smp_setup();
-
-    puts("\r[OK]\r\n");
-
-
-    puts("[  ] Setting up IDT and IOAPIC according to the kernel header...");
-
-    // Setup IDT and IOAPIC according to kernel header
     idt_setup_kernel();
-    //ioapic_setup_kernel();
 
     puts("\r[OK]\r\n");
 
@@ -188,43 +151,5 @@ void main_bsp(void)
 
     //for(;;);
 
-    // Lower main entry barrier and jump to the kernel entry point
-    //main_entry_barrier = 0;
-    __atomic_clear(&main_entry_barrier, __ATOMIC_SEQ_CST);
     kernel_enter_bsp();
-}
-
-void main_ap(void)
-{
-    // Load the IDT
-    idt_load((uintptr_t) &idt_data, IDT_LENGTH);
-
-    puts("A");
-
-    // Enable LAPIC and calibrate the timer
-    lapic_setup();
-    //lapic_timer_calibrate();
-
-    puts("B");
-
-    // Setup stack mapping
-    kernel_map_stack();
-
-    puts("C");
-
-    // Setup fast syscall support
-    syscall_init();
-
-    puts("D");
-
-    // Signal complete AP startup
-    //++smp_ready_count;
-    uint64_t incrementor = 1; // Staying on the safe side.
-    __atomic_add_fetch(&smp_ready_count, incrementor, __ATOMIC_SEQ_CST);
-
-    puts("E");
-
-    // Wait for main entry barrier, then enter the kernel (or halt)
-    while (main_entry_barrier == 1);
-    kernel_enter_ap();
 }

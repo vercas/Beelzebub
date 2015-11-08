@@ -27,9 +27,10 @@
 #include <jegudiel.h>
 #include <info.h>
 #include <kernel.h>
-#include <lapic.h>
+//#include <lapic.h>
 #include <page.h>
 #include <screen.h>
+#include <main.h>
 #include <stdint.h>
 #include <string.h>
 #include <idt.h>
@@ -90,15 +91,11 @@ void kernel_map_stack(void)
         SCREEN_PANIC("Virtual stack address in kernel header not page-aligned.");
     }
 
-    uintptr_t stack_begin, stack_address, stack_offset;
-    asm volatile ("mov %%rsp, %0" : "=a" (stack_address));
-    stack_begin = (stack_address - 1) & ~0xFFF;
-    stack_offset = stack_address - stack_begin;
+    uintptr_t stack_target = kernel_header->stack_vaddr;
 
-    uintptr_t stack_target = kernel_header->stack_vaddr + 0x1000 * lapic_id();
-    page_map(stack_address, stack_target, PAGE_FLAG_WRITABLE | PAGE_FLAG_GLOBAL);
-
-    asm volatile ("mov %0, %%rsp" :: "a" (stack_target + stack_offset));
+    page_map((uintptr_t)&boot32_stack_bsp + 0x0000, stack_target + 0x0000, PAGE_FLAG_WRITABLE | PAGE_FLAG_GLOBAL);
+    page_map((uintptr_t)&boot32_stack_bsp + 0x1000, stack_target + 0x1000, PAGE_FLAG_WRITABLE | PAGE_FLAG_GLOBAL);
+    page_map((uintptr_t)&boot32_stack_bsp + 0x2000, stack_target + 0x2000, PAGE_FLAG_WRITABLE | PAGE_FLAG_GLOBAL);
 }
 
 void kernel_map_info(void)
@@ -147,21 +144,17 @@ void kernel_map_gdt(void)
     gdt_pointer.address = kernel_header->gdt_vaddr;
 }
 
-extern void kernel_enter(uintptr_t address);
+extern void kernel_enter(uintptr_t address, uintptr_t const targetStack);
 
 void kernel_enter_bsp(void)
 {
     //puts("Entering BSP: ");
     //puthexs(((elf64_ehdr_t *) kernel_binary)->e_entry);
 
-    kernel_enter(((elf64_ehdr_t *) kernel_binary)->e_entry);
+    kernel_enter(((elf64_ehdr_t *) kernel_binary)->e_entry, kernel_header->stack_vaddr + 0x3000);
 }
 
 void kernel_enter_ap(void)
 {
-    if (0 == kernel_header->ap_entry) {
-        while (1) { asm volatile ("hlt"); }
-    } else {
-        kernel_enter(kernel_header->ap_entry);
-    }
+    
 }

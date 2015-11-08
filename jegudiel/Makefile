@@ -26,7 +26,7 @@ include ../Toolchain.mk
 
 # Toolchain Flags
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
-CFLAGS		:= -m64 -ffreestanding -Wall -Werror -mcmodel=large $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0
+CFLAGS		:= -m64 -ffreestanding -Wall -mcmodel=large $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0
 ASFLAGS		:= -f elf64
 LDFLAGS		:= -z max-page-size=0x1000
 

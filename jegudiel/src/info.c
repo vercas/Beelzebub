@@ -34,12 +34,12 @@
 extern uint8_t info_root_data INFO_SECTION;
 extern uint8_t info_mmap_data INFO_SECTION;
 extern uint8_t info_module_data INFO_SECTION;
-extern uint8_t info_ioapic_data INFO_SECTION;
+//extern uint8_t info_ioapic_data INFO_SECTION;
 extern uint8_t info_strings_data INFO_SECTION;
 
 jg_info_root_t *info_root = (jg_info_root_t *) &info_root_data;
 jg_info_cpu_t *info_cpu = 0;
-jg_info_ioapic_t *info_ioapic = (jg_info_ioapic_t *) &info_ioapic_data;
+//jg_info_ioapic_t *info_ioapic = (jg_info_ioapic_t *) &info_ioapic_data;
 jg_info_mmap_t *info_mmap = (jg_info_mmap_t *) &info_mmap_data;
 jg_info_module_t *info_module = (jg_info_module_t *) &info_module_data;
 
@@ -58,12 +58,7 @@ void info_init(void)
     info_root->mmap_offset = ((uintptr_t) info_mmap - (uintptr_t) info_root);
     info_root->module_offset = ((uintptr_t) info_module - (uintptr_t) info_root);
     info_root->string_offset = ((uintptr_t) info_strings - (uintptr_t) info_root);
-    info_root->ioapic_offset = ((uintptr_t) info_ioapic - (uintptr_t) info_root);
-
-    size_t i;
-    for (i = 0; i < 16; ++i) {
-        info_root->irq_gsi[i] = i;
-    }
+    //info_root->ioapic_offset = ((uintptr_t) info_ioapic - (uintptr_t) info_root);
 }
 
 char *info_string_alloc(size_t length)

@@ -714,13 +714,19 @@ Handle InitializeAp(uint32_t const lapicId
     .SetAssert(true)
     .SetDestination(lapicId);
 
+    for(;;) CpuInstructions::Halt();
+
+    msg("Sending INIT IPI to %u4...", lapicId);
+
     Lapic::SendIpi(initIcr);
 
-    //msg("Send INIT IPI to %u4.%n", lapicId);
+    msg(" Waiting...");
 
     Wait(10 * 1000);
     //  Much more than the recommended amount, but this may be handy for busy
     //  virtualized environments.
+
+    msg(" Done.%n");
 
     LapicIcr startupIcr = LapicIcr(0)
     .SetDeliveryMode(InterruptDeliveryModes::StartUp)
@@ -729,21 +735,29 @@ Handle InitializeAp(uint32_t const lapicId
     .SetVector(0x1000 >> 12)
     .SetDestination(lapicId);
 
+    msg("Sending first startup IPI to %u4...", lapicId);
+
     Lapic::SendIpi(startupIcr);
 
-    //msg("Send first startup IPI to %u4.%n", lapicId);
+    msg(" Waiting...");
 
     Wait(10 * 1000);
+
+    msg(" Done.%n");
 
     if (ApInitializationLock != 0)
     {
         //  It should be ready. Let's try again.
 
+        msg("Sending second startup IPI to %u4...", lapicId);
+
         Lapic::SendIpi(startupIcr);
 
-        //msg("Send second startup IPI to %u4.%n", lapicId);
+        msg(" Waiting...");
 
         Wait(1000 * 1000);
+
+        msg(" Done.%n");
 
         if (ApInitializationLock != 0)
             return HandleResult::Timeout;

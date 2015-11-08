@@ -16,6 +16,12 @@ global BootstrapPml4Address
 ;   The physical location of this code.
 %define PHYSADDR 0x1000
 
+%macro debugchar 1
+    mov     dx, 0x3F8
+    mov     al, %1
+    out     dx, al
+%endmacro
+
 ;   This will be used by the linker, mainly.
 section .ap_bootstrap
 
@@ -37,9 +43,11 @@ ApBootstrapBegin:
     mov     edi, edx
     ;   The NX bit support (bit 20) and PGE (bit 26) are needed.
 
+    debugchar 'A'
+
     mov     eax, cr4
     bts     eax, 5
-    ;   Enable PAE
+    ;   Enable PAE.
 
     bt      edi, 26
     jnc     .write_cr4 - ApBootstrapBegin + PHYSADDR
@@ -50,9 +58,13 @@ ApBootstrapBegin:
     mov     cr4, eax
     ;   And flush.
 
+    debugchar 'B'
+
     mov     eax, [BootstrapPml4Address - ApBootstrapBegin + PHYSADDR]
     mov     cr3, eax
     ;   Load the PML4.
+
+    debugchar 'C'
 
     mov     ecx, 0xC0000080
     rdmsr
@@ -68,14 +80,20 @@ ApBootstrapBegin:
     wrmsr
     ;   Writes the value to IA32_EFER
 
+    debugchar 'D'
+
     mov     eax, cr0
     bts     eax, 0
     bts     eax, 31
     mov     cr0, eax
     ;   Protected mode and paging.
 
+    debugchar 'E'
+
     lgdt    [cs:ApBootstrapGdt64R - ApBootstrapBegin + PHYSADDR]
     ;   Load a GDT which contains long mode segments.
+
+    debugchar 'F'
 
     jmp     0x08:.long - ApBootstrapBegin + PHYSADDR
     ;   Long jump into protected mode!
@@ -83,6 +101,8 @@ ApBootstrapBegin:
 bits 64 ;   Then long mode directly.
 
 .long:
+    debugchar 'G'
+
     mov     ax, 0x10
     mov     ds, ax
     mov     es, ax
@@ -92,17 +112,25 @@ bits 64 ;   Then long mode directly.
     ;   Make sure the data segments are correct.
     ;   The following code involves data fetching, so better safe than sorry?
 
+    debugchar 'H'
+
     mov     rax, KernelGdtPointer
     lgdt    [rax]
     ;   Load the GDT for domain 0.
+
+    debugchar 'I'
 
     mov     rax, ApStackTopPointer
     mov     rsp, qword [rax]
     ;   The entry point will surely need a stack.
 
+    debugchar 'J'
+
     mov     rax, ApInitializationLock
     mov     dword [rax], 0
     ;   Tell the BSP that initialization is complete.
+
+    debugchar 'K'
 
     mov     rax, kmain_ap
     jmp     rax

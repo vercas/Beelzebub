@@ -2,132 +2,134 @@
 ; And I added quite a lot of my own.
 ; It's mine now. Shoo.
 
-section .text
-bits 32
-
-global boot32_bsp
-global boot32_ap
-
 extern heap_top
 extern multiboot_info
 extern main_bsp
 extern main_ap
-extern gdt_data
 extern gdt_pointer
-extern page_pml4
-extern page_idn_pdp
-extern page_idn_pd
+
+global gdt_data
+global idt_data
+
+global page_pml4
+global page_idn_pdp
+global page_idn_pd
+
+global boot32_bsp
+global boot32_stack_bsp
+
+section .text
+
+bits 32
 
 ;   BSP entrypoint, supposed to be called by a Multiboot-compliant bootloader.
 boot32_bsp:
-    cli                                         ; Disable interrupts
-    cld                                         ; Clear direction flag.
+    cli
+    cld
+    ;   This ain't gettin' interrupted! Also, the direction flag is cleared for
+    ;   the sake of building the paging tables.
 
-    mov     esp, boot32_stack_bsp               ; Grab a stack as quickly as possible.
-    add     esp, 0x1000                         ; Don't forget that it 'grows' backwards.
+    mov     esp, boot32_stack_bsp
+    add     esp, 0x3000
+    ;   A stack is always handy.
     
-    ;   Let's just test this...
-    test    eax, 0x2BADB002                     ; Check the Multiboot magic number.
-    jne     .multiboot_compliant                ; If it's cool, skip the panic.
+    test    eax, 0x2BADB002
+    jne     .multiboot_compliant
+    ;   Multiboot says check, so the bootloader checks.
 
-    mov     edi, boot32_err_nomb                ; Pick what you're gonna scream.
-    call    boot32_panic                        ; Scream.
+    mov     edi, boot32_err_nomb
+    call    boot32_panic
+    ;   Let the dear user know.
 
 .multiboot_compliant:
-    mov     dword [multiboot_info], ebx         ; Preserve the pointer to the multiboot header.
 
-    ;   Check for long mode support.
-    mov     eax, 0x80000001                     ; This be the right value.
-    cpuid                                       ; Do the deed.
-    bt      edx, 29                             ; EDX bit 29
-    jc      .long_mode_supported                ; Long mode supported
+    mov     dword [multiboot_info], ebx
+    ;   This will be required later.
 
-    mov     edi, boot32_err_nolm                ; Pick a message.
-    call    boot32_panic                        ; Yell it out loud.
+    mov     eax, 0x80000001
+    cpuid
+    mov     ebp, edx
+    ;   We will require several bits from this leaf.
+
+    bt      ebp, 29
+    jc      .long_mode_supported
+    ;   Check for long mode support and proceed if found.
+
+    mov     edi, boot32_err_nolm
+    call    boot32_panic
+    ;   The bootloader is for x64 only, at least right now.
 
 .long_mode_supported:
-    ;   THESE FUNCTIONS HARDLY RESPECT THE ABI!
 
-    ;call    boot32_com1_init                    ; Initialize the COM1 port ASAP.
-    ;call    boot32_com2_init                    ; Also COM2.
-
-    call    boot32_gdt                          ; Setup 64 bit GDT
-    call    boot32_map                          ; Setup mapping
-
-    ;mov     edi, boot32_msg_a
-    ;call    boot32_com1_msg
-
-    ;mov     esi, page_pml4
-    ;mov     ecx, 4096 * 66
-    ;call    boot32_com2_dump
-
-    call    boot32_common                       ; Common shenanigans
-
-    mov ax, 0x10                        ; Setup data segment selectors
-    mov ds, ax
-    mov ss, ax
-    mov gs, ax
-    mov fs, ax
-    mov es, ax
-
-    jmp 0x8:main_bsp                    ; Far jump
-
-;   AP entry point, for protected mode, called by the 16-bit bootstrap code.
-boot32_ap:
-    cli                                         ; Clear interrupts
-
-    mov         esp, 0x1000                     ; Stack size
-    lock xadd   dword [heap_top], esp           ; Allocate stack from heap
-    add         esp, 0x1000                     ; EDX now contains the lower address of the stack; this changes EDX to the higher address ("bottom")
-    ;mov         esp, edx                        ; Assign the stack.
-
-    call        boot32_common                   ; Common shenanigans
-    jmp         0x8:main_ap                     ; Jump to the right code segment.
-
-; Common initialization for both, the BSP and the APs.
-boot32_common:
-    ;   Enabling PAE and PGE.
-    mov     eax, cr4
-    bts     eax, 5
-    bts     eax, 7
-    mov     cr4, eax
-
-    ;   Die in a grease fire, A20 line.
-
-    mov ecx, 0xC0000080                 ; Enable LM in MSR
-    rdmsr
-    or eax, 1 << 8
-    wrmsr
-
-    mov eax, gdt_pointer                ; Load the 64 bit GDT pointer
-    lgdt [eax]                          ; Load the 64 bit GDT
-
-    mov eax, page_pml4                  ; Load PML4 address
-    mov cr3, eax                        ; Load the PML4
-
-    mov eax, cr0                        ; Enable paging
-    or eax, 1 << 31
-    mov cr0, eax
-    ret
-
-;   Sets up 64 bit GDT based on the template.
-boot32_gdt:
-    mov     edi, gdt_data                       ; Destination GDT base
-    mov     esi, boot32_gdt_data                ; Source GDT base
-    mov     ecx, boot32_gdt_data.end            ; Source GDT end
-    sub     ecx, esi                            ; Subtract base from end and you obtain the length!
-
-    rep movsb                                   ; Copy the GDT entries.
+    mov     edi, gdt_data
+    mov     esi, boot32_gdt_data
+    mov     ecx, boot32_gdt_data.end
+    sub     ecx, esi
+    rep movsb
+    ;   Copy the GDT entries from template into real GDT.
 
     mov     ecx, edi
     and     ecx, 0xFFF
     neg     ecx
-    add     ecx, 0x1000                         ; ecx = 0x1000 - (&GDT & 0xFFF)!
+    add     ecx, 0x1000
+    ;   ecx = 0x1000 - (&GDT & 0xFFF)!
+    ;   AKA rest of bytes on the GDT's page.
 
     mov     eax, 0
-    rep stosb                                   ; And we clear out the rest of the bytes in the GDT's page!
+    rep stosb
+    ;   Clear the rest of the GDT.
 
-    ret                                         ; Done!
+    call    boot32_map                          ; Setup mapping
+
+    mov     eax, cr4
+    bts     eax, 5
+    ;   Enable PAE.
+
+    bt      ebp, 26
+    jnc     .write_cr4
+    bts     eax, 7
+    ;   And PGE (global pages) if available.
+
+.write_cr4:
+    mov     cr4, eax
+    ;   And flush.
+
+    mov     eax, page_pml4
+    mov     cr3, eax
+    ;   Load PML4.
+
+    mov     ecx, 0xC0000080
+    rdmsr
+    bts     eax, 8
+    ;   Enable long mode
+
+    bt      ebp, 20
+    jnc     .write_efer
+    bts     eax, 11
+    ;   And NX/XD bit if available.
+
+.write_efer:
+    wrmsr
+    ;   Writes the value to IA32_EFER
+
+    mov     eax, cr0
+    bts     eax, 31
+    mov     cr0, eax
+    ;   Enable paging.
+
+    lgdt    [gdt_pointer]
+    ;   Load the 64-bit GDT.
+
+    mov     ax, 0x10
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
+    mov     ss, ax
+    ;   Make sure the data segments are correct.
+
+    jmp     0x8:main_bsp
+    ;   Far jump into long mode! :D
 
 ;   Sets up identity mapping.
 boot32_map:
@@ -493,27 +495,14 @@ boot32_err_nolm: db "64 bit long mode not supported on this CPU.", 0
 ;boot32_msg_f db "Point F", 0
 
 boot32_gdt_data:
-    .null:
-        dq 0x0000000000000000
-    .kernel_code:       ;   64-bit kernel code
-        dd 0x00000000
-        dd 0x00209800
-    .kernel_data:       ;   64-bit kernel data
-        dd 0x00000000
-        dd 0x00209200
-    .user_code_32:      ;   32-bit user code
-        dd 0x00000000
-        dd 0x0040FA00
-    .user_data_32:      ;   I think this is 32-bit user data.
-        dd 0x00000000
-        dd 0x0040F200
-    .user_code:         ;   64-bit user code
-        dd 0x00000000
-        dd 0x0020F800
-    .user_data:         ;   64-bit user data..?
-        dd 0x00000000
-        dd 0x0020F200
-    .end:
+.null:          dq 0x0000000000000000
+.kernel_code:   dq 0x0020980000000000   ;   64-bit kernel code
+.kernel_data:   dq 0x0020920000000000   ;   64-bit kernel data..?
+.user_code_32:  dq 0x0040FA0000000000   ;   32-bit user code
+.user_data_32:  dq 0x0040F20000000000   ;   I think this is 32-bit user data...
+.user_code:     dq 0x0020F80000000000   ;   64-bit user code
+.user_data:     dq 0x0020F20000000000   ;   64-bit user data..?
+.end:           db 0 ; dummy
 
 ;dd 0, 0
 ;dd 0x00000000, 0x00209A00   ; 0x08: 64-bit Code
@@ -525,5 +514,13 @@ boot32_gdt_data:
 
 section .bss
 
-align 4096
-boot32_stack_bsp: resb 0x1000
+align 0x1000
+
+boot32_stack_bsp: resb 0x1000 * 3
+
+page_pml4: resb 0x1000
+page_idn_pdp: resb 0x1000
+page_idn_pd: resb 0x1000 * 64
+
+idt_data: resb 0x1000
+gdt_data: resb 0x1000

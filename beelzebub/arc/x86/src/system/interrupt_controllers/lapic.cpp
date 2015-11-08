@@ -109,12 +109,17 @@ void Lapic::SendIpi(LapicIcr const icr)
 
         do
         {
+            msg("<< checking to send IPI>>");
+
             COMPILER_MEMORY_BARRIER();
 
             low = *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress));
         } while (0 != (low & LapicIcr::DeliveryStatusBit));
 
+        msg("<< free to send IPI>>");
+
         *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterHigh << 4) + VirtualAddress)) = icr.High;
+        msg("<< written HIGH! >>");
         *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress)) = icr.Low ;
     }
 }

@@ -25,9 +25,16 @@ section .text
 bits 64
 
 global kernel_enter
+
+extern boot32_stack_bsp
 extern gdt_pointer
 extern idt_address
 extern idt_load
+
+kernel_swap_stack:
+    sub     rsp, rsi
+    add     rsp, rdi
+    ret
 
 ; Resets the stack and jumps to the kernel, given the entry address.
 ;
@@ -35,7 +42,8 @@ extern idt_load
 ;   RDI the entry address
 ;
 kernel_enter:
-    push rdi                        ; Save RDI
+    push    rdi
+    push    rsi
 
     mov rax, gdt_pointer            ; Reload GDT
     lgdt [rax]
@@ -44,13 +52,11 @@ kernel_enter:
     mov rsi, 0xFFF
     call idt_load
   
-    pop rdi                         ; Reload RDI
+    pop     rsi
+    pop     rdi
   
-    mov rax, rsp                    ; Reset the stack
-    sub rax, 1
-    and rax, ~0xFFF
-    add rax, 0x1000
-    mov rsp, rax
+    mov     rsp, rsi
+    ;   Stack reset.
     
     push rdi                        ; Push rdi as a return address
 

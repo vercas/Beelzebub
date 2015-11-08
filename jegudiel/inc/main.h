@@ -26,6 +26,8 @@
 #pragma once
 #include <stdint.h>
 
+extern uint8_t boot32_stack_bsp;
+
 /**
  * Sets up the system to the desired state, which includes:
  * 

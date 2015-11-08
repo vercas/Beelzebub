@@ -36,20 +36,22 @@ acpi_srat_t *acpi_srat = 0;
 
 static void acpi_add_cpu(uint32_t apic_id, uint32_t acpi_id, uint32_t flags)
 {
-    jg_info_cpu_t *cpu = &info_cpu[apic_id];
+    /*jg_info_cpu_t *cpu = &info_cpu[apic_id];
 
     cpu->acpi_id = acpi_id;
     cpu->apic_id = apic_id;
     cpu->flags = 0; //  Why |= 0? This must've been a typo.
-    cpu->domain = 0;
+    cpu->domain = 0;//*/
 
-    if (0 != (flags & ACPI_MADT_LAPIC_ENABLED)) {
-        cpu->flags |= JG_INFO_CPU_FLAG_PRESENT;
+    if (0 != (flags & ACPI_MADT_LAPIC_ENABLED))
+    {
+        //cpu->flags |= JG_INFO_CPU_FLAG_PRESENT;
         ++info_root->cpu_count_active;
     }
 
     size_t new_count = apic_id + 1;
-    if (info_root->cpu_count < new_count) {
+    if (info_root->cpu_count < new_count)
+    {
         info_root->cpu_count = new_count;
     }
 }
@@ -66,16 +68,16 @@ static void acpi_parse_madt_lapic(acpi_madt_lapic_t * entry)
 
 static void acpi_parse_madt_ioapic(acpi_madt_ioapic_t *entry)
 {
-    jg_info_ioapic_t *ioapic = &info_ioapic[info_root->ioapic_count++];
+    /*jg_info_ioapic_t *ioapic = &info_ioapic[info_root->ioapic_count++];
 
     ioapic->apic_id = entry->apic_id;
     ioapic->mmio_paddr = entry->mmio_addr;
-    ioapic->gsi_base = entry->gsi_base;
+    ioapic->gsi_base = entry->gsi_base;//*/
 }
 
 static void acpi_parse_madt_iso(acpi_madt_iso_t *iso)
 {
-    if (iso->bus != 1 || iso->irq >= 16) // ISA IRQs
+    /*if (iso->bus != 1 || iso->irq >= 16) // ISA IRQs
         return;
 
     uint8_t irq = iso->irq;
@@ -90,12 +92,12 @@ static void acpi_parse_madt_iso(acpi_madt_iso_t *iso)
 
     if (trigger == ACPI_MADT_ISO_TRIGGER_LEVEL) {
         info_root->irq_flags[irq] |= JG_INFO_IRQ_FLAG_LEVEL;
-    }
+    }*/
 }
 
 static void acpi_parse_madt(acpi_madt_t *madt)
 {
-    info_root->lapic_paddr = madt->lapic_paddr;
+    //info_root->lapic_paddr = madt->lapic_paddr;
 
     if ((madt->flags & ACPI_MADT_PCAT_COMPAT) != 0) {
         info_root->flags |= JG_INFO_FLAG_PCAT_COMPAT;
@@ -104,8 +106,8 @@ static void acpi_parse_madt(acpi_madt_t *madt)
     acpi_madt_entry_t * entry = (acpi_madt_entry_t *) ((uintptr_t)madt + sizeof(acpi_madt_t));
     size_t size_left = madt->header.length - sizeof(acpi_madt_t);
 
-    info_root->cpu_offset = heap_top - (uintptr_t)info_root;
-    info_cpu = (jg_info_cpu_t *)heap_top;
+    //info_root->cpu_offset = heap_top - (uintptr_t)info_root;
+    //info_cpu = (jg_info_cpu_t *)heap_top;
 
     while (size_left > 0)
     {
@@ -120,11 +122,11 @@ static void acpi_parse_madt(acpi_madt_t *madt)
             break;
 
         case ACPI_MADT_TYPE_IOAPIC:
-            acpi_parse_madt_ioapic((acpi_madt_ioapic_t *)entry);
+            //acpi_parse_madt_ioapic((acpi_madt_ioapic_t *)entry);
             break;
 
         case ACPI_MADT_TYPE_ISO:
-            acpi_parse_madt_iso((acpi_madt_iso_t *)entry);
+            //acpi_parse_madt_iso((acpi_madt_iso_t *)entry);
             break;
         }
 
@@ -135,7 +137,7 @@ static void acpi_parse_madt(acpi_madt_t *madt)
     size_t cpu_length = sizeof(jg_info_cpu_t) * info_root->cpu_count;
     cpu_length = (cpu_length + 0xFFF) & ~0xFFF;
     heap_top += cpu_length;
-    info_root->length += cpu_length;
+    info_root->length += cpu_length;//*/
 }
 
 static void acpi_parse_srat_lapic(acpi_srat_lapic_t *entry)
@@ -148,7 +150,7 @@ static void acpi_parse_srat_lapic(acpi_srat_lapic_t *entry)
     domain |= entry->domain_high[1] << 16;
     domain |= entry->domain_high[2] << 24;
 
-    info_cpu[entry->apic_id].domain = domain;
+    //info_cpu[entry->apic_id].domain = domain;
 }
 
 static void acpi_parse_srat_x2lapic(acpi_srat_x2lapic_t *entry)
@@ -156,7 +158,7 @@ static void acpi_parse_srat_x2lapic(acpi_srat_x2lapic_t *entry)
     if (0 == (entry->flags & ACPI_SRAT_LAPIC_ENABLED))
         return;
 
-    info_cpu[entry->x2apic_id].domain = entry->domain;
+    //info_cpu[entry->x2apic_id].domain = entry->domain;
 }
 
 static void acpi_parse_srat(acpi_srat_t *srat)
@@ -251,7 +253,7 @@ void acpi_parse(void)
         SCREEN_PANIC("ACPI: Could not find RSDP.");
     }
 
-    info_root->rsdp_paddr = (uintptr_t) rsdp;
+    //info_root->rsdp_paddr = (uintptr_t) rsdp;
     acpi_parse_rsdp(rsdp);
 
     if (0 == acpi_madt) {
@@ -260,7 +262,7 @@ void acpi_parse(void)
 
     acpi_parse_madt(acpi_madt);
 
-    if (0 != acpi_srat) {
+    /*if (0 != acpi_srat) {
         acpi_parse_srat(acpi_srat);
     }
 
@@ -270,7 +272,7 @@ void acpi_parse(void)
 
     if (0 == info_root->ioapic_count) {
         SCREEN_PANIC("No I/O APIC found in ACPI tables.");
-    }
+    }*/
 }
 
 acpi_rsdp_t *acpi_find_rsdp(uintptr_t begin, size_t length)

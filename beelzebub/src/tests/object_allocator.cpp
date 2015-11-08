@@ -34,7 +34,7 @@ SpinlockUninterruptible<> syncer;
 
 __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPool * & result)
 {
-    size_t const pageCount = RoundUp(objectSize + minimumObjects * headerSize, PageSize);
+    size_t const pageCount = RoundUp(objectSize + minimumObjects * headerSize, PageSize) / PageSize;
 
     Handle res;
     PageDescriptor * desc = nullptr;
@@ -79,9 +79,9 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
 
     pool->Capacity = pool->FreeCount = objectCount;
 
-    msg("<< Instanced object pool @%Xp with capacity %us, "
+    msg("<< Instanced object pool @%Xp with capacity %us (%us pages), "
         "header size %us, object size %us. >>%n"
-        , pool, objectCount, headerSize, objectSize);
+        , pool, objectCount, pageCount, headerSize, objectSize);
 
     uintptr_t cursor = (uintptr_t)pool + headerSize;
     FreeObject * last = nullptr;

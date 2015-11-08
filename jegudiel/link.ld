@@ -13,26 +13,20 @@ SECTIONS
         *(.data)
     }
     
-    .bss : {
-        *(.bss)
-    }
-    
     .info 0x1008000 : {
-        idt_data = .; . += 4096;
-        gdt_data = .; . += 4096;
-        page_pml4 = .; . += 4096;
-        page_idn_pdp = .; . += 4096;
-        page_idn_pd = .; . += 4096 * 64;
         info_root_data = .; . += 4096;
         info_mmap_data = .; . += 4096;
         info_module_data = .; . += 4096;
-        info_ioapic_data = .; . += 4096;
         info_strings_data = .; . += 4096;
     }
 
     .consts : {
         *(.rodata)
         *(.graphics)
+    }
+    
+    .bss : {
+        *(.bss)
     }
     
     /DISCARD/ : {

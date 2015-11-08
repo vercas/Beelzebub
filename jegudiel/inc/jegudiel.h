@@ -99,27 +99,27 @@ typedef struct jg_info_root {
     uint32_t flags;             //< flags
     uint16_t length;            //< length of the info tables
 
-    uint64_t lapic_paddr;       //< physical address of the LAPIC MMIO window
-    uint64_t rsdp_paddr;        //< physical address of the RSDP (ACPI)
+    //uint64_t lapic_paddr;       //< physical address of the LAPIC MMIO window
+    //uint64_t rsdp_paddr;        //< physical address of the RSDP (ACPI)
     
     uint64_t idt_paddr;         //< physical address of the IDT
     uint64_t gdt_paddr;         //< physical address of the GDT
-    uint64_t tss_paddr;         //< physical address of the TSS entries
+    //uint64_t tss_paddr;         //< physical address of the TSS entries
     
     uint64_t free_paddr;        //< physical address of the first free to use byte
     
-    uint32_t irq_gsi[16];       //< map of ISR IRQ numbers to GSI numbers
-    uint8_t irq_flags[16];      //< flags regarding the IRQs
+    //uint32_t irq_gsi[16];       //< map of ISR IRQ numbers to GSI numbers
+    //uint8_t irq_flags[16];      //< flags regarding the IRQs
     
-    uint16_t cpu_offset;        //< offset of the CPU table
-    uint16_t ioapic_offset;     //< offset of the IO APIC table
+    //uint16_t cpu_offset;        //< offset of the CPU table
+    //uint16_t ioapic_offset;     //< offset of the IO APIC table
     uint16_t mmap_offset;       //< offset of the MMAP table
     uint16_t module_offset;     //< offset of the module table
     uint16_t string_offset;     //< offset of the string table
 
     uint16_t cpu_count_active;  //< number of active CPUs in the system
     uint16_t cpu_count;         //< number of entries in the CPU table
-    uint16_t ioapic_count;      //< number of IO APICs
+    //uint16_t ioapic_count;      //< number of IO APICs 
     uint16_t mmap_count;        //< number of entries in the memory map
     uint16_t module_count;      //< number of modules
 
