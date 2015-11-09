@@ -45,7 +45,6 @@ deploy:
 
 after_deploy:
 - echo after deploy
-- rm -f Beelzebub.zip
 
 notifications:
   email: false
