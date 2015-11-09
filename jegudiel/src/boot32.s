@@ -514,13 +514,13 @@ boot32_gdt_data:
 
 section .bss
 
-align 0x1000
+align 4096
 
-boot32_stack_bsp: resb 0x1000 * 3
+boot32_stack_bsp: resb 4096 * 3
 
-page_pml4: resb 0x1000
-page_idn_pdp: resb 0x1000
-page_idn_pd: resb 0x1000 * 64
+page_pml4: resb 4096
+page_idn_pdp: resb 4096
+page_idn_pd: resb 4096 * 64
 
-idt_data: resb 0x1000
-gdt_data: resb 0x1000
+idt_data: resb 4096
+gdt_data: resb 4096
