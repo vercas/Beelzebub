@@ -39,12 +39,16 @@ Handle Lapic::Initialize()
 {
     bool const x2ApicSupported = supportsX2APIC();
     Cpu::SetX2ApicMode(x2ApicSupported);
+    //  This is just a CPU-specific boolean value. Doesn't actually enable
+    //  x2APIC mode, or disable it for that matter.
 
     if (x2ApicSupported)
     {
         auto apicBase = Msrs::GetApicBase();
-        
+        //  ApicBase -> IA32_APIC_BASE which is NOT the base physical address!
+
         apicBase.SetX2ApicEnabled(true);
+        //  Just enables x2APIC mode. Nothing else!
 
         Msrs::SetApicBase(apicBase);
         //  Now the LAPIC/x2APIC should be usable.
