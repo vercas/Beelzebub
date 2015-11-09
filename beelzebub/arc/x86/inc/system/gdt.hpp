@@ -29,7 +29,7 @@ namespace Beelzebub { namespace System
      */
     struct GdtEntryShort
     {
-        /*  Bit structure with PCID disabled:
+        /*  Bit structure:
          *       0 -  15 : Segment Limit low
          *      16 -  39 : Segment Base low
          *      40 -  43 : Type

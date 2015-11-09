@@ -13,7 +13,7 @@ __extern __used jg_header_root_t jegudiel_header = {
 	FLAGS,                                  // flags
 	0xFFFFFFFFFFF00000,                     // stack_vaddr
 	JG_INFO_ROOT_BASE ,                     // info_vaddr
-	0xFFFFFFFFFFCEF000,                     // idt_vaddr
+	0xFFFFFFFFFFCEE000,                     // idt_vaddr
 	0xFFFFFFFFFFCF0000,                     // gdt_vaddr
 	(uintptr_t)&kmain_ap,                   // ap_entry
 	0,                                      // syscall_entry

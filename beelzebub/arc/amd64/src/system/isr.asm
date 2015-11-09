@@ -7,6 +7,12 @@ global IsrGates
 global InterruptHandlers
 global InterruptEnders
 
+%assign i 0
+%rep 256
+    global isr_stub %+ i
+    %assign i i+1
+%endrep
+
 align 16
 
 isr_stub_common:
@@ -49,7 +55,7 @@ isr_stub_common:
     ;   2. RSI = Ender pointer
     ;   3. RDX = Handler pointer
     ;   4. RCX = Vector
-    call rdx                            ;   Call handler
+    call    rdx                            ;   Call handler
 
 .skip:
     pop     rax                         ;   Restore data segments
