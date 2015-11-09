@@ -617,6 +617,11 @@ Handle InitializeProcessingUnits()
 
     KernelGdtPointer = GdtRegister::Retrieve();
 
+    BREAKPOINT_SET_AUX((int volatile *)((uintptr_t)&ApBreakpointCookie - (uintptr_t)&ApBootstrapBegin + bootstrapVaddr));
+    int_cookie_t const int_cookie = Interrupts::PushEnable();
+
+    msg("Auxiliary breakpoint pointer @ %Xp.%n", breakpointEscapedAux);
+
     MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
         , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
 
@@ -656,6 +661,9 @@ Handle InitializeProcessingUnits()
 
     Wait(10 * 1000);
     //  Wait a bitsy before unmapping the page.
+
+    Interrupts::RestoreState(int_cookie);
+    BREAKPOINT_SET_AUX(nullptr);
 
     res = BootstrapMemoryManager.UnmapPage(bootstrapVaddr);
 
@@ -714,7 +722,7 @@ Handle InitializeAp(uint32_t const lapicId
     .SetAssert(true)
     .SetDestination(lapicId);
 
-    for(;;) CpuInstructions::Halt();
+    //for(;;) CpuInstructions::Halt();
 
     msg("Sending INIT IPI to %u4...", lapicId);
 

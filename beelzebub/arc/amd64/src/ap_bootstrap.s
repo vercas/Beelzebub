@@ -12,6 +12,7 @@ extern ApInitializationLock
 global ApBootstrapBegin
 global ApBootstrapEnd
 global BootstrapPml4Address
+global ApBreakpointCookie
 
 ;   The physical location of this code.
 %define PHYSADDR 0x1000
@@ -20,6 +21,14 @@ global BootstrapPml4Address
     mov     dx, 0x3F8
     mov     al, %1
     out     dx, al
+%endmacro
+
+%macro breakpoint 1
+    mov     word [ApBreakpointCookie - ApBootstrapBegin + PHYSADDR], 1
+%%check:
+    pause
+    cmp     word [ApBreakpointCookie - ApBootstrapBegin + PHYSADDR], 0
+    jne     %%check
 %endmacro
 
 ;   This will be used by the linker, mainly.
@@ -44,13 +53,14 @@ ApBootstrapBegin:
     ;   The NX bit support (bit 20) and PGE (bit 26) are needed.
 
     debugchar 'A'
+    ;breakpoint dummy
 
     mov     eax, cr4
     bts     eax, 5
     ;   Enable PAE.
 
     bt      edi, 26
-    jnc     .write_cr4 - ApBootstrapBegin + PHYSADDR
+    jnc     .write_cr4
     bts     eax, 7
     ;   And PGE (global pages) if available.
 
@@ -72,7 +82,7 @@ ApBootstrapBegin:
     ;   Enable long mode
 
     bt      edi, 20
-    jnc     .write_efer - ApBootstrapBegin + PHYSADDR
+    jnc     .write_efer
     bts     eax, 11
     ;   And NX/XD bit if available.
 
@@ -166,6 +176,9 @@ BootstrapPml4Address:
     dq 0
 
 align 16    ;   Just make sure things are neat and aligned.
+
+ApBreakpointCookie:
+    dq 0
 
 ;   Marks the end of the AP bootstrap code.
 ApBootstrapEnd:

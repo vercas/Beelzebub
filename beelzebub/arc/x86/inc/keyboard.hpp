@@ -16,7 +16,8 @@
  */
 __extern bool keyboard_escaped;
 
-__extern volatile int breakpointEscaped;
+__extern int volatile breakpointEscaped;
+__extern int volatile * volatile breakpointEscapedAux;
 
 /**
  * Initializes the keyboard support.

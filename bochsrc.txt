@@ -19,7 +19,7 @@ ata2: enabled=0
 ata3: enabled=0
 pci: enabled=1, chipset=i440fx
 vga: extension=vbe, update_freq=5
-cpu: count=4, ips=4000000, model=core_duo_t2400_yonah, reset_on_triple_fault=1, cpuid_limit_winnt=0, ignore_bad_msrs=1, mwait_is_nop=0
+cpu: count=2, ips=4000000, model=core_duo_t2400_yonah, reset_on_triple_fault=1, cpuid_limit_winnt=0, ignore_bad_msrs=1, mwait_is_nop=0
 print_timestamps: enabled=0
 port_e9_hack: enabled=1
 private_colormap: enabled=0

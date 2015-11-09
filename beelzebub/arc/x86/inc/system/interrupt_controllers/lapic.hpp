@@ -24,7 +24,7 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         /*  Addresses  */
 
         static paddr_t PhysicalAddress;
-        static vaddr_t const VirtualAddress = 0xFFFFFFFFFFFFF000;
+        static vaddr_t const volatile VirtualAddress;
         //  Very last page - why not?
 
         /*  Constructor(s)  */
@@ -57,7 +57,7 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
             WriteRegister(LapicRegister::EndOfInterrupt, 0);
         }
 
-        static __bland void SendIpi(LapicIcr const icr);
+        static __bland void SendIpi(LapicIcr icr);
 
         LAPICREGFUNC1(SpuriousInterruptVector, Svr, LapicSvr)
     };

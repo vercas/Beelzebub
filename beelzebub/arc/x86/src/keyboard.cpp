@@ -14,7 +14,9 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
 
 bool keyboard_escaped = false;
-volatile int breakpointEscaped = 0;
+
+int volatile breakpointEscaped = 0;
+int volatile * volatile breakpointEscapedAux = nullptr;
 
 void keyboard_init(void)
 {
@@ -67,6 +69,9 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS)
 
         case KEYBOARD_CODE_RIGHT:
             breakpointEscaped = 0;
+
+            if (breakpointEscapedAux != nullptr)
+                *breakpointEscapedAux = 0;
 
             break;
 
