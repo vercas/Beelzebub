@@ -612,15 +612,15 @@ Handle InitializeProcessingUnits()
     memcpy((void *)bootstrapVaddr, &ApBootstrapBegin, (uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin);
     //  This makes sure the code can be executed by the AP.
 
-    msg("AP bootstrap code @ %Xp:%us%n"
-        , &ApBootstrapBegin, (size_t)((uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin));
+    //msg("AP bootstrap code @ %Xp:%us%n"
+    //    , &ApBootstrapBegin, (size_t)((uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin));
 
     KernelGdtPointer = GdtRegister::Retrieve();
 
     BREAKPOINT_SET_AUX((int volatile *)((uintptr_t)&ApBreakpointCookie - (uintptr_t)&ApBootstrapBegin + bootstrapVaddr));
     int_cookie_t const int_cookie = Interrupts::PushEnable();
 
-    msg("Auxiliary breakpoint pointer @ %Xp.%n", breakpointEscapedAux);
+    //msg("Auxiliary breakpoint pointer @ %Xp.%n", breakpointEscapedAux);
 
     MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
         , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
@@ -671,7 +671,7 @@ Handle InitializeProcessingUnits()
         , "Failed to unmap unneeded page at %Xp (%XP) for init code: %H%n"
         , bootstrapVaddr, bootstrapPaddr, res);
 
-    msg("Got %us cores.", Cpu::Count.Load());
+    //msg("Got %us cores.", Cpu::Count.Load());
 
     return HandleResult::Okay;
 }
@@ -711,7 +711,7 @@ Handle InitializeAp(uint32_t const lapicId
     ApStackTopPointer = vaddr + PageSize;
     ApInitializationLock = 1;
 
-    msg("Stack for AP #%us is at %Xp (%Xp, %XP).%n", apIndex, ApStackTopPointer, vaddr, paddr);
+    //msg("Stack for AP #%us is at %Xp (%Xp, %XP).%n", apIndex, ApStackTopPointer, vaddr, paddr);
 
     memset((void *)vaddr, 0xF0, PageSize);
     //  Make sure it's writable.
@@ -724,17 +724,17 @@ Handle InitializeAp(uint32_t const lapicId
 
     //for(;;) CpuInstructions::Halt();
 
-    msg("Sending INIT IPI to %u4...", lapicId);
+    //msg("Sending INIT IPI to %u4...", lapicId);
 
     Lapic::SendIpi(initIcr);
 
-    msg(" Waiting...");
+    //msg(" Waiting...");
 
     Wait(10 * 1000);
     //  Much more than the recommended amount, but this may be handy for busy
     //  virtualized environments.
 
-    msg(" Done.%n");
+    //msg(" Done.%n");
 
     LapicIcr startupIcr = LapicIcr(0)
     .SetDeliveryMode(InterruptDeliveryModes::StartUp)
@@ -743,29 +743,29 @@ Handle InitializeAp(uint32_t const lapicId
     .SetVector(0x1000 >> 12)
     .SetDestination(lapicId);
 
-    msg("Sending first startup IPI to %u4...", lapicId);
+    //msg("Sending first startup IPI to %u4...", lapicId);
 
     Lapic::SendIpi(startupIcr);
 
-    msg(" Waiting...");
+    //msg(" Waiting...");
 
     Wait(10 * 1000);
 
-    msg(" Done.%n");
+    //msg(" Done.%n");
 
     if (ApInitializationLock != 0)
     {
         //  It should be ready. Let's try again.
 
-        msg("Sending second startup IPI to %u4...", lapicId);
+        //msg("Sending second startup IPI to %u4...", lapicId);
 
         Lapic::SendIpi(startupIcr);
 
-        msg(" Waiting...");
+        //msg(" Waiting...");
 
         Wait(1000 * 1000);
 
-        msg(" Done.%n");
+        //msg(" Done.%n");
 
         if (ApInitializationLock != 0)
             return HandleResult::Timeout;

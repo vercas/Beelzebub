@@ -52,7 +52,7 @@ ApBootstrapBegin:
     mov     edi, edx
     ;   The NX bit support (bit 20) and PGE (bit 26) are needed.
 
-    debugchar 'A'
+    ;debugchar 'A'
     ;breakpoint dummy
 
     mov     eax, cr4
@@ -68,13 +68,13 @@ ApBootstrapBegin:
     mov     cr4, eax
     ;   And flush.
 
-    debugchar 'B'
+    ;debugchar 'B'
 
     mov     eax, [BootstrapPml4Address - ApBootstrapBegin + PHYSADDR]
     mov     cr3, eax
     ;   Load the PML4.
 
-    debugchar 'C'
+    ;debugchar 'C'
 
     mov     ecx, 0xC0000080
     rdmsr
@@ -90,7 +90,7 @@ ApBootstrapBegin:
     wrmsr
     ;   Writes the value to IA32_EFER
 
-    debugchar 'D'
+    ;debugchar 'D'
 
     mov     eax, cr0
     bts     eax, 0
@@ -98,12 +98,12 @@ ApBootstrapBegin:
     mov     cr0, eax
     ;   Protected mode and paging.
 
-    debugchar 'E'
+    ;debugchar 'E'
 
     lgdt    [cs:ApBootstrapGdt64R - ApBootstrapBegin + PHYSADDR]
     ;   Load a GDT which contains long mode segments.
 
-    debugchar 'F'
+    ;debugchar 'F'
 
     jmp     0x08:.long - ApBootstrapBegin + PHYSADDR
     ;   Long jump into protected mode!
@@ -111,7 +111,7 @@ ApBootstrapBegin:
 bits 64 ;   Then long mode directly.
 
 .long:
-    debugchar 'G'
+    ;debugchar 'G'
 
     mov     ax, 0x10
     mov     ds, ax
@@ -122,25 +122,25 @@ bits 64 ;   Then long mode directly.
     ;   Make sure the data segments are correct.
     ;   The following code involves data fetching, so better safe than sorry?
 
-    debugchar 'H'
+    ;debugchar 'H'
 
     mov     rax, KernelGdtPointer
     lgdt    [rax]
     ;   Load the GDT for domain 0.
 
-    debugchar 'I'
+    ;debugchar 'I'
 
     mov     rax, ApStackTopPointer
     mov     rsp, qword [rax]
     ;   The entry point will surely need a stack.
 
-    debugchar 'J'
+    ;debugchar 'J'
 
     mov     rax, ApInitializationLock
     mov     dword [rax], 0
     ;   Tell the BSP that initialization is complete.
 
-    debugchar 'K'
+    ;debugchar 'K'
 
     mov     rax, kmain_ap
     jmp     rax
