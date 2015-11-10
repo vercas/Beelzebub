@@ -14,6 +14,7 @@ namespace Beelzebub { namespace System
         /*  Statics  */
 
         static size_t const Count = 256;
+        static size_t const StubSize = 16;
 
         static Idt Table;
         static IdtRegister Register;

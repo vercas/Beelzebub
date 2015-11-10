@@ -103,6 +103,11 @@ void kmain_ap()
 
 Handle InitializeInterrupts()
 {
+    size_t isrStubsSize = (size_t)(&IsrStubsEnd - &IsrStubsBegin);
+
+    assert(isrStubsSize == Interrupts::Count * Interrupts::StubSize
+        , "ISR stubs seem to have the wrong size!");
+
     for (size_t i = 0; i < Interrupts::Count; ++i)
     {
         InterruptHandlers[i] = &MiscellaneousInterruptHandler;
@@ -127,19 +132,8 @@ Handle InitializeInterrupts()
     Pic::Subscribe(3, &SerialPort::IrqHandler);
     Pic::Subscribe(4, &SerialPort::IrqHandler);
 
-    //InterruptHandlers[Pic::VectorOffset + 0] = &Pit::IrqHandler;
-    //InterruptHandlers[Pic::VectorOffset + 1] = &keyboard_handler;
-    //InterruptHandlers[Pic::VectorOffset + 3] = &SerialPort::IrqHandler;
-    //InterruptHandlers[Pic::VectorOffset + 4] = &SerialPort::IrqHandler;
-
-    //initialVbeTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
-
     IdtRegister idtr = IdtRegister::Retrieve();
     //PrintToDebugTerminal(idtr);
-
-    msg("Interrupt stubs: %Xp - %Xp = %Xs.%n"
-        , &IsrStubsEnd, &IsrStubsBegin
-        , (size_t)(&IsrStubsEnd - &IsrStubsBegin));
 
     return HandleResult::Okay;
 }

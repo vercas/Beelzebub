@@ -20,15 +20,15 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     Process * const thisProc = this->Owner;
     Process * const otherProc = other->Owner;
 
-    msg("++ ");
+    //msg("++ ");
 
     int_cookie_t const int_cookie = Interrupts::PushDisable();
 
-    msg("A");
+    //msg("A");
 
     if (thisProc != otherProc)
     {
-        msg("1");
+        //msg("1");
 
         res = thisProc->SwitchTo(otherProc);
 
@@ -39,25 +39,25 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
             return res;
         }
 
-        msg("2");
+        //msg("2");
     }
 
     Cpu::SetActiveThread(other);
 
-    msg("B");
+    //msg("B");
 
     //SwitchThread(&this->KernelStackPointer, other->KernelStackPointer);
 
-    auto interruptVector = dest->Vector;
+    //auto interruptVector = dest->Vector;
     auto errorCode = dest->ErrorCode;
 
     *dest = other->State;
     //memcpy(dest, &other->State, sizeof(ThreadState));
 
     dest->ErrorCode = errorCode;
-    dest->Vector = interruptVector;
+    //dest->Vector = interruptVector;
 
-    msg("C");
+    //msg("C");
 
     Interrupts::RestoreState(int_cookie);
     //  Doing this (restoring the interrupt state after switching BACK to
@@ -67,7 +67,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     //  The thing is, interrupts should have the same state before and
     //  after switching. I hope.
 
-    msg(" ++");
+    //msg(" ++");
 
     return HandleResult::Okay;
 }

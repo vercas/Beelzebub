@@ -23,7 +23,7 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
     initState->DS = Cpu::GetDs();
     initState->SS = Cpu::GetSs();
 
-    initState->Vector = 3;  //  Uhm, not sure if the value matters but a breakpoint is the least bad.
+    //initState->Vector = 3;  //  Uhm, not sure if the value matters but a breakpoint is the least bad.
     initState->ErrorCode = 0;
 
     initState->RFLAGS = (uint64_t)(FlagsRegisterFlags::Reserved1 | FlagsRegisterFlags::InterruptEnable | FlagsRegisterFlags::Cpuid);

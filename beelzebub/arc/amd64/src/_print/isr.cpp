@@ -19,7 +19,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         "\tInstruction Pointer: %Xp%n"
         "\tFlags: %Xs%n"
         "\t----%n"
-        "\tVector: %u1%n"
+        //"\tVector: %u1%n"
         "\tError Code: %Xs%n"
         , val
         , (uint16_t)val->SS
@@ -27,7 +27,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         , val->RSP
         , val->RIP
         , val->RFLAGS
-        , (uint8_t)val->Vector
+        //, (uint8_t)val->Vector
         , val->ErrorCode);
 }
 

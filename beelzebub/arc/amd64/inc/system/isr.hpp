@@ -13,8 +13,6 @@ namespace Beelzebub { namespace System
     public:
         /*  Field(s)  */
 
-        uint64_t Padding;
-
         uint64_t DS;
 
         uint64_t R15;
@@ -29,11 +27,11 @@ namespace Beelzebub { namespace System
         uint64_t RDI;
         uint64_t RSI;
         uint64_t RDX;
-        uint64_t RCX;
         uint64_t RBX;
         uint64_t RAX;
+        
+        uint64_t RCX;
 
-        uint64_t Vector;
         uint64_t ErrorCode;
 
         uint64_t RIP;
