@@ -5,8 +5,6 @@ SECTIONS
     . = 0xFFFFFFFF80000000;
 
     .text : {
-        *(.ap_bootstrap)
-        . = ALIGN(16);
         *(.text.startup)
         . = ALIGN(16);
         *(.text.unlikely)
@@ -29,6 +27,8 @@ SECTIONS
 
     .data : {
         *(.data)
+        . = ALIGN(16);
+        *(.ap_bootstrap)
     }
 
     . = ALIGN(4096);
