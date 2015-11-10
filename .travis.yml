@@ -30,6 +30,7 @@ after_success:
 before_deploy:
 - echo before deploy
 - sh disassemble-kernel.sh > build/beelzebub.beelzebub.amd64.x86.disassembly.txt
+- sh readelf-kernel.sh > build/beelzebub.beelzebub.amd64.x86.readelf.txt
 - pushd build
 - zip -r Beelzebub.zip *
 - popd
