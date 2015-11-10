@@ -742,6 +742,13 @@ Handle InitializeProcessingUnits()
     return HandleResult::Okay;
 }
 
+__hot __bland bool CheckApInitializationFlag()
+{
+    uint32_t volatile val = ApInitializationLock;
+
+    return val == 0;
+}
+
 Handle InitializeAp(uint32_t const lapicId
                   , uint32_t const procId
                   , size_t const apIndex)
@@ -777,30 +784,17 @@ Handle InitializeAp(uint32_t const lapicId
     ApStackTopPointer = vaddr + PageSize;
     ApInitializationLock = 1;
 
-    //msg("Stack for AP #%us is at %Xp (%Xp, %XP).%n", apIndex, ApStackTopPointer, vaddr, paddr);
-
-    memset((void *)vaddr, 0xF0, PageSize);
-    //  Make sure it's writable.
-
     LapicIcr initIcr = LapicIcr(0)
     .SetDeliveryMode(InterruptDeliveryModes::Init)
     .SetDestinationShorthand(IcrDestinationShorthand::None)
     .SetAssert(true)
     .SetDestination(lapicId);
 
-    //for(;;) CpuInstructions::Halt();
-
-    //msg("Sending INIT IPI to %u4...", lapicId);
-
     Lapic::SendIpi(initIcr);
-
-    //msg(" Waiting...");
 
     Wait(10 * 1000);
     //  Much more than the recommended amount, but this may be handy for busy
     //  virtualized environments.
-
-    //msg(" Done.%n");
 
     LapicIcr startupIcr = LapicIcr(0)
     .SetDeliveryMode(InterruptDeliveryModes::StartUp)
@@ -809,29 +803,17 @@ Handle InitializeAp(uint32_t const lapicId
     .SetVector(0x1000 >> 12)
     .SetDestination(lapicId);
 
-    //msg("Sending first startup IPI to %u4...", lapicId);
-
     Lapic::SendIpi(startupIcr);
 
-    //msg(" Waiting...");
-
-    Wait(10 * 1000);
-
-    //msg(" Done.%n");
+    Wait(10 * 1000, &CheckApInitializationFlag);
 
     if (ApInitializationLock != 0)
     {
         //  It should be ready. Let's try again.
 
-        //msg("Sending second startup IPI to %u4...", lapicId);
-
         Lapic::SendIpi(startupIcr);
 
-        //msg(" Waiting...");
-
-        Wait(1000 * 1000);
-
-        //msg(" Done.%n");
+        Wait(1000 * 1000, &CheckApInitializationFlag);
 
         if (ApInitializationLock != 0)
             return HandleResult::Timeout;

@@ -26,3 +26,31 @@ void Utils::Wait(uint64_t const microseconds)
 
     Interrupts::RestoreState(cookie);
 }
+
+bool Utils::Wait(uint64_t const microseconds, PredicateFunction0 const pred)
+{
+    if (pred())
+        return true;
+    //  Eh, just checkin'?
+
+    size_t difference = RoundUp(microseconds, 10000) / 10000;
+    //  Round up to the length of a timer tick in microseconds, then get the
+    //  number of ticks.
+
+    size_t volatile counterStart = Pit::Counter;
+
+    int_cookie_t const cookie = Interrupts::PushEnable();
+
+    do
+    {
+        CpuInstructions::Halt();
+
+        if (pred())
+            return true;
+    } while (Pit::Counter.Load() - counterStart < difference);
+    //  Yes, we can actually halt the CPU!
+
+    Interrupts::RestoreState(cookie);
+
+    return pred();
+}
