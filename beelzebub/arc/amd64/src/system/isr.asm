@@ -51,11 +51,16 @@ IsrCommonStub:
     mov     es, ax
     ;   Make sure the data segments are the kernel's, before accessing data below.
 
-    mov     rdi, rsp                    ;   Stack pointer as first parameter (ISR state)
+    mov     rdi, rsp
+    ;   Stack pointer as first parameter (IsrState *)
+
     mov     rbx, InterruptHandlers
-    mov     rdx, qword [rbx + rcx * 8]  ;   Handler...
+    mov     rdx, qword [rbx + rcx * 8]
+    ;   Handler pointer.
+
     mov     rbx, InterruptEnders
-    mov     rsi, qword [rbx + rcx * 8]  ;   And ender.
+    mov     rsi, qword [rbx + rcx * 8]
+    ;   Ender pointer.
 
     test    rdx, rdx
     jz      .skip
