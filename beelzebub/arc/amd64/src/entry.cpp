@@ -19,6 +19,7 @@
 #include <debug.hpp>
 #include <_print/registers.hpp>
 #include <_print/gdt.hpp>
+#include <_print/idt.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;
@@ -134,8 +135,11 @@ Handle InitializeInterrupts()
     //initialVbeTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
 
     IdtRegister idtr = IdtRegister::Retrieve();
+    //PrintToDebugTerminal(idtr);
 
-    msg("IDTR - Base: %Xp, Size: %u2.%n", idtr.Pointer, idtr.Size);
+    msg("Interrupt stubs: %Xp - %Xp = %Xs.%n"
+        , &IsrStubsEnd, &IsrStubsBegin
+        , (size_t)(&IsrStubsEnd - &IsrStubsBegin));
 
     return HandleResult::Okay;
 }

@@ -13,7 +13,7 @@ using namespace Beelzebub::Terminals;
 TerminalWriteResult PrintToTerminal(TerminalBase * const term, GdtEntryShort const val)
 {
     return term->WriteFormat("%X4|%X4|%b%b|%t| %t | %t |%t|%t|%t|%t|%t|%t|%t|%n"
-        , val.GetBase(), val.GetLimit(), val.GetDplLow(), val.GetDplHigh()
+        , val.GetBase(), val.GetLimit(), val.GetDplHigh(), val.GetDplLow()
         , val.GetAccessed(), val.GetRw(), val.GetDc(), val.GetEx()
         , val.GetSystem(), val.GetPresent(), val.GetAvailable(), val.GetLong()
         , val.GetSize(), val.GetGranularity());

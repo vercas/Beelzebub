@@ -10,3 +10,4 @@ using namespace Beelzebub::System;
 /*  Statics  */
 
 Idt Interrupts::Table;
+IdtRegister Interrupts::Register {0xFFF, &Interrupts::Table};

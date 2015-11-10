@@ -13,6 +13,8 @@ namespace Beelzebub { namespace System
     public:
         /*  Field(s)  */
 
+        uint64_t Padding;
+
         uint64_t DS;
 
         uint64_t R15;
@@ -40,4 +42,6 @@ namespace Beelzebub { namespace System
         uint64_t RSP;
         uint64_t SS;
     } __packed;
+
+    __extern uint8_t IsrStubsBegin, IsrStubsEnd;
 }}

@@ -23,7 +23,9 @@ using namespace Beelzebub::Memory;
 void Beelzebub::System::MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
-        , "<<MISC INT @ %Xp (%Xs) - vector %u1>>", INSTRUCTION_POINTER, state->ErrorCode, state->Vector);
+        , "<<MISC INT @ %Xp (%Xs) - vector %u1/%X1 (%u1/%X1)>>"
+        , INSTRUCTION_POINTER, state->ErrorCode
+        , state->Vector, state->Vector, vector, vector);
 }
 
 /**

@@ -9,14 +9,17 @@ global InterruptEnders
 
 %assign i 0
 %rep 256
-    global isr_stub %+ i
+    global IsrStub %+ i
     %assign i i+1
 %endrep
 
+global IsrStubsBegin
+global IsrStubsEnd
+
 align 16
 
-isr_stub_common:
-    push    rax                         ;   Store general purpose registers
+IsrCommonStub:
+    push    rax
     push    rbx
     push    rcx
     push    rdx
@@ -31,24 +34,31 @@ isr_stub_common:
     push    r13
     push    r14
     push    r15
+    ;   Store general purpose registers
 
     xor     rax, rax
-    mov     ax, ds                      ;   Save data segment.
+    mov     ax, ds
     push    rax
+    ;   Save data segment.
 
-    mov     ax, 0x10                    ;   Load kernel's data segment
+    push    rax
+    ;   This is just for padding.
+
+    mov     ax, 0x10
     mov     ds, ax
     mov     es, ax
+    ;   Make sure the data segments are the kernel's, before accessing data below.
 
     mov     rdi, rsp                    ;   Stack pointer as first parameter (ISR state)
-    mov     rcx, qword [rdi + 128]      ;   Grab the interrupt vector...
+    mov     rcx, qword [rdi + 136]      ;   Grab the interrupt vector...
     mov     rbx, InterruptHandlers
     mov     rdx, qword [rbx + rcx * 8]  ;   Handler...
     mov     rbx, InterruptEnders
     mov     rsi, qword [rbx + rcx * 8]  ;   And ender.
 
-    test    rdx, rdx                    ;   A null handler means do nuthin'.
-    jz      .skip                 ;   So it skips the call.
+    test    rdx, rdx
+    jz      .skip
+    ;   A null handler means the call is skipped.
 
     ;   At this point, the arguments given are the following:
     ;   1. RDI = State pointer
@@ -58,11 +68,15 @@ isr_stub_common:
     call    rdx                            ;   Call handler
 
 .skip:
-    pop     rax                         ;   Restore data segments
+    pop     rax
+    ;   Padding.
+
+    pop     rax 
     mov     es, ax
     mov     ds, ax
+    ;   Simply restore the data segments.
 
-    pop     r15                         ;   Restore registers
+    pop     r15
     pop     r14
     pop     r13
     pop     r12
@@ -77,24 +91,32 @@ isr_stub_common:
     pop     rcx
     pop     rbx
     pop     rax
-    add     rsp, 16                     ;   Remove error code and vector number
+    ;   Restore general-purpose registers.
+
+    add     rsp, 16
+    ;   "Pop" interrupt vector and error code.
 
     iretq
 
 %macro ISR_NOERRCODE 1
-    isr_stub%1:
+    IsrStub%1:
         cli
         push    qword 0
         push    qword %1
-        jmp     isr_stub_common
+        jmp     IsrCommonStub
+    align 16
 %endmacro
 
 %macro ISR_ERRCODE 1
-    isr_stub%1:
+    IsrStub%1:
         cli
         push    qword %1
-        jmp     isr_stub_common
+        jmp     IsrCommonStub
+    align 16
 %endmacro
+
+align 16
+IsrStubsBegin:
 
 ISR_NOERRCODE 0
 ISR_NOERRCODE 1
@@ -135,6 +157,9 @@ ISR_NOERRCODE 31
     %assign i i+1
 %endrep
 
+IsrStubsEnd:
+    db 0    ;   Dummy.
+
 DEFAULT ABS
 
 section .data
@@ -144,7 +169,7 @@ align 16
 IsrGates:
     %assign i 0
     %rep 256
-        dq isr_stub %+ i
+        dq IsrStub %+ i
         %assign i i+1
     %endrep
 
