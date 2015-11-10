@@ -11,29 +11,11 @@
 __extern __used jg_header_root_t jegudiel_header = {
 	JG_MAGIC,                               // magic
 	FLAGS,                                  // flags
-	0xFFFFFFFFFFF00000,                     // stack_vaddr
+	0xFFFFFFFFFFFFC000,                     // stack_vaddr
 	JG_INFO_ROOT_BASE ,                     // info_vaddr
-	0xFFFFFFFFFFCEE000,                     // idt_vaddr
-	0xFFFFFFFFFFCF0000,                     // gdt_vaddr
+	0xFFFFFFFFFFFFA000,                     // idt_vaddr
+	0xFFFFFFFFFFFF2000,                     // gdt_vaddr
 	(uintptr_t)&kmain_ap,                   // ap_entry
 	0,                                      // syscall_entry
-	(uintptr_t)&IsrGates,                   // isr_entry_table
-	{
-		{0                      , 0xEE                   },   // IRQ0
-		{0                      , KEYBOARD_IRQ_VECTOR    },   // IRQ1
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ2
-		{0                      , 0xED                   },   // IRQ3 - COM2&4
-		{0                      , 0xED                   },   // IRQ4 - COM1&3
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ5
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ6
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ7
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ8
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ9
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ10
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ11
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ12
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ13
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      },   // IRQ14
-		{JG_HEADER_IRQ_FLAG_MASK, 0                      }    // IRQ15
-	}
+	(uintptr_t)&IsrGates                    // isr_entry_table
 };

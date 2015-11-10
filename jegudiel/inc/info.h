@@ -38,16 +38,6 @@
 extern jg_info_root_t *info_root;
 
 /**
- * Pointer to the CPU list of the info section.
- */
-extern jg_info_cpu_t *info_cpu;
-
-/**
- * Pointer to the IO APIC list of the info section.
- */
-extern jg_info_ioapic_t *info_ioapic;
-
-/**
  * Pointer to the memory map list of the info section.
  */
 extern jg_info_mmap_t *info_mmap;

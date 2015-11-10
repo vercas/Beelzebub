@@ -133,6 +133,10 @@ Handle InitializeInterrupts()
 
     //initialVbeTerminal.WriteHex64((uint64_t)&SerialPort::IrqHandler);
 
+    IdtRegister idtr = IdtRegister::Retrieve();
+
+    msg("IDTR - Base: %Xp, Size: %u2.%n", idtr.Pointer, idtr.Size);
+
     return HandleResult::Okay;
 }
 

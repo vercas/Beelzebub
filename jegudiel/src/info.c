@@ -38,8 +38,6 @@ extern uint8_t info_module_data INFO_SECTION;
 extern uint8_t info_strings_data INFO_SECTION;
 
 jg_info_root_t *info_root = (jg_info_root_t *) &info_root_data;
-jg_info_cpu_t *info_cpu = 0;
-//jg_info_ioapic_t *info_ioapic = (jg_info_ioapic_t *) &info_ioapic_data;
 jg_info_mmap_t *info_mmap = (jg_info_mmap_t *) &info_mmap_data;
 jg_info_module_t *info_module = (jg_info_module_t *) &info_module_data;
 

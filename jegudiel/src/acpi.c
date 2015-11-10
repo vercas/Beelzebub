@@ -134,7 +134,7 @@ static void acpi_parse_madt(acpi_madt_t *madt)
         entry = (acpi_madt_entry_t *)((uintptr_t)entry + entry->length);
     }
 
-    size_t cpu_length = sizeof(jg_info_cpu_t) * info_root->cpu_count;
+    /*size_t cpu_length = sizeof(jg_info_cpu_t) * info_root->cpu_count;
     cpu_length = (cpu_length + 0xFFF) & ~0xFFF;
     heap_top += cpu_length;
     info_root->length += cpu_length;//*/

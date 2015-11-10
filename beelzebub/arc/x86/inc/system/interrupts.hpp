@@ -1,6 +1,7 @@
 #pragma once
 
 #include <system/isr.hpp>
+#include <system/idt.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -13,6 +14,8 @@ namespace Beelzebub { namespace System
         /*  Statics  */
 
         static size_t const Count = 256;
+
+        static Idt Table;
 
         /*  Constructor(s)  */
 

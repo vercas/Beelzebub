@@ -58,8 +58,6 @@
 #define JG_INFO_OFFSET(name)    ((uintptr_t) (0x104C000 + JG_INFO_ROOT-> name ## _offset))
 
 #define JG_INFO_ROOT            ((jg_info_root_t *) 0x104C000)
-#define JG_INFO_CPU             ((jg_info_cpu_t *) JG_INFO_OFFSET(cpu))
-#define JG_INFO_IOAPIC          ((jg_info_ioapic_t *) JG_INFO_OFFSET(ioapic))
 #define JG_INFO_MMAP            ((jg_info_mmap_t *) JG_INFO_OFFSET(mmap))
 #define JG_INFO_MODULE          ((jg_info_module_t *) JG_INFO_OFFSET(module))
 #define JG_INFO_STRING          ((char *) JG_INFO_OFFSET(string))
@@ -126,35 +124,6 @@ typedef struct jg_info_root {
     uint64_t multiboot_paddr;   //  Physical address of the multiboot header.
     
 } __attribute__((packed)) jg_info_root_t;
-
-/**
- * An entry in the CPU info table which represents a single CPU in the system.
- * 
- * Without the JG_INFO_CPU_PRESENT flag being set, the CPU entry can be ignored.
- * 
- * Length: 18 bytes.
- */
-typedef struct jg_info_cpu {
-    uint32_t apic_id;           //< apic id of the CPU's LAPIC
-    uint32_t acpi_id;           //< acpi id of the CPU
-    uint16_t flags;             //< CPU flags
-    uint32_t lapic_timer_freq;  //< lapic timer ticks per second
-    uint32_t domain;            //< which NUMA domain the CPU belongs to
-} __attribute__((packed)) jg_info_cpu_t;
-
-/**
- * An entry in the IO APIC info table which represents a single IO APIC that
- * is installed into the system and that covers a given interval of GSIs.
- * 
- * Length: 16 bytes.
- */
-typedef struct jg_info_ioapic {
-    uint8_t apic_id;            //< apic id of the IO APIC
-    uint8_t version;			//< version of the IO APIC
-    uint32_t gsi_base;          //< lowest GSI covered by this IO APIC
-    uint16_t gsi_count;         //< number of GSIs covered by this IO APIC
-    uint64_t mmio_paddr;        //< physical address of IO APIC's MMIO window
-} __attribute__((packed)) jg_info_ioapic_t;
 
 /**
  * An entry in the memory map, indicating whether a region is free to use as
@@ -236,7 +205,5 @@ typedef struct jg_header_root {
 
     uint64_t ap_entry;          //< entry point for APs (or null)
     uint64_t syscall_entry;     //< entry point for syscalls (or null)
-    uint64_t isr_entry_table;   //< ISR entry table pointer (or null)
-
-    jg_header_irq_t irqs[16];   //< IRQ configuration
+    uint64_t isr_entry_table;   //< ISR entry table pointer (or null)=
 } __attribute__((packed)) jg_header_root_t;
