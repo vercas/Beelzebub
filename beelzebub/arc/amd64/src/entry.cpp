@@ -2,9 +2,6 @@
 #include <execution/thread_init.hpp>
 #include <terminals/vbe.hpp>
 
-#include <system/exceptions.hpp>
-#include <system/interrupt_controllers/pic.hpp>
-
 #include <keyboard.hpp>
 #include <system/serial_ports.hpp>
 #include <system/timers/pit.hpp>
@@ -27,7 +24,7 @@ using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
-using namespace Beelzebub::System::InterruptControllers;
+//using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
@@ -95,47 +92,6 @@ void kmain_ap()
     InitializeCpuData();
 
     Beelzebub::Secondary();
-}
-
-/*****************
-    INTERRUPTS
-*****************/
-
-Handle InitializeInterrupts()
-{
-    size_t isrStubsSize = (size_t)(&IsrStubsEnd - &IsrStubsBegin);
-
-    assert(isrStubsSize == Interrupts::Count * Interrupts::StubSize
-        , "ISR stubs seem to have the wrong size!");
-
-    for (size_t i = 0; i < Interrupts::Count; ++i)
-    {
-        InterruptHandlers[i] = &MiscellaneousInterruptHandler;
-        InterruptEnders[i] = nullptr;
-    }
-
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidOpcode] = &InvalidOpcodeHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::DoubleFault] = &DoubleFaultHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidTss] = &InvalidTssHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::SegmentNotPresent] = &SegmentNotPresentHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::StackSegmentFault] = &StackSegmentFaultHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::GeneralProtectionFault] = &GeneralProtectionHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
-
-    Pic::Initialize(0xE0);  //  Just below the spurious interrupt shenanigans.
-
-    Pic::Subscribe(0, &Pit::IrqHandler);
-    Pic::Subscribe(1, &keyboard_handler);
-    Pic::Subscribe(3, &SerialPort::IrqHandler);
-    Pic::Subscribe(4, &SerialPort::IrqHandler);
-
-    IdtRegister idtr = IdtRegister::Retrieve();
-    //PrintToDebugTerminal(idtr);
-
-    return HandleResult::Okay;
 }
 
 /**********************

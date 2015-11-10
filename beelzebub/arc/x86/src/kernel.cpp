@@ -8,6 +8,7 @@
 #include <system/cpu.hpp>
 #include <execution/thread_init.hpp>
 
+#include <system/exceptions.hpp>
 #include <system/interrupt_controllers/pic.hpp>
 #include <system/interrupt_controllers/lapic.hpp>
 #include <system/interrupt_controllers/ioapic.hpp>
@@ -414,6 +415,69 @@ TerminalBase * InitializeTerminalMain()
     return &initialVbeTerminal;
 }
 
+/*****************
+    INTERRUPTS
+*****************/
+
+Handle InitializeInterrupts()
+{
+    size_t isrStubsSize = (size_t)(&IsrStubsEnd - &IsrStubsBegin);
+
+    assert(isrStubsSize == Interrupts::Count * Interrupts::StubSize
+        , "ISR stubs seem to have the wrong size!");
+    //  The ISR stubs must be aligned to avoid a horribly repetition.
+
+    uint8_t firstStubByte = IsrStubsBegin;
+    //  Used for sanity-checking.
+
+    for (size_t i = 0; i < Interrupts::Count; ++i)
+    {
+        uint8_t thisFirstByte = (&IsrStubsBegin)[i * Interrupts::StubSize];
+
+        assert(thisFirstByte == firstStubByte
+            , "ISR stub #%us does not begin with the same instruction as the "
+              "first..? (%X1, expected %X1)%n"
+            , i, thisFirstByte, firstStubByte);
+        //  First a bit of integrity checking.
+
+        Interrupts::Table.Entries[i] = IdtGate()
+        .SetOffset((uintptr_t)&IsrStubsBegin + i * Interrupts::StubSize)
+        .SetSegment(Gdt::KernelCodeSegment)
+        .SetType(IdtGateType::InterruptGate)
+        .SetPresent(true);
+        //  Then setting up the actual gate.
+
+        InterruptHandlers[i] = &MiscellaneousInterruptHandler;
+        InterruptEnders[i] = nullptr;
+
+        //  There would be absolutely no point in doing these in different loops.
+    }
+
+    //  So now the IDT should be fresh out of the oven and ready for serving.
+
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidOpcode] = &InvalidOpcodeHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::DoubleFault] = &DoubleFaultHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidTss] = &InvalidTssHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::SegmentNotPresent] = &SegmentNotPresentHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::StackSegmentFault] = &StackSegmentFaultHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::GeneralProtectionFault] = &GeneralProtectionHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
+
+    Pic::Initialize(0xE0);  //  Just below the spurious interrupt vector.
+
+    Pic::Subscribe(0, &Pit::IrqHandler);
+    Pic::Subscribe(1, &keyboard_handler);
+    Pic::Subscribe(3, &SerialPort::IrqHandler);
+    Pic::Subscribe(4, &SerialPort::IrqHandler);
+
+    Interrupts::Register.Activate();
+
+    return HandleResult::Okay;
+}
+
 /**********
     PIT
 **********/
@@ -426,8 +490,10 @@ Handle InitializePit()
 
     Pit::SendCommand(pitCmd);
     
-    uint32_t pitFreq = 100;
+    uint32_t pitFreq = 2000;
     Pit::SetFrequency(pitFreq);
+    //  This frequency really shouldn't stress the BSP that much, considering
+    //  that the IRQ would get 2-3 million clock cycles on modern chips.
 
     MainTerminal->WriteFormat(" @ %u4 Hz...", pitFreq);
 

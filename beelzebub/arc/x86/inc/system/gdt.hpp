@@ -157,6 +157,12 @@ namespace Beelzebub { namespace System
     {
     public:
 
+        /*  Statics  */
+
+        static uint16_t const KernelCodeSegment = 0x08;
+        static uint16_t const KernelDataSegment = 0x10;
+        static uint16_t const UserCodeSegment = 0x18;   //  TODO: implement properly.
+
         /*  Constructor(s)  */
 
         Gdt() = default;
