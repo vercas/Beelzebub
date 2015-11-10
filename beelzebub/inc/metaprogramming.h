@@ -15,7 +15,7 @@
 
 #define GET_MACRO2(_1, _2, NAME, ...) NAME
 #define GET_MACRO6(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
-//	Got this from http://stackoverflow.com/a/11763277
+//  Got this from http://stackoverflow.com/a/11763277
 
 #define MCATS1(A) A
 #define MCATS2(A, B) A##B
@@ -50,7 +50,7 @@
 #define _VADEF_(name, n) name##n
 #define _VADEF(name, n) _VADEF_(name, n)
 #define VADEF(func, ...) _VADEF(func, __NARG__(__VA_ARGS__)) (__VA_ARGS__)
-//	Got this from http://stackoverflow.com/a/26408195
+//  Got this from http://stackoverflow.com/a/26408195
 
 /*  Constants/keywords..?   */
 
@@ -155,7 +155,7 @@ inline bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
 inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
 #define ENUMOPS1(T) ENUMOPS2(T, __underlying_type(T))
-//	All nice and dandy, but it uses a GCC extension for type traits because
+//  All nice and dandy, but it uses a GCC extension for type traits because
 //   I can't include the type_traits.h header!
 
 #define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
@@ -163,7 +163,7 @@ inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 //  Why? For the glory of C++, of course.
 #endif
 
-/*	Some type aliases...  */
+/*  Some type aliases...  */
 
 typedef  int8_t    Int8;
 typedef  int16_t   Int16;
@@ -183,7 +183,11 @@ typedef uint64_t  UInt64;
 typedef  intptr_t  IntPtr;
 typedef uintptr_t UIntPtr;
 
-//	I think these names are great... I just like to have 'em here.
+//  I think these names are great... I just like to have 'em here.
+
+/*  Some funnction types...  */
+
+typedef bool (*PredicateFunction0)(/* nothing */);
 
 /*  Memory barriers and forced ordering  */
 
