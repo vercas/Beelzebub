@@ -13,7 +13,7 @@ PREFIX		:= ./build
 include ./Beelzebub.mk
 
 include ./Toolchain.mk
-#	We need this one to determine Make flags.
+#	This one is needed to determine Make flags.
 
 KERNEL_DIR	:= ./$(KERNEL_NAME)
 

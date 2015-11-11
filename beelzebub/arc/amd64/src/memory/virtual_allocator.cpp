@@ -124,7 +124,7 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
 
         if (curLoc + controlStructuresSize > PasControlStructuresEnd)
             break;
-        //  Well, we reached our maximum!
+        //  Well, the maximum is reached!
 
         for (size_t i = 0; i < controlStructuresSize; i += PageSize)
         {

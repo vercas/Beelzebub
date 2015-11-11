@@ -22,7 +22,7 @@ void Utils::Wait(uint64_t const microseconds)
     {
         CpuInstructions::Halt();
     } while (Pit::Counter.Load() - counterStart < difference);
-    //  Yes, we can actually halt the CPU!
+    //  Yes, the CPU can be halted currently, because only the BSP uses these.
 
     Interrupts::RestoreState(cookie);
 }
@@ -48,7 +48,6 @@ bool Utils::Wait(uint64_t const microseconds, PredicateFunction0 const pred)
         if (pred())
             return true;
     } while (Pit::Counter.Load() - counterStart < difference);
-    //  Yes, we can actually halt the CPU!
 
     Interrupts::RestoreState(cookie);
 

@@ -22,7 +22,7 @@ align 16
 
 IsrCommonStub:
     ;   Upon entry, the lower byte of RCX will contain the interrupt vector.
-    ;   We zero-extend that value into the whole register.
+    ;   That value is zero-extend into the whole register.
     movzx   rcx, cl
 
     push    rax

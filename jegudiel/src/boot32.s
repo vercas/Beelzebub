@@ -49,7 +49,7 @@ boot32_bsp:
     mov     eax, 0x80000001
     cpuid
     mov     ebp, edx
-    ;   We will require several bits from this leaf.
+    ;   Several bits are required from this leaf.
 
     bt      ebp, 29
     jc      .long_mode_supported

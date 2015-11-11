@@ -91,7 +91,7 @@ Handle Acpi::FindRsdtXsdt()
     Handle res;
     auto rsdp = RsdpPointer;
 
-    //  So, first we attempt to find and parse the XSDT, if any.
+    //  So, first it attempts to find and parse the XSDT, if any.
     //  If that fails or there is no XSDT, it tries the RSDT.
 
     if likely(rsdp.GetVersion() == AcpiVersion::v2)
@@ -133,7 +133,7 @@ Handle Acpi::FindRsdtXsdt()
             XsdtPointer = nullptr;
         }
 
-        //  If the checksum fails in release mode... Maybe we try the RSDT?
+        //  If the checksum fails in release mode... Maybe try the RSDT?
         //  Nulling the XSDT pointer indicates that it's either absent or
         //  invalid. Both cases would be rather weird, but adaptation means
         //  survival.
@@ -213,7 +213,7 @@ Handle Acpi::FindSystemDescriptorTables()
 
                 res = HandleResult::Okay;
 
-                //  Yes, we let the user know if possible and move on.
+                //  Yes, let the user know if possible and move on.
             }
             else
             {
@@ -403,7 +403,7 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
 
     Handle res;
 
-    //  First the table headers and the fields that we are sure to find.
+    //  First the table headers and the fields that are sure to be found.
 
     paddr_t const tabHeaderEnd = header + sizeof(acpi_table_header);
 

@@ -354,6 +354,6 @@ $(INCPCH_DIR)/%.hpp.aux.gch: $(AUX_DIR)/$(AUX)/inc/%.hpp
 
 
 
-#	And we're done...?
+#	And it's done...?
 
 

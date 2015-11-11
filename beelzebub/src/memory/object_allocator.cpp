@@ -86,7 +86,7 @@ firstPoolCheck:
         ++this->PoolCount;
         this->Capacity += justAllocated->Capacity;
         this->FreeCount += justAllocated->FreeCount;
-        //  We've got an extra pool!
+        //  There's a new pool!
 
         this->FirstPool = this->LastPool = justAllocated->Next = first = current = justAllocated;
         //  Four fields with the same value... Eh.
@@ -108,7 +108,7 @@ poolLoop:
     {
         if (current->FreeCount == 0)
         {
-            //  If the current one's full, we get the next.
+            //  If the current one's full, go get the next.
 
             ObjectPool * temp = current->Next;
 
@@ -190,7 +190,7 @@ poolLoop:
         //  So a new one can be allocated.
 
         first = current = this->FirstPool;
-        //  We start from the beginning.
+        //  Start from the beginning.
 
         cookie = current->PropertiesLock.Acquire();
         //  Get a cookie from the jar.
@@ -202,7 +202,7 @@ poolLoop:
     //  Okay, so, if this point is reached, it means no free allocator was found...
 
     last = this->LastPool;
-    //  We store this to look for changes.
+    //  Used to look for changes.
 
     if (this->AcquisitionLock.TryAcquire(cookie))
     {
@@ -226,7 +226,7 @@ poolLoop:
 
         ++this->PoolCount;
         this->Capacity += justAllocated->Capacity;
-        //  We've got an extra pool!
+        //  Got a new pool!
 
         FreeObject * obj;
         result = obj = justAllocated->GetFirstFreeObject(this->ObjectSize, this->HeaderSize);
@@ -256,7 +256,7 @@ poolLoop:
     else
     {
         //  If the lock is already acquired, it means that another core/thread is attempting to acquire a pool.
-        //  Thus, we await.
+        //  Therefore, it awaits.
 
         this->AcquisitionLock.Await();
 
@@ -267,13 +267,13 @@ poolLoop:
         else
         {
             //  Okay, so a new allocator has been created while waiting.
-            //  Now we prepare the method state to look at this new pool.
+            //  Now the method state is prepared to look at this new pool.
 
             current = newLast;
             //  `first` need not be changed, because `last->Next` == `first`.
 
             cookie = current->PropertiesLock.Acquire();
-            //  We need to lock this new allocator.
+            //  The new pool needs to be locked.
 
             goto poolLoop;
         }
@@ -323,8 +323,8 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
             if (busyCount > 1)
             {
                 //  Free count greater than one means that the pool won't require removal
-                //  after this object is deallocated. Therefore, we can release the
-                //  previous pool or the linkage chain.
+                //  after this object is deallocated. Therefore, the previous pool or the
+                //  linkage chain can be released.
 
                 if (previous != nullptr)
                     previous->PropertiesLock.SimplyRelease();

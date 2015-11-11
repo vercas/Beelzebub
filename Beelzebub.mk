@@ -113,7 +113,7 @@ endif
 ifneq (,$(findstring test-all,$(MAKECMDGOALS)))
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_ALL 
 
-	#	Aye, we add these explicitly.
+	#	Aye, these are added explicitly.
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_MT 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_STR 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_OBJA 

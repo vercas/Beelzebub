@@ -10,8 +10,8 @@ using namespace Beelzebub::System::InterruptControllers;
 
 static bool supportsX2APIC()
 {
-    //  No, we ain't computing the whole CPUID shenanigans for the sake of one
-    //  flag. We get what we want.
+    //  A precomputed CPUID structure is not the right tool for the job.
+    //  Only one bit is of interest, thus only that bit is obtained.
 
     uint32_t cpuidLeaf = 0x00000001U, ecx, dummy;
 

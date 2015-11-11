@@ -673,7 +673,7 @@ Handle InitializeProcessingUnits()
     BootstrapPml4Address = BootstrapMemoryManager.Vas->Pml4Address;
 
     COMPILER_MEMORY_BARRIER();
-    //  We need to make sure that the PML4 address is copied over.
+    //  Needed to make sure that the PML4 address is copied over.
 
     memcpy((void *)bootstrapVaddr, &ApBootstrapBegin, (uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin);
     //  This makes sure the code can be executed by the AP.

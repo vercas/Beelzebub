@@ -204,7 +204,7 @@ size_t strlen(const char * str)
     //  encountered up to 0 inclusively. Therefore, `ret` will contain
     //  `-length - 2` after the assembly block. `~ret` flips all the bits
     //  so the value becomes `length + 2 - 1` (`length + 1`), so the `- 1`
-    //  brings it to the result we need.
+    //  brings it to the desired result.
 
     return ret;
 }
