@@ -742,9 +742,16 @@ Handle InitializeProcessingUnits()
     return HandleResult::Okay;
 }
 
-__hot __bland bool CheckApInitializationFlag()
+__hot __bland bool CheckApInitializationLock1()
 {
-    uint32_t volatile val = ApInitializationLock;
+    uint32_t volatile val = ApInitializationLock1;
+
+    return val == 0;
+}
+
+__hot __bland bool CheckApInitializationLock3()
+{
+    uint32_t volatile val = ApInitializationLock3;
 
     return val == 0;
 }
@@ -782,7 +789,7 @@ Handle InitializeAp(uint32_t const lapicId
     }
 
     ApStackTopPointer = vaddr + PageSize;
-    ApInitializationLock = 1;
+    ApInitializationLock1 = ApInitializationLock2 = ApInitializationLock3 = 1;
 
     LapicIcr initIcr = LapicIcr(0)
     .SetDeliveryMode(InterruptDeliveryModes::Init)
@@ -805,19 +812,26 @@ Handle InitializeAp(uint32_t const lapicId
 
     Lapic::SendIpi(startupIcr);
 
-    Wait(10 * 1000, &CheckApInitializationFlag);
-
-    if (ApInitializationLock != 0)
+    if (!Wait(10 * 1000, &CheckApInitializationLock1))
     {
         //  It should be ready. Let's try again.
 
         Lapic::SendIpi(startupIcr);
 
-        Wait(1000 * 1000, &CheckApInitializationFlag);
-
-        if (ApInitializationLock != 0)
+        if (!Wait(1000 * 1000, &CheckApInitializationLock1))
             return HandleResult::Timeout;
     }
 
-    return HandleResult::Okay;
+    //  If this point was reached, the AP has begun the handshake.
+
+    ApInitializationLock2 = 0;
+    //  Lower the entry barrier for the AP.
+
+    if likely(Wait(3 * 1000 * 1000, &CheckApInitializationLock3))
+        return HandleResult::Okay;
+    //  Now the AP must acknowledge passing the barrier before the BSP can
+    //  proceed. The timeout here is just symbolic and this should succeed at
+    //  the first or second calls of the predicate.
+    
+    return HandleResult::Timeout;
 }

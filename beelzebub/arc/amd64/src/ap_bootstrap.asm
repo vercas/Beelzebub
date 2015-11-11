@@ -7,7 +7,10 @@ extern kmain_ap
 extern KernelGdtPointer
 
 extern ApStackTopPointer
-extern ApInitializationLock
+
+extern ApInitializationLock1
+extern ApInitializationLock2
+extern ApInitializationLock3
 
 global ApBootstrapBegin
 global ApBootstrapEnd
@@ -136,9 +139,22 @@ bits 64 ;   Then long mode directly.
 
     ;debugchar 'J'
 
-    mov     rax, ApInitializationLock
+    mov     rax, ApInitializationLock1
+    mov     rbx, ApInitializationLock2
+    mov     rcx, ApInitializationLock3
+    ;   Addresses of the locks forming the initialization barrier.
+
     mov     dword [rax], 0
-    ;   Tell the BSP that initialization is complete.
+    ;   Tell the BSP that the AP has started up properly.
+
+.check_entry_barrier:
+    pause
+    cmp     dword [rbx], 0
+    jne     .check_entry_barrier
+    ;   Wait for the BSP to lower the entry barrier.
+
+    mov     dword [rcx], 0
+    ;   Tell the BSP that the AP got past the barrier.
 
     ;debugchar 'K'
 

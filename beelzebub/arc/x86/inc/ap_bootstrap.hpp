@@ -4,8 +4,11 @@
 
 __extern Beelzebub::System::GdtRegister KernelGdtPointer;
 __extern uintptr_t ApStackTopPointer;
-__extern uint32_t ApInitializationLock;
 __extern int ApBreakpointCookie;
+
+__extern uint32_t volatile ApInitializationLock1;
+__extern uint32_t volatile ApInitializationLock2;
+__extern uint32_t volatile ApInitializationLock3;
 
 __extern long ApBootstrapBegin;	//	Only address of this symbol is used.
 __extern long ApBootstrapEnd;	//	Only address of this symbol is used.
