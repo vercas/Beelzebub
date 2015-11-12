@@ -548,7 +548,7 @@ __cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * 
 
     for (vaddr_t offset = 0; offset < size; offset += PageSize)
     {
-        res = BootstrapMemoryManager.MapPage(vaddr + offset, module->address + offset, PageFlags::Global | PageFlags::Writable);
+        res = BootstrapMemoryManager.MapPage(vaddr + offset, module->address + offset, PageFlags::Global | PageFlags::Writable, nullptr);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."

@@ -193,10 +193,17 @@ Handle MemoryManager::UnmapPage(const vaddr_t vaddr)
 
     Unlock(mm, vaddr);
 
+    //  TODO: Broadcast this unmapping if necessary..?
+
     PageDescriptor * desc;
 
     if (mm.Vas->Allocator->TryGetPageDescriptor(paddr, desc))
-        desc->DecrementReferenceCount();
+    {
+        auto refcnt = desc->DecrementReferenceCount();
+
+        mm.Vas->Allocator->FreePageAtAddress(paddr);
+    }
+
     //  TODO: The page may be in another domain's allocator.
     //  That needs to be handled!
 

@@ -90,7 +90,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Methods  */
 
-        __bland __forceinline bool Contains(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
+        __bland inline bool Contains(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
         {
             uintptr_t start = ((uintptr_t)this) + headerSize;
             return object >= start && object <= (start + (this->Capacity - 1) * objectSize);
@@ -100,7 +100,7 @@ namespace Beelzebub { namespace Memory
         {
             uintptr_t const start = ((uintptr_t)this) + headerSize;
 
-            if likely(object > start)
+            if likely(object >= start)
             {
                 uintptr_t const offset = (object - start) / objectSize;
 
@@ -115,14 +115,18 @@ namespace Beelzebub { namespace Memory
             return false;
         }
 
-        __bland __forceinline obj_ind_t IndexOf(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
+        __bland inline obj_ind_t IndexOf(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
         {
             return (obj_ind_t)((object - headerSize - ((uintptr_t)this)) / objectSize);
         }
 
-        __bland __forceinline FreeObject * GetFirstFreeObject(const size_t objectSize, const size_t headerSize) const
+        __bland inline FreeObject * GetFirstFreeObject(const size_t objectSize, const size_t headerSize) const
         {
             return (FreeObject *)(uintptr_t)((uintptr_t)this + headerSize + this->FirstFreeObject * objectSize);
+        }
+        __bland inline FreeObject * GetLastFreeObject(const size_t objectSize, const size_t headerSize) const
+        {
+            return (FreeObject *)(uintptr_t)((uintptr_t)this + headerSize + this->LastFreeObject * objectSize);
         }
     };
 
@@ -197,12 +201,12 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        __bland __forceinline size_t GetCapacity() const
+        __bland inline size_t GetCapacity() const
         {
             return this->Capacity.Load();
         }
 
-        __bland __forceinline size_t GetFreeCount() const
+        __bland inline size_t GetFreeCount() const
         {
             return this->FreeCount.Load();
         }

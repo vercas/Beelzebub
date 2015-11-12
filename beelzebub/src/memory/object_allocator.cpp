@@ -173,6 +173,8 @@ poolLoop:
             current->PropertiesLock.Release(cookie);
 
             result = obj;
+            --this->FreeCount;
+            //  Book-keeping.
 
             return HandleResult::Okay;
         }
@@ -317,12 +319,12 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
     {
         if (current->Contains((uintptr_t)object, ind, this->ObjectSize, this->HeaderSize))
         {
-            obj_ind_t const currentCapacity = current->Capacity;
-            obj_ind_t const busyCount = currentCapacity - current->FreeCount;
+            obj_ind_t currentCapacity = current->Capacity;
+            obj_ind_t const freeCount = current->FreeCount;
 
-            if (busyCount > 1)
+            if likely(currentCapacity - freeCount > 1)
             {
-                //  Free count greater than one means that the pool won't require removal
+                //  Busy count greater than one means that the pool won't require removal
                 //  after this object is deallocated. Therefore, the previous pool or the
                 //  linkage chain can be released.
 
@@ -352,8 +354,14 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                     //  If it's the only pool, next is null!
 
                     res = this->ReleasePool(this->ObjectSize, this->HeaderSize, current);
+                    //  This method call could very well have just reduced the pool,
+                    //  if it failed to deallocate it for some reason. If it returns
+                    //  okay, it simply tells the allocator to unplug this pool.
+                    //  Otherwise, the function should make sure whatever's left of
+                    //  the pool is usable and the allocator will simply adjust.
+                    //  The capacity and free count should be reset by the function.
 
-                    if (res.IsOkayResult())
+                    if likely(res.IsOkayResult())
                     {
                         //  So, the pool is now removed. Let's update stuff.
 
@@ -378,8 +386,31 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
 
                         --this->PoolCount;
                         this->Capacity -= currentCapacity;
-                        this->FreeCount -= currentCapacity - busyCount + 1;
+                        this->FreeCount -= freeCount + 1;
                         //  The +1 is the current object.
+
+                        return HandleResult::Okay;
+                    }
+                    else
+                    {
+                        //  So, for whatever reason, the removing failed.
+                        //  Now this is practically a fresh pool.
+
+                        if (previous != nullptr)
+                            previous->PropertiesLock.Release(cookie);
+                        else
+                            this->LinkageLock.Release(cookie);
+                        //  These need not be locked anymore for what they protect
+                        //  shall not be modified.
+
+                        obj_ind_t const capDiff = currentCapacity - current->Capacity;
+                        ssize_t const freeDiff = (ssize_t)freeCount - (ssize_t)current->FreeCount;
+
+                        this->Capacity -= capDiff;
+                        this->FreeCount -= freeDiff;
+                        //  The sign shouldn't matter, rite? At worst this is -1.
+
+                        current->PropertiesLock.Release(cookie);
 
                         return HandleResult::Okay;
                     }
@@ -387,8 +418,6 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                     //  Reaching this point means standard-issue removal.
                 }
             }
-
-            //  TODO: actual removal.
 
             /*msg("!! Removing object %Xp from allocator %Xp, pool %Xp, at index %us !!%n"
                 , object, this, current, ind);//*/
@@ -401,6 +430,9 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
 
             current->PropertiesLock.Release(cookie);
             //  Release the current pool and restore interrupts.
+
+            ++this->FreeCount;
+            //  I hate book-keeping.
 
             return HandleResult::Okay;
         }

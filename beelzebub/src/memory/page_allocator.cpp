@@ -22,7 +22,7 @@ uint32_t PageDescriptor::DecrementReferenceCount()
     //  a code review. Cheers! :D
 
     assert(ret > 0,
-        "Attempting to decrement reference count of a page count 0!");
+        "Attempting to decrement reference count of a page below 0!");
 
     return ret;
 }

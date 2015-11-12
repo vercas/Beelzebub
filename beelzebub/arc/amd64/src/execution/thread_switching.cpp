@@ -60,12 +60,8 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     //msg("C");
 
     Interrupts::RestoreState(int_cookie);
-    //  Doing this (restoring the interrupt state after switching BACK to
-    //  this thread) makes me question my sanity and the integrity of the
-    //  spacetime fabric in our perceptible dimensions of reality.
-
-    //  The thing is, interrupts should have the same state before and
-    //  after switching. I hope.
+    //  With the new and improved (TM) thread-switching method, this no longer
+    //  bends space-time.
 
     //msg(" ++");
 
