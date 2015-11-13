@@ -133,6 +133,8 @@ poolLoop:
         }
         else
         {
+            COMPILER_MEMORY_BARRIER();
+
             obj_ind_t freeCount = --current->FreeCount;
 
             FreeObject * obj = current->GetFirstFreeObject(this->ObjectSize, this->HeaderSize);
@@ -379,15 +381,19 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                             if (next != current)
                                 this->FirstPool = next;
                             else
+                            {
+                                if (this->LastPool == current)
+                                    this->LastPool = nullptr;
+
                                 this->FirstPool = nullptr;
+                            }
 
                             this->LinkageLock.Release(cookie);
                         }
 
                         --this->PoolCount;
                         this->Capacity -= currentCapacity;
-                        this->FreeCount -= freeCount + 1;
-                        //  The +1 is the current object.
+                        this->FreeCount -= freeCount;
 
                         return HandleResult::Okay;
                     }
@@ -418,9 +424,6 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                     //  Reaching this point means standard-issue removal.
                 }
             }
-
-            /*msg("!! Removing object %Xp from allocator %Xp, pool %Xp, at index %us !!%n"
-                , object, this, current, ind);//*/
 
             FreeObject * const freeObject = (FreeObject *)(uintptr_t)object;
             freeObject->Next = current->FirstFreeObject;

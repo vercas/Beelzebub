@@ -33,10 +33,12 @@ struct TestStructure
 ObjectAllocator testAllocator;
 SpinlockUninterruptible<> syncer;
 
-bool askedToEnlarge, askedToRemove;
+bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;
 
 __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPool * & result)
 {
+    askedToAcquire = true;
+
     size_t const pageCount = RoundUp(objectSize * minimumObjects + headerSize, PageSize) / PageSize;
 
     Handle res;
@@ -83,8 +85,8 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
     pool->Capacity = pool->FreeCount = objectCount;
 
     msg("<< Instanced object pool @%Xp with capacity %us (%us pages), "
-        "header size %us, object size %us. >>%n"
-        , pool, objectCount, pageCount, headerSize, objectSize);
+        "free count %us, header size %us, object size %us. >>%n"
+        , pool, objectCount, pageCount, pool->FreeCount, headerSize, objectSize);
 
     uintptr_t cursor = (uintptr_t)pool + headerSize;
     FreeObject * last = nullptr;
@@ -120,6 +122,9 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
 
 __bland Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPool * pool)
 {
+    if (!canEnlarge)
+        return HandleResult::UnsupportedOperation;
+
     askedToEnlarge = true;
 
     /*msg("~~ ASKED TO ENLARGE POOL %Xp ~~%n"
@@ -243,7 +248,7 @@ __bland Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPool 
 {
     askedToRemove = true;
 
-    /*msg("~~ ASKED TO REMOVE POOL %Xp ~~%n"
+    msg("~~ ASKED TO REMOVE POOL %Xp ~~%n"
         , pool);//*/
 
     //  A nice procedure here is to unmap the pool's pages one-by-one, starting
@@ -280,9 +285,9 @@ __bland Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPool 
     }
 
     //  TODO: Salvage pool when it failed to remove all pages.
-    //if (i > 0 && i < (pageCount - 1))
+    //if (i > 0 && i < pageCount)
 
-    return i < (pageCount - 1)
+    return i < pageCount
         ? HandleResult::Okay // At least one page was freed so the pool needs removal...
         : HandleResult::UnsupportedOperation;
 }
@@ -438,6 +443,9 @@ Handle TestObjectAllocator(bool const bsp)
         return CommonObjectAllocatorTest();
     else
     {
+        askedToAcquire = askedToRemove = false;
+        canEnlarge = true;
+
         new (&testAllocator) ObjectAllocator(sizeof(TestStructure), __alignof(TestStructure), &AcquirePoolTest, &EnlargePoolTest, &ReleasePoolTest, true);
 
         msg("Test allocator (%Xp): Capacity = %Xs, Free Count = %Xs, Pool Count = %Xs;%n"
@@ -446,9 +454,14 @@ Handle TestObjectAllocator(bool const bsp)
             , testAllocator.FreeCount.Load()
             , testAllocator.PoolCount.Load());
 
-        askedToRemove = false;
-
         TESTALLOC3(TestStructure, 1)
+
+        ASSERT(askedToAcquire
+            , "The allocator wasn't asked to acquire a pool when allocating the "
+              "first object..?");
+
+        askedToAcquire = false;
+
         TESTALLOC3(TestStructure, 2)
         TESTALLOC3(TestStructure, 3)
         TESTALLOC3(TestStructure, 4)
@@ -484,12 +497,17 @@ Handle TestObjectAllocator(bool const bsp)
             , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
             , testAllocator.GetCapacity(), testAllocator.GetFreeCount());
 
+        ASSERT(!askedToAcquire
+            , "The allocator was asked to acquire a pool when it shouldn't have "
+              "filled any pools yet!");
+
         res = CommonObjectAllocatorTest();
 
         if (!res.IsOkayResult())
             return res;
 
-        askedToEnlarge = false;
+        askedToEnlarge = askedToAcquire = askedToRemove = false;
+        //  These may have occured already!
 
         TestStructure * tOx = nullptr, * tOy = nullptr;
 
@@ -525,6 +543,10 @@ Handle TestObjectAllocator(bool const bsp)
         ASSERT(askedToEnlarge
             , "The allocator should have asked to enlarge a pool after "
               "allocating the last object!");
+
+        ASSERT(!askedToAcquire
+            , "The allocator was asked to acquire a pool when it already has "
+              "asked to enlarge..??");
 
         //  Now let's allocate moar objects!
 
@@ -572,11 +594,170 @@ Handle TestObjectAllocator(bool const bsp)
         ASSERT(!askedToRemove
             , "The allocator asked to remove a pool when one object should be left in it!");
 
+        ASSERT(testAllocator.GetCapacity() == testAllocator.FirstPool->Capacity
+            , "The test allocator should have a capacity equal to its first "
+              "pool's, not %us (expected %us)!"
+            , testAllocator.GetCapacity(), testAllocator.FirstPool->Capacity);
+
+        ASSERT(testAllocator.GetFreeCount() == testAllocator.FirstPool->FreeCount
+            , "The test allocator should have a free count equal to its first "
+              "pool's, not %us (expected %us)!"
+            , testAllocator.GetFreeCount(), testAllocator.FirstPool->FreeCount);
+
+        ASSERT(testAllocator.GetCapacity() - testAllocator.GetFreeCount() == 1
+            , "The test allocator should have exactly one busy object, not %us "
+              "(%us - %us)!"
+            , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
+            , testAllocator.GetCapacity(), testAllocator.GetFreeCount());
+
+        /*msg("~~ REMOVING LAST OBJECT ~~%n");//*/
+        COMPILER_MEMORY_BARRIER();
+
         TESTREMOV3(x)
+
+        /*msg("~~ FINISHED REMOVING LAST OBJECT ~~%n");//*/
+        COMPILER_MEMORY_BARRIER();
 
         ASSERT(askedToRemove
             , "The allocator should have asked to remove a pool after "
               "deallocating the last object!");
+
+        ASSERT(testAllocator.GetCapacity() == 0
+            , "The test allocator should have a capacity of 0, not %us!"
+            , testAllocator.GetCapacity());
+
+        ASSERT(testAllocator.GetFreeCount() == 0
+            , "The test allocator should have a free count of 0, not %us!"
+            , testAllocator.GetFreeCount());
+
+        ASSERT(testAllocator.PoolCount == 0
+            , "Test allocator should have no pools now, not %us.%n"
+            , testAllocator.PoolCount.Load());
+
+        ASSERT(testAllocator.FirstPool == nullptr
+            , "Test allocator should have no first pool now, not %Xp.%n"
+            , testAllocator.FirstPool);
+
+        //  Now let's try getting three pools!
+
+        askedToAcquire = askedToRemove = askedToEnlarge = false;
+
+        /*msg("~~ ACQUIRING FIRST OBJECT ~~%n");//*/
+        COMPILER_MEMORY_BARRIER();
+
+        TESTALLOC3(TestStructure, m)
+
+        COMPILER_MEMORY_BARRIER();
+
+        ASSERT(askedToAcquire
+            , "The allocator wasn't asked to acquire a pool when allocating a "
+              "(new) first object..?");
+
+        /*msg("~~ STARTING MULTIPLE POOL TEST WITH cap %us (%u4), fc %us (%u4) ~~%n"
+            , testAllocator.GetCapacity(), testAllocator.FirstPool->Capacity
+            , testAllocator.GetFreeCount(), testAllocator.FirstPool->FreeCount);//*/
+        COMPILER_MEMORY_BARRIER();
+
+        askedToAcquire = false;
+
+        tOx = tOy = nullptr;
+        bool allocatedOnce = false;
+        size_t capacity2 = 13379001;
+
+        for (size_t i = testAllocator.GetFreeCount() + 2; i > 0; --i)
+        {
+            tOy = tOx;
+
+            if unlikely(i == 3)
+            {
+                ASSERT(testAllocator.GetFreeCount() == 1
+                    , "Test allocator should only have one free object, not %us.%n"
+                    , testAllocator.GetFreeCount());
+
+                ASSERT(!askedToAcquire
+                    , "The allocator asked to acquire a pool before it was full..?");
+
+                ASSERT(!askedToEnlarge
+                    , "The allocator asked to enlarge a pool before it was full..?");
+
+                canEnlarge = false;
+            }
+            else if unlikely(i == 2)
+            {
+                ASSERT(testAllocator.GetFreeCount() == 0
+                    , "Test allocator should only have 0 free objects, not %us.%n"
+                    , testAllocator.GetFreeCount());
+
+                ASSERT(!askedToAcquire
+                    , "The allocator asked to acquire a pool before it was full..?");
+
+                ASSERT(!askedToEnlarge
+                    , "The allocator asked to enlarge a pool before it was full..?");
+
+                canEnlarge = false;
+
+                /*msg("~~ NEXT POOL SHOULD BE ACQUIRED NAO! ~~%n");//*/
+            }
+
+            res = testAllocator.AllocateObject(tOx);
+
+            ASSERT(res.IsOkayResult()
+                , "Failed to allocate capacity-filling object #%us: %H%n"
+                , i, res);
+
+            TESTDIFF(x, y);
+
+            if (tOy != nullptr)
+                ASSERT(tOy->Next != tOx
+                    , "Previous test object points to the current one..?");
+
+            tOx->Next = tOy;
+
+            if unlikely(i == 1 && !allocatedOnce)
+            {
+                ASSERT(testAllocator.GetFreeCount() > 1
+                    , "Test allocator should have more than one free object!%n");
+
+                ASSERT(testAllocator.PoolCount == 2
+                    , "Test allocator should have exactly two pools now, not %us.%n"
+                    , testAllocator.PoolCount.Load());
+
+                i = testAllocator.GetFreeCount() + 3;
+                allocatedOnce = true;
+
+                /*msg("~~ i = %us ~~%n", i);//*/
+
+                ASSERT(askedToAcquire
+                    , "The allocator should have been asked to acquire a pool "
+                      "when the first one got full and couldn't enlarge.");
+
+                ASSERT(!askedToEnlarge
+                    , "The allocator apparently enlarged the first pool when it "
+                      "was full..?");
+
+                capacity2 = testAllocator.GetCapacity();
+
+                askedToAcquire = false;
+            }
+        }
+
+        ASSERT(capacity2 != testAllocator.GetCapacity()
+            , "The allocator's capacity should've changed from %us!"
+            , capacity2);
+
+        ASSERT(askedToAcquire
+            , "The allocator should have been asked to acquire a pool "
+              "when the second one got full and couldn't enlarge.");
+
+        ASSERT(!askedToEnlarge
+            , "The allocator apparently enlarged the second pool when it "
+              "was full..?");
+
+        askedToAcquire = false;
+
+        ASSERT(testAllocator.PoolCount == 3
+            , "Test allocator should have exactly three pools now, not %us.%n"
+            , testAllocator.PoolCount.Load());
 
         return HandleResult::Okay;
     }
