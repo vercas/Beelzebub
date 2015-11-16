@@ -247,6 +247,11 @@ namespace Beelzebub
             return !this->IsType(HandleType::Invalid);
         }
 
+        __bland __forceinline bool IsLiterally(uint64_t const val) const
+        {
+            return this->Value == val;
+        }
+
         /*  Generic  */
 
         __bland __forceinline uint64_t GetIndex() const

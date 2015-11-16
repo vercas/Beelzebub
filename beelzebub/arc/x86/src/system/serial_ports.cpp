@@ -1,4 +1,5 @@
 #include <system/serial_ports.hpp>
+#include <math.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -195,4 +196,25 @@ size_t ManagedSerialPort::WriteNtString(char const * const str)
     this->WriteLock.Release(int_cookie);
 
     return i;
+}
+
+void ManagedSerialPort::WriteBytes(void const * const src, size_t const cnt)
+{
+    uint16_t const p = this->BasePort;
+
+    int_cookie_t const int_cookie = this->WriteLock.Acquire();
+
+    for (size_t i = 0, j; i < cnt; i += j)
+    {
+        while (this->OutputCount >= SerialPort::QueueSize
+            && !this->CanWrite()) { }
+
+        uint8_t const * const tmp = (uint8_t const *)src + i;
+        j = Minimum(SerialPort::QueueSize - this->OutputCount, cnt - i);
+
+        Io::Out8n(p, (uint8_t const *)src + i, j);
+        this->OutputCount += j;
+    }
+
+    this->WriteLock.Release(int_cookie);
 }

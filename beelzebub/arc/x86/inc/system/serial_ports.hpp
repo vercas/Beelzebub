@@ -51,11 +51,11 @@ namespace Beelzebub { namespace System
 
         //  Reads a byte from the serial port, optionally waiting for
         //  being able to read.
-        __bland uint8_t Read(const bool wait) const;
+        __bland uint8_t Read(bool const wait) const;
 
         //  Writes a byte to the serial port, optionally waiting for
         //  being able to write.
-        __bland void Write(const uint8_t val, const bool wait) const;
+        __bland void Write(uint8_t const val, bool const wait) const;
 
         //  Reads a null-terminated string from the serial port up to the
         //  given amount of characters, and returns the number of characters
@@ -65,7 +65,7 @@ namespace Beelzebub { namespace System
 
         //  Writes a null-terminated string to the serial port.
         //  This method awaits.
-        __bland size_t WriteNtString(const char * const str) const;
+        __bland size_t WriteNtString(char const * const str) const;
 
         /*  Fields  */
 
@@ -129,11 +129,11 @@ namespace Beelzebub { namespace System
 
         //  Reads a byte from the serial port, optionally waiting for
         //  being able to read.
-        __bland uint8_t Read(const bool wait);
+        __bland uint8_t Read(bool const wait);
 
         //  Writes a byte to the serial port, optionally waiting for
         //  being able to write.
-        __bland void Write(const uint8_t val, const bool wait);
+        __bland void Write(uint8_t const val, bool const wait);
 
         //  Reads a null-terminated string from the serial port up to the
         //  given amount of characters, and returns the number of characters
@@ -143,7 +143,9 @@ namespace Beelzebub { namespace System
 
         //  Writes a null-terminated string to the serial port.
         //  This method awaits.
-        __bland size_t WriteNtString(const char * const str);
+        __bland size_t WriteNtString(char const * const str);
+
+        __bland void WriteBytes(void const * const src, size_t const cnt);
 
         /*  Fields  */
 

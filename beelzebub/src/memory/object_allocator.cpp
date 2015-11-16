@@ -83,6 +83,11 @@ firstPoolCheck:
             , "Object allocator %Xp apparently successfully acquired a pool (%H), which appears to be null!"
             , this, res);
 
+        /*msg("~~ ACQUIRED FIRST POOL %Xp WITH FC=%u4, cap=%u4 ~~%n"
+            , justAllocated
+            , justAllocated->FreeCount, justAllocated->Capacity);//*/
+        COMPILER_MEMORY_BARRIER();
+
         ++this->PoolCount;
         this->Capacity += justAllocated->Capacity;
         this->FreeCount += justAllocated->FreeCount;
@@ -94,6 +99,11 @@ firstPoolCheck:
         current->PropertiesLock.SimplyAcquire();
 
         this->LinkageLock.SimplyRelease();
+
+        /*msg("~~ ACQUIRED FIRST POOL %Xp WITH FC=%u4, cap=%u4 ~~%n"
+            , justAllocated
+            , justAllocated->FreeCount, justAllocated->Capacity);//*/
+        COMPILER_MEMORY_BARRIER();
     }
     else
     {
@@ -106,6 +116,10 @@ poolLoop:
 
     do
     {
+        /*msg("~~ CHECKING POOL %Xp WITH FC=%u4, cap=%u4 ~~%n"
+            , current, current->FreeCount, current->Capacity);//*/
+        COMPILER_MEMORY_BARRIER();
+
         if (current->FreeCount == 0)
         {
             //  If the current one's full, go get the next.
@@ -118,6 +132,8 @@ poolLoop:
 
                 current->PropertiesLock.Release(cookie);
                 //  Release the current pool and restore interrupts.
+
+                /*msg("~~ REACHED END OF POOL CHAIN ~~%n");//*/
 
                 break;
                 //  Go to end of the loop.
@@ -170,6 +186,8 @@ poolLoop:
                     //  to allow another one to fill this pool to capacity.
                     //  Thus, both increments above would have wrong values!
                 }
+                /*else
+                    msg("~~ POOL %Xp WAS NOT ENLARGED! ~~%n", current);//*/
             }
 
             current->PropertiesLock.Release(cookie);
@@ -227,6 +245,9 @@ poolLoop:
         assert(justAllocated != nullptr
             , "Object allocator %Xp apparently successfully acquired a pool (%H), which appears to be null!"
             , this, res);
+
+        /*msg("~~ ALLOCATED EXTRA POOL %Xp ~~%n", justAllocated);//*/
+        COMPILER_MEMORY_BARRIER();
 
         ++this->PoolCount;
         this->Capacity += justAllocated->Capacity;

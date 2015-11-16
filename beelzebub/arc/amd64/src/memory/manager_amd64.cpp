@@ -1,6 +1,8 @@
 #include <memory/manager_amd64.hpp>
 #include <system/cpu.hpp>
+
 #include <math.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
@@ -201,7 +203,36 @@ Handle MemoryManager::UnmapPage(const vaddr_t vaddr)
     {
         auto refcnt = desc->DecrementReferenceCount();
 
-        mm.Vas->Allocator->FreePageAtAddress(paddr);
+        if (refcnt == 0)
+            mm.Vas->Allocator->FreePageAtAddress(paddr);
+    }
+
+    //  TODO: The page may be in another domain's allocator.
+    //  That needs to be handled!
+
+    return res;
+}
+
+Handle MemoryManager::UnmapPage(const vaddr_t vaddr, PageDescriptor * & desc)
+{
+    MemoryManagerAmd64 & mm = *((MemoryManagerAmd64 *)this);
+
+    paddr_t paddr;
+
+    Lock(mm, vaddr);
+
+    Handle res = mm.Vas->Unmap(vaddr, paddr);
+
+    Unlock(mm, vaddr);
+
+    //  TODO: Broadcast this unmapping if necessary..?
+
+    if (mm.Vas->Allocator->TryGetPageDescriptor(paddr, desc))
+    {
+        auto refcnt = desc->DecrementReferenceCount();
+
+        if (refcnt == 0)
+            mm.Vas->Allocator->FreePageAtAddress(paddr);
     }
 
     //  TODO: The page may be in another domain's allocator.

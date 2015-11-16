@@ -28,6 +28,15 @@ namespace Beelzebub { namespace System
                          : "dN" (port), "a" (value) );
         }
 
+        static __bland __forceinline void Out8n(uint16_t const port
+                                              , uint8_t const * src
+                                              , size_t const count)
+        {
+            asm volatile ( "rep outsb \n\t"
+                         : "+S" (src)
+                         : "d" (port) );
+        }
+
         static __bland __forceinline void Out16(uint16_t const port
                                               , uint16_t const value)
         {

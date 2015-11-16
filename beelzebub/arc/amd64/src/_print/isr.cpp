@@ -14,19 +14,24 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
 {
     return term->WriteFormat("ISR state %Xp:%n"
         "\tStack Segment: %X2%n"
+        "\tData Segment: %X2%n"
         "\tCode Segment: %X2%n"
         "\tStack Pointer: %Xp%n"
         "\tInstruction Pointer: %Xp%n"
         "\tFlags: %Xs%n"
         "\t----%n"
+        "\tRDI: %Xs%n"
+        "\t----%n"
         //"\tVector: %u1%n"
         "\tError Code: %Xs%n"
         , val
         , (uint16_t)val->SS
+        , (uint16_t)val->DS
         , (uint16_t)val->CS
         , val->RSP
         , val->RIP
         , val->RFLAGS
+        , val->RDI
         //, (uint8_t)val->Vector
         , val->ErrorCode);
 }

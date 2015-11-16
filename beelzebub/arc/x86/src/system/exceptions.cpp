@@ -3,7 +3,11 @@
 #include <system/cpu.hpp>
 #include <kernel.hpp>
 #include <entry.h>
+#include <system/serial_ports.hpp>
+
 #include <_print/paging.hpp>
+#include <_print/isr.hpp>
+
 #include <math.h>
 #include <debug.hpp>
 
@@ -118,8 +122,34 @@ void Beelzebub::System::StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS)
  */
 void Beelzebub::System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS)
 {
+    MSG("<< GP FAULT! >>%n");
+
+    PrintToDebugTerminal(state);
+
+    uintptr_t stackPtr = state->RSP;
+    uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+
+    if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+    {
+        msg("Stack pointer was not a multiple of %us! (%Xp)%n"
+            , sizeof(size_t), stackPtr);
+
+        stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+    }
+
+    bool odd;
+    for (odd = true; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+    {
+        msg("%X2|%Xs|%s"
+            , (uint16_t)(stackPtr - state->RSP)
+            , *((size_t const *)stackPtr)
+            , odd ? "\t" : "\r\n");
+    }
+
+    if (odd) msg("%n");
+
     ASSERT(false
-        , "<<GENERAL PROTECTION FAULT @ %Xp (%Xs)>>"
+        , "%n<<GENERAL PROTECTION FAULT @ %Xp (%Xs)>>"
         , INSTRUCTION_POINTER, state->ErrorCode);
 }
 

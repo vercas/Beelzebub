@@ -82,17 +82,19 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS)
             {
                 activeThread->State = *state;
 
-                msg("PRE-SWITCH ");
-                PrintToDebugTerminal(state);
-                msg("%n");
+                //msg("PRE-SWITCH ");
+                //PrintToDebugTerminal(state);
+                //msg("%n");
 
-                msg("(( AT=%Xp; N=%Xp; P=%Xp; BST=%B ))%n", activeThread, activeThread->Next, activeThread->Previous, activeThread == &BootstrapThread);
+                /*msg("(( AT=%Xp; N=%Xp; P=%Xp; BST=%B ))%n"
+                    , activeThread, activeThread->Next, activeThread->Previous
+                    , activeThread == &BootstrapThread);//*/
 
                 activeThread->SwitchToNext(state);
 
-                msg("%nPOST-SWITCH ");
-                PrintToDebugTerminal(state);
-                msg("%n");
+                //msg("%nPOST-SWITCH ");
+                //PrintToDebugTerminal(state);
+                //msg("%n");
             }
 
             break;

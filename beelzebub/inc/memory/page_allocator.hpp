@@ -183,9 +183,31 @@ namespace Beelzebub { namespace Memory
             }
         }
 
+        __bland __forceinline const char GetStatusChar() const
+        {
+            switch (this->Status)
+            {
+                case PageDescriptorStatus::Free:
+                    return 'F';
+                case PageDescriptorStatus::InUse:
+                    return 'U';
+                case PageDescriptorStatus::Caching:
+                    return 'C';
+                case PageDescriptorStatus::Reserved:
+                    return 'R';
+
+                default:
+                    return 'X';
+            }
+        }
+
         __bland __forceinline TerminalWriteResult PrintToTerminal(TerminalBase * const term)
         {
-            return term->WriteFormat("");
+            return term->WriteFormat("|%c|D@%Xp|R-%X4|A-%X2|I-%X4|"
+                , this->GetStatusChar(), this
+                , this->ReferenceCount.Load()
+                , this->Accesses.Load()
+                , (uint32_t)this->StackIndex);
         }
 #endif
 
@@ -258,7 +280,7 @@ namespace Beelzebub { namespace Memory
         //PROP(psize_t, StackSize)            //  Number of bytes used for the page stack.
 
         PROP(psize_t, StackFreeTop)         //  Top of the free page stack.
-        PROP(psize_t, StackCacheTop)        //  Top of the cache page stack.
+        //PROP(psize_t, StackCacheTop)        //  Top of the cache page stack.
 
         PROP(psize_t, FreePageCount)        //  Number of unallocated pages.
         PROP(psize_t, FreeSize)             //  Number of bytes in unallocated pages.
@@ -281,34 +303,34 @@ namespace Beelzebub { namespace Memory
         /*  Page manipulation  */
 
         __cold __bland Handle ReservePageRange(pgind_t const start, psize_t const count, PageReservationOptions const options);
-        __bland __forceinline Handle ReservePageRange(pgind_t const start, psize_t const count)
+        __bland inline Handle ReservePageRange(pgind_t const start, psize_t const count)
         {
             return this->ReservePageRange(start, count, PageReservationOptions::OnlyFree);
         }
 
-        __bland __forceinline Handle ReserveByteRange(paddr_t const phys_start, psize_t const length, PageReservationOptions const options)
+        __bland inline Handle ReserveByteRange(paddr_t const phys_start, psize_t const length, PageReservationOptions const options)
         {
             return this->ReservePageRange((phys_start - this->AllocationStart) / this->PageSize, length / this->PageSize, options);
         }
-        __bland __forceinline Handle ReserveByteRange(paddr_t const phys_start, psize_t const length)
+        __bland inline Handle ReserveByteRange(paddr_t const phys_start, psize_t const length)
         {
             return this->ReserveByteRange(phys_start, length, PageReservationOptions::OnlyFree);
         }
 
         __hot __bland Handle FreePageRange(pgind_t const start, psize_t const count);
-        __bland __forceinline Handle FreeByteRange(paddr_t const phys_start, psize_t const length)
+        __bland inline Handle FreeByteRange(paddr_t const phys_start, psize_t const length)
         {
-            return this->FreePageRange((phys_start - this->MemoryStart) / this->PageSize, length / this->PageSize);
+            return this->FreePageRange((phys_start - this->AllocationStart) / this->PageSize, length / this->PageSize);
         }
-        __bland __forceinline Handle FreePageAtAddress(paddr_t const phys_addr)
+        __bland inline Handle FreePageAtAddress(paddr_t const phys_addr)
         {
-            return this->FreePageRange((phys_addr - this->MemoryStart) / this->PageSize, 1);
+            return this->FreePageRange((phys_addr - this->AllocationStart) / this->PageSize, 1);
         }
 
         __hot __bland paddr_t AllocatePage(PageDescriptor * & desc);
         __hot __bland paddr_t AllocatePages(psize_t const count);
 
-        __bland __forceinline bool ContainsRange(paddr_t const phys_start, psize_t const length) const
+        __bland inline bool ContainsRange(paddr_t const phys_start, psize_t const length) const
         {
             return ( phys_start           >= this->AllocationStart)
                 && ((phys_start + length) <= this->AllocationEnd);

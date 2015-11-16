@@ -39,6 +39,7 @@ GCCFLAGS	+= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 GCCFLAGS	+= -mno-red-zone -O2
 GCCFLAGS	+= -flto -nostdlib -lgcc -static-libgcc
 GCCFLAGS	+= -pipe -Wstack-usage=1000
+#GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-lwp -mno-ssse3 -mno-fancy-math-387 -mno-ieee-fp -mno-recip
 
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
 

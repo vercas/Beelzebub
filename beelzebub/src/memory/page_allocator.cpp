@@ -1,6 +1,7 @@
 #include <memory/page_allocator.hpp>
-#include <debug.hpp>
+
 #include <math.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
@@ -24,7 +25,7 @@ uint32_t PageDescriptor::DecrementReferenceCount()
     assert(ret > 0,
         "Attempting to decrement reference count of a page below 0!");
 
-    return ret;
+    return ret - 1;
 }
 
 /*********************************
@@ -86,7 +87,7 @@ PageAllocationSpace::PageAllocationSpace(const paddr_t phys_start, const paddr_t
 
     this->Stack = (psize_t *)(this->Map + this->AllocablePageCount);
 
-    this->StackFreeTop = this->StackCacheTop = this->AllocablePageCount - 1;
+    this->StackFreeTop = /*this->StackCacheTop =*/ this->AllocablePageCount - 1;
     this->AllocationStart = phys_start + (this->ControlPageCount * page_size);
 }
 
@@ -146,10 +147,9 @@ Handle PageAllocationSpace::InitializeControlStructures()
 
 Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t count, const PageReservationOptions options)
 {
-    if unlikely(start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
+    if unlikely(start + count > this->AllocablePageCount)
         return Handle(HandleResult::PagesOutOfAllocatorRange);
 
-    bool const inclCaching  = (0 != (options & PageReservationOptions::IncludeCaching));
     bool const inclInUse    = (0 != (options & PageReservationOptions::IncludeInUse  ));
     bool const ignrReserved = (0 != (options & PageReservationOptions::IgnoreReserved));
 
@@ -176,23 +176,6 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
             int_cookie = this->Locker.Acquire();
 
             this->PopPage(start + i);
-        }
-        else if (status == PageDescriptorStatus::Caching)
-        {
-            if (inclCaching)
-            {
-                /*msg("  SI: %us; SCT: %us.%n"
-                    , page->StackIndex
-                    , this->StackCacheTop);//*/
-
-                int_cookie = this->Locker.Acquire();
-
-                //  TODO: Perhaps notify of this event?
-
-                this->PopPage(start + i);
-            }
-            else
-                return Handle(HandleResult::PageCaching);
         }
         else if (status == PageDescriptorStatus::InUse)
         {
@@ -224,7 +207,7 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
 Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t count)
 {
-    if unlikely(start >= this->AllocablePageCount || start + count > this->AllocablePageCount)
+    if unlikely(start + count > this->AllocablePageCount)
         return Handle(HandleResult::PagesOutOfAllocatorRange);
 
     PageDescriptor * const map = this->Map + start;
@@ -240,21 +223,7 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
         {
             int_cookie = this->Locker.Acquire();
 
-            if (this->StackCacheTop != this->StackFreeTop)
-                this->Stack[++this->StackCacheTop] = this->Stack[this->StackFreeTop];
-
             this->Stack[page->StackIndex = ++this->StackFreeTop] = start + i;
-        }
-        else if (status == PageDescriptorStatus::Caching)
-        {
-            int_cookie = this->Locker.Acquire();
-
-            //  TODO: Perhaps notify of this event?
-
-            this->Stack[page->StackIndex] = this->Stack[++this->StackFreeTop];
-            //  Move the bottom free page to the position of the current page.
-
-            this->Stack[page->StackIndex = this->StackFreeTop] = start + i;
         }
         else
         {
@@ -284,11 +253,6 @@ paddr_t PageAllocationSpace::AllocatePage(PageDescriptor * & desc)
         int_cookie_t const int_cookie = this->Locker.Acquire();
 
         pgind_t i = this->Stack[this->StackFreeTop--];
-
-        if (this->StackCacheTop != this->StackFreeTop + 1)
-            this->Stack[this->StackFreeTop + 1] = this->Stack[this->StackCacheTop--];
-        else
-            --this->StackCacheTop;
 
         (desc = this->Map + i)->Use();
         //  Mark the page as used.
@@ -341,29 +305,9 @@ Handle PageAllocationSpace::PopPage(const pgind_t ind)
         this->Stack[page->StackIndex] = this->Stack[this->StackFreeTop--];
         freeTop->StackIndex = page->StackIndex;
 
-        if (this->StackCacheTop != this->StackFreeTop + 1)
-        {
-            PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
-
-            this->Stack[this->StackFreeTop + 1] = this->Stack[this->StackCacheTop--];
-            cacheTop->StackIndex = this->StackFreeTop + 1;
-        }
-        else
-            --this->StackCacheTop;
-
         --this->FreePageCount;
         this->FreeSize -= this->PageSize;
         //  Change the info accordingly.
-
-        return Handle(HandleResult::Okay);
-    }
-    else if (page->Status == PageDescriptorStatus::Caching)
-    {
-        PageDescriptor * cacheTop = this->Map + this->Stack[this->StackCacheTop];
-
-        //  Popping off el stacko.
-        this->Stack[page->StackIndex] = this->Stack[this->StackCacheTop--];
-        cacheTop->StackIndex = page->StackIndex;
 
         return Handle(HandleResult::Okay);
     }
@@ -393,22 +337,6 @@ TerminalWriteResult PageAllocationSpace::PrintStackToTerminal(TerminalBase * con
             TERMTRY1(term->WriteHex64((uint64_t)(this->Stack[i])), tret, cnt);
             TERMTRY1(term->WriteLine(""), tret, cnt);
         }
-
-        if (this->StackCacheTop != this->StackFreeTop)
-        {
-            TERMTRY1(term->WriteLine("  NEXT ARE CACHING PAGES"), tret, cnt);
-
-            for (size_t i = this->StackFreeTop + 1; i <= this->StackCacheTop; ++i)
-            {
-                TERMTRY1(term->Write("  |C|"), tret, cnt);
-                TERMTRY1(term->Write((i == this->Stack[i]) ? ' ' : 'X'), tret, cnt);
-                TERMTRY1(term->Write('|'), tret, cnt);
-                TERMTRY1(term->WriteHex64((uint64_t)i), tret, cnt);
-                TERMTRY1(term->Write('|'), tret, cnt);
-                TERMTRY1(term->WriteHex64((uint64_t)(this->Stack[i])), tret, cnt);
-                TERMTRY1(term->WriteLine(""), tret, cnt);
-            }
-        }
     }
     else
     {
@@ -423,22 +351,6 @@ TerminalWriteResult PageAllocationSpace::PrintStackToTerminal(TerminalBase * con
             TERMTRY1(term->Write('|'), tret, cnt);
             TERMTRY1(term->WriteHex64((uint64_t)(this->Stack[i])), tret, cnt);
             TERMTRY1(term->WriteLine(""), tret, cnt);
-        }
-
-        if (this->StackCacheTop != this->StackFreeTop)
-        {
-            TERMTRY1(term->WriteLine("  NEXT ARE CACHING PAGES"), tret, cnt);
-
-            for (size_t i = this->StackFreeTop + 1; i <= this->StackCacheTop; ++i)
-            {
-                TERMTRY1(term->Write("  |C|"), tret, cnt);
-                TERMTRY1(term->Write((i == this->Stack[i]) ? ' ' : 'X'), tret, cnt);
-                TERMTRY1(term->Write('|'), tret, cnt);
-                TERMTRY1(term->WriteHex64((uint64_t)i), tret, cnt);
-                TERMTRY1(term->Write('|'), tret, cnt);
-                TERMTRY1(term->WriteHex64((uint64_t)(this->Stack[i])), tret, cnt);
-                TERMTRY1(term->WriteLine(""), tret, cnt);
-            }
         }
     }
 
