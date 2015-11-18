@@ -79,7 +79,7 @@ void kmain_bsp()
 
 void kmain_ap()
 {
-    CpuInstructions::LIDT((uintptr_t)&IsrGates, 0xFFF);
+    Interrupts::Register.Activate();
 
 #if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
     ++Cpu::Count;
