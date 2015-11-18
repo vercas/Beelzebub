@@ -1,21 +1,12 @@
-/**
- *  The object allocator uses a bold strategy to achieve multiprocessing safety.
- *  
- *  First of all, there's the object pool.
- *  All of its properties are going to be read and changed while it's locked.
- *  This includes linkage, counters and free object indexes.
- *  When a method tries to work with a pool
- *  
- *  Then, there's the 
- */
-
 /****************************
     OBJA_ALOC_TYPE class
 ****************************/
 
 /*  Constructors  */
 
-OBJA_ALOC_TYPE::OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment, AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser, bool const canReleaseAll)
+OBJA_ALOC_TYPE::OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment
+    , AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser
+    , bool const canReleaseAll, size_t const busyBit)
     : AcquirePool (acquirer)
     , EnlargePool(enlarger)
     , ReleasePool(releaser)
@@ -29,6 +20,7 @@ OBJA_ALOC_TYPE::OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlign
     , FreeCount(0)
     , PoolCount(0)
     , CanReleaseAllPools(canReleaseAll)
+    , BusyBit(busyBit)
 {
     //  As you can see, at least a FreeObject must fit in the object size.
     //  Also, only the alignment of the 
@@ -186,6 +178,15 @@ firstPoolCheck:
                     msg("~~ POOL %Xp WAS NOT ENLARGED! ~~%n", current);//*/
             }
 
+            if (this->BusyBit < SIZE_MAX)
+            {
+                uint8_t * const busyByte = (uint8_t *)obj + (this->BusyBit >> 3);
+                //  This be the byte containing the busy bit.
+
+                *busyByte |= (1 << (this->BusyBit & 7));
+                //  This just sets the busy bit.
+            }
+
 #ifdef OBJA_MULTICONSUMER
             current->PropertiesLock.Release(cookie);
 #endif
@@ -256,25 +257,47 @@ firstPoolCheck:
     return res;
 }
 
-Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
+Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 {
+    //  If this object is already freed, report!
+
+    if (this->BusyBit < SIZE_MAX)
+    {
+        uint8_t const busyByte = *((uint8_t const *)object + (this->BusyBit >> 3));
+        //  This is the byte containing the busy bit.
+
+        if (0 == (busyByte & (1 << (this->BusyBit & 7))))
+            return HandleResult::ObjaAlreadyFree;
+
+        //  This asynchronous check is performed here even for single-consumer allocators
+        //  for the sake of speed - to avoid locking the pools just to do nothing with
+        //  them.
+    }
+
     //  Important note on what would seem like retardery at first sight:
     //  I keep the "previous" pool locked so its `Next` pool can be changed.
     //  I release that lock ASAP.
 
     Handle res;
+
+#ifdef OBJA_MULTICONSUMER
     OBJA_COOK_TYPE volatile cookie;
+#endif
 
     OBJA_POOL_TYPE * first = nullptr, * current = nullptr, * previous = nullptr;
     obj_ind_t ind = obj_ind_invalid;
 
+#ifdef OBJA_MULTICONSUMER
     if (this->CanReleaseAllPools)
         cookie = this->LinkageLock.Acquire();
+#endif
 
     if unlikely(this->FirstPool == nullptr)
     {
+#ifdef OBJA_MULTICONSUMER
         if (this->CanReleaseAllPools)
             this->LinkageLock.Release(cookie);
+#endif
 
         return HandleResult::ArgumentOutOfRange;
         //  Aye. If there are no allocators, the object does not belong to this allocator.
@@ -282,10 +305,12 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
 
     first = current = this->FirstPool;
 
+#ifdef OBJA_MULTICONSUMER
     if (this->CanReleaseAllPools)
         current->PropertiesLock.SimplyAcquire();    //  Cookie's already in use.
     else
         cookie = current->PropertiesLock.Acquire();
+#endif
 
     do
     {
@@ -296,6 +321,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
 
             if likely(currentCapacity - freeCount > 1)
             {
+#ifdef OBJA_MULTICONSUMER
                 //  Busy count greater than one means that the pool won't require removal
                 //  after this object is deallocated. Therefore, the previous pool or the
                 //  linkage chain can be released.
@@ -304,6 +330,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
                     previous->PropertiesLock.SimplyRelease();
                 else if (this->CanReleaseAllPools)
                     this->LinkageLock.SimplyRelease();
+#endif
 
                 //  This will proceed to actual removal.
             }
@@ -344,7 +371,9 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
 
                             previous->Next = next;
                             
+#ifdef OBJA_MULTICONSUMER
                             previous->PropertiesLock.Release(cookie);
+#endif
                         }
                         else
                         {
@@ -353,7 +382,9 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
                             else
                                 this->FirstPool = nullptr;
 
+#ifdef OBJA_MULTICONSUMER
                             this->LinkageLock.Release(cookie);
+#endif
                         }
 
                         --this->PoolCount;
@@ -367,12 +398,14 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
                         //  So, for whatever reason, the removing failed.
                         //  Now this is practically a fresh pool.
 
+#ifdef OBJA_MULTICONSUMER
                         if (previous != nullptr)
                             previous->PropertiesLock.Release(cookie);
                         else
                             this->LinkageLock.Release(cookie);
                         //  These need not be locked anymore for what they protect
                         //  shall not be modified.
+#endif
 
                         obj_ind_t const capDiff = currentCapacity - current->Capacity;
                         ssize_t const freeDiff = (ssize_t)freeCount - (ssize_t)current->FreeCount;
@@ -381,7 +414,9 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
                         this->FreeCount -= freeDiff;
                         //  The sign shouldn't matter, rite? At worst this is -1.
 
+#ifdef OBJA_MULTICONSUMER
                         current->PropertiesLock.Release(cookie);
+#endif
 
                         return HandleResult::Okay;
                     }
@@ -390,14 +425,40 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
                 }
             }
 
+            if (this->BusyBit < SIZE_MAX)
+            {
+                uint8_t * const busyByte = (uint8_t *)object + (this->BusyBit >> 3);
+                //  This is the byte containing the free bit.
+
+#ifdef OBJA_MULTICONSUMER
+                if (0 == (*busyByte & (1 << (this->BusyBit & 7))))
+                {
+                    //  And yes, this check is performed again... this time,
+                    //  synchronously, to prevent the ABA problem.
+
+                    current->PropertiesLock.Release(cookie);
+
+                    return HandleResult::ObjaAlreadyFree;
+
+                    //  But obviously this only needs to be done if the allocator
+                    //  can have multiple consumers.
+                }
+#endif
+
+                *busyByte &= ~(1 << (this->BusyBit & 7));
+                //  This just sets the busy bit.
+            }
+
             FreeObject * const freeObject = (FreeObject *)(uintptr_t)object;
             freeObject->Next = current->FirstFreeObject;
 
             current->FirstFreeObject = ind;
             ++current->FreeCount;
 
+#ifdef OBJA_MULTICONSUMER
             current->PropertiesLock.Release(cookie);
             //  Release the current pool and restore interrupts.
+#endif
 
             ++this->FreeCount;
             //  I hate book-keeping.
@@ -414,6 +475,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
             {
                 //  THIS IS THE END! (of the chain)
 
+#ifdef OBJA_MULTICONSUMER
                 if (previous != nullptr)
                     previous->PropertiesLock.SimplyRelease();
                 else if (this->CanReleaseAllPools)
@@ -422,6 +484,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
 
                 current->PropertiesLock.Release(cookie);
                 //  Release the current pool and restore interrupts.
+#endif
 
                 break;
                 //  Go to end of the loop.
@@ -429,6 +492,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
 
             //  Otherwise...
 
+#ifdef OBJA_MULTICONSUMER
             temp->PropertiesLock.SimplyAcquire();
             //  Lock the next, keep the current locked.
 
@@ -437,6 +501,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void const * const object)
             else if (this->CanReleaseAllPools)
                 this->LinkageLock.SimplyRelease();
             //  And release the previous, if any, otherwise the linkage chain.
+#endif
 
             previous = current;
             current = temp;

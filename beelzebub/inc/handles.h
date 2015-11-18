@@ -141,6 +141,8 @@ namespace Beelzebub
 
         //  An object could not be allocated due to pool exhaustion.
         ObjaPoolsExhausted        = 0x70U, // Obja P exh.
+        //  An attempt was made to free an object which is already free.
+        ObjaAlreadyFree           = 0x71U, // Obja A Free
     };
 
     struct Handle

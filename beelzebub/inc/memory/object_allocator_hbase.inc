@@ -1,3 +1,4 @@
+#ifdef OBJA_POOL_TYPE
 /**
  *  <summary>Represents an area of memory where objects can be allocated.</summary>
  */
@@ -20,6 +21,9 @@ struct OBJA_POOL_TYPE : public ObjectPoolBase
     OBJA_POOL_TYPE & operator =(const OBJA_POOL_TYPE &) = delete;
     //  Aye - no copying here either.
 };
+#else
+    #define OBJA_POOL_TYPE ObjectPoolBase
+#endif
 
 /**
  *  <summary>Manages pools of fixed-size objects.</summary>
@@ -44,6 +48,7 @@ public:
         , FreeCount(0)
         , PoolCount(0)
         , CanReleaseAllPools(true)
+        , BusyBit(SIZE_MAX)
     {
         //  This constructor is required because of the const fields.
     }
@@ -51,7 +56,9 @@ public:
     OBJA_ALOC_TYPE(OBJA_ALOC_TYPE const &) = delete;
     OBJA_ALOC_TYPE & operator =(const OBJA_ALOC_TYPE &) = delete;
 
-    __bland OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment, AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser, bool const canReleaseAll = false);
+    __bland OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment
+        , AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser
+        , bool const canReleaseAll = false, size_t const busyBit = SIZE_MAX);
 
     /*  Methods  */
 
@@ -73,7 +80,7 @@ public:
     }
 
     __hot __bland __noinline Handle AllocateObject(void * & result, size_t estimatedLeft = 1);
-    __hot __bland __noinline Handle DeallocateObject(void const * const object);
+    __hot __bland __noinline Handle DeallocateObject(void * const object);
     //  These are complex methods and GCC will not be intimidated.
 
     /*  Properties  */
@@ -126,9 +133,9 @@ private:
     /*  Stats  */
 
 #ifdef OBJA_MULTICONSUMER
-    Atomic<size_t> Capacity;
-    Atomic<size_t> FreeCount;
-    Atomic<size_t> PoolCount;
+    Beelzebub::Synchronization::Atomic<size_t> Capacity;
+    Beelzebub::Synchronization::Atomic<size_t> FreeCount;
+    Beelzebub::Synchronization::Atomic<size_t> PoolCount;
 #else
     size_t Capacity;
     size_t FreeCount;
@@ -138,4 +145,5 @@ private:
     /*  Config  */
 
     bool const CanReleaseAllPools;
+    size_t const BusyBit;
 };

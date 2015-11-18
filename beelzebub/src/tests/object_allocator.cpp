@@ -1,7 +1,7 @@
 #ifdef __BEELZEBUB__TEST_OBJA
 
 #include <tests/object_allocator.hpp>
-#include <memory/object_allocator.hpp>
+#include <memory/object_allocator_smp.hpp>
 #include <memory/page_allocator.hpp>
 #include <memory/manager_amd64.hpp>
 #include <kernel.hpp>
@@ -33,7 +33,7 @@ struct TestStructure
     TestStructure * Next;
 };
 
-ObjectAllocator testAllocator;
+ObjectAllocatorSmp testAllocator;
 SpinlockUninterruptible<> syncer;
 
 bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;
@@ -778,7 +778,7 @@ Handle TestObjectAllocator(bool const bsp)
         askedToAcquire = askedToRemove = false;
         canEnlarge = true;
 
-        new (&testAllocator) ObjectAllocator(sizeof(TestStructure), __alignof(TestStructure), &AcquirePoolTest, &EnlargePoolTest, &ReleasePoolTest, true);
+        new (&testAllocator) ObjectAllocatorSmp(sizeof(TestStructure), __alignof(TestStructure), &AcquirePoolTest, &EnlargePoolTest, &ReleasePoolTest, true);
 
         /*msg("Test allocator (%Xp): Capacity = %Xs, Free Count = %Xs, Pool Count = %Xs;%n"
             , &testAllocator

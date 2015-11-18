@@ -209,7 +209,6 @@ void ManagedSerialPort::WriteBytes(void const * const src, size_t const cnt)
         while (this->OutputCount >= SerialPort::QueueSize
             && !this->CanWrite()) { }
 
-        uint8_t const * const tmp = (uint8_t const *)src + i;
         j = Minimum(SerialPort::QueueSize - this->OutputCount, cnt - i);
 
         Io::Out8n(p, (uint8_t const *)src + i, j);

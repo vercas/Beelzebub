@@ -2,8 +2,6 @@
 
 #include <handles.h>
 
-using namespace Beelzebub;
-
 namespace Beelzebub { namespace Memory
 {
     /** <summary>Type used to represent the index of an object.</summary> */
@@ -20,9 +18,12 @@ namespace Beelzebub { namespace Memory
      */
     struct FreeObject
     {
+        obj_ind_t Dummy;
+        //  This is here to allow the free flag bit to reside in the lower 32 bits.
+
         obj_ind_t Next;
     };
-    //  GCC makes this 8 bytes on AMD64. Have it your way, [female dog].
+    //  GCC makes this 8 bytes on AMD64.
 
     /**
      *  <summary>Represents an area of memory where objects can be allocated.</summary>
