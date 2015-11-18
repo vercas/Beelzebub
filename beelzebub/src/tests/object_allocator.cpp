@@ -5,11 +5,14 @@
 #include <memory/page_allocator.hpp>
 #include <memory/manager_amd64.hpp>
 #include <kernel.hpp>
+
+#include <system/cpu.hpp>
 #include <math.h>
 #include <debug.hpp>
 
-#define REPETITION_COUNT   ((size_t)2)
-#define REPETITION_COUNT_3 (REPETITION_COUNT * REPETITION_COUNT * REPETITION_COUNT)
+#define REPETITION_COUNT   ((size_t)20)
+#define REPETITION_COUNT_2 (REPETITION_COUNT   * REPETITION_COUNT + REPETITION_COUNT)
+#define REPETITION_COUNT_3 (REPETITION_COUNT_2 * REPETITION_COUNT + REPETITION_COUNT)
 
 #define __BEELZEBUB__TEST_OBJA_ASSERTIONS
 
@@ -56,7 +59,7 @@ static __bland __noinline Handle GetKernelHeapPages(size_t const pageCount, uint
             //  Maybe the test is built in release mode.
         }
 
-        res = Cpu::GetActiveThread()->Owner->Memory->MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable, desc);
+        res = BootstrapProcess.Memory->MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP; #%us) for an object pool (%us pages): %H."
@@ -240,7 +243,7 @@ __bland Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t mini
             break;
         }
 
-        res = Cpu::GetActiveThread()->Owner->Memory->MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable, desc);
+        res = BootstrapProcess.Memory->MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable, desc);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP; #%us) for extending object pool "
@@ -329,7 +332,7 @@ __bland Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPool 
     {
         /*msg("~~ UNMAPPING %Xp FROM POOL %Xp;", vaddr, pool);//*/
 
-        res = Cpu::GetActiveThread()->Owner->Memory->UnmapPage(vaddr, desc);
+        res = BootstrapProcess.Memory->UnmapPage(vaddr, desc);
 
         assert_or(res.IsOkayResult()
             , "Failed to unmap page #%us from pool %Xp.%n"
@@ -408,14 +411,17 @@ __bland Handle ObjectAllocatorSpamTest()
     size_t volatile capacity1 = testAllocator.GetCapacity();
 
     ObjectAllocatorTestBarrier2.Reach();
-
     ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
 
+#ifdef __BEELZEBUB__PROFILE
     uint64_t perfAcc = 0;
+#endif
 
     for (size_t x = REPETITION_COUNT; x > 0; --x)
     {
+#ifdef __BEELZEBUB__PROFILE
         uint64_t perfStart = CpuInstructions::Rdtsc();
+#endif
 
         TESTALLOC2(TestStructure, A)
 
@@ -476,18 +482,21 @@ __bland Handle ObjectAllocatorSpamTest()
             , tOA, 1 + REPETITION_COUNT - x, res);
 #endif        
 
+#ifdef __BEELZEBUB__PROFILE
         uint64_t perfEnd = CpuInstructions::Rdtsc();
 
         perfAcc += perfEnd - perfStart;
+#endif
     }
 
+#ifdef __BEELZEBUB__PROFILE
     MSG_("Core %us: %u8 / %us = %u8; %u8 / %us = %u8; %n"
         , Cpu::GetIndex()
         , perfAcc, REPETITION_COUNT, perfAcc / REPETITION_COUNT
         , perfAcc, REPETITION_COUNT_3, perfAcc / REPETITION_COUNT_3);
+#endif
 
     ObjectAllocatorTestBarrier3.Reach();
-
     ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
 
     ASSERT(capacity1 - freeCount1 == testAllocator.GetCapacity() - testAllocator.GetFreeCount()
@@ -498,7 +507,6 @@ __bland Handle ObjectAllocatorSpamTest()
         , capacity1 - freeCount1, capacity1, freeCount1);
 
     ObjectAllocatorTestBarrier1.Reach();
-
     ObjectAllocatorTestBarrier3.Reset(); //  Prepare the third barrier for re-use.
 
     return HandleResult::Okay;
@@ -687,11 +695,65 @@ __bland Handle ObjectAllocatorParallelAcquireTest()
 {
     Handle res;
 
-    ObjectAllocatorTestBarrier2.Reach();
+    size_t const objCount = 2 * PageSize / sizeof(TestStructure);
+    //  Should make 3 merry pools.
 
+    ObjectAllocatorTestBarrier2.Reach();
     ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
 
+    /*msg_("Core #%us: Gunna allocate %us objects.%n"
+        , System::Cpu::GetIndex(), objCount);//*/
 
+    ObjectAllocatorTestBarrier3.Reach();
+    ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
+
+    TestStructure * tOx = nullptr, * tOy = nullptr;
+
+    for (size_t i = 0; i < objCount; ++i)
+    {
+        tOy = tOx;
+
+        /*msg_("Core #%us: Gunna allocate object #%us.%n"
+            , System::Cpu::GetIndex(), i);//*/
+
+        res = testAllocator.AllocateObject(tOx);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to allocate capacity-filling object #%us: %H%n"
+            , i, res);
+
+        TESTDIFF(x, y);
+
+        if (tOy != nullptr)
+            ASSERT(tOy->Next != tOx
+                , "Previous test object points to the current one..?");
+
+        tOx->Next = tOy;
+    }
+
+    ObjectAllocatorTestBarrier1.Reach();
+    ObjectAllocatorTestBarrier3.Reset(); //  Prepare the third barrier for re-use.
+
+    ASSERT((testAllocator.GetCapacity() - testAllocator.GetFreeCount()) % objCount == 0
+        , "Busy object count should be a multiple of %us, but %us (%% %us) is not.%n"
+        , objCount, testAllocator.GetCapacity() - testAllocator.GetFreeCount()
+        , (testAllocator.GetCapacity() - testAllocator.GetFreeCount()) % objCount);
+
+    ObjectAllocatorTestBarrier2.Reach();
+    ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
+
+    while (tOx != nullptr)
+    {
+        auto next = tOx->Next;
+
+        TESTREMOV3(x)
+        //  Simple, huh?
+
+        tOx = next;
+    }
+
+    ObjectAllocatorTestBarrier3.Reach();
+    ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
 
     return HandleResult::Okay;
 }

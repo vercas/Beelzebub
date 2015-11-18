@@ -61,7 +61,7 @@ __bland void InitializeCpuData()
         , "Failed to set CPU index..? It should be %us but %us is returned."
         , ind, Cpu::GetIndex());
 
-    msg("-- Core #%us @ %Xp. --%n", ind, loc);
+    //msg("-- Core #%us @ %Xp. --%n", ind, loc);
 }
 
 /*******************

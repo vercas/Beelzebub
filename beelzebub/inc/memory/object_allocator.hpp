@@ -155,9 +155,7 @@ namespace Beelzebub { namespace Memory
             , ObjectSize(0)
             , HeaderSize(0)
             , FirstPool(nullptr)
-            , LastPool(nullptr)
             , LinkageLock()
-            , AcquisitionLock()
             , Capacity(0)
             , FreeCount(0)
             , PoolCount(0)
@@ -229,10 +227,8 @@ namespace Beelzebub { namespace Memory
         /*  Links  */
 
         ObjectPool * volatile FirstPool;
-        ObjectPool * volatile LastPool;
 
         ObjectAllocatorLock LinkageLock;
-        SpinlockUninterruptible<> AcquisitionLock;
 
         /*  Stats  */
 

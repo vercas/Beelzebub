@@ -10,8 +10,9 @@
  */
 
 #include <memory/object_allocator.hpp>
+
 #include <math.h>
-#include <debug.hpp>
+//#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
@@ -29,9 +30,7 @@ ObjectAllocator::ObjectAllocator(size_t const objectSize, size_t const objectAli
     , ObjectSize(RoundUp(Maximum(objectSize, sizeof(FreeObject)), objectAlignment))
     , HeaderSize(RoundUp(sizeof(ObjectPool), RoundUp(Maximum(objectSize, sizeof(FreeObject)), objectAlignment)))
     , FirstPool(nullptr)
-    , LastPool(nullptr)
     , LinkageLock()
-    , AcquisitionLock()
     , Capacity(0)
     , FreeCount(0)
     , PoolCount(0)
@@ -48,15 +47,15 @@ Handle ObjectAllocator::AllocateObject(void * & result, size_t estimatedLeft)
     Handle res;
     ObjectAllocatorLockCookie volatile cookie;
 
-    ObjectPool * first = nullptr, * volatile last = nullptr, * current = nullptr, * justAllocated = nullptr;
+    ObjectPool * first, * current, * justAllocated = nullptr;
 
     //  First, let's make sure there is a first pool.
 firstPoolCheck:
+    cookie = this->LinkageLock.Acquire();
 
-    if unlikely(this->FirstPool == nullptr)
+    //  Yes, those two are set there, even to nullptr again.
+    if unlikely((first = current = this->FirstPool) == nullptr)
     {
-        cookie = this->LinkageLock.Acquire();
-
         if unlikely(this->FirstPool != nullptr)
         {
             //  Maybe another core allocated the first pool in the meantime.
@@ -93,26 +92,14 @@ firstPoolCheck:
         this->FreeCount += justAllocated->FreeCount;
         //  There's a new pool!
 
-        this->FirstPool = this->LastPool = justAllocated->Next = first = current = justAllocated;
+        this->FirstPool = justAllocated->Next = first = current = justAllocated;
         //  Four fields with the same value... Eh.
-
-        current->PropertiesLock.SimplyAcquire();
-
-        this->LinkageLock.SimplyRelease();
-
-        /*msg("~~ ACQUIRED FIRST POOL %Xp WITH FC=%u4, cap=%u4 ~~%n"
-            , justAllocated
-            , justAllocated->FreeCount, justAllocated->Capacity);//*/
-        COMPILER_MEMORY_BARRIER();
-    }
-    else
-    {
-        first = current = this->FirstPool;
-
-        cookie = current->PropertiesLock.Acquire();
     }
 
-poolLoop:
+    current->PropertiesLock.SimplyAcquire();
+    this->LinkageLock.SimplyRelease();
+
+    COMPILER_MEMORY_BARRIER();
 
     do
     {
@@ -129,9 +116,6 @@ poolLoop:
             if (temp == first)
             {
                 //  THIS IS THE END! (of the chain)
-
-                current->PropertiesLock.Release(cookie);
-                //  Release the current pool and restore interrupts.
 
                 /*msg("~~ REACHED END OF POOL CHAIN ~~%n");//*/
 
@@ -203,106 +187,50 @@ poolLoop:
     //  Not implying that the compiler would think that, but I've met my fair share of compiler bugs which lead
     //  to me building up this paranoia.
 
-    if (last != nullptr)
+    //  Right here the last pool in the chain is locked and there is no free object
+    //  available in any pool.
+    //  Last pool need not be removed or tampered with while a new one is created.
+
+    res = this->AcquirePool(this->ObjectSize, this->HeaderSize, Minimum(estimatedLeft, 2), justAllocated);
+    //  A minimum of two is given here so the current allocation can happen
+    //  and the next crawler can attempt to enlarge the pool if needed.
+
+    if (!res.IsOkayResult())
     {
-        //  Okay, so, for some irrelevant reason, allocation failed in the newly-created pool.
-        //  In this case, the function state is reset.
+        current->PropertiesLock.Release(cookie);
 
-        last = justAllocated = nullptr;
-        //  So a new one can be allocated.
-
-        first = current = this->FirstPool;
-        //  Start from the beginning.
-
-        cookie = current->PropertiesLock.Acquire();
-        //  Get a cookie from the jar.
-
-        goto poolLoop;
-        //  Restart.
+        return res.WithPreppendedResult(HandleResult::ObjaPoolsExhausted);
     }
 
-    //  Okay, so, if this point is reached, it means no free allocator was found...
+    assert(justAllocated != nullptr
+        , "Object allocator %Xp apparently successfully acquired a pool (%H), which appears to be null!"
+        , this, res);
 
-    last = this->LastPool;
-    //  Used to look for changes.
+    COMPILER_MEMORY_BARRIER();
 
-    if (this->AcquisitionLock.TryAcquire(cookie))
-    {
-        //  If the lock can be acquired, then this core/thread is the one which must allocate the space.
-        //  The rest will await nicely.
+    ++this->PoolCount;
+    this->Capacity += justAllocated->Capacity;
+    //  Got a new pool!
 
-        res = this->AcquirePool(this->ObjectSize, this->HeaderSize, Minimum(estimatedLeft, 2), justAllocated);
-        //  A minimum of two is given here so the current allocation can happen
-        //  and the next crawler can attempt to enlarge the pool if needed.
+    FreeObject * obj;
+    result = obj = justAllocated->GetFirstFreeObject(this->ObjectSize, this->HeaderSize);
+    justAllocated->FirstFreeObject = obj->Next;
+    //  This allocator gets the first object as a reward for taking its time
+    //  to allocate a new pool.
 
-        if (!res.IsOkayResult())
-        {
-            this->AcquisitionLock.Release(cookie);
+    this->FreeCount += --justAllocated->FreeCount;
+    //  More book-keeping...
 
-            return res.WithPreppendedResult(HandleResult::ObjaPoolsExhausted);
-        }
+    ObjectPool * oldNext = current->Next;
+    current->Next = justAllocated;
+    justAllocated->Next = oldNext;
 
-        assert(justAllocated != nullptr
-            , "Object allocator %Xp apparently successfully acquired a pool (%H), which appears to be null!"
-            , this, res);
+    COMPILER_MEMORY_BARRIER();
+    //  Gotta make sure that the last pool is set after the ex-last is
+    //  modified.
 
-        /*msg("~~ ALLOCATED EXTRA POOL %Xp ~~%n", justAllocated);//*/
-        COMPILER_MEMORY_BARRIER();
-
-        ++this->PoolCount;
-        this->Capacity += justAllocated->Capacity;
-        //  Got a new pool!
-
-        FreeObject * obj;
-        result = obj = justAllocated->GetFirstFreeObject(this->ObjectSize, this->HeaderSize);
-        justAllocated->FirstFreeObject = obj->Next;
-        //  This allocator gets the first object as a reward for taking its time
-        //  to allocate a new pool.
-
-        this->FreeCount += --justAllocated->FreeCount;
-        //  More book-keeping...
-
-        last->PropertiesLock.SimplyAcquire();
-
-        ObjectPool * oldNext = last->Next;
-        last->Next = justAllocated;
-        justAllocated->Next = oldNext;
-
-        COMPILER_MEMORY_BARRIER();
-        //  Gotta make sure that the last pool is set after the ex-last is
-        //  modified.
-
-        this->LastPool = justAllocated;
-
-        this->AcquisitionLock.SimplyRelease();
-        last->PropertiesLock.Release(cookie);
-        //  I release the acquisition lock first so all awaiting cores/threads can go on ASAP.
-    }
-    else
-    {
-        //  If the lock is already acquired, it means that another core/thread is attempting to acquire a pool.
-        //  Therefore, it awaits.
-
-        this->AcquisitionLock.Await();
-
-        ObjectPool * volatile newLast = this->LastPool;
-
-        if unlikely(last == newLast)
-            return HandleResult::ObjaPoolsExhausted;
-        else
-        {
-            //  Okay, so a new allocator has been created while waiting.
-            //  Now the method state is prepared to look at this new pool.
-
-            current = newLast;
-            //  `first` need not be changed, because `last->Next` == `first`.
-
-            cookie = current->PropertiesLock.Acquire();
-            //  The new pool needs to be locked.
-
-            goto poolLoop;
-        }
-    }
+    current->PropertiesLock.Release(cookie);
+    //  I release the acquisition lock first so all awaiting cores/threads can go on ASAP.
 
     return res;
 }
@@ -402,12 +330,7 @@ Handle ObjectAllocator::DeallocateObject(void const * const object)
                             if (next != current)
                                 this->FirstPool = next;
                             else
-                            {
-                                if (this->LastPool == current)
-                                    this->LastPool = nullptr;
-
                                 this->FirstPool = nullptr;
-                            }
 
                             this->LinkageLock.Release(cookie);
                         }
