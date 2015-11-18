@@ -75,7 +75,7 @@ static __bland __noinline Handle GetKernelHeapPages(size_t const pageCount, uint
     return res;
 }
 
-static __bland __noinline void FillPool(ObjectPool volatile * volatile pool
+static __bland __noinline void FillPool(ObjectPoolBase volatile * volatile pool
                                       , size_t const objectSize
                                       , size_t const headerSize
                                       , obj_ind_t const objectCount)
@@ -144,14 +144,14 @@ static __bland __noinline void FillPool(ObjectPool volatile * volatile pool
     COMPILER_MEMORY_BARRIER();
 }
 
-__bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPool * & result)
+__bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPoolBase * & result)
 {
     askedToAcquire = true;
 
-    assert(headerSize >= sizeof(ObjectPool)
+    assert(headerSize >= sizeof(ObjectPoolBase)
         , "The given header size (%us) apprats to be lower than the size of an "
           "actual pool struct (%us)..?%n"
-        , headerSize, sizeof(ObjectPool));
+        , headerSize, sizeof(ObjectPoolBase));
 
     size_t const pageCount = RoundUp(objectSize * minimumObjects + headerSize, PageSize) / PageSize;
     uintptr_t addr = 0;
@@ -161,10 +161,10 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
     if (!res.IsOkayResult())
         return res;
 
-    ObjectPool volatile * volatile pool = (ObjectPool *)(uintptr_t)addr;
+    ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)(uintptr_t)addr;
     //  I use a local variable here so `result` isn't dereferenced every time.
 
-    new (const_cast<ObjectPool *>(pool)) ObjectPool();
+    new (const_cast<ObjectPoolBase *>(pool)) ObjectPoolBase();
     //  Construct in place to initialize the fields.
 
     size_t const objectCount = ((pageCount * PageSize) - headerSize) / objectSize;
@@ -176,12 +176,12 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
     //  The pool was constructed in place, so the rest of the fields should
     //  be in a good state.
 
-    result = const_cast<ObjectPool *>(pool);
+    result = const_cast<ObjectPoolBase *>(pool);
 
     return HandleResult::Okay;
 }
 
-__bland Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPool * pool)
+__bland Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPoolBase * pool)
 {
     if (!canEnlarge)
         return HandleResult::UnsupportedOperation;
@@ -305,7 +305,7 @@ __bland Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t mini
     return HandleResult::Okay;
 }
 
-__bland Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPool * pool)
+__bland Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * pool)
 {
     askedToRemove = true;
 
