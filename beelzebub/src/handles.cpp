@@ -145,6 +145,8 @@ const char * const Handle::GetResultString() const
 
         case HandleResult::ObjaPoolsExhausted:
             return "Obja P exh.";
+        case HandleResult::ObjaAlreadyFree:
+            return "Obja A free";
 
         default:
             return "!!UNKNOWN!!";

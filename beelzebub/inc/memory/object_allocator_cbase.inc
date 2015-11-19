@@ -180,7 +180,7 @@ firstPoolCheck:
 
             if (this->BusyBit < SIZE_MAX)
             {
-                uint8_t * const busyByte = (uint8_t *)obj + (this->BusyBit >> 3);
+                uint8_t * const busyByte = reinterpret_cast<uint8_t *>(obj) + (this->BusyBit >> 3);
                 //  This be the byte containing the busy bit.
 
                 *busyByte |= (1 << (this->BusyBit & 7));
@@ -246,6 +246,15 @@ firstPoolCheck:
     current->Next = justAllocated;
     justAllocated->Next = oldNext;
 
+    if (this->BusyBit < SIZE_MAX)
+    {
+        uint8_t * const busyByte = (uint8_t *)obj + (this->BusyBit >> 3);
+        //  This be the byte containing the busy bit.
+
+        *busyByte |= (1 << (this->BusyBit & 7));
+        //  This just sets the busy bit.
+    }
+
     COMPILER_MEMORY_BARRIER();
     //  Gotta make sure that the last pool is set after the ex-last is
     //  modified.
@@ -267,7 +276,9 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
         //  This is the byte containing the busy bit.
 
         if (0 == (busyByte & (1 << (this->BusyBit & 7))))
+        {
             return HandleResult::ObjaAlreadyFree;
+        }
 
         //  This asynchronous check is performed here even for single-consumer allocators
         //  for the sake of speed - to avoid locking the pools just to do nothing with
@@ -438,6 +449,9 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 
                     current->PropertiesLock.Release(cookie);
 
+                    msg("Attempted to deallocate free object %Xp!%n"
+                        , object);//*/
+
                     return HandleResult::ObjaAlreadyFree;
 
                     //  But obviously this only needs to be done if the allocator
@@ -446,7 +460,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 #endif
 
                 *busyByte &= ~(1 << (this->BusyBit & 7));
-                //  This just sets the busy bit.
+                //  This just clears the busy bit.
             }
 
             FreeObject * const freeObject = (FreeObject *)(uintptr_t)object;

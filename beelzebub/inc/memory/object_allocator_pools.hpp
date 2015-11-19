@@ -22,8 +22,7 @@ namespace Beelzebub { namespace Memory
         //  This is here to allow the free flag bit to reside in the lower 32 bits.
 
         obj_ind_t Next;
-    };
-    //  GCC makes this 8 bytes on AMD64.
+    } __packed;
 
     /**
      *  <summary>Represents an area of memory where objects can be allocated.</summary>

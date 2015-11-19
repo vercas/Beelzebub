@@ -545,7 +545,7 @@ __bland __noinline Handle ThreePoolTest()
 
         askedToAcquire = false;
 
-        TestStructure * tOx = tOm, * tOy;
+        TestStructure * tOx = tOm, * tOy, * tOt;
         bool allocatedOnce = false;
         size_t capacity2 = 13379001;
 
@@ -598,7 +598,17 @@ __bland __noinline Handle ThreePoolTest()
                 , "Failed to allocate capacity-filling object #%us: %H%n"
                 , i, res);
 
-            TESTDIFF(x, y);
+            ASSERT(0 != (tOx->Qwords[0] & 1)
+                , "Recently-allocated object %Xp has busy bit clear!%n"
+                , tOx);
+
+            tOt = tOy;
+            while (tOt != nullptr)
+            {
+                TESTDIFF(x, t);
+
+                tOt = tOt->Next;
+            }
 
             if (tOy != nullptr)
                 ASSERT(tOy->Next != tOx
@@ -654,12 +664,28 @@ __bland __noinline Handle ThreePoolTest()
 
         //  Now clean up the acquired objects.
 
+        size_t poolCount = testAllocator.PoolCount.Load();
+
         while (tOx != nullptr)
         {
             auto next = tOx->Next;
 
             TESTREMOV3(x)
             //  Simple, huh?
+
+            size_t newPoolCount = testAllocator.PoolCount.Load();
+
+            if (poolCount == newPoolCount)
+                ASSERT(0 == (tOx->Qwords[0] & 1)
+                    , "Recently-deallocated object %Xp has busy bit set!%n"
+                    , tOx);
+            else
+            {
+                //  The pool containing the previous object was removed and,
+                //  thus cannot be accessed anymore.
+
+                poolCount = newPoolCount;
+            }
 
             tOx = next;
         }
@@ -778,7 +804,7 @@ Handle TestObjectAllocator(bool const bsp)
         askedToAcquire = askedToRemove = false;
         canEnlarge = true;
 
-        new (&testAllocator) ObjectAllocatorSmp(sizeof(TestStructure), __alignof(TestStructure), &AcquirePoolTest, &EnlargePoolTest, &ReleasePoolTest, true);
+        new (&testAllocator) ObjectAllocatorSmp(sizeof(TestStructure), __alignof(TestStructure), &AcquirePoolTest, &EnlargePoolTest, &ReleasePoolTest, true, 0);
 
         /*msg("Test allocator (%Xp): Capacity = %Xs, Free Count = %Xs, Pool Count = %Xs;%n"
             , &testAllocator
@@ -888,6 +914,12 @@ Handle TestObjectAllocator(bool const bsp)
         TESTALLOC3(TestStructure, 14)
 
         TESTREMOV3(13)
+
+        res = testAllocator.DeallocateObject(tO13);
+        ASSERT(res.IsResult(HandleResult::ObjaAlreadyFree)
+            , "Deletion of object \"13\" (%Xp) should've returned "
+              "\"already freed\": %H%n"
+            , tO13, res);
 
         TESTALLOC3(TestStructure, 15)
 
