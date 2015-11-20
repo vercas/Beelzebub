@@ -63,7 +63,8 @@ This one grabs `genisoimage`. The binary comes from Ubuntu Server 14.04's packag
 
 #### License
 
-Explained in `LICENSE.md`.
+Mostly `University of Illinois - NCSA Open Source License`, text and exceptions explained in `LICENSE.md`.
+[TLDRLegal summary](https://tldrlegal.com/l/ncsa) for those who seek legal advice on the internet.
 
 #### Miscellaneous
 
