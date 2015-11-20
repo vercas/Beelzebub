@@ -2,6 +2,11 @@
 #include <execution/thread_init.hpp>
 #include <terminals/vbe.hpp>
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    #include <memory/object_allocator_smp.hpp>
+    #include <memory/object_allocator_pools_heap.hpp>
+#endif
+
 #include <keyboard.hpp>
 #include <system/serial_ports.hpp>
 #include <system/timers/pit.hpp>
@@ -39,29 +44,49 @@ CpuId Beelzebub::BootstrapCpuid;
     CPU DATA
 ***************/
 
-Atomic<uintptr_t> CpuDataBase;
-Atomic<size_t> CpuIndexCounter {(size_t)0};
+//  No fancy allocation is needed on non-SMP systems.
+
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    ObjectAllocatorSmp CpuDataAllocator;
+    Atomic<size_t> CpuIndexCounter {(size_t)0};
+#else
+    CpuData BspCpuData;
+#endif
 
 __bland void InitializeCpuData()
 {
-    uintptr_t const loc = CpuDataBase.FetchAdd(Cpu::CpuDataSize);
-    CpuData * data = (CpuData *)loc;
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    CpuData * data = nullptr;
 
-    Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)loc);
+    Handle res = CpuDataAllocator.AllocateObject(data);
 
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate CPU data structure! (%H)"
+        , res);
+#else
+    CpuData * data = &BspCpuData;
+#endif
+
+    Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)(uintptr_t)data);
+
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
     size_t const ind = CpuIndexCounter++;
 
     data->Index = ind;
+
+    assert(Cpu::GetIndex() == ind
+        , "Failed to set CPU index..? It should be %us but %us is returned."
+        , ind, Cpu::GetIndex());
+#else
+    data->Index = 0;
+#endif
+
     data->DomainDescriptor = &Domain0;
 
     data->HeapSpinlock = Spinlock<>().GetValue();
     data->HeapSpinlockPointer = (Spinlock<> *)&data->HeapSpinlock;
 
-    assert(Cpu::GetIndex() == ind
-        , "Failed to set CPU index..? It should be %us but %us is returned."
-        , ind, Cpu::GetIndex());
-
-    //msg("-- Core #%us @ %Xp. --%n", ind, loc);
+    msg("-- Core #%us @ %Xp. --%n", ind, data);
 }
 
 /*******************
@@ -364,7 +389,7 @@ Handle InitializeVirtualMemory()
 
     //  CPU DATA
 
-    size_t const cpuDataSize = JG_INFO_ROOT_EX->cpu_count * Cpu::CpuDataSize;
+    /*size_t const cpuDataSize = JG_INFO_ROOT_EX->cpu_count * Cpu::CpuDataSize;
     size_t const cpuDataPageCount = (cpuDataSize + PageSize - 1) / PageSize;
 
     //  This is where the CPU data will sit.
@@ -393,7 +418,10 @@ Handle InitializeVirtualMemory()
             , res);
 
         //msg("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
-    }
+    }//*/
+
+    new (&CpuDataAllocator) ObjectAllocatorSmp(sizeof(CpuData), __alignof(CpuData)
+        , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
 
     InitializeCpuData();
 

@@ -35,13 +35,13 @@ static __bland inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, co
             {*/
                 MemoryManagerAmd64::KernelHeapMasterLock.Acquire();
 
-                while (MemoryManagerAmd64::KernelHeapLockCount > 0)
+                /*while (MemoryManagerAmd64::KernelHeapLockCount > 0)
                 {
                     asm volatile("pause");
 
                     //  Yeah...
                 }
-            //}
+            }//*/
         }
         else
             MemoryManagerAmd64::KernelBinariesLock.Acquire();

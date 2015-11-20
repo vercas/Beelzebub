@@ -46,4 +46,10 @@
     #endif
 #else
     #include <memory/object_allocator.hpp>
+
+    namespace Beelzebub { namespace Memory
+    {
+        /*  Yep, an alias is all that is required.  */
+        typedef ObjectAllocator ObjectAllocatorSmp;
+    }}
 #endif

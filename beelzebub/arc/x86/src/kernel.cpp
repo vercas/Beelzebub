@@ -52,8 +52,9 @@ Spinlock<> TerminalMessageLock;
 
 /*  System Globals  */
 
-TerminalBase * Beelzebub::MainTerminal;
-bool Beelzebub::Scheduling;
+TerminalBase * Beelzebub::MainTerminal = nullptr;
+bool Beelzebub::Scheduling = false;
+bool Beelzebub::CpuDataSetUp = false;
 
 Process Beelzebub::BootstrapProcess;
 Thread Beelzebub::BootstrapThread;
@@ -738,6 +739,9 @@ Handle InitializeProcessingUnits()
         , bootstrapVaddr, bootstrapPaddr, res);
 
     //msg("Got %us cores.", Cpu::Count.Load());
+
+    CpuDataSetUp = true;
+    //  Let the kernel know that CPU data is available for use.
 
     return HandleResult::Okay;
 }

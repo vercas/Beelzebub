@@ -77,7 +77,7 @@ namespace Beelzebub { namespace System
 
         uint16_t GdtLength;
         bool X2ApicMode;
-    } __packed;
+    } __packed __aligned_nat;
 
     /**
      *  Represents a processing unit of the system.

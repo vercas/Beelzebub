@@ -97,6 +97,8 @@
 #define __prefetch         __builtin_prefetch
 
 #define __packed           __attribute__((__packed__))
+#define __aligned(n)       __attribute__((__aligned__(n)))
+#define __aligned_nat      __attribute__((__aligned__))
 #define __alignof(T)       __alignof__(T)
 
 #define __section(name)    __attribute__((__section__("." #name)))
@@ -129,6 +131,8 @@
 #define __prefetch(...)    do { } while (false)
 
 #define __packed  
+#define __aligned(n)  
+#define __aligned_nat  
 
 #define __section(name)  
 #define __build_data  

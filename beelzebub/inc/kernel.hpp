@@ -8,6 +8,7 @@ namespace Beelzebub
 {
     extern TerminalBase * MainTerminal;
     extern bool Scheduling;
+    extern bool CpuDataSetUp;
 
     extern Execution::Process BootstrapProcess;
     extern Execution::Thread BootstrapThread;
