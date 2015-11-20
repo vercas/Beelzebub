@@ -62,7 +62,10 @@ OBJA_ALOC_TYPE::OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlign
     , BusyBit(busyBit)
 {
     //  As you can see, at least a FreeObject must fit in the object size.
-    //  Also, only the alignment of the 
+    //  Also, only the alignment of the object is taken into account.
+    //  On platforms that force alignment, it will be enough for FreeObject as well.
+    //  On those that don't, the very little usage of the FreeObject will not really
+    //  hurt due to unalignment.
 }
 
 /*  Methods  */
@@ -75,29 +78,18 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
     OBJA_COOK_TYPE volatile cookie;
 #endif
 
-    OBJA_POOL_TYPE * first, * current;
+    OBJA_POOL_TYPE * current;
     ObjectPoolBase * justAllocated = nullptr;
 
     //  First, let's make sure there is a first pool.
-firstPoolCheck:
+
 #ifdef OBJA_MULTICONSUMER
     cookie = this->LinkageLock.Acquire();
 #endif
 
-    //  Yes, those two are set there, even to nullptr again.
-    if unlikely((first = current = this->FirstPool) == nullptr)
+    //  Note assignment.
+    if unlikely((current = this->FirstPool) == nullptr)
     {
-        if unlikely(this->FirstPool != nullptr)
-        {
-            //  Maybe another core allocated the first pool in the meantime.
-
-#ifdef OBJA_MULTICONSUMER
-            this->LinkageLock.Release(cookie);  //  Release lock.
-#endif
-
-            goto firstPoolCheck;                //  Check again.
-        }
-
         res = this->AcquirePool(this->ObjectSize, this->HeaderSize, Minimum(estimatedLeft, 2), justAllocated);
         //  A minimum of two is given here so the current allocation can happen
         //  and the next crawler can attempt to enlarge the pool if needed.
@@ -131,8 +123,10 @@ firstPoolCheck:
         this->FreeCount += justAllocated->FreeCount;
         //  There's a new pool!
 
-        this->FirstPool = first = current = reinterpret_cast<OBJA_POOL_TYPE *>(justAllocated->Next = justAllocated);
-        //  Four fields with the same value... Eh.
+        this->FirstPool = current = reinterpret_cast<OBJA_POOL_TYPE *>(justAllocated);
+        //  Three fields with the same value... Eh.
+        justAllocated->Next = nullptr;
+        //  This one's null, heh.
     }
 
 #ifdef OBJA_MULTICONSUMER
@@ -154,7 +148,7 @@ firstPoolCheck:
 
             OBJA_POOL_TYPE * temp = reinterpret_cast<OBJA_POOL_TYPE *>(current->Next);
 
-            if (temp == first)
+            if (temp == nullptr)
             {
                 //  THIS IS THE END! (of the chain)
 
@@ -236,7 +230,7 @@ firstPoolCheck:
 
             return HandleResult::Okay;
         }
-    } while (current != first);
+    } while (current != nullptr);
     //  Yes, the condition here is redundant. But it exists just so the compiler doesn't think this loops forever.
     //  Not implying that the compiler would think that, but I've met my fair share of compiler bugs which lead
     //  to me building up this paranoia.
@@ -302,6 +296,10 @@ firstPoolCheck:
     current->PropertiesLock.Release(cookie);
 #endif
 
+    //  Sad note: To increase allocation performance, I could have preppended
+    //  the new pool as the first pool, but that would make this code much more
+    //  complex and would require more locking.
+
     return res;
 }
 
@@ -334,7 +332,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
     OBJA_COOK_TYPE volatile cookie;
 #endif
 
-    OBJA_POOL_TYPE * first = nullptr, * current = nullptr, * previous = nullptr;
+    OBJA_POOL_TYPE * current = nullptr, * previous = nullptr;
     obj_ind_t ind = obj_ind_invalid;
 
 #ifdef OBJA_MULTICONSUMER
@@ -353,7 +351,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
         //  Aye. If there are no allocators, the object does not belong to this allocator.
     }
 
-    first = current = this->FirstPool;
+    current = this->FirstPool;
 
 #ifdef OBJA_MULTICONSUMER
     if (this->CanReleaseAllPools)
@@ -399,7 +397,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                     //  previous pool will be locked, which means that it cannot be
                     //  removed at the same time. Thus, there's no ABA problem.
 
-                    ObjectPoolBase * const next = unlikely(current == current->Next) ? nullptr : current->Next;
+                    ObjectPoolBase * const next = current->Next;
                     //  If it's the only pool, next is null!
 
                     res = this->ReleasePool(this->ObjectSize, this->HeaderSize, current);
@@ -524,7 +522,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 
             OBJA_POOL_TYPE * temp = reinterpret_cast<OBJA_POOL_TYPE *>(current->Next);
 
-            if (temp == first)
+            if (temp == nullptr)
             {
                 //  THIS IS THE END! (of the chain)
 
@@ -559,7 +557,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
             previous = current;
             current = temp;
         }
-    } while (current != first);
+    } while (current != nullptr);
 
     return HandleResult::ArgumentOutOfRange;
     //  If this point is reached, it means the target object is outside of this allocator's
