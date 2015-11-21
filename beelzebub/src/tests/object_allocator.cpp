@@ -843,7 +843,9 @@ Handle TestObjectAllocator(bool const bsp)
         askedToAcquire = askedToRemove = false;
         canEnlarge = true;
 
-        new (&testAllocator) ObjectAllocatorSmp(sizeof(TestStructure), __alignof(TestStructure), &AcquirePoolTest, &EnlargePoolTest, &ReleasePoolTest, true, 0);
+        new (&testAllocator) ObjectAllocatorSmp(sizeof(TestStructure), __alignof(TestStructure)
+            , &AcquirePoolTest, &EnlargePoolTest, &ReleasePoolTest
+            , PoolReleaseOptions::ReleaseAll, 0);
 
         /*msg("Test allocator (%Xp): Capacity = %Xs, Free Count = %Xs, Pool Count = %Xs;%n"
             , &testAllocator

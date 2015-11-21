@@ -86,7 +86,7 @@ public:
         , Capacity(0)
         , FreeCount(0)
         , PoolCount(0)
-        , CanReleaseAllPools(true)
+        , ReleaseOptions(PoolReleaseOptions::ReleaseAll)
         , BusyBit(SIZE_MAX)
     {
         //  This constructor is required because of the const fields.
@@ -97,7 +97,8 @@ public:
 
     __bland OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment
         , AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser
-        , bool const canReleaseAll = false, size_t const busyBit = SIZE_MAX);
+        , PoolReleaseOptions const releaseOptions = PoolReleaseOptions::ReleaseAll
+        , size_t const busyBit = SIZE_MAX);
 
     /*  Methods  */
 
@@ -183,6 +184,6 @@ private:
 
     /*  Config  */
 
-    bool const CanReleaseAllPools;
+    PoolReleaseOptions const ReleaseOptions;
     size_t const BusyBit;
 };

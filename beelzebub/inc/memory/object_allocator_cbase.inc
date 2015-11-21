@@ -45,7 +45,7 @@
 
 OBJA_ALOC_TYPE::OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment
     , AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser
-    , bool const canReleaseAll, size_t const busyBit)
+    , PoolReleaseOptions const releaseOptions, size_t const busyBit)
     : AcquirePool (acquirer)
     , EnlargePool(enlarger)
     , ReleasePool(releaser)
@@ -58,7 +58,7 @@ OBJA_ALOC_TYPE::OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlign
     , Capacity(0)
     , FreeCount(0)
     , PoolCount(0)
-    , CanReleaseAllPools(canReleaseAll)
+    , ReleaseOptions(releaseOptions)
     , BusyBit(busyBit)
 {
     //  As you can see, at least a FreeObject must fit in the object size.
@@ -330,20 +330,21 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 
 #ifdef OBJA_MULTICONSUMER
     OBJA_COOK_TYPE volatile cookie;
+    bool const canReleaseAny = this->ReleaseOptions != PoolReleaseOptions::NoRelease;
 #endif
 
     OBJA_POOL_TYPE * current = nullptr, * previous = nullptr;
     obj_ind_t ind = obj_ind_invalid;
 
 #ifdef OBJA_MULTICONSUMER
-    if (this->CanReleaseAllPools)
+    if (canReleaseAny)
         cookie = this->LinkageLock.Acquire();
 #endif
 
     if unlikely(this->FirstPool == nullptr)
     {
 #ifdef OBJA_MULTICONSUMER
-        if (this->CanReleaseAllPools)
+        if (canReleaseAny)
             this->LinkageLock.Release(cookie);
 #endif
 
@@ -354,7 +355,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
     current = this->FirstPool;
 
 #ifdef OBJA_MULTICONSUMER
-    if (this->CanReleaseAllPools)
+    if (canReleaseAny)
         current->PropertiesLock.SimplyAcquire();    //  Cookie's already in use.
     else
         cookie = current->PropertiesLock.Acquire();
@@ -376,7 +377,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 
                 if (previous != nullptr)
                     previous->PropertiesLock.SimplyRelease();
-                else if (this->CanReleaseAllPools)
+                else if (canReleaseAny)
                     this->LinkageLock.SimplyRelease();
 #endif
 
@@ -387,11 +388,13 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                 //  Well, there's no point in updating the pool now, wasting precious CPU cycles on cache misses and
                 //  memory loads.
 
-                if (previous != nullptr || this->CanReleaseAllPools || this->PoolCount > 1)
+                if (this->ReleaseOptions == PoolReleaseOptions::ReleaseAll
+                    || (this->PoolCount > 1 && this->ReleaseOptions == PoolReleaseOptions::KeepOne))
                 {
-                    //  So, if there was a previous pool, this one can be removed.
-                    //  If all pools can be released, this one can be.
-                    //  If there's more than one pool, what the heck, let's remove it.
+                    //  So, if all pools can be released, this one can be.
+                    //  If no pools can be released, this condition will be false.
+                    //  Otherwise, more than one pool (and the options say keep one)
+                    //  means this one can be removed.
 
                     //  If any other pool is in the process of being removed, its
                     //  previous pool will be locked, which means that it cannot be
@@ -425,13 +428,11 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                         }
                         else
                         {
-                            if (next != current)
-                                this->FirstPool = reinterpret_cast<OBJA_POOL_TYPE *>(next);
-                            else
-                                this->FirstPool = nullptr;
+                            this->FirstPool = reinterpret_cast<OBJA_POOL_TYPE *>(next);
 
 #ifdef OBJA_MULTICONSUMER
-                            this->LinkageLock.Release(cookie);
+                            if (canReleaseAny)
+                                this->LinkageLock.Release(cookie);
 #endif
                         }
 
@@ -449,7 +450,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 #ifdef OBJA_MULTICONSUMER
                         if (previous != nullptr)
                             previous->PropertiesLock.Release(cookie);
-                        else
+                        else if (canReleaseAny)
                             this->LinkageLock.Release(cookie);
                         //  These need not be locked anymore for what they protect
                         //  shall not be modified.
@@ -469,8 +470,16 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                         return HandleResult::Okay;
                     }
 
-                    //  Reaching this point means standard-issue removal.
+                    //  This point cannot be reached.
                 }
+
+                //  This one can, if the release options forbid releasing the pool.
+
+#ifdef OBJA_MULTICONSUMER
+                if (canReleaseAny)
+                    this->LinkageLock.SimplyRelease();
+                //  This can be released now (ASAP).
+#endif
             }
 
             if (this->BusyBit < SIZE_MAX)
@@ -529,7 +538,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 #ifdef OBJA_MULTICONSUMER
                 if (previous != nullptr)
                     previous->PropertiesLock.SimplyRelease();
-                else if (this->CanReleaseAllPools)
+                else if (canReleaseAny)
                     this->LinkageLock.SimplyRelease();
                 //  First release the previous, if any, or the linkage chain.
 
@@ -549,7 +558,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 
             if (previous != nullptr)
                 previous->PropertiesLock.SimplyRelease();
-            else if (this->CanReleaseAllPools)
+            else if (canReleaseAny)
                 this->LinkageLock.SimplyRelease();
             //  And release the previous, if any, otherwise the linkage chain.
 #endif

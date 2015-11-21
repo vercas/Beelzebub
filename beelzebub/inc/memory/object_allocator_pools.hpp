@@ -145,4 +145,15 @@ namespace Beelzebub { namespace Memory
     //  The release code need not (un)lock the object poool.
 
     //  Why so many parameters? So the provider can make the best decisions! :)
+
+    /// <summary>Options for controlling the way empty pools are released</summary>
+    enum class PoolReleaseOptions
+    {
+        /// <summary>All pools will be released when empty.</summary>
+        ReleaseAll = 0,
+        /// <summary>All pools will be released when empty, except for the last pool remaining.</summary>
+        KeepOne = 1,
+        /// <summary>No pools will be released when emptied.</summary>
+        NoRelease = 2,
+    };
 }}
