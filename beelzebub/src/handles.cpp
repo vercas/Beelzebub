@@ -186,6 +186,8 @@ const char * const Handle::GetResultString() const
             return "Obja P exh.";
         case HandleResult::ObjaAlreadyFree:
             return "Obja A free";
+        case HandleResult::ObjaMaximumCapacity:
+            return "Obja M cap.";
 
         default:
             return "!!UNKNOWN!!";

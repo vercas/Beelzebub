@@ -182,6 +182,8 @@ namespace Beelzebub
         ObjaPoolsExhausted        = 0x70U, // Obja P exh.
         //  An attempt was made to free an object which is already free.
         ObjaAlreadyFree           = 0x71U, // Obja A Free
+        //  An object allocator has reached maximum capacity.
+        ObjaMaximumCapacity       = 0x72U, // Obja M cap.
     };
 
     struct Handle

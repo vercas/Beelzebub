@@ -88,6 +88,8 @@ public:
         , PoolCount(0)
         , ReleaseOptions(PoolReleaseOptions::ReleaseAll)
         , BusyBit(SIZE_MAX)
+        , BusyCount(0)
+        , Quota(0)    //  This allocator cannot even be used!
     {
         //  This constructor is required because of the const fields.
     }
@@ -98,7 +100,7 @@ public:
     __bland OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment
         , AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser
         , PoolReleaseOptions const releaseOptions = PoolReleaseOptions::ReleaseAll
-        , size_t const busyBit = SIZE_MAX);
+        , size_t const busyBit = SIZE_MAX, size_t const quota = SIZE_MAX);
 
     /*  Methods  */
 
@@ -123,6 +125,8 @@ public:
     __hot __bland __noinline Handle DeallocateObject(void * const object);
     //  These are complex methods and GCC will not be intimidated.
 
+    //  TODO: Complete allocator destruction.
+
     /*  Properties  */
 
 #ifdef OBJA_MULTICONSUMER
@@ -135,6 +139,16 @@ public:
     {
         return this->FreeCount.Load();
     }
+
+    __bland inline size_t GetQuota() const
+    {
+        return this->Quota.Load();
+    }
+
+    __bland inline size_t GetBusyCount() const
+    {
+        return this->BusyCount.Load();
+    }
 #else
     __bland inline size_t GetCapacity() const
     {
@@ -145,7 +159,31 @@ public:
     {
         return this->FreeCount;
     }
+
+    __bland inline size_t GetQuota() const
+    {
+        return this->Quota;
+    }
+
+    __bland inline size_t GetBusyCount() const
+    {
+        return this->BusyCount;
+    }
 #endif
+
+    __bland inline size_t GetClearance() const
+    {
+        size_t const busyCount = this->GetBusyCount();
+        size_t const max = this->GetQuota();
+
+        if (busyCount <= max)
+            return max - busyCount;
+        else
+            return 0;
+
+        //  The case when BusyCount > Quota is handled because the maximum
+        //  may be changed at any time.
+    }
 
     /*  Parameters  */
 
@@ -186,4 +224,19 @@ private:
 
     PoolReleaseOptions const ReleaseOptions;
     size_t const BusyBit;
+
+#ifdef OBJA_MULTICONSUMER
+    Beelzebub::Synchronization::Atomic<size_t> BusyCount;
+#else
+    size_t BusyCount;
+#endif
+
+public:
+
+    //  Yes, this is public and non-const.
+#ifdef OBJA_MULTICONSUMER
+    Beelzebub::Synchronization::Atomic<size_t> Quota;
+#else
+    size_t Quota;
+#endif
 };
