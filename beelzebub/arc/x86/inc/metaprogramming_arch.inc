@@ -103,6 +103,8 @@ typedef char bool;
 
 #if   defined(__cplusplus)
 static size_t const PageSize = 0x1000;
+static int_cookie_t const int_cookie_invalid = ~((int_cookie_t)0);
 #else
 #define PAGE_SIZE ((size_t)0x1000)
+#define INT_COOKIE_INVALID (~((int_cookie_t)0))
 #endif

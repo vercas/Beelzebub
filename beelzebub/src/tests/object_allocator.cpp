@@ -440,6 +440,10 @@ __bland Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolB
     , "Test objects \"" #n1 "\" and \"" #n2 "\" should be different: %Xp." \
     , MCATS(tO, n1));
 
+#define TESTINTEN ASSERT(Interrupts::AreEnabled()                           \
+            , "Interrupts should be enabled, but they are not! (Core #%us)" \
+            , System::Cpu::GetIndex())
+
 __bland Handle ObjectAllocatorSpamTest()
 {
     Handle res;
@@ -636,7 +640,11 @@ __bland __noinline Handle ThreePoolTest()
                 /*msg("~~ NEXT POOL SHOULD BE ACQUIRED NAO! ~~%n");//*/
             }
 
+            TESTINTEN;
+
             res = testAllocator.AllocateObject(tOx);
+
+            TESTINTEN;
 
             ASSERT(res.IsOkayResult()
                 , "Failed to allocate capacity-filling object #%us: %H%n"
@@ -714,8 +722,12 @@ __bland __noinline Handle ThreePoolTest()
         {
             auto next = tOx->Next;
 
+            TESTINTEN;
+
             TESTREMOV3(x)
             //  Simple, huh?
+
+            TESTINTEN;
 
             size_t newPoolCount = testAllocator.PoolCount.Load();
 
@@ -858,7 +870,11 @@ Handle TestObjectAllocator(bool const bsp)
             , testAllocator.FreeCount.Load()
             , testAllocator.PoolCount.Load());//*/
 
+        TESTINTEN;
+
         TESTALLOC3(TestStructure, 1)
+
+        TESTINTEN;
 
         ASSERT(askedToAcquire
             , "The allocator wasn't asked to acquire a pool when allocating the "
@@ -870,9 +886,17 @@ Handle TestObjectAllocator(bool const bsp)
         TESTALLOC3(TestStructure, 3)
         TESTALLOC3(TestStructure, 4)
 
+        TESTINTEN;
+
         TESTREMOV3(2)
 
+        TESTINTEN;
+
         TESTALLOC3(TestStructure, 5)
+
+        ASSERT(Interrupts::AreEnabled()
+            , "Interrupts should be enabled, but they are not! (Core #%us)"
+            , System::Cpu::GetIndex());
 
         ASSERT(tO2 == tO5
             , "2nd and 5th test objects should be identical: %Xp vs %Xp"

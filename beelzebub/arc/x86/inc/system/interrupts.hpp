@@ -69,7 +69,7 @@ namespace Beelzebub { namespace System
 
         /*  Interrupts  */
 
-        static __bland __forceinline bool AreEnabled()
+        static __bland inline bool AreEnabled()
         {
             size_t flags;
 
@@ -81,13 +81,13 @@ namespace Beelzebub { namespace System
             return (flags & (size_t)(1 << 9)) != 0;
         }
 
-        static __bland __forceinline void Enable()
+        static __bland inline void Enable()
         {
             asm volatile ( "sti \n\t" : : : "memory" );
             //  This is a memory barrier to prevent the compiler from moving things around it.
         }
 
-        static __bland __forceinline void Disable()
+        static __bland inline void Disable()
         {
             asm volatile ( "cli \n\t" : : : "memory" );
             //  This is a memory barrier to prevent the compiler from moving things around it.
@@ -103,7 +103,7 @@ namespace Beelzebub { namespace System
          *  executing this function.
          *  </return>
          */
-        static __bland __forceinline int_cookie_t PushDisable()
+        static __bland inline int_cookie_t PushDisable()
         {
             int_cookie_t cookie;
 
@@ -132,7 +132,7 @@ namespace Beelzebub { namespace System
          *  executing this function.
          *  </return>
          */
-        static __bland __forceinline int_cookie_t PushEnable()
+        static __bland inline int_cookie_t PushEnable()
         {
             int_cookie_t cookie;
 
@@ -152,7 +152,7 @@ namespace Beelzebub { namespace System
          *  </summary>
          *  <return>True if interrupts are now enabled, otherwise false.</return>
          */
-        static __bland __forceinline bool RestoreState(const int_cookie_t cookie)
+        static __bland inline bool RestoreState(int_cookie_t const cookie)
         {
             asm volatile ( "push %[src] \n\t"   //  PUT THE COOKIE DOWN!
                            "popf        \n\t"
@@ -165,6 +165,48 @@ namespace Beelzebub { namespace System
 
             return (cookie & (int_cookie_t)(1 << 9)) == 0;
         }
+
+        /**
+         *  <summary>
+         *  Restores interrupt state based on the given cookie.
+         *  </summary>
+         */
+        static __bland inline void RestoreStatePlain(int_cookie_t const cookie)
+        {
+            asm volatile ( "push %[src] \n\t"   //  PUT THE COOKIE DOWN!
+                           "popf        \n\t"
+                         :
+                         : [src]"rm"(cookie)
+                         : "memory", "cc" );
+        }
+    };
+
+    /// <summary>Guards a scope from interrupts.</summary>
+    struct InterruptGuard
+    {
+        /*  Constructor(s)  */
+
+        __bland inline InterruptGuard() : Cookie(Interrupts::PushDisable()) { }
+
+        InterruptGuard(InterruptGuard const &) = delete;
+        InterruptGuard & operator =(InterruptGuard const &) = delete;
+
+        /*  Destructor  */
+
+        __bland inline ~InterruptGuard()
+        {
+            if (this->Cookie != int_cookie_invalid)
+                Interrupts::RestoreStatePlain(this->Cookie);
+        }
+
+        /*  Operations  */
+
+        __bland bool Restore();
+
+    private:
+        /*  Field(s)  */
+
+        int_cookie_t Cookie;
     };
 
     #define INTERRUPT_ENDER_ARGS                                \
