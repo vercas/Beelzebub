@@ -38,6 +38,7 @@
 */
 
 #include <memory/object_allocator.hpp>
+#include <system/interrupts.hpp>
 
 #include <math.h>
 #include <debug.hpp>
@@ -45,8 +46,14 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 
+#define OBJA_COOK_TYPE 		int_cookie_t
+
 #define OBJA_POOL_TYPE      ObjectPoolBase
 #define OBJA_ALOC_TYPE      ObjectAllocator
+#define OBJA_UNINTERRUPTED  true
 #include <memory/object_allocator_cbase.inc>
+#undef OBJA_UNINTERRUPTED
 #undef OBJA_ALOC_TYPE
 #undef OBJA_POOL_TYPE
+
+#undef OBJA_COOK_TYPE

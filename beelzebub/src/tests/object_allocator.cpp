@@ -448,6 +448,7 @@ __bland Handle ObjectAllocatorSpamTest()
 
     size_t volatile freeCount1 = testAllocator.GetFreeCount();
     size_t volatile capacity1 = testAllocator.GetCapacity();
+    size_t volatile busyCount1 = testAllocator.GetBusyCount();
 
     ObjectAllocatorTestBarrier2.Reach();
     ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
@@ -539,11 +540,15 @@ __bland Handle ObjectAllocatorSpamTest()
     ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
 
     ASSERT(capacity1 - freeCount1 == testAllocator.GetCapacity() - testAllocator.GetFreeCount()
-        , "Allocator's busy object count has a shady value: %us (%us - %us)"
+        , "Allocator's deduced busy object count has a shady value: %us (%us - %us)"
           ", expected %us (%us - %us)."
         , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
         , testAllocator.GetCapacity(), testAllocator.GetFreeCount()
         , capacity1 - freeCount1, capacity1, freeCount1);
+
+    ASSERT(busyCount1 == testAllocator.GetBusyCount()
+        , "Allocator's busy object count has a shady value: %us, expected %us."
+        , busyCount1, testAllocator.GetBusyCount());
 
     ObjectAllocatorTestBarrier1.Reach();
     ObjectAllocatorTestBarrier3.Reset(); //  Prepare the third barrier for re-use.
@@ -1011,10 +1016,14 @@ Handle TestObjectAllocator(bool const bsp)
             , testAllocator.GetFreeCount(), testAllocator.FirstPool->FreeCount);
 
         ASSERT(testAllocator.GetCapacity() - testAllocator.GetFreeCount() == 1
-            , "The test allocator should have exactly one busy object, not %us "
-              "(%us - %us)!"
+            , "The test allocator should have exactly one deduced busy object, "
+              "not %us (%us - %us)!"
             , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
             , testAllocator.GetCapacity(), testAllocator.GetFreeCount());
+
+        ASSERT(testAllocator.GetBusyCount() == 1
+            , "The test allocator should have exactly one busy object, not %us!"
+            , testAllocator.GetBusyCount());
 
         /*msg("~~ REMOVING LAST OBJECT ~~%n");//*/
         COMPILER_MEMORY_BARRIER();

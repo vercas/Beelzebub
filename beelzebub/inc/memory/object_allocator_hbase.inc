@@ -125,50 +125,21 @@ public:
     __hot __bland __noinline Handle DeallocateObject(void * const object);
     //  These are complex methods and GCC will not be intimidated.
 
-    //  TODO: Complete allocator destruction.
+    /// <summary>Performs total and utter destruction of the allocator.</summary>
+    __cold __bland __noinline void Dispose();
 
     /*  Properties  */
 
 #ifdef OBJA_MULTICONSUMER
-    __bland inline size_t GetCapacity() const
-    {
-        return this->Capacity.Load();
-    }
-
-    __bland inline size_t GetFreeCount() const
-    {
-        return this->FreeCount.Load();
-    }
-
-    __bland inline size_t GetQuota() const
-    {
-        return this->Quota.Load();
-    }
-
-    __bland inline size_t GetBusyCount() const
-    {
-        return this->BusyCount.Load();
-    }
+    __bland inline size_t GetCapacity()     const { return this->Capacity.Load();   }
+    __bland inline size_t GetFreeCount()    const { return this->FreeCount.Load();  }
+    __bland inline size_t GetQuota()        const { return this->Quota.Load();      }
+    __bland inline size_t GetBusyCount()    const { return this->BusyCount.Load();  }
 #else
-    __bland inline size_t GetCapacity() const
-    {
-        return this->Capacity;
-    }
-
-    __bland inline size_t GetFreeCount() const
-    {
-        return this->FreeCount;
-    }
-
-    __bland inline size_t GetQuota() const
-    {
-        return this->Quota;
-    }
-
-    __bland inline size_t GetBusyCount() const
-    {
-        return this->BusyCount;
-    }
+    __bland inline size_t GetCapacity()     const { return this->Capacity;          }
+    __bland inline size_t GetFreeCount()    const { return this->FreeCount;         }
+    __bland inline size_t GetQuota()        const { return this->Quota;             }
+    __bland inline size_t GetBusyCount()    const { return this->BusyCount;         }
 #endif
 
     __bland inline size_t GetClearance() const
@@ -189,8 +160,8 @@ public:
 
 private:
 
-    AcquirePoolFunc AcquirePool;
-    EnlargePoolFunc EnlargePool;
+    AcquirePoolFunc AcquirePool;    //  When this is null, the allocator is
+    EnlargePoolFunc EnlargePool;    //  destructed or invalid.
     ReleasePoolFunc ReleasePool;
 
 public:

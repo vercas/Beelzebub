@@ -135,6 +135,8 @@ const char * const Handle::GetResultString() const
             return "Unsupp. Op.";
         case HandleResult::NotImplemented:
             return "Not Implem.";
+        case HandleResult::ObjectDisposed:
+            return "Obj Disp.";
 
         case HandleResult::ArgumentTemplateInvalid:
             return "Arg. T inv.";

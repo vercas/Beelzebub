@@ -49,20 +49,11 @@
     #endif
 
     #include <memory/object_allocator_pools.hpp>
-
+    #include <synchronization/spinlock.hpp>
     #include <synchronization/atomic.hpp>
 
-    #if   defined(__BEELZEBUB_KERNEL)
-        #include <synchronization/spinlock_uninterruptible.hpp>
-    #endif
-
-    #if defined(__BEELZEBUB_KERNEL)
-        #define OBJA_LOCK_TYPE Beelzebub::Synchronization::SpinlockUninterruptible<>
-
-        #define OBJA_COOK_TYPE int_cookie_t
-    #else
-        //  To do: userland will require a mutex here.
-    #endif
+    #define OBJA_LOCK_TYPE Beelzebub::Synchronization::Spinlock<>
+    #define OBJA_COOK_TYPE int_cookie_t
 
     namespace Beelzebub { namespace Memory
     {
@@ -70,7 +61,9 @@
         #define OBJA_POOL_TYPE      ObjectPoolSmp
         #define OBJA_ALOC_TYPE      ObjectAllocatorSmp
         #define OBJA_MULTICONSUMER  true
+        #define OBJA_UNINTERRUPTED  true
         #include <memory/object_allocator_hbase.inc>
+        #undef OBJA_UNINTERRUPTED
         #undef OBJA_MULTICONSUMER
         #undef OBJA_ALOC_TYPE
         #undef OBJA_POOL_TYPE

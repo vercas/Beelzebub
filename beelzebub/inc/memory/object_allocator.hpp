@@ -48,7 +48,9 @@ namespace Beelzebub { namespace Memory
 {
     /*  First, the normal SMP-aware object allocator.  */
     #define OBJA_ALOC_TYPE      ObjectAllocator
+    #define OBJA_UNINTERRUPTED  true
     #include <memory/object_allocator_hbase.inc>
+    #undef OBJA_UNINTERRUPTED
     #undef OBJA_ALOC_TYPE
     #undef OBJA_POOL_TYPE   //  NEEDS TO BE UNDEFINED ANYWAY
 }}
