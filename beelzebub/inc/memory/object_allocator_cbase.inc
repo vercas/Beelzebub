@@ -89,17 +89,13 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
 
     Handle res;
 
-#ifdef OBJA_UNINTERRUPTED
-    OBJA_COOK_TYPE volatile cookie;
-#endif
-
     OBJA_POOL_TYPE * current;
     ObjectPoolBase * justAllocated = nullptr;
 
     //  First, let's make sure there is a first pool.
 
 #ifdef OBJA_UNINTERRUPTED
-    cookie = System::Interrupts::PushDisable();
+    System::InterruptGuard intGuard;
 #endif
 
 #ifdef OBJA_MULTICONSUMER
@@ -110,10 +106,6 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
     {
 #ifdef OBJA_MULTICONSUMER
         this->LinkageLock.Release();
-#endif
-
-#ifdef OBJA_UNINTERRUPTED
-        System::Interrupts::RestoreState(cookie);
 #endif
 
         return HandleResult::ObjectDisposed;
@@ -132,10 +124,6 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
 
 #ifdef OBJA_MULTICONSUMER
             this->LinkageLock.Release();
-#endif
-
-#ifdef OBJA_UNINTERRUPTED
-            System::Interrupts::RestoreState(cookie);
 #endif
 
             return res;
@@ -258,10 +246,6 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
             --this->FreeCount;
             //  Book-keeping.
 
-#ifdef OBJA_UNINTERRUPTED
-            System::Interrupts::RestoreState(cookie);
-#endif
-
             return HandleResult::Okay;
         }
     } while (current != nullptr);
@@ -285,10 +269,6 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
 
         --this->BusyCount;
         //  There's not gonna be any new objects under these circumstances. :(
-
-#ifdef OBJA_UNINTERRUPTED
-        System::Interrupts::RestoreState(cookie);
-#endif
 
         return res.WithPreppendedResult(HandleResult::ObjaPoolsExhausted);
     }
@@ -337,10 +317,6 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
     current->PropertiesLock.Release();
 #endif
 
-#ifdef OBJA_UNINTERRUPTED
-    System::Interrupts::RestoreState(cookie);
-#endif
-
     //  Sad note: To increase allocation performance, I could have preppended
     //  the new pool as the first pool, but that would make this code much more
     //  complex and would require more locking.
@@ -351,7 +327,7 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
 Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 {
 #ifdef OBJA_UNINTERRUPTED
-    OBJA_COOK_TYPE volatile cookie = System::Interrupts::PushDisable();
+    System::InterruptGuard intGuard;
 #endif
 
     //  Even though the code 'til the next lock acquisition consist exclusively
@@ -369,10 +345,6 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 
     if (busyByte != nullptr && 0 == (*busyByte & (1 << (this->BusyBit & 7))))
     {
-#ifdef OBJA_UNINTERRUPTED
-        System::Interrupts::RestoreState(cookie);
-#endif
-
         return HandleResult::ObjaAlreadyFree;
 
         //  This asynchronous check is performed here even for multi-consumer
@@ -400,10 +372,6 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
         this->LinkageLock.Release();
 #endif
 
-#ifdef OBJA_UNINTERRUPTED
-        System::Interrupts::RestoreState(cookie);
-#endif
-
         return HandleResult::ObjectDisposed;
     }
 
@@ -411,10 +379,6 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
     {
 #ifdef OBJA_MULTICONSUMER
         this->LinkageLock.Release();
-#endif
-
-#ifdef OBJA_UNINTERRUPTED
-        System::Interrupts::RestoreState(cookie);
 #endif
 
         return HandleResult::ArgumentOutOfRange;
@@ -538,10 +502,6 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                     this->Capacity -= currentCapacity;
                     this->FreeCount -= freeCount;
 
-#ifdef OBJA_UNINTERRUPTED
-                    System::Interrupts::RestoreState(cookie);
-#endif
-
                     return HandleResult::Okay;
                 }
                 else
@@ -568,10 +528,6 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                     this->Capacity -= capDiff;
                     this->FreeCount -= freeDiff;
                     //  The sign shouldn't matter, rite? At worst this is -1.
-
-#ifdef OBJA_UNINTERRUPTED
-                    System::Interrupts::RestoreState(cookie);
-#endif
 
                     return HandleResult::Okay;
                 }
@@ -611,10 +567,6 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
             //  Release the current pool and restore interrupts.
 #endif
 
-#ifdef OBJA_UNINTERRUPTED
-            System::Interrupts::RestoreState(cookie);
-#endif
-
             ++this->FreeCount;
             //  I hate book-keeping.
 
@@ -647,10 +599,6 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                 //  Release the current pool and restore interrupts.
 #endif
 
-#ifdef OBJA_UNINTERRUPTED
-                System::Interrupts::RestoreState(cookie);
-#endif
-
                 break;
                 //  Go to end of the loop.
             }
@@ -680,7 +628,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 void OBJA_ALOC_TYPE::Dispose()
 {
 #ifdef OBJA_UNINTERRUPTED
-    OBJA_COOK_TYPE volatile cookie = System::Interrupts::PushDisable();
+    System::InterruptGuard intGuard;
 #endif
 
     OBJA_POOL_TYPE * current, * next;
@@ -735,9 +683,5 @@ void OBJA_ALOC_TYPE::Dispose()
 
 #ifdef OBJA_MULTICONSUMER
     this->LinkageLock.Release();
-#endif
-
-#ifdef OBJA_UNINTERRUPTED
-    System::Interrupts::RestoreState(cookie);
 #endif
 }

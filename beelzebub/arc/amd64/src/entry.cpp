@@ -125,7 +125,7 @@ __bland void InitializeCpuData()
     data->HeapSpinlock = Spinlock<>().GetValue();
     data->HeapSpinlockPointer = (Spinlock<> *)&data->HeapSpinlock;
 
-    msg("-- Core #%us @ %Xp. --%n", ind, data);
+    //msg("-- Core #%us @ %Xp. --%n", ind, data);
 }
 
 /*******************

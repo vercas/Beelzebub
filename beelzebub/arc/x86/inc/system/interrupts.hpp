@@ -206,7 +206,7 @@ namespace Beelzebub { namespace System
     private:
         /*  Field(s)  */
 
-        int_cookie_t Cookie;
+        int_cookie_t volatile Cookie;
     };
 
     #define INTERRUPT_ENDER_ARGS                                \
