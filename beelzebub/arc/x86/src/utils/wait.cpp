@@ -55,15 +55,12 @@ void Utils::Wait(uint64_t const microseconds)
 
     size_t volatile counterStart = Pit::Counter;
 
-    int_cookie_t const cookie = Interrupts::PushEnable();
-
-    do
-    {
-        CpuInstructions::Halt();
-    } while (Pit::Counter.Load() - counterStart < difference);
-    //  Yes, the CPU can be halted currently, because only the BSP uses these.
-
-    Interrupts::RestoreState(cookie);
+    withInterrupts (true)
+        do
+        {
+            CpuInstructions::Halt();
+        } while (Pit::Counter.Load() - counterStart < difference);
+        //  Yes, the CPU can be halted currently, because only the BSP uses these.
 }
 
 bool Utils::Wait(uint64_t const microseconds, PredicateFunction0 const pred)
@@ -78,17 +75,14 @@ bool Utils::Wait(uint64_t const microseconds, PredicateFunction0 const pred)
 
     size_t volatile counterStart = Pit::Counter;
 
-    int_cookie_t const cookie = Interrupts::PushEnable();
+    withInterrupts (true)
+        do
+        {
+            CpuInstructions::Halt();
 
-    do
-    {
-        CpuInstructions::Halt();
-
-        if (pred())
-            return true;
-    } while (Pit::Counter.Load() - counterStart < difference);
-
-    Interrupts::RestoreState(cookie);
+            if (pred())
+                return true;
+        } while (Pit::Counter.Load() - counterStart < difference);
 
     return pred();
 }

@@ -61,7 +61,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     //msg("++ ");
 
-    int_cookie_t const int_cookie = Interrupts::PushDisable();
+    InterruptGuard<> intGuard;
 
     //msg("A");
 
@@ -72,11 +72,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
         res = thisProc->SwitchTo(otherProc);
 
         if (!res.IsOkayResult())
-        {
-            Interrupts::RestoreState(int_cookie);
-
             return res;
-        }
 
         //msg("2");
     }
@@ -95,12 +91,6 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     dest->ErrorCode = errorCode;
     //dest->Vector = interruptVector;
-
-    //msg("C");
-
-    Interrupts::RestoreState(int_cookie);
-    //  With the new and improved (TM) thread-switching method, this no longer
-    //  bends space-time.
 
     //msg(" ++");
 

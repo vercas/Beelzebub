@@ -116,9 +116,7 @@ namespace Beelzebub { namespace Synchronization
         __forceinline void Await() const volatile
         {
             while (this->Value)
-            {
                 System::CpuInstructions::DoNothing();
-            }
         }
 
         /**
@@ -134,11 +132,7 @@ namespace Beelzebub { namespace Synchronization
          *  Acquire the spinlock, waiting if necessary.
          *  Includes a pointer in the memory barrier, if supported.
          */
-        __forceinline void Acquire(void * const ptr) volatile
-        {
-            while (__sync_lock_test_and_set(&this->Value, 1, ptr))
-                this->Spin();
-        }
+        __forceinline void SimplyAcquire() volatile { this->Acquire(); }
 
         /**
          *  Release the spinlock.
@@ -150,12 +144,8 @@ namespace Beelzebub { namespace Synchronization
 
         /**
          *  Release the spinlock.
-         *  Includes a pointer in the memory barrier.
          */
-        __forceinline void Release(void * const ptr) volatile
-        {
-            __sync_lock_release(&this->Value, ptr);
-        }
+        __forceinline void SimplyRelease() volatile { this->Release(); }
 
         /**
          *  Checks whether the spinlock is free or not.
@@ -198,80 +188,25 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Operations  */
 
-        /**
-         *  Acquire the spinlock, if possible.
-         */
         __forceinline __must_check constexpr bool TryAcquire() const volatile
-        {
-            return true;
-        }
+        { return true; }
 
-        /**
-         *  Awaits for the spinlock to be freed.
-         *  Does not acquire the lock.
-         */
-        __forceinline void Spin() const volatile
-        {
-            //  Do nothing.
-        }
+        __forceinline void Spin() const volatile { }
+        __forceinline void Await() const volatile { }
 
-        /**
-         *  Checks if the spinlock is free. If not, it awaits.
-         *  Does not acquire the lock.
-         */
-        __forceinline void Await() const volatile
-        {
-            //  Do nothing.
-        }
+        __forceinline void Acquire() const volatile { }
+        __forceinline void SimplyAcquire() const volatile { }
 
-        /**
-         *  Acquire the spinlock, waiting if necessary.
-         */
-        __forceinline void Acquire() const volatile
-        {
-            //  Do nothing.
-        }
+        __forceinline void Release() const volatile { }
+        __forceinline void SimplyRelease() const volatile { }
 
-        /**
-         *  Acquire the spinlock, waiting if necessary.
-         *  Includes a pointer in the memory barrier, if supported.
-         */
-        __forceinline void Acquire(void * const ptr) const volatile
-        {
-            //  Do nothing.
-        }
-
-        /**
-         *  Release the spinlock.
-         */
-        __forceinline void Release() const volatile
-        {
-            //  Do nothing.
-        }
-
-        /**
-         *  Release the spinlock.
-         *  Includes a pointer in the memory barrier.
-         */
-        __forceinline void Release(void * const ptr) const volatile
-        {
-            //  Do nothing.
-        }
-
-        /**
-         *  Checks whether the spinlock is free or not.
-         */
         __forceinline __must_check constexpr bool Check() const volatile
-        {
-            return true;
-        }
+        { return true; }
 
         /*  Properties  */
 
         __forceinline constexpr spinlock_t GetValue() const volatile
-        {
-            return (spinlock_t)0;
-        }
+        { return (spinlock_t)0; }
     };
 #endif
 }}

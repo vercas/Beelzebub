@@ -61,7 +61,7 @@ typedef uint64_t  creg_t; //  Control register.
 
 typedef  int64_t ssize_t;
 
-typedef void * volatile int_cookie_t;
+typedef void * int_cookie_t;
 
 #elif defined(__BEELZEBUB__ARCH_IA32)
 

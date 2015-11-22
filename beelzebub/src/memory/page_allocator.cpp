@@ -217,12 +217,18 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
             int_cookie = this->Locker.Acquire();
 
-            this->PopPage(start + i);
+            withLock (this->Locker)
+            {
+                this->PopPage(start + i);
+
+                page->Reserve();
+            }
         }
         else if (status == PageDescriptorStatus::InUse)
         {
             if (inclInUse)
-                int_cookie = this->Locker.Acquire();
+                withLock (this->Locker)
+                    page->Reserve();
             else
                 return Handle(HandleResult::PageInUse);
 
@@ -232,10 +238,6 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
             continue;
         else
             return Handle(HandleResult::PageReserved);
-
-        page->Reserve();
-
-        this->Locker.Release(int_cookie);
     }
 
     this->FreePageCount -= count;
@@ -260,13 +262,12 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
         const PageDescriptorStatus status = page->Status;
 
         if likely(status == PageDescriptorStatus::InUse)
-        {
-            auto lockGuard = ObtainLockGuard(this->Locker);
+            withLock (this->Locker)
+            {
+                this->Stack[page->StackIndex = ++this->StackFreeTop] = start + i;
 
-            this->Stack[page->StackIndex = ++this->StackFreeTop] = start + i;
-
-            page->Free();
-        }
+                page->Free();
+            }
         else
         {
             //  Reserved pages won't be freed by this function.
@@ -290,9 +291,8 @@ paddr_t PageAllocationSpace::AllocatePage(PageDescriptor * & desc)
     {
         pgind_t i;
 
+        withLock (this->Locker)
         {
-            auto lockGuard = ObtainLockGuard(this->Locker);
-
             i = this->Stack[this->StackFreeTop--];
 
             (desc = this->Map + i)->Use();

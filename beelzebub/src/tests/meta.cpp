@@ -62,9 +62,32 @@
                  : [src]"rm"(_int_cookie)   \
                  : "memory", "cc" )
 
+#define __lock_guard(lock) struct MCATS(_LockGuard_, __LINE__)                                  \
+{   inline MCATS(_LockGuard_, __LINE__)() : Cookie(lock.Acquire()) { }                          \
+    MCATS(_LockGuard_, __LINE__)(MCATS(_LockGuard_, __LINE__) const &) = delete;                \
+    MCATS(_LockGuard_, __LINE__) & operator =(MCATS(_LockGuard_, __LINE__) const &) = delete;   \
+    MCATS(_LockGuard_, __LINE__) & operator =(MCATS(_LockGuard_, __LINE__) &&) = delete;        \
+    inline ~MCATS(_LockGuard_, __LINE__)() { lock.Release(this->Cookie); }                      \
+    private: decltype(lock)::Cookie const Cookie;                                               \
+} MCATS(_lock_guard_, __LINE__)
+
+#define __lock_guard_simple(lock) struct MCATS(_LockGuard_, __LINE__)                           \
+{   inline MCATS(_LockGuard_, __LINE__)() { lock.SimplyAcquire(); }                             \
+    MCATS(_LockGuard_, __LINE__)(MCATS(_LockGuard_, __LINE__) const &) = delete;                \
+    MCATS(_LockGuard_, __LINE__) & operator =(MCATS(_LockGuard_, __LINE__) const &) = delete;   \
+    MCATS(_LockGuard_, __LINE__) & operator =(MCATS(_LockGuard_, __LINE__) &&) = delete;        \
+    inline ~MCATS(_LockGuard_, __LINE__)() { lock.SimplyRelease(); }                            \
+} MCATS(_lock_guard_, __LINE__)
+
+#define withLockStatic(lock) with(__lock_guard(lock))
+#define withLockSimple(lock) with(__lock_guard_simple(lock))
+
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
+
+SpinlockUninterruptible<false> TestLock1;
+Spinlock<false> TestLock2;
 
 __cold __noinline void TestMetaprogramming1()
 {
@@ -112,6 +135,30 @@ __cold __noinline void TestMetaprogramming5()
     }
 }
 
+__cold __noinline void TestMetaprogramming6()
+{
+    withLock (TestLock2)
+    {
+        bool volatile rada = true;
+    }
+}
+
+__cold __noinline void TestMetaprogramming7()
+{
+    withLockStatic (TestLock1)
+    {
+        bool volatile rada = true;
+    }
+}
+
+__cold __noinline void TestMetaprogramming8()
+{
+    withLock (TestLock1)
+    {
+        bool volatile rada = true;
+    }
+}
+
 void TestMetaprogramming()
 {
     TestMetaprogramming1();
@@ -119,6 +166,9 @@ void TestMetaprogramming()
     TestMetaprogramming3();
     TestMetaprogramming4();
     TestMetaprogramming5();
+    TestMetaprogramming6();
+    TestMetaprogramming7();
+    TestMetaprogramming8();
 }
 
 #endif
