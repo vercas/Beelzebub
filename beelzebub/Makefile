@@ -34,12 +34,10 @@ LDFILE		:=
 #   Toolchain settings   #
 ##########################
 
-GCCFLAGS	:= -ffreestanding -Wall -mcmodel=kernel
 GCCFLAGS	+= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
-GCCFLAGS	+= -mno-red-zone -O2
-GCCFLAGS	+= -flto -nostdlib -lgcc -static-libgcc
-GCCFLAGS	+= -pipe -Wstack-usage=1000
-#GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-lwp -mno-ssse3 -mno-fancy-math-387 -mno-ieee-fp -mno-recip
+GCCFLAGS	:= -ffreestanding -Wall -mcmodel=kernel 
+GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
+GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
 
@@ -52,9 +50,9 @@ CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 
 ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 
-LOFLAGS		:= -flto -O2 -ffreestanding -Wall -mcmodel=kernel -mno-red-zone
-LOFLAGS		+= -nostdlib -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000
-LOFLAGS		+= -pipe -Wstack-usage=1000
+LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel 
+LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe 
+LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 

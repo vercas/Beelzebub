@@ -37,7 +37,16 @@
     thorough explanation regarding other files.
 */
 
-#define __bland __attribute__((__target__("no-aes,no-mmx,no-pclmul,no-sse,no-sse2,no-sse3,no-sse4,no-sse4a,no-fma4,no-lwp,no-ssse3,no-fancy-math-387,no-ieee-fp,no-recip")))
+#if defined(__GNUC__) && !defined(__clang__)
+    #define __bland __attribute__((__target__("no-aes,no-mmx,no-pclmul,no-sse,"     \
+                                              "no-sse2,no-sse3,no-sse4,no-sse4a,"   \
+                                              "no-fma4,no-lwp,no-ssse3,"            \
+                                              "no-fancy-math-387,no-ieee-fp,"       \
+                                              "no-recip")))
+#else
+    #define __bland  
+#endif
+
 //  All hail the preprocessor!
 
 //  Some type definitions.
@@ -52,7 +61,7 @@ typedef uint64_t  creg_t; //  Control register.
 
 typedef  int64_t ssize_t;
 
-typedef uint64_t volatile int_cookie_t;
+typedef void * volatile int_cookie_t;
 
 #elif defined(__BEELZEBUB__ARCH_IA32)
 
@@ -71,7 +80,7 @@ typedef uint32_t  creg_t; //  Control register.
 
 typedef  int32_t ssize_t;
 
-typedef uint32_t volatile int_cookie_t;
+typedef void * int_cookie_t;
 
 #endif
 
@@ -102,9 +111,14 @@ typedef char bool;
 /*  Constants  */
 
 #if   defined(__cplusplus)
-static size_t const PageSize = 0x1000;
-static int_cookie_t const int_cookie_invalid = ~((int_cookie_t)0);
+enum size_consts : size_t { PageSize = 0x1000, };
+#define int_cookie_invalid nullptr
+//constexpr size_t const PageSize = 0x1000;
+//constexpr int_cookie_t const int_cookie_invalid = nullptr;
 #else
 #define PAGE_SIZE ((size_t)0x1000)
-#define INT_COOKIE_INVALID (~((int_cookie_t)0))
+#define INT_COOKIE_INVALID (NULL)
 #endif
+
+//  Bit 3 is reserved as 0, so the cookie will never be 8. Moreover, bit 1 is
+//  always 1, so really the flags will never be 8.

@@ -41,4 +41,7 @@
 
 #include <metaprogramming.h>
 
-__cold __bland __noinline void TestMetaprogramming();
+__cold __bland __noinline void TestMetaprogramming1();
+__cold __bland __noinline void TestMetaprogramming2();
+__cold __bland __noinline void TestMetaprogramming3();
+__cold __bland __noinline void TestMetaprogramming4();

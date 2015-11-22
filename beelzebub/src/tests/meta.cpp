@@ -43,14 +43,60 @@
 #include <synchronization/spinlock.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/lock_guard.hpp>
+#include <system/interrupts.hpp>
 
 #include <debug.hpp>
 
+#define __uninterrupted                     \
+    int_cookie_t _int_cookie;               \
+    asm volatile ( "pushf      \n\t"        \
+                   "pop %[dst] \n\t"        \
+                   "cli        \n\t"        \
+                 : [dst]"=r"(_int_cookie)   \
+                 :                          \
+                 : "memory")
+#define __restore_interrupts                \
+    asm volatile ( "push %[src] \n\t"       \
+                   "popf        \n\t"       \
+                 :                          \
+                 : [src]"rm"(_int_cookie)   \
+                 : "memory", "cc" )
+
 using namespace Beelzebub;
+using namespace Beelzebub::Synchronization;
+using namespace Beelzebub::System;
 
-void TestMetaprogramming()
+void TestMetaprogramming1()
 {
+    int_cookie_t const cookie = Interrupts::PushDisable();
 
+    bool volatile rada = true;
+
+    Interrupts::RestoreState(cookie);
+}
+
+void TestMetaprogramming2()
+{
+    InterruptGuard intGuard;
+
+    bool volatile rada = true;
+}
+
+void TestMetaprogramming3()
+{
+    __uninterrupted;
+
+    bool volatile rada = true;
+
+    __restore_interrupts;
+}
+
+void TestMetaprogramming4()
+{
+    //uninterrupted
+    {
+        bool volatile rada = true;
+    }
 }
 
 #endif

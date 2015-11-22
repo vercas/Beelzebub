@@ -1,7 +1,7 @@
 CROSSCOMPILER_DIRECTORY		:= /usr/local/gcc-x86_64-elf/bin
 #	Default
 
-MAKE_FLAGS	:= -j
+MAKE_FLAGS	:= -j 
 
 ifdef CROSSCOMPILERS_DIR
 	CROSSCOMPILER_DIRECTORY	:= $(CROSSCOMPILERS_DIR)/gcc-x86_64-elf/bin
@@ -12,11 +12,11 @@ endif
 
 #############
 # Toolchain #
-CC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
-CXX			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
+CC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc -lgcc -static-libgcc 
+CXX			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc -lgcc -static-libgcc 
 DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gdc
 AS			:= nasm
-LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc
+LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc -lgcc -static-libgcc 
 LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-ld
 MKISO		:= mkisofs
 
@@ -42,3 +42,9 @@ MTUNE		:= corei7-avx
 #	DC   = D Compiler
 #	LO   = Linker-optimizer
 # Should be 'nuff.
+
+#ifeq ($(shell clang --version; echo $$?),0)
+#	CC			:= clang -target x86_64-elf 
+#	CXX			:= clang -target x86_64-elf 
+#	LO			:= clang -target x86_64-elf -v 
+#endif

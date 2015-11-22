@@ -52,24 +52,3 @@ using namespace Beelzebub::System;
 
 Idt Interrupts::Table;
 IdtRegister Interrupts::Register {0xFFF, &Interrupts::Table};
-
-/***************************
-    InterruptGuard struct
-***************************/
-
-/*  Operations  */
-
-bool InterruptGuard::Restore()
-{
-    assert_or(this->Cookie != int_cookie_invalid
-        , "Attempted to restore interrupts from an expended interrupt guard!")
-    {
-        return false;
-    }
-
-    Interrupts::RestoreStatePlain(this->Cookie);
-
-    this->Cookie = int_cookie_invalid;
-
-    return true;
-}
