@@ -40,6 +40,8 @@
 #ifdef __BEELZEBUB__TEST_STR
 
 #include <tests/string.hpp>
+#include <string.h>
+    
 #include <debug.hpp>
 
 using namespace Beelzebub;
