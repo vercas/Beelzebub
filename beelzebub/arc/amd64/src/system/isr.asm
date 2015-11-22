@@ -35,7 +35,6 @@
 ; You may also find the text of this license in "LICENSE.md", along with a more
 ; thorough explanation regarding other files.
 
-global IsrGates
 global InterruptHandlers
 global InterruptEnders
 
@@ -206,19 +205,6 @@ IsrStubsEnd:
     nop ;   Dummy.
 
 DEFAULT ABS
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-section .data
-
-align 16
-
-IsrGates:
-    %assign i 0
-    %rep 256
-        dq IsrStub %+ i
-        %assign i i+1
-    %endrep
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

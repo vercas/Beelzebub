@@ -228,3 +228,8 @@ typedef bool (*PredicateFunction0)(/* nothing */);
 #define FORCE_ORDER(before, after) asm volatile ( ""                  \
                                                 : [out]"=m"(after )   \
                                                 : [in ] "m"(before) )
+
+#define with(primExp)                                                   \
+    for (bool MCATS(_go_, __LINE__) = true; MCATS(_go_, __LINE__); )    \
+    for (primExp; MCATS(_go_, __LINE__); MCATS(_go_, __LINE__) = false)
+//  Astonishingly, GCC can optimize this.

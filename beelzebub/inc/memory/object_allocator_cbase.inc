@@ -95,7 +95,7 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
     //  First, let's make sure there is a first pool.
 
 #ifdef OBJA_UNINTERRUPTED
-    System::InterruptGuard intGuard;
+    System::InterruptGuard<> intGuard;
 #endif
 
 #ifdef OBJA_MULTICONSUMER
@@ -327,7 +327,7 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
 Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 {
 #ifdef OBJA_UNINTERRUPTED
-    System::InterruptGuard intGuard;
+    System::InterruptGuard<> intGuard;
 #endif
 
     //  Even though the code 'til the next lock acquisition consist exclusively
@@ -628,7 +628,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
 void OBJA_ALOC_TYPE::Dispose()
 {
 #ifdef OBJA_UNINTERRUPTED
-    System::InterruptGuard intGuard;
+    System::InterruptGuard<> intGuard;
 #endif
 
     OBJA_POOL_TYPE * current, * next;

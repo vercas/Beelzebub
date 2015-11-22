@@ -108,8 +108,8 @@ namespace Beelzebub { namespace System
             int_cookie_t cookie;
 
             asm volatile ( "pushf      \n\t"
-                           "cli        \n\t" // Yes, do it as soon as possible, to avoid interruption.
                            "pop %[dst] \n\t"
+                           "cli        \n\t"
                          : [dst]"=r"(cookie)
                          :
                          : "memory");
@@ -167,28 +167,9 @@ namespace Beelzebub { namespace System
         }
     };
 
-    /// <summary>Guards a scope from interrupts.</summary>
-    struct InterruptGuard
-    {
-        /*  Constructor(s)  */
-
-        __bland inline InterruptGuard() : Cookie(Interrupts::PushDisable()) { }
-
-        InterruptGuard(InterruptGuard const &) = delete;
-        InterruptGuard & operator =(InterruptGuard const &) = delete;
-
-        /*  Destructor  */
-
-        __bland inline ~InterruptGuard()
-        {
-            Interrupts::RestoreState(this->Cookie);
-        }
-
-    private:
-        /*  Field(s)  */
-
-        int_cookie_t const Cookie;
-    };
+    /************************
+        Interrupt Vectors
+    ************************/
 
     #define INTERRUPT_ENDER_ARGS                                \
           Beelzebub::System::IsrState * const state             \
@@ -213,11 +194,6 @@ namespace Beelzebub { namespace System
         } while (false)
 
     /**
-     *  The actual IDT.
-     */
-    __extern uint64_t IsrGates[Interrupts::Count];
-
-    /**
      *  Array of higher-level interrupt handlers.
      */
     __extern InterruptHandlerFunction InterruptHandlers[Interrupts::Count];
@@ -226,4 +202,62 @@ namespace Beelzebub { namespace System
      *  Array of higher-level interrupt handlers.
      */
     __extern InterruptEnderFunction InterruptEnders[Interrupts::Count];
+
+    /***********************
+        Interrupt Guards
+    ***********************/
+
+    /// <summary>Guards a scope from interrupts.</summary>
+    template<bool en = false>
+    struct InterruptGuard;
+
+    /// <summary>Guards a scope by disabling interrupts.</summary>
+    template<>
+    struct InterruptGuard<false>
+    {
+        /*  Constructor(s)  */
+
+        __bland inline InterruptGuard() : Cookie(Interrupts::PushDisable()) { }
+
+        InterruptGuard(InterruptGuard const &) = delete;
+        InterruptGuard & operator =(InterruptGuard const &) = delete;
+
+        /*  Destructor  */
+
+        __bland inline ~InterruptGuard()
+        {
+            Interrupts::RestoreState(this->Cookie);
+        }
+
+    private:
+        /*  Field(s)  */
+
+        int_cookie_t const Cookie;
+    };
+
+    /// <summary>Guards a scope by enabling interrupts.</summary>
+    template<>
+    struct InterruptGuard<true>
+    {
+        /*  Constructor(s)  */
+
+        __bland inline InterruptGuard() : Cookie(Interrupts::PushEnable()) { }
+
+        InterruptGuard(InterruptGuard const &) = delete;
+        InterruptGuard & operator =(InterruptGuard const &) = delete;
+
+        /*  Destructor  */
+
+        __bland inline ~InterruptGuard()
+        {
+            Interrupts::RestoreState(this->Cookie);
+        }
+
+    private:
+        /*  Field(s)  */
+
+        int_cookie_t const Cookie;
+    };
+
+    #define withInterrupts(val) with(InterruptGuard<val> MCATS(_int_guard, __LINE__))
 }}

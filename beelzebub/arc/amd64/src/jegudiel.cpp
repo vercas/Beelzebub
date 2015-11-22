@@ -53,6 +53,6 @@ __extern
         0xFFFFFFFFFFFF2000,                     // gdt_vaddr
         (uintptr_t)&kmain_ap,                   // ap_entry
         0,                                      // syscall_entry
-        (uintptr_t)&IsrGates                    // isr_entry_table
+        0                                       // isr_entry_table
     };
 }

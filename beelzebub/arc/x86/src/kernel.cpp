@@ -310,10 +310,7 @@ void Beelzebub::Main()
 #ifdef __BEELZEBUB__TEST_METAP
     MainTerminal->Write(">Testing metaprgoramming facilities...");
 
-    TestMetaprogramming1();
-    TestMetaprogramming2();
-    TestMetaprogramming3();
-    TestMetaprogramming4();
+    TestMetaprogramming();
 
     MainTerminal->WriteLine(" Done.");
 #endif
