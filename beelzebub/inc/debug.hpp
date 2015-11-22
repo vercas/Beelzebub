@@ -105,29 +105,29 @@ namespace Beelzebub { namespace Debug
 
     extern Synchronization::Spinlock<> MsgSpinlock;
 
-    __cold __bland __noinline __noreturn void CatchFire(char const * const file
+    __cold __noinline __noreturn void CatchFire(char const * const file
                                                       , size_t const line
                                                       , char const * const msg);
 
-    __cold __bland __noinline __noreturn void CatchFire(char const * const file
+    __cold __noinline __noreturn void CatchFire(char const * const file
                                                       , size_t const line
                                                       , char const * const fmt, va_list args);
 
-    __cold __bland __noinline __noreturn void CatchFireFormat(char const * const file
+    __cold __noinline __noreturn void CatchFireFormat(char const * const file
                                                             , size_t const line
                                                             , char const * const fmt, ...);
 
-    __bland __noinline void Assert(bool const condition
+    __noinline void Assert(bool const condition
                                  , char const * const file
                                  , size_t const line
                                  , char const * const msg);
 
-    __bland __noinline void Assert(bool const condition
+    __noinline void Assert(bool const condition
                                  , char const * const file
                                  , size_t const line
                                  , char const * const msg, va_list args);
 
-    __bland __noinline void AssertFormat(bool const condition
+    __noinline void AssertFormat(bool const condition
                                        , char const * const file
                                        , size_t const line
                                        , char const * const fmt, ...);

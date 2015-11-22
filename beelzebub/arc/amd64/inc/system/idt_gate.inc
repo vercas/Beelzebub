@@ -65,19 +65,19 @@ union IdtGate
 
     /*  Properties  */
 
-    BITFIELD_FLAG_RW(45, DplLow , uint64_t, this->Low, __bland, const, static)
-    BITFIELD_FLAG_RW(46, DplHigh, uint64_t, this->Low, __bland, const, static)
-    BITFIELD_FLAG_RW(47, Present, uint64_t, this->Low, __bland, const, static)
+    BITFIELD_FLAG_RW(45, DplLow , uint64_t, this->Low, , const, static)
+    BITFIELD_FLAG_RW(46, DplHigh, uint64_t, this->Low, , const, static)
+    BITFIELD_FLAG_RW(47, Present, uint64_t, this->Low, , const, static)
 
-    BITFIELD_STRO_RW(32,  3, uint8_t    , Ist , uint64_t, this->Low, __bland, const, static)
-    BITFIELD_STRO_RW(40,  4, IdtGateType, Type, uint64_t, this->Low, __bland, const, static)
+    BITFIELD_STRO_RW(32,  3, uint8_t    , Ist , uint64_t, this->Low, , const, static)
+    BITFIELD_STRO_RW(40,  4, IdtGateType, Type, uint64_t, this->Low, , const, static)
 
     /*  Constructors  */
 
     /**
      *  <summary>Creates a null IDT Entry.</summary>
      */
-    __bland inline constexpr IdtGate()
+    inline constexpr IdtGate()
         : Low(0), High(0)
     {
         
@@ -86,7 +86,7 @@ union IdtGate
     /**
      *  <summary>Creates a new IDT Entry structure from the given raw values.</summary>
      */
-    __bland inline explicit constexpr IdtGate(uint64_t const low, uint64_t const high)
+    inline explicit constexpr IdtGate(uint64_t const low, uint64_t const high)
         : Low(low), High(high)
     {
         
@@ -94,12 +94,12 @@ union IdtGate
 
     /*  Properties  */
 
-    __bland inline uintptr_t GetOffset() const
+    inline uintptr_t GetOffset() const
     {
         return (uintptr_t)this->OffsetLow | (this->OffsetHigh & 0xFFFFFFFFFFFF0000);
     }
 
-    __bland inline auto SetOffset(const uintptr_t val)
+    inline auto SetOffset(const uintptr_t val)
     {
         this->OffsetLow  =  val              & 0x000000000000FFFF;
         this->OffsetHigh = (val              & 0xFFFFFFFFFFFF0000)
@@ -110,12 +110,12 @@ union IdtGate
         return *this;
     }
 
-    __bland inline uint16_t GetSegment() const
+    inline uint16_t GetSegment() const
     {
         return this->Segment;
     }
 
-    __bland inline auto SetSegment(const uint16_t val)
+    inline auto SetSegment(const uint16_t val)
     {
         this->Segment = val;
 

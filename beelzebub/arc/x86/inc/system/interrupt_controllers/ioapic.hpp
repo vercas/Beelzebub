@@ -69,7 +69,7 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
          *  raw value.
          *  </summary>
          */
-        __bland inline explicit constexpr IoapicIdRegister(uint32_t const val)
+        inline explicit constexpr IoapicIdRegister(uint32_t const val)
             : Value(val)
         {
             
@@ -108,12 +108,12 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
 
         /*  Ender  */
 
-        static __hot __bland void IrqEnder(INTERRUPT_ENDER_ARGS);
+        static __hot void IrqEnder(INTERRUPT_ENDER_ARGS);
 
         /*  Constructor(s)  */
 
     protected:
-        __bland inline constexpr Ioapic()
+        inline constexpr Ioapic()
             : Id()
             , RegisterSelector()
             , RegisterWindow()
@@ -124,7 +124,7 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         }
 
     public:
-        __bland inline constexpr Ioapic(uint8_t const id
+        inline constexpr Ioapic(uint8_t const id
                                       , uintptr_t const addr
                                       , uint32_t const globalBase
                                       , uint8_t const vecOff)
@@ -142,7 +142,7 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
 
         /*  (De)initialization  */
 
-        __cold __bland void Initialize();
+        __cold void Initialize();
 
         /*  Fields  */
 

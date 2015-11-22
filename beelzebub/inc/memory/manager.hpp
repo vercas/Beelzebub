@@ -136,28 +136,28 @@ namespace Beelzebub { namespace Memory
 
         /*  Statics  */
 
-        __cold __bland static void Initialize();
+        __cold static void Initialize();
 
         /*  Status  */
 
-        __hot __bland Handle Activate();
-        __hot __bland Handle Switch(MemoryManager * const other);
-        __bland bool IsActive();
+        __hot Handle Activate();
+        __hot Handle Switch(MemoryManager * const other);
+        bool IsActive();
 
         /*  Page Management  */
 
-        __hot __bland Handle MapPage(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags, PageDescriptor * const desc);
-        __hot __bland Handle MapPage(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags);
-        __hot __bland Handle UnmapPage(vaddr_t const vaddr);
-        __hot __bland Handle UnmapPage(vaddr_t const vaddr, PageDescriptor * & desc);
-        __hot __bland Handle TryTranslate(vaddr_t const vaddr, paddr_t & paddr);
+        __hot Handle MapPage(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags, PageDescriptor * const desc);
+        __hot Handle MapPage(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags);
+        __hot Handle UnmapPage(vaddr_t const vaddr);
+        __hot Handle UnmapPage(vaddr_t const vaddr, PageDescriptor * & desc);
+        __hot Handle TryTranslate(vaddr_t const vaddr, paddr_t & paddr);
 
-        __hot __bland Handle AllocatePages(const size_t count, AllocatedPageType const type, PageFlags const flags, vaddr_t & vaddr);
-        __hot __bland Handle FreePages(vaddr_t const vaddr, const size_t count);
+        __hot Handle AllocatePages(const size_t count, AllocatedPageType const type, PageFlags const flags, vaddr_t & vaddr);
+        __hot Handle FreePages(vaddr_t const vaddr, const size_t count);
 
         /*  Flags  */
 
-        __bland Handle GetPageFlags(vaddr_t const vaddr, PageFlags & flags);
-        __bland Handle SetPageFlags(vaddr_t const vaddr, PageFlags const flags);
+        Handle GetPageFlags(vaddr_t const vaddr, PageFlags & flags);
+        Handle SetPageFlags(vaddr_t const vaddr, PageFlags const flags);
     };
 }}

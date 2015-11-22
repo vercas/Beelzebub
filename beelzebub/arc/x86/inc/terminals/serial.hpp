@@ -52,14 +52,14 @@ namespace Beelzebub { namespace Terminals
 
         /*  Constructors  */
 
-        __bland SerialTerminal() : TerminalBase( nullptr ), Port(0) { }
-        __bland SerialTerminal(System::ManagedSerialPort * const port);
+        SerialTerminal() : TerminalBase( nullptr ), Port(0) { }
+        SerialTerminal(System::ManagedSerialPort * const port);
 
         /*  Writing  */
 
-        static __bland TerminalWriteResult WriteChar(TerminalBase * const term, const char c);
-        static __bland TerminalWriteResult WriteString(TerminalBase * const term, const char * const str);
-        static __bland TerminalWriteResult WriteStringLine(TerminalBase * const term, const char * const str);
+        static TerminalWriteResult WriteChar(TerminalBase * const term, const char c);
+        static TerminalWriteResult WriteString(TerminalBase * const term, const char * const str);
+        static TerminalWriteResult WriteStringLine(TerminalBase * const term, const char * const str);
 
     private:
 

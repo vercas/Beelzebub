@@ -77,7 +77,7 @@ SpinlockUninterruptible<> syncer;
 
 bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;
 
-static __bland __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
+static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
 {
     Handle res;
     PageDescriptor * desc = nullptr;
@@ -114,7 +114,7 @@ static __bland __noinline Handle GetKernelHeapPages(size_t const pageCount, uint
     return res;
 }
 
-static __bland __noinline void FillPool(ObjectPoolBase volatile * volatile pool
+static __noinline void FillPool(ObjectPoolBase volatile * volatile pool
                                       , size_t const objectSize
                                       , size_t const headerSize
                                       , obj_ind_t const objectCount)
@@ -183,7 +183,7 @@ static __bland __noinline void FillPool(ObjectPoolBase volatile * volatile pool
     COMPILER_MEMORY_BARRIER();
 }
 
-__bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPoolBase * & result)
+Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPoolBase * & result)
 {
     askedToAcquire = true;
 
@@ -220,7 +220,7 @@ __bland Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t mini
     return HandleResult::Okay;
 }
 
-__bland Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPoolBase * pool)
+Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPoolBase * pool)
 {
     if (!canEnlarge)
         return HandleResult::UnsupportedOperation;
@@ -344,7 +344,7 @@ __bland Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t mini
     return HandleResult::Okay;
 }
 
-__bland Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * pool)
+Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * pool)
 {
     askedToRemove = true;
 
@@ -444,7 +444,7 @@ __bland Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolB
             , "Interrupts should be enabled, but they are not! (Core #%us)" \
             , System::Cpu::GetIndex())
 
-__bland Handle ObjectAllocatorSpamTest()
+Handle ObjectAllocatorSpamTest()
 {
     Handle res;
 
@@ -560,7 +560,7 @@ __bland Handle ObjectAllocatorSpamTest()
     return HandleResult::Okay;
 }
 
-__bland __noinline Handle ThreePoolTest()
+__noinline Handle ThreePoolTest()
 {
     Handle res;
 
@@ -773,7 +773,7 @@ __bland __noinline Handle ThreePoolTest()
     return HandleResult::Okay;
 }
 
-__bland Handle ObjectAllocatorParallelAcquireTest()
+Handle ObjectAllocatorParallelAcquireTest()
 {
     Handle res;
 

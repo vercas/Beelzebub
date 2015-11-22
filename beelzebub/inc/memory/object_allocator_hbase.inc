@@ -49,7 +49,7 @@ struct OBJA_POOL_TYPE : public ObjectPoolBase
 
     /*  Constructors  */
 
-    __bland inline OBJA_POOL_TYPE()
+    inline OBJA_POOL_TYPE()
         : ObjectPoolBase()
         , PropertiesLock()
     {
@@ -73,7 +73,7 @@ public:
 
     /*  Constructors  */
 
-    __bland inline OBJA_ALOC_TYPE()
+    inline OBJA_ALOC_TYPE()
         : AcquirePool( nullptr)
         , EnlargePool(nullptr)
         , ReleasePool(nullptr)
@@ -97,7 +97,7 @@ public:
     OBJA_ALOC_TYPE(OBJA_ALOC_TYPE const &) = delete;
     OBJA_ALOC_TYPE & operator =(const OBJA_ALOC_TYPE &) = delete;
 
-    __bland OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment
+    OBJA_ALOC_TYPE(size_t const objectSize, size_t const objectAlignment
         , AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser
         , PoolReleaseOptions const releaseOptions = PoolReleaseOptions::ReleaseAll
         , size_t const busyBit = SIZE_MAX, size_t const quota = SIZE_MAX);
@@ -105,7 +105,7 @@ public:
     /*  Methods  */
 
     template<typename T>
-    __bland inline Handle AllocateObject(T * & result, size_t estimatedLeft = 1)
+    inline Handle AllocateObject(T * & result, size_t estimatedLeft = 1)
     {
         if (sizeof(T) > this->ObjectSize)
             return HandleResult::ArgumentTemplateInvalid;
@@ -121,28 +121,28 @@ public:
         return hRes;
     }
 
-    __hot __bland __noinline Handle AllocateObject(void * & result, size_t estimatedLeft = 1);
-    __hot __bland __noinline Handle DeallocateObject(void * const object);
+    __hot __noinline Handle AllocateObject(void * & result, size_t estimatedLeft = 1);
+    __hot __noinline Handle DeallocateObject(void * const object);
     //  These are complex methods and GCC will not be intimidated.
 
     /// <summary>Performs total and utter destruction of the allocator.</summary>
-    __cold __bland __noinline void Dispose();
+    __cold __noinline void Dispose();
 
     /*  Properties  */
 
 #ifdef OBJA_MULTICONSUMER
-    __bland inline size_t GetCapacity()     const { return this->Capacity.Load();   }
-    __bland inline size_t GetFreeCount()    const { return this->FreeCount.Load();  }
-    __bland inline size_t GetQuota()        const { return this->Quota.Load();      }
-    __bland inline size_t GetBusyCount()    const { return this->BusyCount.Load();  }
+    inline size_t GetCapacity()     const { return this->Capacity.Load();   }
+    inline size_t GetFreeCount()    const { return this->FreeCount.Load();  }
+    inline size_t GetQuota()        const { return this->Quota.Load();      }
+    inline size_t GetBusyCount()    const { return this->BusyCount.Load();  }
 #else
-    __bland inline size_t GetCapacity()     const { return this->Capacity;          }
-    __bland inline size_t GetFreeCount()    const { return this->FreeCount;         }
-    __bland inline size_t GetQuota()        const { return this->Quota;             }
-    __bland inline size_t GetBusyCount()    const { return this->BusyCount;         }
+    inline size_t GetCapacity()     const { return this->Capacity;          }
+    inline size_t GetFreeCount()    const { return this->FreeCount;         }
+    inline size_t GetQuota()        const { return this->Quota;             }
+    inline size_t GetBusyCount()    const { return this->BusyCount;         }
 #endif
 
-    __bland inline size_t GetClearance() const
+    inline size_t GetClearance() const
     {
         size_t const busyCount = this->GetBusyCount();
         size_t const max = this->GetQuota();

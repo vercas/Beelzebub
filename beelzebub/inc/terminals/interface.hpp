@@ -118,8 +118,8 @@ namespace Beelzebub { namespace Terminals
         int16_t X;
         int16_t Y;
 
-        __bland TerminalCoordinates operator+(const TerminalCoordinates other);
-        __bland TerminalCoordinates operator-(const TerminalCoordinates other);
+        TerminalCoordinates operator+(const TerminalCoordinates other);
+        TerminalCoordinates operator-(const TerminalCoordinates other);
     };
 
     const TerminalCoordinates InvalidCoordinates = { -42, 9001 };

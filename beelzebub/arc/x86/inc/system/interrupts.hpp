@@ -69,7 +69,7 @@ namespace Beelzebub { namespace System
 
         /*  Interrupts  */
 
-        static __bland inline bool AreEnabled()
+        static inline bool AreEnabled()
         {
             size_t flags;
 
@@ -81,13 +81,13 @@ namespace Beelzebub { namespace System
             return (flags & (size_t)(1 << 9)) != 0;
         }
 
-        static __bland inline void Enable()
+        static inline void Enable()
         {
             asm volatile ( "sti \n\t" : : : "memory" );
             //  This is a memory barrier to prevent the compiler from moving things around it.
         }
 
-        static __bland inline void Disable()
+        static inline void Disable()
         {
             asm volatile ( "cli \n\t" : : : "memory" );
             //  This is a memory barrier to prevent the compiler from moving things around it.
@@ -103,7 +103,7 @@ namespace Beelzebub { namespace System
          *  executing this function.
          *  </return>
          */
-        static __bland inline int_cookie_t PushDisable() __returns_nonnull __malloc
+        static inline int_cookie_t PushDisable() __returns_nonnull __malloc
         {
             int_cookie_t cookie;
 
@@ -132,7 +132,7 @@ namespace Beelzebub { namespace System
          *  executing this function.
          *  </return>
          */
-        static __bland inline int_cookie_t PushEnable() __returns_nonnull __malloc
+        static inline int_cookie_t PushEnable() __returns_nonnull __malloc
         {
             int_cookie_t cookie;
 
@@ -152,7 +152,7 @@ namespace Beelzebub { namespace System
          *  </summary>
          *  <return>True if interrupts are now enabled, otherwise false.</return>
          */
-        static __bland inline bool RestoreState(int_cookie_t const cookie)
+        static inline bool RestoreState(int_cookie_t const cookie)
         {
             asm volatile ( "push %[src] \n\t"   //  PUT THE COOKIE DOWN!
                            "popf        \n\t"
@@ -217,14 +217,14 @@ namespace Beelzebub { namespace System
     {
         /*  Constructor(s)  */
 
-        __bland inline InterruptGuard() : Cookie(Interrupts::PushDisable()) { }
+        inline InterruptGuard() : Cookie(Interrupts::PushDisable()) { }
 
         InterruptGuard(InterruptGuard const &) = delete;
         InterruptGuard & operator =(InterruptGuard const &) = delete;
 
         /*  Destructor  */
 
-        __bland inline ~InterruptGuard()
+        inline ~InterruptGuard()
         {
             Interrupts::RestoreState(this->Cookie);
         }
@@ -241,14 +241,14 @@ namespace Beelzebub { namespace System
     {
         /*  Constructor(s)  */
 
-        __bland inline InterruptGuard() : Cookie(Interrupts::PushEnable()) { }
+        inline InterruptGuard() : Cookie(Interrupts::PushEnable()) { }
 
         InterruptGuard(InterruptGuard const &) = delete;
         InterruptGuard & operator =(InterruptGuard const &) = delete;
 
         /*  Destructor  */
 
-        __bland inline ~InterruptGuard()
+        inline ~InterruptGuard()
         {
             Interrupts::RestoreState(this->Cookie);
         }

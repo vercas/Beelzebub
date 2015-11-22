@@ -82,7 +82,7 @@ namespace Beelzebub { namespace Synchronization
         /*  Destructor  */
 
 #ifdef __BEELZEBUB__DEBUG
-        __bland ~Spinlock();
+        ~Spinlock();
 #endif
 
         /*  Operations  */
@@ -90,7 +90,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline __must_check bool TryAcquire() volatile
+        __forceinline __must_check bool TryAcquire() volatile
         {
             spinlock_t oldValue = __sync_lock_test_and_set(&this->Value, 1);
 
@@ -101,7 +101,7 @@ namespace Beelzebub { namespace Synchronization
          *  Awaits for the spinlock to be freed.
          *  Does not acquire the lock.
          */
-        __bland __forceinline void Spin() const volatile
+        __forceinline void Spin() const volatile
         {
             do
             {
@@ -113,7 +113,7 @@ namespace Beelzebub { namespace Synchronization
          *  Checks if the spinlock is free. If not, it awaits.
          *  Does not acquire the lock.
          */
-        __bland __forceinline void Await() const volatile
+        __forceinline void Await() const volatile
         {
             while (this->Value)
             {
@@ -124,7 +124,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline void Acquire() volatile
+        __forceinline void Acquire() volatile
         {
             while (__sync_lock_test_and_set(&this->Value, 1))
                 this->Spin();
@@ -134,7 +134,7 @@ namespace Beelzebub { namespace Synchronization
          *  Acquire the spinlock, waiting if necessary.
          *  Includes a pointer in the memory barrier, if supported.
          */
-        __bland __forceinline void Acquire(void * const ptr) volatile
+        __forceinline void Acquire(void * const ptr) volatile
         {
             while (__sync_lock_test_and_set(&this->Value, 1, ptr))
                 this->Spin();
@@ -143,7 +143,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void Release() volatile
+        __forceinline void Release() volatile
         {
             __sync_lock_release(&this->Value);
         }
@@ -152,7 +152,7 @@ namespace Beelzebub { namespace Synchronization
          *  Release the spinlock.
          *  Includes a pointer in the memory barrier.
          */
-        __bland __forceinline void Release(void * const ptr) volatile
+        __forceinline void Release(void * const ptr) volatile
         {
             __sync_lock_release(&this->Value, ptr);
         }
@@ -160,14 +160,14 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Checks whether the spinlock is free or not.
          */
-        __bland __forceinline __must_check bool Check() const volatile
+        __forceinline __must_check bool Check() const volatile
         {
             return this->Value == 0;
         }
 
         /*  Properties  */
 
-        __bland __forceinline spinlock_t GetValue() const volatile
+        __forceinline spinlock_t GetValue() const volatile
         {
             return this->Value;
         }
@@ -201,7 +201,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline __must_check constexpr bool TryAcquire() const volatile
+        __forceinline __must_check constexpr bool TryAcquire() const volatile
         {
             return true;
         }
@@ -210,7 +210,7 @@ namespace Beelzebub { namespace Synchronization
          *  Awaits for the spinlock to be freed.
          *  Does not acquire the lock.
          */
-        __bland __forceinline void Spin() const volatile
+        __forceinline void Spin() const volatile
         {
             //  Do nothing.
         }
@@ -219,7 +219,7 @@ namespace Beelzebub { namespace Synchronization
          *  Checks if the spinlock is free. If not, it awaits.
          *  Does not acquire the lock.
          */
-        __bland __forceinline void Await() const volatile
+        __forceinline void Await() const volatile
         {
             //  Do nothing.
         }
@@ -227,7 +227,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline void Acquire() const volatile
+        __forceinline void Acquire() const volatile
         {
             //  Do nothing.
         }
@@ -236,7 +236,7 @@ namespace Beelzebub { namespace Synchronization
          *  Acquire the spinlock, waiting if necessary.
          *  Includes a pointer in the memory barrier, if supported.
          */
-        __bland __forceinline void Acquire(void * const ptr) const volatile
+        __forceinline void Acquire(void * const ptr) const volatile
         {
             //  Do nothing.
         }
@@ -244,7 +244,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void Release() const volatile
+        __forceinline void Release() const volatile
         {
             //  Do nothing.
         }
@@ -253,7 +253,7 @@ namespace Beelzebub { namespace Synchronization
          *  Release the spinlock.
          *  Includes a pointer in the memory barrier.
          */
-        __bland __forceinline void Release(void * const ptr) const volatile
+        __forceinline void Release(void * const ptr) const volatile
         {
             //  Do nothing.
         }
@@ -261,14 +261,14 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Checks whether the spinlock is free or not.
          */
-        __bland __forceinline __must_check constexpr bool Check() const volatile
+        __forceinline __must_check constexpr bool Check() const volatile
         {
             return true;
         }
 
         /*  Properties  */
 
-        __bland __forceinline constexpr spinlock_t GetValue() const volatile
+        __forceinline constexpr spinlock_t GetValue() const volatile
         {
             return (spinlock_t)0;
         }

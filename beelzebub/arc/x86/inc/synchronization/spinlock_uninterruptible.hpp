@@ -91,7 +91,7 @@ namespace Beelzebub { namespace Synchronization
         /*  Destructor  */
 
 #ifdef __BEELZEBUB__DEBUG
-        __bland ~SpinlockUninterruptible();
+        ~SpinlockUninterruptible();
 #endif
 
         /*  Operations  */
@@ -99,7 +99,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline __must_check bool TryAcquire(Cookie & cookie) volatile
+        __forceinline __must_check bool TryAcquire(Cookie & cookie) volatile
         {
             cookie = System::Interrupts::PushDisable();
 
@@ -116,7 +116,7 @@ namespace Beelzebub { namespace Synchronization
          *  Awaits for the spinlock to be freed.
          *  Does not acquire the lock.
          */
-        __bland __forceinline void Spin() const volatile
+        __forceinline void Spin() const volatile
         {
             do
             {
@@ -128,7 +128,7 @@ namespace Beelzebub { namespace Synchronization
          *  Checks if the spinlock is free. If not, it awaits.
          *  Does not acquire the lock.
          */
-        __bland __forceinline void Await() const volatile
+        __forceinline void Await() const volatile
         {
             while (this->Value)
             {
@@ -139,7 +139,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline __must_check Cookie Acquire() volatile
+        __forceinline __must_check Cookie Acquire() volatile
         {
             Cookie const cookie = System::Interrupts::PushDisable();
 
@@ -152,7 +152,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline void SimplyAcquire() volatile
+        __forceinline void SimplyAcquire() volatile
         {
             while (__sync_lock_test_and_set(&this->Value, 1))
                 this->Spin();
@@ -161,7 +161,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void Release(Cookie const cookie) volatile
+        __forceinline void Release(Cookie const cookie) volatile
         {
             __sync_lock_release(&this->Value);
 
@@ -171,7 +171,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void SimplyRelease() volatile
+        __forceinline void SimplyRelease() volatile
         {
             __sync_lock_release(&this->Value);
         }
@@ -179,14 +179,14 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Checks whether the spinlock is free or not.
          */
-        __bland __forceinline __must_check bool Check() const volatile
+        __forceinline __must_check bool Check() const volatile
         {
             return this->Value == 0;
         }
 
         /*  Properties  */
 
-        __bland __forceinline spinlock_t GetValue() const volatile
+        __forceinline spinlock_t GetValue() const volatile
         {
             return this->Value;
         }
@@ -221,7 +221,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, if possible.
          */
-        __bland __forceinline __must_check bool TryAcquire(Cookie & cookie) const volatile
+        __forceinline __must_check bool TryAcquire(Cookie & cookie) const volatile
         {
             cookie = System::Interrupts::PushDisable();
 
@@ -232,7 +232,7 @@ namespace Beelzebub { namespace Synchronization
          *  Awaits for the spinlock to be freed.
          *  Does not acquire the lock.
          */
-        __bland __forceinline void Spin() const volatile
+        __forceinline void Spin() const volatile
         {
             //  Do nothing.
         }
@@ -241,7 +241,7 @@ namespace Beelzebub { namespace Synchronization
          *  Checks if the spinlock is free. If not, it awaits.
          *  Does not acquire the lock.
          */
-        __bland __forceinline void Await() const volatile
+        __forceinline void Await() const volatile
         {
             //  Do nothing.
         }
@@ -249,7 +249,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline __must_check Cookie Acquire() const volatile
+        __forceinline __must_check Cookie Acquire() const volatile
         {
             return System::Interrupts::PushDisable();
         }
@@ -257,7 +257,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the spinlock, waiting if necessary.
          */
-        __bland __forceinline void SimplyAcquire() const volatile
+        __forceinline void SimplyAcquire() const volatile
         {
             //  Do nothing.
         }
@@ -265,7 +265,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void Release(Cookie const cookie) const volatile
+        __forceinline void Release(Cookie const cookie) const volatile
         {
             System::Interrupts::RestoreState(cookie);
         }
@@ -273,7 +273,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the spinlock.
          */
-        __bland __forceinline void SimplyRelease() const volatile
+        __forceinline void SimplyRelease() const volatile
         {
             //  Do nothing.
         }
@@ -281,14 +281,14 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Checks whether the spinlock is free or not.
          */
-        __bland __forceinline __must_check bool Check() const volatile
+        __forceinline __must_check bool Check() const volatile
         {
             return true;
         }
 
         /*  Properties  */
 
-        __bland __forceinline spinlock_t GetValue() const volatile
+        __forceinline spinlock_t GetValue() const volatile
         {
             return (spinlock_t)0;
         }

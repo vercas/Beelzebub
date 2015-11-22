@@ -55,7 +55,7 @@ namespace Beelzebub { namespace Execution
 
         /*  Constructors  */
 
-        __bland inline Thread()
+        inline Thread()
             : KernelStackTop()
             , KernelStackBottom()
             , KernelStackPointer()
@@ -71,7 +71,7 @@ namespace Beelzebub { namespace Execution
         Thread(Thread const &) = delete;
         Thread & operator =(Thread const &) = delete;
 
-        __bland inline Thread(Process * const owner)
+        inline Thread(Process * const owner)
             : KernelStackTop()
             , KernelStackBottom()
             , KernelStackPointer()
@@ -86,8 +86,8 @@ namespace Beelzebub { namespace Execution
 
         /*  Operations  */
 
-        __hot __bland Handle SwitchTo(Thread * const other, ThreadState * const dest);    //  Implemented in architecture-specific code.
-        __bland Handle SwitchToNext(ThreadState * const dest) { return this->SwitchTo(this->Next, dest); }
+        __hot Handle SwitchTo(Thread * const other, ThreadState * const dest);    //  Implemented in architecture-specific code.
+        Handle SwitchToNext(ThreadState * const dest) { return this->SwitchTo(this->Next, dest); }
 
         /*  Stack  */
 
@@ -105,7 +105,7 @@ namespace Beelzebub { namespace Execution
         Thread * Previous;
         Thread * Next;
 
-        __bland Handle IntroduceNext(Thread * const other);
+        Handle IntroduceNext(Thread * const other);
 
         //  TODO: Eventually implement a proper scheduler and drop the linkage system.
 

@@ -92,7 +92,7 @@ CpuId Beelzebub::BootstrapCpuid;
     CpuData BspCpuData;
 #endif
 
-__bland void InitializeCpuData()
+void InitializeCpuData()
 {
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     CpuData * data = nullptr;
@@ -177,7 +177,7 @@ PageAllocator mainAllocator;
 /** 
  *  <summary>Creates an allocation space over the given physical range.</summary>
  */
-__cold __bland PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end, Domain * domain)
+__cold PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end, Domain * domain)
 {
     /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
 
@@ -390,7 +390,7 @@ Handle InitializePhysicalMemory()
     VIRTUAL MEMORY
 *********************/
 
-__cold __bland __noinline void RemapTerminal(TerminalBase * const terminal
+__cold __noinline void RemapTerminal(TerminalBase * const terminal
                                            , VirtualAllocationSpace * const space);
 //  Forward declaration.
 
@@ -582,7 +582,7 @@ void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const
  *  Does something with the kernel's module...
  *  </summary>
  */
-__cold __bland Handle HandleKernelModule(const size_t index, const jg_info_module_t * const module, const size_t size)
+__cold Handle HandleKernelModule(const size_t index, const jg_info_module_t * const module, const size_t size)
 {
     msg("THIS IS THE KERNEL MODULE!%n");
 
@@ -594,7 +594,7 @@ __cold __bland Handle HandleKernelModule(const size_t index, const jg_info_modul
  *  Processes a module.
  *  </summary>
  */
-__cold __bland Handle HandleModule(const size_t index, const jg_info_module_t * const module)
+__cold Handle HandleModule(const size_t index, const jg_info_module_t * const module)
 {
     Handle res = HandleResult::Okay;
 
@@ -665,7 +665,7 @@ Process tPb;
 MemoryManagerAmd64 tMmB;
 VirtualAllocationSpace tVasB;
 
-__hot __bland void * TestThreadEntryPoint(void * const arg)
+__hot void * TestThreadEntryPoint(void * const arg)
 {
    char * const myChars = (char *)(uintptr_t)0x321000ULL;
 
@@ -679,7 +679,7 @@ __hot __bland void * TestThreadEntryPoint(void * const arg)
     }
 }
 
-__cold __bland void InitializeTestThread(Thread * const t, Process * const p)
+__cold void InitializeTestThread(Thread * const t, Process * const p)
 {
     new (t) Thread(p);
 
@@ -712,7 +712,7 @@ __cold __bland void InitializeTestThread(Thread * const t, Process * const p)
     //  This sets up the thread so it goes directly to the entry point when switched to.
 }
 
-__cold __bland char * AllocateTestPage(Process * const p)
+__cold char * AllocateTestPage(Process * const p)
 {
     Handle res;
     PageDescriptor * desc = nullptr;

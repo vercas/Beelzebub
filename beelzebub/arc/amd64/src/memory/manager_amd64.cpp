@@ -47,7 +47,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Memory;
 
-static __bland inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
+static inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
 {
     if (vaddr < VirtualAllocationSpace::LowerHalfEnd)
         mm.UserLock.Acquire();
@@ -87,7 +87,7 @@ static __bland inline void Lock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, co
     }
 }
 
-static __bland inline void Unlock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
+static inline void Unlock(MemoryManagerAmd64 & mm, const vaddr_t vaddr, const bool alloc = false)
 {
     if (vaddr < VirtualAllocationSpace::LowerHalfEnd)
         mm.UserLock.Release();

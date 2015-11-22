@@ -293,8 +293,7 @@ Handle VirtualAllocationSpace::TryTranslate(vaddr_t const vaddr, cbk_t cbk, bool
 
 Handle VirtualAllocationSpace::GetEntry(vaddr_t const vaddr, Pml1Entry * & e, bool const tolerate)
 {
-    return this->TryTranslate(vaddr, [&e](Pml1Entry * pE) __bland
-    {
+    return this->TryTranslate(vaddr, [&e](Pml1Entry * pE) {
         e = pE;
 
         return Handle(HandleResult::Okay);
@@ -427,8 +426,7 @@ Handle VirtualAllocationSpace::Map(vaddr_t const vaddr, paddr_t const paddr, con
 
 Handle VirtualAllocationSpace::Unmap(vaddr_t const vaddr, paddr_t & paddr)
 {
-    return this->TryTranslate(vaddr, [&paddr](Pml1Entry * pE) __bland
-        {
+    return this->TryTranslate(vaddr, [&paddr](Pml1Entry * pE) {
             if likely(pE->GetPresent())
             {
                 paddr = pE->GetAddress();
@@ -450,8 +448,7 @@ Handle VirtualAllocationSpace::Unmap(vaddr_t const vaddr, paddr_t & paddr)
 
 Handle VirtualAllocationSpace::GetPageFlags(vaddr_t const vaddr, PageFlags & flags)
 {
-    return this->TryTranslate(vaddr, [&flags](Pml1Entry * pE) __bland
-        {
+    return this->TryTranslate(vaddr, [&flags](Pml1Entry * pE) {
             if likely(pE->GetPresent())
             {
                 Pml1Entry const e = *pE;
@@ -477,8 +474,7 @@ Handle VirtualAllocationSpace::GetPageFlags(vaddr_t const vaddr, PageFlags & fla
 
 Handle VirtualAllocationSpace::SetPageFlags(vaddr_t const vaddr, const PageFlags flags)
 {
-    return this->TryTranslate(vaddr, [flags](Pml1Entry * pE) __bland
-        {
+    return this->TryTranslate(vaddr, [flags](Pml1Entry * pE) {
             if likely(pE->GetPresent())
             {
                 Pml1Entry e = *pE;
@@ -550,8 +546,7 @@ Handle VirtualAllocationSpace::Iterator::Initialize()
         }
     }//*/
 
-    auto const work = [vaddr, nonLocal](auto const & alien, auto const & local, auto const & index) __bland
-    {
+    auto const work = [vaddr, nonLocal](auto const & alien, auto const & local, auto const & index) {
         auto & pml = *(nonLocal ? alien(vaddr) : local( vaddr ));
         return &pml[index(vaddr)];
     };

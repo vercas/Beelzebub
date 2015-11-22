@@ -49,14 +49,14 @@ namespace Beelzebub { namespace Synchronization
     {
         /*  Constructor(s)  */
 
-        __bland inline LockGuard(TLock & lock)
+        inline LockGuard(TLock & lock)
             : Lock(&lock)
             , Cookie(lock.Acquire())
         {
             
         }
 
-        __bland inline LockGuard(LockGuard && other)
+        inline LockGuard(LockGuard && other)
             : Lock(other.Lock)
             , Cookie(other.Cookie)
         {
@@ -72,7 +72,7 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Destructor  */
 
-        __bland inline ~LockGuard()
+        inline ~LockGuard()
         {
             if (this->Lock != nullptr)
                 this->Lock->Release(this->Cookie);
@@ -80,7 +80,7 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Operations  */
 
-        __bland inline bool Release()
+        inline bool Release()
         {
             if (this->Lock != nullptr)
             {
@@ -94,7 +94,7 @@ namespace Beelzebub { namespace Synchronization
             return false;
         }
 
-        __bland inline bool Swap(TLock & other)
+        inline bool Swap(TLock & other)
         {
             if (this->Lock != nullptr)
             {
@@ -127,12 +127,12 @@ namespace Beelzebub { namespace Synchronization
     {
         /*  Constructor(s)  */
 
-        __bland inline LockGuard(TLock & lock) : Lock(&lock)
+        inline LockGuard(TLock & lock) : Lock(&lock)
         {
             lock.Acquire();
         }
 
-        __bland inline LockGuard(LockGuard && other)
+        inline LockGuard(LockGuard && other)
             : Lock(other.Lock)
         {
             other.Lock = nullptr;
@@ -147,7 +147,7 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Destructor  */
 
-        __bland inline ~LockGuard()
+        inline ~LockGuard()
         {
             if (this->Lock != nullptr)
                 this->Lock->Release();
@@ -155,7 +155,7 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Operations  */
 
-        __bland inline bool Release()
+        inline bool Release()
         {
             if (this->Lock != nullptr)
             {
@@ -169,7 +169,7 @@ namespace Beelzebub { namespace Synchronization
             return false;
         }
 
-        __bland inline bool Swap(TLock & other)
+        inline bool Swap(TLock & other)
         {
             if (this->Lock != nullptr)
             {
@@ -196,13 +196,13 @@ namespace Beelzebub { namespace Synchronization
     };
 
     template<typename TLock, typename TCook = typename TLock::Cookie>
-    __bland inline LockGuard<TLock, TCook> ObtainLockGuard(TLock & lock, TCook * blergh = nullptr)
+    inline LockGuard<TLock, TCook> ObtainLockGuard(TLock & lock, TCook * blergh = nullptr)
     {
         return {lock};
     }
 
     /*template<typename TLock>
-    __bland inline LockGuardSimple<TLock> ObtainLockGuard<TLock, void>(TLock & lock)
+    inline LockGuardSimple<TLock> ObtainLockGuard<TLock, void>(TLock & lock)
     {
         return LockGuardSimple<TLock>(lock);
     }//*/

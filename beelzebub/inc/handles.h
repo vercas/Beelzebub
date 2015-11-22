@@ -237,7 +237,7 @@ namespace Beelzebub
         Handle(Handle const&) = default;
 
         //  Arbitrary-type handle.
-        __bland __forceinline constexpr Handle(const HandleType type
+        __forceinline constexpr Handle(const HandleType type
                                              , const uint64_t index
                                              , const bool global = false)
             : Value((uint64_t)type
@@ -248,7 +248,7 @@ namespace Beelzebub
         }
 
         //  Result handle.
-        __bland __forceinline constexpr Handle(const HandleResult res)
+        __forceinline constexpr Handle(const HandleResult res)
             : Value((uint64_t)( (uint16_t)HandleType::Result
                              | ((uint16_t)res << ResultPrimaryOffset)))
         {
@@ -256,7 +256,7 @@ namespace Beelzebub
         }
 
         //  Result handle, optionally fatal.
-        __bland __forceinline constexpr Handle(const HandleResult res
+        __forceinline constexpr Handle(const HandleResult res
                                              , const bool fatal)
             : Value((uint64_t)( (uint16_t)HandleType::Result
                              | ((uint16_t)res << ResultPrimaryOffset))
@@ -268,17 +268,17 @@ namespace Beelzebub
 
         /*  Type  */
 
-        __bland __forceinline HandleType GetType() const
+        __forceinline HandleType GetType() const
         {
             return (HandleType)(this->Bytes[0]);
         }
 
-        __bland __forceinline bool IsType(const HandleType type) const
+        __forceinline bool IsType(const HandleType type) const
         {
             return this->Bytes[0] == (uint8_t)type;
         }
 
-        __bland __forceinline bool IsGlobal() const
+        __forceinline bool IsGlobal() const
         {
             HandleType type = this->GetType();
 
@@ -287,19 +287,19 @@ namespace Beelzebub
                 && type != HandleType::Invalid;
         }
 
-        __bland __forceinline bool IsValid() const
+        __forceinline bool IsValid() const
         {
             return !this->IsType(HandleType::Invalid);
         }
 
-        __bland __forceinline bool IsLiterally(uint64_t const val) const
+        __forceinline bool IsLiterally(uint64_t const val) const
         {
             return this->Value == val;
         }
 
         /*  Generic  */
 
-        __bland __forceinline uint64_t GetIndex() const
+        __forceinline uint64_t GetIndex() const
         {
             return (this->IsType(HandleType::Result) || this->IsType(HandleType::Invalid))
                 ? ~0ULL
@@ -308,36 +308,36 @@ namespace Beelzebub
 
         /*  Result  */
 
-        __bland __forceinline HandleResult GetResult() const
+        __forceinline HandleResult GetResult() const
         {
             return (HandleResult)(this->Bytes[ResultPrimaryByteIndex]);
         }
 
-        __bland __forceinline size_t GetResultCount() const
+        __forceinline size_t GetResultCount() const
         {
             return (size_t)((this->Bytes[ResultCountByteIndex] & ResultCountByteBits) >> ResultCountByteOffset);
         }
 
-        __bland Handle WithResultCount(const size_t count) const;
-        __bland Handle WithPreppendedResult(const HandleResult res) const;
+        Handle WithResultCount(const size_t count) const;
+        Handle WithPreppendedResult(const HandleResult res) const;
 
-        __bland __forceinline bool IsResult(const HandleResult res) const
+        __forceinline bool IsResult(const HandleResult res) const
         {
             return this->Bytes[ResultPrimaryByteIndex] == (uint8_t)res && this->GetType() == HandleType::Result;
         }
 
-        __bland __forceinline bool IsFatalResult() const
+        __forceinline bool IsFatalResult() const
         {
             return 0 != (this->Bytes[GlobalFatalByteIndex] & GlobalFatalByteBit)
                 && this->GetType() == HandleType::Result;
         }
 
-        __bland __forceinline bool IsGlobalOrFatal() const
+        __forceinline bool IsGlobalOrFatal() const
         {
             return 0 != (this->Bytes[GlobalFatalByteIndex] & GlobalFatalByteBit);
         }
 
-        __bland __forceinline bool IsOkayResult() const
+        __forceinline bool IsOkayResult() const
         {
             return this->Words[0] == OkayResultWord;
             //  Other bits are irrelevant.
@@ -356,7 +356,7 @@ namespace Beelzebub
         };
 
         //  Use is discouraged, but meh.
-        __bland __forceinline constexpr Handle(uint64_t val)
+        __forceinline constexpr Handle(uint64_t val)
             : Value( val)
         {
 
@@ -366,8 +366,8 @@ namespace Beelzebub
 
         /*  Printing  */
 
-        __bland __noinline const char * const GetTypeString() const;
-        __bland __noinline const char * const GetResultString() const;
+        __noinline const char * const GetTypeString() const;
+        __noinline const char * const GetResultString() const;
 
     } __packed;
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.

@@ -114,7 +114,7 @@ namespace Beelzebub
         bool Done;
         bool Started;
 
-        __bland __forceinline CommandLineOptionParserState(char * const input)
+        __forceinline CommandLineOptionParserState(char * const input)
             : InputString(input)
             , Length(0)
             , Offset(0)
@@ -125,5 +125,5 @@ namespace Beelzebub
         }
     };
 
-    __bland Handle ParseCommandLineOptions(CommandLineOptionParserState & state);
+    Handle ParseCommandLineOptions(CommandLineOptionParserState & state);
 }

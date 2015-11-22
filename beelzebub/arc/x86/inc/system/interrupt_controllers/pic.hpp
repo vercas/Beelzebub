@@ -61,7 +61,7 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
 
         /*  Ender  */
 
-        static __hot __bland void IrqEnder(INTERRUPT_ENDER_ARGS);
+        static __hot void IrqEnder(INTERRUPT_ENDER_ARGS);
 
         /*  Constructor(s)  */
 
@@ -74,18 +74,18 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
 
         /*  (De)initialization  */
 
-        static __cold __bland void Initialize(uint8_t const vecOff);
-        static __cold __bland void Disable();
+        static __cold void Initialize(uint8_t const vecOff);
+        static __cold void Disable();
 
         /*  Subscription  */
 
-        static __bland bool Subscribe(uint8_t const irq, InterruptHandlerFunction const handler, bool const unmask = false);
-        static __bland bool Unsubscribe(uint8_t const irq, bool const mask = false);
-        static __bland bool IsSubscribed(uint8_t const irq);
+        static bool Subscribe(uint8_t const irq, InterruptHandlerFunction const handler, bool const unmask = false);
+        static bool Unsubscribe(uint8_t const irq, bool const mask = false);
+        static bool IsSubscribed(uint8_t const irq);
 
         /*  Masking  */
 
-        static __bland bool SetMasked(uint8_t const irq, bool const masked);
-        static __bland bool GetMasked(uint8_t const irq);
+        static bool SetMasked(uint8_t const irq, bool const masked);
+        static bool GetMasked(uint8_t const irq);
     };
 }}}

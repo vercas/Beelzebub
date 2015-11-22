@@ -58,12 +58,12 @@ namespace Beelzebub { namespace Synchronization
     {
         /*  Probing  */
 
-        static __bland inline constexpr bool IsAlwaysLockFree(void const * const ptr = nullptr)
+        static inline constexpr bool IsAlwaysLockFree(void const * const ptr = nullptr)
         {
             return __atomic_always_lock_free(sizeof(T), ptr);
         }
 
-        __bland inline bool IsLockFree() volatile
+        inline bool IsLockFree() volatile
         {
             return __atomic_is_lock_free(sizeof(T), &this->InnerValue);
         }
@@ -78,78 +78,78 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Load & Store  */
 
-        __bland inline operator T() const volatile
+        inline operator T() const volatile
         {
             return this->Load();
         }
 
-        __bland inline T operator =(T const val) volatile
+        inline T operator =(T const val) volatile
         {
             this->Store(val);
 
             return val;
         }
-        __bland inline T operator =(T const val)
+        inline T operator =(T const val)
         {
             this->Store(val);
 
             return val;
         }
 
-        __bland inline void Store(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Store(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_store_n(&this->InnerValue, val, (int)mo);
         }
 
-        __bland inline T Load(MemoryOrder const mo = MemoryOrder::SeqCst) const volatile
+        inline T Load(MemoryOrder const mo = MemoryOrder::SeqCst) const volatile
         {
             return __atomic_load_n(&this->InnerValue, (int)mo);
         }
 
-        __bland inline T Xchg(T const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T Xchg(T const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_exchange_n(&this->InnerValue, other, (int)mo);
         }
-        __bland inline void Xchg(T * other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Xchg(T * other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_exchange(&this->InnerValue, other, other, (int)mo);
         }
 
         /*  Compare-Exchange  */
 
-        __bland inline bool CmpXchgWeak(T & expected, T const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        inline bool CmpXchgWeak(T & expected, T const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, true, (int)smo, (int)fmo);
         }
 
-        __bland inline bool CmpXchgStrong(T & expected, T const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        inline bool CmpXchgStrong(T & expected, T const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, false, (int)smo, (int)fmo);
         }
 
-        __bland inline bool CmpXchgWeak(T & expected, T const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool CmpXchgWeak(T & expected, T const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgWeak(expected, desired, mo, mo);
         }
 
-        __bland inline bool CmpXchgStrong(T & expected, T const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool CmpXchgStrong(T & expected, T const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgStrong(expected, desired, mo, mo);
         }
 
         /*  Arithmetic Fetch-Ops  */
 
-        __bland inline T FetchAdd(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T FetchAdd(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_fetch_add(&this->InnerValue, val, (int)mo);
         }
 
-        __bland inline T FetchSub(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T FetchSub(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_fetch_sub(&this->InnerValue, val, (int)mo);
         }
 
-        __bland inline T FetchNeg(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T FetchNeg(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             T tmp = this->Load(mo);
 
@@ -163,22 +163,22 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Logic Fetch-Ops  */
 
-        __bland inline T FetchAnd(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T FetchAnd(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_fetch_and(&this->InnerValue, val, (int)mo);
         }
 
-        __bland inline T FetchOr(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T FetchOr(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_fetch_or(&this->InnerValue, val, (int)mo);
         }
 
-        __bland inline T FetchXor(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T FetchXor(T const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_fetch_xor(&this->InnerValue, val, (int)mo);
         }
 
-        __bland inline T FetchNot(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T FetchNot(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             T tmp = this->Load(mo);
 
@@ -192,42 +192,42 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Arithmetic Op-Fetches  */
 
-        __bland inline T operator +=(T const other) volatile
+        inline T operator +=(T const other) volatile
         {
             return __atomic_add_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T operator -=(T const other) volatile
+        inline T operator -=(T const other) volatile
         {
             return __atomic_sub_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T operator ++() volatile
+        inline T operator ++() volatile
         {   //  Prefix operator.
             return __atomic_add_fetch(&this->InnerValue, 1, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T operator --() volatile
+        inline T operator --() volatile
         {   //  Prefix operator.
             return __atomic_sub_fetch(&this->InnerValue, 1, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T operator ++(int) volatile
+        inline T operator ++(int) volatile
         {   //  Postfix/suffix operator.
             return this->FetchAdd(1);
         }
 
-        __bland inline T operator --(int) volatile
+        inline T operator --(int) volatile
         {   //  Postfix/suffix operator.
             return this->FetchSub(1);
         }
 
-        __bland inline T operator -() const volatile
+        inline T operator -() const volatile
         {   //  Unary minus.
             return -(this->Load());
         }
 
-        __bland inline T NegFetch() volatile
+        inline T NegFetch() volatile
         {
             T tmp = this->Load(MemoryOrder::SeqCst), neg;
 
@@ -241,27 +241,27 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Logic Op-Fetches  */
 
-        __bland inline T operator &=(T const other) volatile
+        inline T operator &=(T const other) volatile
         {
             return __atomic_and_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T operator |=(T const other) volatile
+        inline T operator |=(T const other) volatile
         {
             return __atomic_or_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T operator ^=(T const other) volatile
+        inline T operator ^=(T const other) volatile
         {
             return __atomic_xor_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T operator ~() const volatile
+        inline T operator ~() const volatile
         {
             return -(this->Load());
         }
 
-        __bland inline T NotFetch() volatile
+        inline T NotFetch() volatile
         {
             T tmp = this->Load(MemoryOrder::SeqCst), com;
 
@@ -283,12 +283,12 @@ namespace Beelzebub { namespace Synchronization
     {
         /*  Probing  */
 
-        static __bland inline constexpr bool IsAlwaysLockFree()
+        static inline constexpr bool IsAlwaysLockFree()
         {
             return __atomic_always_lock_free(sizeof(T *), 0);
         }
 
-        __bland inline bool IsLockFree() volatile
+        inline bool IsLockFree() volatile
         {
             return __atomic_is_lock_free(sizeof(T *), &this->InnerValue);
         }
@@ -303,105 +303,105 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Load & Store  */
 
-        __bland inline operator T * () const volatile
+        inline operator T * () const volatile
         {
             return this->Load();
         }
 
-        __bland inline T * operator =(T const * const val) volatile
+        inline T * operator =(T const * const val) volatile
         {
             this->Store(val);
 
             return val;
         }
-        __bland inline T * operator =(T const * const val)
+        inline T * operator =(T const * const val)
         {
             this->Store(val);
 
             return val;
         }
 
-        __bland inline void Store(T const * const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Store(T const * const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_store_n(&this->InnerValue, val, (int)mo);
         }
 
-        __bland inline T * Load(MemoryOrder const mo = MemoryOrder::SeqCst) const volatile
+        inline T * Load(MemoryOrder const mo = MemoryOrder::SeqCst) const volatile
         {
             return __atomic_load_n(&this->InnerValue, (int)mo);
         }
 
-        __bland inline T * Xchg(T const * const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T * Xchg(T const * const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_exchange_n(&this->InnerValue, other, (int)mo);
         }
-        __bland inline void Xchg(T const * * other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Xchg(T const * * other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_exchange(&this->InnerValue, other, other, (int)mo);
         }
 
         /*  Compare-Exchange  */
 
-        __bland inline bool CmpXchgWeak(T const * const & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        inline bool CmpXchgWeak(T const * const & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, true, (int)smo, (int)fmo);
         }
 
-        __bland inline bool CmpXchgStrong(T const * const & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        inline bool CmpXchgStrong(T const * const & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, false, (int)smo, (int)fmo);
         }
 
-        __bland inline bool CmpXchgWeak(T const * const & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool CmpXchgWeak(T const * const & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgWeak(expected, desired, mo, mo);
         }
 
-        __bland inline bool CmpXchgStrong(T const * const & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool CmpXchgStrong(T const * const & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgStrong(expected, desired, mo, mo);
         }
 
         /*  Fetch-Ops  */
 
-        __bland inline T * FetchAdd(ptrdiff_t const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T * FetchAdd(ptrdiff_t const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_fetch_add(&this->InnerValue, val * sizeof(T), (int)mo);
         }
 
-        __bland inline T * FetchSub(ptrdiff_t const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T * FetchSub(ptrdiff_t const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_fetch_sub(&this->InnerValue, val * sizeof(T), (int)mo);
         }
 
         /*  Op-Fetches / Operators  */
 
-        __bland inline T * operator +=(ptrdiff_t const other) volatile
+        inline T * operator +=(ptrdiff_t const other) volatile
         {
             return __atomic_add_fetch(&this->InnerValue, other * sizeof(T), (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T * operator -=(ptrdiff_t const other) volatile
+        inline T * operator -=(ptrdiff_t const other) volatile
         {
             return __atomic_sub_fetch(&this->InnerValue, other * sizeof(T), (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T * operator ++() volatile
+        inline T * operator ++() volatile
         {   //  Prefix operator.
             return __atomic_add_fetch(&this->InnerValue, sizeof(T), (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T * operator --() volatile
+        inline T * operator --() volatile
         {   //  Prefix operator.
             return __atomic_sub_fetch(&this->InnerValue, sizeof(T), (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline T * operator ++(int) volatile
+        inline T * operator ++(int) volatile
         {   //  Postfix/suffix operator.
             return this->FetchAdd(1);
         }
 
-        __bland inline T * operator --(int) volatile
+        inline T * operator --(int) volatile
         {   //  Postfix/suffix operator.
             return this->FetchSub(1);
         }
@@ -416,12 +416,12 @@ namespace Beelzebub { namespace Synchronization
     {
         /*  Probing  */
 
-        static __bland inline constexpr bool IsAlwaysLockFree(void const * const ptr = nullptr)
+        static inline constexpr bool IsAlwaysLockFree(void const * const ptr = nullptr)
         {
             return __atomic_always_lock_free(sizeof(bool), ptr);
         }
 
-        __bland inline bool IsLockFree() volatile
+        inline bool IsLockFree() volatile
         {
             return __atomic_is_lock_free(sizeof(bool), &this->InnerValue);
         }
@@ -436,80 +436,80 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Load & Store  */
 
-        __bland inline operator bool() const volatile
+        inline operator bool() const volatile
         {
             return this->Load();
         }
 
-        __bland inline bool operator =(bool const val) volatile
+        inline bool operator =(bool const val) volatile
         {
             this->Store(val);
 
             return val;
         }
-        __bland inline bool operator =(bool const val)
+        inline bool operator =(bool const val)
         {
             this->Store(val);
 
             return val;
         }
 
-        __bland inline void Store(bool const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Store(bool const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_store_n(&this->InnerValue, val, (int)mo);
         }
 
-        __bland inline bool Load(MemoryOrder const mo = MemoryOrder::SeqCst) const volatile
+        inline bool Load(MemoryOrder const mo = MemoryOrder::SeqCst) const volatile
         {
             return __atomic_load_n(&this->InnerValue, (int)mo);
         }
 
-        __bland inline bool Xchg(bool const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool Xchg(bool const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_exchange_n(&this->InnerValue, other, (int)mo);
         }
-        __bland inline void Xchg(bool * other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Xchg(bool * other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_exchange(&this->InnerValue, other, other, (int)mo);
         }
 
         /*  Compare-Exchange  */
 
-        __bland inline bool CmpXchgWeak(bool & expected, bool const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        inline bool CmpXchgWeak(bool & expected, bool const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, true, (int)smo, (int)fmo);
         }
 
-        __bland inline bool CmpXchgStrong(bool & expected, bool const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        inline bool CmpXchgStrong(bool & expected, bool const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, false, (int)smo, (int)fmo);
         }
 
-        __bland inline bool CmpXchgWeak(bool & expected, bool const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool CmpXchgWeak(bool & expected, bool const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgWeak(expected, desired, mo, mo);
         }
 
-        __bland inline bool CmpXchgStrong(bool & expected, bool const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool CmpXchgStrong(bool & expected, bool const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgStrong(expected, desired, mo, mo);
         }
 
         /*  Specific Operations  */
 
-        __bland inline bool TestSet(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool TestSet(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_test_and_set(&this->InnerValue, (int)mo);
         }
 
-        __bland inline void Clear(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Clear(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_clear(&this->InnerValue, (int)mo);
         }
 
         /*  Logical Fetch-Ops  */
 
-        __bland inline bool FetchNot(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool FetchNot(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_fetch_xor(&this->InnerValue, true, (int)mo);
             //  If your booleans are anything but the compiler's definition of true or false,
@@ -518,22 +518,22 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Logical Op-Fetches  */
 
-        __bland inline bool operator &=(bool const other) volatile
+        inline bool operator &=(bool const other) volatile
         {
             return __atomic_and_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline bool operator |=(bool const other) volatile
+        inline bool operator |=(bool const other) volatile
         {
             return __atomic_or_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
         }
 
-        __bland inline bool operator !() const volatile
+        inline bool operator !() const volatile
         {
             return !(this->Load());
         }
 
-        __bland inline bool NotFetch(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool NotFetch(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_xor_fetch(&this->InnerValue, true, (int)mo);
             //  If your booleans are anything but the compiler's definition of true or false,

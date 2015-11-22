@@ -115,7 +115,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure from the given MSR value.
          */
-        __bland inline explicit Ia32Efer(MsrValue const val)
+        inline explicit Ia32Efer(MsrValue const val)
         {
             this->Value = val.Qword;
         }
@@ -123,7 +123,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure from the given raw value.
          */
-        __bland inline explicit Ia32Efer(uint64_t const val)
+        inline explicit Ia32Efer(uint64_t const val)
         {
             this->Value = val;
         }
@@ -131,7 +131,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_EFER structure with the given flags.
          */
-        __bland inline Ia32Efer(bool const syscallEnable
+        inline Ia32Efer(bool const syscallEnable
                                      , bool const longModeEnable
                                      , bool const nonExecuteEnable)
         {
@@ -179,7 +179,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_APIC_BASE structure from the given MSR value.
          */
-        __bland inline explicit Ia32ApicBase(MsrValue const val)
+        inline explicit Ia32ApicBase(MsrValue const val)
         {
             this->Value = val.Qword;
         }
@@ -187,7 +187,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_APIC_BASE structure from the given raw value.
          */
-        __bland inline explicit Ia32ApicBase(uint64_t const val)
+        inline explicit Ia32ApicBase(uint64_t const val)
         {
             this->Value = val;
         }

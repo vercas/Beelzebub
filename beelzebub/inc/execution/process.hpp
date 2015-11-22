@@ -55,7 +55,7 @@ namespace Beelzebub { namespace Execution
 
         /*  Constructors  */
 
-        __bland inline Process()
+        inline Process()
             : Memory( nullptr)
         {
 
@@ -64,7 +64,7 @@ namespace Beelzebub { namespace Execution
         Process(Process const &) = delete;
         Process & operator =(Process const &) = delete;
 
-        __bland inline Process(MemoryManager * const memory)
+        inline Process(MemoryManager * const memory)
             : Memory( memory)
         {
 
@@ -72,7 +72,7 @@ namespace Beelzebub { namespace Execution
 
         /*  Operations  */
 
-        __hot __bland Handle SwitchTo(Process * const other);
+        __hot Handle SwitchTo(Process * const other);
 
         /*  Stack  */
 

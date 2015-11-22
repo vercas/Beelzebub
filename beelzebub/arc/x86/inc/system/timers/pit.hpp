@@ -75,7 +75,7 @@ namespace Beelzebub { namespace System { namespace Timers
         /**
          *  <summary>Creates a null PIT command register structure.</summary>
          */
-        __bland inline constexpr PitCommand() : Value(0) { }
+        inline constexpr PitCommand() : Value(0) { }
 
         /**
          *  <summary>
@@ -83,7 +83,7 @@ namespace Beelzebub { namespace System { namespace Timers
          *  value.
          *  </summary>
          */
-        __bland inline explicit constexpr PitCommand(uint8_t const val)
+        inline explicit constexpr PitCommand(uint8_t const val)
             : Value(val)
         {
             
@@ -120,7 +120,7 @@ namespace Beelzebub { namespace System { namespace Timers
 
         /*  IRQ Handler  */
 
-        static __bland void IrqHandler(INTERRUPT_HANDLER_ARGS);
+        static void IrqHandler(INTERRUPT_HANDLER_ARGS);
 
         /*  Constructor(s)  */
 
@@ -133,13 +133,13 @@ namespace Beelzebub { namespace System { namespace Timers
 
         /*  Initialization  */
 
-        static __cold __bland void SetFrequency(uint32_t & freq);
+        static __cold void SetFrequency(uint32_t & freq);
 
-        static __cold __bland void SendCommand(PitCommand const cmd);
+        static __cold void SendCommand(PitCommand const cmd);
 
         /*  Utilities  */
 
-        static __bland inline DividerFrequency GetRealFrequency(uint32_t freq)
+        static inline DividerFrequency GetRealFrequency(uint32_t freq)
         {
             uint32_t ret;
 

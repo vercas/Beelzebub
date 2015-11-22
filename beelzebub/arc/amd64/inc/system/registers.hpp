@@ -83,7 +83,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new CR0 structure from the given raw value.
          */
-        __bland __forceinline Cr0(uint64_t const val)
+        __forceinline Cr0(uint64_t const val)
         {
             this->Value = val;
         }
@@ -91,7 +91,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new CR0 structure with the given flags.
          */
-        __bland __forceinline Cr0(bool const protectedModeEnable
+        __forceinline Cr0(bool const protectedModeEnable
                                 , bool const monitorCoprocessor
                                 , bool const emulation
                                 , bool const taskSwitched
@@ -155,7 +155,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new CR3 structure from the given raw value.
          */
-        __bland inline Cr3(uint64_t const val)
+        inline Cr3(uint64_t const val)
             : Value(val)
         {
             
@@ -164,7 +164,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new CR3 structure for use with PCID disabled.
          */
-        __bland __forceinline Cr3(paddr_t const paddr, bool const PWT, bool const PCD)
+        __forceinline Cr3(paddr_t const paddr, bool const PWT, bool const PCD)
             : Value(((uint64_t)paddr & AddressBits)
                   | (PWT ? PwtBit : 0)
                   | (PCD ? PcdBit : 0))
@@ -175,7 +175,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new CR3 structure for use with PCID enabled.
          */
-        __bland __forceinline Cr3(paddr_t const paddr, Handle const process)
+        __forceinline Cr3(paddr_t const paddr, Handle const process)
             : Value(((uint64_t)paddr    & AddressBits)
                   | (process.GetIndex() & PcidBits   ))
         {
@@ -187,14 +187,14 @@ namespace Beelzebub { namespace System
         /**
          *  Gets the physical address of the PML4 table.
          */
-        __bland __forceinline Memory::Pml4 * GetPml4Ptr() const
+        __forceinline Memory::Pml4 * GetPml4Ptr() const
         {
             return (Memory::Pml4 *)(this->Value & AddressBits);
         }
         /**
          *  Sets the physical address of the PML4 table.
          */
-        __bland __forceinline void SetPml4Ptr(Memory::Pml4 const * const paddr)
+        __forceinline void SetPml4Ptr(Memory::Pml4 const * const paddr)
         {
             this->Value = ((uint64_t)paddr       &  AddressBits)
                         | (          this->Value & ~AddressBits);
@@ -203,14 +203,14 @@ namespace Beelzebub { namespace System
         /**
          *  Gets the physical address of the PML4 table.
          */
-        __bland __forceinline paddr_t GetAddress() const
+        __forceinline paddr_t GetAddress() const
         {
             return (paddr_t)(this->Value & AddressBits);
         }
         /**
          *  Sets the physical address of the PML4 table.
          */
-        __bland __forceinline void SetAddress(paddr_t const paddr)
+        __forceinline void SetAddress(paddr_t const paddr)
         {
             this->Value = ((uint64_t)paddr       &  AddressBits)
                         | (          this->Value & ~AddressBits);
@@ -221,7 +221,7 @@ namespace Beelzebub { namespace System
         /**
          *  Gets the process ID according to the PCID value.
          */
-        __bland __forceinline Handle GetProcess() const
+        __forceinline Handle GetProcess() const
         {
             //  TODO: Construct proper handles here!
 
@@ -230,7 +230,7 @@ namespace Beelzebub { namespace System
         /**
          *  Sets the PCID value from the given process.
          */
-        __bland __forceinline void SetProcess(Handle const process)
+        __forceinline void SetProcess(Handle const process)
         {
             //  TODO: Check whether the handle is correct or not.
 
@@ -241,7 +241,7 @@ namespace Beelzebub { namespace System
         /**
          *  Gets the PCID value.
          */
-        __bland __forceinline uint64_t GetPcid() const
+        __forceinline uint64_t GetPcid() const
         {
             //  TODO: Construct proper handles here!
 
@@ -250,7 +250,7 @@ namespace Beelzebub { namespace System
         /**
          *  Sets the PCID value.
          */
-        __bland __forceinline void SetPcid(uint64_t const pcid)
+        __forceinline void SetPcid(uint64_t const pcid)
         {
             //  TODO: Check whether the handle is correct or not.
 

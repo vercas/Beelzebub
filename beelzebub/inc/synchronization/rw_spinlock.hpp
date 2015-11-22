@@ -52,7 +52,7 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Constructor(s)  */
 
-        __bland inline RwSpinlock()
+        inline RwSpinlock()
             : ReaderCount( 0)
 #if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
             , Lock(false)
@@ -71,7 +71,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Acquires the lock as a reader.</summary>
          */
-        __bland __forceinline void AcquireAsReader() volatile
+        __forceinline void AcquireAsReader() volatile
         {
             this->ReaderCount = 1;
         }
@@ -79,7 +79,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Acquires the lock as the writer.</summary>
          */
-        __bland __forceinline void AcquireAsWriter() volatile
+        __forceinline void AcquireAsWriter() volatile
         {
             //  Nuthin'.
         }
@@ -87,7 +87,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Upgrades a reader to the writer.</summary>
          */
-        __bland __forceinline bool UpgradeToWriter() volatile
+        __forceinline bool UpgradeToWriter() volatile
         {
             this->ReaderCount = 0;
 
@@ -99,7 +99,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Releases the lock as a reader.</summary>
          */
-        __bland __forceinline void ReleaseAsReader() volatile
+        __forceinline void ReleaseAsReader() volatile
         {
             this->ReaderCount = 0;
         }
@@ -107,7 +107,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Releases the lock as the writer.</summary>
          */
-        __bland __forceinline void ReleaseAsWriter() volatile
+        __forceinline void ReleaseAsWriter() volatile
         {
             //  Nuthin'.
         }
@@ -115,7 +115,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Downgrades the writer to a reader.</summary>
          */
-        __bland __forceinline void DowngradeToReader() volatile
+        __forceinline void DowngradeToReader() volatile
         {
             this->ReaderCount = 1;
         }
@@ -126,7 +126,7 @@ namespace Beelzebub { namespace Synchronization
          *  Gets the number of active readers.</summary>
          *  <return>The number of active readers.</return>
          */
-        __bland __forceinline __must_check size_t GetReaderCount() const volatile
+        __forceinline __must_check size_t GetReaderCount() const volatile
         {
             return (size_t)this->ReaderCount;
         }
@@ -144,7 +144,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Acquires the lock as a reader.</summary>
          */
-        __bland inline void AcquireAsReader() volatile
+        inline void AcquireAsReader() volatile
         {
             while (this->Lock.TestSet())
                 System::CpuInstructions::DoNothing();
@@ -160,7 +160,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Acquires the lock as the writer.</summary>
          */
-        __bland inline void AcquireAsWriter() volatile
+        inline void AcquireAsWriter() volatile
         {
             while (this->Lock.TestSet())
                 System::CpuInstructions::DoNothing();
@@ -174,7 +174,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Upgrades a reader to the writer.</summary>
          */
-        __bland inline bool UpgradeToWriter() volatile
+        inline bool UpgradeToWriter() volatile
         {
             if (this->Lock.TestSet())
             {
@@ -203,7 +203,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Releases the lock as a reader.</summary>
          */
-        __bland inline void ReleaseAsReader() volatile
+        inline void ReleaseAsReader() volatile
         {
             --this->ReaderCount;
             //  Remove reader.
@@ -214,7 +214,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Releases the lock as the writer.</summary>
          */
-        __bland inline void ReleaseAsWriter() volatile
+        inline void ReleaseAsWriter() volatile
         {
             this->Lock.Clear();
             //  Unlock.
@@ -225,7 +225,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  <summary>Downgrades the writer to a reader.</summary>
          */
-        __bland inline void DowngradeToReader() volatile
+        inline void DowngradeToReader() volatile
         {
             ++this->ReaderCount;
             //  Add reader.
@@ -242,7 +242,7 @@ namespace Beelzebub { namespace Synchronization
          *  Gets the number of active readers.</summary>
          *  <return>The number of active readers.</return>
          */
-        __bland __forceinline __must_check size_t GetReaderCount() const volatile
+        __forceinline __must_check size_t GetReaderCount() const volatile
         {
             return this->ReaderCount.Load();
         }

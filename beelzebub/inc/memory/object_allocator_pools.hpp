@@ -81,7 +81,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Constructors  */
 
-        __bland inline ObjectPoolBase()
+        inline ObjectPoolBase()
             : FreeCount( 0)
             , Capacity(0)
             , FirstFreeObject(obj_ind_invalid)
@@ -97,13 +97,13 @@ namespace Beelzebub { namespace Memory
 
         /*  Methods  */
 
-        __bland inline bool Contains(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
+        inline bool Contains(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
         {
             uintptr_t start = ((uintptr_t)this) + headerSize;
             return object >= start && object <= (start + (this->Capacity - 1) * objectSize);
         }
 
-        __bland inline bool Contains(const uintptr_t object, obj_ind_t & ind, const size_t objectSize, const size_t headerSize) const
+        inline bool Contains(const uintptr_t object, obj_ind_t & ind, const size_t objectSize, const size_t headerSize) const
         {
             uintptr_t const start = ((uintptr_t)this) + headerSize;
 
@@ -122,16 +122,16 @@ namespace Beelzebub { namespace Memory
             return false;
         }
 
-        __bland inline obj_ind_t IndexOf(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
+        inline obj_ind_t IndexOf(const uintptr_t object, const size_t objectSize, const size_t headerSize) const
         {
             return (obj_ind_t)((object - headerSize - ((uintptr_t)this)) / objectSize);
         }
 
-        __bland inline FreeObject * GetFirstFreeObject(const size_t objectSize, const size_t headerSize) const
+        inline FreeObject * GetFirstFreeObject(const size_t objectSize, const size_t headerSize) const
         {
             return (FreeObject *)(uintptr_t)((uintptr_t)this + headerSize + this->FirstFreeObject * objectSize);
         }
-        __bland inline FreeObject * GetLastFreeObject(const size_t objectSize, const size_t headerSize) const
+        inline FreeObject * GetLastFreeObject(const size_t objectSize, const size_t headerSize) const
         {
             return (FreeObject *)(uintptr_t)((uintptr_t)this + headerSize + this->LastFreeObject * objectSize);
         }

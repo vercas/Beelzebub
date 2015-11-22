@@ -61,19 +61,19 @@ namespace Beelzebub { namespace System
 
         static bool const CanHalt = true;
 
-        static __bland __forceinline void Halt()
+        static __forceinline void Halt()
         {
             asm volatile ( "hlt \n\t" : : : "memory" );
         }
 
-        static __bland __forceinline void DoNothing()
+        static __forceinline void DoNothing()
         {
             asm volatile ( "pause \n\t" : : : "memory" );
         }
 
         /*  Caching  */
 
-        static __bland __forceinline void WriteBackAndInvalidateCache()
+        static __forceinline void WriteBackAndInvalidateCache()
         {
             asm volatile ( "wbinvd \n\t" : : : "memory" );
         }
@@ -81,7 +81,7 @@ namespace Beelzebub { namespace System
         /*  Profiling  */
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-        static __bland __forceinline uint64_t Rdtsc()
+        static __forceinline uint64_t Rdtsc()
         {
             uint64_t low, high;
 
@@ -90,7 +90,7 @@ namespace Beelzebub { namespace System
             return (high << 32) | low;
         }
 #else
-        static __bland __forceinline uint64_t Rdtsc()
+        static __forceinline uint64_t Rdtsc()
         {
             uint64_t res;
 
@@ -102,7 +102,7 @@ namespace Beelzebub { namespace System
 
         /*  Far memory ops  */
 
-        static __bland __forceinline uint8_t FsGet8(const uintptr_t off)
+        static __forceinline uint8_t FsGet8(const uintptr_t off)
         {
             uint8_t ret;
 
@@ -112,7 +112,7 @@ namespace Beelzebub { namespace System
 
             return ret;
         }
-        static __bland __forceinline uint8_t FsSet8(const uintptr_t off, const uint8_t val)
+        static __forceinline uint8_t FsSet8(const uintptr_t off, const uint8_t val)
         {
             asm volatile ( "movb %0, %%fs:(%1) \n\t"
                          :
@@ -122,7 +122,7 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uint8_t GsGet8(const uintptr_t off)
+        static __forceinline uint8_t GsGet8(const uintptr_t off)
         {
             uint8_t ret;
 
@@ -132,7 +132,7 @@ namespace Beelzebub { namespace System
 
             return ret;
         }
-        static __bland __forceinline uint8_t GsSet8(const uintptr_t off, const uint8_t val)
+        static __forceinline uint8_t GsSet8(const uintptr_t off, const uint8_t val)
         {
             asm volatile ( "movb %0, %%gs:(%1) \n\t"
                          :
@@ -142,7 +142,7 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uint16_t FsGet16(const uintptr_t off)
+        static __forceinline uint16_t FsGet16(const uintptr_t off)
         {
             uint16_t ret;
 
@@ -152,7 +152,7 @@ namespace Beelzebub { namespace System
 
             return ret;
         }
-        static __bland __forceinline uint16_t FsSet16(const uintptr_t off, const uint16_t val)
+        static __forceinline uint16_t FsSet16(const uintptr_t off, const uint16_t val)
         {
             asm volatile ( "movw %0, %%fs:(%1) \n\t"
                          :
@@ -162,7 +162,7 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uint16_t GsGet16(const uintptr_t off)
+        static __forceinline uint16_t GsGet16(const uintptr_t off)
         {
             uint16_t ret;
 
@@ -172,7 +172,7 @@ namespace Beelzebub { namespace System
 
             return ret;
         }
-        static __bland __forceinline uint16_t GsSet16(const uintptr_t off, const uint16_t val)
+        static __forceinline uint16_t GsSet16(const uintptr_t off, const uint16_t val)
         {
             asm volatile ( "movw %0, %%gs:(%1) \n\t"
                          :
@@ -182,7 +182,7 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uint32_t FsGet32(const uintptr_t off)
+        static __forceinline uint32_t FsGet32(const uintptr_t off)
         {
             uint32_t ret;
 
@@ -192,7 +192,7 @@ namespace Beelzebub { namespace System
 
             return ret;
         }
-        static __bland __forceinline uint32_t FsSet32(const uintptr_t off, const uint32_t val)
+        static __forceinline uint32_t FsSet32(const uintptr_t off, const uint32_t val)
         {
             asm volatile ( "movl %0, %%fs:(%1) \n\t"
                          :
@@ -202,7 +202,7 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uint32_t GsGet32(const uintptr_t off)
+        static __forceinline uint32_t GsGet32(const uintptr_t off)
         {
             uint32_t ret;
 
@@ -212,7 +212,7 @@ namespace Beelzebub { namespace System
 
             return ret;
         }
-        static __bland __forceinline uint32_t GsSet32(const uintptr_t off, const uint32_t val)
+        static __forceinline uint32_t GsSet32(const uintptr_t off, const uint32_t val)
         {
             asm volatile ( "movl %0, %%gs:(%1) \n\t"
                          :
@@ -223,7 +223,7 @@ namespace Beelzebub { namespace System
         }
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-        static __bland __forceinline uint64_t FsGet64(const uintptr_t off)
+        static __forceinline uint64_t FsGet64(const uintptr_t off)
         {
             uint64_t ret;
 
@@ -233,7 +233,7 @@ namespace Beelzebub { namespace System
 
             return ret;
         }
-        static __bland __forceinline uint64_t FsSet64(const uintptr_t off, const uint64_t val)
+        static __forceinline uint64_t FsSet64(const uintptr_t off, const uint64_t val)
         {
             asm volatile ( "movq %0, %%fs:(%1) \n\t"
                          :
@@ -243,7 +243,7 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uint64_t GsGet64(const uintptr_t off)
+        static __forceinline uint64_t GsGet64(const uintptr_t off)
         {
             uint64_t ret;
 
@@ -253,7 +253,7 @@ namespace Beelzebub { namespace System
 
             return ret;
         }
-        static __bland __forceinline uint64_t GsSet64(const uintptr_t off, const uint64_t val)
+        static __forceinline uint64_t GsSet64(const uintptr_t off, const uint64_t val)
         {
             asm volatile ( "movq %0, %%gs:(%1) \n\t"
                          :
@@ -263,17 +263,17 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uintptr_t FsGetPointer(uintptr_t const off                     ) { return (uintptr_t)FsGet64(off     ); }
-        static __bland __forceinline uintptr_t FsSetPointer(uintptr_t const off, uintptr_t const val) { return (uintptr_t)FsSet64(off, val); }
-        static __bland __forceinline uintptr_t GsGetPointer(uintptr_t const off                     ) { return (uintptr_t)GsGet64(off     ); }
-        static __bland __forceinline uintptr_t GsSetPointer(uintptr_t const off, uintptr_t const val) { return (uintptr_t)GsSet64(off, val); }
-        static __bland __forceinline    size_t FsGetSize(uintptr_t const off                     )    { return (   size_t)FsGet64(off     ); }
-        static __bland __forceinline    size_t FsSetSize(uintptr_t const off,    size_t const val)    { return (   size_t)FsSet64(off, val); }
-        static __bland __forceinline    size_t GsGetSize(uintptr_t const off                     )    { return (   size_t)GsGet64(off     ); }
-        static __bland __forceinline    size_t GsSetSize(uintptr_t const off,    size_t const val)    { return (   size_t)GsSet64(off, val); }
+        static __forceinline uintptr_t FsGetPointer(uintptr_t const off                     ) { return (uintptr_t)FsGet64(off     ); }
+        static __forceinline uintptr_t FsSetPointer(uintptr_t const off, uintptr_t const val) { return (uintptr_t)FsSet64(off, val); }
+        static __forceinline uintptr_t GsGetPointer(uintptr_t const off                     ) { return (uintptr_t)GsGet64(off     ); }
+        static __forceinline uintptr_t GsSetPointer(uintptr_t const off, uintptr_t const val) { return (uintptr_t)GsSet64(off, val); }
+        static __forceinline    size_t FsGetSize(uintptr_t const off                     )    { return (   size_t)FsGet64(off     ); }
+        static __forceinline    size_t FsSetSize(uintptr_t const off,    size_t const val)    { return (   size_t)FsSet64(off, val); }
+        static __forceinline    size_t GsGetSize(uintptr_t const off                     )    { return (   size_t)GsGet64(off     ); }
+        static __forceinline    size_t GsSetSize(uintptr_t const off,    size_t const val)    { return (   size_t)GsSet64(off, val); }
 
 #else
-        static __bland __forceinline uint64_t FsGet64(const uintptr_t off)
+        static __forceinline uint64_t FsGet64(const uintptr_t off)
         {
             uint32_t low;
             uint32_t high;
@@ -285,7 +285,7 @@ namespace Beelzebub { namespace System
 
             return ((uint64_t)high << 32) | (uint64_t)low;
         }
-        static __bland __forceinline uint64_t FsSet64(const uintptr_t off, const uint64_t val)
+        static __forceinline uint64_t FsSet64(const uintptr_t off, const uint64_t val)
         {
             asm volatile ( "movl %0, %%fs:(%2    ) \n\t"
                            "movl %1, %%fs:(%2 + 4) \n\t"
@@ -298,7 +298,7 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uint64_t GsGet64(const uintptr_t off)
+        static __forceinline uint64_t GsGet64(const uintptr_t off)
         {
             uint32_t low;
             uint32_t high;
@@ -310,7 +310,7 @@ namespace Beelzebub { namespace System
 
             return ((uint64_t)high << 32) | (uint64_t)low;
         }
-        static __bland __forceinline uint64_t GsSet64(const uintptr_t off, const uint64_t val)
+        static __forceinline uint64_t GsSet64(const uintptr_t off, const uint64_t val)
         {
             asm volatile ( "movl %0, %%gs:(%2    ) \n\t"
                            "movl %1, %%gs:(%2 + 4) \n\t"
@@ -323,18 +323,18 @@ namespace Beelzebub { namespace System
             return val;
         }
 
-        static __bland __forceinline uintptr_t FsGetPointer(uintptr_t const off                     ) { return (uintptr_t)FsGet32(off     ); }
-        static __bland __forceinline uintptr_t FsSetPointer(uintptr_t const off, uintptr_t const val) { return (uintptr_t)FsSet32(off, val); }
-        static __bland __forceinline uintptr_t GsGetPointer(uintptr_t const off                     ) { return (uintptr_t)GsGet32(off     ); }
-        static __bland __forceinline uintptr_t GsSetPointer(uintptr_t const off, uintptr_t const val) { return (uintptr_t)GsSet32(off, val); }
-        static __bland __forceinline    size_t FsGetSize(uintptr_t const off                     )    { return (   size_t)FsGet32(off     ); }
-        static __bland __forceinline    size_t FsSetSize(uintptr_t const off,    size_t const val)    { return (   size_t)FsSet32(off, val); }
-        static __bland __forceinline    size_t GsGetSize(uintptr_t const off                     )    { return (   size_t)GsGet32(off     ); }
-        static __bland __forceinline    size_t GsSetSize(uintptr_t const off,    size_t const val)    { return (   size_t)GsSet32(off, val); }
+        static __forceinline uintptr_t FsGetPointer(uintptr_t const off                     ) { return (uintptr_t)FsGet32(off     ); }
+        static __forceinline uintptr_t FsSetPointer(uintptr_t const off, uintptr_t const val) { return (uintptr_t)FsSet32(off, val); }
+        static __forceinline uintptr_t GsGetPointer(uintptr_t const off                     ) { return (uintptr_t)GsGet32(off     ); }
+        static __forceinline uintptr_t GsSetPointer(uintptr_t const off, uintptr_t const val) { return (uintptr_t)GsSet32(off, val); }
+        static __forceinline    size_t FsGetSize(uintptr_t const off                     )    { return (   size_t)FsGet32(off     ); }
+        static __forceinline    size_t FsSetSize(uintptr_t const off,    size_t const val)    { return (   size_t)FsSet32(off, val); }
+        static __forceinline    size_t GsGetSize(uintptr_t const off                     )    { return (   size_t)GsGet32(off     ); }
+        static __forceinline    size_t GsSetSize(uintptr_t const off,    size_t const val)    { return (   size_t)GsSet32(off, val); }
 
 #endif
 
-        static __bland __forceinline uint32_t FarGet32(const uint16_t sel
+        static __forceinline uint32_t FarGet32(const uint16_t sel
                                                      , const uintptr_t off)
         {
             uint32_t ret;
@@ -351,7 +351,7 @@ namespace Beelzebub { namespace System
 
         /*  Interrupts  */
 
-        static __bland __forceinline void LIDT(const uintptr_t base, const uint16_t size)
+        static __forceinline void LIDT(const uintptr_t base, const uint16_t size)
         {
             struct
             {

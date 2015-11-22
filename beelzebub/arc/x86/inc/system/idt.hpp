@@ -93,12 +93,12 @@ namespace Beelzebub { namespace System
 
         /*  Load & Store  */
 
-        __bland inline void Activate()
+        inline void Activate()
         {
             asm volatile ( "lidt (%[ptr]) \n\t" : : [ptr]"r"(this) );
         }
 
-        static __bland inline IdtRegister Retrieve()
+        static inline IdtRegister Retrieve()
         {
             IdtRegister res;
 

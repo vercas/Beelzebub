@@ -59,20 +59,20 @@ namespace Beelzebub { namespace Terminals
 
 		/*  Constructors  */
 
-		__bland VbeTerminal() : TerminalBase( nullptr ), VideoMemory((uintptr_t)nullptr) { }
-        __bland VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32_t pit, uint8_t bytesPerPixel);
+		VbeTerminal() : TerminalBase( nullptr ), VideoMemory((uintptr_t)nullptr) { }
+        VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32_t pit, uint8_t bytesPerPixel);
 
 		/*  Writing  */
 
-        static __hot __bland __noinline TerminalWriteResult WriteCharAtXy(TerminalBase * const term, const char c, const int16_t cx, const int16_t cy);
+        static __hot __noinline TerminalWriteResult WriteCharAtXy(TerminalBase * const term, const char c, const int16_t cx, const int16_t cy);
 
         /*  Positioning  */
 
-        static __bland TerminalCoordinates VbeGetSize(TerminalBase * const term);
+        static TerminalCoordinates VbeGetSize(TerminalBase * const term);
 
         /*  Remapping  */
 
-        __cold __bland void RemapMemory(uintptr_t newAddr);
+        __cold void RemapMemory(uintptr_t newAddr);
 
 	//private:
 

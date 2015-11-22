@@ -47,7 +47,7 @@
 
 //  Creates the functions necessary for operating a spinlock over an entry.
 #define SPINLOCK(name, bit)                                  \
-__bland __forceinline bool MCATS2(TryAcquire, name)()        \
+__forceinline bool MCATS2(TryAcquire, name)()        \
 {                                                            \
     bool res = 0;                                            \
                                                              \
@@ -59,33 +59,33 @@ __bland __forceinline bool MCATS2(TryAcquire, name)()        \
                                                              \
     return res;                                              \
 }                                                            \
-__bland __forceinline void MCATS2(Spin, name)()              \
+__forceinline void MCATS2(Spin, name)()              \
 {                                                            \
     do                                                       \
     {                                                        \
         asm volatile ("pause");                              \
     } while (!this->MCATS2(Check, name)());                  \
 }                                                            \
-__bland __forceinline void MCATS2(Await, name)()             \
+__forceinline void MCATS2(Await, name)()             \
 {                                                            \
     while (!this->MCATS2(Check, name)())                     \
     {                                                        \
         asm volatile ("pause");                              \
     }                                                        \
 }                                                            \
-__bland __forceinline void MCATS2(Acquire, name)()           \
+__forceinline void MCATS2(Acquire, name)()           \
 {                                                            \
     while (!this->MCATS2(TryAcquire, name)())                \
         this->MCATS2(Spin, name)();                          \
 }                                                            \
-__bland __forceinline void MCATS2(Release, name)()           \
+__forceinline void MCATS2(Release, name)()           \
 {                                                            \
     asm volatile ("lock btrq $" #bit ", %[val] \n\t"         \
                  :                                           \
                  : [val] "m" (this->Value)                   \
                  : "cc");                                    \
 }                                                            \
-__bland __forceinline bool MCATS2(Check, name)()             \
+__forceinline bool MCATS2(Check, name)()             \
 {                                                            \
     return 0 == (this->Value & (1 << bit));                  \
     /*  A simple AND operation works very well here.  */     \
@@ -134,12 +134,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates an empty PML1 (PT) entry structure.
          */
-        __bland inline Pml1Entry() : Value( 0ULL ) { }
+        inline Pml1Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
          */
-        __bland inline Pml1Entry(const paddr_t paddr
+        inline Pml1Entry(const paddr_t paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -158,7 +158,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
          */
-        __bland inline Pml1Entry(const paddr_t paddr
+        inline Pml1Entry(const paddr_t paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -186,7 +186,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        __bland inline bool IsNull()
+        inline bool IsNull()
         {
             return (this->GetAddress() == nullpaddr) && !this->GetPresent();
         }
@@ -225,7 +225,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entrry at a given index.
          */
-        __bland inline Pml1Entry & operator [](uint16_t const ind)
+        inline Pml1Entry & operator [](uint16_t const ind)
         {
             return this->Entries[ind];
         }
@@ -233,7 +233,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland inline Pml1Entry & operator [](vaddrptr_t const vaddr)
+        inline Pml1Entry & operator [](vaddrptr_t const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
@@ -311,12 +311,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates an empty PML2 (PD) entry structure.
          */
-        __bland inline Pml2Entry() : Value( 0ULL ) { }
+        inline Pml2Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
-        __bland inline Pml2Entry(const paddr_t pml1_paddr
+        inline Pml2Entry(const paddr_t pml1_paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -333,7 +333,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
-        __bland inline Pml2Entry(const paddr_t pml1_paddr
+        inline Pml2Entry(const paddr_t pml1_paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -356,7 +356,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML2 (PD) entry structure that maps a 2-MiB page.
          */
-        __bland inline Pml2Entry(const paddr_t paddr
+        inline Pml2Entry(const paddr_t paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -376,7 +376,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML2 (PD) entry structure that maps a 2-MiB page.
          */
-        __bland inline Pml2Entry(const paddr_t paddr
+        inline Pml2Entry(const paddr_t paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -405,7 +405,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        __bland inline bool IsNull()
+        inline bool IsNull()
         {
             return (this->GetPml1Address() == nullpaddr) && !this->GetPresent();
         }
@@ -444,7 +444,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entrry at a given index.
          */
-        __bland inline Pml2Entry & operator [](uint16_t const ind)
+        inline Pml2Entry & operator [](uint16_t const ind)
         {
             return this->Entries[ind];
         }
@@ -452,7 +452,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland inline Pml2Entry & operator [](vaddrptr_t const vaddr)
+        inline Pml2Entry & operator [](vaddrptr_t const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
@@ -530,12 +530,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates an empty PML3 (PDPT) entry structure.
          */
-        __bland inline Pml3Entry() : Value( 0ULL ) { }
+        inline Pml3Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML3 entry structure that points to a PML2 table.
          */
-        __bland inline Pml3Entry(const paddr_t pml2_paddr
+        inline Pml3Entry(const paddr_t pml2_paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -552,7 +552,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML3 entry structure that points to a PML2 table.
          */
-        __bland inline Pml3Entry(const paddr_t pml2_paddr
+        inline Pml3Entry(const paddr_t pml2_paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -575,7 +575,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML3 entry structure that points to a 1-GiB page.
          */
-        __bland inline Pml3Entry(const paddr_t paddr
+        inline Pml3Entry(const paddr_t paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -595,7 +595,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML3 entry structure that points to a 1-GiB page.
          */
-        __bland inline Pml3Entry(const paddr_t paddr
+        inline Pml3Entry(const paddr_t paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -624,7 +624,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        __bland inline bool IsNull()
+        inline bool IsNull()
         {
             return (this->GetPml2Address() == nullpaddr) && !this->GetPresent();
         }
@@ -663,7 +663,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entrry at a given index.
          */
-        __bland inline Pml3Entry & operator [](uint16_t const ind)
+        inline Pml3Entry & operator [](uint16_t const ind)
         {
             return this->Entries[ind];
         }
@@ -671,7 +671,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland inline Pml3Entry & operator [](vaddrptr_t const vaddr)
+        inline Pml3Entry & operator [](vaddrptr_t const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
@@ -726,12 +726,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates an empty PML4 (PT) entry structure.
          */
-        __bland inline Pml4Entry() : Value( 0ULL ) { }
+        inline Pml4Entry() : Value( 0ULL ) { }
 
         /**
          *  Creates a new PML4 entry structure that points to a PML3 table.
          */
-        __bland inline Pml4Entry(const paddr_t pml3_paddr
+        inline Pml4Entry(const paddr_t pml3_paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -748,7 +748,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML4 entry structure that points to a PML3 table.
          */
-        __bland inline Pml4Entry(const paddr_t pml3_paddr
+        inline Pml4Entry(const paddr_t pml3_paddr
                                , const bool    present
                                , const bool    writable
                                , const bool    userAccessible
@@ -770,7 +770,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        __bland inline bool IsNull()
+        inline bool IsNull()
         {
             return (this->GetPml3Address() == nullpaddr) && !this->GetPresent();
         }
@@ -808,7 +808,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entrry at a given index.
          */
-        __bland inline Pml4Entry & operator [](uint16_t const ind)
+        inline Pml4Entry & operator [](uint16_t const ind)
         {
             return this->Entries[ind];
         }
@@ -816,7 +816,7 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        __bland inline Pml4Entry & operator [](vaddrptr_t const vaddr)
+        inline Pml4Entry & operator [](vaddrptr_t const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...

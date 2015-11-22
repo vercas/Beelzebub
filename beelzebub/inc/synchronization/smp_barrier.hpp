@@ -65,7 +65,7 @@ namespace Beelzebub { namespace Synchronization
          *  Resets the barrier, so it will open when the specified number
          *  of cores reach it.
          */
-        __bland __forceinline void Reset(size_t const coreCount = 1) volatile
+        __forceinline void Reset(size_t const coreCount = 1) volatile
         {
             this->Value = 1;
         }
@@ -73,7 +73,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Reach the barrier, awaiting for other cores if necessary.
          */
-        __bland __forceinline void Reach() volatile
+        __forceinline void Reach() volatile
         {
             this->Value = 0;
         }
@@ -83,12 +83,12 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Checks whether the spinlock is free or not.
          */
-        __bland __forceinline __must_check bool IsOpen() const volatile
+        __forceinline __must_check bool IsOpen() const volatile
         {
             return this->Value == (size_t)0;
         }
 
-        __bland __forceinline size_t GetValue() const volatile
+        __forceinline size_t GetValue() const volatile
         {
             return this->Value;
         }
@@ -106,7 +106,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Resets the barrier, so it will open when all cores reach it.
          */
-        __bland __forceinline void Reset() volatile
+        __forceinline void Reset() volatile
         {
             this->Value.Store(System::Cpu::Count);
         }
@@ -115,7 +115,7 @@ namespace Beelzebub { namespace Synchronization
          *  Resets the barrier, so it will open when the specified number
          *  of cores reach it.
          */
-        __bland __forceinline void Reset(size_t const coreCount) volatile
+        __forceinline void Reset(size_t const coreCount) volatile
         {
             this->Value.Store(coreCount);
         }
@@ -123,7 +123,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Reach the barrier, awaiting for other cores if necessary.
          */
-        __bland inline void Reach() volatile
+        inline void Reach() volatile
         {
             --this->Value;
 
@@ -136,12 +136,12 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Checks whether the spinlock is free or not.
          */
-        __bland __forceinline __must_check bool IsOpen() const volatile
+        __forceinline __must_check bool IsOpen() const volatile
         {
             return this->Value == (size_t)0;
         }
 
-        __bland __forceinline size_t GetValue() const volatile
+        __forceinline size_t GetValue() const volatile
         {
             return this->Value.Load();
         }

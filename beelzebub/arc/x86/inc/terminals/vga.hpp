@@ -59,13 +59,13 @@ namespace Beelzebub { namespace Terminals { namespace Vga
         uint8_t Colors;
 
 		/*	Constructors	*/
-		Cell() __bland;
-		Cell(char const c, Color16 const fg, Color16 const bg) __bland;
+		Cell() ;
+		Cell(char const c, Color16 const fg, Color16 const bg) ;
 
 		/*	Colors	*/
-		Color16 GetBackgroundColor() const __bland;
-		Color16 SetBackgroundColor(Color16 const val) __bland;
-		Color16 GetForegroundColor() const __bland;
-		Color16 SetForegroundColor(Color16 const val) __bland;
+		Color16 GetBackgroundColor() const ;
+		Color16 SetBackgroundColor(Color16 const val) ;
+		Color16 GetForegroundColor() const ;
+		Color16 SetForegroundColor(Color16 const val) ;
 	} __packed;
 }}}

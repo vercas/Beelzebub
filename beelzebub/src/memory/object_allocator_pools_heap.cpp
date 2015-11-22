@@ -48,7 +48,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 
-static __bland __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
+static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
 {
     Handle res;
     PageDescriptor * desc = nullptr;
@@ -85,7 +85,7 @@ static __bland __noinline Handle GetKernelHeapPages(size_t const pageCount, uint
     return res;
 }
 
-static __bland __noinline void FillPool(ObjectPoolBase volatile * volatile pool
+static __noinline void FillPool(ObjectPoolBase volatile * volatile pool
                                       , size_t const objectSize
                                       , size_t const headerSize
                                       , obj_ind_t const objectCount)

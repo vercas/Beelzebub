@@ -46,7 +46,7 @@ namespace Beelzebub { namespace Utils
     /**
      *  <summary>Waits for the specified time to pass.</summary>
      */
-    __bland void Wait(uint64_t const microseconds);
+    void Wait(uint64_t const microseconds);
 
     /**
      *  <summary>
@@ -54,5 +54,5 @@ namespace Beelzebub { namespace Utils
      *  </summary>
      *  <return>True if the predicate succeeded; otherwise false.</return>
      */
-    __bland bool Wait(uint64_t const microseconds, PredicateFunction0 const pred);
+    bool Wait(uint64_t const microseconds, PredicateFunction0 const pred);
 }}

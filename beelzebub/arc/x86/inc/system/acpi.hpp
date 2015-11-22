@@ -120,26 +120,26 @@ namespace Beelzebub { namespace System
 
         /*  Initialization  */
 
-        static __cold __bland Handle FindRsdp(uintptr_t const start
+        static __cold Handle FindRsdp(uintptr_t const start
                                             , uintptr_t const end);
 
-        static __cold __bland Handle FindRsdtXsdt();
+        static __cold Handle FindRsdtXsdt();
 
-        static __cold __bland Handle FindSystemDescriptorTables();
+        static __cold Handle FindSystemDescriptorTables();
 
     private:
         /*  Specific table handling  */
 
-        static __cold __bland Handle HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTableSource const src);
+        static __cold Handle HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTableSource const src);
 
-        static __cold __bland Handle HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src);
-        static __cold __bland Handle HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src);
+        static __cold Handle HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src);
+        static __cold Handle HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src);
 
         /*  Utilities  */
 
-        static __cold __bland Handle MapTable(paddr_t const header, vaddr_t & ptr);
+        static __cold Handle MapTable(paddr_t const header, vaddr_t & ptr);
 
     public:
-        static __cold __bland Handle FindLapicPaddr(paddr_t & paddr);
+        static __cold Handle FindLapicPaddr(paddr_t & paddr);
     };
 }}

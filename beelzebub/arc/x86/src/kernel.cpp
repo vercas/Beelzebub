@@ -696,7 +696,7 @@ Handle InitializeApic()
     PROCESSING UNITS
 ***********************/
 
-__cold __bland Handle InitializeAp(uint32_t const lapicId
+__cold Handle InitializeAp(uint32_t const lapicId
                                  , uint32_t const procId
                                  , size_t const apIndex);
 
@@ -797,14 +797,14 @@ Handle InitializeProcessingUnits()
     return HandleResult::Okay;
 }
 
-__hot __bland bool CheckApInitializationLock1()
+__hot bool CheckApInitializationLock1()
 {
     uint32_t volatile val = ApInitializationLock1;
 
     return val == 0;
 }
 
-__hot __bland bool CheckApInitializationLock3()
+__hot bool CheckApInitializationLock3()
 {
     uint32_t volatile val = ApInitializationLock3;
 

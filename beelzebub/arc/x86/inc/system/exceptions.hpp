@@ -72,16 +72,16 @@ namespace Beelzebub { namespace System
         SimdFloatingPointException = 19,
     };
 
-    __bland void MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS);
+    void MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS);
 
-    __bland void DivideErrorHandler(INTERRUPT_HANDLER_ARGS);
-    __bland void OverflowHandler(INTERRUPT_HANDLER_ARGS);
-    __bland void BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS);
-    __bland void InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS);
-    __bland void DoubleFaultHandler(INTERRUPT_HANDLER_ARGS);
-    __bland void InvalidTssHandler(INTERRUPT_HANDLER_ARGS);
-    __bland void SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS);
-    __bland void StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS);
-    __bland void GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS);
-    __hot __bland void PageFaultHandler(INTERRUPT_HANDLER_ARGS);
+    void DivideErrorHandler(INTERRUPT_HANDLER_ARGS);
+    void OverflowHandler(INTERRUPT_HANDLER_ARGS);
+    void BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS);
+    void InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS);
+    void DoubleFaultHandler(INTERRUPT_HANDLER_ARGS);
+    void InvalidTssHandler(INTERRUPT_HANDLER_ARGS);
+    void SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS);
+    void StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS);
+    void GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS);
+    __hot void PageFaultHandler(INTERRUPT_HANDLER_ARGS);
 }}

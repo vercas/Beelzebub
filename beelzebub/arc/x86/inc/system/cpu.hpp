@@ -51,7 +51,7 @@
 #include <synchronization/atomic.hpp>
 
 #define REGFUNC1(regl, regu, type)                                   \
-static __bland __forceinline type MCATS2(Get, regu)()                \
+static __forceinline type MCATS2(Get, regu)()                \
 {                                                                    \
     type ret;                                                        \
                                                                      \
@@ -60,14 +60,14 @@ static __bland __forceinline type MCATS2(Get, regu)()                \
                                                                      \
     return ret;                                                      \
 }                                                                    \
-static __bland __forceinline void MCATS2(Set, regu)(const type val)  \
+static __forceinline void MCATS2(Set, regu)(const type val)  \
 {                                                                    \
     asm volatile ( "mov %0, %%" #regl "\n\t"                         \
                  : : "r"(val) );                                     \
 }
 
 #define REGFUNC2(regl, regu, type, type2)                            \
-static __bland __forceinline type2 MCATS2(Get, regu)()               \
+static __forceinline type2 MCATS2(Get, regu)()               \
 {                                                                    \
     type ret;                                                        \
                                                                      \
@@ -76,12 +76,12 @@ static __bland __forceinline type2 MCATS2(Get, regu)()               \
                                                                      \
     return type2(ret);                                               \
 }                                                                    \
-static __bland __forceinline void MCATS2(Set, regu)(const type val)  \
+static __forceinline void MCATS2(Set, regu)(const type val)  \
 {                                                                    \
     asm volatile ( "mov %0, %%" #regl "\n\t"                         \
                  : : "r"(val) );                                     \
 }                                                                    \
-static __bland __forceinline void MCATS2(Set, regu)(const type2 val) \
+static __forceinline void MCATS2(Set, regu)(const type2 val) \
 {                                                                    \
     type innerVal = val.Value;                                       \
                                                                      \
@@ -90,7 +90,7 @@ static __bland __forceinline void MCATS2(Set, regu)(const type2 val) \
 }
 
 #define REGFUNC3(regl, regu, type)                                   \
-static __bland __forceinline type MCATS2(Get, regu)()                \
+static __forceinline type MCATS2(Get, regu)()                \
 {                                                                    \
     type ret;                                                        \
                                                                      \
@@ -158,7 +158,7 @@ namespace Beelzebub { namespace System
 
         /*  Shortcuts  */
 
-        static __bland __forceinline void EnableNxBit()
+        static __forceinline void EnableNxBit()
         {
             const Msr reg = Msr::IA32_EFER;
 
@@ -170,62 +170,62 @@ namespace Beelzebub { namespace System
                          : "eax", "edx" );
         }
 
-        static __bland size_t ComputeIndex();
+        static size_t ComputeIndex();
 
         /*  CPU-specific data  */
 
         static const size_t CpuDataSize = sizeof(CpuData);
 
-        static __bland __forceinline size_t GetIndex()
+        static __forceinline size_t GetIndex()
         {
             return CpuInstructions::GsGetSize(offsetof(struct CpuData, Index));
         }
-        static __bland __forceinline size_t SetIndex(const size_t val)
+        static __forceinline size_t SetIndex(const size_t val)
         {
             return (size_t)CpuInstructions::GsSetSize(offsetof(struct CpuData, Index), val);
         }
 
-        static __bland __forceinline Domain * GetDomain()
+        static __forceinline Domain * GetDomain()
         {
             return (Domain *)CpuInstructions::GsGetPointer(offsetof(struct CpuData, DomainDescriptor));
         }
-        static __bland __forceinline Domain * SetDomain(Domain * const val)
+        static __forceinline Domain * SetDomain(Domain * const val)
         {
             return (Domain *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, DomainDescriptor), (uintptr_t)val);
         }
 
-        static __bland __forceinline Execution::Thread * GetActiveThread()
+        static __forceinline Execution::Thread * GetActiveThread()
         {
             return (Execution::Thread *)CpuInstructions::GsGetPointer(offsetof(struct CpuData, ActiveThread));
         }
-        static __bland __forceinline Execution::Thread * SetActiveThread(Execution::Thread * const val)
+        static __forceinline Execution::Thread * SetActiveThread(Execution::Thread * const val)
         {
             return (Execution::Thread *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, ActiveThread), (uintptr_t)val);
         }
 
-        static __bland __forceinline Synchronization::Spinlock<> * GetKernelHeapSpinlock()
+        static __forceinline Synchronization::Spinlock<> * GetKernelHeapSpinlock()
         {
             return (Synchronization::Spinlock<> *)CpuInstructions::GsGetPointer(offsetof(struct CpuData, HeapSpinlockPointer));
         }
-        static __bland __forceinline Synchronization::Spinlock<> * SetKernelHeapSpinlock(Synchronization::Spinlock<> * const val)
+        static __forceinline Synchronization::Spinlock<> * SetKernelHeapSpinlock(Synchronization::Spinlock<> * const val)
         {
             return (Synchronization::Spinlock<> *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, HeapSpinlockPointer), (uintptr_t)val);
         }
 
-        static __bland __forceinline uint16_t GetGdtLength()
+        static __forceinline uint16_t GetGdtLength()
         {
             return CpuInstructions::GsGet16(offsetof(struct CpuData, GdtLength));
         }
-        static __bland __forceinline uint16_t SetGdtLength(const uint16_t val)
+        static __forceinline uint16_t SetGdtLength(const uint16_t val)
         {
             return CpuInstructions::GsSet16(offsetof(struct CpuData, GdtLength), (uintptr_t)val);
         }
 
-        static __bland __forceinline bool GetX2ApicMode()
+        static __forceinline bool GetX2ApicMode()
         {
             return (bool)CpuInstructions::GsGet8(offsetof(struct CpuData, X2ApicMode));
         }
-        static __bland __forceinline bool SetX2ApicMode(const bool val)
+        static __forceinline bool SetX2ApicMode(const bool val)
         {
             return (bool)CpuInstructions::GsSet8(offsetof(struct CpuData, X2ApicMode), (uint8_t)val);
         }

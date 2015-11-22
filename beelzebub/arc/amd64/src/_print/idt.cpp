@@ -45,7 +45,7 @@ using namespace Beelzebub::Debug;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-static __bland const char * getIdtGateType(IdtGateType const type)
+static const char * getIdtGateType(IdtGateType const type)
 {
     switch (type)
     {

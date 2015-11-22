@@ -90,7 +90,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new LAPIC SVR structure from the given raw value.
          */
-        __bland inline explicit LapicSvr(uint32_t const val)
+        inline explicit LapicSvr(uint32_t const val)
         {
             this->Value = val;
         }
@@ -171,7 +171,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new LAPIC ICR structure from the given raw value.
          */
-        __bland inline explicit constexpr LapicIcr(uint64_t const val)
+        inline explicit constexpr LapicIcr(uint64_t const val)
             : Value(val)
         {
             
@@ -180,7 +180,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new LAPIC ICR structure from the given low and high values.
          */
-        __bland inline constexpr LapicIcr(uint32_t const low, uint32_t const high)
+        inline constexpr LapicIcr(uint32_t const low, uint32_t const high)
             : Low(low), High(high)
         {
             

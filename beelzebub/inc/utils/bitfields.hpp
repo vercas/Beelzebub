@@ -154,50 +154,50 @@ decB inline auto MCATS(Set, name)(valT const val)                              \
 /*  Some defaults  */
 
 #define BITFIELD_DEFAULT_1W(bitInd, name) \
-BITFIELD_FLAG_RW(bitInd, name, uint64_t, this->Value, __bland, const, static)
+BITFIELD_FLAG_RW(bitInd, name, uint64_t, this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_1O(bitInd, name) \
-BITFIELD_FLAG_RO(bitInd, name, uint64_t, this->Value, __bland, const, static)
+BITFIELD_FLAG_RO(bitInd, name, uint64_t, this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_2W(bitInd, bitLen, valT, name) \
-BITFIELD_STRM_RW(bitInd, bitLen, valT, name, uint64_t, this->Value, __bland, const, static)
+BITFIELD_STRM_RW(bitInd, bitLen, valT, name, uint64_t, this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_2O(bitInd, bitLen, valT, name) \
-BITFIELD_STRM_RO(bitInd, bitLen, valT, name, uint64_t, this->Value, __bland, const, static)
+BITFIELD_STRM_RO(bitInd, bitLen, valT, name, uint64_t, this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_3W(offL, lenL, offH, lenH, valT, name) \
-BITFIELD_STRC_RW(offL, lenL, offH, lenH, valT, name, uint64_t, this->Value, __bland, const, static)
+BITFIELD_STRC_RW(offL, lenL, offH, lenH, valT, name, uint64_t, this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_3O(offL, lenL, offH, lenH, valT, name) \
-BITFIELD_STRC_RO(offL, lenL, offH, lenH, valT, name, uint64_t, this->Value, __bland, const, static)
+BITFIELD_STRC_RO(offL, lenL, offH, lenH, valT, name, uint64_t, this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_4W(bitInd, bitLen, valT, name) \
-BITFIELD_STRO_RW(bitInd, bitLen, valT, name, uint64_t, this->Value, __bland, const, static)
+BITFIELD_STRO_RW(bitInd, bitLen, valT, name, uint64_t, this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_4O(bitInd, bitLen, valT, name) \
-BITFIELD_STRO_RO(bitInd, bitLen, valT, name, uint64_t, this->Value, __bland, const, static)
+BITFIELD_STRO_RO(bitInd, bitLen, valT, name, uint64_t, this->Value, , const, static)
 
 
 #define BITFIELD_DEFAULT_1WEx(bitInd, name, valWid) \
-BITFIELD_FLAG_RW(bitInd, name, MCATS(uint, valWid, _t), this->Value, __bland, const, static)
+BITFIELD_FLAG_RW(bitInd, name, MCATS(uint, valWid, _t), this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_1OEx(bitInd, name, valWid) \
-BITFIELD_FLAG_RO(bitInd, name, MCATS(uint, valWid, _t), this->Value, __bland, const, static)
+BITFIELD_FLAG_RO(bitInd, name, MCATS(uint, valWid, _t), this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_2WEx(bitInd, bitLen, valT, name, valWid) \
-BITFIELD_STRM_RW(bitInd, bitLen, valT, name, MCATS(uint, valWid, _t), this->Value, __bland, const, static)
+BITFIELD_STRM_RW(bitInd, bitLen, valT, name, MCATS(uint, valWid, _t), this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_2OEx(bitInd, bitLen, valT, name, valWid) \
-BITFIELD_STRM_RO(bitInd, bitLen, valT, name, MCATS(uint, valWid, _t), this->Value, __bland, const, static)
+BITFIELD_STRM_RO(bitInd, bitLen, valT, name, MCATS(uint, valWid, _t), this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_3WEx(offL, lenL, offH, lenH, valT, name, valWid) \
-BITFIELD_STRC_RW(offL, lenL, offH, lenH, valT, name, MCATS(uint, valWid, _t), this->Value, __bland, const, static)
+BITFIELD_STRC_RW(offL, lenL, offH, lenH, valT, name, MCATS(uint, valWid, _t), this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_3OEx(offL, lenL, offH, lenH, valT, name, valWid) \
-BITFIELD_STRC_RO(offL, lenL, offH, lenH, valT, name, MCATS(uint, valWid, _t), this->Value, __bland, const, static)
+BITFIELD_STRC_RO(offL, lenL, offH, lenH, valT, name, MCATS(uint, valWid, _t), this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_4WEx(bitInd, bitLen, valT, name, valWid) \
-BITFIELD_STRO_RW(bitInd, bitLen, valT, name, MCATS(uint, valWid, _t), this->Value, __bland, const, static)
+BITFIELD_STRO_RW(bitInd, bitLen, valT, name, MCATS(uint, valWid, _t), this->Value, , const, static)
 
 #define BITFIELD_DEFAULT_4OEx(bitInd, bitLen, valT, name, valWid) \
-BITFIELD_STRO_RO(bitInd, bitLen, valT, name, MCATS(uint, valWid, _t), this->Value, __bland, const, static)
+BITFIELD_STRO_RO(bitInd, bitLen, valT, name, MCATS(uint, valWid, _t), this->Value, , const, static)

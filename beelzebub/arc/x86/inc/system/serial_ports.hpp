@@ -59,30 +59,30 @@ namespace Beelzebub { namespace System
 
         /*  Static methods  */
 
-        static __bland void IrqHandler(INTERRUPT_HANDLER_ARGS);
+        static void IrqHandler(INTERRUPT_HANDLER_ARGS);
 
         /*  Construction  */
 
-        __bland inline explicit constexpr SerialPort(const uint16_t basePort)
+        inline explicit constexpr SerialPort(const uint16_t basePort)
             : BasePort(basePort)
         {
 
         }
 
         //  Prepares the serial port for nominal operation.
-        __bland void Initialize() const;
+        void Initialize() const;
 
         /*  I/O  */
 
         //  True if the serial port can be read from.
-        __bland __forceinline bool CanRead() const
+        __forceinline bool CanRead() const
         {
             return 0 != (Io::In8(this->BasePort + 5) & 0x01);
             //  Bit 0 of the line status register.
         }
 
         //  True if the serial port can be written to.
-        __bland __forceinline bool CanWrite() const
+        __forceinline bool CanWrite() const
         {
             return 0 != (Io::In8(this->BasePort + 5) & 0x20);
             //  Bit 5 of the line status register.
@@ -90,21 +90,21 @@ namespace Beelzebub { namespace System
 
         //  Reads a byte from the serial port, optionally waiting for
         //  being able to read.
-        __bland uint8_t Read(bool const wait) const;
+        uint8_t Read(bool const wait) const;
 
         //  Writes a byte to the serial port, optionally waiting for
         //  being able to write.
-        __bland void Write(uint8_t const val, bool const wait) const;
+        void Write(uint8_t const val, bool const wait) const;
 
         //  Reads a null-terminated string from the serial port up to the
         //  given amount of characters, and returns the number of characters
         //  read, including the null-terminator if read. This method awaits
         //  for reading to be permitted.
-        __bland size_t ReadNtString(char * const buffer, const size_t size) const;
+        size_t ReadNtString(char * const buffer, const size_t size) const;
 
         //  Writes a null-terminated string to the serial port.
         //  This method awaits.
-        __bland size_t WriteNtString(char const * const str) const;
+        size_t WriteNtString(char const * const str) const;
 
         /*  Fields  */
 
@@ -125,11 +125,11 @@ namespace Beelzebub { namespace System
 
         /*  Static methods  */
 
-        static __bland void IrqHandler(IsrState * const state);
+        static void IrqHandler(IsrState * const state);
 
         /*  Construction  */
 
-        __bland inline explicit constexpr ManagedSerialPort(const uint16_t basePort) 
+        inline explicit constexpr ManagedSerialPort(const uint16_t basePort) 
             : BasePort(basePort)
             , OutputCount(0)
             , ReadLock()
@@ -139,12 +139,12 @@ namespace Beelzebub { namespace System
         }
 
         //  Prepares the serial port for nominal operation.
-        __bland void Initialize();
+        void Initialize();
 
         /*  I/O  */
 
         //  True if the serial port can be read from.
-        __bland __forceinline bool CanRead() const
+        __forceinline bool CanRead() const
         {
             return 0 != (Io::In8(this->BasePort + 5) & 0x01);
             //  Bit 0 of the line status register.
@@ -152,7 +152,7 @@ namespace Beelzebub { namespace System
 
         //  True if the serial port can be written to.
         //  Also resets the output count if possible.
-        __bland inline bool CanWrite()
+        inline bool CanWrite()
         {
             if (0 != (Io::In8(this->BasePort + 5) & 0x20))
             {
@@ -168,23 +168,23 @@ namespace Beelzebub { namespace System
 
         //  Reads a byte from the serial port, optionally waiting for
         //  being able to read.
-        __bland uint8_t Read(bool const wait);
+        uint8_t Read(bool const wait);
 
         //  Writes a byte to the serial port, optionally waiting for
         //  being able to write.
-        __bland void Write(uint8_t const val, bool const wait);
+        void Write(uint8_t const val, bool const wait);
 
         //  Reads a null-terminated string from the serial port up to the
         //  given amount of characters, and returns the number of characters
         //  read, including the null-terminator if read. This method awaits
         //  for reading to be permitted.
-        __bland size_t ReadNtString(char * const buffer, const size_t size);
+        size_t ReadNtString(char * const buffer, const size_t size);
 
         //  Writes a null-terminated string to the serial port.
         //  This method awaits.
-        __bland size_t WriteNtString(char const * const str);
+        size_t WriteNtString(char const * const str);
 
-        __bland void WriteBytes(void const * const src, size_t const cnt);
+        void WriteBytes(void const * const src, size_t const cnt);
 
         /*  Fields  */
 

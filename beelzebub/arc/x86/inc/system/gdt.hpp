@@ -113,7 +113,7 @@ namespace Beelzebub { namespace System
         /**
          *  <summary>Creates a null GDT Entry.</summary>
          */
-        __bland inline constexpr GdtEntryShort()
+        inline constexpr GdtEntryShort()
             : Value(0)
         {
             
@@ -122,7 +122,7 @@ namespace Beelzebub { namespace System
         /**
          *  <summary>Creates a new GDT Entry structure from the given raw value.</summary>
          */
-        __bland inline explicit constexpr GdtEntryShort(uint64_t const val)
+        inline explicit constexpr GdtEntryShort(uint64_t const val)
             : Value(val)
         {
             
@@ -131,7 +131,7 @@ namespace Beelzebub { namespace System
         /**
          *  <summary>Creates a new GDT Entry structure from the given raw value.</summary>
          */
-        __bland inline constexpr GdtEntryShort(GdtSystemEntryType const type
+        inline constexpr GdtEntryShort(GdtSystemEntryType const type
                                              , uint32_t           const base = 0
                                              , uint32_t           const limit = 0
                                              , bool               const system = false)
@@ -160,7 +160,7 @@ namespace Beelzebub { namespace System
         /**
          *  <summary>Creates a null GDT Entry.</summary>
          */
-        __bland inline constexpr GdtTss64Entry()
+        inline constexpr GdtTss64Entry()
             : LowEntry(), HighEntry()
         {
             
@@ -169,7 +169,7 @@ namespace Beelzebub { namespace System
         /**
          *  <summary>Creates a new GDT Entry structure from the given raw value.</summary>
          */
-        __bland inline constexpr GdtTss64Entry(GdtEntryShort const low, GdtEntryShort const high)
+        inline constexpr GdtTss64Entry(GdtEntryShort const low, GdtEntryShort const high)
             : LowEntry(low), HighEntry(high)
         {
             
@@ -177,11 +177,11 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        __bland inline bool GetBusy() const
+        inline bool GetBusy() const
         {
             return this->LowEntry.GetRw();
         }
-        __bland inline void SetBusy(bool const val)
+        inline void SetBusy(bool const val)
         {
             this->LowEntry.SetRw(val);
         }
@@ -226,12 +226,12 @@ namespace Beelzebub { namespace System
 
         /*  Load & Store  */
 
-        __bland inline void Activate()
+        inline void Activate()
         {
             asm volatile ( "lgdt (%[ptr]) \n\t" : : [ptr]"r"(this) );
         }
 
-        static __bland inline GdtRegister Retrieve()
+        static inline GdtRegister Retrieve()
         {
             GdtRegister res;
 

@@ -64,8 +64,8 @@
 #define JG_INFO_MODULE_EX          ((jg_info_module_t *) JG_INFO_OFFSET_EX(module))
 #define JG_INFO_STRING_EX          ((char             *) JG_INFO_OFFSET_EX(string))
 
-__extern __cold __bland void kmain_bsp();
-__extern __cold __bland void kmain_ap();
+__extern __cold void kmain_bsp();
+__extern __cold void kmain_ap();
 
 #ifdef __cplusplus
 namespace Beelzebub
@@ -76,30 +76,30 @@ namespace Beelzebub
 }
 #endif
 
-__extern __cold __bland __noinline Handle InitializeInterrupts();
-__extern __cold __bland __noinline Handle InitializePit();
+__extern __cold __noinline Handle InitializeInterrupts();
+__extern __cold __noinline Handle InitializePit();
 
 // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
-__extern __cold __bland __noinline Handle InitializePhysicalAllocator(jg_info_mmap_t * map
+__extern __cold __noinline Handle InitializePhysicalAllocator(jg_info_mmap_t * map
 					                                                , size_t cnt
 					                                                , uintptr_t freeStart
 					                                                , Domain * domain);
-__extern __cold __bland __noinline Handle InitializePhysicalMemory();
-__extern __cold __bland __noinline Handle InitializeVirtualMemory();
+__extern __cold __noinline Handle InitializePhysicalMemory();
+__extern __cold __noinline Handle InitializeVirtualMemory();
 
-__extern __cold __bland __noinline Handle InitializeAcpiTables();
+__extern __cold __noinline Handle InitializeAcpiTables();
 
-__extern __cold __bland __noinline Handle InitializeApic();
+__extern __cold __noinline Handle InitializeApic();
 
-__extern __cold __bland __noinline Handle InitializeProcessingUnits();
+__extern __cold __noinline Handle InitializeProcessingUnits();
 
-__extern __cold __bland __noinline Handle InitializeModules();
+__extern __cold __noinline Handle InitializeModules();
 
-__extern __cold __bland __noinline TerminalBase * InitializeTerminalProto();
-__extern __cold __bland __noinline TerminalBase * InitializeTerminalMain();
+__extern __cold __noinline TerminalBase * InitializeTerminalProto();
+__extern __cold __noinline TerminalBase * InitializeTerminalMain();
 
 #ifdef __BEELZEBUB__TEST_MT
-__extern __cold __bland __noinline void StartMultitaskingTest();
+__extern __cold __noinline void StartMultitaskingTest();
 #endif
 
 #ifdef __cplusplus

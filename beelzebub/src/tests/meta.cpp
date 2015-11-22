@@ -66,7 +66,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
-__cold __bland __noinline void TestMetaprogramming1()
+__cold __noinline void TestMetaprogramming1()
 {
     int_cookie_t const cookie = Interrupts::PushDisable();
 
@@ -75,14 +75,14 @@ __cold __bland __noinline void TestMetaprogramming1()
     Interrupts::RestoreState(cookie);
 }
 
-__cold __bland __noinline void TestMetaprogramming2()
+__cold __noinline void TestMetaprogramming2()
 {
     InterruptGuard<> intGuard;
 
     bool volatile rada = true;
 }
 
-__cold __bland __noinline void TestMetaprogramming3()
+__cold __noinline void TestMetaprogramming3()
 {
     __uninterrupted;
 
@@ -91,7 +91,7 @@ __cold __bland __noinline void TestMetaprogramming3()
     __restore_interrupts;
 }
 
-__cold __bland __noinline void TestMetaprogramming4()
+__cold __noinline void TestMetaprogramming4()
 {
     withInterrupts (false)
     {
@@ -99,7 +99,7 @@ __cold __bland __noinline void TestMetaprogramming4()
     }
 }
 
-__cold __bland __noinline void TestMetaprogramming5()
+__cold __noinline void TestMetaprogramming5()
 {
     withInterrupts (false)
     {

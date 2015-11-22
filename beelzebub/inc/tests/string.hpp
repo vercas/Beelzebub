@@ -43,4 +43,4 @@
 
 using namespace Beelzebub;
 
-__cold __bland Handle TestStringLibrary();
+__cold Handle TestStringLibrary();

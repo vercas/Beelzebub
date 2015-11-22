@@ -114,72 +114,72 @@ namespace Beelzebub { namespace Memory
 
         /*  Static Translation Methods  */
 
-        static __bland inline uint16_t GetPml4Index(vaddr_t const addr)
+        static inline uint16_t GetPml4Index(vaddr_t const addr)
         {
             return (uint16_t)((addr >> 39) & 511);
         }
 
-        static __bland inline uint16_t GetPml3Index(vaddr_t const addr)
+        static inline uint16_t GetPml3Index(vaddr_t const addr)
         {
             return (uint16_t)((addr >> 30) & 511);
         }
 
-        static __bland inline uint16_t GetPml2Index(vaddr_t const addr)
+        static inline uint16_t GetPml2Index(vaddr_t const addr)
         {
             return (uint16_t)((addr >> 21) & 511);
         }
 
-        static __bland inline uint16_t GetPml1Index(vaddr_t const addr)
+        static inline uint16_t GetPml1Index(vaddr_t const addr)
         {
             return (uint16_t)((addr >> 12) & 511);
         }
 
         //  Local Map.
 
-        static __bland inline Pml4 * const GetLocalPml4()          { return (Pml4 *)LocalPml4Base; }
-        static __bland inline Pml4 * const GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base; }
+        static inline Pml4 * const GetLocalPml4()          { return (Pml4 *)LocalPml4Base; }
+        static inline Pml4 * const GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base; }
 
-        static __bland inline Pml3 * const GetLocalPml3(vaddr_t const addr)
+        static inline Pml3 * const GetLocalPml3(vaddr_t const addr)
         {
             return (Pml3 *)(LocalPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
         }
 
-        static __bland inline Pml2 * const GetLocalPml2(vaddr_t const addr)
+        static inline Pml2 * const GetLocalPml2(vaddr_t const addr)
         {
             return (Pml2 *)(LocalPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
         }
 
-        static __bland inline Pml1 * const GetLocalPml1(vaddr_t const addr)
+        static inline Pml1 * const GetLocalPml1(vaddr_t const addr)
         {
             return (Pml1 *)(LocalPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
         }
 
-        static __bland inline Pml1Entry & GetLocalPml1Entry(vaddr_t const addr)
+        static inline Pml1Entry & GetLocalPml1Entry(vaddr_t const addr)
         {
             return (*GetLocalPml1(addr))[GetPml1Index(addr)];
         }
 
         //  Alien Map.
 
-        static __bland inline Pml4 * const GetAlienPml4()          { return (Pml4 *)AlienPml4Base; }
-        static __bland inline Pml4 * const GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base; }
+        static inline Pml4 * const GetAlienPml4()          { return (Pml4 *)AlienPml4Base; }
+        static inline Pml4 * const GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base; }
 
-        static __bland inline Pml3 * const GetAlienPml3(vaddr_t const addr)
+        static inline Pml3 * const GetAlienPml3(vaddr_t const addr)
         {
             return (Pml3 *)(AlienPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
         }
 
-        static __bland inline Pml2 * const GetAlienPml2(vaddr_t const addr)
+        static inline Pml2 * const GetAlienPml2(vaddr_t const addr)
         {
             return (Pml2 *)(AlienPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
         }
 
-        static __bland inline Pml1 * const GetAlienPml1(vaddr_t const addr)
+        static inline Pml1 * const GetAlienPml1(vaddr_t const addr)
         {
             return (Pml1 *)(AlienPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
         }
 
-        static __bland inline Pml1Entry & GetAlienPml1Entry(vaddr_t const addr)
+        static inline Pml1Entry & GetAlienPml1Entry(vaddr_t const addr)
         {
             return (*GetAlienPml1(addr))[GetPml1Index(addr)];
         }
@@ -190,7 +190,7 @@ namespace Beelzebub { namespace Memory
         VirtualAllocationSpace(VirtualAllocationSpace const &) = delete;
         VirtualAllocationSpace & operator =(VirtualAllocationSpace const &) = delete;
 
-        __bland inline explicit VirtualAllocationSpace(PageAllocator * const allocator)
+        inline explicit VirtualAllocationSpace(PageAllocator * const allocator)
             : Allocator( allocator)
             , Pml4Address(nullpaddr)
         {
@@ -199,34 +199,34 @@ namespace Beelzebub { namespace Memory
 
         /*  Setup  */
 
-        __cold __bland Handle Bootstrap(System::CpuId const * const bspcpuid);
+        __cold Handle Bootstrap(System::CpuId const * const bspcpuid);
 
-        __bland Handle Clone(VirtualAllocationSpace * const target);
+        Handle Clone(VirtualAllocationSpace * const target);
 
         /*  Main Operations  */
 
-        __bland __forceinline void Activate() const
+        __forceinline void Activate() const
         {
             const Cr3 newVal = Cr3(this->Pml4Address, false, false);
 
             Cpu::SetCr3(newVal);
         }
 
-        __bland __forceinline void Alienate() const
+        __forceinline void Alienate() const
         {
             Pml4 & pml4 = *GetLocalPml4();
 
             pml4[AlienFractalIndex] = Pml4Entry(this->Pml4Address, true, true, false, NX);
         }
 
-        __bland __forceinline bool IsLocal() const
+        __forceinline bool IsLocal() const
         {
             Pml4 & pml4 = *GetLocalPml4();
 
             return pml4[LocalFractalIndex].GetPml3Address() == this->Pml4Address;
         }
 
-        __bland __forceinline bool IsAlien() const
+        __forceinline bool IsAlien() const
         {
             Pml4 & pml4 = *GetLocalPml4();
 
@@ -236,26 +236,26 @@ namespace Beelzebub { namespace Memory
         /*  Translation  */
 
         //  Translates the address with the current VAS.
-        static __bland __forceinline paddr_t TranslateLocal(vaddr_t const vaddr)
+        static __forceinline paddr_t TranslateLocal(vaddr_t const vaddr)
         {
             return GetLocalPml1Entry(vaddr).GetAddress() + (paddr_t)(vaddr & (PageSize - 1));
             //  Yeah, the offset within the page is preserved.
         }
 
         template<typename cbk_t>
-        __hot __bland Handle TryTranslate(vaddr_t const vaddr, cbk_t cbk, bool const tolerate);
-        __hot __bland Handle GetEntry(vaddr_t const vaddr, Pml1Entry * & e, bool const tolerate);
+        __hot Handle TryTranslate(vaddr_t const vaddr, cbk_t cbk, bool const tolerate);
+        __hot Handle GetEntry(vaddr_t const vaddr, Pml1Entry * & e, bool const tolerate);
 
         /*  Mapping  */
 
-        __hot __bland __noinline Handle Map(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags, PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc);
-        __hot __bland __noinline Handle Map(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags);
-        __hot __bland __noinline Handle Unmap(vaddr_t const vaddr, paddr_t & paddr);
+        __hot __noinline Handle Map(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags, PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc);
+        __hot __noinline Handle Map(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags);
+        __hot __noinline Handle Unmap(vaddr_t const vaddr, paddr_t & paddr);
 
         /*  Flags  */
 
-        __bland Handle GetPageFlags(vaddr_t const vaddr, PageFlags & flags);
-        __bland Handle SetPageFlags(vaddr_t const vaddr, PageFlags const flags);
+        Handle GetPageFlags(vaddr_t const vaddr, PageFlags & flags);
+        Handle SetPageFlags(vaddr_t const vaddr, PageFlags const flags);
 
         /*  Fields  */
 
@@ -276,13 +276,13 @@ namespace Beelzebub { namespace Memory
             Iterator(Iterator const &) = default;
             Iterator & operator =(Iterator const &) = default;
 
-            static __bland Handle Create(Iterator & dst, VirtualAllocationSpace * const space, vaddr_t const vaddr);
+            static Handle Create(Iterator & dst, VirtualAllocationSpace * const space, vaddr_t const vaddr);
 
         private:
 
-            __hot __bland Handle Initialize();
+            __hot Handle Initialize();
 
-            __bland inline Iterator(VirtualAllocationSpace * const space, vaddr_t const vaddr)
+            inline Iterator(VirtualAllocationSpace * const space, vaddr_t const vaddr)
                 : AllocationSpace( space )
                 , VirtualAddress(vaddr)
             {
@@ -293,18 +293,18 @@ namespace Beelzebub { namespace Memory
 
             /*  Methods  */
 
-            __bland __forceinline Pml1Entry * GetEntry() const
+            __forceinline Pml1Entry * GetEntry() const
             {
                 return this->Entry;
             }
-            __bland __forceinline bool GetTablesPresent() const
+            __forceinline bool GetTablesPresent() const
             {
                 return this->Entry != nullptr;
             }
 
-            __hot __bland Handle AllocateTables(PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc);
+            __hot Handle AllocateTables(PageDescriptor * & pml3desc, PageDescriptor * & pml2desc, PageDescriptor * & pml1desc);
 
-            __hot __bland __forceinline Handle AllocateTables()
+            __hot __forceinline Handle AllocateTables()
             {
                 PageDescriptor * desc;
                 //  Swallow all the descriptors.
@@ -314,42 +314,42 @@ namespace Beelzebub { namespace Memory
 
             /*  Operators  */
 
-            __bland               const Iterator  & operator +=(DifferenceType const diff);
+            const Iterator  & operator +=(DifferenceType const diff);
 
-            __bland __forceinline const Iterator  & operator -=(DifferenceType const diff)
+            __forceinline const Iterator  & operator -=(DifferenceType const diff)
             {
                 return (*this) += -diff;
             }
 
-            __bland               const Iterator    operator  +(DifferenceType const diff);
+            const Iterator    operator  +(DifferenceType const diff);
 
-            __bland __forceinline const Iterator    operator  -(DifferenceType const diff)
+            __forceinline const Iterator    operator  -(DifferenceType const diff)
             {
                 return (*this) + (-diff);
             }
 
-            __bland __forceinline const Iterator  & operator ++()
+            __forceinline const Iterator  & operator ++()
             {
                 return (*this) += 1;
             }
-            __bland __forceinline const Iterator  & operator ++(int)
+            __forceinline const Iterator  & operator ++(int)
             {
                 return (*this) += 1;
             }
-            __bland __forceinline const Iterator  & operator --()
+            __forceinline const Iterator  & operator --()
             {
                 return (*this) -= 1;
             }
-            __bland __forceinline const Iterator  & operator --(int)
+            __forceinline const Iterator  & operator --(int)
             {
                 return (*this) -= 1;
             }
 
-            __bland __forceinline       ValueType & operator [](DifferenceType const index)
+            __forceinline       ValueType & operator [](DifferenceType const index)
             {
                 return *((*this) + index);
             }
-            __bland __forceinline       ValueType & operator  *() const
+            __forceinline       ValueType & operator  *() const
             {
                 return *this->GetEntry();
             }
@@ -364,7 +364,7 @@ namespace Beelzebub { namespace Memory
             Pml1Entry * Entry;
         };
 
-        __hot __bland inline Handle GetIterator(Iterator & dst, vaddr_t const vaddr)
+        __hot inline Handle GetIterator(Iterator & dst, vaddr_t const vaddr)
         {
             return Iterator::Create(dst, this, vaddr);
         }

@@ -42,13 +42,13 @@
 #include <system/registers_x86.hpp>
 
 #define MSRFUNC1(name, prettyName, type)                                  \
-static __bland __forceinline type MCATS2(Get, prettyName)()               \
+static __forceinline type MCATS2(Get, prettyName)()               \
 {                                                                         \
     uint64_t temp = 0;                                                    \
     Read(Msr::name, temp);                                                \
     return type(temp);                                                    \
 }                                                                         \
-static __bland __forceinline void MCATS2(Set, prettyName)(const type val) \
+static __forceinline void MCATS2(Set, prettyName)(const type val) \
 {                                                                         \
     Write(Msr::name, val.Value);                                          \
 }
@@ -100,7 +100,7 @@ namespace Beelzebub { namespace System
 
         /*  MSRs  */
 
-        static __bland __forceinline MsrValue Read(const Msr reg)
+        static __forceinline MsrValue Read(const Msr reg)
         {
             uint32_t a, d;
 
@@ -111,7 +111,7 @@ namespace Beelzebub { namespace System
             return {{d, a}};
         }
 
-        static __bland __forceinline uint64_t Read64(const Msr reg)
+        static __forceinline uint64_t Read64(const Msr reg)
         {
             uint32_t a, d;
 
@@ -122,14 +122,14 @@ namespace Beelzebub { namespace System
             return (uint64_t)a | ((uint64_t)d << 32);
         }
 
-        static __bland __forceinline void Read(const Msr reg, uint32_t & a, uint32_t & d)
+        static __forceinline void Read(const Msr reg, uint32_t & a, uint32_t & d)
         {
             asm volatile ( "rdmsr \n\t"
                          : "=a" (a), "=d" (d)
                          : "c" (reg) );
         }
 
-        static __bland __forceinline void Read(const Msr reg, uint64_t & val)
+        static __forceinline void Read(const Msr reg, uint64_t & val)
         {
             uint32_t a, d;
 
@@ -140,21 +140,21 @@ namespace Beelzebub { namespace System
             val = (uint64_t)a | ((uint64_t)d << 32);
         }
 
-        static __bland __forceinline void Write(const Msr reg, const MsrValue val)
+        static __forceinline void Write(const Msr reg, const MsrValue val)
         {
             asm volatile ( "wrmsr \n\t"
                          : 
                          : "c" (reg), "a" (val.Dwords.Low), "d" (val.Dwords.High) );
         }
 
-        static __bland __forceinline void Write(const Msr reg, const uint32_t a, const uint32_t d)
+        static __forceinline void Write(const Msr reg, const uint32_t a, const uint32_t d)
         {
             asm volatile ( "wrmsr \n\t"
                          : 
                          : "c" (reg), "a" (a), "d" (d) );
         }
 
-        static __bland __forceinline void Write(const Msr reg, const uint64_t val)
+        static __forceinline void Write(const Msr reg, const uint64_t val)
         {
             register uint32_t a asm("eax") = (uint32_t)val;
             register uint32_t d asm("edx") = (uint32_t)(val >> 32);
@@ -169,7 +169,7 @@ namespace Beelzebub { namespace System
 
         /*  Shortcuts  */
 
-        static __bland __forceinline void EnableNxBit()
+        static __forceinline void EnableNxBit()
         {
             const Msr reg = Msr::IA32_EFER;
 

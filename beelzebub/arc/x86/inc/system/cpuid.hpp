@@ -94,14 +94,14 @@ namespace Beelzebub { namespace System
 
         /*  Statics  */
 
-        static __bland __forceinline void Execute(uint32_t in1, uint32_t & a, uint32_t & b, uint32_t & c, uint32_t & d)
+        static __forceinline void Execute(uint32_t in1, uint32_t & a, uint32_t & b, uint32_t & c, uint32_t & d)
         {
             asm volatile ( "cpuid"
                          : "=a" (a), "=b" (b), "=c" (c), "=d" (d)
                          : "a" (in1));
         }
 
-        static __bland __forceinline void Execute(uint32_t in1, uint32_t in2, uint32_t & a, uint32_t & b, uint32_t & c, uint32_t & d)
+        static __forceinline void Execute(uint32_t in1, uint32_t in2, uint32_t & a, uint32_t & b, uint32_t & c, uint32_t & d)
         {
             asm volatile ( "cpuid"
                          : "=a" (a), "=b" (b), "=c" (c), "=d" (d)
@@ -115,10 +115,10 @@ namespace Beelzebub { namespace System
 
         /*  Operations  */
 
-        __cold __bland void Initialize();
+        __cold void Initialize();
 
-        __cold __bland void InitializeIntel();
-        __cold __bland void InitializeAmd();
+        __cold void InitializeIntel();
+        __cold void InitializeAmd();
 
         /*  Fields  */
 
@@ -146,41 +146,41 @@ namespace Beelzebub { namespace System
 
         /*  Info extraction  */
 
-        __hot __bland bool CheckFeature(const CpuFeature feature) const;
+        __hot bool CheckFeature(const CpuFeature feature) const;
 
-        __bland __forceinline uint8_t GetSteppingId() const
+        __forceinline uint8_t GetSteppingId() const
         {
             return (uint8_t)( this->VersionInformation & 0x0000000F       );
         }
 
-        __bland __forceinline uint8_t GetBaseModelId() const
+        __forceinline uint8_t GetBaseModelId() const
         {
             return (uint8_t)((this->VersionInformation & 0x000000F0) >> 4);
         }
 
-        __bland __forceinline uint8_t GetBaseFamilyId() const
+        __forceinline uint8_t GetBaseFamilyId() const
         {
             return (uint8_t)((this->VersionInformation & 0x00000F00) >> 8);
         }
 
-        __bland __forceinline uint8_t GetProcessorType() const
+        __forceinline uint8_t GetProcessorType() const
         {
             return (uint8_t)((this->VersionInformation & 0x00003000) >> 12);
         }
 
-        __bland __forceinline uint8_t GetExtendedModelId() const
+        __forceinline uint8_t GetExtendedModelId() const
         {
             return (uint8_t)((this->VersionInformation & 0x000F0000) >> 16);
         }
 
-        __bland __forceinline uint8_t GetExtendedFamilyId() const
+        __forceinline uint8_t GetExtendedFamilyId() const
         {
             return (uint8_t)((this->VersionInformation & 0x0FF00000) >> 20);
         }
 
-        __bland uint8_t GetModel() const;
+        uint8_t GetModel() const;
 
-        __bland __forceinline uint8_t GetFamily() const
+        __forceinline uint8_t GetFamily() const
         {
             uint8_t baseFamily = this->GetBaseFamilyId();
 
@@ -191,29 +191,29 @@ namespace Beelzebub { namespace System
         }
 
 
-        __bland __forceinline uint8_t GetBrandIndex() const
+        __forceinline uint8_t GetBrandIndex() const
         {
             return (uint8_t)( this->FeatureFlagsStandardB & 0x000000FF       );
         }
 
-        __bland __forceinline size_t GetClflushLineSize() const
+        __forceinline size_t GetClflushLineSize() const
         {
             return (size_t )((this->FeatureFlagsStandardB & 0x0000FF00) >> 5);
             //  The value needs to be multiplied by 8 (shifted left by 3).
         }
 
-        __bland __forceinline uint8_t GetMaxLogicalProcessors() const
+        __forceinline uint8_t GetMaxLogicalProcessors() const
         {
             return (uint8_t)((this->FeatureFlagsStandardB & 0x00FF0000) >> 16);
         }
 
-        __bland __forceinline uint8_t GetInitialApicId() const
+        __forceinline uint8_t GetInitialApicId() const
         {
             return (uint8_t)((this->FeatureFlagsStandardB & 0xFF000000) >> 24);
         }
 
         /*  Debug  */
 
-        __cold __bland TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
     };
 }}

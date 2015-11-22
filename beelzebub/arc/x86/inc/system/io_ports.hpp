@@ -59,7 +59,7 @@ namespace Beelzebub { namespace System
 
         /*  Port I/O  */
 
-        static __bland __forceinline void Out8(uint16_t const port
+        static __forceinline void Out8(uint16_t const port
                                              , uint8_t const value)
         {
             asm volatile ( "outb %1, %0 \n\t"
@@ -67,7 +67,7 @@ namespace Beelzebub { namespace System
                          : "dN" (port), "a" (value) );
         }
 
-        static __bland __forceinline void Out8n(uint16_t const port
+        static __forceinline void Out8n(uint16_t const port
                                               , uint8_t const * src
                                               , size_t const count)
         {
@@ -76,7 +76,7 @@ namespace Beelzebub { namespace System
                          : "d" (port) );
         }
 
-        static __bland __forceinline void Out16(uint16_t const port
+        static __forceinline void Out16(uint16_t const port
                                               , uint16_t const value)
         {
             asm volatile ( "outw %1, %0 \n\t"
@@ -84,7 +84,7 @@ namespace Beelzebub { namespace System
                          : "dN" (port), "a" (value) );
         }
 
-        static __bland __forceinline void Out32(uint16_t const port
+        static __forceinline void Out32(uint16_t const port
                                               , uint32_t const value)
         {
             asm volatile ( "outl %1, %0 \n\t"
@@ -93,21 +93,21 @@ namespace Beelzebub { namespace System
         }
 
 
-        static __bland __forceinline void In8(uint16_t const port, uint8_t & value)
+        static __forceinline void In8(uint16_t const port, uint8_t & value)
         {
             asm volatile ( "inb %1, %0 \n\t"
                          : "=a" (value)
                          : "dN" (port) );
         }
 
-        static __bland __forceinline void In16(uint16_t const port, uint16_t & value)
+        static __forceinline void In16(uint16_t const port, uint16_t & value)
         {
             asm volatile ( "inw %1, %0 \n\t"
                          : "=a" (value)
                          : "dN" (port) );
         }
 
-        static __bland __forceinline void In32(uint16_t const port, uint32_t & value)
+        static __forceinline void In32(uint16_t const port, uint32_t & value)
         {
             asm volatile ( "inl %1, %0 \n\t"
                          : "=a" (value)
@@ -115,7 +115,7 @@ namespace Beelzebub { namespace System
         }
 
 
-        static __bland __forceinline uint8_t In8(uint16_t const port)
+        static __forceinline uint8_t In8(uint16_t const port)
         {
             uint8_t value;
 
@@ -126,7 +126,7 @@ namespace Beelzebub { namespace System
             return value;
         }
 
-        static __bland __forceinline uint16_t In16(uint16_t const port)
+        static __forceinline uint16_t In16(uint16_t const port)
         {
             uint16_t value;
 
@@ -137,7 +137,7 @@ namespace Beelzebub { namespace System
             return value;
         }
 
-        static __bland __forceinline uint32_t In32(uint16_t const port)
+        static __forceinline uint32_t In32(uint16_t const port)
         {
             uint32_t value;
 

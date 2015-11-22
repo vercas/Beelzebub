@@ -7,23 +7,23 @@ union name                                                                  \
 {                                                                           \
     uintptr_t Tagger;                                                       \
     BITFIELD_STRM_RW(0, tagLen, tagType, tagName, uintptr_t, this->Tagger,  \
-        __bland, const, static)                                             \
+        , const, static)                                             \
     BITFIELD_STRM_RW(0, tagLen, tagType, Tag    , uintptr_t, this->Tagger,  \
-        __bland, const, static)                                             \
-    __bland inline constexpr name() : Tagger(0) { }                         \
-    __bland inline bool IsNull()                                            \
+        , const, static)                                             \
+    inline constexpr name() : Tagger(0) { }                         \
+    inline bool IsNull()                                            \
     {                                                                       \
         return 0 == (this->Tagger & ~TagBits);                              \
     }                                                                       \
-    __bland inline bool operator ==(void const * const other)               \
+    inline bool operator ==(void const * const other)               \
     {                                                                       \
         return (uintptr_t)other == (this->Tagger & ~TagBits);               \
     }                                                                       \
-    __bland inline bool operator !=(void const * const other)               \
+    inline bool operator !=(void const * const other)               \
     {                                                                       \
         return (uintptr_t)other != (this->Tagger & ~TagBits);               \
     }                                                                       \
-    __bland inline void * GetInvariantValue() const                         \
+    inline void * GetInvariantValue() const                         \
     {                                                                       \
         return (void *)((uintptr_t)this->Tagger & ~TagBits);                \
     }
@@ -32,17 +32,17 @@ union name                                                                  \
 
 #define TAGPTR_TYPE(uName, tagValue, name, type)                            \
     type name;                                                              \
-    __bland inline uName(type val)                                          \
+    inline uName(type val)                                          \
         : Tagger((uintptr_t)val | ((uintptr_t)tagValue & TagBits))          \
     {                                                                       \
         /* nothing */                                                       \
     }                                                                       \
-    __bland inline uName & operator =(type const val)                       \
+    inline uName & operator =(type const val)                       \
     {                                                                       \
         this->Tagger = (uintptr_t)val | ((uintptr_t)tagValue & TagBits);    \
         return *this;                                                       \
     }                                                                       \
-    __bland inline type MCATS(Get, name)() const                            \
+    inline type MCATS(Get, name)() const                            \
     {                                                                       \
         if (this->GetTag() == (tagValue))                                   \
             return (type)((uintptr_t)this->name & ~TagBits);                \
