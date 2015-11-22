@@ -64,6 +64,10 @@
 
 #include <debug.hpp>
 
+#if __BEELZEBUB__TEST_METAP
+#include <tests/meta.hpp>
+#endif
+
 #if __BEELZEBUB__TEST_STR
 #include <tests/string.hpp>
 #endif
@@ -302,6 +306,14 @@ void Beelzebub::Main()
     }
 
     Cpu::SetActiveThread(&BootstrapThread);
+
+#ifdef __BEELZEBUB__TEST_METAP
+    MainTerminal->Write(">Testing metaprgoramming facilities...");
+
+    TestMetaprogramming();
+
+    MainTerminal->WriteLine(" Done.");
+#endif
 
 #ifdef __BEELZEBUB__TEST_STR
     MainTerminal->Write(">Testing string.h implementation...");
