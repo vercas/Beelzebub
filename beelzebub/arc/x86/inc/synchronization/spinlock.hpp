@@ -71,6 +71,8 @@ namespace Beelzebub { namespace Synchronization
     {
     public:
 
+        typedef void Cookie;
+
         /*  Constructor(s)  */
 
         Spinlock() = default;
@@ -185,6 +187,8 @@ namespace Beelzebub { namespace Synchronization
     struct Spinlock<true>
     {
     public:
+
+        typedef void Cookie;
 
         /*  Constructor(s)  */
 

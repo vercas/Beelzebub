@@ -42,11 +42,7 @@
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
 #include <terminals/base.hpp>
-#include <metaprogramming.h>
 #include <handles.h>
-
-using namespace Beelzebub::Terminals;
-using namespace Beelzebub::Synchronization;
 
 namespace Beelzebub { namespace Memory
 {
@@ -104,12 +100,12 @@ namespace Beelzebub { namespace Memory
         pgind_t StackIndex;
 
         //  Number of references to this page.
-        Atomic<uint32_t> ReferenceCount;
+        Synchronization::Atomic<uint32_t> ReferenceCount;
 
         //  Page status
         PageDescriptorStatus Status;
         //  Access count
-        Atomic<uint16_t> Accesses;
+        Synchronization::Atomic<uint16_t> Accesses;
 
         /*  Constructors  */
 
@@ -240,7 +236,7 @@ namespace Beelzebub { namespace Memory
             }
         }
 
-        __bland __forceinline TerminalWriteResult PrintToTerminal(TerminalBase * const term)
+        __bland __forceinline Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term)
         {
             return term->WriteFormat("|%c|D@%Xp|R-%X4|A-%X2|I-%X4|"
                 , this->GetStatusChar(), this
@@ -414,7 +410,7 @@ namespace Beelzebub { namespace Memory
         pgind_t * Stack;
         //  El stacko de páginas libres. Lmao.
 
-        SpinlockUninterruptible<> Locker;
+        Synchronization::SpinlockUninterruptible<> Locker;
 
     public:
 
@@ -424,7 +420,7 @@ namespace Beelzebub { namespace Memory
         /*  Debug  */
 
 #ifdef __BEELZEBUB__DEBUG
-        __cold __bland TerminalWriteResult PrintStackToTerminal(TerminalBase * const term, bool const details);
+        __cold __bland Terminals::TerminalWriteResult PrintStackToTerminal(Terminals::TerminalBase * const term, bool const details);
 #endif
 
     };// __packed;
@@ -473,7 +469,7 @@ namespace Beelzebub { namespace Memory
 
         //  Used for mutual exclusion over the linking pointers of the
         //  allocation spaces.
-        SpinlockUninterruptible<> ChainLock;
+        Synchronization::SpinlockUninterruptible<> ChainLock;
 
         /*  Space Chaining  */
 

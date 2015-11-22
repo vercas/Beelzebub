@@ -45,7 +45,7 @@
 
 namespace Beelzebub
 {
-    extern TerminalBase * MainTerminal;
+    extern Terminals::TerminalBase * MainTerminal;
     extern bool Scheduling;
     extern bool CpuDataSetUp;
 

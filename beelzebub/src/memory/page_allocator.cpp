@@ -38,6 +38,7 @@
 */
 
 #include <memory/page_allocator.hpp>
+#include <synchronization/lock_guard.hpp>
 
 #include <math.h>
 #include <debug.hpp>
@@ -46,7 +47,9 @@ using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Debug;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
 
 /****************************
     PageDescriptor struct
@@ -251,8 +254,6 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
 
     PageDescriptor * const map = this->Map + start;
 
-    int_cookie_t int_cookie;
-
     for (pgind_t i = 0; i < count; ++i)
     {
         PageDescriptor * const page = map + i;
@@ -260,9 +261,11 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
 
         if likely(status == PageDescriptorStatus::InUse)
         {
-            int_cookie = this->Locker.Acquire();
+            auto lockGuard = ObtainLockGuard(this->Locker);
 
             this->Stack[page->StackIndex = ++this->StackFreeTop] = start + i;
+
+            page->Free();
         }
         else
         {
@@ -276,10 +279,6 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
 
             //  The proper error must be returned!
         }
-
-        page->Free();
-
-        this->Locker.Release(int_cookie);
     }
 
     return Handle(HandleResult::Okay);
@@ -289,19 +288,21 @@ paddr_t PageAllocationSpace::AllocatePage(PageDescriptor * & desc)
 {
     if likely(this->FreePageCount != 0)
     {
-        int_cookie_t const int_cookie = this->Locker.Acquire();
+        pgind_t i;
 
-        pgind_t i = this->Stack[this->StackFreeTop--];
+        {
+            auto lockGuard = ObtainLockGuard(this->Locker);
 
-        (desc = this->Map + i)->Use();
-        //  Mark the page as used.
-        //  And, of course, return the descriptor.
+            i = this->Stack[this->StackFreeTop--];
 
-        --this->FreePageCount;
-        this->FreeSize -= this->PageSize;
-        //  Change the info accordingly.
+            (desc = this->Map + i)->Use();
+            //  Mark the page as used.
+            //  And, of course, return the descriptor.
 
-        this->Locker.Release(int_cookie);
+            --this->FreePageCount;
+            this->FreeSize -= this->PageSize;
+            //  Change the info accordingly.
+        }
 
         return this->AllocationStart + i * this->PageSize;
     }
