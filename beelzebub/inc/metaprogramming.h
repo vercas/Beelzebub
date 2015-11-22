@@ -114,6 +114,7 @@
 #define __restrict         __restrict__
 #define __nonnull(...)     __attribute__((__nonnull__(__VA_ARGS__)))
 #define __returns_nonnull  __attribute__((__returns_nonnull__))
+#define __malloc           __attribute__((__malloc__))
 
 #define likely(expr)       (__builtin_expect((expr), 1))
 #define unlikely(expr)     (__builtin_expect((expr), 0))
@@ -148,6 +149,7 @@
 #define __restrict
 #define __nonnull(...)  
 #define __returns_nonnull  
+#define __malloc  
 
 #define likely(expr)       (expr)
 #define unlikely(expr)     (expr)

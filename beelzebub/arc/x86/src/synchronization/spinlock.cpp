@@ -56,5 +56,8 @@ using namespace Beelzebub::Synchronization;
     }//*/
 #endif
 
-template struct Spinlock<true>;
-template struct Spinlock<false>;
+namespace Beelzebub { namespace Synchronization
+{
+    template struct Spinlock<true>;
+    template struct Spinlock<false>;
+}}

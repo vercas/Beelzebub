@@ -32,7 +32,7 @@ union name                                                                  \
 
 #define TAGPTR_TYPE(uName, tagValue, name, type)                            \
     type name;                                                              \
-    __bland inline constexpr uName(type val)                                \
+    __bland inline uName(type val)                                          \
         : Tagger((uintptr_t)val | ((uintptr_t)tagValue & TagBits))          \
     {                                                                       \
         /* nothing */                                                       \
