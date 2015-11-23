@@ -200,17 +200,18 @@ __cold PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end, D
         if (currentAllocationSpacePtr == nullptr)
         {
             PageDescriptor * desc = nullptr;
+            paddr_t const paddr = domain->PhysicalAllocator->AllocatePage(PageAllocationOptions::GeneralPages, desc);
 
-            currentAllocationSpacePtr = (PageAllocationSpace *)(domain->PhysicalAllocator->AllocatePage(desc));
-
-            ASSERT(currentAllocationSpacePtr != nullptr && desc != nullptr
+            ASSERT(paddr != nullpaddr && desc != nullptr
                 , "Unable to allocate a special page for creating more allocation spaces!");
 
-            Handle res = domain->PhysicalAllocator->ReserveByteRange((paddr_t)currentAllocationSpacePtr, PageSize, PageReservationOptions::IncludeInUse);
+            Handle res = domain->PhysicalAllocator->ReserveByteRange(paddr, PageSize, PageReservationOptions::IncludeInUse);
 
             ASSERT(res.IsOkayResult()
                 , "Failed to reserve special page for further allocation space creation: %H"
                 , res);
+
+            currentAllocationSpacePtr = reinterpret_cast<PageAllocationSpace *>((uintptr_t)paddr);
 
             /*msg("PAGE@%Xp; ", currentAllocationSpacePtr);//*/
         }

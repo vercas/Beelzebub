@@ -38,7 +38,6 @@
 */
 
 #include <memory/page_allocator.hpp>
-#include <synchronization/lock_guard.hpp>
 
 #include <math.h>
 #include <debug.hpp>
