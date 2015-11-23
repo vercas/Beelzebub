@@ -373,14 +373,13 @@ namespace Beelzebub { namespace Memory
 
         /*  Miscellaneous  */
 
-        __cold __forceinline void RemapControlStructures(vaddr_t const newAddr)
+        __cold inline void RemapControlStructures(vaddr_t const newAddr)
         {
-            int_cookie_t const int_cookie = this->Locker.Acquire();
-
-            this->Stack = (pgind_t *)((vaddr_t)this->Stack - (vaddr_t)this->Map + newAddr);
-            this->Map = (PageDescriptor *)newAddr;
-
-            this->Locker.Release(int_cookie);
+            withLock (this->Locker)
+            {
+                this->Stack = (pgind_t *)((vaddr_t)this->Stack - (vaddr_t)this->Map + newAddr);
+                this->Map = (PageDescriptor *)newAddr;
+            }
         }
 
         /**

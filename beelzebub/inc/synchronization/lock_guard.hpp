@@ -41,7 +41,7 @@
 
 #include <metaprogramming.h>
 
-#define ObtainLockGuard(name, lock) LockGuard<decltype(lock)> name {lock}
+#define ObtainLockGuard(name, lock) Beelzebub::Synchronization::LockGuard<decltype(lock)> name {lock}
 #define withLock(lock) with(ObtainLockGuard(MCATS(_lock_guard_, __LINE__), lock))
 
 namespace Beelzebub { namespace Synchronization

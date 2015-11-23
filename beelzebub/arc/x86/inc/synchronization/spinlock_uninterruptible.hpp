@@ -44,6 +44,7 @@
 
 #pragma once
 
+#include <synchronization/lock_guard.hpp>
 #include <system/interrupts.hpp>
 #include <system/cpu_instructions.hpp>
 

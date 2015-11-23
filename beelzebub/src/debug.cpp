@@ -58,27 +58,23 @@ namespace Beelzebub { namespace Debug
                  , const size_t line
                  , const char * const msg)
     {
-        if (DebugTerminal != nullptr
-         && DebugTerminal->Descriptor->Capabilities.CanOutput)
-        {
-            (&MsgSpinlock)->Acquire();
-
-            DebugTerminal->WriteLine("");
-            DebugTerminal->Write("CAUGHT FIRE at line ");
-            DebugTerminal->WriteUIntD(line);
-            DebugTerminal->Write(" of \"");
-            DebugTerminal->Write(file);
-
-            if (msg == nullptr)
-                DebugTerminal->WriteLine("\".");
-            else
+        if (DebugTerminal != nullptr && DebugTerminal->Descriptor->Capabilities.CanOutput)
+            withLock (MsgSpinlock)
             {
-                DebugTerminal->WriteLine("\":");
-                DebugTerminal->WriteLine(msg);
-            }
+                DebugTerminal->WriteLine("");
+                DebugTerminal->Write("CAUGHT FIRE at line ");
+                DebugTerminal->WriteUIntD(line);
+                DebugTerminal->Write(" of \"");
+                DebugTerminal->Write(file);
 
-            (&MsgSpinlock)->Release();
-        }
+                if (msg == nullptr)
+                    DebugTerminal->WriteLine("\".");
+                else
+                {
+                    DebugTerminal->WriteLine("\":");
+                    DebugTerminal->WriteLine(msg);
+                }
+            }
 
         Interrupts::Disable();
 
@@ -92,27 +88,23 @@ namespace Beelzebub { namespace Debug
                  , const size_t line
                  , const char * const fmt, va_list args)
     {
-        if (DebugTerminal != nullptr
-         && DebugTerminal->Descriptor->Capabilities.CanOutput)
-        {
-            (&MsgSpinlock)->Acquire();
-
-            DebugTerminal->WriteLine("");
-            DebugTerminal->Write("CAUGHT FIRE at line ");
-            DebugTerminal->WriteUIntD(line);
-            DebugTerminal->Write(" of \"");
-            DebugTerminal->Write(file);
-
-            if (fmt == nullptr)
-                DebugTerminal->WriteLine("\".");
-            else
+        if (DebugTerminal != nullptr && DebugTerminal->Descriptor->Capabilities.CanOutput)
+            withLock (MsgSpinlock)
             {
-                DebugTerminal->WriteLine("\":");
-                DebugTerminal->Write(fmt, args);
-            }
+                DebugTerminal->WriteLine("");
+                DebugTerminal->Write("CAUGHT FIRE at line ");
+                DebugTerminal->WriteUIntD(line);
+                DebugTerminal->Write(" of \"");
+                DebugTerminal->Write(file);
 
-            (&MsgSpinlock)->Release();
-        }
+                if (fmt == nullptr)
+                    DebugTerminal->WriteLine("\".");
+                else
+                {
+                    DebugTerminal->WriteLine("\":");
+                    DebugTerminal->Write(fmt, args);
+                }
+            }
 
         Interrupts::Disable();
 

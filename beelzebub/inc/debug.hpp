@@ -65,11 +65,8 @@ else if (false)
 
 #define msg_(...) do {                                                  \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-    {                                                                   \
-        (&Beelzebub::Debug::MsgSpinlock)->Acquire();                    \
-        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
-        (&Beelzebub::Debug::MsgSpinlock)->Release();                    \
-    }                                                                   \
+        withLock (Beelzebub::Debug::MsgSpinlock)                        \
+            Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
 } while (false)
 #else
 #define assert(...) do {} while(false)
@@ -91,11 +88,8 @@ if unlikely(!(cond))                                                    \
 } while (false)
 #define MSG_(...) do {                                                  \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-    {                                                                   \
-        (&Beelzebub::Debug::MsgSpinlock)->Acquire();                    \
-        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
-        (&Beelzebub::Debug::MsgSpinlock)->Release();                    \
-    }                                                                   \
+        withLock (Beelzebub::Debug::MsgSpinlock)                        \
+            Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
 } while (false)
 //  Thse three are available for all configurations!
 

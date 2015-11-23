@@ -71,6 +71,26 @@ namespace Beelzebub { namespace System
 
         static inline bool AreEnabled()
         {
+#ifdef __GCC_ASM_FLAG_OUTPUTS__
+            bool res;
+
+            #if   defined(__BEELZEBUB__ARCH_AMD64)
+                #define __REG_A__ "rax"
+            #else
+                #define __REG_A__ "eax"
+            #endif
+
+            asm volatile ( "pushf                      \n\t"
+                           "pop %%" __REG_A__ "        \n\t"
+                           "bt %[bit], %%" __REG_A__ " \n\t"
+                           : [res]"=r"(res)
+                           : [bit]"rN"(9)
+                           : __REG_A__ );
+
+            #undef __REG_A__
+
+            return res;
+#else
             size_t flags;
 
             asm volatile ( "pushf        \n\t"
@@ -79,6 +99,7 @@ namespace Beelzebub { namespace System
             //  Push and pop don't change any flags. Yay!
 
             return (flags & (size_t)(1 << 9)) != 0;
+#endif
         }
 
         static inline void Enable()
@@ -220,7 +241,9 @@ namespace Beelzebub { namespace System
         inline InterruptGuard() : Cookie(Interrupts::PushDisable()) { }
 
         InterruptGuard(InterruptGuard const &) = delete;
+        InterruptGuard(InterruptGuard && other) = delete;
         InterruptGuard & operator =(InterruptGuard const &) = delete;
+        InterruptGuard & operator =(InterruptGuard &&) = delete;
 
         /*  Destructor  */
 
@@ -244,7 +267,9 @@ namespace Beelzebub { namespace System
         inline InterruptGuard() : Cookie(Interrupts::PushEnable()) { }
 
         InterruptGuard(InterruptGuard const &) = delete;
+        InterruptGuard(InterruptGuard && other) = delete;
         InterruptGuard & operator =(InterruptGuard const &) = delete;
+        InterruptGuard & operator =(InterruptGuard &&) = delete;
 
         /*  Destructor  */
 

@@ -59,6 +59,7 @@
 #include <ap_bootstrap.hpp>
 
 #include <synchronization/spinlock.hpp>
+
 #include <utils/wait.hpp>
 #include <string.h>
 
@@ -112,119 +113,24 @@ Domain Beelzebub::Domain0;
 
 void Beelzebub::Main()
 {
-    InitializationLock.Acquire();
-
     Handle res;
     //  Used for intermediary results.
 
     new (&Domain0) Domain();
     //  Initialize domain 0. Make sure it's not in a possibly-invalid state.
 
-    //  First step is getting a simple terminal running for the most
-    //  basic of output. This should be x86-common.
-    MainTerminal = InitializeTerminalProto();
-
-    MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
-
-    //  Setting up basic interrupt handlers 'n stuff.
-    //  Again, platform-specific.
-    MainTerminal->Write("[....] Initializing interrupts...");
-    res = InitializeInterrupts();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
+    withLock (InitializationLock)
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        //  First step is getting a simple terminal running for the most
+        //  basic of output. This should be x86-common.
+        MainTerminal = InitializeTerminalProto();
 
-        ASSERT(false, "Failed to initialize interrupts: %H"
-            , res);
-    }
+        MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
 
-    //  Preparing the PIT for basic timing.
-    //  Common on x86.
-    MainTerminal->Write("[....] Initializing PIT...");
-    res = InitializePit();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        ASSERT(false, "Failed to initialize the PIT: %H"
-            , res);
-    }
-
-    //  Initialize the memory by partition and allocation.
-    //  Differs on IA-32 and AMD64. May tweak virtual memory in the process.
-    MainTerminal->Write("[....] Initializing physical memory...");
-    res = InitializePhysicalMemory();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        ASSERT(false, "Failed to initialize physical memory: %H"
-            , res);
-    }
-
-    //  Initialize the virtual memory for use by the kernel.
-    //  Differs on IA-32 and AMD64.
-    MainTerminal->Write("[....] Initializing virtual memory...");
-    res = InitializeVirtualMemory();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        ASSERT(false, "Failed to initialize virtual memory: %H"
-            , res);
-    }
-
-    //  Initialize the ACPI tables for easier use.
-    //  Mostly common on x86.
-    MainTerminal->Write("[....] Initializing ACPI tables...");
-    res = InitializeAcpiTables();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        ASSERT(false, "Failed to initialize the ACPI tables: %H"
-            , res);
-    }
-
-    //  Initialize the LAPIC for the BSP and the I/O APIC.
-    //  Mostly common on x86.
-    MainTerminal->Write("[....] Initializing APIC...");
-    res = InitializeApic();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        ASSERT(false, "Failed to initialize the APIC: %H"
-            , res);
-    }
-
-#if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
-#else
-    //  Initialize the other processing units in the system.
-    //  Mostly common on x86, but the executed code differs by arch.
-    if (Acpi::PresentLapicCount > 1)
-    {
-        MainTerminal->Write("[....] Initializing extra processing units...");
-        res = InitializeProcessingUnits();
+        //  Setting up basic interrupt handlers 'n stuff.
+        //  Again, platform-specific.
+        MainTerminal->Write("[....] Initializing interrupts...");
+        res = InitializeInterrupts();
 
         if (res.IsOkayResult())
             MainTerminal->WriteLine(" Done.\r[OKAY]");
@@ -232,125 +138,218 @@ void Beelzebub::Main()
         {
             MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-            ASSERT(false, "Failed to initialize the extra processing units: %H"
+            ASSERT(false, "Failed to initialize interrupts: %H"
                 , res);
         }
-    }
-    else
-    {
-        MainTerminal->WriteLine("[SKIP] No extra processing units available.");
-    }
+
+        //  Preparing the PIT for basic timing.
+        //  Common on x86.
+        MainTerminal->Write("[....] Initializing PIT...");
+        res = InitializePit();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize the PIT: %H"
+                , res);
+        }
+
+        //  Initialize the memory by partition and allocation.
+        //  Differs on IA-32 and AMD64. May tweak virtual memory in the process.
+        MainTerminal->Write("[....] Initializing physical memory...");
+        res = InitializePhysicalMemory();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize physical memory: %H"
+                , res);
+        }
+
+        //  Initialize the virtual memory for use by the kernel.
+        //  Differs on IA-32 and AMD64.
+        MainTerminal->Write("[....] Initializing virtual memory...");
+        res = InitializeVirtualMemory();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize virtual memory: %H"
+                , res);
+        }
+
+        //  Initialize the ACPI tables for easier use.
+        //  Mostly common on x86.
+        MainTerminal->Write("[....] Initializing ACPI tables...");
+        res = InitializeAcpiTables();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize the ACPI tables: %H"
+                , res);
+        }
+
+        //  Initialize the LAPIC for the BSP and the I/O APIC.
+        //  Mostly common on x86.
+        MainTerminal->Write("[....] Initializing APIC...");
+        res = InitializeApic();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize the APIC: %H"
+                , res);
+        }
+
+#if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+        MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
+#else
+        //  Initialize the other processing units in the system.
+        //  Mostly common on x86, but the executed code differs by arch.
+        if (Acpi::PresentLapicCount > 1)
+        {
+            MainTerminal->Write("[....] Initializing extra processing units...");
+            res = InitializeProcessingUnits();
+
+            if (res.IsOkayResult())
+                MainTerminal->WriteLine(" Done.\r[OKAY]");
+            else
+            {
+                MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+                ASSERT(false, "Failed to initialize the extra processing units: %H"
+                    , res);
+            }
+        }
+        else
+        {
+            MainTerminal->WriteLine("[SKIP] No extra processing units available.");
+        }
 #endif
 
-    //  Initialize the modules loaded with the kernel.
-    //  Mostly common.
-    MainTerminal->Write("[....] Initializing modules...");
-    res = InitializeModules();
+        //  Initialize the modules loaded with the kernel.
+        //  Mostly common.
+        MainTerminal->Write("[....] Initializing modules...");
+        res = InitializeModules();
 
-    if (res.IsOkayResult())
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize modules: %H"
+                , res);
+        }
+
+        //  Upgrade the terminal to a more capable and useful one.
+        //  Yet again, platform-specific.
+        MainTerminal->Write("[....] Initializing main terminal...");
+        TerminalBase * secondaryTerminal = InitializeTerminalMain();
         MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize modules: %H"
-            , res);
+        MainTerminal->WriteLine("Switching over.");
+        MainTerminal = secondaryTerminal;
+
+        //  Permit other processors to initialize themselves.
+        MainTerminal->WriteLine("Initialization complete!");
+        MainTerminal->WriteLine();
     }
 
-    //  Upgrade the terminal to a more capable and useful one.
-    //  Yet again, platform-specific.
-    MainTerminal->Write("[....] Initializing main terminal...");
-    TerminalBase * secondaryTerminal = InitializeTerminalMain();
-    MainTerminal->WriteLine(" Done.\r[OKAY]");
-
-    MainTerminal->WriteLine("Switching over.");
-    MainTerminal = secondaryTerminal;
-
-    //  Permit other processors to initialize themselves.
-    MainTerminal->WriteLine("Initialization complete!");
-    MainTerminal->WriteLine();
-    InitializationLock.Release();
-
-    //  Now every core will print.
-    TerminalMessageLock.Acquire();
-    MainTerminal->Write("+-- Core #");
-    MainTerminal->WriteUIntD(Cpu::GetIndex());
-    MainTerminal->WriteLine();
-
-    //  Enable interrupts so they can run.
-    MainTerminal->Write("|[....] Enabling interrupts...");
-    Interrupts::Enable();
-
-    if (Interrupts::AreEnabled())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
-        //  Can never bee too sure.
-    else
+    withLock (TerminalMessageLock)
     {
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+        //  Now every core will print.
+        MainTerminal->Write("+-- Core #");
+        MainTerminal->WriteUIntD(Cpu::GetIndex());
+        MainTerminal->WriteLine();
 
-        ASSERT(false, "Enabling interrupts failed!");
-    }
+        //  Enable interrupts so they can run.
+        MainTerminal->Write("|[....] Enabling interrupts...");
+        Interrupts::Enable();
 
-    MainTerminal->Write("|[....] Initializing as bootstrap thread...");
+        if (Interrupts::AreEnabled())
+            MainTerminal->WriteLine(" Done.\r|[OKAY]");
+            //  Can never bee too sure.
+        else
+        {
+            MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
 
-    res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, &BootstrapMemoryManager);
+            ASSERT(false, "Enabling interrupts failed!");
+        }
 
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r|[FAIL]%n", res);
+        MainTerminal->Write("|[....] Initializing as bootstrap thread...");
 
-        ASSERT(false, "Failed to initialize main entry point as bootstrap thread: %H"
-            , res);
-    }
+        res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, &BootstrapMemoryManager);
 
-    Cpu::SetActiveThread(&BootstrapThread);
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r|[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize main entry point as bootstrap thread: %H"
+                , res);
+        }
+
+        Cpu::SetActiveThread(&BootstrapThread);
 
 #ifdef __BEELZEBUB__TEST_METAP
-    MainTerminal->Write(">Testing metaprgoramming facilities...");
+        MainTerminal->Write(">Testing metaprgoramming facilities...");
 
-    TestMetaprogramming();
+        TestMetaprogramming();
 
-    MainTerminal->WriteLine(" Done.");
+        MainTerminal->WriteLine(" Done.");
 #endif
 
 #ifdef __BEELZEBUB__TEST_STR
-    MainTerminal->Write(">Testing string.h implementation...");
+        MainTerminal->Write(">Testing string.h implementation...");
 
-    TestStringLibrary();
+        TestStringLibrary();
 
-    MainTerminal->WriteLine(" Done.");
+        MainTerminal->WriteLine(" Done.");
 #endif
 
 #ifdef __BEELZEBUB__TEST_MT
-    MainTerminal->Write(">Starting multitasking test...");
+        MainTerminal->Write(">Starting multitasking test...");
 
-    StartMultitaskingTest();
+        StartMultitaskingTest();
 
-    MainTerminal->WriteLine(" Done.");
+        MainTerminal->WriteLine(" Done.");
 #endif
 
-    MainTerminal->WriteLine("\\Halting indefinitely now.");
+        MainTerminal->WriteLine("\\Halting indefinitely now.");
 
 #ifdef __BEELZEBUB__TEST_OBJA
-    ObjectAllocatorTestBarrier1.Reset();
-    ObjectAllocatorTestBarrier2.Reset();
-    ObjectAllocatorTestBarrier3.Reset();
+        ObjectAllocatorTestBarrier1.Reset();
+        ObjectAllocatorTestBarrier2.Reset();
+        ObjectAllocatorTestBarrier3.Reset();
 #endif
-
-    TerminalMessageLock.Release();
+    }
 
 #ifdef __BEELZEBUB__TEST_OBJA
-    TerminalMessageLock.Acquire();
-    MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetIndex());
-    TerminalMessageLock.Release();
-
+    withLock (TerminalMessageLock)
+        MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetIndex());
+    
     TestObjectAllocator(true);
 
-    TerminalMessageLock.Acquire();
-    MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetIndex());
-    TerminalMessageLock.Release();
+    withLock (TerminalMessageLock)
+        MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetIndex());
 #endif
 
     //  Allow the CPU to rest.
@@ -377,35 +376,33 @@ void Beelzebub::Secondary()
 
     //  Now every core will print.
 
-    TerminalMessageLock.Acquire();
-    MainTerminal->Write("+-- Core #");
-    MainTerminal->WriteUIntD(Cpu::GetIndex());
-    MainTerminal->WriteLine();
+    withLock (TerminalMessageLock)
+    {
+        MainTerminal->Write("+-- Core #");
+        MainTerminal->WriteUIntD(Cpu::GetIndex());
+        MainTerminal->WriteLine();
 
-    //  Enable interrupts so they can run.
-    MainTerminal->Write("|[....] Enabling interrupts...");
-    Interrupts::Enable();
+        //  Enable interrupts so they can run.
+        MainTerminal->Write("|[....] Enabling interrupts...");
+        Interrupts::Enable();
 
-    if (Interrupts::AreEnabled())
-        MainTerminal->WriteLine(" Done.\r|[OKAY]");
-    else
-        MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
-    //  Can never bee too sure.
+        if (Interrupts::AreEnabled())
+            MainTerminal->WriteLine(" Done.\r|[OKAY]");
+        else
+            MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
+        //  Can never bee too sure.
 
-    MainTerminal->WriteLine("\\Halting indefinitely now.");
-
-    TerminalMessageLock.Release();
+        MainTerminal->WriteLine("\\Halting indefinitely now.");
+    }
 
 #ifdef __BEELZEBUB__TEST_OBJA
-    TerminalMessageLock.Acquire();
-    MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetIndex());
-    TerminalMessageLock.Release();
+    withLock (TerminalMessageLock)
+        MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetIndex());
 
     TestObjectAllocator(false);
 
-    TerminalMessageLock.Acquire();
-    MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetIndex());
-    TerminalMessageLock.Release();
+    withLock (TerminalMessageLock)
+        MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetIndex());
 #endif
 
     //  Allow the CPU to rest.

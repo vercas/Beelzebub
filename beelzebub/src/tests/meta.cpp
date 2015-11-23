@@ -42,7 +42,6 @@
 #include <tests/meta.hpp>
 #include <synchronization/spinlock.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
-#include <synchronization/lock_guard.hpp>
 #include <system/interrupts.hpp>
 
 #include <debug.hpp>

@@ -630,57 +630,54 @@ bool PageAllocator::TryGetPageDescriptor(const paddr_t paddr, PageDescriptor * &
 
 void PageAllocator::PreppendAllocationSpace(PageAllocationSpace * const space)
 {
-    int_cookie_t const int_cookie = this->ChainLock.Acquire();
-
-    this->FirstSpace->Previous = space;
-    space->Next = this->FirstSpace;
-    this->FirstSpace = space;
-
-    this->ChainLock.Release(int_cookie);
+    withLock (this->ChainLock)
+    {
+        this->FirstSpace->Previous = space;
+        space->Next = this->FirstSpace;
+        this->FirstSpace = space;
+    }
 }
 
 void PageAllocator::AppendAllocationSpace(PageAllocationSpace * const space)
 {
-    int_cookie_t const int_cookie = this->ChainLock.Acquire();
-
-    this->LastSpace->Next = space;
-    space->Previous = this->LastSpace;
-    this->LastSpace = space;
-
-    this->ChainLock.Release(int_cookie);
+    withLock (this->ChainLock)
+    {
+        this->LastSpace->Next = space;
+        space->Previous = this->LastSpace;
+        this->LastSpace = space;
+    }
 }
 
 void PageAllocator::RemapLinks(const vaddr_t oldAddr, const vaddr_t newAddr)
 {
-    int_cookie_t const int_cookie = this->ChainLock.Acquire();
-
-    const vaddr_t firstAddr   = (vaddr_t)this->FirstSpace;
-    const vaddr_t lastAddr    = (vaddr_t)this->LastSpace;
-    const vaddr_t oldVaddr    = oldAddr;
-    const vaddr_t newVaddr    = newAddr;
-    const vaddr_t oldVaddrEnd = oldVaddr + PageSize;
-
-    if (firstAddr > 0 && firstAddr >= oldVaddr && firstAddr < oldVaddrEnd)
-        this->FirstSpace = (PageAllocationSpace *)((firstAddr - oldVaddr) + newVaddr);
-    if (lastAddr > 0 && lastAddr >= oldVaddr && lastAddr < oldVaddrEnd)
-        this->LastSpace = (PageAllocationSpace *)((lastAddr - oldVaddr) + newVaddr);
-
-    //  Now makin' sure all the pointers are aligned.
-
-    PageAllocationSpace * cur = this->LastSpace;
-
-    while (cur != nullptr)
+    withLock (this->ChainLock)
     {
-        const vaddr_t nextAddr = (vaddr_t)cur->Next;
-        const vaddr_t prevAddr = (vaddr_t)cur->Previous;
+        const vaddr_t firstAddr   = (vaddr_t)this->FirstSpace;
+        const vaddr_t lastAddr    = (vaddr_t)this->LastSpace;
+        const vaddr_t oldVaddr    = oldAddr;
+        const vaddr_t newVaddr    = newAddr;
+        const vaddr_t oldVaddrEnd = oldVaddr + PageSize;
 
-        if (nextAddr > 0 && nextAddr >= oldVaddr && nextAddr < oldVaddrEnd)
-            cur->Next = (PageAllocationSpace *)((nextAddr - oldVaddr) + newVaddr);
-        if (prevAddr > 0 && prevAddr >= oldVaddr && prevAddr < oldVaddrEnd)
-            cur->Previous = (PageAllocationSpace *)((prevAddr - oldVaddr) + newVaddr);
+        if (firstAddr > 0 && firstAddr >= oldVaddr && firstAddr < oldVaddrEnd)
+            this->FirstSpace = (PageAllocationSpace *)((firstAddr - oldVaddr) + newVaddr);
+        if (lastAddr > 0 && lastAddr >= oldVaddr && lastAddr < oldVaddrEnd)
+            this->LastSpace = (PageAllocationSpace *)((lastAddr - oldVaddr) + newVaddr);
 
-        cur = cur->Previous;
+        //  Now makin' sure all the pointers are aligned.
+
+        PageAllocationSpace * cur = this->LastSpace;
+
+        while (cur != nullptr)
+        {
+            const vaddr_t nextAddr = (vaddr_t)cur->Next;
+            const vaddr_t prevAddr = (vaddr_t)cur->Previous;
+
+            if (nextAddr > 0 && nextAddr >= oldVaddr && nextAddr < oldVaddrEnd)
+                cur->Next = (PageAllocationSpace *)((nextAddr - oldVaddr) + newVaddr);
+            if (prevAddr > 0 && prevAddr >= oldVaddr && prevAddr < oldVaddrEnd)
+                cur->Previous = (PageAllocationSpace *)((prevAddr - oldVaddr) + newVaddr);
+
+            cur = cur->Previous;
+        }
     }
-
-    this->ChainLock.Release(int_cookie);
 }

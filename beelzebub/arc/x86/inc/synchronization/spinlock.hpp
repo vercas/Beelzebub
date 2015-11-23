@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <synchronization/lock_guard.hpp>
 #include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
