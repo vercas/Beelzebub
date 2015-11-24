@@ -87,7 +87,7 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
 
     for (size_t i = 0; i < pageCount; ++i)
     {
-        paddr_t const paddr = Cpu::GetDomain()->PhysicalAllocator->AllocatePage(desc);
+        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
         //  Test page.
 
         assert_or(paddr != nullpaddr && desc != nullptr
@@ -270,7 +270,7 @@ Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtra
 
     for (size_t i = 0; curPageCount < newPageCount; ++i, ++curPageCount)
     {
-        paddr_t const paddr = Cpu::GetDomain()->PhysicalAllocator->AllocatePage(desc);
+        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
         //  Test page.
 
         assert_or(paddr != nullpaddr && desc != nullptr
@@ -291,7 +291,7 @@ Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtra
             , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount
             , res)
         {
-            Cpu::GetDomain()->PhysicalAllocator->FreePageAtAddress(paddr);
+            Cpu::GetData()->DomainDescriptor->PhysicalAllocator->FreePageAtAddress(paddr);
             //  This should succeed.
 
             break;
@@ -442,7 +442,7 @@ Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * po
 
 #define TESTINTEN ASSERT(Interrupts::AreEnabled()                           \
             , "Interrupts should be enabled, but they are not! (Core #%us)" \
-            , System::Cpu::GetIndex())
+            , System::Cpu::GetData()->Index)
 
 Handle ObjectAllocatorSpamTest()
 {
@@ -535,7 +535,7 @@ Handle ObjectAllocatorSpamTest()
 
 #ifdef __BEELZEBUB__PROFILE
     MSG_("Core %us: %u8 / %us = %u8; %u8 / %us = %u8; %n"
-        , Cpu::GetIndex()
+        , Cpu::GetData()->Index
         , perfAcc, REPETITION_COUNT, perfAcc / REPETITION_COUNT
         , perfAcc, REPETITION_COUNT_3, perfAcc / REPETITION_COUNT_3);
 #endif
@@ -784,7 +784,7 @@ Handle ObjectAllocatorParallelAcquireTest()
     ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
 
     /*msg_("Core #%us: Gunna allocate %us objects.%n"
-        , System::Cpu::GetIndex(), objCount);//*/
+        , System::Cpu::GetData()->Index, objCount);//*/
 
     ObjectAllocatorTestBarrier3.Reach();
     ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
@@ -796,7 +796,7 @@ Handle ObjectAllocatorParallelAcquireTest()
         tOy = tOx;
 
         /*msg_("Core #%us: Gunna allocate object #%us.%n"
-            , System::Cpu::GetIndex(), i);//*/
+            , System::Cpu::GetData()->Index, i);//*/
 
         res = testAllocator.AllocateObject(tOx);
 
@@ -896,7 +896,7 @@ Handle TestObjectAllocator(bool const bsp)
 
         ASSERT(Interrupts::AreEnabled()
             , "Interrupts should be enabled, but they are not! (Core #%us)"
-            , System::Cpu::GetIndex());
+            , System::Cpu::GetData()->Index);
 
         ASSERT(tO2 == tO5
             , "2nd and 5th test objects should be identical: %Xp vs %Xp"

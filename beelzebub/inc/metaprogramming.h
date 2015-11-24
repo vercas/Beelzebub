@@ -108,6 +108,7 @@
 #define __cold             __attribute__((__cold__))
 #define __hot              __attribute__((__hot__))
 #define __noreturn         __attribute__((__noreturn__))
+#define __returns_twice    __attribute__((__returns_twice__))
 #define __used             __attribute__((__used__))
 #define __unused           __attribute__((__unused__))
 #define __must_check       __attribute__((__warn_unused_result__))
@@ -143,6 +144,7 @@
 #define __cold
 #define __hot
 #define __noreturn
+#define __returns_twice  
 #define __used
 #define __unused
 #define __must_check

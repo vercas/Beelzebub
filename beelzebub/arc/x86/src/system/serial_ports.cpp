@@ -172,6 +172,9 @@ uint8_t ManagedSerialPort::Read(bool const wait)
 
     withLock (this->ReadLock)
         return Io::In8(this->BasePort);
+
+    return ~0;
+    //  Won't get executed.
 }
 
 void ManagedSerialPort::Write(uint8_t const val, bool const wait)

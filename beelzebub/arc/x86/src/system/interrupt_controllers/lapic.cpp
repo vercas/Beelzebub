@@ -77,7 +77,7 @@ paddr_t Lapic::PhysicalAddress = nullpaddr;
 Handle Lapic::Initialize()
 {
     bool const x2ApicSupported = supportsX2APIC();
-    Cpu::SetX2ApicMode(x2ApicSupported);
+    Cpu::GetData()->X2ApicMode = x2ApicSupported;
     //  This is just a CPU-specific boolean value. Doesn't actually enable
     //  x2APIC mode, or disable it for that matter.
 
@@ -106,7 +106,7 @@ Handle Lapic::Initialize()
 
 uint32_t Lapic::ReadRegister(LapicRegister const reg)
 {
-    if (Cpu::GetX2ApicMode())
+    if (Cpu::GetData()->X2ApicMode)
     {
         uint32_t a, d;
         Msr msr = (Msr)((uint32_t)Msr::IA32_X2APIC_BASE + (uint32_t)(uint16_t)reg);
@@ -127,7 +127,7 @@ uint32_t Lapic::ReadRegister(LapicRegister const reg)
 
 void Lapic::WriteRegister(LapicRegister const reg, uint32_t const value)
 {
-    if (Cpu::GetX2ApicMode())
+    if (Cpu::GetData()->X2ApicMode)
     {
         uint32_t d = 0;
         Msr msr = (Msr)((uint32_t)Msr::IA32_X2APIC_BASE + (uint32_t)(uint16_t)reg);
@@ -148,7 +148,7 @@ void Lapic::WriteRegister(LapicRegister const reg, uint32_t const value)
 
 void Lapic::SendIpi(LapicIcr icr)
 {
-    if (Cpu::GetX2ApicMode())
+    if (Cpu::GetData()->X2ApicMode)
     {
         //  x2APIC mode does not require any checking prior to sending.
 

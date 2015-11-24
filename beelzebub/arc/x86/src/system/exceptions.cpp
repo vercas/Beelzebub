@@ -219,54 +219,140 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
                  , ind2 = VirtualAllocationSpace::GetPml2Index(CR2);
 #endif
 
-    char status[6] = "     ";
-
-    if (present)     status[0] = 'P';
-    if (write)       status[1] = 'W'; else status[1] = 'r';
-    if (user)        status[2] = 'U'; else status[2] = 's';
-    if (reserved)    status[3] = '0';
-    if (instruction) status[4] = 'I'; else status[4] = 'd';
-
-    MSG("%n<<PAGE FAULT @ %Xp (%s|%X1); CR2: %Xp | "
-        , INSTRUCTION_POINTER, status, (uint8_t)state->ErrorCode, CR2);
-
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-    MSG("%u2:%u2:%u2:%u2 | ", ind4, ind3, ind2, ind1);
-#elif defined(__BEELZEBUB__ARCH_IA32PAE)
-    MSG("%u2:%u2:%u2 | ", ind3, ind2, ind1);
-#elif defined(__BEELZEBUB__ARCH_IA32)
-    MSG("%u2:%u2 | ", ind2, ind1);
-#endif
-
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-    if (CR2 >= VirtualAllocationSpace::FractalStart && CR2 <= VirtualAllocationSpace::FractalEnd)
-    {
-        vaddr_t vaddr = (CR2 - VirtualAllocationSpace::LocalPml1Base) << 9;
-
-        if (0 != (vaddr & 0x0000800000000000ULL))
-            vaddr |= 0xFFFF000000000000ULL;
-
-        uint16_t vind1 = VirtualAllocationSpace::GetPml1Index(CR2)
-               , vind2 = VirtualAllocationSpace::GetPml2Index(CR2)
-               , vind3 = VirtualAllocationSpace::GetPml3Index(CR2)
-               , vind4 = VirtualAllocationSpace::GetPml4Index(CR2);
-
-        MSG("Adr: %Xp - %u2:%u2:%u2:%u2 | ", vaddr, vind4, vind3, vind2, vind1);
-    }
-#endif
-
     Pml1Entry * e = nullptr;
 
     Handle res = BootstrapMemoryManager.Vas->GetEntry(RoundDown(CR2, PageSize), e, true);
 
-    if (e != nullptr)
-    {
-        PrintToTerminal(Beelzebub::Debug::DebugTerminal, *e);
+    auto cpuData = Cpu::GetData();
+    ExceptionContext * context = cpuData->XContext;
 
-        MSG(" >>");
+    if (context == nullptr)
+    {
+    justFail:
+        char status[6] = "     ";
+
+        if (present)     status[0] = 'P';
+        if (write)       status[1] = 'W'; else status[1] = 'r';
+        if (user)        status[2] = 'U'; else status[2] = 's';
+        if (reserved)    status[3] = '0';
+        if (instruction) status[4] = 'I'; else status[4] = 'd';
+
+        MSG("%n<< PAGE FAULT @ %Xp (%s|%X1); CR2: %Xp | "
+            , INSTRUCTION_POINTER, status, (uint8_t)state->ErrorCode, CR2);
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        MSG("%u2:%u2:%u2:%u2 | ", ind4, ind3, ind2, ind1);
+#elif defined(__BEELZEBUB__ARCH_IA32PAE)
+        MSG("%u2:%u2:%u2 | ", ind3, ind2, ind1);
+#elif defined(__BEELZEBUB__ARCH_IA32)
+        MSG("%u2:%u2 | ", ind2, ind1);
+#endif
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        if (CR2 >= VirtualAllocationSpace::FractalStart && CR2 <= VirtualAllocationSpace::FractalEnd)
+        {
+            vaddr_t vaddr = (CR2 - VirtualAllocationSpace::LocalPml1Base) << 9;
+
+            if (0 != (vaddr & 0x0000800000000000ULL))
+                vaddr |= 0xFFFF000000000000ULL;
+
+            uint16_t vind1 = VirtualAllocationSpace::GetPml1Index(CR2)
+                   , vind2 = VirtualAllocationSpace::GetPml2Index(CR2)
+                   , vind3 = VirtualAllocationSpace::GetPml3Index(CR2)
+                   , vind4 = VirtualAllocationSpace::GetPml4Index(CR2);
+
+            MSG("Adr: %Xp - %u2:%u2:%u2:%u2 | ", vaddr, vind4, vind3, vind2, vind1);
+        }
+#endif
+
+        if (e != nullptr)
+        {
+            PrintToTerminal(Beelzebub::Debug::DebugTerminal, *e);
+
+            MSG(" >>%n");
+        }
+        else
+            MSG("%H >>%n", res);
+
+        ASSERT(false, "<< ^ EXCEPTION ^ >>");
+        //  TODO: Set other CPUs on fire too.
     }
     else
-        MSG("%H >>", res);
+    {
+        //  First, find the right context.
 
-    ASSERT(false, "<< ^ EXCEPTION ^ >>");
+        while (!context->Ready)
+            if (context->Previous != nullptr)
+                context = context->Previous;
+            else
+                goto justFail;
+        //  This will find the first ready context.
+
+        //  Now, to prepare exception delivery!
+
+        state->RBX = context->RBX;
+        state->RCX = context->RCX;
+        state->RBP = context->RBP;
+        state->R12 = context->R12;
+        state->R13 = context->R13;
+        state->R14 = context->R14;
+        state->R15 = context->R15;
+
+        state->RSP = context->StackPointer;
+        state->RIP = context->ResumePointer;
+        //  Returns where told! Sorta like a task switch.
+
+        state->RDI = reinterpret_cast<uint64_t>(context);
+        state->RSI = reinterpret_cast<uint64_t>(&(Cpu::GetData()->XContext));
+        //  Required by the swapper.
+
+        //  And finally, the exception itself.
+
+        cpuData->X.InstructionPointer = state->RIP;
+        cpuData->X.StackPointer = state->RSP;
+
+        if (CR2 == 0)
+        {
+            cpuData->X.Type = ExceptionType::NullReference;
+        }
+        else
+        {
+            cpuData->X.Type = ExceptionType::MemoryAccessViolation;
+
+            cpuData->X.MemoryAccessViolation.PageFlags = MemoryFlags::None;
+            //  Makes sure it's all zeros.
+
+            if (e == nullptr)
+                cpuData->X.MemoryAccessViolation.PhysicalAddress = nullpaddr;
+            else
+            {
+                cpuData->X.MemoryAccessViolation.PhysicalAddress = e->GetAddress();
+
+                if (present)
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Present;
+
+                if (e->GetWritable())
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Writable;
+                if (!e->GetXd()) //  Note the negation.
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Executable;
+                if (e->GetGlobal())
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Global;
+                if (e->GetUserland())
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Userland;
+                if (e->GetAccessed())
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Accessed;
+                if (e->GetDirty())
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Written;
+            }
+
+            if (instruction)
+                cpuData->X.MemoryAccessViolation.AccessType = MemoryAccessType::Execute;
+            else if (write)
+                cpuData->X.MemoryAccessViolation.AccessType = MemoryAccessType::Write;
+            else
+                cpuData->X.MemoryAccessViolation.AccessType = MemoryAccessType::Read;
+
+            cpuData->X.MemoryAccessViolation.Address = reinterpret_cast<void *>(CR2);
+        }
+    }
 }

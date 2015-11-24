@@ -106,24 +106,25 @@ void InitializeCpuData()
     CpuData * data = &BspCpuData;
 #endif
 
+    data->SelfPointer = data;
+    //  Hue.
+
     Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)(uintptr_t)data);
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     size_t const ind = CpuIndexCounter++;
 
     data->Index = ind;
-
-    assert(Cpu::GetIndex() == ind
-        , "Failed to set CPU index..? It should be %us but %us is returned."
-        , ind, Cpu::GetIndex());
 #else
     data->Index = 0;
 #endif
 
-    data->DomainDescriptor = &Domain0;
+    data->XContext = nullptr;
+    //  TODO: Perhaps set up a default exception context, which would set fire
+    //  to the whole system?
 
-    data->HeapSpinlock = Spinlock<>().GetValue();
-    data->HeapSpinlockPointer = (Spinlock<> *)&data->HeapSpinlock;
+    data->DomainDescriptor = &Domain0;
+    data->X2ApicMode = false;
 
     //msg("-- Core #%us @ %Xp. --%n", ind, data);
 }
@@ -672,7 +673,7 @@ __hot void * TestThreadEntryPoint(void * const arg)
 
     while (true)
     {
-        Thread * activeThread = Cpu::GetActiveThread();
+        Thread * activeThread = Cpu::GetData()->ActiveThread;
 
         MSG("Printing from thread %Xp! (%C)%n", activeThread, myChars);
 

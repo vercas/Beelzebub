@@ -47,11 +47,12 @@
 
 #include <synchronization/spinlock.hpp>
 #include <execution/thread.hpp>
+#include <exceptions.hpp>
 
 #include <synchronization/atomic.hpp>
 
 #define REGFUNC1(regl, regu, type)                                   \
-static __forceinline type MCATS2(Get, regu)()                \
+static __forceinline type MCATS2(Get, regu)()                        \
 {                                                                    \
     type ret;                                                        \
                                                                      \
@@ -60,14 +61,14 @@ static __forceinline type MCATS2(Get, regu)()                \
                                                                      \
     return ret;                                                      \
 }                                                                    \
-static __forceinline void MCATS2(Set, regu)(const type val)  \
+static __forceinline void MCATS2(Set, regu)(const type val)          \
 {                                                                    \
     asm volatile ( "mov %0, %%" #regl "\n\t"                         \
                  : : "r"(val) );                                     \
 }
 
 #define REGFUNC2(regl, regu, type, type2)                            \
-static __forceinline type2 MCATS2(Get, regu)()               \
+static __forceinline type2 MCATS2(Get, regu)()                       \
 {                                                                    \
     type ret;                                                        \
                                                                      \
@@ -76,12 +77,12 @@ static __forceinline type2 MCATS2(Get, regu)()               \
                                                                      \
     return type2(ret);                                               \
 }                                                                    \
-static __forceinline void MCATS2(Set, regu)(const type val)  \
+static __forceinline void MCATS2(Set, regu)(const type val)          \
 {                                                                    \
     asm volatile ( "mov %0, %%" #regl "\n\t"                         \
                  : : "r"(val) );                                     \
 }                                                                    \
-static __forceinline void MCATS2(Set, regu)(const type2 val) \
+static __forceinline void MCATS2(Set, regu)(const type2 val)         \
 {                                                                    \
     type innerVal = val.Value;                                       \
                                                                      \
@@ -90,7 +91,7 @@ static __forceinline void MCATS2(Set, regu)(const type2 val) \
 }
 
 #define REGFUNC3(regl, regu, type)                                   \
-static __forceinline type MCATS2(Get, regu)()                \
+static __forceinline type MCATS2(Get, regu)()                        \
 {                                                                    \
     type ret;                                                        \
                                                                      \
@@ -107,16 +108,18 @@ namespace Beelzebub { namespace System
      */
     struct CpuData
     {
+        CpuData * SelfPointer;
         size_t Index;
         Domain * DomainDescriptor;
 
         Execution::Thread * ActiveThread;
-        Synchronization::spinlock_t HeapSpinlock;
-        Synchronization::Spinlock<> * HeapSpinlockPointer;
+        ExceptionContext * XContext;
+
+        Exception X;
 
         uint16_t GdtLength;
         bool X2ApicMode;
-    } __packed __aligned_nat;
+    };
 
     /**
      *  Represents a processing unit of the system.
@@ -174,60 +177,11 @@ namespace Beelzebub { namespace System
 
         /*  CPU-specific data  */
 
-        static const size_t CpuDataSize = sizeof(CpuData);
-
-        static __forceinline size_t GetIndex()
+        static __forceinline CpuData * GetData()
         {
-            return CpuInstructions::GsGetSize(offsetof(struct CpuData, Index));
-        }
-        static __forceinline size_t SetIndex(const size_t val)
-        {
-            return (size_t)CpuInstructions::GsSetSize(offsetof(struct CpuData, Index), val);
-        }
-
-        static __forceinline Domain * GetDomain()
-        {
-            return (Domain *)CpuInstructions::GsGetPointer(offsetof(struct CpuData, DomainDescriptor));
-        }
-        static __forceinline Domain * SetDomain(Domain * const val)
-        {
-            return (Domain *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, DomainDescriptor), (uintptr_t)val);
-        }
-
-        static __forceinline Execution::Thread * GetActiveThread()
-        {
-            return (Execution::Thread *)CpuInstructions::GsGetPointer(offsetof(struct CpuData, ActiveThread));
-        }
-        static __forceinline Execution::Thread * SetActiveThread(Execution::Thread * const val)
-        {
-            return (Execution::Thread *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, ActiveThread), (uintptr_t)val);
-        }
-
-        static __forceinline Synchronization::Spinlock<> * GetKernelHeapSpinlock()
-        {
-            return (Synchronization::Spinlock<> *)CpuInstructions::GsGetPointer(offsetof(struct CpuData, HeapSpinlockPointer));
-        }
-        static __forceinline Synchronization::Spinlock<> * SetKernelHeapSpinlock(Synchronization::Spinlock<> * const val)
-        {
-            return (Synchronization::Spinlock<> *)CpuInstructions::GsSetPointer(offsetof(struct CpuData, HeapSpinlockPointer), (uintptr_t)val);
-        }
-
-        static __forceinline uint16_t GetGdtLength()
-        {
-            return CpuInstructions::GsGet16(offsetof(struct CpuData, GdtLength));
-        }
-        static __forceinline uint16_t SetGdtLength(const uint16_t val)
-        {
-            return CpuInstructions::GsSet16(offsetof(struct CpuData, GdtLength), (uintptr_t)val);
-        }
-
-        static __forceinline bool GetX2ApicMode()
-        {
-            return (bool)CpuInstructions::GsGet8(offsetof(struct CpuData, X2ApicMode));
-        }
-        static __forceinline bool SetX2ApicMode(const bool val)
-        {
-            return (bool)CpuInstructions::GsSet8(offsetof(struct CpuData, X2ApicMode), (uint8_t)val);
+            return reinterpret_cast<CpuData *>(CpuInstructions::GsGetPointer(
+                offsetof(struct CpuData, SelfPointer)
+            ));
         }
     };
 }}

@@ -69,6 +69,10 @@
 #include <tests/meta.hpp>
 #endif
 
+#if __BEELZEBUB__TEST_EXCP
+#include <tests/exceptions.hpp>
+#endif
+
 #if __BEELZEBUB__TEST_STR
 #include <tests/string.hpp>
 #endif
@@ -276,7 +280,7 @@ void Beelzebub::Main()
     {
         //  Now every core will print.
         MainTerminal->Write("+-- Core #");
-        MainTerminal->WriteUIntD(Cpu::GetIndex());
+        MainTerminal->WriteUIntD(Cpu::GetData()->Index);
         MainTerminal->WriteLine();
 
         //  Enable interrupts so they can run.
@@ -307,12 +311,20 @@ void Beelzebub::Main()
                 , res);
         }
 
-        Cpu::SetActiveThread(&BootstrapThread);
+        Cpu::GetData()->ActiveThread = &BootstrapThread;
 
 #ifdef __BEELZEBUB__TEST_METAP
         MainTerminal->Write(">Testing metaprgoramming facilities...");
 
         TestMetaprogramming();
+
+        MainTerminal->WriteLine(" Done.");
+#endif
+
+#ifdef __BEELZEBUB__TEST_EXCP
+        MainTerminal->Write(">Testing exceptions...");
+
+        TestExceptions();
 
         MainTerminal->WriteLine(" Done.");
 #endif
@@ -344,12 +356,12 @@ void Beelzebub::Main()
 
 #ifdef __BEELZEBUB__TEST_OBJA
     withLock (TerminalMessageLock)
-        MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetIndex());
+        MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
     
     TestObjectAllocator(true);
 
     withLock (TerminalMessageLock)
-        MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetIndex());
+        MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
 #endif
 
     //  Allow the CPU to rest.
@@ -379,7 +391,7 @@ void Beelzebub::Secondary()
     withLock (TerminalMessageLock)
     {
         MainTerminal->Write("+-- Core #");
-        MainTerminal->WriteUIntD(Cpu::GetIndex());
+        MainTerminal->WriteUIntD(Cpu::GetData()->Index);
         MainTerminal->WriteLine();
 
         //  Enable interrupts so they can run.
@@ -397,12 +409,12 @@ void Beelzebub::Secondary()
 
 #ifdef __BEELZEBUB__TEST_OBJA
     withLock (TerminalMessageLock)
-        MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetIndex());
+        MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
 
     TestObjectAllocator(false);
 
     withLock (TerminalMessageLock)
-        MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetIndex());
+        MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
 #endif
 
     //  Allow the CPU to rest.
@@ -635,7 +647,7 @@ Handle InitializeApic()
         , "Failed to initialize the LAPIC?! %H%n"
         , res);
 
-    if (Cpu::GetX2ApicMode())
+    if (Cpu::GetData()->X2ApicMode)
         MainTerminal->Write(" Local x2APIC...");
     else
         MainTerminal->Write(" LAPIC...");

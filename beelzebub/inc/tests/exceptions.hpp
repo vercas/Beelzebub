@@ -37,62 +37,8 @@
     thorough explanation regarding other files.
 */
 
-#include <execution/thread.hpp>
-#include <system/cpu.hpp>
-#include <debug.hpp>
-#include <string.h>
+#pragma once
 
-using namespace Beelzebub;
-using namespace Beelzebub::Execution;
-using namespace Beelzebub::System;
+#include <metaprogramming.h>
 
-/******************
-    Thread class
-*******************/
-
-/*  Operations  */
-
-Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
-{
-    Handle res;
-
-    Process * const thisProc = this->Owner;
-    Process * const otherProc = other->Owner;
-
-    //msg("++ ");
-
-    InterruptGuard<> intGuard;
-
-    //msg("A");
-
-    if (thisProc != otherProc)
-    {
-        //msg("1");
-
-        res = thisProc->SwitchTo(otherProc);
-
-        if (!res.IsOkayResult())
-            return res;
-
-        //msg("2");
-    }
-
-    Cpu::GetData()->ActiveThread = other;
-
-    //msg("B");
-
-    //SwitchThread(&this->KernelStackPointer, other->KernelStackPointer);
-
-    //auto interruptVector = dest->Vector;
-    auto errorCode = dest->ErrorCode;
-
-    *dest = other->State;
-    //memcpy(dest, &other->State, sizeof(ThreadState));
-
-    dest->ErrorCode = errorCode;
-    //dest->Vector = interruptVector;
-
-    //msg(" ++");
-
-    return HandleResult::Okay;
-}
+__cold __noinline void TestExceptions();

@@ -58,7 +58,7 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
 
     for (size_t i = 0; i < pageCount; ++i)
     {
-        paddr_t const paddr = (CpuDataSetUp ? Cpu::GetDomain() : &Domain0)->PhysicalAllocator->AllocatePage(desc);
+        paddr_t const paddr = (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)->PhysicalAllocator->AllocatePage(desc);
         //  Test page.
 
         assert_or(paddr != nullpaddr && desc != nullptr
@@ -202,7 +202,7 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
 
     for (size_t i = 0; curPageCount < newPageCount; ++i, ++curPageCount)
     {
-        paddr_t const paddr = (CpuDataSetUp ? Cpu::GetDomain() : &Domain0)->PhysicalAllocator->AllocatePage(desc);
+        paddr_t const paddr = (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)->PhysicalAllocator->AllocatePage(desc);
         //  Test page.
 
         assert_or(paddr != nullpaddr && desc != nullptr
@@ -223,7 +223,7 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
             , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount
             , res)
         {
-            (CpuDataSetUp ? Cpu::GetDomain() : &Domain0)->PhysicalAllocator->FreePageAtAddress(paddr);
+            (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)->PhysicalAllocator->FreePageAtAddress(paddr);
             //  This should succeed.
 
             break;

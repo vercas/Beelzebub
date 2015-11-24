@@ -47,7 +47,7 @@
 
 //  Creates the functions necessary for operating a spinlock over an entry.
 #define SPINLOCK(name, bit)                                  \
-__forceinline bool MCATS2(TryAcquire, name)()        \
+__forceinline bool MCATS2(TryAcquire, name)()                \
 {                                                            \
     bool res = 0;                                            \
                                                              \
@@ -59,33 +59,33 @@ __forceinline bool MCATS2(TryAcquire, name)()        \
                                                              \
     return res;                                              \
 }                                                            \
-__forceinline void MCATS2(Spin, name)()              \
+__forceinline void MCATS2(Spin, name)()                      \
 {                                                            \
     do                                                       \
     {                                                        \
         asm volatile ("pause");                              \
     } while (!this->MCATS2(Check, name)());                  \
 }                                                            \
-__forceinline void MCATS2(Await, name)()             \
+__forceinline void MCATS2(Await, name)()                     \
 {                                                            \
     while (!this->MCATS2(Check, name)())                     \
     {                                                        \
         asm volatile ("pause");                              \
     }                                                        \
 }                                                            \
-__forceinline void MCATS2(Acquire, name)()           \
+__forceinline void MCATS2(Acquire, name)()                   \
 {                                                            \
     while (!this->MCATS2(TryAcquire, name)())                \
         this->MCATS2(Spin, name)();                          \
 }                                                            \
-__forceinline void MCATS2(Release, name)()           \
+__forceinline void MCATS2(Release, name)()                   \
 {                                                            \
     asm volatile ("lock btrq $" #bit ", %[val] \n\t"         \
                  :                                           \
                  : [val] "m" (this->Value)                   \
                  : "cc");                                    \
 }                                                            \
-__forceinline bool MCATS2(Check, name)()             \
+__forceinline bool MCATS2(Check, name)()                     \
 {                                                            \
     return 0 == (this->Value & (1 << bit));                  \
     /*  A simple AND operation works very well here.  */     \

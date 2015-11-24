@@ -37,62 +37,26 @@
     thorough explanation regarding other files.
 */
 
-#include <execution/thread.hpp>
+#include <exceptions.hpp>
 #include <system/cpu.hpp>
-#include <debug.hpp>
-#include <string.h>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Execution;
 using namespace Beelzebub::System;
 
-/******************
-    Thread class
-*******************/
-
-/*  Operations  */
-
-Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
+ExceptionContext * * Beelzebub::GetExceptionContext()
 {
-    Handle res;
+    return &(Cpu::GetData()->XContext);
+}
 
-    Process * const thisProc = this->Owner;
-    Process * const otherProc = other->Owner;
+void Beelzebub::LeaveExceptionContext()
+{
+    ExceptionContext * context = Cpu::GetData()->XContext;
 
-    //msg("++ ");
+    if (context != nullptr)
+        Cpu::GetData()->XContext = context->Previous;
+}
 
-    InterruptGuard<> intGuard;
-
-    //msg("A");
-
-    if (thisProc != otherProc)
-    {
-        //msg("1");
-
-        res = thisProc->SwitchTo(otherProc);
-
-        if (!res.IsOkayResult())
-            return res;
-
-        //msg("2");
-    }
-
-    Cpu::GetData()->ActiveThread = other;
-
-    //msg("B");
-
-    //SwitchThread(&this->KernelStackPointer, other->KernelStackPointer);
-
-    //auto interruptVector = dest->Vector;
-    auto errorCode = dest->ErrorCode;
-
-    *dest = other->State;
-    //memcpy(dest, &other->State, sizeof(ThreadState));
-
-    dest->ErrorCode = errorCode;
-    //dest->Vector = interruptVector;
-
-    //msg(" ++");
-
-    return HandleResult::Okay;
+Exception * Beelzebub::GetException()
+{
+    return &(Cpu::GetData()->X);
 }
