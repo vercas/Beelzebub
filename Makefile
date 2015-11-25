@@ -19,7 +19,7 @@ KERNEL_DIR	:= ./$(KERNEL_NAME)
 
 ####################################### BASICS ##########
 
-.PHONY: run qemu qemu-serial clean jegudiel image kernel $(ARC) $(SETTINGS)
+.PHONY: run qemu qemu-serial clean jegudiel image kernel apps $(ARC) $(SETTINGS)
 
 ia32:		image
 ia32pae:	image
@@ -38,13 +38,17 @@ jegudiel:
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 	
-image: kernel
+image: kernel apps
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso
 
 kernel:
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
+
+apps: kernel
+	@ echo "/MAK:" $@
+	@ $(MAKE) -C apps/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 clean:
 	@ $(MAKE) -C image/ clean

@@ -194,6 +194,20 @@ inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
 #define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
 
+#define ENUMINST_VAL(name, num) name = num,
+#define ENUMINST_CASERETSTR(name, num) case num: return #name;
+
+#define ENUM_TO_STRING(enumName, enumDef)           \
+    char const * EnumToString(enumName const val)   \
+    {                                               \
+        switch ((__underlying_type(enumName))val)   \
+        {                                           \
+            enumDef(ENUMINST_CASERETSTR)            \
+            default:                                \
+                return "UNKNOWN";                   \
+        }                                           \
+    }
+
 //  Why? For the glory of C++, of course.
 #endif
 

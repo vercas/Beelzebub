@@ -25,6 +25,8 @@ ISO_TARGET_GRUBCONF	:= $(ISO_TARGET_GRUB)/grub.cfg
 ISO_TARGET_FONT		:= $(ISO_TARGET_GRUB)/font.pf2
 ISO_TARGET_KERNEL	:= $(ISO_TARGET_BOOT)/$(KERNEL_BIN)
 
+ISO_TARGET_APPS		:= apps
+
 BOOTLOADER			:= $(PREFIX)/bin/jegudiel.bin
 
 ####################################### ARCHITECTURE-SPECIFIC ##########
@@ -36,6 +38,9 @@ ifeq ($(ARC),amd64)
 	MISCELLANEOUS_FILES		+= $(PREFIX)/bin/jegudiel.bin 
 	MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin 
 endif
+
+MISCELLANEOUS_FILES		+= $(PREFIX)/bin/loadtest.exe 
+MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe 
 
 ####################################### BASICS ##########
 
@@ -111,6 +116,12 @@ $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT):
 	@ echo "/MKD:" $@
 	@ mkdir -p $@
 
+#######################
+# Make boot directory #
+$(ISO_TARGET_DIR)/$(ISO_TARGET_APPS):
+	@ echo "/MKD:" $@
+	@ mkdir -p $@
+
 ####################################### OTHER FILES AND FOLDERS ##########
 
 ifeq ($(ARC),amd64)
@@ -118,3 +129,7 @@ $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin: $(PREFIX)/bin/jegudiel.bin
 	@ echo "/CPY:" $< ">" $@
 	@ cp $< $@
 endif
+
+$(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe: $(PREFIX)/bin/loadtest.exe $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)
+	@ echo "/CPY:" $< ">" $@
+	@ cp $< $@

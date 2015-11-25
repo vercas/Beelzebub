@@ -119,6 +119,7 @@ ifneq (,$(findstring test-all,$(MAKECMDGOALS)))
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_OBJA 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_METAP 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_EXCP 
+	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_APP 
 
 	SETTINGS			+= test-all
 else
@@ -142,6 +143,10 @@ else
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_EXCP 
 
 		SETTINGS			+= test-excp
+	else ifneq (,$(findstring test-app,$(MAKECMDGOALS)))
+		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_APP __BEELZEBUB__TEST_MT 
+
+		SETTINGS			+= test-app test-mt 
 	else
 		#	Do somethin'.
 	endif

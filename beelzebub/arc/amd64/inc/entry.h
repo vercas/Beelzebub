@@ -81,9 +81,9 @@ __extern __cold __noinline Handle InitializePit();
 
 // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
 __extern __cold __noinline Handle InitializePhysicalAllocator(jg_info_mmap_t * map
-					                                                , size_t cnt
-					                                                , uintptr_t freeStart
-					                                                , Domain * domain);
+			                                                , size_t cnt
+			                                                , uintptr_t freeStart
+			                                                , Domain * domain);
 __extern __cold __noinline Handle InitializePhysicalMemory();
 __extern __cold __noinline Handle InitializeVirtualMemory();
 

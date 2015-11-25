@@ -49,185 +49,197 @@ namespace Beelzebub { namespace Execution {
 
     /*  Enumerations  */
 
+    #define ENUM_ELFCLASS(ENUMINST) \
+        ENUMINST(None  , 0) \
+        ENUMINST(Elf32 , 1) \
+        ENUMINST(Elf64 , 2) \
+
     /**
      *  Known classes for ELF identification.
      */
     enum class ElfClass : uint8_t
     {
-        None  = 0,
-        Elf32 = 1,
-        Elf64 = 2,
+        ENUM_ELFCLASS(ENUMINST_VAL)
     };
 
     ENUMOPS(ElfClass, uint8_t)
+
+    inline ENUM_TO_STRING(ElfClass, ENUM_ELFCLASS)
+
+    #define ENUM_ELFDATAENCODING(ENUMINST) \
+        ENUMINST(None         , 0) \
+        ENUMINST(LittleEndian , 1) \
+        ENUMINST(BigEndian    , 2) \
 
     /**
      *  Known data encoding rules for ELF identification.
      */
     enum class ElfDataEncoding : uint8_t
     {
-        None         = 0,
-        LittleEndian = 1,
-        BigEndian    = 2,
+        ENUM_ELFDATAENCODING(ENUMINST_VAL)
     };
 
     ENUMOPS(ElfDataEncoding, uint8_t)
+
+    #define ENUM_ELFOSABI(ENUMINST) \
+        ENUMINST(None            ,  0) \
+        ENUMINST(HpUx            ,  1) \
+        ENUMINST(NetBsd          ,  2) \
+        ENUMINST(Gnu             ,  3) \
+        ENUMINST(Linux           ,  3) \
+        ENUMINST(Solaris         ,  6) \
+        ENUMINST(Aix             ,  7) \
+        ENUMINST(Irix            ,  8) \
+        ENUMINST(FreeBsd         ,  9) \
+        ENUMINST(CompaqTru64     , 10) \
+        ENUMINST(NovellModesto   , 11) \
+        ENUMINST(OpenBsd         , 12) \
+        ENUMINST(OpenVms         , 13) \
+        ENUMINST(HpNonStopKernel , 14) \
+        ENUMINST(AmigaResearchOs , 15) \
+        ENUMINST(FenixOs         , 16) \
+        ENUMINST(NuxiCloudAbi    , 17) \
+        ENUMINST(OpenVos         , 18) \
+        ENUMINST(Beelzebub       , 39) \
+        // 'B' ^ 'e' = 0x42 ^ 0x65 = 0x27 = 39
 
     /**
      *  Known OS ABIs for ELF identification.
      */
     enum class ElfOsAbi : uint8_t
     {
-        None            =  0,
-        HpUx            =  1,
-        NetBsd          =  2,
-        Gnu             =  3,
-        Linux           =  3,
-
-        Solaris         =  6,
-        Aix             =  7,
-        Irix            =  8,
-        FreeBsd         =  9,
-        CompaqTru64     = 10,
-        NovellModesto   = 11,
-        OpenBsd         = 12,
-        OpenVms         = 13,
-        HpNonStopKernel = 14,
-        AmigaResearchOs = 15,
-        FenixOs         = 16,
-        NuxiCloudAbi    = 17,
-        OpenVos         = 18,
-
-        Beelzebub       = 39, // 'B' ^ 'e' = 0x42 ^ 0x65 = 0x27 = 39
+        ENUM_ELFOSABI(ENUMINST_VAL)
     };
 
     ENUMOPS(ElfOsAbi, uint8_t)
+
+    #define ENUM_ELFFILETYPE(ENUMINST) \
+        ENUMINST(None                        , 0     ) \
+        ENUMINST(Relocatable                 , 1     ) \
+        ENUMINST(Executable                  , 2     ) \
+        ENUMINST(Dynamic                     , 3     ) \
+        ENUMINST(Core                        , 4     ) \
+        ENUMINST(OperatingSystemSpecificLow  , 0xFE00) \
+        ENUMINST(OperatingSystemSpecificHigh , 0xFE00) \
+        ENUMINST(ProcessorSpecificLow        , 0xFF00) \
+        ENUMINST(ProcessorSpecificHigh       , 0xFFFF) \
 
     /**
      *  Known object file types.
      */
     enum class ElfFileType : uint16_t
     {
-        None                        = 0,
-        Relocatable                 = 1,
-        Executable                  = 2,
-        Dynamic                     = 3,
-        Core                        = 4,
-
-        OperatingSystemSpecificLow  = 0xFE00,
-        OperatingSystemSpecificHigh = 0xFE00,
-
-        ProcessorSpecificLow        = 0xFF00,
-        ProcessorSpecificHigh       = 0xFFFF,
+        ENUM_ELFFILETYPE(ENUMINST_VAL)
     };
 
     ENUMOPS(ElfFileType, uint16_t)
     
+    #define ENUM_ELFMACHINE(ENUMINST) \
+        ENUMINST(None          ,   0) \
+        ENUMINST(We32100       ,   1) \
+        ENUMINST(Sparc         ,   2) \
+        ENUMINST(Intel80386    ,   3) \
+        ENUMINST(Motorola68000 ,   4) \
+        ENUMINST(Motorola88000 ,   5) \
+        ENUMINST(IntelMcu      ,   6) \
+        ENUMINST(Intel80860    ,   7) \
+        ENUMINST(MipsRs3000    ,   8) \
+        ENUMINST(IbmSystem370  ,   9) \
+        ENUMINST(MipsRs3000Le  ,  10) \
+        ENUMINST(HpPaRisc      ,  15) \
+        ENUMINST(FujitsuVpp500 ,  17) \
+        ENUMINST(Sparc32Plus   ,  18) \
+        ENUMINST(Intel80960    ,  19) \
+        ENUMINST(Arm32         ,  40) \
+        ENUMINST(SparcV9       ,  43) \
+        ENUMINST(Ia64          ,  50) \
+        ENUMINST(Amd64         ,  62) \
+        ENUMINST(HuAny         ,  81) \
+        ENUMINST(Arm64         , 183) \
+        ENUMINST(NvidiaCuda    , 190) \
+        ENUMINST(AmdGpu        , 224) \
+
     /**
      *  Known architectures supported by ELF files.
      */
     enum class ElfMachine : uint16_t
     {
-        None          =   0,
-        We32100       =   1,
-        Sparc         =   2,
-        Intel80386    =   3,
-        Motorola68000 =   4,
-        Motorola88000 =   5,
-        IntelMcu      =   6,
-        Intel80860    =   7,
-        MipsRs3000    =   8,
-        IbmSystem370  =   9,
-        MipsRs3000Le  =  10,
-
-        HpPaRisc      =  15,
-
-        FujitsuVpp500 =  17,
-        Sparc32Plus   =  18,
-        Intel80960    =  19,
-
-        Arm32         =  40,
-        SparcV9       =  43,
-
-        Ia64          =  50,
-
-        Amd64         =  62,
-
-        HuAny         =  81,
-
-        Arm64         = 183,
-
-        NvidiaCuda    = 190,
-
-        AmdGpu        = 224,
+        ENUM_ELFMACHINE(ENUMINST_VAL)
     };
 
     ENUMOPS(ElfMachine, uint16_t)
+
+    #define ENUM_ELFSECTIONHEADERTYPE(ENUMINST) \
+        ENUMINST(Null                       ,  0) \
+        ENUMINST(ProgramBits                ,  1) \
+        ENUMINST(StaticSymbolTable          ,  2) \
+        ENUMINST(StringTable                ,  3) \
+        ENUMINST(RelocationEntriesAppends   ,  4) \
+        ENUMINST(HashTable                  ,  5) \
+        ENUMINST(Dynamic                    ,  6) \
+        ENUMINST(Note                       ,  7) \
+        ENUMINST(NoBits                     ,  8) \
+        ENUMINST(RelocationEntries          ,  9) \
+        ENUMINST(SHLIB                      , 10) \
+        ENUMINST(DynamicSymbolTable         , 11) \
+        ENUMINST(InitializationFunctions    , 14) \
+        ENUMINST(TerminationFunctions       , 15) \
+        ENUMINST(PreinitializationFunctions , 16) \
+        ENUMINST(SectionGroup               , 17) \
+        ENUMINST(SymbolTableIndexes         , 18) \
 
     /**
      *  Types of ELF sections.
      */
     enum class ElfSectionHeaderType : uint32_t
     {
-        Null = 0,
-        ProgramBits = 1,
-        StaticSymbolTable = 2,
-        StringTable = 3,
-        RelocationEntriesAppends = 4,
-        HashTable = 5,
-        Dynamic = 6,
-        Note = 7,
-        NoBits = 8,
-        RelocationEntries = 9,
-        SHLIB = 10,
-        DynamicSymbolTable = 11,
-
-        InitializationFunctions = 14,
-        TerminationFunctions = 15,
-        PreinitializationFunctions = 16,
-
-        SectionGroup = 17,
-        SymbolTableIndexes = 18,
+        ENUM_ELFSECTIONHEADERTYPE(ENUMINST_VAL)
     };
 
     ENUMOPS(ElfSectionHeaderType, uint32_t)
+
+    #define ENUM_ELFSECTIONHEADERFLAGS32(ENUMINST) \
+        ENUMINST(Writable           , 0x001) \
+        ENUMINST(Allocated          , 0x002) \
+        ENUMINST(Executable         , 0x004) \
+        ENUMINST(Merge              , 0x010) \
+        ENUMINST(Strings            , 0x020) \
+        ENUMINST(InfoLink           , 0x040) \
+        ENUMINST(LinkOrdering       , 0x080) \
+        ENUMINST(OsNonconforming    , 0x100) \
+        ENUMINST(GroupMember        , 0x200) \
+        ENUMINST(ThreadLocalStorage , 0x400) \
+        ENUMINST(Compressed         , 0x800) \
 
     /**
      *  Section flags for 32-bit ELF.
      */
     enum class ElfSectionHeaderFlags_32 : uint32_t
     {
-        Writable = 0x1,
-        Allocated = 0x2,
-        Executable = 0x4,
-        Merge = 0x10,
-        Strings = 0x20,
-        InfoLink = 0x40,
-        LinkOrdering = 0x80,
-        OsNonconforming = 0x100,
-        GroupMember = 0x200,
-        ThreadLocalStorage = 0x400,
-        Compressed = 0x800,
+        ENUM_ELFSECTIONHEADERFLAGS32(ENUMINST_VAL)
     };
 
     ENUMOPS(ElfSectionHeaderFlags_32, uint32_t)
+
+    #define ENUM_ELFSECTIONHEADERFLAGS64(ENUMINST) \
+        ENUMINST(Writable           , 0x001) \
+        ENUMINST(Allocated          , 0x002) \
+        ENUMINST(Executable         , 0x004) \
+        ENUMINST(Merge              , 0x010) \
+        ENUMINST(Strings            , 0x020) \
+        ENUMINST(InfoLink           , 0x040) \
+        ENUMINST(LinkOrdering       , 0x080) \
+        ENUMINST(OsNonconforming    , 0x100) \
+        ENUMINST(GroupMember        , 0x200) \
+        ENUMINST(ThreadLocalStorage , 0x400) \
+        ENUMINST(Compressed         , 0x800) \
 
     /**
      *  Section flags for 64-bit ELF.
      */
     enum class ElfSectionHeaderFlags_64 : uint64_t
     {
-        Writable = 0x1,
-        Allocated = 0x2,
-        Executable = 0x4,
-        Merge = 0x10,
-        Strings = 0x20,
-        InfoLink = 0x40,
-        LinkOrdering = 0x80,
-        OsNonconforming = 0x100,
-        GroupMember = 0x200,
-        ThreadLocalStorage = 0x400,
-        Compressed = 0x800,
+        ENUM_ELFSECTIONHEADERFLAGS64(ENUMINST_VAL)
     };
 
     ENUMOPS(ElfSectionHeaderFlags_64, uint64_t)

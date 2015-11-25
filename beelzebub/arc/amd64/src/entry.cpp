@@ -57,6 +57,10 @@
 #include <math.h>
 #include <string.h>
 
+#ifdef __BEELZEBUB__TEST_APP
+#include <tests/app.hpp>
+#endif
+
 #include <debug.hpp>
 #include <_print/registers.hpp>
 #include <_print/gdt.hpp>
@@ -549,7 +553,10 @@ void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const
  *  Does something with the kernel's module...
  *  </summary>
  */
-__cold Handle HandleKernelModule(const size_t index, const jg_info_module_t * const module, const size_t size)
+__cold Handle HandleKernelModule(const size_t index
+                               , const jg_info_module_t * const module
+                               , const vaddr_t vaddr
+                               , const size_t size)
 {
     msg("THIS IS THE KERNEL MODULE!%n");
 
@@ -565,7 +572,7 @@ __cold Handle HandleModule(const size_t index, const jg_info_module_t * const mo
 {
     Handle res = HandleResult::Okay;
 
-    size_t const size = (module->length + PageSize - 1) / PageSize;
+    size_t const size = RoundUp(module->length, PageSize);
 
     msg("Module #%us:%n"
         "\tName: (%X2) %s%n"
@@ -582,17 +589,22 @@ __cold Handle HandleModule(const size_t index, const jg_info_module_t * const mo
 
     for (vaddr_t offset = 0; offset < size; offset += PageSize)
     {
-        res = BootstrapMemoryManager.MapPage(vaddr + offset, module->address + offset, PageFlags::Global | PageFlags::Writable, nullptr);
+        res = BootstrapMemoryManager.MapPage(vaddr + offset, module->address + offset
+            , PageFlags::Global | PageFlags::Writable, nullptr);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
             , vaddr + offset, module->address + offset
-            , index, module->name
+            , index, JG_INFO_STRING_EX + module->name
             , res);
     }
 
     if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
-        return HandleKernelModule(index, module, size);
+        return HandleKernelModule(index, module, vaddr, size);
+#ifdef __BEELZEBUB__TEST_APP
+    else if (memeq("loadtest", JG_INFO_STRING_EX + module->name, 9))
+        return HandleLoadtest(index, module, vaddr, size);
+#endif
 
     return res;
 }
@@ -897,6 +909,10 @@ void StartMultitaskingTest()
     BootstrapThread.IntroduceNext(&tTa2);
     BootstrapThread.IntroduceNext(&tTa1);
     //  Threads A1 and A2 are at the start, right after the bootstrap thread.
+
+    #ifdef __BEELZEBUB__TEST_APP
+    TestApplication();
+    #endif
 }
 
 #endif

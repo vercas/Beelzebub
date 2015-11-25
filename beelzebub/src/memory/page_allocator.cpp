@@ -196,8 +196,6 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
 
     PageDescriptor * const map = this->Map + start;
 
-    int_cookie_t int_cookie;
-
     for (pgind_t i = 0; i < count; ++i)
     {
         PageDescriptor * const page = map + i;
@@ -213,8 +211,6 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
                 , page->StackIndex
                 , this->StackFreeTop
                 , this->StackCacheTop);//*/
-
-            int_cookie = this->Locker.Acquire();
 
             withLock (this->Locker)
             {

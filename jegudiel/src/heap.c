@@ -27,6 +27,7 @@
 #include <info.h>
 #include <stdint.h>
 #include <string.h>
+#include <screen.h>
 
 uintptr_t heap_top = 0;
 
@@ -42,24 +43,25 @@ static void heap_modules_sort(void)
     size_t count = info_root->module_count;
     size_t i, j;
 
-    if (count > 1) {
-        for (i = 0; i < count - 1; ++i) {
-            uintptr_t min_addr = 0;
-            size_t min_idx = -1;
+    if (count > 1)
+    {
+        for (i = 0; i < count - 1; ++i)
+        {
+            uintptr_t minAddr = info_module[i].address;
+            size_t minInd = i;
 
-            for (j = i; i < count; ++j) {
-                jg_info_module_t *mod = &info_module[j];
-                if (mod->address < min_addr) {
-                    min_idx = j;
-                    min_addr = mod->address;
+            for (j = i + 1; j < count; ++j)
+                if (info_module[j].address < minAddr)
+                {
+                    minInd = j;
+                    minAddr = info_module[j].address;
                 }
-            }
 
-            if (i != min_idx) {
-                jg_info_module_t tmp;
-                memcpy(&tmp, &info_module[i], sizeof(jg_info_module_t));
-                memcpy(&info_module[i], &info_module[min_idx], sizeof(jg_info_module_t));
-                memcpy(&info_module[min_idx], &tmp, sizeof(jg_info_module_t));
+            if (i != minInd)
+            {
+                jg_info_module_t tmp = info_module[i];
+                info_module[i] = info_module[minInd];
+                info_module[minInd] = tmp;
             }
         }
     }
@@ -71,28 +73,31 @@ static void heap_modules_sort(void)
 static void heap_modules_move(void)
 {
     size_t i;
-    for (i = 0; i < info_root->module_count; ++i) {
-        jg_info_module_t *mod = &info_module[i];
-        void *buffer = heap_alloc(mod->length);
+    for (i = 0; i < info_root->module_count; ++i)
+    {
+        jg_info_module_t * mod = &info_module[i];
 
-        memcpy((void *) buffer, (void *) mod->address, mod->length);
+        void * buffer = heap_alloc(mod->length);
 
-        mod->address = (uintptr_t) buffer;
+        memcpy((void *)buffer, (void *)(mod->address), mod->length);
+
+        mod->address = (uintptr_t)buffer;
     }
 }
 
 void heap_init(void)
 {
 	extern uint8_t heap_mark;
-	heap_top = (uintptr_t) &heap_mark;
+	heap_top = (uintptr_t)(&heap_mark);
 
 	heap_modules_sort();
+    puts("sorted...");
 	heap_modules_move();
 }
 
 void *heap_alloc(size_t size)
 {
-	size = (size + 0xFFF) & ~0xFFF;
+	size = (size + 0xFFFULL) & ~0xFFFULL;
 	uintptr_t chunk = heap_top;
 	heap_top += size;
 
