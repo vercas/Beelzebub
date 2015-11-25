@@ -63,6 +63,7 @@
 #include <utils/wait.hpp>
 #include <string.h>
 
+#include <_print/gdt.hpp>
 #include <debug.hpp>
 
 #if __BEELZEBUB__TEST_METAP
@@ -122,6 +123,11 @@ void Beelzebub::Main()
 
     new (&Domain0) Domain();
     //  Initialize domain 0. Make sure it's not in a possibly-invalid state.
+
+    Domain0.GdtLock.Release();
+    //  Make sure it's clear.
+
+    Domain0.Gdt = GdtRegister::Retrieve();
 
     withLock (InitializationLock)
     {
@@ -352,6 +358,9 @@ void Beelzebub::Main()
         ObjectAllocatorTestBarrier2.Reset();
         ObjectAllocatorTestBarrier3.Reset();
 #endif
+
+        PrintToDebugTerminal(Domain0.Gdt);
+        msg("%n%n");
     }
 
 #ifdef __BEELZEBUB__TEST_OBJA

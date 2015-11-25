@@ -63,6 +63,22 @@ TerminalWriteResult PrintToDebugTerminal(GdtEntryShort const val)
     return PrintToTerminal(DebugTerminal, val);
 }
 
+/***************************
+    GdtTss64Entry Struct
+***************************/
+
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, GdtTss64Entry const val)
+{
+    return term->WriteFormat("TSS|%X8:%X4|P%t|A%t|B%t|%n"
+        , val.GetBase(), val.GetLimit(), val.GetPresent(), val.GetAvailable()
+        , val.GetBusy());
+}
+
+TerminalWriteResult PrintToDebugTerminal(GdtTss64Entry const val)
+{
+    return PrintToTerminal(DebugTerminal, val);
+}
+
 /*************************
     GdtRegister Struct
 *************************/
@@ -81,7 +97,19 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, GdtRegister const
         TERMTRY1(term->WriteHex16((uint16_t)i), tret, cnt);
         TERMTRY1(term->Write("|"), tret, cnt);
         
-        TERMTRY1(PrintToTerminal(term, val.Pointer->Entries[i]), tret, cnt);
+        GdtEntryShort * entry = &(val.Pointer->Entries[0]) + i;
+
+        if ((  entry->GetSystemDescriptorType() == GdtSystemEntryType::TssAvailable
+            || entry->GetSystemDescriptorType() == GdtSystemEntryType::TssBusy     )
+            && !entry->GetSystem() && !entry->GetLong() && !entry->GetSize())
+        {
+            TERMTRY1(PrintToTerminal(term, *reinterpret_cast<GdtTss64Entry *>(entry)), tret, cnt);
+
+            ++i, j += 8;
+            //  This is twice as big.
+        }
+        else
+            TERMTRY1(PrintToTerminal(term, *entry), tret, cnt);
     }
 
     return tret;

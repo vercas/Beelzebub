@@ -60,7 +60,6 @@
 #include <debug.hpp>
 #include <_print/registers.hpp>
 #include <_print/gdt.hpp>
-#include <_print/idt.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;
@@ -88,6 +87,7 @@ CpuId Beelzebub::BootstrapCpuid;
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     ObjectAllocatorSmp CpuDataAllocator;
     Atomic<size_t> CpuIndexCounter {(size_t)0};
+    Atomic<uint16_t> TssSegmentCounter {(uint16_t)(8 * 8)};
 #else
     CpuData BspCpuData;
 #endif
@@ -102,8 +102,13 @@ void InitializeCpuData()
     ASSERT(res.IsOkayResult()
         , "Failed to allocate CPU data structure! (%H)"
         , res);
+
+    data->Index = CpuIndexCounter++;
+    data->TssSegment = TssSegmentCounter.FetchAdd(sizeof(GdtTss64Entry));
 #else
     CpuData * data = &BspCpuData;
+    data->Index = 0;
+    data->TssSegment = 8 * 8;
 #endif
 
     data->SelfPointer = data;
@@ -111,20 +116,30 @@ void InitializeCpuData()
 
     Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)(uintptr_t)data);
 
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    size_t const ind = CpuIndexCounter++;
-
-    data->Index = ind;
-#else
-    data->Index = 0;
-#endif
-
     data->XContext = nullptr;
     //  TODO: Perhaps set up a default exception context, which would set fire
     //  to the whole system?
 
     data->DomainDescriptor = &Domain0;
     data->X2ApicMode = false;
+
+    withLock (data->DomainDescriptor->GdtLock)
+        data->DomainDescriptor->Gdt.Size = TssSegmentCounter.Load() - 1;
+    //  This will eventually set the size to the highest value.
+
+    data->DomainDescriptor->Gdt.Activate();
+    //  Doesn't matter if a core lags behind here. It only needs its own TSS to
+    //  be included.
+
+    Gdt * gdt = data->DomainDescriptor->Gdt.Pointer;
+    //  Pointer to the merry GDT.
+
+    GdtTss64Entry & tssEntry = gdt->GetTss64(data->TssSegment);
+    tssEntry = GdtTss64Entry()
+    .SetSystemDescriptorType(GdtSystemEntryType::TssAvailable)
+    .SetPresent(true)
+    .SetBase(&(data->EmbeddedTss))
+    .SetLimit((uint32_t)sizeof(struct Tss));
 
     //msg("-- Core #%us @ %Xp. --%n", ind, data);
 }
@@ -135,20 +150,19 @@ void InitializeCpuData()
 
 void kmain_bsp()
 {
-#if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
     Cpu::Count = 1;
 #endif
 
     Beelzebub::Main();
 }
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
 void kmain_ap()
 {
     Interrupts::Register.Activate();
 
-#if   !defined(__BEELZEBUB_SETTINGS_NO_SMP)
     ++Cpu::Count;
-#endif
 
     //bootstrapVas.Activate();
     BootstrapMemoryManager.Activate();
@@ -158,6 +172,7 @@ void kmain_ap()
 
     Beelzebub::Secondary();
 }
+#endif
 
 /**********************
     PHYSICAL MEMORY

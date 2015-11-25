@@ -43,4 +43,5 @@
 #include <_print/print_template.hpp>
 
 PRINT_FUNCS_CONST(Beelzebub::System::GdtEntryShort)
+PRINT_FUNCS_CONST(Beelzebub::System::GdtTss64Entry)
 PRINT_FUNCS_CONST(Beelzebub::System::GdtRegister)

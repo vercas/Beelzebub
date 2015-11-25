@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <system/tss.hpp>
 #include <utils/bitfields.hpp>
 
 namespace Beelzebub { namespace System
@@ -102,7 +103,6 @@ namespace Beelzebub { namespace System
         BITFIELD_DEFAULT_1W(54, Size       )
         BITFIELD_DEFAULT_1W(55, Granularity)
 
-        BITFIELD_DEFAULT_2W( 0, 32, uintptr_t         , ExtendedTssBaseHigh )
         BITFIELD_DEFAULT_4W(40,  4, GdtSystemEntryType, SystemDescriptorType)
 
         BITFIELD_DEFAULT_3W(16, 24, 56,  8, uint32_t, Base )
@@ -155,13 +155,47 @@ namespace Beelzebub { namespace System
      */
     struct GdtTss64Entry
     {
+        /*  Bit structure:
+         *       0 -  15 : Segment Limit low
+         *      16 -  39 : Base Address low
+         *      40 -  43 : Type
+         *          40   : 1
+         *          41   : Busy
+         *          42   : 0
+         *          43   : 1
+         *      44       : 0
+         *      45 -  46 : Privilege bits
+         *      47       : Present bit
+         *      48 -  51 : Segment Limit high
+         *      52       : Available bit
+         *      53       : 0
+         *      54       : 0
+         *      55       : Granularity bit
+         *      56 -  95 : Segment Base high
+         *      96 - 103 : Reserved
+         *     104 - 108 : Zeros
+         *     109 - 127 : Reserved
+         */
+
+        BITFIELD_FLAG_RW(41, Busy       , uint64_t, this->Low, , const, static)
+        BITFIELD_FLAG_RW(45, DplLow     , uint64_t, this->Low, , const, static)
+        BITFIELD_FLAG_RW(46, DplHigh    , uint64_t, this->Low, , const, static)
+        BITFIELD_FLAG_RW(47, Present    , uint64_t, this->Low, , const, static)
+        BITFIELD_FLAG_RW(52, Available  , uint64_t, this->Low, , const, static)
+        BITFIELD_FLAG_RW(55, Granularity, uint64_t, this->Low, , const, static)
+
+        BITFIELD_STRO_RW(40,  4, GdtSystemEntryType, SystemDescriptorType, uint64_t, this->Low, , const, static)
+
+        BITFIELD_STRC_RW(16, 24, 56,  8, uint32_t, BaseLow, uint64_t, this->Low, , const, static)
+        BITFIELD_STRC_RW( 0, 16, 48,  4, uint32_t, Limit  , uint64_t, this->Low, , const, static)
+
         /*  Constructors  */
 
         /**
          *  <summary>Creates a null GDT Entry.</summary>
          */
         inline constexpr GdtTss64Entry()
-            : LowEntry(), HighEntry()
+            : Low(0x0000000000900000), High(0)
         {
             
         }
@@ -169,27 +203,41 @@ namespace Beelzebub { namespace System
         /**
          *  <summary>Creates a new GDT Entry structure from the given raw value.</summary>
          */
-        inline constexpr GdtTss64Entry(GdtEntryShort const low, GdtEntryShort const high)
-            : LowEntry(low), HighEntry(high)
+        inline constexpr GdtTss64Entry(uint64_t const low, uint64_t const high)
+            : Low(low), High(high)
         {
             
         }
 
         /*  Properties  */
 
-        inline bool GetBusy() const
+        inline Tss * GetBase() const
         {
-            return this->LowEntry.GetRw();
+            return reinterpret_cast<Tss *>((uint64_t)this->GetBaseLow()
+                                        | ((uint64_t)this->BaseHigh << 32));
         }
-        inline void SetBusy(bool const val)
+        inline auto SetBase(Tss const * const val)
         {
-            this->LowEntry.SetRw(val);
+            this->SetBaseLow((uint32_t) reinterpret_cast<uint64_t>(val)      );
+            this->BaseHigh = (uint32_t)(reinterpret_cast<uint64_t>(val) >> 32);
+
+            return *this;
         }
 
         /*  Field(s)  */
 
-        GdtEntryShort  LowEntry;
-        GdtEntryShort HighEntry;
+        uint64_t Low;
+
+        union
+        {
+            uint64_t High;
+
+            struct
+            {
+                uint32_t BaseHigh;
+                uint32_t Dummy0;
+            };
+        };
     };
 
     class Gdt
@@ -208,6 +256,15 @@ namespace Beelzebub { namespace System
 
         Gdt(Gdt const &) = delete;
         Gdt & operator =(Gdt const &) = delete;
+
+        /*  Getters  */
+
+        inline GdtTss64Entry & GetTss64(uint16_t const seg)
+        {
+            return *(reinterpret_cast<GdtTss64Entry *>(
+                reinterpret_cast<uint8_t *>(this->Entries) + seg
+            ));
+        }
 
         /*  Field(s)  */
 

@@ -110,7 +110,9 @@ namespace Beelzebub { namespace System
     {
         CpuData * SelfPointer;
         size_t Index;
+
         Domain * DomainDescriptor;
+        Tss EmbeddedTss;
 
         Execution::Thread * ActiveThread;
         ExceptionContext * XContext;
@@ -118,6 +120,7 @@ namespace Beelzebub { namespace System
         Exception X;
 
         uint16_t GdtLength;
+        uint16_t TssSegment;
         bool X2ApicMode;
     };
 

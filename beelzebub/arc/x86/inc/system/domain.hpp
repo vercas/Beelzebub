@@ -41,6 +41,7 @@
 
 #include <system/gdt.hpp>
 #include <memory/page_allocator.hpp>
+#include <synchronization/spinlock.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -58,7 +59,8 @@ namespace Beelzebub { namespace System
         /*  Field(s)  */
 
         size_t Index;
-        GdtRegister Gdt;
         Memory::PageAllocator * PhysicalAllocator;
+        Synchronization::Spinlock<> GdtLock;
+        GdtRegister Gdt;
     };
 }}

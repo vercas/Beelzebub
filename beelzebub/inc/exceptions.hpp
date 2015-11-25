@@ -74,11 +74,12 @@ namespace Beelzebub
 
     enum class MemoryAccessType : uint8_t
     {
-        Read        = 0,
-        Write       = 1,
-        Execute     = 2,
+        Read            = 0,
+        Write           = 1,
+        Execute         = 2,
 
-        Unaligned   = 1 << 7,
+        Unprivileged    = 1 << 6,
+        Unaligned       = 1 << 7,
     };
 
     ENUMOPS(MemoryAccessType)
