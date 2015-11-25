@@ -56,6 +56,7 @@ namespace Beelzebub { namespace Debug
 
     void CatchFire(const char * const file
                  , const size_t line
+                 , char const * const cond
                  , const char * const msg)
     {
         if (DebugTerminal != nullptr && DebugTerminal->Descriptor->Capabilities.CanOutput)
@@ -86,24 +87,23 @@ namespace Beelzebub { namespace Debug
 
     void CatchFire(const char * const file
                  , const size_t line
+                 , char const * const cond
                  , const char * const fmt, va_list args)
     {
         if (DebugTerminal != nullptr && DebugTerminal->Descriptor->Capabilities.CanOutput)
             withLock (MsgSpinlock)
             {
                 DebugTerminal->WriteLine("");
-                DebugTerminal->Write("CAUGHT FIRE at line ");
+                DebugTerminal->Write(">-- CAUGHT FIRE at line ");
                 DebugTerminal->WriteUIntD(line);
                 DebugTerminal->Write(" of \"");
                 DebugTerminal->Write(file);
+                DebugTerminal->WriteLine("\":");
 
-                if (fmt == nullptr)
-                    DebugTerminal->WriteLine("\".");
-                else
-                {
-                    DebugTerminal->WriteLine("\":");
+                DebugTerminal->WriteLine(cond);
+
+                if (fmt != nullptr)
                     DebugTerminal->Write(fmt, args);
-                }
             }
 
         Interrupts::Disable();
@@ -116,13 +116,14 @@ namespace Beelzebub { namespace Debug
 
     void CatchFireFormat(const char * const file
                        , const size_t line
+                       , char const * const cond
                        , const char * const fmt, ...)
     {
         va_list args;
 
         va_start(args, fmt);
 
-        CatchFire(file, line, fmt, args);
+        CatchFire(file, line, cond, fmt, args);
         //  That function will never return.
 
         va_end(args);
@@ -134,7 +135,7 @@ namespace Beelzebub { namespace Debug
               , const char * const msg)
     {
         if unlikely(!condition)
-            CatchFire(file, line, msg);
+            CatchFire(file, line, "", msg);
     }
 
     void Assert(const bool condition
@@ -143,7 +144,7 @@ namespace Beelzebub { namespace Debug
                , const char * const msg, va_list args)
     {
         if unlikely(!condition)
-            CatchFire(file, line, msg, args);
+            CatchFire(file, line, "", msg, args);
     }
 
     void AssertFormat(const bool condition
@@ -157,7 +158,7 @@ namespace Beelzebub { namespace Debug
 
             va_start(args, fmt);
 
-            CatchFire(file, line, fmt, args);
+            CatchFire(file, line, "", fmt, args);
             //  That function will never return either.
 
             va_end(args);

@@ -49,10 +49,12 @@
 #ifdef __BEELZEBUB__DEBUG
 #define assert(cond, ...) do {                                          \
 if unlikely(!(cond))                                                    \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, __VA_ARGS__); \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
+        , __VA_ARGS__);                                                 \
 } while (false)
 #define assert_or(cond, ...) if unlikely(!(cond))                       \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, __VA_ARGS__); \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
+        , __VA_ARGS__);                                                 \
 else if (false)
 
 //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
@@ -78,7 +80,8 @@ else if (false)
 
 #define ASSERT(cond, ...) do {                                          \
 if unlikely(!(cond))                                                    \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, __VA_ARGS__); \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
+        , __VA_ARGS__);                                                 \
 } while (false)
 #define MSG(...) do {                                                   \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
@@ -100,16 +103,19 @@ namespace Beelzebub { namespace Debug
     extern Synchronization::Spinlock<> MsgSpinlock;
 
     __cold __noinline __noreturn void CatchFire(char const * const file
-                                                      , size_t const line
-                                                      , char const * const msg);
+                                              , size_t const line
+                                              , char const * const cond
+                                              , char const * const msg);
 
     __cold __noinline __noreturn void CatchFire(char const * const file
-                                                      , size_t const line
-                                                      , char const * const fmt, va_list args);
+                                              , size_t const line
+                                              , char const * const cond
+                                              , char const * const fmt, va_list args);
 
     __cold __noinline __noreturn void CatchFireFormat(char const * const file
-                                                            , size_t const line
-                                                            , char const * const fmt, ...);
+                                                    , size_t const line
+                                                    , char const * const cond
+                                                    , char const * const fmt, ...);
 
     __noinline void Assert(bool const condition
                                  , char const * const file
