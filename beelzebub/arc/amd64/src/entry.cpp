@@ -67,20 +67,21 @@ using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
-//using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
-
-//uint8_t initialVbeTerminal[sizeof(SerialTerminal)];
 
 VirtualAllocationSpace bootstrapVas;
 MemoryManagerAmd64 Beelzebub::BootstrapMemoryManager;
 
 CpuId Beelzebub::BootstrapCpuid;
 
-/***************
-    CPU DATA
-***************/
+/*********************
+    CPU DATA STUBS
+*********************/
+
+//  A bit of configuration:
+size_t const PageFaultStackSize = 1 * PageSize;
+size_t const DoubleFaultStackSize = 1 * PageSize;
 
 //  No fancy allocation is needed on non-SMP systems.
 
@@ -92,57 +93,8 @@ CpuId Beelzebub::BootstrapCpuid;
     CpuData BspCpuData;
 #endif
 
-void InitializeCpuData()
-{
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    CpuData * data = nullptr;
-
-    Handle res = CpuDataAllocator.AllocateObject(data);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to allocate CPU data structure! (%H)"
-        , res);
-
-    data->Index = CpuIndexCounter++;
-    data->TssSegment = TssSegmentCounter.FetchAdd(sizeof(GdtTss64Entry));
-#else
-    CpuData * data = &BspCpuData;
-    data->Index = 0;
-    data->TssSegment = 8 * 8;
-#endif
-
-    data->SelfPointer = data;
-    //  Hue.
-
-    Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)(uintptr_t)data);
-
-    data->XContext = nullptr;
-    //  TODO: Perhaps set up a default exception context, which would set fire
-    //  to the whole system?
-
-    data->DomainDescriptor = &Domain0;
-    data->X2ApicMode = false;
-
-    withLock (data->DomainDescriptor->GdtLock)
-        data->DomainDescriptor->Gdt.Size = TssSegmentCounter.Load() - 1;
-    //  This will eventually set the size to the highest value.
-
-    data->DomainDescriptor->Gdt.Activate();
-    //  Doesn't matter if a core lags behind here. It only needs its own TSS to
-    //  be included.
-
-    Gdt * gdt = data->DomainDescriptor->Gdt.Pointer;
-    //  Pointer to the merry GDT.
-
-    GdtTss64Entry & tssEntry = gdt->GetTss64(data->TssSegment);
-    tssEntry = GdtTss64Entry()
-    .SetSystemDescriptorType(GdtSystemEntryType::TssAvailable)
-    .SetPresent(true)
-    .SetBase(&(data->EmbeddedTss))
-    .SetLimit((uint32_t)sizeof(struct Tss));
-
-    //msg("-- Core #%us @ %Xp. --%n", ind, data);
-}
+void InitializeCpuData();
+void InitializeCpuStacks();
 
 /*******************
     ENTRY POINTS
@@ -476,8 +428,10 @@ Handle InitializeVirtualMemory()
         //msg("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
     }//*/
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
     new (&CpuDataAllocator) ObjectAllocatorSmp(sizeof(CpuData), __alignof(CpuData)
         , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
+#endif
 
     InitializeCpuData();
 
@@ -666,6 +620,124 @@ Handle InitializeModules()
     }
 
     return res;
+}
+
+/***************
+    CPU DATA
+***************/
+
+void InitializeCpuData()
+{
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    CpuData * data = nullptr;
+
+    Handle res = CpuDataAllocator.AllocateObject(data);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate CPU data structure! (%H)"
+        , res);
+
+    data->Index = CpuIndexCounter++;
+    data->TssSegment = TssSegmentCounter.FetchAdd(sizeof(GdtTss64Entry));
+#else
+    CpuData * data = &BspCpuData;
+    data->Index = 0;
+    data->TssSegment = 8 * 8;
+#endif
+
+    data->SelfPointer = data;
+    //  Hue.
+
+    Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)(uintptr_t)data);
+
+    data->XContext = nullptr;
+    //  TODO: Perhaps set up a default exception context, which would set fire
+    //  to the whole system?
+
+    data->DomainDescriptor = &Domain0;
+    data->X2ApicMode = false;
+
+    withLock (data->DomainDescriptor->GdtLock)
+        data->DomainDescriptor->Gdt.Size = TssSegmentCounter.Load() - 1;
+    //  This will eventually set the size to the highest value.
+
+    data->DomainDescriptor->Gdt.Activate();
+    //  Doesn't matter if a core lags behind here. It only needs its own TSS to
+    //  be included.
+
+    Gdt * gdt = data->DomainDescriptor->Gdt.Pointer;
+    //  Pointer to the merry GDT.
+
+    GdtTss64Entry & tssEntry = gdt->GetTss64(data->TssSegment);
+    tssEntry = GdtTss64Entry()
+    .SetSystemDescriptorType(GdtSystemEntryType::TssAvailable)
+    .SetPresent(true)
+    .SetBase(&(data->EmbeddedTss))
+    .SetLimit((uint32_t)sizeof(struct Tss));
+
+    CpuInstructions::Ltr(data->TssSegment);
+
+    InitializeCpuStacks();
+
+    //msg("-- Core #%us @ %Xp. --%n", ind, data);
+}
+
+void InitializeCpuStacks()
+{
+    //  NOTE:
+    //  The first page is a guard page. Will triple-fault on overflow.
+    
+    CpuData * cpuData = Cpu::GetData();
+
+    Handle res;
+    PageDescriptor * desc = nullptr;
+    //  Intermediate results.
+
+    //  First, the #DF stack.
+
+    vaddr_t vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(DoubleFaultStackSize);
+
+    for (size_t offset = PageSize; offset <= DoubleFaultStackSize; offset += PageSize)
+    {
+        paddr_t const paddr = mainAllocator.AllocatePage(desc);
+        //  Stack page.
+
+        ASSERT(paddr != nullpaddr && desc != nullptr
+            , "Unable to allocate a physical page #%us for DF stack of CPU #%us!"
+            , offset / PageSize - 1, cpuData->Index);
+
+        res = BootstrapMemoryManager.MapPage(vaddr + offset, paddr, PageFlags::Global | PageFlags::Writable, desc);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to map page at %Xp (%XP) for DF stack of CPU #%us: %H."
+            , vaddr + offset, paddr, cpuData->Index
+            , res);
+    }
+
+    cpuData->EmbeddedTss.Ist[0] = vaddr + PageSize + DoubleFaultStackSize;
+
+    //  Then, the #PF stack.
+
+    vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageFaultStackSize + PageSize);
+
+    for (size_t offset = PageSize; offset <= PageFaultStackSize; offset += PageSize)
+    {
+        paddr_t const paddr = mainAllocator.AllocatePage(desc);
+        //  Stack page.
+
+        ASSERT(paddr != nullpaddr && desc != nullptr
+            , "Unable to allocate a physical page #%us for DF stack of CPU #%us!"
+            , offset / PageSize - 1, cpuData->Index);
+
+        res = BootstrapMemoryManager.MapPage(vaddr + offset, paddr, PageFlags::Global | PageFlags::Writable, desc);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to map page at %Xp (%XP) for DF stack of CPU #%us: %H."
+            , vaddr + offset, paddr, cpuData->Index
+            , res);
+    }
+
+    cpuData->EmbeddedTss.Ist[1] = vaddr + PageSize + PageFaultStackSize;
 }
 
 #ifdef __BEELZEBUB__TEST_MT

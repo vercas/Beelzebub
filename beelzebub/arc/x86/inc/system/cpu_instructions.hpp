@@ -360,18 +360,9 @@ namespace Beelzebub { namespace System
 
         /*  Interrupts  */
 
-        static __forceinline void LIDT(uintptr_t const base, uint16_t const size)
+        static __forceinline void Ltr(uint16_t const seg)
         {
-            struct
-            {
-                uint16_t length;
-                uintptr_t base;
-            } __packed IDTR;
-
-            IDTR.length = size;
-            IDTR.base = base;
-
-            asm volatile ( "lidt %0 \n\t" : : "m"(IDTR) );
+            asm volatile ( "ltr %0 \n\t" : : "rm"(seg) );
         }
     };
 }}

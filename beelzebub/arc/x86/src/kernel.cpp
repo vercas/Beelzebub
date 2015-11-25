@@ -525,6 +525,11 @@ Handle InitializeInterrupts()
 
     //  So now the IDT should be fresh out of the oven and ready for serving.
 
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+    Interrupts::Table.Entries[(uint8_t)KnownExceptionVectors::DoubleFault].SetIst(1);
+    Interrupts::Table.Entries[(uint8_t)KnownExceptionVectors::PageFault  ].SetIst(1);
+#endif
+
     InterruptHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;

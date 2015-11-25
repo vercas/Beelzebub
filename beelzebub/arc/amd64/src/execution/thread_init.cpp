@@ -96,8 +96,8 @@ Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Proce
 	uint64_t dummy = 0x0056657263617300;
 	//	Just a dummy value.
 
-	bst->KernelStackBottom = RoundDown((uintptr_t)&dummy, PageSize);
-	bst->KernelStackTop = RoundUp((uintptr_t)&dummy, PageSize);
+	bst->KernelStackBottom = 0xFFFFFFFFFFFFC000U;//RoundDown((uintptr_t)&dummy, PageSize);
+	bst->KernelStackTop = 0xFFFFFFFFFFFFF000U;//RoundUp((uintptr_t)&dummy, PageSize);
 
 	bst->Next = bst->Previous = bst;
 

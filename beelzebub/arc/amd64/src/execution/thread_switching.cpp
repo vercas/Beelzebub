@@ -78,19 +78,15 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     }
 
     Cpu::GetData()->ActiveThread = other;
+    Cpu::GetData()->EmbeddedTss.Rsp[0] = other->KernelStackTop;
 
     //msg("B");
 
-    //SwitchThread(&this->KernelStackPointer, other->KernelStackPointer);
-
-    //auto interruptVector = dest->Vector;
     auto errorCode = dest->ErrorCode;
 
     *dest = other->State;
-    //memcpy(dest, &other->State, sizeof(ThreadState));
 
     dest->ErrorCode = errorCode;
-    //dest->Vector = interruptVector;
 
     //msg(" ++");
 
