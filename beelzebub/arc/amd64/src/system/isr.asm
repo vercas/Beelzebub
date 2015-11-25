@@ -141,7 +141,6 @@ IsrCommonStub:
 
 %macro ISR_NOERRCODE 1
     IsrStub%1:
-        cli
         push    qword 0
         push    rcx
         mov     cl, %1
@@ -151,7 +150,6 @@ IsrCommonStub:
 
 %macro ISR_ERRCODE 1
     IsrStub%1:
-        cli
         push    rcx
         mov     cl, %1
         jmp     IsrCommonStub

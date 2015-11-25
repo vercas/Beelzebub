@@ -49,7 +49,7 @@ __extern
         0,                                      // flags
         0xFFFFFFFFFFFFC000,                     // stack_vaddr
         JG_INFO_ROOT_BASE ,                     // info_vaddr
-        0xFFFFFFFFFFFFA000,                     // idt_vaddr
+        0xFFFFFFFFFFFF9000,                     // idt_vaddr
         0xFFFFFFFFFFFF2000,                     // gdt_vaddr
         (uintptr_t)&kmain_ap,                   // ap_entry
         0,                                      // syscall_entry

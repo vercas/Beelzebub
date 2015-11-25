@@ -497,19 +497,8 @@ Handle InitializeInterrupts()
         , "ISR stubs seem to have the wrong size!");
     //  The ISR stubs must be aligned to avoid a horribly repetition.
 
-    uint8_t firstStubByte = IsrStubsBegin;
-    //  Used for sanity-checking.
-
     for (size_t i = 0; i < Interrupts::Count; ++i)
     {
-        uint8_t thisFirstByte = (&IsrStubsBegin)[i * Interrupts::StubSize];
-
-        assert(thisFirstByte == firstStubByte
-            , "ISR stub #%us does not begin with the same instruction as the "
-              "first..? (%X1, expected %X1)%n"
-            , i, thisFirstByte, firstStubByte);
-        //  First a bit of integrity checking.
-
         Interrupts::Table.Entries[i] = IdtGate()
         .SetOffset((uintptr_t)&IsrStubsBegin + i * Interrupts::StubSize)
         .SetSegment(Gdt::KernelCodeSegment)
@@ -842,31 +831,37 @@ Handle InitializeAp(uint32_t const lapicId
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
-    paddr_t const paddr = Domain0.PhysicalAllocator->AllocatePage(desc);
-    //  Stack page.
+    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(CpuStackSize + PageSize);
+    //  Guard page included.
 
-    assert_or(paddr != nullpaddr && desc != nullptr
-        , "Unable to allocate a physical page for stack of AP #%us"
-          " (LAPIC ID %u4, processor ID %u4)!"
-        , apIndex, lapicId, procId)
+    for (size_t offset = PageSize; offset <= CpuStackSize; offset += PageSize)
     {
-        return HandleResult::OutOfMemory;
+        paddr_t const paddr = Domain0.PhysicalAllocator->AllocatePage(desc);
+        //  Stack page.
+
+        assert_or(paddr != nullpaddr && desc != nullptr
+            , "Unable to allocate a physical page $%us for stack of AP #%us"
+              " (LAPIC ID %u4, processor ID %u4)!"
+            , offset / PageSize - 1, apIndex, lapicId, procId)
+        {
+            return HandleResult::OutOfMemory;
+        }
+
+        res = BootstrapMemoryManager.MapPage(vaddr + offset, paddr
+            , PageFlags::Global | PageFlags::Writable, desc);
+
+        assert_or(res.IsOkayResult()
+            , "Failed to map page #%us at %Xp (%XP) for stack of AP #%us"
+              " (LAPIC ID %u4, processor ID %u4): %H."
+            , offset / PageSize - 1, vaddr + offset, paddr
+            , apIndex, lapicId, procId
+            , res)
+        {
+            return res;
+        }
     }
 
-    res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
-
-    assert_or(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) for stack of AP #%us"
-          " (LAPIC ID %u4, processor ID %u4): %H."
-        , vaddr, paddr
-        , apIndex, lapicId, procId
-        , res)
-    {
-        return res;
-    }
-
-    ApStackTopPointer = vaddr + PageSize;
+    ApStackTopPointer = vaddr + PageSize + CpuStackSize;
     ApInitializationLock1 = ApInitializationLock2 = ApInitializationLock3 = 1;
 
     LapicIcr initIcr = LapicIcr(0)

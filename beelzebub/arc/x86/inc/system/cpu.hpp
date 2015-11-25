@@ -45,7 +45,6 @@
 #include <system/domain.hpp>
 #include <system/msrs.hpp>
 
-#include <synchronization/spinlock.hpp>
 #include <execution/thread.hpp>
 #include <exceptions.hpp>
 
@@ -110,6 +109,9 @@ namespace Beelzebub { namespace System
     {
         CpuData * SelfPointer;
         size_t Index;
+
+        uintptr_t StackTop;
+        uintptr_t StackBottom;
 
         Domain * DomainDescriptor;
         Tss EmbeddedTss;

@@ -55,37 +55,33 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
 
     thread->KernelStackPointer = thread->KernelStackTop - sizeof(ThreadState);
 
-    ThreadState * initState = (ThreadState *)thread->KernelStackPointer;
+    thread->State.RIP = (uintptr_t)thread->EntryPoint;
+    thread->State.CS = Cpu::GetCs();
+    thread->State.DS = Cpu::GetDs();
+    thread->State.SS = Cpu::GetSs();
 
-    initState->RIP = (uintptr_t)thread->EntryPoint;
-    initState->CS = Cpu::GetCs();
-    initState->DS = Cpu::GetDs();
-    initState->SS = Cpu::GetSs();
+    //thread->State.Vector = 3;  //  Uhm, not sure if the value matters but a breakpoint is the least bad.
+    thread->State.ErrorCode = 0;
 
-    //initState->Vector = 3;  //  Uhm, not sure if the value matters but a breakpoint is the least bad.
-    initState->ErrorCode = 0;
+    thread->State.RFLAGS = (uint64_t)(FlagsRegisterFlags::Reserved1 | FlagsRegisterFlags::InterruptEnable | FlagsRegisterFlags::Cpuid);
 
-    initState->RFLAGS = (uint64_t)(FlagsRegisterFlags::Reserved1 | FlagsRegisterFlags::InterruptEnable | FlagsRegisterFlags::Cpuid);
-
-    initState->RSP = initState->RBP = thread->KernelStackTop;
+    thread->State.RSP = thread->State.RBP = thread->KernelStackTop;
     //  Upon interrupt return, the stack will be clean.
 
-    initState->RAX = 0;
-    initState->RBX = 0;
-    initState->RCX = 0;
-    initState->RDX = 0;
-    initState->RSI = 0;
-    initState->RDI = 0;
-    initState->R8  = 0;
-    initState->R9  = 0;
-    initState->R10 = 0;
-    initState->R11 = 0;
-    initState->R12 = 0;
-    initState->R13 = 0;
-    initState->R14 = 0;
-    initState->R15 = 0;
-
-    thread->State = *initState;
+    thread->State.RAX = 0;
+    thread->State.RBX = 0;
+    thread->State.RCX = 0;
+    thread->State.RDX = 0;
+    thread->State.RSI = 0;
+    thread->State.RDI = 0;
+    thread->State.R8  = 0;
+    thread->State.R9  = 0;
+    thread->State.R10 = 0;
+    thread->State.R11 = 0;
+    thread->State.R12 = 0;
+    thread->State.R13 = 0;
+    thread->State.R14 = 0;
+    thread->State.R15 = 0;
 }
 
 Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp, MemoryManager * const bsmm)
@@ -93,13 +89,13 @@ Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Proce
     new (bsp) Process(bsmm);
     new (bst) Thread(bsp);
 
-	uint64_t dummy = 0x0056657263617300;
-	//	Just a dummy value.
+    uint64_t dummy = 0x0056657263617300;
+    //  Just a dummy value.
 
-	bst->KernelStackBottom = 0xFFFFFFFFFFFFC000U;//RoundDown((uintptr_t)&dummy, PageSize);
-	bst->KernelStackTop = 0xFFFFFFFFFFFFF000U;//RoundUp((uintptr_t)&dummy, PageSize);
+    bst->KernelStackBottom = 0xFFFFFFFFFFFFC000U;//RoundDown((uintptr_t)&dummy, PageSize);
+    bst->KernelStackTop = 0xFFFFFFFFFFFFF000U;//RoundUp((uintptr_t)&dummy, PageSize);
 
-	bst->Next = bst->Previous = bst;
+    bst->Next = bst->Previous = bst;
 
-	return HandleResult::Okay;
+    return HandleResult::Okay;
 }

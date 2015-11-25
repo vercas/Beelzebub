@@ -45,6 +45,14 @@
 
 namespace Beelzebub
 {
+    //  A bit of configuration:
+    enum StackSizes : size_t
+    {
+          PageFaultStackSize = 1 * PageSize,
+        DoubleFaultStackSize = 1 * PageSize,
+                CpuStackSize = 3 * PageSize,
+    };
+
     extern Terminals::TerminalBase * MainTerminal;
     extern bool Scheduling;
     extern bool CpuDataSetUp;

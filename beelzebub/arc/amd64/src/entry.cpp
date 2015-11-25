@@ -79,10 +79,6 @@ CpuId Beelzebub::BootstrapCpuid;
     CPU DATA STUBS
 *********************/
 
-//  A bit of configuration:
-size_t const PageFaultStackSize = 1 * PageSize;
-size_t const DoubleFaultStackSize = 1 * PageSize;
-
 //  No fancy allocation is needed on non-SMP systems.
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
@@ -93,8 +89,8 @@ size_t const DoubleFaultStackSize = 1 * PageSize;
     CpuData BspCpuData;
 #endif
 
-void InitializeCpuData();
-void InitializeCpuStacks();
+void InitializeCpuData(bool const bsp);
+void InitializeCpuStacks(bool const bsp);
 
 /*******************
     ENTRY POINTS
@@ -120,7 +116,7 @@ void kmain_ap()
     BootstrapMemoryManager.Activate();
     //  Perfectly valid solution. Just to make sure.
 
-    InitializeCpuData();
+    InitializeCpuData(false);
 
     Beelzebub::Secondary();
 }
@@ -433,7 +429,7 @@ Handle InitializeVirtualMemory()
         , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
 #endif
 
-    InitializeCpuData();
+    InitializeCpuData(true);
 
     //  Now mapping the lower 16 MiB.
 
@@ -626,7 +622,7 @@ Handle InitializeModules()
     CPU DATA
 ***************/
 
-void InitializeCpuData()
+void InitializeCpuData(bool const bsp)
 {
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     CpuData * data = nullptr;
@@ -639,6 +635,11 @@ void InitializeCpuData()
 
     data->Index = CpuIndexCounter++;
     data->TssSegment = TssSegmentCounter.FetchAdd(sizeof(GdtTss64Entry));
+
+    if (bsp)
+        assert(data->Index == 0
+            , "The BSP should have CPU index 0, not %us!"
+            , data->Index);
 #else
     CpuData * data = &BspCpuData;
     data->Index = 0;
@@ -677,16 +678,16 @@ void InitializeCpuData()
 
     CpuInstructions::Ltr(data->TssSegment);
 
-    InitializeCpuStacks();
+    InitializeCpuStacks(bsp);
 
     //msg("-- Core #%us @ %Xp. --%n", ind, data);
 }
 
-void InitializeCpuStacks()
+void InitializeCpuStacks(bool const bsp)
 {
     //  NOTE:
     //  The first page is a guard page. Will triple-fault on overflow.
-    
+
     CpuData * cpuData = Cpu::GetData();
 
     Handle res;
@@ -738,6 +739,27 @@ void InitializeCpuStacks()
     }
 
     cpuData->EmbeddedTss.Ist[1] = vaddr + PageSize + PageFaultStackSize;
+
+    //  Finally, the kernel stack for random interrupts 'n stuff.
+
+    if (bsp)
+    {
+        //  The BSP's stack is in a known, fixed area.
+
+        cpuData->StackTop    = 0xFFFFFFFFFFFFC000ULL + CpuStackSize;
+        cpuData->StackBottom = 0xFFFFFFFFFFFFC000ULL;
+    }
+    else
+    {
+        uint64_t volatile dummy = 0xA05665726361730A;
+        //  Just a dummy value.
+
+        cpuData->StackTop    = RoundUp((uintptr_t)&dummy, PageSize);
+        cpuData->StackBottom = cpuData->StackTop - CpuStackSize;
+        //  This counts on the fact that this function is executed early, 
+    }
+
+    cpuData->EmbeddedTss.Rsp[0] = cpuData->StackTop;
 }
 
 #ifdef __BEELZEBUB__TEST_MT
