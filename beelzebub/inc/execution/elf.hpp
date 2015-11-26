@@ -81,12 +81,13 @@ namespace Beelzebub { namespace Execution {
 
     ENUMOPS(ElfDataEncoding, uint8_t)
 
+    inline ENUM_TO_STRING(ElfDataEncoding, ENUM_ELFDATAENCODING)
+
     #define ENUM_ELFOSABI(ENUMINST) \
         ENUMINST(None            ,  0) \
         ENUMINST(HpUx            ,  1) \
         ENUMINST(NetBsd          ,  2) \
         ENUMINST(Gnu             ,  3) \
-        ENUMINST(Linux           ,  3) \
         ENUMINST(Solaris         ,  6) \
         ENUMINST(Aix             ,  7) \
         ENUMINST(Irix            ,  8) \
@@ -113,6 +114,8 @@ namespace Beelzebub { namespace Execution {
 
     ENUMOPS(ElfOsAbi, uint8_t)
 
+    inline ENUM_TO_STRING(ElfOsAbi, ENUM_ELFOSABI)
+
     #define ENUM_ELFFILETYPE(ENUMINST) \
         ENUMINST(None                        , 0     ) \
         ENUMINST(Relocatable                 , 1     ) \
@@ -120,7 +123,7 @@ namespace Beelzebub { namespace Execution {
         ENUMINST(Dynamic                     , 3     ) \
         ENUMINST(Core                        , 4     ) \
         ENUMINST(OperatingSystemSpecificLow  , 0xFE00) \
-        ENUMINST(OperatingSystemSpecificHigh , 0xFE00) \
+        ENUMINST(OperatingSystemSpecificHigh , 0xFEFF) \
         ENUMINST(ProcessorSpecificLow        , 0xFF00) \
         ENUMINST(ProcessorSpecificHigh       , 0xFFFF) \
 
@@ -133,6 +136,8 @@ namespace Beelzebub { namespace Execution {
     };
 
     ENUMOPS(ElfFileType, uint16_t)
+
+    inline ENUM_TO_STRING(ElfFileType, ENUM_ELFFILETYPE)
     
     #define ENUM_ELFMACHINE(ENUMINST) \
         ENUMINST(None          ,   0) \
@@ -169,6 +174,8 @@ namespace Beelzebub { namespace Execution {
 
     ENUMOPS(ElfMachine, uint16_t)
 
+    inline ENUM_TO_STRING(ElfMachine, ENUM_ELFMACHINE)
+
     #define ENUM_ELFSECTIONHEADERTYPE(ENUMINST) \
         ENUMINST(Null                       ,  0) \
         ENUMINST(ProgramBits                ,  1) \
@@ -198,6 +205,8 @@ namespace Beelzebub { namespace Execution {
 
     ENUMOPS(ElfSectionHeaderType, uint32_t)
 
+    inline ENUM_TO_STRING(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE)
+
     #define ENUM_ELFSECTIONHEADERFLAGS32(ENUMINST) \
         ENUMINST(Writable           , 0x001) \
         ENUMINST(Allocated          , 0x002) \
@@ -221,6 +230,8 @@ namespace Beelzebub { namespace Execution {
 
     ENUMOPS(ElfSectionHeaderFlags_32, uint32_t)
 
+    inline ENUM_TO_STRING(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32)
+
     #define ENUM_ELFSECTIONHEADERFLAGS64(ENUMINST) \
         ENUMINST(Writable           , 0x001) \
         ENUMINST(Allocated          , 0x002) \
@@ -243,6 +254,48 @@ namespace Beelzebub { namespace Execution {
     };
 
     ENUMOPS(ElfSectionHeaderFlags_64, uint64_t)
+
+    inline ENUM_TO_STRING(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64)
+
+    #define ENUM_ELFPROGRAMHEADERTYPE(ENUMINST) \
+        ENUMINST(Null        ,  0) \
+        ENUMINST(Load        ,  1) \
+        ENUMINST(Dynamic     ,  2) \
+        ENUMINST(Interpreter ,  3) \
+        ENUMINST(Note        ,  4) \
+        ENUMINST(SHLIB       ,  5) \
+        ENUMINST(PHDR        ,  6) \
+        ENUMINST(Tls         ,  7) \
+
+    /**
+     *  Types of ELF segments.
+     */
+    enum class ElfProgramHeaderType : uint32_t
+    {
+        ENUM_ELFPROGRAMHEADERTYPE(ENUMINST_VAL)
+    };
+
+    ENUMOPS(ElfProgramHeaderType, uint32_t)
+
+    inline ENUM_TO_STRING(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE)
+
+    #define ENUM_ELFPROGRAMHEADERFLAGS(ENUMINST) \
+        ENUMINST(None       ,  0) \
+        ENUMINST(Executable ,  1) \
+        ENUMINST(Writable   ,  2) \
+        ENUMINST(Readable   ,  4) \
+
+    /**
+     *  Types of ELF segments.
+     */
+    enum class ElfProgramHeaderFlags : uint32_t
+    {
+        ENUM_ELFPROGRAMHEADERFLAGS(ENUMINST_VAL)
+    };
+
+    ENUMOPS(ElfProgramHeaderFlags, uint32_t)
+
+    inline ENUM_TO_STRING(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS)
 
     /*  Structures  */
 
@@ -317,16 +370,16 @@ namespace Beelzebub { namespace Execution {
      */
     struct ElfSectionHeader_32
     {
-        uint32_t Name;                  /*  0 -  3 */
-        ElfSectionHeaderType Type;      /*  4 -  7 */
+        uint32_t                  Name; /*  0 -  3 */
+        ElfSectionHeaderType      Type; /*  4 -  7 */
         ElfSectionHeaderFlags_32 Flags; /*  8 - 11 */
-        uint32_t Address;               /* 12 - 15 */
-        uint32_t Offset;                /* 16 - 19 */
-        uint32_t Size;                  /* 20 - 23 */
-        uint32_t Link;                  /* 24 - 27 */
-        uint32_t Info;                  /* 28 - 31 */
-        uint32_t AddressAlignment;      /* 32 - 35 */
-        uint32_t EntrySize;             /* 36 - 39 */
+        uint32_t               Address; /* 12 - 15 */
+        uint32_t                Offset; /* 16 - 19 */
+        uint32_t                  Size; /* 20 - 23 */
+        uint32_t                  Link; /* 24 - 27 */
+        uint32_t                  Info; /* 28 - 31 */
+        uint32_t      AddressAlignment; /* 32 - 35 */
+        uint32_t             EntrySize; /* 36 - 39 */
     } __packed;
 
     /**
@@ -334,15 +387,45 @@ namespace Beelzebub { namespace Execution {
      */
     struct ElfSectionHeader_64
     {
-        uint32_t Name;
-        ElfSectionHeaderType Type;
-        ElfSectionHeaderFlags_64 Flags;
-        uint64_t Address;
-        uint64_t Offset;
-        uint64_t Size;
-        uint32_t Link;
-        uint32_t Info;
-        uint64_t AddressAlignment;
-        uint64_t EntrySize;
+        uint32_t                  Name; /*  0 -  3 */
+        ElfSectionHeaderType      Type; /*  4 -  7 */
+        ElfSectionHeaderFlags_64 Flags; /*  8 - 15 */
+        uint64_t               Address; /* 16 - 23 */
+        uint64_t                Offset; /* 24 - 31 */
+        uint64_t                  Size; /* 32 - 39 */
+        uint32_t                  Link; /* 40 - 43 */
+        uint32_t                  Info; /* 44 - 47 */
+        uint64_t      AddressAlignment; /* 48 - 55 */
+        uint64_t             EntrySize; /* 56 - 63 */
+    } __packed;
+
+    /**
+     *  Represents the header of a segment in a 32-bit ELF.
+     */
+    struct ElfProgramHeader_32
+    {
+        ElfProgramHeaderType   Type; /*  0 -  3 */
+        uint32_t             Offset; /*  4 -  7 */
+        uint32_t              VAddr; /*  8 - 11 */
+        uint32_t              PAddr; /* 12 - 15 */
+        uint32_t              PSize; /* 16 - 19 */
+        uint32_t              VSize; /* 20 - 23 */
+        ElfProgramHeaderFlags Flags; /* 24 - 27 */
+        uint32_t          Alignment; /* 28 - 31 */
+    } __packed;
+
+    /**
+     *  Represents the header of a segment in a 64-bit ELF.
+     */
+    struct ElfProgramHeader_64
+    {
+        ElfProgramHeaderType   Type; /*  0 -  3 */
+        ElfProgramHeaderFlags Flags; /*  4 -  7 */
+        uint64_t             Offset; /*  8 - 15 */
+        uint64_t              VAddr; /* 16 - 23 */
+        uint64_t              PAddr; /* 24 - 31 */
+        uint64_t              PSize; /* 32 - 39 */
+        uint64_t              VSize; /* 40 - 47 */
+        uint64_t          Alignment; /* 48 - 55 */
     } __packed;
 }}

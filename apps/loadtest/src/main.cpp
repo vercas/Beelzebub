@@ -2,7 +2,7 @@
 
 extern "C" __attribute__((__used__)) int _start()
 {
-	uintptr_t volatile someAddress = 0x123000;
+	uintptr_t volatile someAddress = 0x30000;
 	uintptr_t volatile someEnd = someAddress + someAddress;
 	//	Yay.
 
