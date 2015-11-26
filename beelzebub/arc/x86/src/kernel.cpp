@@ -516,7 +516,7 @@ Handle InitializeInterrupts()
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
     Interrupts::Table.Entries[(uint8_t)KnownExceptionVectors::DoubleFault].SetIst(1);
-    Interrupts::Table.Entries[(uint8_t)KnownExceptionVectors::PageFault  ].SetIst(1);
+    Interrupts::Table.Entries[(uint8_t)KnownExceptionVectors::PageFault  ].SetIst(2);
 #endif
 
     InterruptHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
