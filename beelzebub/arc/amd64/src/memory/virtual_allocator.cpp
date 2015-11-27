@@ -47,12 +47,16 @@
 
 #include <memory/virtual_allocator.hpp>
 #include <memory/manager_amd64.hpp>
+#include <kernel.hpp>
 #include <string.h>
 #include <math.h>
+
+#include <_print/paging.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
@@ -198,7 +202,13 @@ Handle VirtualAllocationSpace::Bootstrap(System::CpuId const * const bspcpuid)
 
 Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 {
+    CpuInstructions::InvalidateTlb(GetAlienPml4());
+
     new (target) VirtualAllocationSpace(this->Allocator);
+
+    // msg("<[ CLONE SOURCE PML4 ]>%n");
+    // PrintToDebugTerminal(*GetLocalPml4());
+    // msg("%n%n");
 
     PageDescriptor * desc;
 
@@ -209,6 +219,8 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
 
     desc->IncrementReferenceCount();
     //  Do the good deed.
+
+    //this->AlienPml4Lock.Acquire();
 
     target->Alienate();
     //  So it can be accessible.
@@ -230,6 +242,15 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
     //  Last page, where the kernel and bootloader-provided shenanigans sit
     //  snuggly together and drink hot cocoa.
 
+    // msg("<[ CLONE TARGET PML4 ]>%n");
+    // PrintToDebugTerminal(*GetAlienPml4());
+    // msg("%n%n");
+
+    //this->AlienPml4Lock.Release();
+
+    if (CpuDataSetUp)
+        Cpu::GetData()->LastAlienPml4 = pml4_paddr;
+
     return HandleResult::Okay;
 }
 
@@ -248,14 +269,31 @@ Handle VirtualAllocationSpace::TryTranslate(vaddr_t const vaddr, cbk_t cbk, bool
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
+    //ObtainNullLockGuardFlexible(pml4Lg, this->AlienPml4Lock);
+
     if (nonLocal)
     {
+        //pml4Lg.Swap(this->AlienPml4Lock);
+
         this->Alienate();
 
         pml4p = GetAlienPml4();
         pml3p = GetAlienPml3(vaddr);
         pml2p = GetAlienPml2(vaddr);
         pml1p = GetAlienPml1(vaddr);
+
+        if (!CpuDataSetUp || this->Pml4Address != Cpu::GetData()->LastAlienPml4)
+        {
+            CpuInstructions::InvalidateTlb(pml4p);
+            CpuInstructions::InvalidateTlb(pml3p);
+            CpuInstructions::InvalidateTlb(pml2p);
+            CpuInstructions::InvalidateTlb(pml1p);
+
+            //  Invalidate all!
+
+            if (CpuDataSetUp)
+                Cpu::GetData()->LastAlienPml4 = this->Pml4Address;
+        }
     }
     else
     {
@@ -330,14 +368,31 @@ Handle VirtualAllocationSpace::Map(vaddr_t const vaddr, paddr_t const paddr, con
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
+    //ObtainNullLockGuardFlexible(pml4Lg, this->AlienPml4Lock);
+
     if (nonLocal)
     {
+        //pml4Lg.Swap(this->AlienPml4Lock);
+
         this->Alienate();
 
         pml4p = GetAlienPml4();
         pml3p = GetAlienPml3(vaddr);
         pml2p = GetAlienPml2(vaddr);
         pml1p = GetAlienPml1(vaddr);
+
+        if (!CpuDataSetUp || this->Pml4Address != Cpu::GetData()->LastAlienPml4)
+        {
+            CpuInstructions::InvalidateTlb(pml4p);
+            CpuInstructions::InvalidateTlb(pml3p);
+            CpuInstructions::InvalidateTlb(pml2p);
+            CpuInstructions::InvalidateTlb(pml1p);
+
+            //  Invalidate all!
+
+            if (CpuDataSetUp)
+                Cpu::GetData()->LastAlienPml4 = this->Pml4Address;
+        }
     }
     else
     {
@@ -619,14 +674,30 @@ Handle VirtualAllocationSpace::Iterator::AllocateTables(PageDescriptor * & pml3d
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
+    //ObtainNullLockGuardFlexible(pml4Lg, this->AlienPml4Lock);
+
     if (nonLocal)
     {
+        //pml4Lg.Swap(this->AlienPml4Lock);
+
         this->AllocationSpace->Alienate();
 
         pml4p = GetAlienPml4();
         pml3p = GetAlienPml3(vaddr);
         pml2p = GetAlienPml2(vaddr);
         pml1p = GetAlienPml1(vaddr);
+
+        if (!CpuDataSetUp || this->AllocationSpace->Pml4Address != Cpu::GetData()->LastAlienPml4)
+        {
+            CpuInstructions::InvalidateTlb(pml4p);
+            CpuInstructions::InvalidateTlb(pml3p);
+            CpuInstructions::InvalidateTlb(pml2p);
+            CpuInstructions::InvalidateTlb(pml1p);
+
+            //  Invalidate all!
+            if (CpuDataSetUp)
+                Cpu::GetData()->LastAlienPml4 = this->AllocationSpace->Pml4Address;
+        }
     }
     else
     {

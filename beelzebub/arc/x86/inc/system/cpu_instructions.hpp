@@ -71,11 +71,19 @@ namespace Beelzebub { namespace System
             asm volatile ( "pause \n\t" : : : "memory" );
         }
 
-        /*  Caching  */
+        /*  Caching and Paging  */
 
         static __forceinline void WriteBackAndInvalidateCache()
         {
             asm volatile ( "wbinvd \n\t" : : : "memory" );
+        }
+
+        static __forceinline void InvalidateTlb(void const * const addr)
+        {
+            struct _4096_bytes { uint8_t x[4096]; } const * const p
+            = reinterpret_cast<_4096_bytes const *>(addr);
+
+            asm volatile ( "invlpg %0 \n\t" : : "m"(*p) );
         }
 
         /*  Profiling  */

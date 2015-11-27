@@ -790,16 +790,17 @@ VirtualAllocationSpace tVasB;
 
 __hot void * TestThreadEntryPoint(void * const arg)
 {
-   char * const myChars = (char *)(uintptr_t)0x321000ULL;
+    char * const myChars = (char *)(uintptr_t)0x321000ULL;
 
-    while (true)
-    {
+    // while (true)
+    // {
         Thread * activeThread = Cpu::GetData()->ActiveThread;
+        char volatile specialChar = *myChars;
 
-        MSG("Printing from thread %Xp! (%C)%n", activeThread, myChars);
+        MSG("Printing from thread %Xp! (%c)%n", activeThread, specialChar);
 
-        CpuInstructions::Halt();
-    }
+        while (true) CpuInstructions::Halt();
+    // }
 }
 
 __cold void InitializeTestThread(Thread * const t, Process * const p)

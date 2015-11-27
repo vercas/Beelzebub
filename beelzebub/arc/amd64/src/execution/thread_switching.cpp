@@ -81,11 +81,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     //msg("B");
 
-    auto errorCode = dest->ErrorCode;
-
     *dest = other->State;
-
-    dest->ErrorCode = errorCode;
 
     //msg(" ++");
 

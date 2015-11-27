@@ -221,12 +221,12 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
     Pml1Entry * e = nullptr;
 
-    msg("(( about to get entry; RIP=%Xp; CR2=%Xp ))"
-        , state->RIP, CR2);
+    // msg("(( about to get entry; RIP=%Xp; CR2=%Xp ))"
+    //     , state->RIP, CR2);
 
     Handle res = BootstrapMemoryManager.Vas->GetEntry(RoundDown(CR2, PageSize), e, true);
 
-    msg("%n");
+    // msg("%n");
 
     CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
     ExceptionContext * context = (cpuData == nullptr) ? nullptr : cpuData->XContext;

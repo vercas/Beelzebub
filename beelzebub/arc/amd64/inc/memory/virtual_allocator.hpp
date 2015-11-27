@@ -193,6 +193,7 @@ namespace Beelzebub { namespace Memory
         inline explicit VirtualAllocationSpace(PageAllocator * const allocator)
             : Allocator( allocator)
             , Pml4Address(nullpaddr)
+            //, AlienPml4Lock()
         {
 
         }
@@ -263,6 +264,8 @@ namespace Beelzebub { namespace Memory
         //psize_t FreePagesCount, MappedPagesCount;
 
         paddr_t Pml4Address;
+
+        //Synchronization::Spinlock<> AlienPml4Lock;
 
         /*  Traversal  */
 

@@ -44,6 +44,10 @@
 #define ObtainLockGuard(name, lock) Beelzebub::Synchronization::LockGuard<decltype(lock)> name {lock}
 #define withLock(lock) with(ObtainLockGuard(MCATS(_lock_guard_, __LINE__), lock))
 
+#define ObtainNullLockGuardFlexible(name, lock) Beelzebub::Synchronization::LockGuardFlexible<decltype(lock)> name
+#define ObtainLockGuardFlexible(name, lock) Beelzebub::Synchronization::LockGuardFlexible<decltype(lock)> name {lock}
+#define withLockFlexible(lock) with(ObtainLockGuardFlexible(MCATS(_lock_guard_flexible_, __LINE__), lock))
+
 namespace Beelzebub { namespace Synchronization
 {
     /// <summary>Guards a scope under a lock.</summary>
@@ -105,5 +109,107 @@ namespace Beelzebub { namespace Synchronization
         /*  Field(s)  */
 
         TLock * const Lock;
+    };
+
+    /**************************************
+        And now, a flexible lock guard!
+    **************************************/
+
+    /// <summary>Guards a scope under a lock.</summary>
+    template<typename TLock, typename TCook = typename TLock::Cookie>
+    struct LockGuardFlexible
+    {
+        /*  Constructor(s)  */
+
+        __forceinline LockGuardFlexible()
+            : Lock(nullptr)
+            , Cookie(int_cookie_invalid)
+        {
+            
+        }
+
+        __forceinline LockGuardFlexible(TLock & lock)
+            : Lock(&lock)
+            , Cookie(lock.Acquire())
+        {
+            
+        }
+
+        LockGuardFlexible(LockGuardFlexible const &) = delete;
+        LockGuardFlexible(LockGuardFlexible && other) = delete;
+        LockGuardFlexible & operator =(LockGuardFlexible const &) = delete;
+        LockGuardFlexible & operator =(LockGuardFlexible &&) = delete;
+
+        /*  Destructor  */
+
+        __forceinline ~LockGuardFlexible()
+        {
+            if (this->Lock != nullptr)
+                this->Lock->Release(this->Cookie);
+        }
+
+        /*  Operations  */
+
+        __forceinline void Swap(TLock & other)
+        {
+            if (this->Lock == nullptr)
+                this->Cookie = (this->Lock = &other)->Acquire();
+            else
+            {
+                other.SimplyAcquire();
+                this->Lock->SimplyRelease();
+            }
+        }
+
+    private:
+        /*  Field(s)  */
+
+        TLock * Lock;
+        TCook Cookie;
+    };
+
+    /// <summary>Guards a scope under a lock.</summary>
+    template<typename TLock>
+    struct LockGuardFlexible<TLock, void>
+    {
+        /*  Constructor(s)  */
+
+        __forceinline LockGuardFlexible() : Lock(nullptr) { }
+
+        __forceinline LockGuardFlexible(TLock & lock) : Lock(&lock)
+        {
+            lock.Acquire();
+        }
+
+        LockGuardFlexible(LockGuardFlexible const &) = delete;
+        LockGuardFlexible(LockGuardFlexible && other) = delete;
+        LockGuardFlexible & operator =(LockGuardFlexible const &) = delete;
+        LockGuardFlexible & operator =(LockGuardFlexible &&) = delete;
+
+        /*  Destructor  */
+
+        __forceinline ~LockGuardFlexible()
+        {
+            if (this->Lock != nullptr)
+                this->Lock->Release();
+        }
+
+        /*  Operations  */
+
+        __forceinline void Swap(TLock & other)
+        {
+            if (this->Lock == nullptr)
+                (this->Lock = &other)->Acquire();
+            else
+            {
+                other.Acquire();
+                this->Lock->Release();
+            }
+        }
+
+    private:
+        /*  Field(s)  */
+
+        TLock * Lock;
     };
 }}
