@@ -43,13 +43,17 @@
 #include <execution/elf.hpp>
 #include <execution/thread.hpp>
 #include <execution/thread_init.hpp>
+#include <execution/ring_3.hpp>
 #include <memory/manager_amd64.hpp>
 
 #include <kernel.hpp>
+#include <entry.h>
 #include <system/cpu.hpp>
 
+#include <string.h>
 #include <math.h>
 #include <debug.hpp>
+#include <_print/paging.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -62,14 +66,15 @@ size_t segmentCount;
 uintptr_t entryPoint;
 
 Thread testThread;
+Thread testWatcher;
 Process testProcess;
 MemoryManagerAmd64 testMm;
 VirtualAllocationSpace testVas;
 uintptr_t const userStackBottom = 0x40000000;
 uintptr_t const userStackTop = 0x40000000 + PageSize;
 
-__cold uint8_t * AllocateTestRegion();
 __cold void * JumpToRing3(void *);
+__cold void * WatchTestThread(void *);
 
 Handle HandleLoadtest(size_t const index
                     , jg_info_module_t const * const module
@@ -232,20 +237,21 @@ void TestApplication()
     //  Initialize a new process for thread series B.
 
     new (&testThread) Thread(&testProcess);
+    new (&testWatcher) Thread(&testProcess);
 
     Handle res;
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    //  First, the kernel stack page.
+    //  Firstly, the kernel stack page of the test thread.
 
-    vaddr_t const stackVaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);;
+    vaddr_t stackVaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
     paddr_t stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
 
     ASSERT(stackPaddr != nullpaddr && desc != nullptr
         , "Unable to allocate a physical page for test thread kernel stack!");
 
-    res = testMm.MapPage(stackVaddr, stackPaddr
+    res = BootstrapMemoryManager.MapPage(stackVaddr, stackPaddr
         , PageFlags::Global | PageFlags::Writable, desc);
 
     ASSERT(res.IsOkayResult()
@@ -261,9 +267,83 @@ void TestApplication()
     InitializeThreadState(&testThread);
     //  This sets up the thread so it goes directly to the entry point when switched to.
 
-    //  Then, the userland stack page.
+    BootstrapThread.IntroduceNext(&testThread);
 
+    //  Secondly, the kernel stack page of the watcher thread.
+
+    stackVaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
     stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
+
+    ASSERT(stackPaddr != nullpaddr && desc != nullptr
+        , "Unable to allocate a physical page for test thread kernel stack!");
+
+    res = BootstrapMemoryManager.MapPage(stackVaddr, stackPaddr
+        , PageFlags::Global | PageFlags::Writable, desc);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to map page at %Xp (%XP) for test thread kernel stack: %H."
+        , stackVaddr, stackPaddr
+        , res);
+
+    testWatcher.KernelStackTop = (uintptr_t)stackVaddr + PageSize;
+    testWatcher.KernelStackBottom = (uintptr_t)stackVaddr;
+
+    testWatcher.EntryPoint = &WatchTestThread;
+
+    InitializeThreadState(&testWatcher);
+    //  This sets up the thread so it goes directly to the entry point when switched to.
+
+    testThread.IntroduceNext(&testWatcher);
+}
+
+__cold uint8_t * AllocateTestRegion()
+{
+    Handle res;
+    PageDescriptor * desc = nullptr;
+    //  Intermediate results.
+
+    vaddr_t const vaddr1 = 0x30000;
+    size_t const size = vaddr1;
+    vaddr_t const vaddr2 = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(size);
+    //  Test pages.
+
+    for (size_t offset = 0; offset < size; offset += PageSize)
+    {
+        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
+        
+        ASSERT(paddr != nullpaddr && desc != nullptr
+            , "Unable to allocate a physical page for test page of process %Xp!"
+            , &testProcess);
+
+        res = testMm.MapPage(vaddr1 + offset, paddr
+            , PageFlags::Userland | PageFlags::Writable, desc);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
+            , vaddr1 + offset, paddr
+            , res);
+
+        res = testMm.MapPage(vaddr2 + offset, paddr
+            , PageFlags::Global | PageFlags::Writable, desc);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
+            , vaddr2 + offset, paddr
+            , res);
+    }
+
+    return (uint8_t *)(uintptr_t)vaddr2;
+}
+
+void * JumpToRing3(void * arg)
+{
+    Handle res;
+    PageDescriptor * desc = nullptr;
+    //  Intermediate results.
+
+    //  ... then, the userland stack page.
+
+    paddr_t const stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
 
     ASSERT(stackPaddr != nullpaddr && desc != nullptr
         , "Unable to allocate a physical page for test thread user stack!");
@@ -307,59 +387,36 @@ void TestApplication()
                 , vaddr, paddr
                 , j, res);
         }
+
+        memcpy(reinterpret_cast<void *>(programCursor->VAddr)
+            , executable + programCursor->Offset, programCursor->VSize);
     }
 
     //  Finally, a region for test incrementation.
 
     AllocateTestRegion();
 
-    BootstrapThread.IntroduceNext(&testThread);
-}
-
-uint8_t * AllocateTestRegion()
-{
-    Handle res;
-    PageDescriptor * desc = nullptr;
-    //  Intermediate results.
-
-    vaddr_t const vaddr1 = 0x30000;
-    size_t const size = vaddr1;
-    vaddr_t const vaddr2 = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(size);
-    //  Test pages.
-
-    for (size_t offset = 0; offset < size; offset += PageSize)
-    {
-        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
-        
-        ASSERT(paddr != nullpaddr && desc != nullptr
-            , "Unable to allocate a physical page for test page of process %Xp!"
-            , &testProcess);
-
-        res = testProcess.Memory->MapPage(vaddr1 + offset, paddr
-            , PageFlags::Userland | PageFlags::Writable, desc);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
-            , vaddr1 + offset, paddr
-            , res);
-
-        res = testMm.MapPage(vaddr2 + offset, paddr
-            , PageFlags::Global | PageFlags::Writable, desc);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
-            , vaddr2 + offset, paddr
-            , res);
-    }
-
-    return (uint8_t *)(uintptr_t)vaddr2;
-}
-
-void * JumpToRing3(void * arg)
-{
     MSG_("About to go to ring 3!%n");
 
-    while (true) CpuInstructions::DoNothing();
+    //while (true) CpuInstructions::Halt();
+
+    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(entryPoint));
+
+    return GoToRing3_64(entryPoint, userStackTop);
+}
+
+void * WatchTestThread(void *)
+{
+    uint8_t const * const data = reinterpret_cast<uint8_t const *>(0x30000);
+
+    while (true)
+    {
+        Thread * activeThread = Cpu::GetData()->ActiveThread;
+
+        MSG("WATCHER (%Xp) sees %u1!%n", activeThread, *data);
+
+        for (size_t i = 20000; i > 0; --i) CpuInstructions::DoNothing();
+    }
 }
 
 #endif
