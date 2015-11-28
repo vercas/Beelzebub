@@ -45,6 +45,7 @@
 #ifdef __cplusplus
     #include <terminals/base.hpp>
     #include <system/cpuid.hpp>
+    #include <system/domain.hpp>
 	#include <memory/manager_amd64.hpp>
 
     #define Handle Beelzebub::Handle

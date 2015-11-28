@@ -49,6 +49,7 @@
 #include <keyboard.hpp>
 #include <system/serial_ports.hpp>
 #include <system/timers/pit.hpp>
+#include <system/cpu.hpp>
 
 #include <kernel.hpp>
 #include <entry.h>

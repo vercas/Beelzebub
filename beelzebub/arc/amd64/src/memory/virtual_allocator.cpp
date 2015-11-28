@@ -45,14 +45,15 @@
  *  That is up to the caller.
  */
 
-#include <memory/virtual_allocator.hpp>
-#include <memory/manager_amd64.hpp>
-#include <kernel.hpp>
-#include <string.h>
-#include <math.h>
+#include "memory/virtual_allocator.hpp"
+#include "memory/manager_amd64.hpp"
+#include "system/cpu.hpp"
+#include "kernel.hpp"
+#include "string.h"
+#include "math.h"
 
-#include <_print/paging.hpp>
-#include <debug.hpp>
+#include "_print/paging.hpp"
+#include "debug.hpp"
 
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;
@@ -252,6 +253,15 @@ Handle VirtualAllocationSpace::Clone(VirtualAllocationSpace * const target)
         Cpu::GetData()->LastAlienPml4 = pml4_paddr;
 
     return HandleResult::Okay;
+}
+
+/*  Main Operations  */
+
+void VirtualAllocationSpace::Activate() const
+{
+    const Cr3 newVal = Cr3(this->Pml4Address, false, false);
+
+    Cpu::SetCr3(newVal);
 }
 
 /*  Translation  */

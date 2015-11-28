@@ -44,13 +44,12 @@
 
 #pragma once
 
-#include <memory/paging.hpp>
-#include <memory/page_allocator.hpp>
-#include <memory/manager.hpp>
-#include <system/cpu.hpp>
-#include <system/cpuid.hpp>
+#include "memory/paging.hpp"
+#include "memory/page_allocator.hpp"
+#include "memory/manager.hpp"
+#include "system/cpuid.hpp"
 
-#include <stdlib/iterator.hpp>
+#include "stdlib/iterator.hpp"
 
 using namespace Beelzebub::System;
 
@@ -206,12 +205,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Main Operations  */
 
-        __forceinline void Activate() const
-        {
-            const Cr3 newVal = Cr3(this->Pml4Address, false, false);
-
-            Cpu::SetCr3(newVal);
-        }
+        __hot void Activate() const;
 
         __forceinline void Alienate() const
         {

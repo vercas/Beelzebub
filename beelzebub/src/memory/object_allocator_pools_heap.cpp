@@ -39,6 +39,7 @@
 
 #include <memory/object_allocator_pools_heap.hpp>
 #include <memory/manager_amd64.hpp>
+#include <system/cpu.hpp>
 #include <kernel.hpp>
 #include <entry.h>
 
