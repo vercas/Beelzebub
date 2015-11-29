@@ -63,6 +63,9 @@ Handle Process::SwitchTo(Process * const other)
 
         if unlikely(!res.IsOkayResult())
             return res;
+
+        ++other->ActiveCoreCount;
+        --this->ActiveCoreCount;
     }
     else
         return HandleResult::ArgumentOutOfRange;

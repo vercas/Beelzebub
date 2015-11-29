@@ -120,6 +120,8 @@ void kmain_ap()
     Vmm::Switch(nullptr, &BootstrapProcess);
     //  Perfectly valid solution. Just to make sure.
 
+    ++BootstrapProcess.ActiveCoreCount;
+
     InitializeCpuData(false);
 
     Beelzebub::Secondary();
@@ -375,73 +377,41 @@ Handle InitializeVirtualMemory()
 
     PageDescriptor * desc = nullptr;
 
-    msg("%nAllocating new PML4... ");
     paddr_t const pml4_paddr = Domain0.PhysicalAllocator->AllocatePage(
         PageAllocationOptions::ThirtyTwoBit, desc);
 
     if (pml4_paddr == nullpaddr)
         return HandleResult::OutOfMemory;
-    msg("Done.%n");
 
-    msg("Clearing the new PML4... ");
     memset((void *)pml4_paddr, 0, PageSize);
     //  Clear it all out!
-    msg("Incrementing page reference count... ");
     desc->IncrementReferenceCount();
     //  Increment reference count...
-    msg("Done.%n");
 
-    msg("Creating bootstrap process...");
     new (&BootstrapProcess) Process(pml4_paddr);
-    msg("Done.%n");
 
-    msg("Bootstrapping VMM... ");
+    VmmArc::Page1GB = BootstrapCpuid.CheckFeature(CpuFeature::Page1GB);
+    VmmArc::NX      = BootstrapCpuid.CheckFeature(CpuFeature::NX     );
+
     Vmm::Bootstrap(&BootstrapProcess);
-    msg("Done.%n");
+    ++BootstrapProcess.ActiveCoreCount;
 
-    //msg("Constructing bootstrap virtual allocation space... ");
-    //new (&bootstrapVas) VirtualAllocationSpace(&mainAllocator);
-    //msg("Done.%n");
-
-    //msg("Bootstrapping the VAS... ");
-    //bootstrapVas.Bootstrap(&BootstrapCpuid);
-    //msg("Done.%n");
-
-    msg("Remapping main terminal... ");
     RemapTerminal(MainTerminal);
-    msg("Done.%n");
 
     if (MainTerminal != Debug::DebugTerminal)
-    {
-        msg("Remapping debug terminal... ");
         RemapTerminal(Debug::DebugTerminal);
-        msg("Done.%n");
-    }
-
-    //msg("Statically initializing the memory manager... ");
-    //MemoryManager::Initialize();
-    //msg("Done.%n");
-
-    //msg("Constructing bootstrap memory manager... ");
-    //new (&BootstrapMemoryManager) MemoryManagerAmd64(&bootstrapVas);
-    //msg("Done.%n");
 
     //  CPU DATA
 
-    msg("Creating CPU data allocator... ");
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     new (&CpuDataAllocator) ObjectAllocatorSmp(sizeof(CpuData), __alignof(CpuData)
         , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
 #endif
-    msg("Done.%n");
 
-    msg("Initializing CPU data... ");
     InitializeCpuData(true);
-    msg("Done.%n");
 
     //  Now mapping the lower 16 MiB.
 
-    msg("Mapping lower 16 MiB... ");
     for (size_t offset = 0; offset < VmmArc::IsaDmaLength; offset += PageSize)
     {
         vaddr_t const vaddr = VmmArc::IsaDmaStart + offset;
@@ -455,7 +425,6 @@ Handle InitializeVirtualMemory()
             , vaddr, paddr
             , res);
     }
-    msg("Done.%n");
 
     //  TODO: Management for ISA DMA.
 
@@ -800,15 +769,15 @@ __hot void * TestThreadEntryPoint(void * const arg)
 {
     char * const myChars = (char *)(uintptr_t)0x321000ULL;
 
-    // while (true)
-    // {
+    while (true)
+    {
         Thread * activeThread = Cpu::GetData()->ActiveThread;
         char volatile specialChar = *myChars;
 
-        MSG("Printing from thread %Xp! (%c)%n", activeThread, specialChar);
+        MSG_("Printing from thread %Xp! (%c)%n", activeThread, specialChar);
 
         while (true) CpuInstructions::Halt();
-    // }
+    }
 }
 
 __cold void InitializeTestThread(Thread * const t, Process * const p)
@@ -905,17 +874,20 @@ void StartMultitaskingTest()
     InitializeTestThread(&tTb3, &tPb);
     //  Initialize thread series B under their own process.
 
-    BootstrapThread.IntroduceNext(&tTb3);
-    BootstrapThread.IntroduceNext(&tTb2);
-    //  Threads B2 and B3 are at the end of the cycle.
+    withInterrupts (false)
+    {
+        BootstrapThread.IntroduceNext(&tTb3);
+        BootstrapThread.IntroduceNext(&tTb2);
+        //  Threads B2 and B3 are at the end of the cycle.
 
-    BootstrapThread.IntroduceNext(&tTa3);
-    BootstrapThread.IntroduceNext(&tTb1);
-    //  Threads B1 and A3 are intertwined.
+        BootstrapThread.IntroduceNext(&tTa3);
+        BootstrapThread.IntroduceNext(&tTb1);
+        //  Threads B1 and A3 are intertwined.
 
-    BootstrapThread.IntroduceNext(&tTa2);
-    BootstrapThread.IntroduceNext(&tTa1);
-    //  Threads A1 and A2 are at the start, right after the bootstrap thread.
+        BootstrapThread.IntroduceNext(&tTa2);
+        BootstrapThread.IntroduceNext(&tTa1);
+        //  Threads A1 and A2 are at the start, right after the bootstrap thread.
+    }
 
     #ifdef __BEELZEBUB__TEST_APP
     TestApplication();

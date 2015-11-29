@@ -41,6 +41,7 @@
 #include <system/cpu.hpp>
 #include <math.h>
 #include <debug.hpp>
+#include <_print/isr.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -82,6 +83,12 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
     thread->State.R13 = 0;
     thread->State.R14 = 0;
     thread->State.R15 = 0;
+
+    // withInterrupts (false)
+    // {
+    //     msg("Initialized thread state for %Xp:%n", thread);
+    //     PrintToDebugTerminal(&(thread->State));
+    // }
 }
 
 Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp)

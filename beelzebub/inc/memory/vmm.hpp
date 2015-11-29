@@ -97,6 +97,11 @@ namespace Beelzebub { namespace Memory
         //  the kernel heap.
         PhysicallyContiguous = 0x00008000,
 
+        //  Guards the lowest page against underflow/underrun.
+        GuardLow             = 0x00004000,
+        //  Guard the highest page against overflow/overrun.
+        GuardHigh            = 0x00002000,
+
         //  The virtual page will be located in areas specific to the kernel heap.
         VirtualKernelHeap    = 0x00000000,
         //  The virtual page will be located in userland-specific areas.
@@ -110,6 +115,7 @@ namespace Beelzebub { namespace Memory
 
         //  Virtual addresses will be reserved for later manual mapping; no automatic
         //  allocation of physical memory will be performed now or on demand.
+        //  Any MemoryFlags specified are ignored.
         Reserve              = 0x00000000,
         //  The physical pages will be allocated immediately.
         Commit               = 0x80000000,
@@ -197,8 +203,13 @@ namespace Beelzebub { namespace Memory
             return UnmapPage(proc, vaddr, sink1, sink2, lock);
         }
 
+        __hot static __noinline Handle InvalidatePage(Execution::Process * const proc
+            , uintptr_t const vaddr, bool const broadcast = true);
+
         __hot static __noinline Handle Translate(Execution::Process * const proc
             , uintptr_t const vaddr, paddr_t & paddr);
+
+        /*  Allocation  */
 
         __hot static __noinline Handle AllocatePages(Execution::Process * const proc
             , size_t const count, MemoryAllocationOptions const type

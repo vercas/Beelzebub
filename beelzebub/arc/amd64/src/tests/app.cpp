@@ -58,6 +58,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
 uint8_t * executable;
@@ -221,8 +222,12 @@ Handle HandleLoadtest(size_t const index
     return HandleResult::Okay;
 }
 
+Spinlock<> TestRegionLock;
+
 void TestApplication()
 {
+    TestRegionLock.Acquire();
+
     new (&testProcess) Process();
     //  Initialize a new process for thread series B.
 
@@ -259,7 +264,8 @@ void TestApplication()
     InitializeThreadState(&testThread);
     //  This sets up the thread so it goes directly to the entry point when switched to.
 
-    BootstrapThread.IntroduceNext(&testThread);
+    withInterrupts (false)
+        BootstrapThread.IntroduceNext(&testThread);
 
     //  Secondly, the kernel stack page of the watcher thread.
 
@@ -285,7 +291,8 @@ void TestApplication()
     InitializeThreadState(&testWatcher);
     //  This sets up the thread so it goes directly to the entry point when switched to.
 
-    testThread.IntroduceNext(&testWatcher);
+    withInterrupts (false)
+        testThread.IntroduceNext(&testWatcher);
 }
 
 __cold uint8_t * AllocateTestRegion()
@@ -323,6 +330,8 @@ __cold uint8_t * AllocateTestRegion()
             , vaddr2 + offset, paddr
             , res);
     }
+
+    TestRegionLock.Release();
 
     return (uint8_t *)(uintptr_t)vaddr2;
 }
@@ -399,15 +408,16 @@ void * JumpToRing3(void * arg)
 
 void * WatchTestThread(void *)
 {
-    uint8_t const * const data = reinterpret_cast<uint8_t const *>(0x30000);
+    TestRegionLock.Spin();
+
+    uint8_t  const * const data  = reinterpret_cast<uint8_t  const *>(0x30008);
+    uint64_t const * const data2 = reinterpret_cast<uint64_t const *>(0x30000);
 
     while (true)
     {
         Thread * activeThread = Cpu::GetData()->ActiveThread;
 
-        MSG("WATCHER (%Xp) sees %u1!%n", activeThread, *data);
-
-        for (size_t i = 20000; i > 0; --i) CpuInstructions::DoNothing();
+        MSG_("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
     }
 }
 

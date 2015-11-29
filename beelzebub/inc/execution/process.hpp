@@ -55,8 +55,10 @@ namespace Beelzebub { namespace Execution
         /*  Constructors  */
 
         inline Process()
-            : UserHeapLock()
+            : ActiveCoreCount( 0)
+            , UserHeapLock()
             , UserHeapCursor(nullvaddr)
+            , UserHeapOverflown(false)
             , AlienPagingTablesLock()
             , PagingTable(nullpaddr)
         {
@@ -67,8 +69,10 @@ namespace Beelzebub { namespace Execution
         Process & operator =(Process const &) = delete;
 
         inline Process(paddr_t const pt)
-            : UserHeapLock()
+            : ActiveCoreCount( 0)
+            , UserHeapLock()
             , UserHeapCursor(1 << 24)
+            , UserHeapOverflown(false)
             , AlienPagingTablesLock()
             , PagingTable(pt)
         {
@@ -79,10 +83,13 @@ namespace Beelzebub { namespace Execution
 
         __hot Handle SwitchTo(Process * const other);
 
+        Synchronization::Atomic<size_t> ActiveCoreCount;
+
         /*  Memory  */
 
         Synchronization::SpinlockUninterruptible<> UserHeapLock;
         Synchronization::Atomic<vaddr_t> UserHeapCursor;
+        Synchronization::Atomic<bool> UserHeapOverflown;
 
         Synchronization::SpinlockUninterruptible<> AlienPagingTablesLock;
         paddr_t PagingTable;

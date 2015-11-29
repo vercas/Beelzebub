@@ -228,6 +228,22 @@ void Beelzebub::Main()
                 , res);
         }
 
+        MainTerminal->Write("[....] Initializing as bootstrap thread...");
+
+        res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess);
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize main entry point as bootstrap thread: %H"
+                , res);
+        }
+
+        Cpu::GetData()->ActiveThread = &BootstrapThread;
+
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
         MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
 #else
@@ -279,9 +295,11 @@ void Beelzebub::Main()
         MainTerminal = secondaryTerminal;
 
         //  Permit other processors to initialize themselves.
-        MainTerminal->WriteLine("Initialization complete!");
+        MainTerminal->WriteLine("Initialization complete! Will enable scheduling.");
         MainTerminal->WriteLine();
     }
+
+    Scheduling = true;
 
     withLock (TerminalMessageLock)
     {
@@ -303,22 +321,6 @@ void Beelzebub::Main()
 
             ASSERT(false, "Enabling interrupts failed!");
         }
-
-        MainTerminal->Write("|[....] Initializing as bootstrap thread...");
-
-        res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess);
-
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r|[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r|[FAIL]%n", res);
-
-            ASSERT(false, "Failed to initialize main entry point as bootstrap thread: %H"
-                , res);
-        }
-
-        Cpu::GetData()->ActiveThread = &BootstrapThread;
 
 #ifdef __BEELZEBUB__TEST_METAP
         MainTerminal->Write(">Testing metaprgoramming facilities...");
@@ -360,8 +362,8 @@ void Beelzebub::Main()
         ObjectAllocatorTestBarrier3.Reset();
 #endif
 
-        PrintToDebugTerminal(Domain0.Gdt);
-        msg("%n%n");
+        //PrintToDebugTerminal(Domain0.Gdt);
+        //msg("%n%n");
     }
 
 #ifdef __BEELZEBUB__TEST_OBJA
@@ -555,7 +557,7 @@ Handle InitializePit()
 
     Pit::SendCommand(pitCmd);
     
-    uint32_t pitFreq = 2000;
+    uint32_t pitFreq = 1000;
     Pit::SetFrequency(pitFreq);
     //  This frequency really shouldn't stress the BSP that much, considering
     //  that the IRQ would get 2-3 million clock cycles on modern chips.

@@ -55,6 +55,8 @@ using namespace Beelzebub::System;
 
 /*  State Machine and Configuration  */
 
+Atomic<bool> KernelHeapOverflown {false};
+
 SpinlockUninterruptible<> VmmArc::KernelHeapLock;
 
 bool VmmArc::Page1GB = false;
@@ -75,7 +77,7 @@ Atomic<vaddr_t> Vmm::KernelHeapCursor {VmmArc::KernelHeapStart};
 
 Handle Vmm::Bootstrap(Process * const bootstrapProc)
 {
-    //  TODO: Set VmmArc::NX
+    //  VmmArc::NX and VmmArc::Page1GB are set before executing this.
 
     if (VmmArc::NX)
         Cpu::EnableNxBit();
@@ -88,8 +90,6 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     Cr3 cr3 = Cpu::GetCr3();
     Pml4 & currentPml4 = *(cr3.GetPml4Ptr());
-
-    msg("%nNew PML4 @ %Xp, current @ %Xp.%n", &newPml4, &currentPml4);
 
     for (uint16_t i = 0; i < 256; ++i)
         newPml4[i] = currentPml4[i];
@@ -115,12 +115,8 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     //  Very important note: the user-accessible bit is cleared.
     //  This means userland code will not be able to look at the fractal mapping.
 
-    msg("Prepared the table.%n");
-
     Vmm::Switch(nullptr, bootstrapProc);
     //  Activate, so pages can be mapped.
-
-    msg("Activated.%n");
 
     //  Remapping PAS control structures.
 
@@ -192,8 +188,6 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     Vmm::Switch(nullptr, bootstrapProc);
     //  Re-activate, to flush the identity maps.
-
-    msg("Activated again.%n");
 
     return Handle(HandleResult::Okay);
 }
@@ -403,19 +397,14 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
-    // msg("(( about to map %Xp to %XP; alien = %B ))%n", vaddr, paddr, nonLocal);
-
     SpinlockUninterruptible<> * alienLock = nullptr, * heapLock = nullptr;
 
     {   //  Lock-guarded.
 
-        if (nonLocal) alienLock = &(proc->AlienPagingTablesLock);
-
-        // msg("%n(( alien lock is %Xp ))%n", alienLock);
+        if (nonLocal && CpuDataSetUp)
+            alienLock = &(Cpu::GetData()->ActiveThread->Owner->AlienPagingTablesLock);
 
         LockGuardFlexible<SpinlockUninterruptible<> > pml4Lg {*alienLock};
-
-        // msg("%n(( acquired alien pml4 lock ))%n");
 
         if (nonLocal)
         {
@@ -449,11 +438,12 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
 
         {   //  Lock-guarded.
 
-            if (lock) heapLock = (vaddr < VmmArc::LowerHalfEnd ? &(proc->UserHeapLock) : &(VmmArc::KernelHeapLock));
+            if (lock)
+                heapLock = (vaddr < VmmArc::LowerHalfEnd
+                    ? &(proc->UserHeapLock)
+                    : &(VmmArc::KernelHeapLock));
 
             LockGuardFlexible<SpinlockUninterruptible<> > heapLg {*heapLock};
-
-            // msg("%n(( here we go ))%n", vaddr, paddr);
 
             Pml4 & pml4 = *pml4p;
             ind = VmmArc::GetPml4Index(vaddr);
@@ -535,7 +525,7 @@ Handle Vmm::UnmapPage(Process * const proc, uintptr_t const vaddr
 
     //  The rest is done outside of the lambda because locks are unnecessary.
 
-    //  TODO: Broadcast this unmapping if necessary..?
+    Vmm::InvalidatePage(proc, vaddr, true);
 
     if (alloc->TryGetPageDescriptor(paddr, desc))
     {
@@ -551,21 +541,215 @@ Handle Vmm::UnmapPage(Process * const proc, uintptr_t const vaddr
     return HandleResult::Okay;
 }
 
+Handle Vmm::InvalidatePage(Process * const proc, uintptr_t const vaddr
+    , bool const broadcast)
+{
+    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(vaddr));
+
+    if (broadcast)
+    {
+        //  TODO: Broadcast!
+
+        //  If PCID is enabled, all invalidations should be broadcast so INVPID
+        //  or whatever can be used. Without PCID, the broadcast should only be
+        //  performed with kernel data (later changeable if the kernel proves
+        //  stable enough) or when there's more than one core where the current
+        //  process is active on.
+    }
+
+    return HandleResult::Okay;
+}
+
+/*  Allocation  */
+
+Handle Vmm::AllocatePages(Process * const proc, size_t const count
+    , MemoryAllocationOptions const type, MemoryFlags const flags, uintptr_t & vaddr)
+{
+    if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand))
+    {
+        return HandleResult::NotImplemented;
+        //  Not possible yet.
+    }
+    else if (0 != (type & MemoryAllocationOptions::Commit))
+    {
+        size_t const  lowerOffset = (0 != (type & MemoryAllocationOptions::GuardLow))
+            ? PageSize : 0;
+        size_t const higherOffset = (0 != (type & MemoryAllocationOptions::GuardHigh))
+            ? PageSize : 0;
+
+        SpinlockUninterruptible<> * heapLock;
+
+        vaddr_t ret;
+
+        if (0 != (type & MemoryAllocationOptions::VirtualUser))
+        {
+            if (proc->UserHeapOverflown)
+                return HandleResult::UnsupportedOperation;
+            //  Not supported yet.
+            
+            //  TODO: Add VAS.
+            
+            ret = proc->UserHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
+
+            if (ret > VmmArc::KernelHeapEnd)
+            {
+                proc->UserHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
+                proc->UserHeapOverflown = true;
+
+                return HandleResult::UnsupportedOperation;
+                //  Not supported yet.
+            }
+
+            vaddr = ret + lowerOffset;
+
+            heapLock = &(proc->UserHeapLock);
+        }
+        else
+        {
+            if (KernelHeapOverflown)
+                return HandleResult::UnsupportedOperation;
+            //  Not supported yet.
+
+            ret = KernelHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
+
+            if (ret > VmmArc::KernelHeapEnd)
+            {
+                KernelHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
+                KernelHeapOverflown = true;
+
+                return HandleResult::UnsupportedOperation;
+                //  Not supported yet.
+            }
+
+            vaddr = ret + lowerOffset;
+
+            heapLock = &(VmmArc::KernelHeapLock);
+        }
+
+        Handle res;
+        PageDescriptor * desc;
+        //  Intermediary results.
+
+        PageAllocator * alloc = Domain0.PhysicalAllocator;
+
+        if (CpuDataSetUp)
+            alloc = Cpu::GetData()->DomainDescriptor->PhysicalAllocator;
+
+        size_t const size = count * PageSize;
+        bool allocSucceeded = true;
+
+        LockGuard<SpinlockUninterruptible<> > heapLg {*heapLock};
+        //  Note: this ain't flexible because heapLock ain't gonna be null.
+
+        size_t offset;
+        for (offset = 0; offset < size; offset += PageSize)
+        {
+            paddr_t const paddr = alloc->AllocatePage(desc);
+            
+            if (paddr == nullpaddr) { allocSucceeded = false; break; }
+
+            res = Vmm::MapPage(proc, ret + lowerOffset + offset, paddr
+                , flags, desc, false);
+
+            if (!res.IsOkayResult()) { allocSucceeded = false; break; }
+        }
+
+        if likely(allocSucceeded)
+            return HandleResult::Okay;
+        else
+        {
+            //  So, the allocation failed. Now all the pages that were allocated
+            //  need to be unmapped.
+
+            do
+            {
+                res = Vmm::UnmapPage(proc, ret + lowerOffset + offset, false);
+
+                if unlikely(!res.IsOkayResult() && !res.IsResult(HandleResult::PageUnmapped))
+                    return res;
+
+                offset -= PageSize;
+            } while (offset > 0);
+
+            return HandleResult::OutOfMemory;
+        }
+    }
+    else // Means it'll just be reserveed.
+    {
+        size_t const  lowerOffset = (0 != (type & MemoryAllocationOptions::GuardLow))
+            ? PageSize : 0;
+        size_t const higherOffset = (0 != (type & MemoryAllocationOptions::GuardHigh))
+            ? PageSize : 0;
+
+        if (0 != (type & MemoryAllocationOptions::VirtualUser))
+        {
+            //  TODO: Scrap this, for proper VAS.
+
+            if (proc->UserHeapOverflown)
+            {
+                return HandleResult::UnsupportedOperation;
+                //  Not supported yet.
+            }
+
+            vaddr_t ret = proc->UserHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
+
+            if (ret > VmmArc::KernelHeapEnd)
+            {
+                proc->UserHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
+                proc->UserHeapOverflown = true;
+
+                vaddr = nullvaddr;
+                return HandleResult::UnsupportedOperation;
+                //  Not supported yet.
+            }
+
+            vaddr = ret + lowerOffset;
+
+            return HandleResult::Okay;
+        }
+        else
+        {
+            if (KernelHeapOverflown)
+            {
+                return HandleResult::UnsupportedOperation;
+                //  Not supported yet.
+            }
+
+            vaddr_t ret = KernelHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
+
+            if (ret > VmmArc::KernelHeapEnd)
+            {
+                KernelHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
+                KernelHeapOverflown = true;
+
+                vaddr = nullvaddr;
+                return HandleResult::UnsupportedOperation;
+                //  Not supported yet.
+            }
+
+            vaddr = ret + lowerOffset;
+
+            return HandleResult::Okay;
+        }
+    }
+
+}
+
 /*  Flags  */
 
 Handle Vmm::GetPageFlags(Process * const proc, uintptr_t const vaddr
     , MemoryFlags & flags, bool const lock)
 {
-    return TryTranslate(proc, vaddr, [&flags](Pml1Entry * pE)
+    Handle res = TryTranslate(proc, vaddr, [&flags](Pml1Entry * pE)
     {
         if likely(pE->GetPresent())
         {
             Pml1Entry const e = *pE;
             MemoryFlags f = MemoryFlags::None;
 
-            if (  e.GetGlobal())    f |= MemoryFlags::Global;
-            if (  e.GetUserland())  f |= MemoryFlags::Userland;
-            if (  e.GetWritable())  f |= MemoryFlags::Writable;
+            if (  e.GetGlobal())            f |= MemoryFlags::Global;
+            if (  e.GetUserland())          f |= MemoryFlags::Userland;
+            if (  e.GetWritable())          f |= MemoryFlags::Writable;
             if (!(e.GetXd() && VmmArc::NX)) f |= MemoryFlags::Executable;
 
             flags = f;
@@ -579,12 +763,17 @@ Handle Vmm::GetPageFlags(Process * const proc, uintptr_t const vaddr
             return HandleResult::PageUnmapped;
         }
     }, lock);
+
+    if (!res.IsOkayResult())
+        return res;
+
+    return Vmm::InvalidatePage(proc, vaddr, true);
 }
 
 Handle Vmm::SetPageFlags(Process * const proc, uintptr_t const vaddr
     , MemoryFlags const flags, bool const lock)
 {
-    return TryTranslate(proc, vaddr, [flags](Pml1Entry * pE)
+    Handle res = TryTranslate(proc, vaddr, [flags](Pml1Entry * pE)
     {
         if likely(pE->GetPresent())
         {
@@ -602,4 +791,9 @@ Handle Vmm::SetPageFlags(Process * const proc, uintptr_t const vaddr
         else
             return HandleResult::PageUnmapped;
     }, lock);
+
+    if (!res.IsOkayResult())
+        return res;
+
+    return Vmm::InvalidatePage(proc, vaddr, true);
 }

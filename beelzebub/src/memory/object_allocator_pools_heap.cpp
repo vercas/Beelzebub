@@ -53,10 +53,18 @@ using namespace Beelzebub::System;
 static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
 {
     Handle res;
-    PageDescriptor * desc = nullptr;
+    //PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(pageCount * PageSize);
+    vaddr_t vaddr;
+
+    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess
+        , pageCount, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable, vaddr);
+
+    address = (uintptr_t)vaddr;
+
+    /*vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(pageCount * PageSize);
 
     for (size_t i = 0; i < pageCount; ++i)
     {
@@ -84,7 +92,7 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
         }
     }
 
-    address = vaddr;
+    address = vaddr;*/
 
     return res;
 }
@@ -206,7 +214,9 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
 
     for (size_t i = 0; curPageCount < newPageCount; ++i, ++curPageCount)
     {
-        paddr_t const paddr = (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)->PhysicalAllocator->AllocatePage(desc);
+        paddr_t const paddr =
+            (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)
+            ->PhysicalAllocator->AllocatePage(desc);
         //  Test page.
 
         assert_or(paddr != nullpaddr && desc != nullptr
@@ -228,7 +238,8 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
             , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount
             , res)
         {
-            (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)->PhysicalAllocator->FreePageAtAddress(paddr);
+            (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)
+                ->PhysicalAllocator->FreePageAtAddress(paddr);
             //  This should succeed.
 
             break;
