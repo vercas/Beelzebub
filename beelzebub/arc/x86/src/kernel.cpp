@@ -53,7 +53,8 @@
 #include <system/interrupt_controllers/ioapic.hpp>
 #include <system/timers/pit.hpp>
 
-#include <memory/manager_amd64.hpp>
+#include <memory/vmm.hpp>
+#include <memory/vmm.arc.hpp>
 #include <system/acpi.hpp>
 
 #include <ap_bootstrap.hpp>
@@ -305,7 +306,7 @@ void Beelzebub::Main()
 
         MainTerminal->Write("|[....] Initializing as bootstrap thread...");
 
-        res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess, &BootstrapMemoryManager);
+        res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess);
 
         if (res.IsOkayResult())
             MainTerminal->WriteLine(" Done.\r|[OKAY]");
@@ -577,8 +578,8 @@ Handle InitializeAcpiTables()
 {
     Handle res;
 
-    res = Acpi::FindRsdp(MemoryManagerAmd64::IsaDmaStart + 0x0E0000
-                       , MemoryManagerAmd64::IsaDmaStart + 0x100000);
+    res = Acpi::FindRsdp(VmmArc::IsaDmaStart + 0x0E0000
+                       , VmmArc::IsaDmaStart + 0x100000);
 
     ASSERT(res.IsOkayResult()
         , "Unable to find RSDP! %H%n"
@@ -635,9 +636,8 @@ Handle InitializeApic()
         , "Failed to obtain LAPIC physical address! %H%n"
         , res);
 
-    res = BootstrapMemoryManager.MapPage(Lapic::VirtualAddress, lapicPaddr
-                                       , PageFlags::Global | PageFlags::Writable
-                                       , nullptr);
+    res = Vmm::MapPage(&BootstrapProcess, Lapic::VirtualAddress, lapicPaddr
+        , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for LAPIC: %H%n"
@@ -726,15 +726,14 @@ Handle InitializeProcessingUnits()
     vaddr_t const bootstrapVaddr = 0x1000;
     //  This's gonna be for AP bootstrappin' code.
 
-    res = BootstrapMemoryManager.MapPage(bootstrapVaddr, bootstrapPaddr
-                                       , PageFlags::Global | PageFlags::Executable
-                                       , nullptr);
+    res = Vmm::MapPage(&BootstrapProcess, bootstrapVaddr, bootstrapPaddr
+        , MemoryFlags::Global | MemoryFlags::Executable, PageDescriptor::Invalid);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for init code: %H%n"
         , bootstrapVaddr, bootstrapPaddr, res);
 
-    BootstrapPml4Address = BootstrapMemoryManager.Vas->Pml4Address;
+    BootstrapPml4Address = BootstrapProcess.PagingTable;
 
     COMPILER_MEMORY_BARRIER();
     //  Needed to make sure that the PML4 address is copied over.
@@ -795,7 +794,7 @@ Handle InitializeProcessingUnits()
     Interrupts::RestoreState(int_cookie);
     BREAKPOINT_SET_AUX(nullptr);
 
-    res = BootstrapMemoryManager.UnmapPage(bootstrapVaddr);
+    res = Vmm::UnmapPage(&BootstrapProcess, bootstrapVaddr);
 
     ASSERT(res.IsOkayResult()
         , "Failed to unmap unneeded page at %Xp (%XP) for init code: %H%n"
@@ -831,7 +830,7 @@ Handle InitializeAp(uint32_t const lapicId
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(CpuStackSize + PageSize);
+    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(CpuStackSize + PageSize);
     //  Guard page included.
 
     for (size_t offset = PageSize; offset <= CpuStackSize; offset += PageSize)
@@ -847,8 +846,8 @@ Handle InitializeAp(uint32_t const lapicId
             return HandleResult::OutOfMemory;
         }
 
-        res = BootstrapMemoryManager.MapPage(vaddr + offset, paddr
-            , PageFlags::Global | PageFlags::Writable, desc);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, paddr
+            , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page #%us at %Xp (%XP) for stack of AP #%us"

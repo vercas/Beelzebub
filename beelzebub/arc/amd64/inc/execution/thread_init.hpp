@@ -41,11 +41,9 @@
 
 #include <execution/thread.hpp>
 
-using namespace Beelzebub::Memory;
-
 namespace Beelzebub { namespace Execution
 {
     void InitializeThreadState(Thread * const thread);
 
-    __cold __noinline Handle InitializeBootstrapThread(Thread * const bst, Process * const bsp, MemoryManager * const bsmm);
+    __cold __noinline Handle InitializeBootstrapThread(Thread * const bst, Process * const bsp);
 }}

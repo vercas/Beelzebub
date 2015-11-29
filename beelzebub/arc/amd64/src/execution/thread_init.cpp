@@ -84,12 +84,12 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
     thread->State.R15 = 0;
 }
 
-Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp, MemoryManager * const bsmm)
+Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp)
 {
-    new (bsp) Process(bsmm);
+    //new (bsp) Process(bsmm);
     new (bst) Thread(bsp);
 
-    uint64_t dummy = 0x0056657263617300;
+    //uint64_t dummy = 0x0056657263617300;
     //  Just a dummy value.
 
     bst->KernelStackBottom = 0xFFFFFFFFFFFFC000U;//RoundDown((uintptr_t)&dummy, PageSize);

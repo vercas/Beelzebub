@@ -41,6 +41,9 @@
 #include <execution/thread_init.hpp>
 #include <terminals/vbe.hpp>
 
+#include <memory/vmm.hpp>
+#include <memory/vmm.arc.hpp>
+
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     #include <memory/object_allocator_smp.hpp>
     #include <memory/object_allocator_pools_heap.hpp>
@@ -74,9 +77,6 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
-
-VirtualAllocationSpace bootstrapVas;
-MemoryManagerAmd64 Beelzebub::BootstrapMemoryManager;
 
 CpuId Beelzebub::BootstrapCpuid;
 
@@ -117,8 +117,7 @@ void kmain_ap()
 
     ++Cpu::Count;
 
-    //bootstrapVas.Activate();
-    BootstrapMemoryManager.Activate();
+    Vmm::Switch(nullptr, &BootstrapProcess);
     //  Perfectly valid solution. Just to make sure.
 
     InitializeCpuData(false);
@@ -360,8 +359,7 @@ Handle InitializePhysicalMemory()
     VIRTUAL MEMORY
 *********************/
 
-__cold __noinline void RemapTerminal(TerminalBase * const terminal
-                                           , VirtualAllocationSpace * const space);
+__cold __noinline void RemapTerminal(TerminalBase * const terminal);
 //  Forward declaration.
 
 /**
@@ -375,88 +373,96 @@ Handle InitializeVirtualMemory()
 
     //  PAGING INITIALIZATION
 
+    PageDescriptor * desc = nullptr;
+
+    msg("%nAllocating new PML4... ");
+    paddr_t const pml4_paddr = Domain0.PhysicalAllocator->AllocatePage(
+        PageAllocationOptions::ThirtyTwoBit, desc);
+
+    if (pml4_paddr == nullpaddr)
+        return HandleResult::OutOfMemory;
+    msg("Done.%n");
+
+    msg("Clearing the new PML4... ");
+    memset((void *)pml4_paddr, 0, PageSize);
+    //  Clear it all out!
+    msg("Incrementing page reference count... ");
+    desc->IncrementReferenceCount();
+    //  Increment reference count...
+    msg("Done.%n");
+
+    msg("Creating bootstrap process...");
+    new (&BootstrapProcess) Process(pml4_paddr);
+    msg("Done.%n");
+
+    msg("Bootstrapping VMM... ");
+    Vmm::Bootstrap(&BootstrapProcess);
+    msg("Done.%n");
+
     //msg("Constructing bootstrap virtual allocation space... ");
-    new (&bootstrapVas) VirtualAllocationSpace(&mainAllocator);
+    //new (&bootstrapVas) VirtualAllocationSpace(&mainAllocator);
     //msg("Done.%n");
 
     //msg("Bootstrapping the VAS... ");
-    bootstrapVas.Bootstrap(&BootstrapCpuid);
+    //bootstrapVas.Bootstrap(&BootstrapCpuid);
     //msg("Done.%n");
 
-    RemapTerminal(MainTerminal, &bootstrapVas);
+    msg("Remapping main terminal... ");
+    RemapTerminal(MainTerminal);
+    msg("Done.%n");
 
     if (MainTerminal != Debug::DebugTerminal)
-        RemapTerminal(Debug::DebugTerminal, &bootstrapVas);
+    {
+        msg("Remapping debug terminal... ");
+        RemapTerminal(Debug::DebugTerminal);
+        msg("Done.%n");
+    }
 
     //msg("Statically initializing the memory manager... ");
-    MemoryManager::Initialize();
+    //MemoryManager::Initialize();
     //msg("Done.%n");
 
     //msg("Constructing bootstrap memory manager... ");
-    new (&BootstrapMemoryManager) MemoryManagerAmd64(&bootstrapVas);
+    //new (&BootstrapMemoryManager) MemoryManagerAmd64(&bootstrapVas);
     //msg("Done.%n");
 
     //  CPU DATA
 
-    /*size_t const cpuDataSize = JG_INFO_ROOT_EX->cpu_count * Cpu::CpuDataSize;
-    size_t const cpuDataPageCount = (cpuDataSize + PageSize - 1) / PageSize;
-
-    //  This is where the CPU data will sit.
-    CpuDataBase.Store(MemoryManagerAmd64::KernelModulesCursor.Load());
-    //  Ain't atomic and it doesn't need to be right now.
-
-    MemoryManagerAmd64::KernelModulesCursor += cpuDataPageCount << 12;
-    //  The CPU data will snuggle in with the kernel modules. Whoopsie!
-    //  And advance the cursor...
-
-    for (size_t i = 0; i < cpuDataPageCount; ++i)
-    {
-        PageDescriptor * desc = nullptr;
-
-        vaddr_t const vaddr = CpuDataBase + (i << 12);
-        paddr_t const paddr = mainAllocator.AllocatePage(desc);
-
-        ASSERT(paddr != nullpaddr && desc != nullptr
-            , "Unable to allocate a physical page for CPU-specific data!");
-
-        res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for CPU-specific data: %H."
-            , vaddr, paddr
-            , res);
-
-        //msg("  Allocated page for CPU data: %Xp -> %XP.%n", vaddr, paddr);
-    }//*/
-
+    msg("Creating CPU data allocator... ");
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     new (&CpuDataAllocator) ObjectAllocatorSmp(sizeof(CpuData), __alignof(CpuData)
         , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
 #endif
+    msg("Done.%n");
 
+    msg("Initializing CPU data... ");
     InitializeCpuData(true);
+    msg("Done.%n");
 
     //  Now mapping the lower 16 MiB.
 
-    for (size_t offset = 0; offset < MemoryManagerAmd64::IsaDmaLength; offset += PageSize)
+    msg("Mapping lower 16 MiB... ");
+    for (size_t offset = 0; offset < VmmArc::IsaDmaLength; offset += PageSize)
     {
-        vaddr_t const vaddr = MemoryManagerAmd64::IsaDmaStart + offset;
+        vaddr_t const vaddr = VmmArc::IsaDmaStart + offset;
         paddr_t const paddr = (paddr_t)offset;
 
-        res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, nullptr);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr, paddr
+            , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for ISA DMA: %H."
             , vaddr, paddr
             , res);
     }
+    msg("Done.%n");
 
     //  TODO: Management for ISA DMA.
 
     return HandleResult::Okay;
 }
 
-void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const space)
+void RemapTerminal(TerminalBase * const terminal)
 {
     Handle res;
 
@@ -466,18 +472,19 @@ void RemapTerminal(TerminalBase * const terminal, VirtualAllocationSpace * const
         const size_t size = ((size_t)term->Pitch * (size_t)term->Height + PageSize - 1) & ~0xFFFULL;
         //  Yes, the size is aligned with page boundaries.
 
-        if (term->VideoMemory >= MemoryManagerAmd64::KernelModulesStart
-         && term->VideoMemory <  MemoryManagerAmd64::KernelModulesEnd)
+        if (term->VideoMemory >= VmmArc::KernelHeapStart
+         && term->VideoMemory <  VmmArc::KernelHeapEnd)
             return;
         //  Nothing to do, folks.
         
-        uintptr_t const loc = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(size);
+        uintptr_t const loc = Vmm::KernelHeapCursor.FetchAdd(size);
 
         size_t off = 0;
 
         do
         {
-            res = space->Map(loc + off, term->VideoMemory + off, PageFlags::Global | PageFlags::Writable);
+            res = Vmm::MapPage(&BootstrapProcess, loc + off, term->VideoMemory + off
+                , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid);
 
             ASSERT(res.IsOkayResult()
                 , "Failed to map page for VBE terminal (%Xp to %Xp): %H"
@@ -586,12 +593,12 @@ __cold Handle HandleModule(const size_t index, const jg_info_module_t * const mo
         , module->address
         , module->length, size);//*/
 
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelModulesCursor.FetchAdd(size);
+    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(size);
 
     for (vaddr_t offset = 0; offset < size; offset += PageSize)
     {
-        res = BootstrapMemoryManager.MapPage(vaddr + offset, module->address + offset
-            , PageFlags::Global | PageFlags::Writable, nullptr);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, module->address + offset
+            , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
@@ -709,7 +716,7 @@ void InitializeCpuStacks(bool const bsp)
 
     //  First, the #DF stack.
 
-    vaddr_t vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(DoubleFaultStackSize);
+    vaddr_t vaddr = Vmm::KernelHeapCursor.FetchAdd(DoubleFaultStackSize);
 
     for (size_t offset = PageSize; offset <= DoubleFaultStackSize; offset += PageSize)
     {
@@ -720,7 +727,8 @@ void InitializeCpuStacks(bool const bsp)
             , "Unable to allocate a physical page #%us for DF stack of CPU #%us!"
             , offset / PageSize - 1, cpuData->Index);
 
-        res = BootstrapMemoryManager.MapPage(vaddr + offset, paddr, PageFlags::Global | PageFlags::Writable, desc);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, paddr
+            , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for DF stack of CPU #%us: %H."
@@ -732,7 +740,7 @@ void InitializeCpuStacks(bool const bsp)
 
     //  Then, the #PF stack.
 
-    vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageFaultStackSize + PageSize);
+    vaddr = Vmm::KernelHeapCursor.FetchAdd(PageFaultStackSize + PageSize);
 
     for (size_t offset = PageSize; offset <= PageFaultStackSize; offset += PageSize)
     {
@@ -743,7 +751,8 @@ void InitializeCpuStacks(bool const bsp)
             , "Unable to allocate a physical page #%us for DF stack of CPU #%us!"
             , offset / PageSize - 1, cpuData->Index);
 
-        res = BootstrapMemoryManager.MapPage(vaddr + offset, paddr, PageFlags::Global | PageFlags::Writable, desc);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, paddr
+            , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for DF stack of CPU #%us: %H."
@@ -786,8 +795,6 @@ Thread tTb2;
 Thread tTb3;
 
 Process tPb;
-MemoryManagerAmd64 tMmB;
-VirtualAllocationSpace tVasB;
 
 __hot void * TestThreadEntryPoint(void * const arg)
 {
@@ -812,7 +819,7 @@ __cold void InitializeTestThread(Thread * const t, Process * const p)
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
+    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(PageSize);
     paddr_t const paddr = mainAllocator.AllocatePage(desc);
     //  Stack page.
 
@@ -820,7 +827,8 @@ __cold void InitializeTestThread(Thread * const t, Process * const p)
         , "Unable to allocate a physical page for test thread %Xp (process %Xp)!"
         , t, p);
 
-    res = BootstrapMemoryManager.MapPage(vaddr, paddr, PageFlags::Global | PageFlags::Writable, desc);
+    res = Vmm::MapPage(&BootstrapProcess, vaddr, paddr
+        , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for test thread stack: %H."
@@ -844,7 +852,7 @@ __cold char * AllocateTestPage(Process * const p)
     //  Intermediate results.
 
     vaddr_t const vaddr1 = 0x321000;
-    vaddr_t const vaddr2 = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
+    vaddr_t const vaddr2 = Vmm::KernelHeapCursor.FetchAdd(PageSize);
     paddr_t const paddr = mainAllocator.AllocatePage(desc);
     //  Test page.
 
@@ -852,14 +860,15 @@ __cold char * AllocateTestPage(Process * const p)
         , "Unable to allocate a physical page for test page of process %Xp!"
         , p);
 
-    res = p->Memory->MapPage(vaddr1, paddr, PageFlags::Writable, desc);
+    res = Vmm::MapPage(p, vaddr1, paddr, MemoryFlags::Writable, desc);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
         , vaddr1, paddr
         , res);
 
-    res = BootstrapMemoryManager.MapPage(vaddr2, paddr, PageFlags::Global | PageFlags::Writable, desc);
+    res = Vmm::MapPage(&BootstrapProcess, vaddr2, paddr
+        , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
@@ -871,14 +880,10 @@ __cold char * AllocateTestPage(Process * const p)
 
 void StartMultitaskingTest()
 {
-    bootstrapVas.Clone(&tVasB);
-    //  Fork the VAS.
-
-    new (&tMmB) MemoryManagerAmd64(&tVasB);
-    //  Initialize a new memory manager with the given VAS.
-
-    new (&tPb) Process(&tMmB);
+    new (&tPb) Process();
     //  Initialize a new process for thread series B.
+
+    Vmm::Initialize(&tPb);
 
     char * tCa = AllocateTestPage(&BootstrapProcess);
     //  Allocate and map a page for process B.

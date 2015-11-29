@@ -44,7 +44,7 @@
 #include <execution/thread.hpp>
 #include <execution/thread_init.hpp>
 #include <execution/ring_3.hpp>
-#include <memory/manager_amd64.hpp>
+#include <memory/vmm.hpp>
 
 #include <kernel.hpp>
 #include <entry.h>
@@ -68,8 +68,6 @@ uintptr_t entryPoint;
 Thread testThread;
 Thread testWatcher;
 Process testProcess;
-MemoryManagerAmd64 testMm;
-VirtualAllocationSpace testVas;
 uintptr_t const userStackBottom = 0x40000000;
 uintptr_t const userStackTop = 0x40000000 + PageSize;
 
@@ -225,16 +223,10 @@ Handle HandleLoadtest(size_t const index
 
 void TestApplication()
 {
-    MemoryManagerAmd64 & mm = *(reinterpret_cast<MemoryManagerAmd64 *>(Cpu::GetData()->ActiveThread->Owner->Memory));
-
-    mm.Vas->Clone(&testVas);
-    //  Fork the VAS.
-
-    new (&testMm) MemoryManagerAmd64(&testVas);
-    //  Initialize a new memory manager with the given VAS.
-
-    new (&testProcess) Process(&testMm);
+    new (&testProcess) Process();
     //  Initialize a new process for thread series B.
+
+    Vmm::Initialize(&testProcess);
 
     new (&testThread) Thread(&testProcess);
     new (&testWatcher) Thread(&testProcess);
@@ -245,14 +237,14 @@ void TestApplication()
 
     //  Firstly, the kernel stack page of the test thread.
 
-    vaddr_t stackVaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
+    vaddr_t stackVaddr = Vmm::KernelHeapCursor.FetchAdd(PageSize);
     paddr_t stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
 
     ASSERT(stackPaddr != nullpaddr && desc != nullptr
         , "Unable to allocate a physical page for test thread kernel stack!");
 
-    res = BootstrapMemoryManager.MapPage(stackVaddr, stackPaddr
-        , PageFlags::Global | PageFlags::Writable, desc);
+    res = Vmm::MapPage(&BootstrapProcess, stackVaddr, stackPaddr
+        , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for test thread kernel stack: %H."
@@ -271,14 +263,14 @@ void TestApplication()
 
     //  Secondly, the kernel stack page of the watcher thread.
 
-    stackVaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(PageSize);
+    stackVaddr = Vmm::KernelHeapCursor.FetchAdd(PageSize);
     stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
 
     ASSERT(stackPaddr != nullpaddr && desc != nullptr
         , "Unable to allocate a physical page for test thread kernel stack!");
 
-    res = BootstrapMemoryManager.MapPage(stackVaddr, stackPaddr
-        , PageFlags::Global | PageFlags::Writable, desc);
+    res = Vmm::MapPage(&BootstrapProcess, stackVaddr, stackPaddr
+        , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for test thread kernel stack: %H."
@@ -304,7 +296,7 @@ __cold uint8_t * AllocateTestRegion()
 
     vaddr_t const vaddr1 = 0x30000;
     size_t const size = vaddr1;
-    vaddr_t const vaddr2 = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(size);
+    vaddr_t const vaddr2 = Vmm::KernelHeapCursor.FetchAdd(size);
     //  Test pages.
 
     for (size_t offset = 0; offset < size; offset += PageSize)
@@ -315,16 +307,16 @@ __cold uint8_t * AllocateTestRegion()
             , "Unable to allocate a physical page for test page of process %Xp!"
             , &testProcess);
 
-        res = testMm.MapPage(vaddr1 + offset, paddr
-            , PageFlags::Userland | PageFlags::Writable, desc);
+        res = Vmm::MapPage(&testProcess, vaddr1 + offset, paddr
+            , MemoryFlags::Userland | MemoryFlags::Writable, desc);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
             , vaddr1 + offset, paddr
             , res);
 
-        res = testMm.MapPage(vaddr2 + offset, paddr
-            , PageFlags::Global | PageFlags::Writable, desc);
+        res = Vmm::MapPage(&testProcess, vaddr2 + offset, paddr
+            , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
@@ -348,8 +340,8 @@ void * JumpToRing3(void * arg)
     ASSERT(stackPaddr != nullpaddr && desc != nullptr
         , "Unable to allocate a physical page for test thread user stack!");
 
-    res = testMm.MapPage(userStackBottom, stackPaddr
-        , PageFlags::Userland | PageFlags::Writable, desc);
+    res = Vmm::MapPage(&testProcess, userStackBottom, stackPaddr
+        , MemoryFlags::Userland | MemoryFlags::Writable, desc);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for test thread user stack: %H."
@@ -365,12 +357,12 @@ void * JumpToRing3(void * arg)
         vaddr_t const segVaddr    = RoundDown(programCursor->VAddr, PageSize);
         vaddr_t const segVaddrEnd = RoundUp  (programCursor->VAddr + programCursor->VSize, PageSize);
 
-        PageFlags pageFlags = PageFlags::Userland;
+        MemoryFlags pageFlags = MemoryFlags::Userland;
 
         if (0 != (programCursor->Flags & ElfProgramHeaderFlags::Writable))
-            pageFlags |= PageFlags::Writable;
+            pageFlags |= MemoryFlags::Writable;
         if (0 != (programCursor->Flags & ElfProgramHeaderFlags::Executable))
-            pageFlags |= PageFlags::Executable;
+            pageFlags |= MemoryFlags::Executable;
 
         for (vaddr_t vaddr = segVaddr; vaddr < segVaddrEnd; vaddr += PageSize)
         {
@@ -380,7 +372,7 @@ void * JumpToRing3(void * arg)
                 , "Unable to allocate a physical page for test app segment #%us!"
                 , j);
 
-            res = testMm.MapPage(vaddr, paddr, pageFlags, desc);
+            res = Vmm::MapPage(&testProcess, vaddr, paddr, pageFlags, desc);
 
             ASSERT(res.IsOkayResult()
                 , "Failed to map page at %Xp (%XP) for test app segment #%us: %H."

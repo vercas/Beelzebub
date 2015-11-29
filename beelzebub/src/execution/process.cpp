@@ -38,9 +38,11 @@
 */
 
 #include <execution/thread.hpp>
+#include <memory/vmm.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
+using namespace Beelzebub::Memory;
 
 /********************
     Process class
@@ -57,13 +59,10 @@ Handle Process::SwitchTo(Process * const other)
 
     if likely(this != other)
     {
-        if likely(this->Memory != other->Memory)
-        {
-            res = this->Memory->Switch(other->Memory);
+        res = Vmm::Switch(this, other);
 
-            if unlikely(!res.IsOkayResult())
-                return res;
-        }
+        if unlikely(!res.IsOkayResult())
+            return res;
     }
     else
         return HandleResult::ArgumentOutOfRange;

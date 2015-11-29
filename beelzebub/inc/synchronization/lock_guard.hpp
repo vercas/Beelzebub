@@ -130,7 +130,7 @@ namespace Beelzebub { namespace Synchronization
 
         __forceinline LockGuardFlexible(TLock & lock)
             : Lock(&lock)
-            , Cookie(lock.Acquire())
+            , Cookie((&lock == nullptr) ? int_cookie_invalid : lock.Acquire())
         {
             
         }
@@ -158,6 +158,8 @@ namespace Beelzebub { namespace Synchronization
             {
                 other.SimplyAcquire();
                 this->Lock->SimplyRelease();
+
+                this->Lock = &other;
             }
         }
 
@@ -178,7 +180,8 @@ namespace Beelzebub { namespace Synchronization
 
         __forceinline LockGuardFlexible(TLock & lock) : Lock(&lock)
         {
-            lock.Acquire();
+            if (&lock != nullptr)
+                lock.Acquire();
         }
 
         LockGuardFlexible(LockGuardFlexible const &) = delete;

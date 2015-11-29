@@ -38,14 +38,14 @@
 */
 
 /**
- *  The implementation of the main memory manager is architecture-specific:
- *
- *  AMD64       :   manager_amd64.cpp
+ *  The implementation of the virtual memory manager is architecture-specific.
  */
 
 #pragma once
 
+#include <execution/process.hpp>
 #include <memory/page_allocator.hpp>
+#include <synchronization/atomic.hpp>
 #include <handles.h>
 
 namespace Beelzebub { namespace Memory
@@ -53,7 +53,7 @@ namespace Beelzebub { namespace Memory
     /**
      *  Represents characteristics of pages that can be mapped.
      */
-    enum class PageFlags : int
+    enum class MemoryFlags : int
     {
         //  No flags.
         None       = 0x0,
@@ -62,36 +62,19 @@ namespace Beelzebub { namespace Memory
         Global     = 0x01,
         //  Accessible by user code.
         Userland   = 0x02,
+
         //  Writing to the page is allowed.
         Writable   = 0x04,
         //  Executing code from the page is allowed.
         Executable = 0x08,
     };
 
-    ENUMOPS(PageFlags, int)
-
-    /**
-     *  Represents the status of memory pages.
-     */
-    enum class PageStatus : int
-    {
-        //  No flags.
-        None       = 0x0,
-
-        //  The page maps to a physical address.
-        Present    = 0x01,
-        //  Accessed since the flag was reset.
-        Accessed   = 0x02,
-        //  Written to since the flag was reset.
-        Written    = 0x04,
-    };
-
-    ENUMOPS(PageStatus, int)
+    ENUMOPS(MemoryFlags, int)
 
     /**
      *  Represents types of pages that can be allocated.
      */
-    enum class AllocatedPageType : uint32_t
+    enum class MemoryAllocationOptions : uint32_t
     {
         //  The physical page selected will be suitable for general use
         //  in the kernel heap and applications. Highest preferred.
@@ -110,7 +93,8 @@ namespace Beelzebub { namespace Memory
         Physical16bit        = 0x00000030,
 
         //  When multiple pages are allocated, they will be physically
-        //  contiguous.
+        //  contiguous. Implies commitement (immediate allocation) when used on
+        //  the kernel heap.
         PhysicallyContiguous = 0x00008000,
 
         //  The virtual page will be located in areas specific to the kernel heap.
@@ -123,41 +107,112 @@ namespace Beelzebub { namespace Memory
         //  The virtual page will be located in 16-bit memory locations,
         //  suitable for 16-bit applications and kernel modules.
         Virtual16bit         = 0x00300000,
+
+        //  Virtual addresses will be reserved for later manual mapping; no automatic
+        //  allocation of physical memory will be performed now or on demand.
+        Reserve              = 0x00000000,
+        //  The physical pages will be allocated immediately.
+        Commit               = 0x80000000,
+        //  No physical pages will be allocated until actually used.
+        AllocateOnDemand     = 0xC0000000,
+
+        //  The pages involved will not be freed.
+        Permanent            = 0x20000000,
     };
 
-    ENUMOPS(AllocatedPageType, uint32_t)
+    ENUMOPS(MemoryAllocationOptions, uint32_t)
 
     /**
-     *  A memory management unit.
+     *  The virtual memory manager.
      */
-    class MemoryManager
+    class Vmm
     {
     public:
-
         /*  Statics  */
 
-        __cold static void Initialize();
+        static Synchronization::Atomic<vaddr_t> KernelHeapCursor;
 
-        /*  Status  */
+        /*  Constructor(s)  */
 
-        __hot Handle Activate();
-        __hot Handle Switch(MemoryManager * const other);
-        bool IsActive();
+    protected:
+        Vmm() = default;
+
+    public:
+        Vmm(Vmm const &) = delete;
+        Vmm & operator =(Vmm const &) = delete;
+
+        /*  Initialization  */
+
+        __cold static Handle Bootstrap(Execution::Process * const bootstrapProc);
+        static Handle Initialize(Execution::Process * const proc);
+
+        /*  Activation and Status  */
+
+        __hot static Handle Switch(Execution::Process * const oldProc
+            , Execution::Process * const newProc);
+
+        __hot static bool IsActive(Execution::Process * const proc);
+        __hot static bool IsAlien(Execution::Process * const proc);
 
         /*  Page Management  */
 
-        __hot Handle MapPage(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags, PageDescriptor * const desc);
-        __hot Handle MapPage(vaddr_t const vaddr, paddr_t const paddr, PageFlags const flags);
-        __hot Handle UnmapPage(vaddr_t const vaddr);
-        __hot Handle UnmapPage(vaddr_t const vaddr, PageDescriptor * & desc);
-        __hot Handle TryTranslate(vaddr_t const vaddr, paddr_t & paddr);
+        __hot static __noinline Handle MapPage(Execution::Process * const proc
+            , uintptr_t const vaddr, paddr_t const paddr
+            , MemoryFlags const flags, PageDescriptor * desc
+            , bool const lock = true);
 
-        __hot Handle AllocatePages(const size_t count, AllocatedPageType const type, PageFlags const flags, vaddr_t & vaddr);
-        __hot Handle FreePages(vaddr_t const vaddr, const size_t count);
+        __hot static __forceinline Handle MapPage(Execution::Process * const proc
+            , uintptr_t const vaddr, paddr_t const paddr
+            , MemoryFlags const flags, bool const lock = true)
+        {
+            return MapPage(proc, vaddr, paddr, flags, nullptr, lock);
+        }
+
+        __hot static __noinline Handle UnmapPage(Execution::Process * const proc
+            , uintptr_t const vaddr, paddr_t & paddr, PageDescriptor * & desc
+            , bool const lock = true);
+
+        __hot static __forceinline Handle UnmapPage(Execution::Process * const proc
+            , uintptr_t const vaddr, PageDescriptor * & desc, bool const lock = true)
+        {
+            paddr_t sink;
+
+            return UnmapPage(proc, vaddr, sink, desc, lock);
+        }
+
+        __hot static __forceinline Handle UnmapPage(Execution::Process * const proc
+            , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true)
+        {
+            PageDescriptor * sink;
+
+            return UnmapPage(proc, vaddr, paddr, sink, lock);
+        }
+
+        __hot static __forceinline Handle UnmapPage(Execution::Process * const proc
+            , uintptr_t const vaddr, bool const lock = true)
+        {
+            paddr_t sink1;
+            PageDescriptor * sink2;
+
+            return UnmapPage(proc, vaddr, sink1, sink2, lock);
+        }
+
+        __hot static __noinline Handle Translate(Execution::Process * const proc
+            , uintptr_t const vaddr, paddr_t & paddr);
+
+        __hot static __noinline Handle AllocatePages(Execution::Process * const proc
+            , size_t const count, MemoryAllocationOptions const type
+            , MemoryFlags const flags, uintptr_t & vaddr);
+
+        __hot static __noinline Handle FreePages(Execution::Process * const proc
+            , uintptr_t const vaddr, const size_t count);
 
         /*  Flags  */
 
-        Handle GetPageFlags(vaddr_t const vaddr, PageFlags & flags);
-        Handle SetPageFlags(vaddr_t const vaddr, PageFlags const flags);
+        __hot static __noinline Handle GetPageFlags(Execution::Process * const proc
+            , uintptr_t const vaddr, MemoryFlags & flags, bool const lock = true);
+
+        __hot static __noinline Handle SetPageFlags(Execution::Process * const proc
+            , uintptr_t const vaddr, MemoryFlags const flags, bool const lock = true);
     };
 }}

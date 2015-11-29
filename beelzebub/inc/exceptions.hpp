@@ -84,7 +84,7 @@ namespace Beelzebub
 
     ENUMOPS(MemoryAccessType)
 
-    enum class MemoryFlags : uint16_t
+    enum class MemoryLocationFlags : uint16_t
     {
         None        = 0,
 
@@ -104,7 +104,7 @@ namespace Beelzebub
         Written     = 1 << 6,
     };
 
-    ENUMOPS(MemoryFlags)
+    ENUMOPS(MemoryLocationFlags)
 
     struct MemoryAccessViolationData
     {
@@ -114,7 +114,7 @@ namespace Beelzebub
         void * Address;
         //  Physical address may be larger (PAE).
 
-        MemoryFlags PageFlags;
+        MemoryLocationFlags PageFlags;
         MemoryAccessType AccessType;
     };
 

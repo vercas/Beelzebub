@@ -76,9 +76,9 @@ void TestExceptions()
                 , "Memory violation physical address should be null, not %Xp!"
                 , x->MemoryAccessViolation.PhysicalAddress);
 
-            ASSERT(x->MemoryAccessViolation.PageFlags == MemoryFlags::None
+            ASSERT(x->MemoryAccessViolation.PageFlags == MemoryLocationFlags::None
                 , "Memory violation page flags should be %X2, not %X2!"
-                , MemoryFlags::None, x->MemoryAccessViolation.PageFlags);
+                , MemoryLocationFlags::None, x->MemoryAccessViolation.PageFlags);
 
             ASSERT(x->MemoryAccessViolation.AccessType == MemoryAccessType::Read
                 , "Memory violation access type should be %X1, not %X1!"

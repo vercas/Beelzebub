@@ -92,6 +92,16 @@ namespace Beelzebub { namespace Memory
      */
     struct PageDescriptor
     {
+        /*  Constants  */
+
+        static constexpr PageDescriptor * const Invalid
+        = reinterpret_cast<PageDescriptor *>(0x42);
+
+        static __forceinline bool IsValid(PageDescriptor const * const desc)
+        {
+            return desc != Invalid;
+        }
+
         static const uint16_t MaxAccesses = (uint16_t)0xFFFF;
 
         /*  Fields  */

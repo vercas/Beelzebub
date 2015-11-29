@@ -38,6 +38,7 @@
 */
 
 #include <system/acpi.hpp>
+#include <memory/vmm.hpp>
 #include <entry.h>
 
 #include <utils/checksum.hpp>
@@ -448,14 +449,13 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
 
     paddr_t const tabStartPage     = RoundDown(header      , PageSize);
     paddr_t const tabHeaderEndPage = RoundUp  (tabHeaderEnd, PageSize);
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(tabHeaderEndPage - tabStartPage);
+    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(tabHeaderEndPage - tabStartPage);
     paddr_t offset1 = 0;
 
     for (/* nothing */; tabStartPage + offset1 < tabHeaderEndPage; offset1 += PageSize)
     {
-        res = BootstrapMemoryManager.MapPage(vaddr + offset1
-                                           , tabStartPage + offset1
-                                           , PageFlags::Global, nullptr);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset1, tabStartPage + offset1
+            , MemoryFlags::Global, PageDescriptor::Invalid);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for table header: %H%n"
@@ -475,7 +475,7 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
 
     paddr_t const tabEnd = header + tabPtr->Length;
     paddr_t const tabEndPage = RoundUp(tabEnd, PageSize);
-    vaddr_t const vaddrExtra = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(tabEndPage - tabHeaderEndPage);
+    vaddr_t const vaddrExtra = Vmm::KernelHeapCursor.FetchAdd(tabEndPage - tabHeaderEndPage);
 
     assert(vaddrExtra - vaddr == tabHeaderEndPage - tabStartPage
         , "Discrepancy observed while mapping table - virtual addresses are "
@@ -484,9 +484,8 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
 
     for (/* nothing */; tabStartPage + offset1 < tabEndPage; offset1 += PageSize)
     {
-        res = BootstrapMemoryManager.MapPage(vaddr + offset1
-                                           , tabStartPage + offset1
-                                           , PageFlags::Global, nullptr);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset1, tabStartPage + offset1
+            , MemoryFlags::Global, PageDescriptor::Invalid);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for table body: %H%n"

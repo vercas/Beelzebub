@@ -38,7 +38,8 @@
 */
 
 #include <system/exceptions.hpp>
-#include <memory/manager_amd64.hpp>
+#include <memory/vmm.hpp>
+#include <memory/vmm.arc.hpp>
 #include <system/cpu.hpp>
 #include <kernel.hpp>
 #include <entry.h>
@@ -206,17 +207,17 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
     const bool instruction = 0 != (state->ErrorCode & 16);
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-    const uint16_t ind1 = VirtualAllocationSpace::GetPml1Index(CR2)
-                 , ind2 = VirtualAllocationSpace::GetPml2Index(CR2)
-                 , ind3 = VirtualAllocationSpace::GetPml3Index(CR2)
-                 , ind4 = VirtualAllocationSpace::GetPml4Index(CR2);
+    const uint16_t ind1 = VmmArc::GetPml1Index(CR2)
+                 , ind2 = VmmArc::GetPml2Index(CR2)
+                 , ind3 = VmmArc::GetPml3Index(CR2)
+                 , ind4 = VmmArc::GetPml4Index(CR2);
 #elif defined(__BEELZEBUB__ARCH_IA32PAE)
-    const uint16_t ind1 = VirtualAllocationSpace::GetPml1Index(CR2)
-                 , ind2 = VirtualAllocationSpace::GetPml2Index(CR2)
-                 , ind3 = VirtualAllocationSpace::GetPml3Index(CR2);
+    const uint16_t ind1 = VmmArc::GetPml1Index(CR2)
+                 , ind2 = VmmArc::GetPml2Index(CR2)
+                 , ind3 = VmmArc::GetPml3Index(CR2);
 #elif defined(__BEELZEBUB__ARCH_IA32)
-    const uint16_t ind1 = VirtualAllocationSpace::GetPml1Index(CR2)
-                 , ind2 = VirtualAllocationSpace::GetPml2Index(CR2);
+    const uint16_t ind1 = VmmArc::GetPml1Index(CR2)
+                 , ind2 = VmmArc::GetPml2Index(CR2);
 #endif
 
     Pml1Entry * e = nullptr;
@@ -224,7 +225,9 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
     // msg("(( about to get entry; RIP=%Xp; CR2=%Xp ))"
     //     , state->RIP, CR2);
 
-    Handle res = BootstrapMemoryManager.Vas->GetEntry(RoundDown(CR2, PageSize), e, true);
+    Handle res;
+
+    //res = BootstrapMemoryManager.Vas->GetEntry(RoundDown(CR2, PageSize), e, true);
 
     // msg("%n");
 
@@ -254,17 +257,17 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 #endif
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-        if (CR2 >= VirtualAllocationSpace::FractalStart && CR2 <= VirtualAllocationSpace::FractalEnd)
+        if (CR2 >= VmmArc::FractalStart && CR2 <= VmmArc::FractalEnd)
         {
-            vaddr_t vaddr = (CR2 - VirtualAllocationSpace::LocalPml1Base) << 9;
+            vaddr_t vaddr = (CR2 - VmmArc::LocalPml1Base) << 9;
 
             if (0 != (vaddr & 0x0000800000000000ULL))
                 vaddr |= 0xFFFF000000000000ULL;
 
-            uint16_t vind1 = VirtualAllocationSpace::GetPml1Index(CR2)
-                   , vind2 = VirtualAllocationSpace::GetPml2Index(CR2)
-                   , vind3 = VirtualAllocationSpace::GetPml3Index(CR2)
-                   , vind4 = VirtualAllocationSpace::GetPml4Index(CR2);
+            uint16_t vind1 = VmmArc::GetPml1Index(CR2)
+                   , vind2 = VmmArc::GetPml2Index(CR2)
+                   , vind3 = VmmArc::GetPml3Index(CR2)
+                   , vind4 = VmmArc::GetPml4Index(CR2);
 
             MSG("Adr: %Xp - %u2:%u2:%u2:%u2 | ", vaddr, vind4, vind3, vind2, vind1);
         }
@@ -324,7 +327,7 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
         {
             cpuData->X.Type = ExceptionType::MemoryAccessViolation;
 
-            cpuData->X.MemoryAccessViolation.PageFlags = MemoryFlags::None;
+            cpuData->X.MemoryAccessViolation.PageFlags = MemoryLocationFlags::None;
             //  Makes sure it's all zeros.
 
             if (e == nullptr)
@@ -334,20 +337,20 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
                 cpuData->X.MemoryAccessViolation.PhysicalAddress = e->GetAddress();
 
                 if (present)
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Present;
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Present;
 
                 if (e->GetWritable())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Writable;
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Writable;
                 if (!e->GetXd()) //  Note the negation.
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Executable;
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Executable;
                 if (e->GetGlobal())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Global;
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Global;
                 if (e->GetUserland())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Userland;
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Userland;
                 if (e->GetAccessed())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Accessed;
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Accessed;
                 if (e->GetDirty())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryFlags::Written;
+                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Written;
             }
 
             if (instruction)

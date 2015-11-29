@@ -39,10 +39,9 @@
 
 #pragma once
 
-#include <memory/manager.hpp>
+#include <synchronization/spinlock_uninterruptible.hpp>
+#include <synchronization/atomic.hpp>
 #include <handles.h>
-
-using namespace Beelzebub::Memory;
 
 namespace Beelzebub { namespace Execution
 {
@@ -56,7 +55,10 @@ namespace Beelzebub { namespace Execution
         /*  Constructors  */
 
         inline Process()
-            : Memory( nullptr)
+            : UserHeapLock()
+            , UserHeapCursor(nullvaddr)
+            , AlienPagingTablesLock()
+            , PagingTable(nullpaddr)
         {
 
         }
@@ -64,8 +66,11 @@ namespace Beelzebub { namespace Execution
         Process(Process const &) = delete;
         Process & operator =(Process const &) = delete;
 
-        inline Process(MemoryManager * const memory)
-            : Memory( memory)
+        inline Process(paddr_t const pt)
+            : UserHeapLock()
+            , UserHeapCursor(1 << 24)
+            , AlienPagingTablesLock()
+            , PagingTable(pt)
         {
 
         }
@@ -74,8 +79,12 @@ namespace Beelzebub { namespace Execution
 
         __hot Handle SwitchTo(Process * const other);
 
-        /*  Stack  */
+        /*  Memory  */
 
-        MemoryManager * const Memory;
+        Synchronization::SpinlockUninterruptible<> UserHeapLock;
+        Synchronization::Atomic<vaddr_t> UserHeapCursor;
+
+        Synchronization::SpinlockUninterruptible<> AlienPagingTablesLock;
+        paddr_t PagingTable;
     };
 }}

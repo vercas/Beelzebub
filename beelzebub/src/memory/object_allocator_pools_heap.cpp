@@ -38,7 +38,7 @@
 */
 
 #include <memory/object_allocator_pools_heap.hpp>
-#include <memory/manager_amd64.hpp>
+#include <memory/vmm.hpp>
 #include <system/cpu.hpp>
 #include <kernel.hpp>
 #include <entry.h>
@@ -48,6 +48,7 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::System;
 
 static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
 {
@@ -55,7 +56,7 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t const vaddr = MemoryManagerAmd64::KernelHeapCursor.FetchAdd(pageCount * PageSize);
+    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(pageCount * PageSize);
 
     for (size_t i = 0; i < pageCount; ++i)
     {
@@ -70,7 +71,9 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
             //  Maybe the test is built in release mode.
         }
 
-        res = BootstrapMemoryManager.MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable, desc);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
+            , MemoryFlags::Global | MemoryFlags::Writable, desc);
+        //  Doesn't matter which process is used when the kernel heap is accessed.
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP; #%us) for an object pool (%us pages): %H."
@@ -186,13 +189,13 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
     vaddr_t oldPoolEnd = vaddr;
     vaddr_t newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
 
-    if unlikely(newPoolEnd > MemoryManagerAmd64::KernelHeapEnd)
-    {
-        newPageCount -= (newPoolEnd - MemoryManagerAmd64::KernelHeapEnd) / PageSize;
-        newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
-    }
+    // if unlikely(newPoolEnd > MemoryManagerAmd64::KernelHeapEnd)
+    // {
+    //     newPageCount -= (newPoolEnd - MemoryManagerAmd64::KernelHeapEnd) / PageSize;
+    //     newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
+    // }
 
-    bool const swapped = MemoryManagerAmd64::KernelHeapCursor.CmpXchgStrong(oldPoolEnd, newPoolEnd);
+    bool const swapped = Vmm::KernelHeapCursor.CmpXchgStrong(oldPoolEnd, newPoolEnd);
 
     if (!swapped)
         return HandleResult::PageMapped;
@@ -215,7 +218,8 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
             break;
         }
 
-        res = BootstrapMemoryManager.MapPage(vaddr + i * PageSize, paddr, PageFlags::Global | PageFlags::Writable, desc);
+        res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
+            , MemoryFlags::Global | MemoryFlags::Writable, desc);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP; #%us) for extending object pool "
@@ -290,7 +294,7 @@ Handle Memory::ReleasePoolFromKernelHeap(size_t objectSize
 
     for (/* nothing */; i > 0; --i, vaddr -= PageSize)
     {
-        res = BootstrapMemoryManager.UnmapPage(vaddr, desc);
+        res = Vmm::UnmapPage(&BootstrapProcess, vaddr, desc);
 
         assert_or(res.IsOkayResult()
             , "Failed to unmap page #%us from pool %Xp.%n"
@@ -304,7 +308,7 @@ Handle Memory::ReleasePoolFromKernelHeap(size_t objectSize
         vaddr_t expectedCursor = vaddr + PageSize;
 
         if (decrementedHeapCursor)
-            decrementedHeapCursor = MemoryManagerAmd64::KernelHeapCursor.CmpXchgStrong(expectedCursor, vaddr);
+            decrementedHeapCursor = Vmm::KernelHeapCursor.CmpXchgStrong(expectedCursor, vaddr);
     }
 
     //  TODO: Salvage pool when it failed to remove all pages.

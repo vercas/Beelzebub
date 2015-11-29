@@ -46,7 +46,6 @@
     #include <terminals/base.hpp>
     #include <system/cpuid.hpp>
     #include <system/domain.hpp>
-	#include <memory/manager_amd64.hpp>
 
     #define Handle Beelzebub::Handle
     #define TerminalBase Beelzebub::Terminals::TerminalBase
@@ -71,8 +70,6 @@ __extern __cold void kmain_ap();
 #ifdef __cplusplus
 namespace Beelzebub
 {
-    extern Memory::MemoryManagerAmd64 BootstrapMemoryManager;
-
     extern System::CpuId BootstrapCpuid;
 }
 #endif
@@ -82,9 +79,7 @@ __extern __cold __noinline Handle InitializePit();
 
 // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
 __extern __cold __noinline Handle InitializePhysicalAllocator(jg_info_mmap_t * map
-			                                                , size_t cnt
-			                                                , uintptr_t freeStart
-			                                                , Domain * domain);
+    , size_t cnt, uintptr_t freeStart, Beelzebub::System::Domain * domain);
 __extern __cold __noinline Handle InitializePhysicalMemory();
 __extern __cold __noinline Handle InitializeVirtualMemory();
 
@@ -105,5 +100,6 @@ __extern __cold __noinline void StartMultitaskingTest();
 
 #ifdef __cplusplus
     #undef Handle
-    #undef TerminalBase
 #endif
+
+#undef TerminalBase
