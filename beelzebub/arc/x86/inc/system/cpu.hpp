@@ -110,9 +110,6 @@ namespace Beelzebub { namespace System
         CpuData * SelfPointer;
         size_t Index;
 
-        uintptr_t StackTop;
-        uintptr_t StackBottom;
-
         paddr_t LastAlienPml4;
         //  Used to invalidate TLBs when dealing with alien mappings, smartly.
 

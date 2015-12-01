@@ -351,8 +351,8 @@ Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * po
 {
     askedToRemove = true;
 
-    /*msg("~~ ASKED TO REMOVE POOL %Xp ~~%n"
-        , pool);//*/
+    msg_("~~ ASKED TO REMOVE POOL %Xp ~~%n"
+        , pool);
 
     //  A nice procedure here is to unmap the pool's pages one-by-one, starting
     //  from the highest. The kernel heap cursor will be pulled back if possible.
@@ -923,6 +923,7 @@ Handle TestObjectAllocator(bool const bsp)
             , testAllocator.PoolCount.Load());
 
         ASSERT(testAllocator.GetCapacity() - testAllocator.GetFreeCount() == 4
+                && testAllocator.GetBusyCount() == 4
             , "Test allocator should have only 4 objects non-free, not %us "
               "(%us - %us).%n"
             , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
@@ -937,10 +938,14 @@ Handle TestObjectAllocator(bool const bsp)
         if (!res.IsOkayResult())
             return res;
 
+        msg_("[[ FP=%Xp, cap=%u4, fc=%u4 ]]%n"
+            , testAllocator.FirstPool, testAllocator.FirstPool->Capacity
+            , testAllocator.FirstPool->FreeCount);
+
         askedToEnlarge = askedToAcquire = askedToRemove = false;
         //  These may have occured already!
 
-        TestStructure * tOx = nullptr, * tOy = nullptr;
+        TestStructure * tOx = nullptr, * tOy = nullptr, * tOt = nullptr;
 
         for (size_t i = testAllocator.GetFreeCount(); i > 0; --i)
         {
@@ -962,7 +967,13 @@ Handle TestObjectAllocator(bool const bsp)
                 , "Failed to allocate capacity-filling object #%us: %H%n"
                 , i, res);
 
-            TESTDIFF(x, y);
+            tOt = tOy;
+            while (tOt != nullptr)
+            {
+                TESTDIFF(x, t);
+
+                tOt = tOt->Next;
+            }
 
             if (tOy != nullptr)
                 ASSERT(tOy->Next != tOx
@@ -979,6 +990,8 @@ Handle TestObjectAllocator(bool const bsp)
             , "The allocator was asked to acquire a pool when it already has "
               "asked to enlarge..??");
 
+        msg("[[ Busy count is now %us ]]%n", testAllocator.GetBusyCount());
+
         //  Now let's allocate moar objects!
 
         TESTALLOC3(TestStructure, 11)
@@ -988,11 +1001,19 @@ Handle TestObjectAllocator(bool const bsp)
 
         TESTREMOV3(13)
 
+        ASSERT(!askedToRemove
+            , "The allocator asked to remove a pool when objects should still be"
+              "left in it!");
+
         res = testAllocator.DeallocateObject(tO13);
         ASSERT(res.IsResult(HandleResult::ObjaAlreadyFree)
             , "Deletion of object \"13\" (%Xp) should've returned "
               "\"already freed\": %H%n"
             , tO13, res);
+
+        ASSERT(!askedToRemove
+            , "The allocator asked to remove a pool when objects should still be"
+              "left in it!");
 
         TESTALLOC3(TestStructure, 15)
 
@@ -1009,12 +1030,25 @@ Handle TestObjectAllocator(bool const bsp)
 
         ASSERT(!askedToRemove
             , "The allocator asked to remove a pool before it was empty..?");
+        msg("[[ FP=%Xp, cap=%u4, fc=%u4 ]]%n"
+            , testAllocator.FirstPool, testAllocator.FirstPool->Capacity
+            , testAllocator.FirstPool->FreeCount);
 
         //  Let's try full removal.
 
         TESTREMOV3( 3) TESTREMOV3( 1) TESTREMOV3( 4) TESTREMOV3( 5)
         TESTREMOV3(12) TESTREMOV3(11) TESTREMOV3(14) TESTREMOV3(15)
         //  Removing known objects.
+
+        msg("[[ FP=%Xp, cap=%u4, fc=%u4 ]]%n"
+            , testAllocator.FirstPool, testAllocator.FirstPool->Capacity
+            , testAllocator.FirstPool->FreeCount);
+
+        ASSERT(!askedToRemove
+            , "The allocator asked to remove a pool when objects should still be"
+              "left in it!");
+
+        msg("[[ Busy count is now %us ]]%n", testAllocator.GetBusyCount());
 
         //  This uses `y` and not `x` because the latter is removed last.
         while (tOy != nullptr)
@@ -1026,6 +1060,9 @@ Handle TestObjectAllocator(bool const bsp)
 
             tOy = next;
         }
+
+        msg("[[ Busy count is now %us; FP=%Xp ]]%n"
+            , testAllocator.GetBusyCount(), testAllocator.FirstPool);
 
         //  Right now there should only be one object left in the pool: tOx.
 

@@ -52,8 +52,9 @@
 #include <debug.hpp>
 
 using namespace Beelzebub;
-using namespace Beelzebub::System;
+using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::System;
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
 #define INSTRUCTION_POINTER (state->RIP)
@@ -234,6 +235,10 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
     CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
     ExceptionContext * context = (cpuData == nullptr) ? nullptr : cpuData->XContext;
 
+    Thread * activeThread = nullptr;
+    if (CpuDataSetUp)
+        activeThread = Cpu::GetData()->ActiveThread;
+
     if (context == nullptr)
     {
     justFail:
@@ -281,6 +286,32 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
         }
         else
             MSG("%H >>%n", res);
+
+        MSG("<< AT@%Xp >>%n", activeThread);
+
+        PrintToDebugTerminal(state);
+
+        uintptr_t stackPtr = state->RSP;
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+
+        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+        {
+            msg("Stack pointer was not a multiple of %us! (%Xp)%n"
+                , sizeof(size_t), stackPtr);
+
+            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+        }
+
+        bool odd;
+        for (odd = true; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+        {
+            msg("%X2|%Xs|%s"
+                , (uint16_t)(stackPtr - state->RSP)
+                , *((size_t const *)stackPtr)
+                , odd ? "\t" : "\r\n");
+        }
+
+        if (odd) msg("%n");
 
         ASSERT(false, "<< ^ EXCEPTION ^ >>");
         //  TODO: Set other CPUs on fire too.

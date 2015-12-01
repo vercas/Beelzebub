@@ -72,6 +72,9 @@ void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS)
         {
             activeThread->State = *state;
 
+            // if (activeThread == &BootstrapThread)
+            //     msg("(( RIP = %Xp ))", state->RIP);
+
             // msg("PRE-SWITCH ");
             // PrintToDebugTerminal(state);
             // msg("%n");

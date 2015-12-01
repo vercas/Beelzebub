@@ -730,27 +730,6 @@ void InitializeCpuStacks(bool const bsp)
     }
 
     cpuData->EmbeddedTss.Ist[1] = vaddr + PageSize + PageFaultStackSize;
-
-    //  Finally, the kernel stack for random interrupts 'n stuff.
-
-    if (bsp)
-    {
-        //  The BSP's stack is in a known, fixed area.
-
-        cpuData->StackTop    = 0xFFFFFFFFFFFFC000ULL + CpuStackSize;
-        cpuData->StackBottom = 0xFFFFFFFFFFFFC000ULL;
-    }
-    else
-    {
-        uint64_t volatile dummy = 0xA05665726361730A;
-        //  Just a dummy value.
-
-        cpuData->StackTop    = RoundUp((uintptr_t)&dummy, PageSize);
-        cpuData->StackBottom = cpuData->StackTop - CpuStackSize;
-        //  This counts on the fact that this function is executed early, 
-    }
-
-    cpuData->EmbeddedTss.Rsp[0] = cpuData->StackTop;
 }
 
 #ifdef __BEELZEBUB__TEST_MT
@@ -785,28 +764,19 @@ __cold void InitializeTestThread(Thread * const t, Process * const p)
     new (t) Thread(p);
 
     Handle res;
-    PageDescriptor * desc = nullptr;
-    //  Intermediate results.
 
-    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(PageSize);
-    paddr_t const paddr = mainAllocator.AllocatePage(desc);
-    //  Stack page.
+    uintptr_t stackVaddr = nullvaddr;
 
-    ASSERT(paddr != nullpaddr && desc != nullptr
-        , "Unable to allocate a physical page for test thread %Xp (process %Xp)!"
-        , t, p);
-
-    res = Vmm::MapPage(&BootstrapProcess, vaddr, paddr
-        , MemoryFlags::Global | MemoryFlags::Writable, desc);
+    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess
+        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) for test thread stack: %H."
-        , vaddr, paddr
+        , "Failed to allocate stack for test thread: %H."
         , res);
-    //  FAILURE IS NOT TOLERATED.
 
-    t->KernelStackTop = (uintptr_t)vaddr + PageSize;
-    t->KernelStackBottom = (uintptr_t)vaddr;
+    t->KernelStackTop = stackVaddr + 3 * PageSize;
+    t->KernelStackBottom = stackVaddr;
 
     t->EntryPoint = &TestThreadEntryPoint;
 
@@ -876,7 +846,7 @@ void StartMultitaskingTest()
 
     withInterrupts (false)
     {
-        BootstrapThread.IntroduceNext(&tTb3);
+        // BootstrapThread.IntroduceNext(&tTb3);
         BootstrapThread.IntroduceNext(&tTb2);
         //  Threads B2 and B3 are at the end of the cycle.
 

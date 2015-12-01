@@ -237,27 +237,21 @@ void TestApplication()
     new (&testWatcher) Thread(&testProcess);
 
     Handle res;
-    PageDescriptor * desc = nullptr;
-    //  Intermediate results.
 
     //  Firstly, the kernel stack page of the test thread.
 
-    vaddr_t stackVaddr = Vmm::KernelHeapCursor.FetchAdd(PageSize);
-    paddr_t stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
+    uintptr_t stackVaddr;
 
-    ASSERT(stackPaddr != nullpaddr && desc != nullptr
-        , "Unable to allocate a physical page for test thread kernel stack!");
-
-    res = Vmm::MapPage(&BootstrapProcess, stackVaddr, stackPaddr
-        , MemoryFlags::Global | MemoryFlags::Writable, desc);
+    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess
+        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) for test thread kernel stack: %H."
-        , stackVaddr, stackPaddr
+        , "Failed to allocate stack for test userland thread: %H."
         , res);
 
-    testThread.KernelStackTop = (uintptr_t)stackVaddr + PageSize;
-    testThread.KernelStackBottom = (uintptr_t)stackVaddr;
+    testThread.KernelStackTop = stackVaddr + 3 * PageSize;
+    testThread.KernelStackBottom = stackVaddr;
 
     testThread.EntryPoint = &JumpToRing3;
 
@@ -269,22 +263,16 @@ void TestApplication()
 
     //  Secondly, the kernel stack page of the watcher thread.
 
-    stackVaddr = Vmm::KernelHeapCursor.FetchAdd(PageSize);
-    stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
-
-    ASSERT(stackPaddr != nullpaddr && desc != nullptr
-        , "Unable to allocate a physical page for test thread kernel stack!");
-
-    res = Vmm::MapPage(&BootstrapProcess, stackVaddr, stackPaddr
-        , MemoryFlags::Global | MemoryFlags::Writable, desc);
+    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess
+        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) for test thread kernel stack: %H."
-        , stackVaddr, stackPaddr
+        , "Failed to allocate stack for test watcher thread: %H."
         , res);
 
-    testWatcher.KernelStackTop = (uintptr_t)stackVaddr + PageSize;
-    testWatcher.KernelStackBottom = (uintptr_t)stackVaddr;
+    testWatcher.KernelStackTop = stackVaddr + 3 * PageSize;
+    testWatcher.KernelStackBottom = stackVaddr;
 
     testWatcher.EntryPoint = &WatchTestThread;
 
@@ -417,7 +405,7 @@ void * WatchTestThread(void *)
     {
         Thread * activeThread = Cpu::GetData()->ActiveThread;
 
-        MSG_("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
+        MSG("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
     }
 }
 

@@ -46,7 +46,7 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
-Spinlock<> Beelzebub::Debug::MsgSpinlock;
+SpinlockUninterruptible<> Beelzebub::Debug::MsgSpinlock;
 TerminalBase * Beelzebub::Debug::DebugTerminal;
 
 namespace Beelzebub { namespace Debug

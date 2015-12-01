@@ -77,7 +77,10 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
         //msg("2");
     }
 
-    Cpu::GetData()->ActiveThread = other;
+    auto cpuData = Cpu::GetData();
+
+    cpuData->ActiveThread = other;
+    cpuData->EmbeddedTss.Rsp[0] = other->KernelStackTop;
 
     //msg("B");
 

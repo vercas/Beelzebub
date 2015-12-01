@@ -42,7 +42,7 @@
 #include "stdarg.h"
 
 #include <terminals/base.hpp>
-#include <synchronization/spinlock.hpp>
+#include <synchronization/spinlock_uninterruptible.hpp>
 
 //  NOTE: debug_arch.hpp is included near the end.
 
@@ -100,7 +100,7 @@ namespace Beelzebub { namespace Debug
 {
     extern Terminals::TerminalBase * DebugTerminal;
 
-    extern Synchronization::Spinlock<> MsgSpinlock;
+    extern Synchronization::SpinlockUninterruptible<> MsgSpinlock;
 
     __cold __noinline __noreturn void CatchFire(char const * const file
                                               , size_t const line

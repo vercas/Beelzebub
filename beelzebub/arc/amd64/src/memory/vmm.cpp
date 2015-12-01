@@ -211,7 +211,7 @@ Handle Vmm::Initialize(Process * const proc)
     desc->IncrementReferenceCount();
     //  Do the good deed.
 
-    SpinlockUninterruptible<> * alienLock;
+    SpinlockUninterruptible<> * alienLock = nullptr;
 
     if (CpuDataSetUp)
         alienLock = &(Cpu::GetData()->ActiveThread->Owner->AlienPagingTablesLock);
