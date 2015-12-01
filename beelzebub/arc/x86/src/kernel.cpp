@@ -67,6 +67,10 @@
 #include <_print/gdt.hpp>
 #include <debug.hpp>
 
+#ifdef __BEELZEBUB__TEST_STACKINT
+#include <tests/stack_integrity.hpp>
+#endif
+
 #if __BEELZEBUB__TEST_METAP
 #include <tests/meta.hpp>
 #endif
@@ -352,6 +356,14 @@ void Beelzebub::Main()
         StartMultitaskingTest();
 
         MainTerminal->WriteLine(" Done.");
+#endif
+
+#ifdef __BEELZEBUB__TEST_STACKINT
+        // MainTerminal->Write(">Testing stack integrity...");
+
+        // TestStackIntegrity();
+
+        // MainTerminal->WriteLine(" Done.");
 #endif
 
         MainTerminal->WriteLine("\\Halting indefinitely now.");

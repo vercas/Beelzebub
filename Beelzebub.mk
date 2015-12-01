@@ -120,6 +120,7 @@ ifneq (,$(findstring test-all,$(MAKECMDGOALS)))
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_METAP 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_EXCP 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_APP 
+	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_STACKINT 
 
 	SETTINGS			+= test-all
 else
@@ -147,6 +148,10 @@ else
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_APP __BEELZEBUB__TEST_MT 
 
 		SETTINGS			+= test-app test-mt 
+	else ifneq (,$(findstring test-stackint,$(MAKECMDGOALS)))
+		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_STACKINT 
+
+		SETTINGS			+= test-stackint 
 	else
 		#	Do somethin'.
 	endif

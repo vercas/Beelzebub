@@ -117,9 +117,9 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
 }
 
 static __noinline void FillPool(ObjectPoolBase volatile * volatile pool
-                                      , size_t const objectSize
-                                      , size_t const headerSize
-                                      , obj_ind_t const objectCount)
+                              , size_t const objectSize
+                              , size_t const headerSize
+                              , obj_ind_t const objectCount)
 {
     pool->Capacity = objectCount;
     pool->FreeCount = objectCount;
@@ -263,10 +263,8 @@ Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtra
 
     bool const swapped = Vmm::KernelHeapCursor.CmpXchgStrong(oldPoolEnd, newPoolEnd);
 
-    if (!swapped)
-        return HandleResult::PageMapped;
-    //  It is possible that something else has already reserved memory here.
-    //  TODO: Check for actual free pages.
+    ASSERT(swapped
+        , "Failed to compare-exchange the kernel heap cursor!");;
 
     vaddr_t curPageCount = oldPageCount;
 
@@ -351,8 +349,8 @@ Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * po
 {
     askedToRemove = true;
 
-    msg_("~~ ASKED TO REMOVE POOL %Xp ~~%n"
-        , pool);
+    // msg_("~~ ASKED TO REMOVE POOL %Xp ~~%n"
+    //     , pool);
 
     //  A nice procedure here is to unmap the pool's pages one-by-one, starting
     //  from the highest. The kernel heap cursor will be pulled back if possible.
@@ -442,10 +440,6 @@ Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * po
 #define TESTDIFF(n1, n2) ASSERT(MCATS(tO, n1) != MCATS(tO, n2)             \
     , "Test objects \"" #n1 "\" and \"" #n2 "\" should be different: %Xp." \
     , MCATS(tO, n1));
-
-#define TESTINTEN ASSERT(Interrupts::AreEnabled()                           \
-            , "Interrupts should be enabled, but they are not! (Core #%us)" \
-            , System::Cpu::GetData()->Index)
 
 Handle ObjectAllocatorSpamTest()
 {
@@ -643,11 +637,7 @@ __noinline Handle ThreePoolTest()
                 /*msg("~~ NEXT POOL SHOULD BE ACQUIRED NAO! ~~%n");//*/
             }
 
-            TESTINTEN;
-
             res = testAllocator.AllocateObject(tOx);
-
-            TESTINTEN;
 
             ASSERT(res.IsOkayResult()
                 , "Failed to allocate capacity-filling object #%us: %H%n"
@@ -725,12 +715,8 @@ __noinline Handle ThreePoolTest()
         {
             auto next = tOx->Next;
 
-            TESTINTEN;
-
             TESTREMOV3(x)
             //  Simple, huh?
-
-            TESTINTEN;
 
             size_t newPoolCount = testAllocator.PoolCount.Load();
 
@@ -847,6 +833,15 @@ Handle TestObjectAllocator(bool const bsp)
 {
     Handle res;
 
+    /*
+        So, after I enabled scheduling during tests, the object allocator test
+        started failing randomly. After 2.5 days (magic number for me) of testing,
+        I realized it happens because a pool fails to enlarge on demand. :L
+        Since that functionality is explicitly tested and expected, things started
+        catching fire. To prevent this, interrupts are now disabled before the
+        pool that needs enlarging is allocated.
+     */
+
     if likely(!bsp)
     {
         res = ObjectAllocatorSpamTest();
@@ -873,11 +868,9 @@ Handle TestObjectAllocator(bool const bsp)
             , testAllocator.FreeCount.Load()
             , testAllocator.PoolCount.Load());//*/
 
-        TESTINTEN;
+        InterruptGuard<false> ig;
 
         TESTALLOC3(TestStructure, 1)
-
-        TESTINTEN;
 
         ASSERT(askedToAcquire
             , "The allocator wasn't asked to acquire a pool when allocating the "
@@ -889,17 +882,9 @@ Handle TestObjectAllocator(bool const bsp)
         TESTALLOC3(TestStructure, 3)
         TESTALLOC3(TestStructure, 4)
 
-        TESTINTEN;
-
         TESTREMOV3(2)
 
-        TESTINTEN;
-
         TESTALLOC3(TestStructure, 5)
-
-        ASSERT(Interrupts::AreEnabled()
-            , "Interrupts should be enabled, but they are not! (Core #%us)"
-            , System::Cpu::GetData()->Index);
 
         ASSERT(tO2 == tO5
             , "2nd and 5th test objects should be identical: %Xp vs %Xp"
@@ -937,10 +922,6 @@ Handle TestObjectAllocator(bool const bsp)
 
         if (!res.IsOkayResult())
             return res;
-
-        msg_("[[ FP=%Xp, cap=%u4, fc=%u4 ]]%n"
-            , testAllocator.FirstPool, testAllocator.FirstPool->Capacity
-            , testAllocator.FirstPool->FreeCount);
 
         askedToEnlarge = askedToAcquire = askedToRemove = false;
         //  These may have occured already!
@@ -990,8 +971,6 @@ Handle TestObjectAllocator(bool const bsp)
             , "The allocator was asked to acquire a pool when it already has "
               "asked to enlarge..??");
 
-        msg("[[ Busy count is now %us ]]%n", testAllocator.GetBusyCount());
-
         //  Now let's allocate moar objects!
 
         TESTALLOC3(TestStructure, 11)
@@ -1030,9 +1009,6 @@ Handle TestObjectAllocator(bool const bsp)
 
         ASSERT(!askedToRemove
             , "The allocator asked to remove a pool before it was empty..?");
-        msg("[[ FP=%Xp, cap=%u4, fc=%u4 ]]%n"
-            , testAllocator.FirstPool, testAllocator.FirstPool->Capacity
-            , testAllocator.FirstPool->FreeCount);
 
         //  Let's try full removal.
 
@@ -1040,15 +1016,9 @@ Handle TestObjectAllocator(bool const bsp)
         TESTREMOV3(12) TESTREMOV3(11) TESTREMOV3(14) TESTREMOV3(15)
         //  Removing known objects.
 
-        msg("[[ FP=%Xp, cap=%u4, fc=%u4 ]]%n"
-            , testAllocator.FirstPool, testAllocator.FirstPool->Capacity
-            , testAllocator.FirstPool->FreeCount);
-
         ASSERT(!askedToRemove
             , "The allocator asked to remove a pool when objects should still be"
               "left in it!");
-
-        msg("[[ Busy count is now %us ]]%n", testAllocator.GetBusyCount());
 
         //  This uses `y` and not `x` because the latter is removed last.
         while (tOy != nullptr)
@@ -1060,9 +1030,6 @@ Handle TestObjectAllocator(bool const bsp)
 
             tOy = next;
         }
-
-        msg("[[ Busy count is now %us; FP=%Xp ]]%n"
-            , testAllocator.GetBusyCount(), testAllocator.FirstPool);
 
         //  Right now there should only be one object left in the pool: tOx.
 
