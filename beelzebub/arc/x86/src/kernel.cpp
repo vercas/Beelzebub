@@ -301,6 +301,12 @@ void Beelzebub::Main()
         //  Permit other processors to initialize themselves.
         MainTerminal->WriteLine("Initialization complete! Will enable scheduling.");
         MainTerminal->WriteLine();
+
+#ifdef __BEELZEBUB__TEST_OBJA
+        ObjectAllocatorTestBarrier1.Reset();
+        ObjectAllocatorTestBarrier2.Reset();
+        ObjectAllocatorTestBarrier3.Reset();
+#endif
     }
 
     Scheduling = true;
@@ -367,12 +373,6 @@ void Beelzebub::Main()
 #endif
 
         MainTerminal->WriteLine("\\Halting indefinitely now.");
-
-#ifdef __BEELZEBUB__TEST_OBJA
-        ObjectAllocatorTestBarrier1.Reset();
-        ObjectAllocatorTestBarrier2.Reset();
-        ObjectAllocatorTestBarrier3.Reset();
-#endif
 
         //PrintToDebugTerminal(Domain0.Gdt);
         //msg("%n%n");
