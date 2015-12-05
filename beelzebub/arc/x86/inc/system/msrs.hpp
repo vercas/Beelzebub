@@ -68,8 +68,10 @@ namespace Beelzebub { namespace System
 
         //  System call Target Address
         IA32_STAR           = 0xC0000081,
-        //  Long Mode System call Target Address
+        //  Long Mode System Call Target Address
         IA32_LSTAR          = 0xC0000082,
+        //  Compatibility Mode System Call Target Address
+        IA32_CSTAR          = 0xC0000083,
         //  System call Flag Mask
         IA32_FMASK          = 0xC0000084,
 
@@ -166,6 +168,8 @@ namespace Beelzebub { namespace System
 
         MSRFUNC1(IA32_EFER     , EFER    , Ia32Efer    )
         MSRFUNC1(IA32_APIC_BASE, ApicBase, Ia32ApicBase)
+        MSRFUNC1(IA32_STAR     , STAR    , Ia32Star    )
+        MSRFUNC1(IA32_FMASK    , Fmask   , Ia32Fmask   )
 
         /*  Shortcuts  */
 

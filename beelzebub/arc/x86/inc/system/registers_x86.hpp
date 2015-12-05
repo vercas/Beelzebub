@@ -198,4 +198,85 @@ namespace Beelzebub { namespace System
 
         uint64_t Value;
     };
+
+    /**
+     *  <summary>Represents the contents of the IA32_STAR MSR.</summary>
+     */
+    struct Ia32Star
+    {
+        /*  Bit structure:
+         *       0 -  31 : Reserved (must be 0)
+         *      32 -  47 : Syscall CS and SS
+         *      48 -  63 : Sysret CS and SS
+         */
+
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_4W(32, 16, uint16_t, SyscallCsSs)
+        BITFIELD_DEFAULT_4W(48, 16, uint16_t, SysretCsSs)
+
+        /*  Constructors  */
+
+        /**
+         *  Creates a new IA32_STAR structure from the given MSR value.
+         */
+        inline explicit Ia32Star(MsrValue const val) : Value(val.Qword) { }
+
+        /**
+         *  Creates a new IA32_STAR structure from the given raw value.
+         */
+        inline explicit Ia32Star(uint64_t const val) : Value(val) { }
+
+        /*  Field(s)  */
+
+    //private:
+
+        uint64_t Value;
+    };
+
+    /**
+     *  <summary>Represents the contents of the IA32_FMASK MSR.</summary>
+     */
+    struct Ia32Fmask
+    {
+        /*  Constructors  */
+
+        /**
+         *  Creates a new IA32_FMASK structure from the given MSR value.
+         */
+        inline explicit Ia32Fmask(MsrValue const val) : Value(val.Qword) { }
+
+        /**
+         *  Creates a new IA32_FMASK structure from the given flags.
+         */
+        inline explicit Ia32Fmask(FlagsRegisterFlags const flags)
+            : Flags(flags)
+#ifndef __BEELZEBUB__ARCH_AMD64
+            , Reserved(0)
+#endif
+        {
+
+        }
+
+        /**
+         *  Creates a new IA32_FMASK structure from the given raw value.
+         */
+        inline explicit Ia32Fmask(uint64_t const val) : Value(val) { }
+
+        /*  Field(s)  */
+
+        union
+        {
+            struct
+            {
+                FlagsRegisterFlags Flags;
+
+#ifndef __BEELZEBUB__ARCH_AMD64
+                uint32_t Reserved;
+#endif
+            };
+
+            uint64_t Value;
+        };
+    };
 }}
