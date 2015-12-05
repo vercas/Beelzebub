@@ -38,6 +38,16 @@
 */
 
 #include <system/syscalls.hpp>
+#include <system/msrs.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+
+/*********************
+    Syscalls class
+*********************/
+
+void Syscalls::Initialize()
+{
+
+}

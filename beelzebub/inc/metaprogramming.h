@@ -169,6 +169,10 @@
 
 #endif
 
+#ifndef __fastcall_ia32
+#define __fastcall_ia32  
+#endif
+
 //  These exist because they are shorter and I can later adapt them for
 //  other compilers as well.
 

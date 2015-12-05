@@ -82,6 +82,8 @@ typedef  int32_t ssize_t;
 
 typedef void * int_cookie_t;
 
+#define __fastcall_ia32 __attribute__((__fastcall__))
+
 #endif
 
 typedef uint16_t seg_t; //  Segment register.

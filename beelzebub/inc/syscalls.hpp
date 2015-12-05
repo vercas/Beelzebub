@@ -39,26 +39,20 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <handles.h>
 
-namespace Beelzebub { namespace System
+namespace Beelzebub
 {
-    /**
-     *  <summary>Contains methods for interfacing with syscalls.</summary>
-     */
-    class Syscalls
-    {
-        /*  Constructor(s)  */
-
-    protected:
-        Syscalls() = default;
-
-    public:
-        Syscalls(Syscalls const &) = delete;
-        Syscalls & operator =(Syscalls const &) = delete;
-
-        /*  Initialization  */
-
-        static __cold void Initialize();
-    };
-}}
+    __extern __hot __fastcall_ia32 Handle SyscallCommon(uintptr_t const selector
+                                                      , void *    const arg1
+                                                      , uintptr_t const arg2
+                                                      , uintptr_t const arg3
+                                                      , uintptr_t const arg4
+                                                      , uintptr_t const arg5);
+    //  A selector and 5 arguments, platform-independent.
+    //  Argument 1 (2nd function argument) is the one used to point to extra
+    //  data, if 5 syscall arguments are not enough.
+    //  The IA-32 architecture will use the fastcall convention here, so the
+    //  userland can pass on at least one argument as register and the rest on
+    //  the stack.
+}

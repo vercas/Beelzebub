@@ -139,6 +139,8 @@ namespace Beelzebub
         ArgumentOutOfRange        = 0x11U, // Arg. OOR
         //  An argument given to a function/method shouldn't be null.
         ArgumentNull              = 0x12U, // Arg. Null
+        //  A selected syscal lis invalid.
+        SyscallSelectionInvalid   = 0x1FU, // Sysc S inv.
 
         //  An unknown format specifier was encountered in the format string.
         FormatBadSpecifier        = 0x20U, // Frm. BSpc.
@@ -377,7 +379,14 @@ namespace Beelzebub
 
 #else
     
-    typedef struct Handle_t { uint64_t Value; } Handle;
-    //  Eh... Good enough.
+    typedef union Handle
+    {
+        uint64_t Value;
+        uint32_t Dwords[2];
+        uint16_t Words[4];
+        uint8_t  Bytes[8];
+    } Handle;
+
+    //  Eh... Good enough?
 
 #endif

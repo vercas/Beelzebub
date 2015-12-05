@@ -41,16 +41,28 @@
 
 #include <system/registers_x86.hpp>
 
-#define MSRFUNC1(name, prettyName, type)                                  \
+#define MSRFUNC1(name, prettyName, type)                          \
 static __forceinline type MCATS2(Get, prettyName)()               \
-{                                                                         \
-    uint64_t temp = 0;                                                    \
-    Read(Msr::name, temp);                                                \
-    return type(temp);                                                    \
-}                                                                         \
+{                                                                 \
+    uint64_t temp = 0;                                            \
+    Read(Msr::name, temp);                                        \
+    return type(temp);                                            \
+}                                                                 \
 static __forceinline void MCATS2(Set, prettyName)(const type val) \
-{                                                                         \
-    Write(Msr::name, val.Value);                                          \
+{                                                                 \
+    Write(Msr::name, val.Value);                                  \
+}
+
+#define MSRFUNC2(name, prettyName, type)                          \
+static __forceinline type MCATS2(Get, prettyName)()               \
+{                                                                 \
+    uint64_t temp = 0;                                            \
+    Read(Msr::name, temp);                                        \
+    return reinterpret_cast<type>(temp);                          \
+}                                                                 \
+static __forceinline void MCATS2(Set, prettyName)(const type val) \
+{                                                                 \
+    Write(Msr::name, reinterpret_cast<uint64_t>(val));            \
 }
 
 namespace Beelzebub { namespace System
@@ -168,7 +180,9 @@ namespace Beelzebub { namespace System
 
         MSRFUNC1(IA32_EFER     , EFER    , Ia32Efer    )
         MSRFUNC1(IA32_APIC_BASE, ApicBase, Ia32ApicBase)
-        MSRFUNC1(IA32_STAR     , STAR    , Ia32Star    )
+        MSRFUNC1(IA32_STAR     , Star    , Ia32Star    )
+        MSRFUNC2(IA32_LSTAR    , Lstar   , void *      )
+        MSRFUNC2(IA32_CSTAR    , Cstar   , void *      )
         MSRFUNC1(IA32_FMASK    , Fmask   , Ia32Fmask   )
 
         /*  Shortcuts  */

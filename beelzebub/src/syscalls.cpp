@@ -37,28 +37,23 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <syscalls.hpp>
 
-#include <metaprogramming.h>
+using namespace Beelzebub;
 
-namespace Beelzebub { namespace System
+Handle Beelzebub::SyscallCommon(uintptr_t const selector, void * const arg1
+                              , uintptr_t const arg2, uintptr_t const arg3
+                              , uintptr_t const arg4, uintptr_t const arg5)
 {
-    /**
-     *  <summary>Contains methods for interfacing with syscalls.</summary>
-     */
-    class Syscalls
+    switch (selector)
     {
-        /*  Constructor(s)  */
+    case 0:
 
-    protected:
-        Syscalls() = default;
+        break;
 
-    public:
-        Syscalls(Syscalls const &) = delete;
-        Syscalls & operator =(Syscalls const &) = delete;
+    default:
+        return HandleResult::SyscallSelectionInvalid;
+    }
 
-        /*  Initialization  */
-
-        static __cold void Initialize();
-    };
-}}
+    return HandleResult::Okay;
+}
