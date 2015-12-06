@@ -87,28 +87,48 @@ IsrCommonStub:
     mov     es, ax
     ;   Make sure the data segments are the kernel's, before accessing data below.
 
-    mov     rdi, rsp
-    ;   Stack pointer as first parameter (IsrState *)
-
     mov     rbx, InterruptHandlers
     mov     rdx, qword [rbx + rcx * 8]
     ;   Handler pointer.
-
-    mov     rbx, InterruptEnders
-    mov     rsi, qword [rbx + rcx * 8]
-    ;   Ender pointer.
 
     test    rdx, rdx
     jz      .skip
     ;   A null handler means the call is skipped.
 
+    mov     rbx, InterruptEnders
+    mov     rsi, qword [rbx + rcx * 8]
+    ;   Ender pointer.
+
+    mov     rdi, rsp
+    ;   Stack pointer as first parameter (IsrState *)
+
+    mov     rax, [rsp + 0x90]
+    cmp     al, byte 0x8 
+    je      .skip_swap_1
+    ;   If the old code segment was the kernel's, skip the swapping.
+
+    ;   The continuous path is the one that includes swapping because most CPU
+    ;   time should be spent in the userland anyway.
+
+    swapgs
+
+.skip_swap_1:
     ;   At this point, the arguments given are the following:
     ;   1. RDI = State pointer
     ;   2. RSI = Ender pointer
     ;   3. RDX = Handler pointer
     ;   4. RCX = Vector
-    call    rdx                            ;   Call handler
+    call    rdx
+    ;   Call handler. Preserves RBP by convention.
 
+    mov     rax, [rsp + 0x90]
+    cmp     al, byte 0x8 
+    je      .skip_swap_2
+    ;   The code segment may have changed. If it's the kernel's, no swap.
+
+    swapgs
+
+.skip_swap_2:
 .skip:
     pop     rax 
     mov     es, ax

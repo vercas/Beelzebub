@@ -38,21 +38,20 @@
 */
 
 #include <syscalls.kernel.hpp>
-#include <syscalls.h>
 
 #include <terminals/base.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 
-Handle Beelzebub::SyscallCommon(uintptr_t const selector, void * const arg1
+Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * const arg1
                               , uintptr_t const arg2, uintptr_t const arg3
                               , uintptr_t const arg4, uintptr_t const arg5)
 {
     switch (selector)
     {
-    case 0:
-
-        break;
+    case SyscallSelection::DebugPrint:
+        return Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1)).Result;
 
     default:
         return HandleResult::SyscallSelectionInvalid;

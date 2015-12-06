@@ -43,6 +43,9 @@
 
 namespace Beelzebub { namespace System
 {
+    __extern void SyscallEntry_64();
+    __extern void SyscallEntry_32();
+
     /**
      *  <summary>Contains methods for interfacing with syscalls.</summary>
      */

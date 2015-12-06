@@ -41,6 +41,7 @@
 
 #define GET_MACRO2(_1, _2, NAME, ...) NAME
 #define GET_MACRO3(_1, _2, _3, NAME, ...) NAME
+#define GET_MACRO4(_1, _2, _3, _4, NAME, ...) NAME
 #define GET_MACRO6(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
 //  Got this from http://stackoverflow.com/a/11763277
 
@@ -199,17 +200,34 @@ inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
 #define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
 
+//  Why? For the glory of C++, of course.
+#endif
+
+//  Simple enumeration item with default value.
 #define ENUMINST_VAL1(name) name,
 #define ENUMINST_CASERETSTR1(name) case name: return #name;
 
+//  Enumeration item with given value.
 #define ENUMINST_VAL2(name, num) name = num,
 #define ENUMINST_CASERETSTR2(name, num) case num: return #name;
 
+//  Enumeration item with given value and string representation.
 #define ENUMINST_VAL3(name, num, str) name = num,
 #define ENUMINST_CASERETSTR3(name, num, str) case num: return str;
 
-#define ENUMINST_VAL(...) GET_MACRO3(__VA_ARGS__, ENUMINST_VAL3, ENUMINST_VAL2, ENUMINST_VAL1)(__VA_ARGS__)
-#define ENUMINST_CASERETSTR(...) GET_MACRO3(__VA_ARGS__, ENUMINST_CASERETSTR3, ENUMINST_CASERETSTR2, ENUMINST_CASERETSTR1)(__VA_ARGS__)
+//  Enumeration item with different names on C and C++, but same value and string
+//  representation on both.
+
+#ifdef __cplusplus
+#define ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
+#else
+#define ENUMINST_VAL4(cppname, cname, num, str) cname = num,
+#endif
+
+#define ENUMINST_CASERETSTR4(cppname, cname, num, str) case num: return str;
+
+#define ENUMINST_VAL(...) GET_MACRO4(__VA_ARGS__, ENUMINST_VAL4, ENUMINST_VAL3, ENUMINST_VAL2, ENUMINST_VAL1)(__VA_ARGS__)
+#define ENUMINST_CASERETSTR(...) GET_MACRO4(__VA_ARGS__, ENUMINST_CASERETSTR4, ENUMINST_CASERETSTR3, ENUMINST_CASERETSTR2, ENUMINST_CASERETSTR1)(__VA_ARGS__)
 
 #define ENUM_TO_STRING_EX1(enumName, attrBefore, func, val, enumDef) \
     attrBefore char const * const func              \
@@ -224,9 +242,6 @@ inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
 #define ENUM_TO_STRING(enumName, enumDef) \
     ENUM_TO_STRING_EX1(enumName, , EnumToString(enumName const val), val, enumDef)
-
-//  Why? For the glory of C++, of course.
-#endif
 
 /*  Some type aliases...  */
 

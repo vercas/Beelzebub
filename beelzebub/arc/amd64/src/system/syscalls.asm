@@ -38,43 +38,49 @@
 section .text
 bits 64
 
-global GoToRing3_64
+global SyscallEntry_64
+extern SyscallCommon
 
-;   Performs the transition into ring 3.
-;   Arguments:
-;       RDI: Entry point;
-;       RSI: Stack top;
-GoToRing3_64:
-    mov     ebx, 0x33
-    mov     ds, bx
-    mov     es, bx
-    ;   Changes the data segments to 64-bit user code.
+;   It is absolutely vital that the time & instructions between syscall/sysret
+;   and stack swaps is minimal, because NMIs can still occur.
 
-    push    rbx
-    push    rsi
-    push    qword 0x202
-    push    qword 0x2B
-    push    rdi
+;   Userland should know RBP is clobbered.
+SyscallEntry_64:
+    swapgs
+    ;   Grab kernel GS base ASAP.
+    
+    mov     rbp, rsp
+    mov     rsp, qword [gs:0x10]
+    ;   Back up user stack pointer into R12 (callee-saved) and retrieve
+    ;   the kernel stack pointer, also ASAP.
 
-    xor     eax, eax
-    xor     ebx, ebx
-    xor     ecx, ecx
-    xor     edx, edx
-    xor     ebp, ebp
+    sti
+    ;   Syscalls are interruptible.
 
-    xor     r8d, r8d
-    xor     r9d, r9d
-    xor     r10, r10
-    xor     r11, r11
-    xor     r12, r12
-    xor     r13, r13
-    xor     r14, r14
-    xor     r15, r15
+    push    rcx
+    push    r11
+    ;   Back up return RIP and RFLAGS on kernel stack.
 
-    ;   RDI, RSI, RSP and RIP don't matter. They don't leak any info.
+    xchg    r10, rcx
+    ;   RCX contained return RIP and R10 contained the fourth argument.
+    ;   They're needed the other way around.
 
+    call    SyscallCommon
+    ;   Just a vanilla call. The arguments are already in the right registers.
+
+    ;   No need to swap R10 and RCX again.
+
+    push    r11
+    push    rcx
+    ;   Restore return RFLAGS and RIP from kernel stack.
+    
     cli
+    ;   Will disable interrupts until sysret.
 
     swapgs
+    ;   Restore user GS base.
+    
+    mov     rsp, rbp
+    ;   Restore user stack and then R12 from user stack.
 
-    iretq
+    sysret

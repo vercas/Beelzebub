@@ -39,11 +39,11 @@
 
 #pragma once
 
-#include <handles.h>
+#include <syscalls.h>
 
 namespace Beelzebub
 {
-    __extern __hot __fastcall_ia32 Handle SyscallCommon(uintptr_t const selector
+    __extern __hot __fastcall_ia32 Handle SyscallCommon(SyscallSelection const selector
                                                       , void *    const arg1
                                                       , uintptr_t const arg2
                                                       , uintptr_t const arg3

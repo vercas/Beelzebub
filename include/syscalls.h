@@ -41,3 +41,18 @@
 
 #include <handles.h>
 
+#define ENUM_SYSCALLSELECTION(ENUMINST) \
+    /*  Will simply print a value on the debug terminal. */ \
+    ENUMINST(DebugPrint, SYSCALL_DEBUG_PRINT, 0, "Debug Print") \
+
+#ifdef __cplusplus
+enum class SyscallSelection
+#else
+enum SYSCALLS
+#endif
+{
+    ENUM_SYSCALLSELECTION(ENUMINST_VAL)
+};
+
+//  Yes, this is an enum class in C++ and a standard enum in C.
+//  The C++ enum is also in the global namespace.
