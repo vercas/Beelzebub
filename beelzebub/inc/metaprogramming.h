@@ -40,6 +40,7 @@
 #define GET_ARG4(_4, _3, _2, _1) _1
 
 #define GET_MACRO2(_1, _2, NAME, ...) NAME
+#define GET_MACRO3(_1, _2, _3, NAME, ...) NAME
 #define GET_MACRO6(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
 //  Got this from http://stackoverflow.com/a/11763277
 
@@ -198,11 +199,20 @@ inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
 #define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
 
-#define ENUMINST_VAL(name, num) name = num,
-#define ENUMINST_CASERETSTR(name, num) case num: return #name;
+#define ENUMINST_VAL1(name) name,
+#define ENUMINST_CASERETSTR1(name) case name: return #name;
 
-#define ENUM_TO_STRING(enumName, enumDef)           \
-    char const * EnumToString(enumName const val)   \
+#define ENUMINST_VAL2(name, num) name = num,
+#define ENUMINST_CASERETSTR2(name, num) case num: return #name;
+
+#define ENUMINST_VAL3(name, num, str) name = num,
+#define ENUMINST_CASERETSTR3(name, num, str) case num: return str;
+
+#define ENUMINST_VAL(...) GET_MACRO3(__VA_ARGS__, ENUMINST_VAL3, ENUMINST_VAL2, ENUMINST_VAL1)(__VA_ARGS__)
+#define ENUMINST_CASERETSTR(...) GET_MACRO3(__VA_ARGS__, ENUMINST_CASERETSTR3, ENUMINST_CASERETSTR2, ENUMINST_CASERETSTR1)(__VA_ARGS__)
+
+#define ENUM_TO_STRING_EX1(enumName, attrBefore, func, val, enumDef) \
+    attrBefore char const * const func              \
     {                                               \
         switch ((__underlying_type(enumName))val)   \
         {                                           \
@@ -211,6 +221,9 @@ inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
                 return "UNKNOWN";                   \
         }                                           \
     }
+
+#define ENUM_TO_STRING(enumName, enumDef) \
+    ENUM_TO_STRING_EX1(enumName, , EnumToString(enumName const val), val, enumDef)
 
 //  Why? For the glory of C++, of course.
 #endif

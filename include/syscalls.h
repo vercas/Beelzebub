@@ -37,23 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <syscalls.hpp>
+#pragma once
 
-using namespace Beelzebub;
+#include <handles.h>
 
-Handle Beelzebub::SyscallCommon(uintptr_t const selector, void * const arg1
-                              , uintptr_t const arg2, uintptr_t const arg3
-                              , uintptr_t const arg4, uintptr_t const arg5)
-{
-    switch (selector)
-    {
-    case 0:
-
-        break;
-
-    default:
-        return HandleResult::SyscallSelectionInvalid;
-    }
-
-    return HandleResult::Okay;
-}

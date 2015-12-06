@@ -7,6 +7,7 @@ all: amd64
 ###############
 # Directories #
 PREFIX		:= ./../build
+INC_COMMON	:= ./../include
 SRC_DIR		:= ./src
 ARC_DIR		:= ./arc
 AUX_DIR		:= ./arc
@@ -117,7 +118,7 @@ $(ARC):	linko
 
 # Standard
 # INCFLAGS	:= -I$(INCPCH_DIR) -I$(INC_DIR) -I$(PREFIX)/include
-INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
+INCFLAGS	:= -I$(INC_COMMON) -I$(INC_DIR) -I$(PREFIX)/include
 INCFLAGS	+= -I./../acpica/include
 
 OBJECTS		+= $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SRC_DIR) -name "*.c"))
@@ -129,7 +130,7 @@ HEADERS		+= $(patsubst $(INC_DIR)/%.h,$(INCPCH_DIR)/%.h.gch,$(shell find $(INC_D
 
 # When architecture-specific files are present...
 ifneq (,$(ARC))
-	INCFLAGS	+= -I$(ARC_DIR)/$(ARC)/inc
+	INCFLAGS	+= -I$(INC_COMMON)/$(ARC) -I$(ARC_DIR)/$(ARC)/inc
 
 	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.c,$(BUILD_DIR)/%.c.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.c"))
 	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.asm,$(BUILD_DIR)/%.asm.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.asm"))
@@ -141,7 +142,7 @@ endif
 
 # When auxiliary files are present...
 ifneq (,$(AUX))
-	INCFLAGS	+= -I$(AUX_DIR)/$(AUX)/inc
+	INCFLAGS	+= -I$(INC_COMMON)/$(AUX) -I$(AUX_DIR)/$(AUX)/inc
 
 	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.c,$(BUILD_DIR)/%.c.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.c"))
 	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.asm,$(BUILD_DIR)/%.asm.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.asm"))
