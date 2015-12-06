@@ -44,12 +44,12 @@ extern SyscallCommon
 ;   It is absolutely vital that the time & instructions between syscall/sysret
 ;   and stack swaps is minimal, because NMIs can still occur.
 
-;   Userland should know RBP is clobbered.
+;   Userland should know R12 is clobbered.
 SyscallEntry_64:
     swapgs
     ;   Grab kernel GS base ASAP.
     
-    mov     rbp, rsp
+    mov     r12, rsp
     mov     rsp, qword [gs:0x10]
     ;   Back up user stack pointer into R12 (callee-saved) and retrieve
     ;   the kernel stack pointer, also ASAP.
@@ -70,8 +70,8 @@ SyscallEntry_64:
 
     ;   No need to swap R10 and RCX again.
 
-    push    r11
-    push    rcx
+    pop     r11
+    pop     rcx
     ;   Restore return RFLAGS and RIP from kernel stack.
     
     cli
@@ -80,7 +80,7 @@ SyscallEntry_64:
     swapgs
     ;   Restore user GS base.
     
-    mov     rsp, rbp
-    ;   Restore user stack and then R12 from user stack.
+    mov     rsp, r12
+    ;   Restore user stack.
 
-    sysret
+    o64 sysret

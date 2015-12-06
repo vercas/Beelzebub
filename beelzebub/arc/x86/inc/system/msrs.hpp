@@ -48,7 +48,7 @@ static __forceinline type MCATS2(Get, prettyName)()               \
     Read(Msr::name, temp);                                        \
     return type(temp);                                            \
 }                                                                 \
-static __forceinline void MCATS2(Set, prettyName)(const type val) \
+static __forceinline void MCATS2(Set, prettyName)(type const val) \
 {                                                                 \
     Write(Msr::name, val.Value);                                  \
 }
@@ -60,7 +60,7 @@ static __forceinline type MCATS2(Get, prettyName)()               \
     Read(Msr::name, temp);                                        \
     return reinterpret_cast<type>(temp);                          \
 }                                                                 \
-static __forceinline void MCATS2(Set, prettyName)(const type val) \
+static __forceinline void MCATS2(Set, prettyName)(type const val) \
 {                                                                 \
     Write(Msr::name, reinterpret_cast<uint64_t>(val));            \
 }
@@ -178,11 +178,11 @@ namespace Beelzebub { namespace System
                          : "c" (reg), "a" (a), "d" (d) );
         }
 
-        MSRFUNC1(IA32_EFER     , EFER    , Ia32Efer    )
+        MSRFUNC1(IA32_EFER     , Efer    , Ia32Efer    )
         MSRFUNC1(IA32_APIC_BASE, ApicBase, Ia32ApicBase)
         MSRFUNC1(IA32_STAR     , Star    , Ia32Star    )
-        MSRFUNC2(IA32_LSTAR    , Lstar   , void *      )
-        MSRFUNC2(IA32_CSTAR    , Cstar   , void *      )
+        MSRFUNC1(IA32_LSTAR    , Lstar   , Ia32Lstar   )
+        MSRFUNC1(IA32_CSTAR    , Cstar   , Ia32Cstar   )
         MSRFUNC1(IA32_FMASK    , Fmask   , Ia32Fmask   )
 
         /*  Shortcuts  */

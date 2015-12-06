@@ -28,9 +28,12 @@
 
 #include "stdint.h"
 #include "stddef.h"
-#include <cpp_support.h>
 
-#include <metaprogramming_arch.inc>
+#if   defined(__BEELZEBUB_KERNEL)
+#include <cpp_support.h>
+#endif
+
+#include <metaprogramming.arc.inc>
 
 /*  Some macro helpers. */
 
@@ -268,6 +271,7 @@ typedef uintptr_t UIntPtr;
 /*  Some funnction types...  */
 
 typedef bool (*PredicateFunction0)(/* nothing */);
+typedef void (*ActionFunction0)(/* nothing */);
 
 /*  Memory barriers and forced ordering  */
 

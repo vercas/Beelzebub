@@ -217,6 +217,8 @@ namespace Beelzebub { namespace System
 
         /*  Constructors  */
 
+        Ia32Star() = default;
+
         /**
          *  Creates a new IA32_STAR structure from the given MSR value.
          */
@@ -249,7 +251,7 @@ namespace Beelzebub { namespace System
         /**
          *  Creates a new IA32_FMASK structure from the given flags.
          */
-        inline explicit Ia32Fmask(FlagsRegisterFlags const flags)
+        inline Ia32Fmask(FlagsRegisterFlags const flags)
             : Flags(flags)
 #ifndef __BEELZEBUB__ARCH_AMD64
             , Reserved(0)
@@ -270,6 +272,98 @@ namespace Beelzebub { namespace System
             struct
             {
                 FlagsRegisterFlags Flags;
+
+#ifndef __BEELZEBUB__ARCH_AMD64
+                uint32_t Reserved;
+#endif
+            };
+
+            uint64_t Value;
+        };
+    };
+
+    /**
+     *  <summary>Represents the contents of the IA32_LSTAR MSR.</summary>
+     */
+    struct Ia32Lstar
+    {
+        /*  Constructors  */
+
+        /**
+         *  Creates a new IA32_LSTAR structure from the given MSR value.
+         */
+        inline explicit Ia32Lstar(MsrValue const val) : Value(val.Qword) { }
+
+        /**
+         *  Creates a new IA32_LSTAR structure from the given function pointer.
+         */
+        inline Ia32Lstar(ActionFunction0 const ptr)
+            : Pointer(ptr)
+#ifndef __BEELZEBUB__ARCH_AMD64
+            , Reserved(0)
+#endif
+        {
+
+        }
+
+        /**
+         *  Creates a new IA32_LSTAR structure from the given raw value.
+         */
+        inline explicit Ia32Lstar(uint64_t const val) : Value(val) { }
+
+        /*  Field(s)  */
+
+        union
+        {
+            struct
+            {
+                ActionFunction0 Pointer;
+
+#ifndef __BEELZEBUB__ARCH_AMD64
+                uint32_t Reserved;
+#endif
+            };
+
+            uint64_t Value;
+        };
+    };
+
+    /**
+     *  <summary>Represents the contents of the IA32_CSTAR MSR.</summary>
+     */
+    struct Ia32Cstar
+    {
+        /*  Constructors  */
+
+        /**
+         *  Creates a new IA32_CSTAR structure from the given MSR value.
+         */
+        inline explicit Ia32Cstar(MsrValue const val) : Value(val.Qword) { }
+
+        /**
+         *  Creates a new IA32_CSTAR structure from the given function pointer.
+         */
+        inline Ia32Cstar(ActionFunction0 const ptr)
+            : Pointer(ptr)
+#ifndef __BEELZEBUB__ARCH_AMD64
+            , Reserved(0)
+#endif
+        {
+
+        }
+
+        /**
+         *  Creates a new IA32_CSTAR structure from the given raw value.
+         */
+        inline explicit Ia32Cstar(uint64_t const val) : Value(val) { }
+
+        /*  Field(s)  */
+
+        union
+        {
+            struct
+            {
+                ActionFunction0 Pointer;
 
 #ifndef __BEELZEBUB__ARCH_AMD64
                 uint32_t Reserved;

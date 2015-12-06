@@ -1,4 +1,6 @@
-#include <stdint.h>
+#include <syscalls.h>
+
+using namespace Beelzebub;
 
 extern "C" __attribute__((__used__)) int _start()
 {
@@ -14,6 +16,8 @@ extern "C" __attribute__((__used__)) int _start()
 
         for (uint8_t * ptr = reinterpret_cast<uint8_t *>(someAddress + 8); (uintptr_t)ptr < someEnd; ++ptr)
             ++(*ptr);
+
+        PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("SYSCALL TEST LEL"), 0, 0, 0, 0);
 
     } while (true);
 

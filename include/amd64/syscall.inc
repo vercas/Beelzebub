@@ -38,23 +38,35 @@
 */
 
 #pragma once
-
-#include <handles.h>
-
-#define ENUM_SYSCALLSELECTION(ENUMINST) \
-    /*  Will simply print a value on the debug terminal. */ \
-    ENUMINST(DebugPrint, SYSCALL_DEBUG_PRINT, 0, "Debug Print") \
+//  Just prevent multiple inclusions.
 
 #ifdef __cplusplus
-enum class SyscallSelection
+#define Handle_t Beelzebub::Handle
 #else
-enum SYSCALLS
+#define Handle_t union Handle
+#define SyscallSelection enum SYSCALLS
 #endif
+
+inline Handle_t PerformSyscall(SyscallSelection selection, void * arg1
+    , uintptr_t arg2, uintptr_t arg3, uintptr_t arg4, uintptr_t arg5)
 {
-    ENUM_SYSCALLSELECTION(ENUMINST_VAL)
-};
+    Handle_t res;
 
-//  Yes, this is an enum class in C++ and a standard enum in C.
-//  The C++ enum is also in the global namespace.
+    register uintptr_t r10 asm("r10") = arg3;
+    register uintptr_t r8  asm("r8" ) = arg4;
+    register uintptr_t r9  asm("r9" ) = arg5;
 
-#include <syscall.inc>
+    asm volatile ( "syscall \n\t"
+                 : "=a"(res), "+D"(selection), "+S"(arg1), "+d"(arg2)
+                 , "+r"(r10), "+r"(r8), "+r"(r9)
+                 :
+                 : "rcx", "r11", "r12", "memory");
+
+    return res;
+}
+
+#undef Handle_t
+
+#ifndef __cplusplus
+#undef SyscallSelection
+#endif

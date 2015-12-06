@@ -39,6 +39,7 @@
 
 #include <system/syscalls.hpp>
 #include <system/msrs.hpp>
+#include <entry.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -49,5 +50,11 @@ using namespace Beelzebub::System;
 
 void Syscalls::Initialize()
 {
+    Msrs::SetFmask(FlagsRegisterFlags::Reserved1);
+    Msrs::SetStar(Ia32Star().SetSyscallCsSs(0x8).SetSysretCsSs(0x18));
 
+    Msrs::SetLstar(&SyscallEntry_64);
+
+    if (BootstrapCpuid.Vendor == CpuVendor::Intel)
+        Msrs::SetEfer(Msrs::GetEfer().SetSyscallEnable(true));
 }

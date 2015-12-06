@@ -52,6 +52,7 @@
 #include <system/interrupt_controllers/lapic.hpp>
 #include <system/interrupt_controllers/ioapic.hpp>
 #include <system/timers/pit.hpp>
+#include <system/syscalls.hpp>
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
@@ -289,6 +290,10 @@ void Beelzebub::Main()
                 , res);
         }
 
+        MainTerminal->Write("[....] Initializing syscalls...");
+        Syscalls::Initialize();
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+
         //  Upgrade the terminal to a more capable and useful one.
         //  Yet again, platform-specific.
         MainTerminal->Write("[....] Initializing main terminal...");
@@ -407,6 +412,9 @@ void Beelzebub::Secondary()
     Lapic::Initialize();
     //  Quickly get the local APIC initialized.
 
+    Syscalls::Initialize();
+    //  And syscalls.
+
     InitializationLock.Spin();
     //  Wait for the system to initialize.
 
@@ -458,7 +466,7 @@ TerminalBase * InitializeTerminalProto()
     //  TODO: Properly retrieve these addresses.
 
     //  Initializes COM1.
-    //COM1 = ManagedSerialPort(0x3F8);
+    // COM1 = ManagedSerialPort(0x3F8);
     new (&COM1) ManagedSerialPort(0x3F8);
     COM1.Initialize();
 
@@ -478,17 +486,17 @@ TerminalBase * InitializeTerminalProto()
     Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
 #endif
 
-    msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
-        , (uintptr_t)mbi->framebuffer_addr
-        , (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height
-        , (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
+    // msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
+    //     , (uintptr_t)mbi->framebuffer_addr
+    //     , (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height
+    //     , (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
 
-    /*msg(" vbe_control_info: %X4%n", mbi->vbe_control_info);
-    msg(" vbe_mode_info: %X4%n", mbi->vbe_mode_info);
-    msg(" vbe_mode: %X4%n", mbi->vbe_mode);
-    msg(" vbe_interface_seg: %X4%n", mbi->vbe_interface_seg);
-    msg(" vbe_interface_off: %X2%n", mbi->vbe_interface_off);
-    msg(" vbe_interface_len: %X2%n", mbi->vbe_interface_len); //*/
+    // msg(" vbe_control_info: %X4%n", mbi->vbe_control_info);
+    // msg(" vbe_mode_info: %X4%n", mbi->vbe_mode_info);
+    // msg(" vbe_mode: %X4%n", mbi->vbe_mode);
+    // msg(" vbe_interface_seg: %X4%n", mbi->vbe_interface_seg);
+    // msg(" vbe_interface_off: %X2%n", mbi->vbe_interface_off);
+    // msg(" vbe_interface_len: %X2%n", mbi->vbe_interface_len);
 
     //  And returns it.
     //return &initialSerialTerminal; // termPtr;
