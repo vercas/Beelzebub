@@ -35,6 +35,10 @@
 ; You may also find the text of this license in "LICENSE.md", along with a more
 ; thorough explanation regarding other files.
 
+;   It seems that not backing up anything on the user stack was a good idea,
+;   considering the fact that userland could change the stack pointer to
+;   anything prior to a syscall.
+
 section .text
 bits 64
 

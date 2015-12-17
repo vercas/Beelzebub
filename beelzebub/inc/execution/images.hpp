@@ -44,10 +44,15 @@
 
 namespace Beelzebub { namespace Execution
 {
+    class Image;
+    //  Forward declaration for the sake of the callback.
+
+    typedef Handle (*ImageUnloadCallback)(Image * const img);
+
     enum class ImageType
     {
-        None    = 0x00,
-        Invalid = 0x01,
+        Invalid = 0x00,
+        None    = 0x01,
 
         Elf32   = 0x10,
         Elf64   = 0x11,
@@ -58,8 +63,8 @@ namespace Beelzebub { namespace Execution
 
     enum class ImageRole
     {
-        None       = 0x00,
-        Invalid    = 0x01,
+        Invalid    = 0x00,
+        None       = 0x01,
         Auto       = 0x02,
 
         //  Userland
@@ -88,6 +93,7 @@ namespace Beelzebub { namespace Execution
             , Start(nullptr)
             , End(nullptr)
             , Size(0)
+            , UnloadCallback(nullptr)
         {
 
         }
@@ -129,6 +135,10 @@ namespace Beelzebub { namespace Execution
         uint8_t * const Start;
         uint8_t * const End;
         size_t const Size;
+
+        /*  Others  */
+
+        ImageUnloadCallback UnloadCallback;
     };
 
     class Images
@@ -154,7 +164,8 @@ namespace Beelzebub { namespace Execution
         /*  (Un)load  */
 
         static Handle Load(char const * const name, ImageRole const role
-            , uint8_t * const imgStart, size_t const size);
+            , uint8_t * const imgStart, size_t const size, Image * & img
+            , ImageUnloadCallback ucbk = nullptr);
         
         static Handle Unload(Image * const img);
     };

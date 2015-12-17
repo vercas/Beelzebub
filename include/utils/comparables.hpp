@@ -37,61 +37,59 @@
     thorough explanation regarding other files.
 */
 
-#include <execution/images.hpp>
+#pragma once
 
-#include <memory/object_allocator_smp.hpp>
-#include <memory/object_allocator_pools_heap.hpp>
+#include <metaprogramming.h>
 
-using namespace Beelzebub;
-using namespace Beelzebub::Execution;
-using namespace Beelzebub::Memory;
-using namespace Beelzebub::Synchronization;
-
-/*  Globals  */
-
-ObjectAllocatorSmp alloc;
-
-/******************
-    Image class
-******************/
-
-Handle Image::DecrementReferenceCount(size_t & newCount)
+namespace Beelzebub { namespace Utils
 {
-    newCount = (this->ReferenceCount -= 2) >> 1;
+    template<typename TObj, typename TKey>
+    struct ComparableCompound
+    {
+        /*  Constructors  */
 
-    if (newCount == 0)
-        return Images::Unload(this);
+        inline ComparableCompound(TObj & obj) : Object(obj) { }
 
-    return HandleResult::Okay;
-}
+        //  The rest (copy/move constructor/operators, destructor) are default.
 
-/*******************
-    Images class
-*******************/
+        /*  Operations  */
 
-/*  Initialization  */
+        comp_t Compare(TObj const & other) const;
+        comp_t Compare(TKey const & key  ) const;
+        TKey GetKey() const;
+        //  To be defined by instancing code.
 
-void Images::Initialize()
-{
-    new (&alloc) ObjectAllocatorSmp(sizeof(Image), __alignof(Image)
-        , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap
-        , PoolReleaseOptions::KeepOne, 0, Limit);
-}
+        /*  Conversions  */
 
-/*  (Un)load  */
+        inline operator TObj() const { return this->Object; }
+        //  Conversion is implicit.
 
-Handle Images::Load(char const * const name, ImageRole const role
-    , uint8_t * const imgStart, size_t const size, Image * & img
-    , ImageUnloadCallback ucbk)
-{
-    Handle res;
+        /*  Fields  */
 
-    return HandleResult::Okay;
-}
+        TObj Object;
+    };
 
-Handle Images::Unload(Image * const img)
-{
-    Handle res;
+    template<typename TObj>
+    struct Comparable
+    {
+        /*  Constructors  */
 
-    return HandleResult::Okay;
-}
+        inline Comparable(TObj & obj) : Object(obj) { }
+
+        //  The rest (copy/move constructor/operators, destructor) are default.
+
+        /*  Operations  */
+
+        comp_t Compare(TObj const & other) const;
+        //  To be defined by instancing code.
+
+        /*  Conversions  */
+
+        inline operator TObj() const { return this->Object; }
+        //  Conversion is implicit.
+
+        /*  Fields  */
+
+        TObj Object;
+    };
+}}
