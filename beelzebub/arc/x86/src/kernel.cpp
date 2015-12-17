@@ -88,6 +88,10 @@
 #include <tests/object_allocator.hpp>
 #endif
 
+#if __BEELZEBUB__TEST_AVL_TREE
+#include <tests/avl_tree.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -357,6 +361,14 @@ void Beelzebub::Main()
         MainTerminal->Write(">Testing string.h implementation...");
 
         TestStringLibrary();
+
+        MainTerminal->WriteLine(" Done.");
+#endif
+
+#ifdef __BEELZEBUB__TEST_AVL_TREE
+        MainTerminal->Write(">Testing AVL trees...");
+
+        TestAvlTree();
 
         MainTerminal->WriteLine(" Done.");
 #endif

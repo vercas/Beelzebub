@@ -73,7 +73,7 @@ struct TestStructure
     TestStructure * Next;
 };
 
-ObjectAllocatorSmp testAllocator;
+static ObjectAllocatorSmp testAllocator;
 SpinlockUninterruptible<> syncer;
 
 bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;

@@ -59,7 +59,7 @@ namespace Beelzebub { namespace Utils
         {
             //  Yes, `this` can be null.
 
-            if (this == nullptr)
+            if unlikely(this == nullptr)
                 return 0;
             else
                 return this->Height;
@@ -67,7 +67,7 @@ namespace Beelzebub { namespace Utils
 
         int GetBalance() const
         {
-            if (this == nullptr)
+            if unlikely(this == nullptr)
                 return 0;
             else
                 return this->Right->GetHeight() - this->Left->GetHeight();
@@ -75,23 +75,23 @@ namespace Beelzebub { namespace Utils
 
         int ComputeHeight()
         {
-            this->Height = Maximum(this->Left->GetHeight(), this->Right->GetHeight()) + 1;
+            return this->Height = Maximum(this->Left->GetHeight(), this->Right->GetHeight()) + 1;
         }
 
         AvlTreeNode * FindMinimum()
         {
-            if (this->Left == nullptr)
+            if unlikely(this->Left == nullptr)
                 return this;
             else
                 return this->Left->FindMinimum();
         }
 
-        AvlTreeNode * FindMAximum()
+        AvlTreeNode * FindMaximum()
         {
-            if (this->Right == nullptr)
+            if unlikely(this->Right == nullptr)
                 return this;
             else
-                return this->Right->FindMAximum();
+                return this->Right->FindMaximum();
         }
 
         /*  Operations  */
@@ -154,7 +154,7 @@ namespace Beelzebub { namespace Utils
 
         AvlTreeNode * RemoveMinimum()
         {
-            if (this->Left == nullptr)
+            if unlikely(this->Left == nullptr)
                 return this->Right;
             //  No left node means this is the minimum. The right leaf will
             //  replace this one.
@@ -168,50 +168,53 @@ namespace Beelzebub { namespace Utils
 
         /*  Fields  */
 
-        AvlTreeNode * Left, Right;
+        AvlTreeNode * Left, * Right;
         int Height; //  Don't really care about the type.
 
-        TPayload Payload;
+        Comparable<TPayload> Payload;
     };
 
-    template<typename TPayload, typename TKey
-           , typename TAlloc  , typename TRem
-           , typename TComp   , typename TSearch>
+    template<typename TPayload>
     class AvlTree
     {
+    public:
         /*  Types  */
 
-        typedef AvlTreeNode<TPayload> TNode;
+        typedef AvlTreeNode<TPayload> Node;
 
+    private:
         /*  Statics  */
 
-        static Handle Create(TNode * & node, TPayload * const pl)
+        static Handle AllocateNode(Node * & node);
+        static Handle RemoveNode(Node * const node);
+
+        static Handle Create(Node * & node, TPayload & payload)
         {
-            void * data;
+            Handle res = AllocateNode(node);
 
-            Handle res = TAlloc(sizeof(TNode), data);
-
-            if (res.IsOkayResult())
+            if likely(res.IsOkayResult())
             {
-                node = reinterpret_cast<TNode *>(data);
-
                 node->Left = node->Right = nullptr;
                 node->Height = 1;   //  Always a leaf.
 
-                node->Payload = *pl;
+                node->Payload = payload;
             }
 
             return res;
         }
 
-        static Handle Insert(TPayload & payload, TNode * & node)
+        static Handle Insert(TPayload & payload, Node * & node)
         {
             //  First step is spawning a new node.
 
-            if (node == nullptr)
+            if unlikely(node == nullptr)
                 return Create(node, payload);
 
-            comp_t const compRes = TComp(payload, node->Payload);
+            comp_t const compRes = node->Payload.Compare(payload);
+
+            if unlikely(compRes == 0)
+                return HandleResult::CardinalityViolation;
+            //  Enforce uniqueness, otherwise problems occur.
 
             Handle res;
 
@@ -220,7 +223,7 @@ namespace Beelzebub { namespace Utils
             else
                 res = Insert(payload, node->Right);
 
-            if (!res.IsOkayResult())
+            if unlikely(!res.IsOkayResult())
                 return res;
 
             //  Then... Balance, if needed.
@@ -231,6 +234,9 @@ namespace Beelzebub { namespace Utils
         }
 
     public:
+
+        static constexpr size_t const NodeSize = sizeof(Node);
+
         /*  Constructors  */
 
         AvlTree() = default;
@@ -242,8 +248,15 @@ namespace Beelzebub { namespace Utils
             return Insert(payload, this->Root);
         }
 
+        Handle Insert(TPayload const && payload)
+        {
+            TPayload dummy = payload;
+
+            return Insert(dummy, this->Root);
+        }
+
         /*  Fields  */
 
-        TNode * Root;
+        Node * Root;
     };
 }}

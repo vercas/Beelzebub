@@ -55,7 +55,7 @@
  *  <param name="len">The size of the memory blocks, in bytes.</param>
  *  <return>True if the memory blocks contain the same values; otherwise false.</return>
  */
-__extern __used       bool   memeq  (const void *       src1, const void *       src2,       size_t len);
+__extern __used bool memeq(const void * src1, const void * src2, size_t len);
 
 /**
  *  <summary>Compares the given blocks of memory.</summary>
@@ -69,7 +69,7 @@ __extern __used       bool   memeq  (const void *       src1, const void *      
  *  greater than the second, or 0 if the blocks are equal.
  *  </return>
  */
-__extern __used       comp_t memcmp (const void *       src1, const void *       src2,       size_t len);
+__extern __used comp_t memcmp(const void * src1, const void * src2, size_t len);
 
 #ifdef __cplusplus
 /**
@@ -84,7 +84,7 @@ __extern __used       comp_t memcmp (const void *       src1, const void *      
  *  found; otherwise <c>nullptr</c>.
  *  </return>
  */
-  extern __used const void * memchr (const void *       src , const int          val ,       size_t len);
+extern __used const void * memchr(const void * src, const int val, size_t len);
 
 /**
  *  <summary>
@@ -98,7 +98,7 @@ __extern __used       comp_t memcmp (const void *       src1, const void *      
  *  found; otherwise <c>nullptr</c>.
  *  </return>
  */
-  extern __used       void * memchr (      void *       src , const int          val ,       size_t len);
+  extern __used void * memchr(void * src, const int val, size_t len);
 #else   //  C vs C++. :(
 
 /**
@@ -113,7 +113,7 @@ __extern __used       comp_t memcmp (const void *       src1, const void *      
  *  found; otherwise <c>nullptr</c>.
  *  </return>
  */
-__extern __used       void * memchr (const void * const src , const int          val ,       size_t len);
+__extern __used void * memchr(const void * const src, const int val, size_t len);
 #endif
 
 /**
@@ -130,7 +130,7 @@ __extern __used       void * memchr (const void * const src , const int         
  *  <param name="len">The number of bytes to copy from the source to the destination.</param>
  *  <return><paramref name="dst"/> is returned.</return>
  */
-__extern __used       void * memcpy (      void *       dst , const void *       src ,       size_t len);
+__extern __used void * memcpy(void * dst, const void * src, size_t len);
 
 /**
  *  <summary>
@@ -146,7 +146,7 @@ __extern __used       void * memcpy (      void *       dst , const void *      
  *  <param name="len">The number of bytes to copy from the source to the destination.</param>
  *  <return><paramref name="dst"/> is returned.</return>
  */
-__extern __used       void * memmove(      void *       dst , const void *       src ,       size_t len);
+__extern __used void * memmove(void * dst, const void * src, size_t len);
 
 /**
  *  <summary>
@@ -160,14 +160,14 @@ __extern __used       void * memmove(      void *       dst , const void *      
  *  found; otherwise <c>nullptr</c>.
  *  </return>
  */
-__extern __used       void * memset (      void *       dst , const int          val ,       size_t len);
+__extern __used void * memset(void * dst, const int val, size_t len);
 
 /**
  *  <summary>Obtains the length (in characters) of a C string.</summary>
  *  <param name="str">Start of C string.</param>
  *  <return>The length of the string.</return>
  */
-__extern __used       size_t strlen (const char *       str                                             );
+__extern __used size_t strlen(const char * str);
 
 /**
  *  <summary>Obtains the length (in characters) of a C string with an upper bound.</summary>
@@ -175,7 +175,7 @@ __extern __used       size_t strlen (const char *       str                     
  *  <param name="len">Maximum number of characters to measure.</param>
  *  <return>The length of the string bound by <paramref name="len"/>.</return>
  */
-__extern __used       size_t strnlen  (const char *       str                          ,        size_t len                );
+__extern __used size_t strnlen(const char * str, size_t len);
 
 /**
  *  <summary>
@@ -189,8 +189,8 @@ __extern __used       size_t strnlen  (const char *       str                   
  *  </param>
  *  <return>The length of the string bound by <paramref name="len"/>.</return>
  */
-__extern __used       size_t strnlenex(const char *       str                          ,        size_t len, bool * reached);
+__extern __used size_t strnlenex(const char * str, size_t len, bool * reached);
 
-__extern __used       comp_t strcmp (const char *       src1, const char *       src2                   );
+__extern __used comp_t strcmp(const char * src1, const char * src2);
 
-__extern __used       comp_t strncmp(const char *       src1, const char *       src2,        size_t len);
+__extern __used comp_t strncmp(const char * src1, const char * src2, size_t len);

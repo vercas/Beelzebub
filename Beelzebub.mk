@@ -121,6 +121,7 @@ ifneq (,$(findstring test-all,$(MAKECMDGOALS)))
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_EXCP 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_APP 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_STACKINT 
+	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_AVL_TREE 
 
 	SETTINGS			+= test-all
 else
@@ -128,32 +129,48 @@ else
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_MT 
 
 		SETTINGS			+= test-mt
-	else ifneq (,$(findstring test-str,$(MAKECMDGOALS)))
+	endif
+
+	ifneq (,$(findstring test-str,$(MAKECMDGOALS)))
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_STR 
 
 		SETTINGS			+= test-str
-	else ifneq (,$(findstring test-obja,$(MAKECMDGOALS)))
+	endif
+
+	ifneq (,$(findstring test-obja,$(MAKECMDGOALS)))
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_OBJA 
 
 		SETTINGS			+= test-obja
-	else ifneq (,$(findstring test-metap,$(MAKECMDGOALS)))
+	endif
+
+	ifneq (,$(findstring test-metap,$(MAKECMDGOALS)))
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_METAP 
 
 		SETTINGS			+= test-metap
-	else ifneq (,$(findstring test-excp,$(MAKECMDGOALS)))
+	endif
+
+	ifneq (,$(findstring test-excp,$(MAKECMDGOALS)))
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_EXCP 
 
 		SETTINGS			+= test-excp
-	else ifneq (,$(findstring test-app,$(MAKECMDGOALS)))
+	endif
+
+	ifneq (,$(findstring test-app,$(MAKECMDGOALS)))
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_APP __BEELZEBUB__TEST_MT 
 
 		SETTINGS			+= test-app test-mt 
-	else ifneq (,$(findstring test-stackint,$(MAKECMDGOALS)))
+	endif
+
+	ifneq (,$(findstring test-stackint,$(MAKECMDGOALS)))
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_STACKINT 
 
 		SETTINGS			+= test-stackint 
-	else
-		#	Do somethin'.
+	endif
+
+	ifneq (,$(findstring test-avl-tree,$(MAKECMDGOALS)))
+		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_AVL_TREE 
+
+		SETTINGS			+= test-avl-tree 
 	endif
 endif
 
