@@ -83,15 +83,15 @@ static TreeType Tree;
         , (v), (n)->Payload.Object.Key)
 
 #define FIND_NODE(k, v) do {                                            \
-    TestPayload * pl = Tree.Find<int>((k));                             \
+    Comparable<TestPayload> * pl = Tree.Find<int>((k));                 \
     ASSERT(pl != nullptr, "Failed to find node with key %i4.", (k));    \
-    ASSERT(pl->Value == (v)                                             \
+    ASSERT(pl->Object.Value == (v)                                      \
         , "Found payload %Xp with value %i4, expected %i4."             \
-        , pl, pl->Value, (k));                                          \
+        , pl, pl->Object.Value, (k));                                   \
 } while (false)
 
 #define FIND_NO_NODE(k) do {                                            \
-    TestPayload * pl = Tree.Find<int>((k));                             \
+    Comparable<TestPayload> * pl = Tree.Find<int>((k));                 \
     ASSERT(pl == nullptr                                                \
         , "Should not have found node %Xp with key %i4."                \
         , pl, (k));                                                     \

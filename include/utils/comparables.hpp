@@ -71,47 +71,47 @@ namespace Beelzebub { namespace Utils
     };
 
     template<> template<>
-    comp_t Comparable<int>::Compare<int>(int const & other) const
+    inline comp_t Comparable<int>::Compare<int>(int const & other) const
     {
         return static_cast<comp_t>(this->Object - other);
     }
     template<> template<>
-    comp_t Comparable<int>::Compare<int>(int const && other) const
-    {
-        return static_cast<comp_t>(this->Object - other);
-    }
-
-    template<> template<>
-    comp_t Comparable<unsigned int>::Compare<unsigned int>(unsigned int const & other) const
-    {
-        return static_cast<comp_t>(this->Object - other);
-    }
-    template<> template<>
-    comp_t Comparable<unsigned int>::Compare<unsigned int>(unsigned int const && other) const
+    inline comp_t Comparable<int>::Compare<int>(int const && other) const
     {
         return static_cast<comp_t>(this->Object - other);
     }
 
     template<> template<>
-    comp_t Comparable<char *>::Compare<char *>(char * const & other) const
+    inline comp_t Comparable<unsigned int>::Compare<unsigned int>(unsigned int const & other) const
+    {
+        return static_cast<comp_t>(this->Object - other);
+    }
+    template<> template<>
+    inline comp_t Comparable<unsigned int>::Compare<unsigned int>(unsigned int const && other) const
+    {
+        return static_cast<comp_t>(this->Object - other);
+    }
+
+    template<> template<>
+    inline comp_t Comparable<char *>::Compare<char *>(char * const & other) const
     {
         return strcmp(const_cast<char const *>(this->Object)
                     , const_cast<char const *>(other       ));
     }
     template<> template<>
-    comp_t Comparable<char *>::Compare<char *>(char * const && other) const
+    inline comp_t Comparable<char *>::Compare<char *>(char * const && other) const
     {
         return strcmp(const_cast<char const *>(this->Object)
                     , const_cast<char const *>(other       ));
     }
 
     template<> template<>
-    comp_t Comparable<char const *>::Compare<char const *>(char const * const & other) const
+    inline comp_t Comparable<char const *>::Compare<char const *>(char const * const & other) const
     {
         return strcmp(this->Object, other);
     }
     template<> template<>
-    comp_t Comparable<char const *>::Compare<char const *>(char const * const && other) const
+    inline comp_t Comparable<char const *>::Compare<char const *>(char const * const && other) const
     {
         return strcmp(this->Object, other);
     }

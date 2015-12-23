@@ -207,7 +207,7 @@ namespace Beelzebub { namespace Utils
             if unlikely(node == nullptr)
                 return nullptr;
 
-            comp_t const compRes = node->Payload.Compare<TKey>(key);
+            comp_t const compRes = node->Payload.Compare(key);
             //  Note the comparison order.
 
             if (compRes == 0)
@@ -230,7 +230,7 @@ namespace Beelzebub { namespace Utils
                 return Create(node, payload);
             //  Unlikely because it's literally done once per insertion.
 
-            comp_t const compRes = node->Payload.Compare<TPayload>(payload);
+            comp_t const compRes = node->Payload.Compare(payload);
             //  Note the comparison order.
 
             if unlikely(compRes == 0)
@@ -294,7 +294,7 @@ namespace Beelzebub { namespace Utils
                 return nullptr;
             //  Not found.
 
-            comp_t const compRes = node->Payload.Compare<TKey>(key);
+            comp_t const compRes = node->Payload.Compare(key);
             //  Note the comparison order.
 
             Node * res;
