@@ -56,6 +56,8 @@ namespace Beelzebub { namespace Utils
 
         template<typename TOther>
         comp_t Compare(TOther const & other) const;
+        template<typename TOther>
+        comp_t Compare(TOther const && other) const;
         //  To be defined by instancing code.
 
         /*  Conversions  */
@@ -71,11 +73,21 @@ namespace Beelzebub { namespace Utils
     template<> template<>
     comp_t Comparable<int>::Compare<int>(int const & other) const
     {
-        return this->Object - other;
+        return static_cast<comp_t>(this->Object - other);
+    }
+    template<> template<>
+    comp_t Comparable<int>::Compare<int>(int const && other) const
+    {
+        return static_cast<comp_t>(this->Object - other);
     }
 
     template<> template<>
     comp_t Comparable<unsigned int>::Compare<unsigned int>(unsigned int const & other) const
+    {
+        return static_cast<comp_t>(this->Object - other);
+    }
+    template<> template<>
+    comp_t Comparable<unsigned int>::Compare<unsigned int>(unsigned int const && other) const
     {
         return static_cast<comp_t>(this->Object - other);
     }
@@ -86,9 +98,20 @@ namespace Beelzebub { namespace Utils
         return strcmp(const_cast<char const *>(this->Object)
                     , const_cast<char const *>(other       ));
     }
+    template<> template<>
+    comp_t Comparable<char *>::Compare<char *>(char * const && other) const
+    {
+        return strcmp(const_cast<char const *>(this->Object)
+                    , const_cast<char const *>(other       ));
+    }
 
     template<> template<>
     comp_t Comparable<char const *>::Compare<char const *>(char const * const & other) const
+    {
+        return strcmp(this->Object, other);
+    }
+    template<> template<>
+    comp_t Comparable<char const *>::Compare<char const *>(char const * const && other) const
     {
         return strcmp(this->Object, other);
     }

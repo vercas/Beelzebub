@@ -37,6 +37,18 @@
     thorough explanation regarding other files.
 */
 
+/*  I just need to take the time to say, that I looked at 12 (!) different AVL
+    tree implementations and they all had issues. Some used the wrong order/sign
+    for comparisons and balance factor, others used operations which were much
+    more complex (asymptotically, in time) than needed... Some lacked removal,
+    and all those which had removal implemented had severe issues: incomplete
+    code (literally garbage characters all over the code!), logic errors
+    (deleting a node just to reallocate it immediately, wrong interpretation of
+    comparisons/balance) and/or leaked memory...
+
+    If you need something done well, do it yourself.
+*/
+
 #pragma once
 
 #include <utils/comparables.hpp>
@@ -152,20 +164,6 @@ namespace Beelzebub { namespace Utils
             return this;
         }
 
-        AvlTreeNode * RemoveMinimum()
-        {
-            if unlikely(this->Left == nullptr)
-                return this->Right;
-            //  No left node means this is the minimum. The right leaf will
-            //  replace this one.
-
-            //  TODO: Report?
-
-            this->Left = this->Left->RemoveMinimum();
-
-            return this->Balance();
-        }
-
         /*  Fields  */
 
         AvlTreeNode * Left, * Right;
@@ -203,14 +201,37 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
+        template<typename TKey>
+        static Comparable<TPayload> * Find(TKey const & key, Node * & node)
+        {
+            if unlikely(node == nullptr)
+                return nullptr;
+
+            comp_t const compRes = node->Payload.Compare<TKey>(key);
+            //  Note the comparison order.
+
+            if (compRes == 0)
+                return &(node->Payload);
+            //  Found.
+
+            if (compRes > 0)
+                return Find<TKey>(key, node->Left);
+            else
+                return Find<TKey>(key, node->Right);
+            //  "Lesser" nodes go left, "greater" nodes go right.
+            //  These better be tail calls.
+        }
+
         static Handle Insert(TPayload & payload, Node * & node)
         {
             //  First step is spawning a new node.
 
             if unlikely(node == nullptr)
                 return Create(node, payload);
+            //  Unlikely because it's literally done once per insertion.
 
-            comp_t const compRes = node->Payload.Compare(payload);
+            comp_t const compRes = node->Payload.Compare<TPayload>(payload);
+            //  Note the comparison order.
 
             if unlikely(compRes == 0)
                 return HandleResult::CardinalityViolation;
@@ -218,10 +239,11 @@ namespace Beelzebub { namespace Utils
 
             Handle res;
 
-            if (compRes < 0)
+            if (compRes > 0)
                 res = Insert(payload, node->Left);
             else
                 res = Insert(payload, node->Right);
+            //  "Lesser" nodes go left, "greater" nodes go right.
 
             if unlikely(!res.IsOkayResult())
                 return res;
@@ -231,6 +253,118 @@ namespace Beelzebub { namespace Utils
             node = node->Balance();
 
             return HandleResult::Okay;
+        }
+
+        static Node * RemoveMinimum(Node * & node)
+        {
+            if unlikely(node == nullptr)
+                return nullptr;
+            //  There is no minimum in this case.
+
+            Node * res;
+
+            if unlikely(node->Left == nullptr)
+            {
+                res = node;
+                //  This is the minimum.
+
+                node = node->Right;
+                //  The node is replaced by its right child. Even when null!
+
+                //  No balancing needed. No height recalculation needed either.
+                //  The right child will have the correct height.
+            }
+            else
+            {
+                res = RemoveMinimum(node->Left);
+                //  The left node's smaller than this one, so the minimum may
+                //  be its child!
+
+                node = node->Balance();
+                //  Are we AVL trees or are we not?
+            }
+
+            return res;
+        }
+
+        template <typename TKey>
+        static Node * Remove(TKey const & key, Node * & node)
+        {
+            if (node == nullptr)
+                return nullptr;
+            //  Not found.
+
+            comp_t const compRes = node->Payload.Compare<TKey>(key);
+            //  Note the comparison order.
+
+            Node * res;
+
+            if (compRes > 0)
+                res = Remove<TKey>(key, node->Left);
+            else if (compRes < 0)
+                res = Remove<TKey>(key, node->Right);
+            else    //  "Lesser" nodes go left, "greater" nodes go right.
+            {
+                //  This is the node!
+
+                res = node;
+
+                if (node->Left == nullptr)
+                {
+                    //  This will be the case for the minimum node removed
+                    //  below.
+
+                    if (node->Right == nullptr)
+                    {
+                        //  No children.
+
+                        node = nullptr;
+
+                        return res;
+                        //  No need to perform a balance here, so it returns
+                        //  early.
+                    }
+
+                    //  No left child, but a right child.
+
+                    node = node->Right;
+                    //  It is replaced by its right child.
+                }
+                else if (node->Right == nullptr)
+                {
+                    //  A left child and no right child.
+
+                    node = node->Left;
+                    //  Now it is replaced by its left child.
+                }
+                else
+                {
+                    //  Both left and right children are present.
+
+                    Node * temp = RemoveMinimum(node->Right);
+                    //  Obtains minimum that is larger than the current.
+                    //  Aka the successor. It's also removed from the tree
+                    //  in the process.
+
+                    //  At this point, `temp` is dangling. No reference to it
+                    //  exists anymore, so it's available for substitution.
+
+                    temp->Left = node->Left;
+                    temp->Right = node->Right;
+                    temp->Height = node->Height;
+                    //  Compiler could optimize the first or last two of these
+                    //  to use SSE, I suppose.
+
+                    node = temp;
+                    //  Now the successor replaces the current node.
+                }
+            }
+
+            if likely(res != nullptr)
+                node->Balance();
+            //  No need to balance the tree when nothing was removed.
+
+            return res;
         }
 
     public:
@@ -243,6 +377,20 @@ namespace Beelzebub { namespace Utils
 
         /*  Operations  */
 
+        template<typename TKey>
+        Comparable<TPayload> * Find(TKey const * const key)
+        {
+            return Find<TKey>(*key, this->Root);
+        }
+
+        template<typename TKey>
+        Comparable<TPayload> * Find(TKey const key)
+        {
+            TKey dummy = key;
+
+            return Find<TKey>(dummy, this->Root);
+        }
+
         Handle Insert(TPayload & payload)
         {
             return Insert(payload, this->Root);
@@ -253,6 +401,63 @@ namespace Beelzebub { namespace Utils
             TPayload dummy = payload;
 
             return Insert(dummy, this->Root);
+        }
+
+        template<typename TKey>
+        Handle Remove(TKey const * const key)
+        {
+            Node * const node = Remove<TKey>(*key, this->Root);
+
+            if (node == nullptr)
+                return HandleResult::NotFound;
+            else
+                return RemoveNode(node);
+        }
+
+        template<typename TKey>
+        Handle Remove(TKey const key)
+        {
+            TKey dummy = key;
+
+            Node * const node = Remove<TKey>(dummy, this->Root);
+
+            if (node == nullptr)
+                return HandleResult::NotFound;
+            else
+                return RemoveNode(node);
+        }
+
+        template<typename TKey>
+        Handle Remove(TKey const * const key, TPayload & res)
+        {
+            Node * const node = Remove<TKey>(*key, this->Root);
+
+            if (node == nullptr)
+                return HandleResult::NotFound;
+            else
+            {
+                res = node->Payload.Object;
+                //  Will effectively perform a copy.
+
+                return RemoveNode(node);
+            }
+        }
+
+        template<typename TKey>
+        Handle Remove(TKey const key, TPayload & res)
+        {
+            TKey dummy = key;
+
+            Node * const node = Remove<TKey>(dummy, this->Root);
+
+            if (node == nullptr)
+                return HandleResult::NotFound;
+            else
+            {
+                res = node->Payload.Object;
+
+                return RemoveNode(node);
+            }
         }
 
         /*  Fields  */
