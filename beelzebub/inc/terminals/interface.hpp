@@ -118,8 +118,8 @@ namespace Beelzebub { namespace Terminals
         int16_t X;
         int16_t Y;
 
-        TerminalCoordinates operator+(const TerminalCoordinates other);
-        TerminalCoordinates operator-(const TerminalCoordinates other);
+        TerminalCoordinates operator +(const TerminalCoordinates other);
+        TerminalCoordinates operator -(const TerminalCoordinates other);
     };
 
     const TerminalCoordinates InvalidCoordinates = { -42, 9001 };
@@ -132,6 +132,24 @@ namespace Beelzebub { namespace Terminals
         Handle Result;
         uint32_t Size;
         TerminalCoordinates End;
+
+        inline TerminalWriteResult()
+            : Result(HandleResult::Okay)
+            , Size(0U)
+            , End({0, 0})
+        {
+
+        }
+
+        inline TerminalWriteResult(Handle const res
+                                 , uint32_t const size
+                                 , TerminalCoordinates const coords)
+            : Result(res)
+            , Size(size)
+            , End(coords)
+        {
+
+        }
     };
 
     /*  Function pointer definition  */

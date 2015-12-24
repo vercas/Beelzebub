@@ -84,6 +84,10 @@
 #include <tests/string.hpp>
 #endif
 
+#if __BEELZEBUB__TEST_TERMINAL
+#include <tests/terminal.hpp>
+#endif
+
 #if __BEELZEBUB__TEST_OBJA
 #include <tests/object_allocator.hpp>
 #endif
@@ -361,6 +365,14 @@ void Beelzebub::Main()
         MainTerminal->Write(">Testing string.h implementation...");
 
         TestStringLibrary();
+
+        MainTerminal->WriteLine(" Done.");
+#endif
+
+#ifdef __BEELZEBUB__TEST_TERMINAL
+        MainTerminal->Write(">Testing terminal implementation(s)...");
+
+        TestTerminal();
 
         MainTerminal->WriteLine(" Done.");
 #endif

@@ -145,7 +145,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
     if (term->Descriptor->Capabilities.CanSetOutputPosition)
     {
         Handle res = term->SetCurrentPosition(x, y);
-    
+
         return {res, i, {x, y}};
     }
 
@@ -181,7 +181,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
     WriteCharFunc writeChar = term->Descriptor->WriteChar;
     WriteStringFunc writeString = term->Descriptor->WriteString;
 
-    TerminalWriteResult res;
+    TerminalWriteResult res {};
     uint32_t cnt = 0U;
 
     bool inFormat = false;
@@ -233,7 +233,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                     case '2':
                     case '1':
                         /*  Apparently chars and shorts are promoted to integers!  */
-                        
+
                         {
                             uint32_t val4 = va_arg(args, uint32_t);
                             TERMTRY1(term->WriteUIntD(val4), res, cnt);
@@ -285,7 +285,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                     case '2':
                     case '1':
                         /*  Apparently chars and shorts are promoted to integers!  */
-                        
+
                         {
                             int32_t val4 = va_arg(args, int32_t);
                             TERMTRY1(term->WriteIntD(val4), res, cnt);
@@ -342,7 +342,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
 
                     case '2':
                         /*  Apparently chars and shorts are promoted to integers!  */
-                        
+
                         {
                             uint32_t val2 = va_arg(args, uint32_t);
                             TERMTRY1(term->WriteHex16((uint16_t)val2), res, cnt);
@@ -351,7 +351,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
 
                     case '1':
                         /*  Apparently chars and shorts are promoted to integers!  */
-                        
+
                         {
                             uint32_t val1 = va_arg(args, uint32_t);
                             TERMTRY1(term->WriteHex8((uint8_t)val1), res, cnt);
@@ -365,56 +365,58 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
             else if (c == 'H')  //  Handle.
             {
                 Handle h = va_arg(args, Handle);
-                
+
                 TERMTRY1(term->WriteHandle(h), res, cnt);
             }
             else if (c == 'B')  //  Boolean (T/F)
             {
                 uint32_t val = va_arg(args, uint32_t);
-                
+
                 TERMTRY1(writeChar(term, (bool)val ? 'T' : 'F'), res, cnt);
             }
             else if (c == 'b')  //  Boolean/bit (1/0)
             {
                 uint32_t val = va_arg(args, uint32_t);
-                
+
                 TERMTRY1(writeChar(term, (bool)val ? '1' : '0'), res, cnt);
             }
             else if (c == 't')  //  Tick (X/ )
             {
                 uint32_t val = va_arg(args, uint32_t);
-                
+
                 TERMTRY1(writeChar(term, (bool)val ? 'X' : ' '), res, cnt);
             }
             else if (c == 's')  //  String.
             {
                 char * str = va_arg(args, char *);
-                
+
                 TERMTRY1(writeString(term, str), res, cnt);
             }
             else if (c == 'S')  //  Solid String.
             {
                 size_t len = va_arg(args, size_t);
                 char * str = va_arg(args, char *);
-                
+
                 for (size_t i = 0; i < len; ++i)
                     TERMTRY1(writeChar(term, str[i]), res, cnt);
             }
             else if (c == 'C')  //  Character from pointer.
             {
                 char * chr = va_arg(args, char *);
-                
+
                 TERMTRY1(writeChar(term, chr[0]), res, cnt);
             }
             else if (c == 'c')  //  Character.
             {
                 uint32_t chr = va_arg(args, uint32_t);
-                
+
                 TERMTRY1(writeChar(term, (char)chr), res, cnt);
             }
             else if (c == '#')  //  Get current character count.
             {
-                *(va_arg(args, size_t *)) = res.Size;
+                size_t * ptr = va_arg(args, size_t *);
+
+                *ptr = res.Size;
             }
             else if (c == '*')  //  Fill with spaces.
             {
@@ -844,7 +846,7 @@ TerminalWriteResult TerminalBase::WriteHexDump(const uintptr_t start, const size
     //WriteCharFunc writeChar = this->Descriptor->WriteChar;
     WriteStringFunc writeString = this->Descriptor->WriteString;
 
-    TerminalWriteResult res;
+    TerminalWriteResult res {};
     uint32_t cnt;
 
     for (size_t i = 0; i < length; i += charsPerLine)
