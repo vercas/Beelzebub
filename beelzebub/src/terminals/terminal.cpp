@@ -123,6 +123,35 @@ TerminalWriteResult TestTerminal()
     TERMTRY1(term->WriteFormat("└─"), res, cnt);
     EXPECT(106);
 
+    TERMTRY1(term->WriteFormat("├─"), res, cnt);
+    EXPECT(108);
+
+    TERMTRY1(term->WriteFormat("%#├─%#", &mark1, &mark2), res, cnt);
+    EXPECT(110);
+
+    ASSERT(mark1 == 0, "Mark 1 should be 0, not %us.", mark1);
+    ASSERT(mark2 == 2, "Mark 2 should be 2, not %us.", mark2);
+
+    TERMTRY1(term->WriteFormat("%#%s{123456}%#", &mark1, "├─", &mark2), res, cnt);
+    EXPECT(120);
+
+    ASSERT(mark1 ==  0, "Mark 1 should be 0, not %us.", mark1);
+    ASSERT(mark2 == 10, "Mark 2 should be 10, not %us.", mark2);
+
+    TERMTRY1(term->WriteFormat("%s%#{123456}%#", "├─", &mark1, &mark2), res, cnt);
+    EXPECT(130);
+
+    ASSERT(mark1 ==  2, "Mark 1 should be 2, not %us.", mark1);
+    ASSERT(mark2 == 10, "Mark 2 should be 10, not %us.", mark2);
+
+    TERMTRY1(term->WriteFormat("%#%*%#", &mark1, (size_t)30, &mark2), res, cnt);
+    EXPECT(160);
+
+    ASSERT(mark1 ==  0, "Mark 1 should be 0, not %us.", mark1);
+    ASSERT(mark2 == 30, "Mark 2 should be 30, not %us.", mark2);
+
+    TERMTRY1(term->WriteLine(), res, cnt);
+
     return res;
 }
 

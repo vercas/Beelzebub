@@ -423,7 +423,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
             {
                 char * chr = va_arg(args, char *);
 
-                TERMTRY1(writeChar(term, chr), res, cnt);
+                TERMTRY1Ex(writeChar(term, chr), res, cnt);
             }
             else if (c == 'c')  //  Character.
             {
@@ -433,15 +433,25 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
             }
             else if (c == '#')  //  Get current character count.
             {
-                size_t * ptr = va_arg(args, size_t *);
+                size_t * const ptr = va_arg(args, size_t *);
 
                 *ptr = res.Size;
             }
             else if (c == '*')  //  Fill with spaces.
             {
-                uint32_t n = va_arg(args, size_t);
+                size_t const n = va_arg(args, size_t);
 
-                TERMTRY2(n, writeChar(term, " "), res, cnt);
+                cnt = res.Size;
+
+                for (size_t i = n; i > 0; --i)
+                {
+                    res = writeChar(term, " ");
+
+                    if (!res.Result.IsOkayResult())
+                        return res;
+                }
+
+                res.Size = cnt + (uint32_t)n;
             }
             else if (c == 'n')  //  Newline.
             {

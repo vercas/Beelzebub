@@ -283,6 +283,9 @@ size_t ManagedSerialPort::WriteUtf8Char(char const * str)
     withLock (this->WriteLock)
         if ((*str & 0x80) == 0)
         {
+            while (this->OutputCount.Load() >= SerialPort::QueueSize
+                && !this->CanWrite()) ;
+
             Io::Out8(this->BasePort, *str);
             ++this->OutputCount;
 
