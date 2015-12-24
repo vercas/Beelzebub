@@ -105,6 +105,24 @@ TerminalWriteResult TestTerminal()
     ASSERT(mark1 ==  2, "Mark 1 should be 2, not %us.", mark1);
     ASSERT(mark2 == 29, "Mark 2 should be 29, not %us.", mark2);
 
+    TERMTRY1(term->Write("└─"), res, cnt);
+    EXPECT(98);
+
+    TERMTRY1(term->Write("├─"), res, cnt);
+    EXPECT(100);
+
+    TERMTRY1(term->Write("┐"), res, cnt);
+    EXPECT(101);
+
+    TERMTRY1(term->Write("│"), res, cnt);
+    EXPECT(102);
+
+    TERMTRY1(term->WriteFormat("%s", "└─"), res, cnt);
+    EXPECT(104);
+
+    TERMTRY1(term->WriteFormat("└─"), res, cnt);
+    EXPECT(106);
+
     return res;
 }
 

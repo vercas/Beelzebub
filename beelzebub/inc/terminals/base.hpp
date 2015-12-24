@@ -48,152 +48,161 @@
 #define TERMTRY0(call, tres) do {           \
 tres = call;                                \
 if (!tres.Result.IsOkayResult())            \
-	return tres;                            \
+    return tres;                            \
 } while (false)
 
 #define TERMTRY1(call, tres, cnt) do {      \
 cnt = tres.Size;                            \
 tres = call;                                \
 if (tres.Result.IsOkayResult())             \
-	tres.Size += cnt;                       \
+    tres.Size += cnt;                       \
 else                                        \
-	return tres;                            \
+    return tres;                            \
+} while (false)
+
+#define TERMTRY1Ex(call, tres, cnt) do {    \
+cnt = tres.Size;                            \
+tres = call;                                \
+if (tres.Result.IsOkayResult())             \
+    tres.Size = cnt + 1;                    \
+else                                        \
+    return tres;                            \
 } while (false)
 
 #define TERMTRY2(n, call, tres, cnt) do {     \
 cnt = tres.Size;                              \
 for (typeof(n) i = 0; i < n; ++i)             \
-	if (!(tres = call).Result.IsOkayResult()) \
-		return tres;                          \
+    if (!(tres = call).Result.IsOkayResult()) \
+        return tres;                          \
 tres.Size += cnt + n;                         \
 } while (false)
 
 namespace Beelzebub { namespace Terminals
 {
-	/**
-	 * Represents a set of terminal capabilities.
-	 **/
-	class TerminalBase
-	{
-	public:
+    /**
+     * Represents a set of terminal capabilities.
+     **/
+    class TerminalBase
+    {
+    public:
 
-		/*  STATICS  */
+        /*  STATICS  */
 
-		static const uint16_t DefaultTabulatorWidth = 8;
+        static const uint16_t DefaultTabulatorWidth = 8;
 
-		/*  Writing  */
+        /*  Writing  */
 
-		static TerminalWriteResult DefaultWriteCharAtXy(TerminalBase * const term, const char * c, const int16_t x, const int16_t y);
-		static TerminalWriteResult DefaultWriteCharAtCoords(TerminalBase * const term, const char * c, const TerminalCoordinates pos);
-		static TerminalWriteResult DefaultWriteStringAt(TerminalBase * const term, const char * const str, const TerminalCoordinates pos);
+        static TerminalWriteResult DefaultWriteCharAtXy(TerminalBase * const term, const char * c, const int16_t x, const int16_t y);
+        static TerminalWriteResult DefaultWriteCharAtCoords(TerminalBase * const term, const char * c, const TerminalCoordinates pos);
+        static TerminalWriteResult DefaultWriteStringAt(TerminalBase * const term, const char * const str, const TerminalCoordinates pos);
 
-		static TerminalWriteResult DefaultWriteChar(TerminalBase * const term, const char * c);
-		static TerminalWriteResult DefaultWriteString(TerminalBase * const term, const char * const str);
-		static TerminalWriteResult DefaultWriteStringVarargs(TerminalBase * const term, const char * const fmt, va_list args);
-		static TerminalWriteResult DefaultWriteStringLine(TerminalBase * const term, const char * const str);
-		static TerminalWriteResult DefaultWriteStringFormat(TerminalBase * const term, const char * const fmt, ...);
+        static TerminalWriteResult DefaultWriteChar(TerminalBase * const term, const char * c);
+        static TerminalWriteResult DefaultWriteString(TerminalBase * const term, const char * const str);
+        static TerminalWriteResult DefaultWriteStringVarargs(TerminalBase * const term, const char * const fmt, va_list args);
+        static TerminalWriteResult DefaultWriteStringLine(TerminalBase * const term, const char * const str);
+        static TerminalWriteResult DefaultWriteStringFormat(TerminalBase * const term, const char * const fmt, ...);
 
-		/*  Positioning  */
+        /*  Positioning  */
 
-		static Handle DefaultSetCursorPositionXy(TerminalBase * const term, const int16_t x, const int16_t y);
-		static Handle DefaultSetCursorPositionCoords(TerminalBase * const term, const TerminalCoordinates pos);
-		static TerminalCoordinates DefaultGetCursorPosition(TerminalBase * const term);
+        static Handle DefaultSetCursorPositionXy(TerminalBase * const term, const int16_t x, const int16_t y);
+        static Handle DefaultSetCursorPositionCoords(TerminalBase * const term, const TerminalCoordinates pos);
+        static TerminalCoordinates DefaultGetCursorPosition(TerminalBase * const term);
 
-		static Handle DefaultSetCurrentPositionXy(TerminalBase * const term, const int16_t x, const int16_t y);
-		static Handle DefaultSetCurrentPositionCoords(TerminalBase * const term, const TerminalCoordinates pos);
-		static TerminalCoordinates DefaultGetCurrentPosition(TerminalBase * const term);
+        static Handle DefaultSetCurrentPositionXy(TerminalBase * const term, const int16_t x, const int16_t y);
+        static Handle DefaultSetCurrentPositionCoords(TerminalBase * const term, const TerminalCoordinates pos);
+        static TerminalCoordinates DefaultGetCurrentPosition(TerminalBase * const term);
 
-		static Handle DefaultSetSizeXy(TerminalBase * const term, const int16_t w, const int16_t h);
-		static Handle DefaultSetSizeCoords(TerminalBase * const term, const TerminalCoordinates pos);
-		static TerminalCoordinates DefaultGetSize(TerminalBase * const term);
+        static Handle DefaultSetSizeXy(TerminalBase * const term, const int16_t w, const int16_t h);
+        static Handle DefaultSetSizeCoords(TerminalBase * const term, const TerminalCoordinates pos);
+        static TerminalCoordinates DefaultGetSize(TerminalBase * const term);
 
-		static Handle DefaultSetBufferSizeXy(TerminalBase * const term, const int16_t w, const int16_t h);
-		static Handle DefaultSetBufferSizeCoords(TerminalBase * const term, const TerminalCoordinates pos);
-		static TerminalCoordinates DefaultGetBufferSize(TerminalBase * const term);
+        static Handle DefaultSetBufferSizeXy(TerminalBase * const term, const int16_t w, const int16_t h);
+        static Handle DefaultSetBufferSizeCoords(TerminalBase * const term, const TerminalCoordinates pos);
+        static TerminalCoordinates DefaultGetBufferSize(TerminalBase * const term);
 
-		static Handle DefaultSetTabulatorWidth(TerminalBase * const term, const uint16_t w);
-		static uint16_t DefaultGetTabulatorWidth(TerminalBase * const term);
+        static Handle DefaultSetTabulatorWidth(TerminalBase * const term, const uint16_t w);
+        static uint16_t DefaultGetTabulatorWidth(TerminalBase * const term);
 
-		/*  Styling  */
+        /*  Styling  */
 
-		// ... sooooon.
-		
-		/*  DYNAMICS  */
+        // ... sooooon.
+        
+        /*  DYNAMICS  */
 
-		/*  Descriptor  */
+        /*  Descriptor  */
 
-		const TerminalDescriptor * Descriptor;
+        const TerminalDescriptor * Descriptor;
 
-		/*  Constructor  */
+        /*  Constructor  */
 
-		TerminalBase(const TerminalDescriptor * const desc);
+        TerminalBase(const TerminalDescriptor * const desc);
 
-		/*  Writing  */
+        /*  Writing  */
 
-		TerminalWriteResult WriteAt(const char c, const int16_t x, const int16_t y);
-		TerminalWriteResult WriteAt(const char c, const TerminalCoordinates pos);
-		TerminalWriteResult WriteAt(const char * const str, const TerminalCoordinates pos);
+        TerminalWriteResult WriteAt(const char c, const int16_t x, const int16_t y);
+        TerminalWriteResult WriteAt(const char c, const TerminalCoordinates pos);
+        TerminalWriteResult WriteAt(const char * const str, const TerminalCoordinates pos);
 
-		TerminalWriteResult Write(const char c);
-		TerminalWriteResult Write(const char * const str);
-		TerminalWriteResult Write(const char * const fmt, va_list args);
-		TerminalWriteResult WriteLine(const char * const str);
-		__noinline TerminalWriteResult WriteFormat(const char * const fmt, ...);
+        TerminalWriteResult Write(const char c);
+        TerminalWriteResult Write(const char * const str);
+        TerminalWriteResult Write(const char * const fmt, va_list args);
+        TerminalWriteResult WriteLine(const char * const str);
+        __noinline TerminalWriteResult WriteFormat(const char * const fmt, ...);
 
-		/*  Positioning  */
+        /*  Positioning  */
 
-		Handle SetCursorPosition(const int16_t x, const int16_t y);
-		Handle SetCursorPosition(const TerminalCoordinates pos);
-		TerminalCoordinates GetCursorPosition();
+        Handle SetCursorPosition(const int16_t x, const int16_t y);
+        Handle SetCursorPosition(const TerminalCoordinates pos);
+        TerminalCoordinates GetCursorPosition();
 
-		Handle SetCurrentPosition(const int16_t x, const int16_t y);
-		Handle SetCurrentPosition(const TerminalCoordinates pos);
-		TerminalCoordinates GetCurrentPosition();
+        Handle SetCurrentPosition(const int16_t x, const int16_t y);
+        Handle SetCurrentPosition(const TerminalCoordinates pos);
+        TerminalCoordinates GetCurrentPosition();
 
-		Handle SetSize(const int16_t w, const int16_t h);
-		Handle SetSize(const TerminalCoordinates pos);
-		TerminalCoordinates GetSize();
+        Handle SetSize(const int16_t w, const int16_t h);
+        Handle SetSize(const TerminalCoordinates pos);
+        TerminalCoordinates GetSize();
 
-		Handle SetBufferSize(const int16_t w, const int16_t h);
-		Handle SetBufferSize(const TerminalCoordinates pos);
-		TerminalCoordinates GetBufferSize();
+        Handle SetBufferSize(const int16_t w, const int16_t h);
+        Handle SetBufferSize(const TerminalCoordinates pos);
+        TerminalCoordinates GetBufferSize();
 
-		Handle SetTabulatorWidth(const uint16_t w);
-		uint16_t GetTabulatorWidth();
+        Handle SetTabulatorWidth(const uint16_t w);
+        uint16_t GetTabulatorWidth();
 
-		/*	Utilitary methods  */
+        /*  Utilitary methods  */
 
-		TerminalWriteResult WriteHandle(const Handle val);
+        TerminalWriteResult WriteHandle(const Handle val);
 
-		TerminalWriteResult WriteIntD(const int64_t val);
-		TerminalWriteResult WriteUIntD(const uint64_t val);
+        TerminalWriteResult WriteIntD(const int64_t val);
+        TerminalWriteResult WriteUIntD(const uint64_t val);
 
-		TerminalWriteResult WriteHex8(const uint8_t val);
-		TerminalWriteResult WriteHex16(const uint16_t val);
-		TerminalWriteResult WriteHex32(const uint32_t val);
-		TerminalWriteResult WriteHex64(const uint64_t val);
+        TerminalWriteResult WriteHex8(const uint8_t val);
+        TerminalWriteResult WriteHex16(const uint16_t val);
+        TerminalWriteResult WriteHex32(const uint32_t val);
+        TerminalWriteResult WriteHex64(const uint64_t val);
 
-		TerminalWriteResult WriteHexDump(const uintptr_t start, const size_t length, const size_t charsPerLine);
-		__forceinline TerminalWriteResult WriteHexDump(const void * const start, const size_t length, const size_t charsPerLine)
-		{
-			return this->WriteHexDump((uintptr_t)start, length, charsPerLine);
-		}
+        TerminalWriteResult WriteHexDump(const uintptr_t start, const size_t length, const size_t charsPerLine);
+        __forceinline TerminalWriteResult WriteHexDump(const void * const start, const size_t length, const size_t charsPerLine)
+        {
+            return this->WriteHexDump((uintptr_t)start, length, charsPerLine);
+        }
 
-		TerminalWriteResult WriteHexTable(const uintptr_t start, const size_t length, const size_t charsPerLine, const bool ascii);
-		__forceinline TerminalWriteResult WriteHexTable(const void * const start, const size_t length, const size_t charsPerLine, const bool ascii)
-		{
-			return this->WriteHexTable((uintptr_t)start, length, charsPerLine, ascii);
-		}
+        TerminalWriteResult WriteHexTable(const uintptr_t start, const size_t length, const size_t charsPerLine, const bool ascii);
+        __forceinline TerminalWriteResult WriteHexTable(const void * const start, const size_t length, const size_t charsPerLine, const bool ascii)
+        {
+            return this->WriteHexTable((uintptr_t)start, length, charsPerLine, ascii);
+        }
 
-		__forceinline TerminalWriteResult WriteLine()
-		{
-			return this->WriteLine("");
-		}
+        __forceinline TerminalWriteResult WriteLine()
+        {
+            return this->WriteLine("");
+        }
 
-	protected:
+    protected:
 
-		TerminalCoordinates CurrentPosition;
-		uint16_t TabulatorWidth;
-		bool Overflown;
-	};
+        TerminalCoordinates CurrentPosition;
+        uint16_t TabulatorWidth;
+        bool Overflown;
+    };
 }}

@@ -172,7 +172,9 @@ TerminalWriteResult TerminalBase::DefaultWriteChar(TerminalBase * const term, co
 
         do
         {
-            temp[i] = c[i++];
+            temp[i] = c[i];
+
+            ++i;
         } while ((c[i] & 0xC0) == 0x80 && i < 7);
 
         //  This copies the remainder of the bytes, up to 6.
@@ -455,7 +457,23 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
         else if (c == '%')
             inFormat = true;
         else
-            TERMTRY1(writeChar(term, &c), res, cnt);
+        {
+            cnt = res.Size;
+
+            res = writeChar(term, fmts - 1);
+            //  `fmts - 1` = &c
+
+            if (res.Result.IsOkayResult())
+            {
+                fmts += res.Size - 1;
+                //  Skip continuation bytes of this UTF-8 character.
+
+                res.Size = cnt + 1;
+                //  Only one character was added.
+            }
+            else
+                return res;
+        }
     }
 
     return res;
