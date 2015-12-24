@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include <system/io_ports.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
+#include <synchronization/atomic.hpp>
 #include <system/interrupts.hpp>
 
 namespace Beelzebub { namespace System
@@ -55,7 +55,7 @@ namespace Beelzebub { namespace System
         /*  Static fields  */
 
         //  Size of the queue of the port.
-        static const size_t QueueSize = 14;
+        static size_t const QueueSize = 14;
 
         /*  Static methods  */
 
@@ -75,18 +75,10 @@ namespace Beelzebub { namespace System
         /*  I/O  */
 
         //  True if the serial port can be read from.
-        __forceinline bool CanRead() const
-        {
-            return 0 != (Io::In8(this->BasePort + 5) & 0x01);
-            //  Bit 0 of the line status register.
-        }
+        bool CanRead() const;
 
         //  True if the serial port can be written to.
-        __forceinline bool CanWrite() const
-        {
-            return 0 != (Io::In8(this->BasePort + 5) & 0x20);
-            //  Bit 5 of the line status register.
-        }
+        bool CanWrite() const;
 
         //  Reads a byte from the serial port, optionally waiting for
         //  being able to read.
@@ -106,6 +98,10 @@ namespace Beelzebub { namespace System
         //  This method awaits.
         size_t WriteNtString(char const * const str) const;
 
+        //  Writes a unicode character.
+        //  This method awaits.
+        size_t WriteUtf8Char(char const * str) const;
+
         /*  Fields  */
 
         uint16_t const BasePort;
@@ -121,7 +117,7 @@ namespace Beelzebub { namespace System
         /*  Static fields  */
 
         //  Size of the queue of the port.
-        static const size_t QueueSize = 14;
+        static size_t const QueueSize = 14;
 
         /*  Static methods  */
 
@@ -144,27 +140,11 @@ namespace Beelzebub { namespace System
         /*  I/O  */
 
         //  True if the serial port can be read from.
-        __forceinline bool CanRead() const
-        {
-            return 0 != (Io::In8(this->BasePort + 5) & 0x01);
-            //  Bit 0 of the line status register.
-        }
+        bool CanRead() const;
 
         //  True if the serial port can be written to.
         //  Also resets the output count if possible.
-        inline bool CanWrite()
-        {
-            if (0 != (Io::In8(this->BasePort + 5) & 0x20))
-            {
-                //  Bit 5 of the line status register.
-
-                this->OutputCount = 0;
-
-                return true;
-            }
-            else
-                return false;
-        }
+        bool CanWrite();
 
         //  Reads a byte from the serial port, optionally waiting for
         //  being able to read.
@@ -184,6 +164,10 @@ namespace Beelzebub { namespace System
         //  This method awaits.
         size_t WriteNtString(char const * const str);
 
+        //  Writes a unicode character.
+        //  This method awaits.
+        size_t WriteUtf8Char(char const * str);
+
         void WriteBytes(void const * const src, size_t const cnt);
 
         /*  Fields  */
@@ -192,7 +176,7 @@ namespace Beelzebub { namespace System
 
     private:
 
-        uint16_t OutputCount;
+        Synchronization::Atomic<uint16_t> OutputCount;
 
         Synchronization::SpinlockUninterruptible<> ReadLock;
         Synchronization::SpinlockUninterruptible<> WriteLock;

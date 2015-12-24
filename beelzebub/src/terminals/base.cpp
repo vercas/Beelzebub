@@ -51,14 +51,14 @@ using namespace Beelzebub::Terminals;
 
 /*  Writing  */
 
-TerminalWriteResult TerminalBase::DefaultWriteCharAtXy(TerminalBase * const term, const char c, const int16_t x, const int16_t y)
+TerminalWriteResult TerminalBase::DefaultWriteCharAtXy(TerminalBase * const term, const char * c, const int16_t x, const int16_t y)
 {
     return {Handle(HandleResult::NotImplemented), 0U, InvalidCoordinates};
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteCharAtCoords(TerminalBase * const term, const char c, const TerminalCoordinates pos)
+TerminalWriteResult TerminalBase::DefaultWriteCharAtCoords(TerminalBase * const term, const char * c, const TerminalCoordinates pos)
 {
-    return term->WriteAt(c, pos.X, pos.Y);
+    return term->Descriptor->WriteCharAtXy(term, c, pos.X, pos.Y);
 }
 
 TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term, const char * const str, const TerminalCoordinates pos)
@@ -91,23 +91,23 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
 
     //msg("Writing %s at %u2:%u2.%n", str, x, y);
 
-#define NEXTLINE do { \
-    if (y == size.Y) \
-    { \
-        term->Overflown = true; \
-        y = 0; \
+#define NEXTLINE do {                           \
+    if (y == size.Y)                            \
+    {                                           \
+        term->Overflown = true;                 \
+        y = 0;                                  \
         for (int16_t _x = 0; _x < size.X; ++_x) \
-            WriteCharAtXy(term, ' ', _x, y); \
-    } \
-    else if (term->Overflown) \
+            WriteCharAtXy(term, " ", _x, y);    \
+    }                                           \
+    else if (term->Overflown)                   \
         for (int16_t _x = 0; _x < size.X; ++_x) \
-            WriteCharAtXy(term, ' ', _x, y); \
+            WriteCharAtXy(term, " ", _x, y);    \
 } while (false)
 
-    uint32_t i = 0;
+    uint32_t i = 0, u = 0;
     //  Declared here so I know how many characters have been written.
 
-    for (; 0 != str[i]; ++i)
+    for (; 0 != str[i]; ++i, ++u)
     {
         //  Stop at null, naturally.
 
@@ -133,10 +133,14 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
             if (x == size.X)
             {  x = 0; y++; NEXTLINE;  }
 
-            TerminalWriteResult tmp = WriteCharAtXy(term, c, x, y);
+            TerminalWriteResult tmp = WriteCharAtXy(term, str + i, x, y);
+            //  str + i = &c;
 
             if (!tmp.Result.IsOkayResult())
                 return {tmp.Result, i, {x, y}};
+
+            i += tmp.Size - 1;
+            //  Account for UTF-8 multibyte characters.
 
             x++;
         }
@@ -149,17 +153,30 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
         return {res, i, {x, y}};
     }
 
-    return {Handle(HandleResult::Okay), i, {x, y}};
+    return {Handle(HandleResult::Okay), u, {x, y}};
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteChar(TerminalBase * const term, const char c)
+TerminalWriteResult TerminalBase::DefaultWriteChar(TerminalBase * const term, const char * c)
 {
     if (!(term->Descriptor->Capabilities.CanOutput
        && term->Descriptor->Capabilities.CanGetOutputPosition))
         return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
 
-    char temp[2] = " ";
-    temp[0] = c;
+    char temp[7] = "\0\0\0\0\0";
+    temp[0] = *c;
+    //  6 bytes + null terminator in UTF-8 character.
+
+    if ((*c & 0xC0) == 0xC0)
+    {
+        size_t i = 1;
+
+        do
+        {
+            temp[i] = c[i++];
+        } while ((c[i] & 0xC0) == 0x80 && i < 7);
+
+        //  This copies the remainder of the bytes, up to 6.
+    }
 
     return term->WriteAt(temp, term->GetCurrentPosition());
 }
@@ -372,19 +389,19 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
             {
                 uint32_t val = va_arg(args, uint32_t);
 
-                TERMTRY1(writeChar(term, (bool)val ? 'T' : 'F'), res, cnt);
+                TERMTRY1(writeChar(term, (bool)val ? "T" : "F"), res, cnt);
             }
             else if (c == 'b')  //  Boolean/bit (1/0)
             {
                 uint32_t val = va_arg(args, uint32_t);
 
-                TERMTRY1(writeChar(term, (bool)val ? '1' : '0'), res, cnt);
+                TERMTRY1(writeChar(term, (bool)val ? "1" : "0"), res, cnt);
             }
             else if (c == 't')  //  Tick (X/ )
             {
                 uint32_t val = va_arg(args, uint32_t);
 
-                TERMTRY1(writeChar(term, (bool)val ? 'X' : ' '), res, cnt);
+                TERMTRY1(writeChar(term, (bool)val ? "X" : " "), res, cnt);
             }
             else if (c == 's')  //  String.
             {
@@ -398,19 +415,19 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                 char * str = va_arg(args, char *);
 
                 for (size_t i = 0; i < len; ++i)
-                    TERMTRY1(writeChar(term, str[i]), res, cnt);
+                    TERMTRY1(writeChar(term, str + i), res, cnt);
             }
             else if (c == 'C')  //  Character from pointer.
             {
                 char * chr = va_arg(args, char *);
 
-                TERMTRY1(writeChar(term, chr[0]), res, cnt);
+                TERMTRY1(writeChar(term, chr), res, cnt);
             }
             else if (c == 'c')  //  Character.
             {
-                uint32_t chr = va_arg(args, uint32_t);
+                char const chr = (char)(va_arg(args, uint32_t));
 
-                TERMTRY1(writeChar(term, (char)chr), res, cnt);
+                TERMTRY1(writeChar(term, &chr), res, cnt);
             }
             else if (c == '#')  //  Get current character count.
             {
@@ -422,14 +439,14 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
             {
                 uint32_t n = va_arg(args, size_t);
 
-                TERMTRY2(n, writeChar(term, ' '), res, cnt);
+                TERMTRY2(n, writeChar(term, " "), res, cnt);
             }
             else if (c == 'n')  //  Newline.
             {
                 TERMTRY1(writeString(term, "\r\n"), res, cnt);
             }
             else if (c == '%')
-                TERMTRY1(writeChar(term, '%'), res, cnt);
+                TERMTRY1(writeChar(term, "%"), res, cnt);
             else
                 return {Handle(HandleResult::FormatBadSpecifier), cnt, InvalidCoordinates};
 
@@ -438,7 +455,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
         else if (c == '%')
             inFormat = true;
         else
-            TERMTRY1(writeChar(term, c), res, cnt);
+            TERMTRY1(writeChar(term, &c), res, cnt);
     }
 
     return res;
@@ -579,12 +596,12 @@ TerminalBase::TerminalBase(const TerminalDescriptor * const desc)
 
 TerminalWriteResult TerminalBase::WriteAt(const char c, const int16_t x, const int16_t y)
 {
-    return this->Descriptor->WriteCharAtXy(this, c, x, y);
+    return this->Descriptor->WriteCharAtXy(this, &c, x, y);
 }
 
 TerminalWriteResult TerminalBase::WriteAt(const char c, const TerminalCoordinates pos)
 {
-    return this->Descriptor->WriteCharAtCoords(this, c, pos);
+    return this->Descriptor->WriteCharAtCoords(this, &c, pos);
 }
 
 TerminalWriteResult TerminalBase::WriteAt(const char * const str, const TerminalCoordinates pos)
@@ -594,7 +611,7 @@ TerminalWriteResult TerminalBase::WriteAt(const char * const str, const Terminal
 
 TerminalWriteResult TerminalBase::Write(const char c)
 {
-    return this->Descriptor->WriteChar(this, c);
+    return this->Descriptor->WriteChar(this, &c);
 }
 
 TerminalWriteResult TerminalBase::Write(const char * const str)
@@ -959,7 +976,7 @@ TerminalWriteResult TerminalBase::WriteHexTable(const uintptr_t start, const siz
         }
 
         TERMTRY1(writeString(this, addrhexstr), res, cnt);
-        TERMTRY1(writeChar(this, ':'), res, cnt);
+        TERMTRY1(writeChar(this, ":"), res, cnt);
 
         for (size_t j = 0; j < actualCharsPerLine; ++j)
         {
@@ -982,9 +999,9 @@ TerminalWriteResult TerminalBase::WriteHexTable(const uintptr_t start, const siz
                 uint8_t val = *(uint8_t *)(lStart + j);
 
                 if (val >= 32 && val != 127)
-                    TERMTRY1(writeChar(this, val), res, cnt);
+                    TERMTRY1(writeChar(this, reinterpret_cast<char *>(&val)), res, cnt);
                 else
-                    TERMTRY1(writeChar(this, '.'), res, cnt);
+                    TERMTRY1(writeChar(this, "."), res, cnt);
             }
 
             TERMTRY1(writeString(this, "|\n\r"), res, cnt);

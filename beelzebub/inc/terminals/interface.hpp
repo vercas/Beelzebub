@@ -118,11 +118,11 @@ namespace Beelzebub { namespace Terminals
         int16_t X;
         int16_t Y;
 
-        TerminalCoordinates operator +(const TerminalCoordinates other);
-        TerminalCoordinates operator -(const TerminalCoordinates other);
+        TerminalCoordinates operator +(TerminalCoordinates const other);
+        TerminalCoordinates operator -(TerminalCoordinates const other);
     };
 
-    const TerminalCoordinates InvalidCoordinates = { -42, 9001 };
+    TerminalCoordinates const InvalidCoordinates = { -42, 9001 };
 
     /**
      * Represents the result of a write operation.
@@ -154,19 +154,19 @@ namespace Beelzebub { namespace Terminals
 
     /*  Function pointer definition  */
 
-    typedef TerminalWriteResult (*WriteCharAtXyFunc)(TerminalBase * const, const char, const int16_t, const int16_t);
-    typedef TerminalWriteResult (*WriteCharAtCoordsFunc)(TerminalBase * const, const char, const TerminalCoordinates);
-    typedef TerminalWriteResult (*WriteStringAtCoordsFunc)(TerminalBase * const, const char * const, const TerminalCoordinates);
+    typedef TerminalWriteResult (*WriteCharAtXyFunc)(TerminalBase * const, char const *, int16_t const, int16_t const);
+    typedef TerminalWriteResult (*WriteCharAtCoordsFunc)(TerminalBase * const, char const *, TerminalCoordinates const);
+    typedef TerminalWriteResult (*WriteStringAtCoordsFunc)(TerminalBase * const, char const * const, TerminalCoordinates const);
 
-    typedef TerminalWriteResult (*WriteCharFunc)(TerminalBase * const, const char);
-    typedef TerminalWriteResult (*WriteStringFunc)(TerminalBase * const, const char * const);
-    typedef TerminalWriteResult (*WriteStringVarargsFunc)(TerminalBase * const, const char * const, va_list);
+    typedef TerminalWriteResult (*WriteCharFunc)(TerminalBase * const, char const *);
+    typedef TerminalWriteResult (*WriteStringFunc)(TerminalBase * const, char const * const);
+    typedef TerminalWriteResult (*WriteStringVarargsFunc)(TerminalBase * const, char const * const, va_list);
 
-    typedef Handle (*SetXyFunc)(TerminalBase * const, const int16_t, const int16_t);
-    typedef Handle (*SetCoordsFunc)(TerminalBase * const, const TerminalCoordinates);
+    typedef Handle (*SetXyFunc)(TerminalBase * const, int16_t const, int16_t const);
+    typedef Handle (*SetCoordsFunc)(TerminalBase * const, TerminalCoordinates const);
     typedef TerminalCoordinates (*GetCoords)(TerminalBase * const);
 
-    typedef Handle (*SetUint16)(TerminalBase * const, const uint16_t);
+    typedef Handle (*SetUint16)(TerminalBase * const, uint16_t const);
     typedef uint16_t (*GetUint16)(TerminalBase * const);
 
     /**

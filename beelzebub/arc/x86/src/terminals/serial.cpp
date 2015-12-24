@@ -128,13 +128,13 @@ SerialTerminal::SerialTerminal(ManagedSerialPort * const port)
 
 /*  Writing  */
 
-TerminalWriteResult SerialTerminal::WriteChar(TerminalBase * const term, const char c)
+TerminalWriteResult SerialTerminal::WriteChar(TerminalBase * const term, const char * c)
 {
     SerialTerminal * const sterm = (SerialTerminal *)term;
 
-    sterm->Port->Write(c, true);
+    uint32_t const charBytes = (uint32_t)(sterm->Port->WriteUtf8Char(c));
 
-    return {Handle(HandleResult::Okay), 1U, InvalidCoordinates};
+    return {Handle(HandleResult::Okay), charBytes, InvalidCoordinates};
 }
 
 TerminalWriteResult SerialTerminal::WriteString(TerminalBase * const term, const char * const str)

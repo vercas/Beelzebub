@@ -83,11 +83,11 @@ namespace Beelzebub { namespace Terminals
 
 		/*  Writing  */
 
-		static TerminalWriteResult DefaultWriteCharAtXy(TerminalBase * const term, const char c, const int16_t x, const int16_t y);
-		static TerminalWriteResult DefaultWriteCharAtCoords(TerminalBase * const term, const char c, const TerminalCoordinates pos);
+		static TerminalWriteResult DefaultWriteCharAtXy(TerminalBase * const term, const char * c, const int16_t x, const int16_t y);
+		static TerminalWriteResult DefaultWriteCharAtCoords(TerminalBase * const term, const char * c, const TerminalCoordinates pos);
 		static TerminalWriteResult DefaultWriteStringAt(TerminalBase * const term, const char * const str, const TerminalCoordinates pos);
 
-		static TerminalWriteResult DefaultWriteChar(TerminalBase * const term, const char c);
+		static TerminalWriteResult DefaultWriteChar(TerminalBase * const term, const char * c);
 		static TerminalWriteResult DefaultWriteString(TerminalBase * const term, const char * const str);
 		static TerminalWriteResult DefaultWriteStringVarargs(TerminalBase * const term, const char * const fmt, va_list args);
 		static TerminalWriteResult DefaultWriteStringLine(TerminalBase * const term, const char * const str);

@@ -137,23 +137,25 @@ VbeTerminal::VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32
 
 /*  Writing  */
 
-TerminalWriteResult VbeTerminal::WriteCharAtXy(TerminalBase * const term, const char c, const int16_t cx, const int16_t cy)
+TerminalWriteResult VbeTerminal::WriteCharAtXy(TerminalBase * const term, char const * c, const int16_t cx, const int16_t cy)
 {
     VbeTerminal & vterm = *((VbeTerminal *)term);
 
-    /* TEMP */ const uint32_t colf = 0xFFDFE0E6;
-    /* TEMP */ const uint32_t colb = 0xFF262223;
+    /* TEMP */ uint32_t const colf = 0xFFDFE0E6;
+    /* TEMP */ uint32_t const colb = 0xFF262223;
 
-    const size_t w = FontWidth;
-    const size_t h = FontHeight;
-    const size_t x = cx * w;
-    const size_t y = cy * h;
+    size_t const w = FontWidth;
+    size_t const h = FontHeight;
+    size_t const x = cx * w;
+    size_t const y = cy * h;
 
     size_t lx, ly, bit;
     size_t line = vterm.VideoMemory + y * vterm.Pitch + x * vterm.BytesPerPixel;
-    size_t byteWidth = w / 8;
+    size_t const byteWidth = w / 8;
 
-    if (c == ' ')
+    uint32_t i = 1U;   //  Number of bytes in this character.
+
+    if (*c == ' ')
     {
         if (colb == NOCOL)
             return {Handle(HandleResult::Okay), 1U, {cx, cy}};
@@ -175,7 +177,14 @@ TerminalWriteResult VbeTerminal::WriteCharAtXy(TerminalBase * const term, const 
     }
     else
     {
-        const uint8_t * bmp = Font[c - FontMin];
+        uint8_t const * bmp = Font[*c - FontMin];
+
+        if (*c >= 0x80)
+        {
+            //  This belongs to a multibyte character... Uh oh...
+
+            goto skip_bitmap;
+        }
 
         for (ly = 0; ly < h; ++ly)
         {
@@ -201,7 +210,9 @@ TerminalWriteResult VbeTerminal::WriteCharAtXy(TerminalBase * const term, const 
         }
     }
 
-    return {Handle(HandleResult::Okay), 1U, {cx, cy}};
+skip_bitmap:
+
+    return {Handle(HandleResult::Okay), i, {cx, cy}};
 }
 
 /*  Positioning  */

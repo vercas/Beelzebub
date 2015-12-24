@@ -57,7 +57,7 @@ namespace Beelzebub { namespace Terminals
 
         /*  Writing  */
 
-        static TerminalWriteResult WriteChar(TerminalBase * const term, const char c);
+        static TerminalWriteResult WriteChar(TerminalBase * const term, const char * c);
         static TerminalWriteResult WriteString(TerminalBase * const term, const char * const str);
         static TerminalWriteResult WriteStringLine(TerminalBase * const term, const char * const str);
 

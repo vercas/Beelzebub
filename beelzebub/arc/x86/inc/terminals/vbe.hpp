@@ -64,7 +64,7 @@ namespace Beelzebub { namespace Terminals
 
 		/*  Writing  */
 
-        static __hot __noinline TerminalWriteResult WriteCharAtXy(TerminalBase * const term, const char c, const int16_t cx, const int16_t cy);
+        static __hot __noinline TerminalWriteResult WriteCharAtXy(TerminalBase * const term, const char * c, const int16_t cx, const int16_t cy);
 
         /*  Positioning  */
 

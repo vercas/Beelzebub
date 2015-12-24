@@ -38,6 +38,7 @@
 */
 
 #include <system/serial_ports.hpp>
+#include <system/io_ports.hpp>
 #include <math.h>
 
 using namespace Beelzebub;
@@ -80,6 +81,18 @@ void SerialPort::Initialize() const
 }
 
 /*  I/O  */
+
+bool SerialPort::CanRead() const
+{
+    return 0 != (Io::In8(this->BasePort + 5) & 0x01);
+    //  Bit 0 of the line status register.
+}
+
+bool SerialPort::CanWrite() const
+{
+    return 0 != (Io::In8(this->BasePort + 5) & 0x20);
+    //  Bit 5 of the line status register.
+}
 
 uint8_t SerialPort::Read(bool const wait) const
 {
@@ -166,6 +179,26 @@ void ManagedSerialPort::Initialize()
 
 /*  I/O  */
 
+bool ManagedSerialPort::CanRead() const
+{
+    return 0 != (Io::In8(this->BasePort + 5) & 0x01);
+    //  Bit 0 of the line status register.
+}
+
+bool ManagedSerialPort::CanWrite()
+{
+    if (0 != (Io::In8(this->BasePort + 5) & 0x20))
+    {
+        //  Bit 5 of the line status register.
+
+        this->OutputCount.Store(0);
+
+        return true;
+    }
+    else
+        return false;
+}
+
 uint8_t ManagedSerialPort::Read(bool const wait)
 {
     if (wait) while (!this->CanRead()) ;
@@ -179,14 +212,14 @@ uint8_t ManagedSerialPort::Read(bool const wait)
 
 void ManagedSerialPort::Write(uint8_t const val, bool const wait)
 {
-    if (wait)
-        while (this->OutputCount >= SerialPort::QueueSize
-            && !this->CanWrite()) ;
-    //  If the output count exceeds the queue size, I check whether I
-    //  can write or not. If I can, the count is reset anyway.
-
     withLock (this->WriteLock)
     {
+        if (wait)
+            while (this->OutputCount.Load() >= SerialPort::QueueSize
+                && !this->CanWrite()) ;
+        //  If the output count exceeds the queue size, I check whether I
+        //  can write or not. If I can, the count is reset anyway.
+
         Io::Out8(this->BasePort, val);
         ++this->OutputCount;
     }
@@ -210,27 +243,73 @@ size_t ManagedSerialPort::ReadNtString(char * const buffer, size_t const size)
 
 size_t ManagedSerialPort::WriteNtString(char const * const str)
 {
-    size_t i = 0, j;
+    size_t i = 0, j, u = 0;
     uint16_t const p = this->BasePort;
 
-    int_cookie_t const int_cookie = this->WriteLock.Acquire();
+    //  `u` is the number of unicode characters encountered.
 
-    while (str[i] != 0)
-    {
-        while (this->OutputCount >= SerialPort::QueueSize
-            && !this->CanWrite()) ;
+    withLock (this->WriteLock)
+        while (str[i] != 0)
+        {
+            while (this->OutputCount.Load() >= SerialPort::QueueSize
+                && !this->CanWrite()) ;
 
-        char const * const tmp = str + i;
+            char const * const tmp = str + i;
 
-        for (j = 0; this->OutputCount < SerialPort::QueueSize && tmp[j] != 0; ++j, ++this->OutputCount)
-            Io::Out8(p, tmp[j]);
+            for (j = 0; this->OutputCount < SerialPort::QueueSize && tmp[j] != 0; ++j, ++this->OutputCount)
+            {
+                char const c = tmp[j];
 
-        i += j;
-    }
+                Io::Out8(p, c);
 
-    this->WriteLock.Release(int_cookie);
+                if ((c & 0x80) == 0 || (c & 0x40) != 0)
+                    ++u;
+                //  Upper bit is 0 means this is a one-byte character.
+                //  If upper bit is 1, the one before must be 1 as well for this to
+                //  be the start of a multibyte character.
+            }
 
-    return i;
+            i += j;
+        }
+
+    return u;
+}
+
+size_t ManagedSerialPort::WriteUtf8Char(char const * str)
+{
+    if (*str == 0)
+        return 0;
+
+    withLock (this->WriteLock)
+        if ((*str & 0x80) == 0)
+        {
+            Io::Out8(this->BasePort, *str);
+            ++this->OutputCount;
+
+            return 1;
+        }
+        else
+        {
+            while (this->OutputCount.Load() > SerialPort::QueueSize - 6
+                && !this->CanWrite()) ;
+            //  It seems that 6 is the maximum length of a UTF-8 character..?
+
+            size_t i = 0;
+
+            do
+            {
+                Io::Out8(this->BasePort, str[i++]);
+            } while ((str[i] & 0xC0) == 0x80);
+            //  Condition checks for continuation bytes.
+            //  Also, note that `i` is post-incremented there. The condition
+            //  will check the byte after the one which is output.
+
+            this->OutputCount += i;
+
+            return i;
+        }
+
+    return ~0;
 }
 
 void ManagedSerialPort::WriteBytes(void const * const src, size_t const cnt)
@@ -240,10 +319,10 @@ void ManagedSerialPort::WriteBytes(void const * const src, size_t const cnt)
     withLock (this->WriteLock)
         for (size_t i = 0, j; i < cnt; i += j)
         {
-            while (this->OutputCount >= SerialPort::QueueSize
+            while (this->OutputCount.Load() >= SerialPort::QueueSize
                 && !this->CanWrite()) { }
 
-            j = Minimum(SerialPort::QueueSize - this->OutputCount, cnt - i);
+            j = Minimum(SerialPort::QueueSize - this->OutputCount.Load(), cnt - i);
 
             Io::Out8n(p, (uint8_t const *)src + i, j);
             this->OutputCount += j;
