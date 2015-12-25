@@ -55,6 +55,8 @@
 #include <handles.h>
 #include <math.h>
 
+#include <debug.hpp>
+
 namespace Beelzebub { namespace Utils
 {
     template<typename TPayload>
@@ -290,7 +292,7 @@ namespace Beelzebub { namespace Utils
         template <typename TKey>
         static Node * Remove(TKey const & key, Node * & node)
         {
-            if (node == nullptr)
+            if unlikely(node == nullptr)
                 return nullptr;
             //  Not found.
 
@@ -308,13 +310,15 @@ namespace Beelzebub { namespace Utils
                 //  This is the node!
 
                 res = node;
+                //  Now `res` can be used to retrieve values from `node` a bit
+                //  quicker. (doesn't need dereferencing)
 
-                if (node->Left == nullptr)
+                if (res->Left == nullptr)
                 {
                     //  This will be the case for the minimum node removed
                     //  below.
 
-                    if (node->Right == nullptr)
+                    if (res->Right == nullptr)
                     {
                         //  No children.
 
@@ -327,21 +331,21 @@ namespace Beelzebub { namespace Utils
 
                     //  No left child, but a right child.
 
-                    node = node->Right;
+                    node = res->Right;
                     //  It is replaced by its right child.
                 }
-                else if (node->Right == nullptr)
+                else if (res->Right == nullptr)
                 {
                     //  A left child and no right child.
 
-                    node = node->Left;
+                    node = res->Left;
                     //  Now it is replaced by its left child.
                 }
                 else
                 {
                     //  Both left and right children are present.
 
-                    Node * temp = RemoveMinimum(node->Right);
+                    Node * temp = RemoveMinimum(res->Right);
                     //  Obtains minimum that is larger than the current.
                     //  Aka the successor. It's also removed from the tree
                     //  in the process.
@@ -349,9 +353,9 @@ namespace Beelzebub { namespace Utils
                     //  At this point, `temp` is dangling. No reference to it
                     //  exists anymore, so it's available for substitution.
 
-                    temp->Left = node->Left;
-                    temp->Right = node->Right;
-                    temp->Height = node->Height;
+                    temp->Left = res->Left;
+                    temp->Right = res->Right;
+                    temp->Height = res->Height;
                     //  Compiler could optimize the first or last two of these
                     //  to use SSE, I suppose.
 
@@ -361,7 +365,7 @@ namespace Beelzebub { namespace Utils
             }
 
             if likely(res != nullptr)
-                node->Balance();
+                node = node->Balance();
             //  No need to balance the tree when nothing was removed.
 
             return res;

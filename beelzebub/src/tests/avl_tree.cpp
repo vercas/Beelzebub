@@ -289,19 +289,28 @@ void TestAvlTree()
 
     //  Removals.
 
-    PrintNode(Debug::DebugTerminal, Tree.Root);
+    INSERT_NODE(15, 10);
+    FIND_NODE(15, 10);
+    //  Will make an interesting first case.
 
     REMOVE_NODE(0, 1);
-
-    PrintNode(Debug::DebugTerminal, Tree.Root);
+    FIND_NO_NODE(0);
 
     REMOVE_NODE(-35, 9);
+    FIND_NO_NODE(0);
+    FIND_NO_NODE(-35);
 
-    PrintNode(Debug::DebugTerminal, Tree.Root);
-    
     REMOVE_NODE(-10, 2);
+    FIND_NO_NODE(0);
+    FIND_NO_NODE(-35);
+    FIND_NO_NODE(-10);
 
-    PrintNode(Debug::DebugTerminal, Tree.Root);
+    FIND_NODE( 10, 3);
+    FIND_NODE(-20, 4);
+    FIND_NODE( 20, 5);
+    FIND_NODE( -5, 6);
+    FIND_NODE( 30, 7);
+    FIND_NODE(-30, 8);
 }
 
 namespace Beelzebub { namespace Utils

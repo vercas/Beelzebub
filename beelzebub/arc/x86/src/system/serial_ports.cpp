@@ -290,6 +290,7 @@ size_t ManagedSerialPort::WriteUtf8Char(char const * str)
             ++this->OutputCount;
 
             return 1;
+            //  This is a one-byte character.
         }
         else
         {
@@ -310,9 +311,10 @@ size_t ManagedSerialPort::WriteUtf8Char(char const * str)
             this->OutputCount += i;
 
             return i;
+            //  Returns the number of bytes in this UTF-8 character.
         }
 
-    return ~0;
+    return ~0;  //  Not reached.
 }
 
 void ManagedSerialPort::WriteBytes(void const * const src, size_t const cnt)
