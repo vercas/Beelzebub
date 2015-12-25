@@ -49,6 +49,7 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Utils;
 
 struct TestPayload
@@ -63,6 +64,95 @@ typedef TreeType::Node NodeType;
 static ObjectAllocatorSmp testAllocator;
 static TreeType Tree;
 
+struct IndentationData
+{
+    size_t Spaces;
+    bool IsLast, IsRoot, Pipe;
+
+    IndentationData * Previous;
+};
+
+__cold TerminalWriteResult IndentForNode(TerminalBase * const term, IndentationData * dat)
+{
+    if (dat == nullptr)
+        return {};
+
+    TerminalWriteResult res {};
+    uint32_t cnt = 0;
+
+    TERMTRY1(IndentForNode(term, dat->Previous), res, cnt);
+
+    //TERMTRY1(term->WriteFormat("<%us>", dat->Spaces), res, cnt);
+
+    if (dat->Pipe)
+    {
+        TERMTRY1(term->Write("│"), res, cnt);
+
+        TERMTRY1(term->WriteFormat("%*", dat->Spaces - 1), res, cnt);
+    }
+    else
+        TERMTRY1(term->WriteFormat("%*", dat->Spaces), res, cnt);
+
+    return res;
+}
+
+IndentationData DefaultNodeIndent {0, true, true, false, nullptr};
+
+void PrintNode(TerminalBase * const term, NodeType * node\
+    , IndentationData * indDat = &DefaultNodeIndent)
+{
+    if (node == nullptr)
+        return;
+    //  Do nuthin' when the node is null.
+
+    TerminalWriteResult res;
+    size_t markA = 0, markB = 0;
+
+    res = IndentForNode(term, indDat);
+
+    ASSERT(res.Result.IsOkayResult()
+        , "Failed to print indentation..? %H"
+        , res.Result);
+
+    res = term->WriteFormat("%s%#{%s; Key = %i4; Value = %i4}%#"
+        , indDat->IsRoot ? "/─" : (indDat->IsLast ? "└─" : "├─")
+        , &markA
+        , indDat->IsRoot ? "Ro" : (indDat->IsLast ? "ri" : "le")
+        , node->Payload.Object.Key
+        , node->Payload.Object.Value
+        , &markB);
+
+    size_t const indCnt = 2;
+
+    if (node->Left != nullptr || node->Right != nullptr)
+    {
+        // term->WriteFormat("┐ %us, %us; ", markB, markA);
+        term->WriteLine("┐");
+
+        IndentationData newIndDat
+        {
+            markB - markA + indCnt,
+            node->Right == nullptr,
+            false,
+            !indDat->IsLast,
+            indDat
+        };
+
+        // term->WriteFormat("{S%us; L%t R%t P%t; O %Xp}%n"
+        //     , newIndDat.Spaces
+        //     , newIndDat.IsLast, newIndDat.IsRoot, newIndDat.Pipe
+        //     , newIndDat.Previous);
+
+        PrintNode(term, node->Left, &newIndDat);
+
+        newIndDat.IsLast = true;
+
+        PrintNode(term, node->Right, &newIndDat);
+    }
+    else
+        term->WriteLine();
+}
+
 #define INSERT_NODE(k, v) do {                                      \
     res = Tree.Insert({(k), (v)});                                  \
     ASSERT(res.IsOkayResult(), "Failed to insert node: %H.", res);  \
@@ -72,9 +162,18 @@ static TreeType Tree;
     TestPayload pl;                                                 \
     res = Tree.Remove((k), pl);                                     \
     ASSERT(res.IsOkayResult(), "Failed to insert node: %H.", res);  \
-    ASSERT(pl->Value == (v)                                         \
-        , "Found payload %Xp with value %i4, expected %i4."         \
-        , pl, pl->Value, (k));                                      \
+    ASSERT(pl.Value == (v)                                          \
+        , "Found payload with key %i4 and value %i4, expected "     \
+          "value %i4."                                              \
+        , (k), pl.Value, (v));                                      \
+} while (false)
+
+#define REMOVE_NO_NODE(k) do {                                      \
+    TestPayload pl;                                                 \
+    res = Tree.Remove((k), pl);                                     \
+    ASSERT(res.IsResult(HandleResult::NotFound)                     \
+        , "Should have failed to remove node with key %i4: %H."     \
+        , (k), res);                                                \
 } while (false)
 
 #define CHECK_KEY(n, v)                         \
@@ -187,6 +286,22 @@ void TestAvlTree()
     FIND_NO_NODE( 25);
     FIND_NO_NODE(-25);
     FIND_NO_NODE( 35);
+
+    //  Removals.
+
+    PrintNode(Debug::DebugTerminal, Tree.Root);
+
+    REMOVE_NODE(0, 1);
+
+    PrintNode(Debug::DebugTerminal, Tree.Root);
+
+    REMOVE_NODE(-35, 9);
+
+    PrintNode(Debug::DebugTerminal, Tree.Root);
+    
+    REMOVE_NODE(-10, 2);
+
+    PrintNode(Debug::DebugTerminal, Tree.Root);
 }
 
 namespace Beelzebub { namespace Utils
