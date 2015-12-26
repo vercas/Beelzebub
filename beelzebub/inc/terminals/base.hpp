@@ -47,14 +47,14 @@
 
 #define TERMTRY0(call, tres) do {           \
 tres = call;                                \
-if (!tres.Result.IsOkayResult())            \
+if unlikely(!tres.Result.IsOkayResult())    \
     return tres;                            \
 } while (false)
 
 #define TERMTRY1(call, tres, cnt) do {      \
 cnt = tres.Size;                            \
 tres = call;                                \
-if (tres.Result.IsOkayResult())             \
+if likely(tres.Result.IsOkayResult())       \
     tres.Size += cnt;                       \
 else                                        \
     return tres;                            \
@@ -63,18 +63,18 @@ else                                        \
 #define TERMTRY1Ex(call, tres, cnt) do {    \
 cnt = tres.Size;                            \
 tres = call;                                \
-if (tres.Result.IsOkayResult())             \
+if likely(tres.Result.IsOkayResult())       \
     tres.Size = cnt + 1;                    \
 else                                        \
     return tres;                            \
 } while (false)
 
-#define TERMTRY2(n, call, tres, cnt) do {     \
-cnt = tres.Size;                              \
-for (typeof(n) i = 0; i < n; ++i)             \
-    if (!(tres = call).Result.IsOkayResult()) \
-        return tres;                          \
-tres.Size += cnt + n;                         \
+#define TERMTRY2(n, call, tres, cnt) do {               \
+cnt = tres.Size;                                        \
+for (typeof(n) i = 0; i < n; ++i)                       \
+    if unlikely(!(tres = call).Result.IsOkayResult())   \
+        return tres;                                    \
+tres.Size += cnt + n;                                   \
 } while (false)
 
 namespace Beelzebub { namespace Terminals
