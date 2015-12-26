@@ -59,6 +59,14 @@
 
 namespace Beelzebub { namespace Utils
 {
+    enum class TreeTraversalOrder
+    {
+        PreOrder,
+        InOrder,
+        PostOrder,
+        LevelOrder
+    };
+
     template<typename TPayload>
     class AvlTreeNode
     {
@@ -182,8 +190,9 @@ namespace Beelzebub { namespace Utils
 
         typedef AvlTreeNode<TPayload> Node;
 
-    private:
         /*  Statics  */
+
+        static constexpr size_t const NodeSize = sizeof(Node);
 
         static Handle AllocateNode(Node * & node);
         static Handle RemoveNode(Node * const node);
@@ -371,9 +380,88 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-    public:
+        template<typename TLambda>
+        static bool IteratePreOrder(Node * const node, TLambda lambda)
+        {
+            //  false = stop; True = continue;
 
-        static constexpr size_t const NodeSize = sizeof(Node);
+            if unlikely(node == nullptr)
+                return true;
+
+            if unlikely(!lambda(node))
+                return false;
+
+            if unlikely(!IteratePreOrder(node->Left, lambda))
+                return false;
+
+            return IteratePreOrder(node->Right, lambda);
+            //  Tail recursion, hopefully.
+        }
+
+        template<typename TLambda>
+        static bool IterateInOrder(Node * const node, TLambda lambda)
+        {
+            //  false = stop; True = continue;
+
+            if unlikely(node == nullptr)
+                return true;
+
+            if unlikely(!IterateInOrder(node->Left, lambda))
+                return false;
+
+            if unlikely(!lambda(node))
+                return false;
+
+            return IterateInOrder(node->Right, lambda);
+        }
+
+        template<typename TLambda>
+        static bool IteratePostOrder(Node * const node, TLambda lambda)
+        {
+            //  false = stop; True = continue;
+
+            if unlikely(node == nullptr)
+                return true;
+
+            if unlikely(!IteratePostOrder(node->Left, lambda))
+                return false;
+
+            if unlikely(!IteratePostOrder(node->Right, lambda))
+                return false;
+
+            return lambda(node);
+            //  Could be a tail call, but it sure as heck ain't as good as tail
+            //  recursion.
+        }
+
+        template<typename TLambda>
+        static bool IterateLevelOrder(Node * const node, TLambda lambda
+            , size_t level, size_t const target, size_t & count)
+        {
+            //  false = stop; True = continue;
+
+            if unlikely(node == nullptr)
+                return true;
+
+            if (level == target)
+            {
+                ++count;
+                //  This is a hit.
+
+                return lambda(node);
+            }
+
+            //  Now level can only be < target.
+
+            ++level;
+            //  Up the game.
+
+            if unlikely(!IterateLevelOrder(node->Left, lambda, level, target, count))
+                return false;
+
+            return IterateLevelOrder(node->Right, lambda, level, target, count);
+            //  Tail recursion, hopefully.
+        }
 
         /*  Constructors  */
 
@@ -397,14 +485,24 @@ namespace Beelzebub { namespace Utils
 
         Handle Insert(TPayload & payload)
         {
-            return Insert(payload, this->Root);
+            Handle res = Insert(payload, this->Root);
+
+            if likely(res.IsOkayResult())
+                ++this->NodeCount;
+
+            return res;
         }
 
         Handle Insert(TPayload const && payload)
         {
             TPayload dummy = payload;
 
-            return Insert(dummy, this->Root);
+            Handle res = Insert(dummy, this->Root);
+
+            if likely(res.IsOkayResult())
+                ++this->NodeCount;
+
+            return res;
         }
 
         template<typename TKey>
@@ -415,7 +513,11 @@ namespace Beelzebub { namespace Utils
             if (node == nullptr)
                 return HandleResult::NotFound;
             else
+            {
+                --this->NodeCount;
+                
                 return RemoveNode(node);
+            }
         }
 
         template<typename TKey>
@@ -428,7 +530,11 @@ namespace Beelzebub { namespace Utils
             if (node == nullptr)
                 return HandleResult::NotFound;
             else
+            {
+                --this->NodeCount;
+                
                 return RemoveNode(node);
+            }
         }
 
         template<typename TKey>
@@ -443,6 +549,8 @@ namespace Beelzebub { namespace Utils
                 res = node->Payload.Object;
                 //  Will effectively perform a copy.
 
+                --this->NodeCount;
+                
                 return RemoveNode(node);
             }
         }
@@ -460,12 +568,47 @@ namespace Beelzebub { namespace Utils
             {
                 res = node->Payload.Object;
 
+                --this->NodeCount;
+                
                 return RemoveNode(node);
+            }
+        }
+
+        /*  Iteration  */
+
+        template<typename TLambda>
+        bool Traverse(TreeTraversalOrder const order, TLambda lambda)
+        {
+            switch (order)
+            {
+            case TreeTraversalOrder::PreOrder:
+                return IteratePreOrder(this->Root, lambda);
+            case TreeTraversalOrder::InOrder:
+                return IterateInOrder(this->Root, lambda);
+            case TreeTraversalOrder::PostOrder:
+                return IteratePostOrder(this->Root, lambda);
+
+            case TreeTraversalOrder::LevelOrder:
+                size_t level = 0, count;
+
+                do
+                {
+                    count = 0;
+
+                    if (!IterateLevelOrder(this->Root, lambda, 0, level++, count))
+                        return false;
+                } while (count > 0);
+
+                return true;
+
+            default:
+                return false;
             }
         }
 
         /*  Fields  */
 
         Node * Root;
+        size_t NodeCount;
     };
 }}
