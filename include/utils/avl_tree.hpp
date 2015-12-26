@@ -515,7 +515,7 @@ namespace Beelzebub { namespace Utils
             else
             {
                 --this->NodeCount;
-                
+
                 return RemoveNode(node);
             }
         }
@@ -532,7 +532,7 @@ namespace Beelzebub { namespace Utils
             else
             {
                 --this->NodeCount;
-                
+
                 return RemoveNode(node);
             }
         }
@@ -550,7 +550,7 @@ namespace Beelzebub { namespace Utils
                 //  Will effectively perform a copy.
 
                 --this->NodeCount;
-                
+
                 return RemoveNode(node);
             }
         }
@@ -569,7 +569,7 @@ namespace Beelzebub { namespace Utils
                 res = node->Payload.Object;
 
                 --this->NodeCount;
-                
+
                 return RemoveNode(node);
             }
         }
@@ -600,10 +600,9 @@ namespace Beelzebub { namespace Utils
                 } while (count > 0);
 
                 return true;
-
-            default:
-                return false;
             }
+
+            return false;
         }
 
         /*  Fields  */

@@ -311,6 +311,117 @@ void TestAvlTree()
     FIND_NODE( -5, 6);
     FIND_NODE( 30, 7);
     FIND_NODE(-30, 8);
+    FIND_NODE(15, 10);
+
+    //  Iteration (in-order).
+
+    bool arr[8];
+    int min = -2000000000;
+
+    for (size_t i = 1; i < 8; ++i)
+        arr[i] = false;
+
+    arr[0] = true;
+
+    Tree.Traverse(TreeTraversalOrder::InOrder, [&arr, &min](NodeType * node)
+    {
+        int val = node->Payload.Object.Key;
+
+        ASSERT(val > min
+            , "In-order traversal of AVL tree seems to have an issue.%n"
+              "Value %i4 followed %i4, but it is not in ascending order!"
+            , val, min);
+
+        min = val;
+
+        switch (val)
+        {
+            case 10:    return arr[1] = true;
+            case -20:   return arr[2] = true;
+            case 20:    return arr[3] = true;
+            case -5:    return arr[4] = true;
+            case -30:   return arr[5] = true;
+            case 30:    return arr[6] = true;
+            case 15:    return arr[7] = true;
+
+            default:    return arr[0] = false;
+        }
+    });
+
+    for (size_t i = 0; i < 8; ++i)
+        ASSERT(arr[i], "Error detected after in-order tree traversal (%us)!", i);
+
+    //  Iteration (pre-order).
+
+    for (size_t i = 1; i < 8; ++i)
+        arr[i] = false;
+
+    Tree.Traverse(TreeTraversalOrder::PreOrder, [&arr](NodeType * node)
+    {
+        switch (node->Payload.Object.Key)
+        {
+            case 10:    return arr[1] = true;
+            case -20:   return arr[2] = true;
+            case 20:    return arr[3] = true;
+            case -5:    return arr[4] = true;
+            case -30:   return arr[5] = true;
+            case 30:    return arr[6] = true;
+            case 15:    return arr[7] = true;
+
+            default:    return arr[0] = false;
+        }
+    });
+
+    for (size_t i = 0; i < 8; ++i)
+        ASSERT(arr[i], "Error detected after pre-order tree traversal (%us)!", i);
+
+    //  Iteration (post-order).
+
+    for (size_t i = 1; i < 8; ++i)
+        arr[i] = false;
+
+    Tree.Traverse(TreeTraversalOrder::PostOrder, [&arr](NodeType * node)
+    {
+        switch (node->Payload.Object.Key)
+        {
+            case 10:    return arr[1] = true;
+            case -20:   return arr[2] = true;
+            case 20:    return arr[3] = true;
+            case -5:    return arr[4] = true;
+            case -30:   return arr[5] = true;
+            case 30:    return arr[6] = true;
+            case 15:    return arr[7] = true;
+
+            default:    return arr[0] = false;
+        }
+    });
+
+    for (size_t i = 0; i < 8; ++i)
+        ASSERT(arr[i], "Error detected after post-order tree traversal (%us)!", i);
+
+    //  Iteration (level-order).
+
+    for (size_t i = 1; i < 8; ++i)
+        arr[i] = false;
+
+    Tree.Traverse(TreeTraversalOrder::LevelOrder, [&arr](NodeType * node)
+    {
+        switch (node->Payload.Object.Key)
+        {
+            case 10:    return arr[1] = true;
+            case -20:   return arr[2] = true;
+            case 20:    return arr[3] = true;
+            case -5:    return arr[4] = true;
+            case -30:   return arr[5] = true;
+            case 30:    return arr[6] = true;
+            case 15:    return arr[7] = true;
+
+            default:    return arr[0] = false;
+        }
+    });
+
+    for (size_t i = 0; i < 8; ++i)
+        ASSERT(arr[i], "Error detected after level-order tree traversal (%us)!", i);
 }
 
 namespace Beelzebub { namespace Utils
