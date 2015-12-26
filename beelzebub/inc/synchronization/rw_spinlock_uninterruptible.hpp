@@ -1,6 +1,3 @@
-#pragma once
-
-#include <synchronization/atomic.hpp>
 /*
     Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
 
@@ -39,6 +36,10 @@
     You may also find the text of this license in "LICENSE.md", along with a more
     thorough explanation regarding other files.
 */
+
+#pragma once
+
+#include <synchronization/atomic.hpp>
 
 #include <system/interrupts.hpp>
 #include <system/cpu_instructions.hpp>
