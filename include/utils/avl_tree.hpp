@@ -197,7 +197,7 @@ namespace Beelzebub { namespace Utils
         static Handle AllocateNode(Node * & node);
         static Handle RemoveNode(Node * const node);
 
-        static Handle Create(Node * & node, TPayload & payload)
+        static Handle Create(Node * & node)
         {
             Handle res = AllocateNode(node);
 
@@ -205,9 +205,17 @@ namespace Beelzebub { namespace Utils
             {
                 node->Left = node->Right = nullptr;
                 node->Height = 1;   //  Always a leaf.
-
-                node->Payload = payload;
             }
+
+            return res;
+        }
+
+        static Handle Create(Node * & node, TPayload & payload)
+        {
+            Handle res = Create(node);
+
+            if likely(res.IsOkayResult())
+                node->Payload = payload;
 
             return res;
         }
@@ -261,14 +269,12 @@ namespace Beelzebub { namespace Utils
                 res = InsertOrFind<TCover>(cover, node->Right);
             //  "Lesser" nodes go left, "greater" nodes go right.
 
-            if unlikely(!res.IsOkayResult())
-                return res;
-
             //  Then... Balance, if needed.
 
-            node = node->Balance();
+            if likely(res.IsOkayResult())
+                node = node->Balance();
 
-            return HandleResult::Okay;
+            return res;
         }
 
         static Handle Insert(TPayload & payload, Node * & node)
@@ -294,14 +300,50 @@ namespace Beelzebub { namespace Utils
                 res = Insert(payload, node->Right);
             //  "Lesser" nodes go left, "greater" nodes go right.
 
-            if unlikely(!res.IsOkayResult())
+            //  Then... Balance, if needed.
+
+            if likely(res.IsOkayResult())
+                node = node->Balance();
+
+            return res;
+        }
+
+        template<typename TKey>
+        static Handle InsertBlank(TKey & key, Node * & node, TPayload * & payload)
+        {
+            Handle res;
+
+            //  First step is spawning a new node.
+
+            if unlikely(node == nullptr)
+            {
+                //  Unlikely because it's literally done once per insertion.
+                res = Create(node);
+
+                payload = &(node->Payload.Object);
+
                 return res;
+            }
+
+            comp_t const compRes = node->Payload.Compare(key);
+            //  Note the comparison order.
+
+            if unlikely(compRes == 0)
+                return HandleResult::CardinalityViolation;
+            //  Enforce uniqueness, otherwise problems occur.
+
+            if (compRes > 0)
+                res = InsertBlank<TKey>(key, node->Left, payload);
+            else
+                res = InsertBlank<TKey>(key, node->Right, payload);
+            //  "Lesser" nodes go left, "greater" nodes go right.
 
             //  Then... Balance, if needed.
 
-            node = node->Balance();
+            if likely(res.IsOkayResult())
+                node = node->Balance();
 
-            return HandleResult::Okay;
+            return res;
         }
 
         static Node * RemoveMinimum(Node * & node)
@@ -542,6 +584,17 @@ namespace Beelzebub { namespace Utils
             TPayload dummy = payload;
 
             Handle res = Insert(dummy, this->Root);
+
+            if likely(res.IsOkayResult())
+                ++this->NodeCount;
+
+            return res;
+        }
+
+        template<typename TKey>
+        Handle InsertBlank(TKey const key, TPayload * & payload)
+        {
+            Handle res = InsertBlank(key, this->Root, payload);
 
             if likely(res.IsOkayResult())
                 ++this->NodeCount;
