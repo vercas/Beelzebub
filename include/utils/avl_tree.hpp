@@ -233,6 +233,44 @@ namespace Beelzebub { namespace Utils
             //  These better be tail calls.
         }
 
+        template<typename TCover>
+        static Handle InsertOrFind(TCover & cover, Node * & node)
+        {
+            //  First step is spawning a new node.
+
+            if unlikely(node == nullptr)
+                return Create(node, cover.Payload);
+            //  Unlikely because it's literally done once per insertion.
+
+            comp_t const compRes = node->Payload.Compare(cover);
+            //  Note the comparison order.
+
+            if unlikely(compRes == 0)
+            {
+                //  Enforce uniqueness, otherwise problems occur.
+                cover.Finding = node->Payload;
+                
+                return HandleResult::CardinalityViolation;
+            }
+
+            Handle res;
+
+            if (compRes > 0)
+                res = InsertOrFind<TCover>(cover, node->Left);
+            else
+                res = InsertOrFind<TCover>(cover, node->Right);
+            //  "Lesser" nodes go left, "greater" nodes go right.
+
+            if unlikely(!res.IsOkayResult())
+                return res;
+
+            //  Then... Balance, if needed.
+
+            node = node->Balance();
+
+            return HandleResult::Okay;
+        }
+
         static Handle Insert(TPayload & payload, Node * & node)
         {
             //  First step is spawning a new node.
@@ -481,6 +519,12 @@ namespace Beelzebub { namespace Utils
             TKey dummy = key;
 
             return Find<TKey>(dummy, this->Root);
+        }
+
+        template<typename TCover>
+        Handle * InsertOrFind(TCover & cover)
+        {
+            return InsertOrFind<TCover>(cover, this->Root);
         }
 
         Handle Insert(TPayload & payload)
