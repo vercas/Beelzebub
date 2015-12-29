@@ -54,6 +54,8 @@
 #include <system/timers/pit.hpp>
 #include <system/cpu.hpp>
 
+#include <execution/images.hpp>
+
 #include <kernel.hpp>
 #include <entry.h>
 
@@ -530,14 +532,20 @@ void RemapTerminal(TerminalBase * const terminal)
  *  Does something with the kernel's module...
  *  </summary>
  */
-__cold Handle HandleKernelModule(const size_t index
-                               , const jg_info_module_t * const module
-                               , const vaddr_t vaddr
-                               , const size_t size)
+__cold Handle HandleKernelModule(size_t const index
+                               , jg_info_module_t const * const module
+                               , vaddr_t const vaddr
+                               , size_t const size)
 {
     msg("THIS IS THE KERNEL MODULE!%n");
 
-    return HandleResult::Okay;
+    Image * dummy;
+
+    Handle res = Images::Load("kernel", ImageRole::Kernel
+        , reinterpret_cast<uint8_t *>(module->address), module->length
+        , dummy, nullptr);
+
+    return res;
 }
 
 /**
@@ -594,6 +602,8 @@ __cold Handle HandleModule(const size_t index, const jg_info_module_t * const mo
 Handle InitializeModules()
 {
     Handle res;
+
+    Images::Initialize();
 
     size_t const moduleCount = (size_t)JG_INFO_ROOT_EX->module_count;
 
