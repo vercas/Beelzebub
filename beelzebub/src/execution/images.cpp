@@ -39,6 +39,9 @@
 
 #include <execution/images.hpp>
 
+#include <execution/elf.hpp>
+#include <utils/avl_tree.hpp>
+
 #include <memory/object_allocator_smp.hpp>
 #include <memory/object_allocator_pools_heap.hpp>
 
@@ -46,24 +49,17 @@ using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
+using namespace Beelzebub::Utils;
+
+/*  Types  */
+
+typedef AvlTree<Image> TreeType;
+typedef TreeType::Node NodeType;
 
 /*  Globals  */
 
-ObjectAllocatorSmp alloc;
-
-/******************
-    Image class
-******************/
-
-Handle Image::DecrementReferenceCount(size_t & newCount)
-{
-    newCount = (this->ReferenceCount -= 2) >> 1;
-
-    if (newCount == 0)
-        return Images::Unload(this);
-
-    return HandleResult::Okay;
-}
+ObjectAllocatorSmp Allocator;
+TreeType Repository;
 
 /*******************
     Images class
@@ -73,7 +69,7 @@ Handle Image::DecrementReferenceCount(size_t & newCount)
 
 void Images::Initialize()
 {
-    new (&alloc) ObjectAllocatorSmp(sizeof(Image), __alignof(Image)
+    new (&Allocator) ObjectAllocatorSmp(sizeof(NodeType), __alignof(NodeType)
         , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap
         , PoolReleaseOptions::KeepOne, 0, Limit);
 }
@@ -86,7 +82,29 @@ Handle Images::Load(char const * const name, ImageRole const role
 {
     Handle res;
 
-    return HandleResult::Okay;
+    res = Repository.InsertBlank<char const *>(name, img);
+
+    if unlikely(!res.IsOkayResult())
+        return res;
+
+    //  Basic info.
+
+    img->SetReferenceCount(0);
+
+    img->Name = name;
+
+    img->Start = imgStart;
+    img->End = imgStart + size;
+    img->Size = size;
+
+    img->Type = ImageType::Invalid;
+    img->Role = role;   //  `Auto` will be handled in parsing.
+
+    //  Finding the type.
+
+    img->Parse();
+
+    return res;
 }
 
 Handle Images::Unload(Image * const img)
@@ -94,4 +112,69 @@ Handle Images::Unload(Image * const img)
     Handle res;
 
     return HandleResult::Okay;
+}
+
+/***********************
+    Image allocation
+***********************/
+
+namespace Beelzebub { namespace Utils
+{
+    template<>
+    Handle AvlTree<Image>::AllocateNode(AvlTree<Image>::Node * & node)
+    {
+        return Allocator.AllocateObject(node);
+    }
+
+    template<>
+    Handle AvlTree<Image>::RemoveNode(AvlTree<Image>::Node * const node)
+    {
+        return Allocator.DeallocateObject(node);
+    }
+
+    template<> template<>
+    comp_t Comparable<Image>::Compare<Image>(Image const & other) const
+    {
+        return (Comparable<char const *>(this->Object.Name)).Compare(other.Name);
+    }
+    template<> template<>
+    comp_t Comparable<Image>::Compare<Image>(Image const && other) const
+    {
+        return (Comparable<char const *>(this->Object.Name)).Compare(other.Name);
+    }
+
+    template<> template<>
+    comp_t Comparable<Image>::Compare<char const *>(char const * const & other) const
+    {
+        return (Comparable<char const *>(this->Object.Name)).Compare(other);
+    }
+    template<> template<>
+    comp_t Comparable<Image>::Compare<char const *>(char const * const && other) const
+    {
+        return (Comparable<char const *>(this->Object.Name)).Compare(other);
+    }
+}}
+
+/******************
+    Image class
+******************/
+
+/*  Reference Count  */
+
+Handle Image::DecrementReferenceCount(size_t & newCount)
+{
+    newCount = (this->ReferenceCount -= 2) >> 1;
+
+    if (newCount == 0)
+        return Images::Unload(this);
+
+    return HandleResult::Okay;
+}
+
+/*  Operations  */
+
+void Image::Parse()
+{
+    if (this->Type == ImageType::Invalid)
+        return;
 }

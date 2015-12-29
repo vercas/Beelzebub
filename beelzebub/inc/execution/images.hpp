@@ -53,6 +53,7 @@ namespace Beelzebub { namespace Execution
     {
         Invalid = 0x00,
         None    = 0x01,
+        Unknown = 0x02,
 
         Elf32   = 0x10,
         Elf64   = 0x11,
@@ -63,17 +64,18 @@ namespace Beelzebub { namespace Execution
 
     enum class ImageRole
     {
-        Invalid    = 0x00,
-        None       = 0x01,
-        Auto       = 0x02,
+        Invalid     = 0x00,
+        None        = 0x01,
+        Auto        = 0x02,
 
         //  Userland
-        Executable = 0x10,
-        Library    = 0x11,
+        Executable  = 0x10,
+        Library     = 0x11,
 
         //  System/kernel
-        Service    = 0x20,
-        Driver     = 0x21,
+        Service     = 0x20,
+        Driver      = 0x21,
+        Kernel      = 0x22,
     };
 
     class Image
@@ -101,10 +103,6 @@ namespace Beelzebub { namespace Execution
         Image(Image const &) = delete;
         Image & operator =(Image const &) = delete;
 
-        /*  Operations  */
-
-        //
-
         /*  Reference Count  */
 
     private:
@@ -125,16 +123,25 @@ namespace Beelzebub { namespace Execution
             return this->DecrementReferenceCount(dummy);
         }
 
+        inline void SetReferenceCount(size_t const count)
+        {
+            this->ReferenceCount = (count << 1) | (this->ReferenceCount.Load() & 1);
+        }
+
+        /*  Operations  */
+
+        void Parse();
+
         /*  Fields  */
 
-        char const * const Name;
+        char const * Name;
 
-        ImageType const Type;
-        ImageRole const Role;
+        ImageType Type;
+        ImageRole Role;
 
-        uint8_t * const Start;
-        uint8_t * const End;
-        size_t const Size;
+        uint8_t * Start;
+        uint8_t * End;
+        size_t Size;
 
         /*  Others  */
 
