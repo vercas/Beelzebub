@@ -36,7 +36,7 @@ LDFILE		:=
 ##########################
 
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
-GCCFLAGS	+= -ffreestanding -Wall -mcmodel=kernel 
+GCCFLAGS	+= -ffreestanding -Wall -mcmodel=kernel -fno-omit-frame-pointer 
 GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
 GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
@@ -56,6 +56,17 @@ LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe
 LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
+
+#######################################
+#	CONFIGURATION-SPECIFIC SETTINGS   #
+#######################################
+
+#########
+# Debug #
+ifneq (,$(findstring conf-debug,$(SETTINGS)))
+	GCCFLAGS	+= -fno-omit-frame-pointer 
+	LOFLAGS		+= -fno-omit-frame-pointer 
+endif
 
 ######################################
 #	ARCHITECTURE-SPECIFIC SETTINGS   #
