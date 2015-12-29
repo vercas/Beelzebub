@@ -40,8 +40,11 @@
 #pragma once
 
 #include <synchronization/spinlock_uninterruptible.hpp>
+#include <synchronization/rw_spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
-#include <handles.h>
+
+#include <memory/regions.hpp>
+#include <utils/avl_tree.hpp>
 
 namespace Beelzebub { namespace Execution
 {
@@ -61,6 +64,8 @@ namespace Beelzebub { namespace Execution
             , UserHeapOverflown(false)
             , AlienPagingTablesLock()
             , PagingTable(nullpaddr)
+            , VasLock()
+            , Vas()
         {
 
         }
@@ -75,6 +80,8 @@ namespace Beelzebub { namespace Execution
             , UserHeapOverflown(false)
             , AlienPagingTablesLock()
             , PagingTable(pt)
+            , VasLock()
+            , Vas()
         {
 
         }
@@ -93,5 +100,8 @@ namespace Beelzebub { namespace Execution
 
         Synchronization::SpinlockUninterruptible<> AlienPagingTablesLock;
         paddr_t PagingTable;
+
+        Synchronization::RwSpinlockUninterruptible VasLock;
+        Utils::AvlTree<Memory::MemoryRange> Vas;
     };
 }}
