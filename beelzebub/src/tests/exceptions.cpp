@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#ifdef __BEELZEBUB__TEST_METAP
+#ifdef __BEELZEBUB__TEST_EXCP
 
 #include <tests/exceptions.hpp>
 #include <exceptions.hpp>
@@ -65,24 +65,24 @@ void TestExceptions()
         __catch (x)
         {
             ASSERT(x->Type == ExceptionType::MemoryAccessViolation
-                , "Exception type should be %up, not %up!"
-                , ExceptionType::MemoryAccessViolation, x->Type);
+                , "(Iteration %us) Exception type should be %up, not %up!"
+                , i, ExceptionType::MemoryAccessViolation, x->Type);
 
             ASSERT(x->MemoryAccessViolation.Address == testPtr
-                , "Memory violation address should be %Xp, not %Xp!"
-                , testPtr, x->MemoryAccessViolation.Address);
+                , "(Iteration %us) Memory violation address should be %Xp, not %Xp!"
+                , i, testPtr, x->MemoryAccessViolation.Address);
 
             ASSERT(x->MemoryAccessViolation.PhysicalAddress == nullpaddr
-                , "Memory violation physical address should be null, not %Xp!"
-                , x->MemoryAccessViolation.PhysicalAddress);
+                , "(Iteration %us) Memory violation physical address should be null, not %Xp!"
+                , i, x->MemoryAccessViolation.PhysicalAddress);
 
             ASSERT(x->MemoryAccessViolation.PageFlags == MemoryLocationFlags::None
-                , "Memory violation page flags should be %X2, not %X2!"
-                , MemoryLocationFlags::None, x->MemoryAccessViolation.PageFlags);
+                , "(Iteration %us) Memory violation page flags should be %X2, not %X2!"
+                , i, MemoryLocationFlags::None, x->MemoryAccessViolation.PageFlags);
 
             ASSERT(x->MemoryAccessViolation.AccessType == MemoryAccessType::Read
-                , "Memory violation access type should be %X1, not %X1!"
-                , MemoryAccessType::Read, x->MemoryAccessViolation.AccessType);
+                , "(Iteration %us) Memory violation access type should be %X1, not %X1!"
+                , i, MemoryAccessType::Read, x->MemoryAccessViolation.AccessType);
         }
 
     __try
