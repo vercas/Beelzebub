@@ -49,6 +49,10 @@ global EnterExceptionContext
 ;   When re-entered through the swap or resume pointers, those two should remain
 ;   valid!
 EnterExceptionContext:
+    push    rbp
+    mov     rbp, rsp
+    ;   Base pointer... For correctness.
+
     mov     byte [rdi + 104], 0
     ;   Marks the context as not ready.
 
@@ -93,6 +97,7 @@ EnterExceptionContext:
     mov     eax, 1
     ;   This is the return value for the standard call of this function.
 
+    pop     rbp
     ret
 
 .swap:
@@ -129,4 +134,5 @@ EnterExceptionContext:
     mov     eax, 0
     ;   This is the return value for resuming...
 
+    pop     rbp
     ret
