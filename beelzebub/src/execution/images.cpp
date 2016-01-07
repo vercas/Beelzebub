@@ -173,8 +173,37 @@ Handle Image::DecrementReferenceCount(size_t & newCount)
 
 /*  Operations  */
 
+bool ParseAsElf(Image * img);
+
 void Image::Parse()
 {
-    if (this->Type == ImageType::Invalid)
+    if (this->Type != ImageType::Invalid)
         return;
+    //  Means it was already parsed. Change the type before parsing...
+
+    if (!ParseAsElf(this))
+    {
+        this->Type = ImageType::Unknown;
+    }
+}
+
+/*****************
+    ELF format
+*****************/
+
+bool ParseAsElf(Image * img)
+{
+    ElfHeader1 * eh1 = reinterpret_cast<ElfHeader1 *>(img->Start);
+
+    if (eh1->Identification.MagicNumber != ElfMagicNumber)
+        return false;
+
+    if (eh1->Identification.Class == ElfClass::Elf64)
+        img->Type = ImageType::Elf64;
+    else if (eh1->Identification.Class == ElfClass::Elf32)
+        img->Type = ImageType::Elf32;
+    else
+        return false;
+
+    return true;
 }

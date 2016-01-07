@@ -542,7 +542,7 @@ __cold Handle HandleKernelModule(size_t const index
     Image * dummy;
 
     Handle res = Images::Load("kernel", ImageRole::Kernel
-        , reinterpret_cast<uint8_t *>(module->address), module->length
+        , reinterpret_cast<uint8_t *>(vaddr), size
         , dummy, nullptr);
 
     return res;
