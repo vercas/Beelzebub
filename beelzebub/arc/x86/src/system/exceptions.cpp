@@ -305,8 +305,9 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
         bool odd;
         for (odd = true; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
         {
-            msg("%X2|%Xs|%s"
+            msg("%X2|%Xp|%Xs|%s"
                 , (uint16_t)(stackPtr - state->RSP)
+                , stackPtr
                 , *((size_t const *)stackPtr)
                 , odd ? "\t" : "\r\n");
         }
