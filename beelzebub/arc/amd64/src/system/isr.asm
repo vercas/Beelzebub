@@ -113,6 +113,10 @@ IsrCommonStub:
     swapgs
 
 .skip_swap_1:
+    mov     ebp, 0
+    ;   The base pointer has to be 0, so the interrupt handler's stack frames do
+    ;   not link to the userland frames.
+    
     ;   At this point, the arguments given are the following:
     ;   1. RDI = State pointer
     ;   2. RSI = Ender pointer

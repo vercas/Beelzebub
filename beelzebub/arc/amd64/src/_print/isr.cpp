@@ -21,6 +21,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         "\tFlags: %Xs%n"
         "\t----%n"
         "\tRDI: %Xs%n"
+        "\tRBP: %Xs%n"
         "\t----%n"
         //"\tVector: %u1%n"
         "\tError Code: %Xs%n"
@@ -32,6 +33,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         , val->RIP
         , val->RFLAGS
         , val->RDI
+        , val->RBP
         //, (uint8_t)val->Vector
         , val->ErrorCode);
 }

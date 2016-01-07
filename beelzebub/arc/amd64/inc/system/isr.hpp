@@ -62,9 +62,9 @@ namespace Beelzebub { namespace System
         uint64_t R10;
         uint64_t R9;
         uint64_t R8;
-        uint64_t RBP;
-        uint64_t RDI;
         uint64_t RSI;
+        uint64_t RDI;
+        uint64_t RBP;
         uint64_t RDX;
         uint64_t RBX;
         uint64_t RAX;
