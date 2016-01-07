@@ -34,6 +34,14 @@ endif
 MTUNE		:= corei7-avx
 #	This is only used when targetting x86.
 
+
+#####################
+# Testing w/ VMWare #
+ifndef VMX_PATH
+	VMX_PATH	:= "T:\Virtual Machines\Beelzebub\Beelzebub.vmx"
+endif
+
+
 #	You should modify this file according to your needs and add it to your
 #	.gitignore.
 

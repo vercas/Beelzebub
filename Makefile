@@ -33,11 +33,20 @@ qemu: $(ISO_PATH)
 
 qemu-serial: $(ISO_PATH)
 	@ qemu-system-x86_64 -cdrom $(ISO_PATH) -smp 4 -nographic
-	
+
+vmware:
+	@ #echo a | /cygdrive/c/Users/rada/Dropbox/Projects/Named\ Pipe\ Server/Named\ Pipe\ Server/bin/Release/Named\ Pipe\ Server
+	@ vmrun start $(VMX_PATH)
+
+vmware2:
+	@ vmrun start $(VMX_PATH)
+	@ sleep 5
+	@ vmrun stop $(VMX_PATH)
+
 jegudiel:
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
-	
+
 image: kernel apps
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso
