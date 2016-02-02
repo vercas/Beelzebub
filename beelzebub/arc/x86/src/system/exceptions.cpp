@@ -48,6 +48,8 @@
 #include <_print/paging.hpp>
 #include <_print/isr.hpp>
 
+#include <utils/stack_walk.hpp>
+
 #include <math.h>
 #include <debug.hpp>
 
@@ -303,19 +305,30 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
         }
 
         bool odd;
-        for (odd = true; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+        for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
         {
             msg("%X2|%Xp|%Xs|%s"
                 , (uint16_t)(stackPtr - state->RSP)
                 , stackPtr
                 , *((size_t const *)stackPtr)
-                , odd ? "\t" : "\r\n");
+                , odd ? "\r\n" : "\t");
         }
 
         if (odd) msg("%n");
 
-        ASSERT(false, "<< ^ EXCEPTION ^ >>");
-        //  TODO: Set other CPUs on fire too.
+        Utils::StackFrame stackFrame;
+
+        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+        {
+            do
+            {
+                msg("[Func %Xp; Stack top %Xp + %us]%n"
+                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+
+            } while (stackFrame.LoadNext());
+        }
+
+        Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr, nullptr);
     }
     else
     {
