@@ -38,7 +38,7 @@ MTUNE		:= corei7-avx
 #####################
 # Testing w/ VMWare #
 ifndef VMX_PATH
-	VMX_PATH	:= "T:\Virtual Machines\Beelzebub\Beelzebub.vmx"
+	VMX_PATH	:= "H:\Virtual Machines\Beelzebub\Beelzebub.vmx"
 endif
 
 
