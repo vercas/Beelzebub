@@ -5,6 +5,7 @@ TARGET		:= jegudiel
 TARGET_BIN	:= $(TARGET).bin
 
 # Directories
+PREFIX2		:= ./..
 PREFIX		:= ./../build
 SOURCE_DIR	:= ./src
 BUILD_DIR	:= ./build
@@ -21,6 +22,7 @@ OBJECTS		+= $(patsubst $(SOURCE_DIR)/%.s,$(BUILD_DIR)/%.s.o,$(shell find $(SOURC
 
 #############
 # Toolchain #
+PROJ_SUBDIR	:= jegudiel
 include ../Toolchain.mk
 #	That easy!
 
@@ -94,11 +96,11 @@ $(PREFIX)/include/jegudiel.h: $(INC_DIR)/jegudiel.h
 $(BUILD_DIR)/%.s.o: $(SOURCE_DIR)/%.s
 	@ echo "/ASM:" $<
 	@ mkdir -p $(@D)
-	@ $(AS) $(ASFLAGS) $< -o $@
+	@ $(PRE_COMPILATION)    $(AS) $(ASFLAGS) $< -o $@    $(POST_COMPILATION)
 
 ##################
 # Build a C file #
 $(BUILD_DIR)/%.c.o: $(SOURCE_DIR)/%.c
 	@ echo "/C__" $<
 	@ mkdir -p $(@D)
-	@ $(CC) $(CFLAGS) -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -c $< -o $@    $(POST_COMPILATION)

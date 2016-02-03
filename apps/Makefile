@@ -1,9 +1,15 @@
 .SUFFIXES:  
 
+###############
+# Directories #
+PREFIX2		:= ./..
+PREFIX		:= ./../build
+
 include ../Beelzebub.mk
 
 .PHONY: clean loadtest loadtest-install loadtest-clean $(ARC) $(SETTINGS)
 
+PROJ_SUBDIR	:= apps
 include ../Toolchain.mk
 #	This one is needed to determine Make flags.
 

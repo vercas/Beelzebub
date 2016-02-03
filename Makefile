@@ -64,4 +64,4 @@ clean:
 	@ $(MAKE) -C $(KERNEL_DIR)/ clean
 	@ $(MAKE) -C jegudiel/ clean
 	@ rm -Rf $(PREFIX)
-
+	@ rm -f last_settings.txt

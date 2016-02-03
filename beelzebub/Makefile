@@ -6,6 +6,7 @@ all: amd64
 
 ###############
 # Directories #
+PREFIX2		:= ./..
 PREFIX		:= ./../build
 INC_COMMON	:= ./../include
 SRC_DIR		:= ./src
@@ -22,6 +23,7 @@ include ../Beelzebub.mk
 
 #############
 # Toolchain #
+PROJ_SUBDIR	:= beelzebub
 include ../Toolchain.mk
 #	That easy!
 
@@ -234,21 +236,21 @@ $(KERNEL_PATH): $(LDFILE) $(OBJECTS)
 $(BUILD_DIR)/%.asm.o: $(SRC_DIR)/%.asm
 	@ echo "/STD/Asm:" $<
 	@ mkdir -p $(@D)
-	@ $(AS) $(ASFLAGS) $< -o $@
+	@ $(PRE_COMPILATION)    $(AS) $(ASFLAGS) $< -o $@    $(POST_COMPILATION)
 
 ##################
 # Build a C file #
 $(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c
 	@ echo "/STD/C__:" $<
 	@ mkdir -p $(@D)
-	@ $(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 ####################
 # Build a C++ file #
 $(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp
 	@ echo "/STD/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 ##################
 # Build a D file #
@@ -264,21 +266,21 @@ $(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp
 $(BUILD_DIR)/%.asm.arc.o: $(ARC_DIR)/$(ARC)/src/%.asm
 	@ echo "/ARC/Asm:" $<
 	@ mkdir -p $(@D)
-	@ $(AS) $(ASFLAGS) $< -o $@
+	@ $(PRE_COMPILATION)    $(AS) $(ASFLAGS) $< -o $@    $(POST_COMPILATION)
 
 ##################
 # Build a C file #
 $(BUILD_DIR)/%.c.arc.o: $(ARC_DIR)/$(ARC)/src/%.c
 	@ echo "/ARC/C__:" $<
 	@ mkdir -p $(@D)
-	@ $(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 ####################
 # Build a C++ file #
 $(BUILD_DIR)/%.cpp.arc.o: $(ARC_DIR)/$(ARC)/src/%.cpp
 	@ echo "/ARC/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 ####################################### AUXILIARY FILES ##########
 
@@ -287,21 +289,21 @@ $(BUILD_DIR)/%.cpp.arc.o: $(ARC_DIR)/$(ARC)/src/%.cpp
 $(BUILD_DIR)/%.asm.aux.o: $(AUX_DIR)/$(AUX)/src/%.asm
 	@ echo "/AUX/Asm:" $<
 	@ mkdir -p $(@D)
-	@ $(AS) $(ASFLAGS) $< -o $@
+	@ $(PRE_COMPILATION)    $(AS) $(ASFLAGS) $< -o $@    $(POST_COMPILATION)
 
 ##################
 # Build a C file #
 $(BUILD_DIR)/%.c.aux.o: $(AUX_DIR)/$(AUX)/src/%.c
 	@ echo "/AUX/C__:" $<
 	@ mkdir -p $(@D)
-	@ $(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 ####################
 # Build a C++ file #
 $(BUILD_DIR)/%.cpp.aux.o: $(AUX_DIR)/$(AUX)/src/%.cpp
 	@ echo "/AUX/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 ####################################### DEPENDENCIES ##########
 

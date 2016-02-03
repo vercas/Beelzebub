@@ -20,6 +20,9 @@ LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc -lgcc -static-libgcc -Wl,-z,ma
 LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-ld
 MKISO		:= mkisofs
 
+PRE_COMPILATION		:=  
+POST_COMPILATION	:=  
+
 ifneq ($(shell $(MKISO) --version; echo $$?),0)
 	#	So, mkisofs may not be absent.
 	#	Maybe it comes from an external source?
@@ -39,6 +42,14 @@ MTUNE		:= corei7-avx
 # Testing w/ VMWare #
 ifndef VMX_PATH
 	VMX_PATH	:= "H:\Virtual Machines\Beelzebub\Beelzebub.vmx"
+endif
+
+
+#######################
+# Testing for Sublime #
+ifdef IN_SUBLIME
+	PRE_COMPILATION		:= $(PREFIX2)/run-compiler-add-dir.sh $(PROJ_SUBDIR) 
+	#POST_COMPILATION	:= 2>&1 | sed -r 's,( *)(.+:[0-9]+:[0-9]+:),\1$(PROJ_SUBDIR)/\2,'
 endif
 
 

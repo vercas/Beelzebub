@@ -1,11 +1,13 @@
 .PHONY: prepare iso clean
 .SUFFIXES:  
 
-PREFIX				:= ../build
+PREFIX2				:= ./..
+PREFIX				:= ./../build
 BUILD_DIR 			:= ./build
 
 include ../Beelzebub.mk
 
+PROJ_SUBDIR	:= image
 include ../Toolchain.mk
 #	MKISO is defined here.
 

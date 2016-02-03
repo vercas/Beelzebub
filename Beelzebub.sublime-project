@@ -1,0 +1,47 @@
+{
+    "folders":
+    [
+        {
+            "name": "Beelzebub",
+            "path": ".",
+            "folder_exclude_patterns": ["build", ".vs"],
+        }
+    ],
+    "build_systems":
+    [
+        {
+            "name": "Beelzebub - Debug - AMD64 - All Tests",
+            "cmd": "bash runmake.sh conf-debug amd64 test-all",
+            
+            "working_dir": "$project_path",
+            "file_regex": "^ *(.+):([0-9]+):([0-9]+): (.*)$",
+
+            "windows":
+            {
+                "path": "C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
+            },
+
+            "env":
+            {
+                "IN_SUBLIME": "true",
+            },
+        },
+        {
+            "name": "Beelzebub - Release - AMD64 - All Tests",
+            "cmd": "bash runmake.sh conf-release amd64 test-all",
+            
+            "working_dir": "$project_path",
+            "file_regex": "^ *(.+):([0-9]+):([0-9]+): (.*)$",
+
+            "windows":
+            {
+                "path": "C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
+            },
+
+            "env":
+            {
+                "IN_SUBLIME": "true",
+            },
+        },
+    ]
+}

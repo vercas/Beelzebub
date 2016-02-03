@@ -2,6 +2,7 @@
 
 ###############
 # Directories #
+PREFIX2		:= ./../..
 PREFIX		:= ./../../build
 INC_COMMON	:= ./../../include
 SRC_DIR		:= ./src
@@ -20,6 +21,7 @@ APP_INSTALL_PATH	:= $(APP_INSTALL_DIR)/$(APP_BIN)
 
 #############
 # Toolchain #
+PROJ_SUBDIR	:= apps/loadtest
 include ../../Toolchain.mk
 #	That easy!
 
@@ -195,21 +197,21 @@ $(APP_PATH): $(LDFILE) $(OBJECTS)
 $(BUILD_DIR)/%.asm.o: $(SRC_DIR)/%.asm
 	@ echo "/STD/Asm:" $<
 	@ mkdir -p $(@D)
-	@ $(AS) $(ASFLAGS) $< -o $@
+	@ $(PRE_COMPILATION)    $(AS) $(ASFLAGS) $< -o $@    $(POST_COMPILATION)
 
 ##################
 # Build a C file #
 $(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c
 	@ echo "/STD/C__:" $<
 	@ mkdir -p $(@D)
-	@ $(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 ####################
 # Build a C++ file #
 $(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp
 	@ echo "/STD/C++:" $<
 	@ mkdir -p $(@D)
-	@ $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 ##################
 # Build a D file #

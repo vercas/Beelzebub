@@ -209,10 +209,11 @@ BochsLog.txt
 # vStuff
 .sync/
 *~
-*.sublime-project
 *.sublime-workspace
 BOCHS.bat
 QEMU.bat
+start_vmware.bat
+start_vmware.ps1
 
 /image/grub/
 
@@ -228,3 +229,5 @@ ToUSB.bat
 
 Build.bat
 CleanBuild.bat
+
+last_settings.txt
