@@ -61,6 +61,8 @@ typedef TreeType::Node NodeType;
 ObjectAllocatorSmp Allocator;
 TreeType Repository;
 
+Spinlock<> Lock;
+
 /*******************
     Images class
 *******************/
@@ -82,23 +84,29 @@ Handle Images::Load(char const * const name, ImageRole const role
 {
     Handle res;
 
-    res = Repository.InsertBlank<char const *>(name, img);
+    withLock (Lock)
+    {
+        res = Repository.InsertBlank<char const *>(name, img);
 
-    if unlikely(!res.IsOkayResult())
-        return res;
+        if unlikely(!res.IsOkayResult())
+            return res;
 
-    //  Basic info.
+        //  Basic info.
 
-    img->SetReferenceCount(0);
+        img->SetReferenceCount(0);
 
-    img->Name = name;
+        img->Name = name;
+
+        img->Type = ImageType::Invalid;
+        img->Role = role;   //  `Auto` will be handled in parsing.
+    }
+
+    //  The image will be parsed outside the lock. Any consumer getting an image
+    //  with an invalid type shall wait until it changes.
 
     img->Start = imgStart;
     img->End = imgStart + size;
     img->Size = size;
-
-    img->Type = ImageType::Invalid;
-    img->Role = role;   //  `Auto` will be handled in parsing.
 
     //  Finding the type.
 
@@ -112,6 +120,16 @@ Handle Images::Unload(Image * const img)
     Handle res;
 
     return HandleResult::Okay;
+}
+
+/*  Retrieval  */
+
+Image * Images::FindByName(char const * const name)
+{
+    withLock (Lock)
+        return &(Repository.Find<char const *>(name)->Object);
+
+    return nullptr;
 }
 
 /***********************

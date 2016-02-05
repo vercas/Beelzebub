@@ -539,11 +539,13 @@ __cold Handle HandleKernelModule(size_t const index
 {
     msg("THIS IS THE KERNEL MODULE!%n");
 
-    Image * dummy;
+    Image * kimg;
 
     Handle res = Images::Load("kernel", ImageRole::Kernel
         , reinterpret_cast<uint8_t *>(vaddr), size
-        , dummy, nullptr);
+        , kimg, nullptr);
+
+    KernelImage = kimg;
 
     return res;
 }

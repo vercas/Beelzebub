@@ -41,6 +41,7 @@
 
 #include <system/domain.hpp>    //  Platform-specific.
 #include <execution/thread.hpp>
+#include <execution/images.hpp>
 #include <terminals/base.hpp>
 
 namespace Beelzebub
@@ -61,6 +62,8 @@ namespace Beelzebub
     extern Execution::Thread BootstrapThread;
 
     extern System::Domain Domain0;
+
+    extern Execution::Image * KernelImage;
 
     /**
      *  <summary>Entry point for the bootstrap processor.</summary>

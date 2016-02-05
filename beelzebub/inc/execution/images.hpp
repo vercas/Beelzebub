@@ -175,5 +175,9 @@ namespace Beelzebub { namespace Execution
             , ImageUnloadCallback ucbk = nullptr);
         
         static Handle Unload(Image * const img);
+
+        /*  Retrieval  */
+
+        static Image * FindByName(char const * const name);
     };
 }}

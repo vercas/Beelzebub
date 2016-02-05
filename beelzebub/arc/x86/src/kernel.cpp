@@ -124,6 +124,8 @@ Thread Beelzebub::BootstrapThread;
 
 Domain Beelzebub::Domain0;
 
+Image * Beelzebub::KernelImage;
+
 /*******************
     ENTRY POINTS
 *******************/
