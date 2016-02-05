@@ -19,10 +19,7 @@ then
 
 	$PRECMD wget "http://u.vercas.com/gcc-x86_64-elf.tar.xz" -O $TMP
 	RES=$?
-	echo ""
-	echo "RESULT IS $RES"
-	echo ""
-
+	
 	if [ $RES != 0 ]
 	then
 		$PRECMD wget "https://dl.dropboxusercontent.com/u/1217587/gcc-x86_64-elf.tar.xz" -O $TMP
