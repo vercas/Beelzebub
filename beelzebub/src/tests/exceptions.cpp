@@ -48,11 +48,30 @@
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 
+__noinline void TestNullDereference(uintptr_t volatile * const testPtr)
+{
+    uintptr_t volatile * volatile testNullPtr = reinterpret_cast<uintptr_t volatile *>(testPtr - testPtr);
+
+    __try
+    {
+        uintptr_t thisShouldFail = *testNullPtr;
+
+        ASSERT(false,
+            "(( Test value that should've failed: %Xp ))%n",
+            thisShouldFail);
+    }
+    __catch (x)
+    {
+        ASSERT(x->Type == ExceptionType::NullReference
+            , "Exception type should be %up, not %up!"
+            , ExceptionType::NullReference, x->Type);
+    }
+}
+
 void TestExceptions()
 {
     uintptr_t volatile * volatile testPtr = reinterpret_cast<uintptr_t volatile *>(0x1234567);
-    uintptr_t volatile * volatile testNullPtr = reinterpret_cast<uintptr_t volatile *>(testPtr - testPtr);
-
+    
     for (size_t i = 0; i < 100; ++i)
         __try
         {
@@ -85,20 +104,7 @@ void TestExceptions()
                 , i, MemoryAccessType::Read, x->MemoryAccessViolation.AccessType);
         }
 
-    __try
-    {
-        uintptr_t thisShouldFail = *testNullPtr;
-
-        ASSERT(false,
-            "(( Test value that should've failed: %Xp ))%n",
-            thisShouldFail);
-    }
-    __catch (x)
-    {
-        ASSERT(x->Type == ExceptionType::NullReference
-            , "Exception type should be %up, not %up!"
-            , ExceptionType::NullReference, x->Type);
-    }
+    TestNullDereference(testPtr);
 }
 
 #endif
