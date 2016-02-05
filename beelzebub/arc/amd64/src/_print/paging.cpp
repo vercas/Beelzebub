@@ -91,7 +91,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml1Entry const v
 		{ str[43] = 'G'; str[44] = 'L'; str[45] = 'B'; }
 	if (val.GetDirty())
 		{ str[47] = 'D'; str[48] = 'R'; str[49] = 'T'; }
-	if (val.GetPat())
+	if (val.GetPat1())
 		{ str[51] = 'P'; str[52] = 'A'; str[53] = 'T'; }
 
 	return term->Write(str);
@@ -181,7 +181,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml2Entry const v
 		{ str[43] = 'G'; str[44] = 'L'; str[45] = 'B'; }
 	if (val.GetDirty())
 		{ str[47] = 'D'; str[48] = 'R'; str[49] = 'T'; }
-	if (val.GetPat())
+	if (val.GetPat1())
 		{ str[51] = 'P'; str[52] = 'A'; str[53] = 'T'; }
 
 	return term->Write(str);
@@ -271,7 +271,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, Pml3Entry const v
 		{ str[43] = 'G'; str[44] = 'L'; str[45] = 'B'; }
 	if (val.GetDirty())
 		{ str[47] = 'D'; str[48] = 'R'; str[49] = 'T'; }
-	if (val.GetPat())
+	if (val.GetPat1())
 		{ str[51] = 'P'; str[52] = 'A'; str[53] = 'T'; }
 
 	return term->Write(str);

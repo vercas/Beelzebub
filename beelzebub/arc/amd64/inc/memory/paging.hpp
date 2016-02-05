@@ -94,11 +94,11 @@ __forceinline bool MCATS2(Check, name)()                     \
 namespace Beelzebub { namespace Memory
 {
     /**
-     *  Page Map Level 1 Entry
+     *  Page Map Level Entries' common aspects.
      */
-    struct Pml1Entry
+    struct PmlCommonEntry
     {
-        /*  Bit structure for 4-KiB page:
+        /*  Bit structure for paging table entries:
          *       0       : Present (if 1)
          *       1       : R/W (1 means writes allowed)
          *       2       : U/S (1 if usermode access allowed)
@@ -124,62 +124,66 @@ namespace Beelzebub { namespace Memory
         BITFIELD_DEFAULT_1W( 4, Pcd     )
         BITFIELD_DEFAULT_1W( 5, Accessed)
         BITFIELD_DEFAULT_1W( 6, Dirty   )
-        BITFIELD_DEFAULT_1W( 7, Pat     )
+        BITFIELD_DEFAULT_1W( 7, Pat1    )
+        BITFIELD_DEFAULT_1W( 7, PageSize)
         BITFIELD_DEFAULT_1W( 8, Global  )
+        BITFIELD_DEFAULT_1W(12, Pat2    )
         BITFIELD_DEFAULT_1W(63, Xd      )
         BITFIELD_DEFAULT_2W(12, 40, paddr_t, Address)
         
         /*  Constructors  */
 
         /**
-         *  Creates an empty PML1 (PT) entry structure.
+         *  Creates an empty PML entry structure.
          */
-        inline Pml1Entry() : Value( 0ULL ) { }
+        inline PmlCommonEntry() : Value( 0ULL ) { }
 
         /**
-         *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
+         *  Creates a new PML entry structure that references a 4-KiB page.
          */
-        inline Pml1Entry(const paddr_t paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    global
-                               , const bool    XD)
+        inline PmlCommonEntry(const paddr_t paddr
+                            , const bool    present
+                            , const bool    writable
+                            , const bool    userAccessible
+                            , const bool    global
+                            , const bool    xd)
             : Value((paddr & AddressBits)
                   | (present        ? PresentBit  : 0ULL)
                   | (writable       ? WritableBit : 0ULL)
                   | (userAccessible ? UserlandBit : 0ULL)
                   | (global         ? GlobalBit   : 0ULL)
-                  | (XD             ? XdBit       : 0ULL))
+                  | (xd             ? XdBit       : 0ULL))
         {
 
         }
 
         /**
-         *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
+         *  Creates a new PML entry structure that references a 4-KiB page.
          */
-        inline Pml1Entry(const paddr_t paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    PWT
-                               , const bool    PCD
-                               , const bool    accessed
-                               , const bool    dirty
-                               , const bool    global
-                               , const bool    PAT
-                               , const bool    XD)
+        inline PmlCommonEntry(const paddr_t paddr
+                            , const bool    present
+                            , const bool    writable
+                            , const bool    userAccessible
+                            , const bool    pwt
+                            , const bool    pcd
+                            , const bool    accessed
+                            , const bool    dirty
+                            , const bool    global
+                            , const bool    pat1
+                            , const bool    pat2
+                            , const bool    xd)
             : Value((paddr & AddressBits)
                   | (present        ? PresentBit  : 0ULL)
                   | (writable       ? WritableBit : 0ULL)
                   | (userAccessible ? UserlandBit : 0ULL)
-                  | (PWT            ? PwtBit      : 0ULL)
-                  | (PCD            ? PcdBit      : 0ULL)
+                  | (pwt            ? PwtBit      : 0ULL)
+                  | (pcd            ? PcdBit      : 0ULL)
                   | (accessed       ? AccessedBit : 0ULL)
                   | (dirty          ? DirtyBit    : 0ULL)
-                  | (PAT            ? PatBit      : 0ULL)
+                  | (pat1           ? Pat1Bit     : 0ULL)
                   | (global         ? GlobalBit   : 0ULL)
-                  | (XD             ? XdBit       : 0ULL))
+                  | (pat2           ? Pat2Bit     : 0ULL)
+                  | (xd             ? XdBit       : 0ULL))
         {
 
         }
@@ -199,6 +203,71 @@ namespace Beelzebub { namespace Memory
     //private:
 
         uint64_t Value;
+    };
+
+    /**
+     *  Page Map Level 1 Entry
+     */
+    struct Pml1Entry : PmlCommonEntry
+    {
+        /*  Bit structure for 4-KiB page:
+         *       0       : Present (if 1)
+         *       1       : R/W (1 means writes allowed)
+         *       2       : U/S (1 if usermode access allowed)
+         *       3       : PWT (page-level write-through)
+         *       4       : PCD (page-level cache disable)
+         *       5       : Accessed
+         *       6       : Dirty
+         *       7       : PAT
+         *       8       : Global
+         *       9 -  11 : Ignored
+         *      12 - M-1 : Physical address of aligned 4-KiB page;
+         *       M -  51 : Reserved (must be 0)
+         *      52 -  62 : Ignored
+         *      63       : XD (eXecute Disable, if 1)
+         */
+
+        /*  Constructors  */
+
+        /**
+         *  Creates an empty PML1 (PT) entry structure.
+         */
+        inline Pml1Entry() : PmlCommonEntry() { }
+
+        /**
+         *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
+         */
+        inline Pml1Entry(const paddr_t paddr
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    global
+                       , const bool    XD)
+            : PmlCommonEntry(paddr, present, writable, userAccessible, global
+                           , XD)
+        {
+
+        }
+
+        /**
+         *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
+         */
+        inline Pml1Entry(const paddr_t paddr
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    PWT
+                       , const bool    PCD
+                       , const bool    accessed
+                       , const bool    dirty
+                       , const bool    global
+                       , const bool    PAT
+                       , const bool    XD)
+            : PmlCommonEntry(paddr, present, writable, userAccessible, PWT, PCD
+                           , accessed, dirty, global, PAT, false, XD)
+        {
+
+        }
     };
     typedef Pml1Entry PtEntry;
 
@@ -223,7 +292,7 @@ namespace Beelzebub { namespace Memory
         /*  Operators  */
 
         /**
-         *  Gets the entrry at a given index.
+         *  Gets the entry at a given index.
          */
         inline Pml1Entry & operator [](uint16_t const ind)
         {
@@ -253,7 +322,7 @@ namespace Beelzebub { namespace Memory
     /**
      *  Page Map Level 2 Entry
      */
-    struct Pml2Entry
+    struct Pml2Entry : PmlCommonEntry
     {
         /*  Bit structure for 2-MiB page:
          *       0       : Present (if 1)
@@ -291,41 +360,26 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITFIELD_DEFAULT_1W( 0, Present )
-        BITFIELD_DEFAULT_1W( 1, Writable)
-        BITFIELD_DEFAULT_1W( 2, Userland)
-        BITFIELD_DEFAULT_1W( 3, Pwt     )
-        BITFIELD_DEFAULT_1W( 4, Pcd     )
-        BITFIELD_DEFAULT_1W( 5, Accessed)
-        BITFIELD_DEFAULT_1W( 6, Dirty   )
-        BITFIELD_DEFAULT_1W( 7, PageSize)
-        BITFIELD_DEFAULT_1W( 8, Global  )
-        BITFIELD_DEFAULT_1W(12, Pat     )
-        BITFIELD_DEFAULT_1W(63, Xd      )
         BITFIELD_DEFAULT_2W(12, 40, Pml1 * , Pml1Ptr)
-        BITFIELD_DEFAULT_2W(12, 40, paddr_t, Pml1Address)
-        BITFIELD_DEFAULT_2W(21, 31, paddr_t, Address)
+        BITFIELD_DEFAULT_2W(21, 31, paddr_t, PageAddress)
 
         /*  Constructors  */
 
         /**
          *  Creates an empty PML2 (PD) entry structure.
          */
-        inline Pml2Entry() : Value( 0ULL ) { }
+        inline Pml2Entry() : PmlCommonEntry() { }
 
         /**
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
         inline Pml2Entry(const paddr_t pml1_paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    XD)
-            : Value((pml1_paddr & Pml1PtrBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (XD             ? XdBit       : 0ULL))
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    XD)
+            : PmlCommonEntry(pml1_paddr, present, writable, userAccessible
+                           , false, XD)
         {
 
         }
@@ -334,21 +388,15 @@ namespace Beelzebub { namespace Memory
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
         inline Pml2Entry(const paddr_t pml1_paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    PWT
-                               , const bool    PCD
-                               , const bool    accessed
-                               , const bool    XD)
-            : Value((pml1_paddr & Pml1PtrBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (PWT            ? PwtBit      : 0ULL)
-                  | (PCD            ? PcdBit      : 0ULL)
-                  | (accessed       ? AccessedBit : 0ULL)
-                  | (XD             ? XdBit       : 0ULL))
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    PWT
+                       , const bool    PCD
+                       , const bool    accessed
+                       , const bool    XD)
+            : PmlCommonEntry(pml1_paddr, present, writable, userAccessible, PWT, PCD
+                           , accessed, false, false, false, false, XD)
         {
 
         }
@@ -357,18 +405,13 @@ namespace Beelzebub { namespace Memory
          *  Creates a new PML2 (PD) entry structure that maps a 2-MiB page.
          */
         inline Pml2Entry(const paddr_t paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    global
-                               , const bool    XD)
-            : Value(((uint64_t)paddr & AddressBits)
-                    | (present        ? PresentBit  : 0ULL)
-                    | (writable       ? WritableBit : 0ULL)
-                    | (userAccessible ? UserlandBit : 0ULL)
-                    | (global         ? GlobalBit   : 0ULL)
-                    | (XD             ? XdBit       : 0ULL)
-                    |                   PageSizeBit        )
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    global
+                       , const bool    XD)
+            : PmlCommonEntry(paddr, present, writable, userAccessible, false, false
+                           , false, false, global, true, false, XD)
         {
 
         }
@@ -377,47 +420,21 @@ namespace Beelzebub { namespace Memory
          *  Creates a new PML2 (PD) entry structure that maps a 2-MiB page.
          */
         inline Pml2Entry(const paddr_t paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    PWT
-                               , const bool    PCD
-                               , const bool    accessed
-                               , const bool    dirty
-                               , const bool    global
-                               , const bool    PAT
-                               , const bool    XD)
-            : Value(((uint64_t)paddr & AddressBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (PWT            ? PwtBit      : 0ULL)
-                  | (PCD            ? PcdBit      : 0ULL)
-                  | (accessed       ? AccessedBit : 0ULL)
-                  | (dirty          ? DirtyBit    : 0ULL)
-                  | (global         ? GlobalBit   : 0ULL)
-                  | (PAT            ? PatBit      : 0ULL)
-                  | (XD             ? XdBit       : 0ULL)
-                  |                   PageSizeBit        )
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    PWT
+                       , const bool    PCD
+                       , const bool    accessed
+                       , const bool    dirty
+                       , const bool    global
+                       , const bool    pat
+                       , const bool    XD)
+            : PmlCommonEntry(paddr, present, writable, userAccessible, PWT, PCD
+                           , accessed, dirty, global, true, pat, XD)
         {
 
         }
-
-        /*  Properties  */
-
-        inline bool IsNull()
-        {
-            return (this->GetPml1Address() == nullpaddr) && !this->GetPresent();
-        }
-
-        /*  Synchronization  */
-
-        SPINLOCK(ContentLock, 10);
-        SPINLOCK(PropertiesLock, 11);
-
-    //private:
-
-        uint64_t Value;
     };
     typedef Pml2Entry PdEntry;
 
@@ -442,7 +459,7 @@ namespace Beelzebub { namespace Memory
         /*  Operators  */
 
         /**
-         *  Gets the entrry at a given index.
+         *  Gets the entry at a given index.
          */
         inline Pml2Entry & operator [](uint16_t const ind)
         {
@@ -472,7 +489,7 @@ namespace Beelzebub { namespace Memory
     /**
      *  Page Map Level 3 Entry
      */
-    struct Pml3Entry
+    struct Pml3Entry : PmlCommonEntry
     {
         /*  Bit structure for 1-GiB page:
          *       0       : Present (if 1)
@@ -510,133 +527,81 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITFIELD_DEFAULT_1W( 0, Present )
-        BITFIELD_DEFAULT_1W( 1, Writable)
-        BITFIELD_DEFAULT_1W( 2, Userland)
-        BITFIELD_DEFAULT_1W( 3, Pwt     )
-        BITFIELD_DEFAULT_1W( 4, Pcd     )
-        BITFIELD_DEFAULT_1W( 5, Accessed)
-        BITFIELD_DEFAULT_1W( 6, Dirty   )
-        BITFIELD_DEFAULT_1W( 7, PageSize)
-        BITFIELD_DEFAULT_1W( 8, Global  )
-        BITFIELD_DEFAULT_1W(12, Pat     )
-        BITFIELD_DEFAULT_1W(63, Xd      )
         BITFIELD_DEFAULT_2W(12, 40, Pml2 * , Pml2Ptr)
-        BITFIELD_DEFAULT_2W(12, 40, paddr_t, Pml2Address)
-        BITFIELD_DEFAULT_2W(30, 22, paddr_t, Address)
+        BITFIELD_DEFAULT_2W(30, 22, paddr_t, PageAddress)
 
         /*  Constructors  */
 
         /**
          *  Creates an empty PML3 (PDPT) entry structure.
          */
-        inline Pml3Entry() : Value( 0ULL ) { }
+        inline Pml3Entry() : PmlCommonEntry() { }
 
         /**
-         *  Creates a new PML3 entry structure that points to a PML2 table.
+         *  Creates a new PML3 (PDPT) entry structure that points to a PML2 (PD) table.
          */
         inline Pml3Entry(const paddr_t pml2_paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    XD)
-            : Value((pml2_paddr & Pml2PtrBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (XD             ? XdBit       : 0ULL))
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    XD)
+            : PmlCommonEntry(pml2_paddr, present, writable, userAccessible
+                           , false, XD)
         {
 
         }
 
         /**
-         *  Creates a new PML3 entry structure that points to a PML2 table.
+         *  Creates a new PML3 (PDPT) entry structure that points to a PML2 (PD) table.
          */
         inline Pml3Entry(const paddr_t pml2_paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    PWT
-                               , const bool    PCD
-                               , const bool    accessed
-                               , const bool    XD)
-            : Value((pml2_paddr & Pml2PtrBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (PWT            ? PwtBit      : 0ULL)
-                  | (PCD            ? PcdBit      : 0ULL)
-                  | (accessed       ? AccessedBit : 0ULL)
-                  | (XD             ? XdBit       : 0ULL))
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    PWT
+                       , const bool    PCD
+                       , const bool    accessed
+                       , const bool    XD)
+            : PmlCommonEntry(pml2_paddr, present, writable, userAccessible, PWT, PCD
+                           , accessed, false, false, false, false, XD)
         {
 
         }
 
         /**
-         *  Creates a new PML3 entry structure that points to a 1-GiB page.
+         *  Creates a new PML3 (PDPT) entry structure that maps a 1-GiB page.
          */
         inline Pml3Entry(const paddr_t paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    global
-                               , const bool    XD)
-            : Value((paddr & AddressBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (global         ? GlobalBit   : 0ULL)
-                  | (XD             ? XdBit       : 0ULL)
-                  |                   PageSizeBit        )
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    global
+                       , const bool    XD)
+            : PmlCommonEntry(paddr, present, writable, userAccessible, false, false
+                           , false, false, global, true, false, XD)
         {
 
         }
 
         /**
-         *  Creates a new PML3 entry structure that points to a 1-GiB page.
+         *  Creates a new PML3 (PDPT) entry structure that maps a 1-GiB page.
          */
         inline Pml3Entry(const paddr_t paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    PWT
-                               , const bool    PCD
-                               , const bool    accessed
-                               , const bool    dirty
-                               , const bool    global
-                               , const bool    PAT
-                               , const bool    XD)
-            : Value((paddr & AddressBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (PWT            ? PwtBit      : 0ULL)
-                  | (PCD            ? PcdBit      : 0ULL)
-                  | (accessed       ? AccessedBit : 0ULL)
-                  | (dirty          ? DirtyBit    : 0ULL)
-                  | (global         ? GlobalBit   : 0ULL)
-                  | (PAT            ? PatBit      : 0ULL)
-                  | (XD             ? XdBit       : 0ULL)
-                  |                   PageSizeBit        )
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    PWT
+                       , const bool    PCD
+                       , const bool    accessed
+                       , const bool    dirty
+                       , const bool    global
+                       , const bool    pat
+                       , const bool    XD)
+            : PmlCommonEntry(paddr, present, writable, userAccessible, PWT, PCD
+                           , accessed, dirty, global, true, pat, XD)
         {
 
         }
-
-        /*  Properties  */
-
-        inline bool IsNull()
-        {
-            return (this->GetPml2Address() == nullpaddr) && !this->GetPresent();
-        }
-
-        /*  Synchronization  */
-
-        SPINLOCK(ContentLock, 10);
-        SPINLOCK(PropertiesLock, 11);
-
-    //private:
-
-        uint64_t Value;
     };
     typedef Pml3Entry PdptEntry;
 
@@ -661,7 +626,7 @@ namespace Beelzebub { namespace Memory
         /*  Operators  */
 
         /**
-         *  Gets the entrry at a given index.
+         *  Gets the entry at a given index.
          */
         inline Pml3Entry & operator [](uint16_t const ind)
         {
@@ -691,7 +656,7 @@ namespace Beelzebub { namespace Memory
     /**
      *  Page Map Level 4 Entry
      */
-    struct Pml4Entry
+    struct Pml4Entry : PmlCommonEntry
     {
         /*  Bit structure:
          *       0       : Present (if 1)
@@ -711,78 +676,45 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        BITFIELD_DEFAULT_1W( 0, Present)
-        BITFIELD_DEFAULT_1W( 1, Writable)
-        BITFIELD_DEFAULT_1W( 2, Userland)
-        BITFIELD_DEFAULT_1W( 3, Pwt)
-        BITFIELD_DEFAULT_1W( 4, Pcd)
-        BITFIELD_DEFAULT_1W( 5, Accessed)
-        BITFIELD_DEFAULT_1W(63, Xd)
         BITFIELD_DEFAULT_2W(12, 40, Pml3 * , Pml3Ptr)
-        BITFIELD_DEFAULT_2W(12, 40, paddr_t, Pml3Address)
 
         /*  Constructors  */
 
         /**
          *  Creates an empty PML4 (PT) entry structure.
          */
-        inline Pml4Entry() : Value( 0ULL ) { }
+        inline Pml4Entry() : PmlCommonEntry() { }
 
         /**
-         *  Creates a new PML4 entry structure that points to a PML3 table.
+         *  Creates a new PML4 entry structure that points to a PML3 (PDPT) table.
          */
         inline Pml4Entry(const paddr_t pml3_paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    XD)
-            : Value((pml3_paddr & Pml3PtrBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (XD             ? XdBit       : 0ULL))
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    XD)
+            : PmlCommonEntry(pml3_paddr, present, writable, userAccessible
+                           , false, XD)
         {
 
         }
 
         /**
-         *  Creates a new PML4 entry structure that points to a PML3 table.
+         *  Creates a new PML4 entry structure that points to a PML3 (PDPT) table.
          */
         inline Pml4Entry(const paddr_t pml3_paddr
-                               , const bool    present
-                               , const bool    writable
-                               , const bool    userAccessible
-                               , const bool    PWT
-                               , const bool    PCD
-                               , const bool    accessed
-                               , const bool    XD)
-            : Value((pml3_paddr & Pml3PtrBits)
-                  | (present        ? PresentBit  : 0ULL)
-                  | (writable       ? WritableBit : 0ULL)
-                  | (userAccessible ? UserlandBit : 0ULL)
-                  | (PWT            ? PwtBit      : 0ULL)
-                  | (PCD            ? PcdBit      : 0ULL)
-                  | (accessed       ? AccessedBit : 0ULL)
-                  | (XD             ? XdBit       : 0ULL))
+                       , const bool    present
+                       , const bool    writable
+                       , const bool    userAccessible
+                       , const bool    PWT
+                       , const bool    PCD
+                       , const bool    accessed
+                       , const bool    XD)
+            : PmlCommonEntry(pml3_paddr, present, writable, userAccessible, PWT, PCD
+                           , accessed, false, false, false, false, XD)
         {
 
         }
-
-        /*  Properties  */
-
-        inline bool IsNull()
-        {
-            return (this->GetPml3Address() == nullpaddr) && !this->GetPresent();
-        }
-
-        /*  Synchronization  */
-
-        SPINLOCK(ContentLock, 10);
-        SPINLOCK(PropertiesLock, 11);
-
-    //private:
-
-        uint64_t Value;
     };
 
     /**
@@ -806,7 +738,7 @@ namespace Beelzebub { namespace Memory
         /*  Operators  */
 
         /**
-         *  Gets the entrry at a given index.
+         *  Gets the entry at a given index.
          */
         inline Pml4Entry & operator [](uint16_t const ind)
         {

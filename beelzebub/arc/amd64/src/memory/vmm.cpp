@@ -53,6 +53,34 @@ using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
+/*********************
+    VAS shenanigans
+*********************/
+
+// Handle AddVas(Process * const proc, size_t const count
+//     , MemoryAllocationOptions const type, MemoryFlags const flags, uintptr_t & vaddr)
+// {
+//     Handle res;
+
+//     if (0 != (type & MemoryAllocationOptions::VirtualUser))
+//     {
+//         AdjacentMemoryRegion region {};
+
+//         int_cookie_t const cookie = proc->VasLock.AcquireAsWriter();
+
+//         res = proc->Vas.InsertOrFind(region);
+
+//         proc->VasLock.ReleaseAsWriter(cookie);
+//     }
+
+//     return HandleResult::NotImplemented;
+//     //  Not possible yet.
+// }
+
+/****************
+    Vmm class
+****************/
+
 /*  State Machine and Configuration  */
 
 Atomic<bool> KernelHeapOverflown {false};
@@ -263,14 +291,14 @@ bool Vmm::IsActive(Process * const proc)
 {
     Pml4 & pml4 = *(VmmArc::GetLocalPml4());
 
-    return pml4[VmmArc::LocalFractalIndex].GetPml3Address() == proc->PagingTable;
+    return pml4[VmmArc::LocalFractalIndex].GetAddress() == proc->PagingTable;
 }
 
 bool Vmm::IsAlien(Process * const proc)
 {
     Pml4 & pml4 = *(VmmArc::GetLocalPml4());
 
-    return pml4[VmmArc::AlienFractalIndex].GetPml3Address() == proc->PagingTable;
+    return pml4[VmmArc::AlienFractalIndex].GetAddress() == proc->PagingTable;
 }
 
 /*  Page Management  */
@@ -566,10 +594,8 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
     , MemoryAllocationOptions const type, MemoryFlags const flags, uintptr_t & vaddr)
 {
     if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand))
-    {
+        // return AddVas(proc, count, type, flags, vaddr);
         return HandleResult::NotImplemented;
-        //  Not possible yet.
-    }
     else if (0 != (type & MemoryAllocationOptions::Commit))
     {
         size_t const  lowerOffset = (0 != (type & MemoryAllocationOptions::GuardLow))
