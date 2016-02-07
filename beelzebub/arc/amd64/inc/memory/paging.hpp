@@ -141,12 +141,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML entry structure that references a 4-KiB page.
          */
-        inline PmlCommonEntry(const paddr_t paddr
-                            , const bool    present
-                            , const bool    writable
-                            , const bool    userAccessible
-                            , const bool    global
-                            , const bool    xd)
+        inline PmlCommonEntry(paddr_t const paddr
+                            , bool    const present
+                            , bool    const writable
+                            , bool    const userAccessible
+                            , bool    const global
+                            , bool    const xd)
             : Value((paddr & AddressBits)
                   | (present        ? PresentBit  : 0ULL)
                   | (writable       ? WritableBit : 0ULL)
@@ -160,18 +160,18 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML entry structure that references a 4-KiB page.
          */
-        inline PmlCommonEntry(const paddr_t paddr
-                            , const bool    present
-                            , const bool    writable
-                            , const bool    userAccessible
-                            , const bool    pwt
-                            , const bool    pcd
-                            , const bool    accessed
-                            , const bool    dirty
-                            , const bool    global
-                            , const bool    pat1
-                            , const bool    pat2
-                            , const bool    xd)
+        inline PmlCommonEntry(paddr_t const paddr
+                            , bool    const present
+                            , bool    const writable
+                            , bool    const userAccessible
+                            , bool    const pwt
+                            , bool    const pcd
+                            , bool    const accessed
+                            , bool    const dirty
+                            , bool    const global
+                            , bool    const pat1
+                            , bool    const pat2
+                            , bool    const xd)
             : Value((paddr & AddressBits)
                   | (present        ? PresentBit  : 0ULL)
                   | (writable       ? WritableBit : 0ULL)
@@ -237,12 +237,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
          */
-        inline Pml1Entry(const paddr_t paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    global
-                       , const bool    XD)
+        inline Pml1Entry(paddr_t const paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const global
+                       , bool    const XD)
             : PmlCommonEntry(paddr, present, writable, userAccessible, global
                            , XD)
         {
@@ -252,17 +252,17 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML1 (PT) entry structure that maps a 4-KiB page.
          */
-        inline Pml1Entry(const paddr_t paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    PWT
-                       , const bool    PCD
-                       , const bool    accessed
-                       , const bool    dirty
-                       , const bool    global
-                       , const bool    PAT
-                       , const bool    XD)
+        inline Pml1Entry(paddr_t const paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const PWT
+                       , bool    const PCD
+                       , bool    const accessed
+                       , bool    const dirty
+                       , bool    const global
+                       , bool    const PAT
+                       , bool    const XD)
             : PmlCommonEntry(paddr, present, writable, userAccessible, PWT, PCD
                            , accessed, dirty, global, PAT, false, XD)
         {
@@ -373,11 +373,11 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
-        inline Pml2Entry(const paddr_t pml1_paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    XD)
+        inline Pml2Entry(paddr_t const pml1_paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const XD)
             : PmlCommonEntry(pml1_paddr, present, writable, userAccessible
                            , false, XD)
         {
@@ -387,14 +387,14 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML2 (PD) entry structure that points to a PML1 (PT) table.
          */
-        inline Pml2Entry(const paddr_t pml1_paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    PWT
-                       , const bool    PCD
-                       , const bool    accessed
-                       , const bool    XD)
+        inline Pml2Entry(paddr_t const pml1_paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const PWT
+                       , bool    const PCD
+                       , bool    const accessed
+                       , bool    const XD)
             : PmlCommonEntry(pml1_paddr, present, writable, userAccessible, PWT, PCD
                            , accessed, false, false, false, false, XD)
         {
@@ -404,12 +404,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML2 (PD) entry structure that maps a 2-MiB page.
          */
-        inline Pml2Entry(const paddr_t paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    global
-                       , const bool    XD)
+        inline Pml2Entry(paddr_t const paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const global
+                       , bool    const XD)
             : PmlCommonEntry(paddr, present, writable, userAccessible, false, false
                            , false, false, global, true, false, XD)
         {
@@ -419,17 +419,17 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML2 (PD) entry structure that maps a 2-MiB page.
          */
-        inline Pml2Entry(const paddr_t paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    PWT
-                       , const bool    PCD
-                       , const bool    accessed
-                       , const bool    dirty
-                       , const bool    global
-                       , const bool    pat
-                       , const bool    XD)
+        inline Pml2Entry(paddr_t const paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const PWT
+                       , bool    const PCD
+                       , bool    const accessed
+                       , bool    const dirty
+                       , bool    const global
+                       , bool    const pat
+                       , bool    const XD)
             : PmlCommonEntry(paddr, present, writable, userAccessible, PWT, PCD
                            , accessed, dirty, global, true, pat, XD)
         {
@@ -540,11 +540,11 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML3 (PDPT) entry structure that points to a PML2 (PD) table.
          */
-        inline Pml3Entry(const paddr_t pml2_paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    XD)
+        inline Pml3Entry(paddr_t const pml2_paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const XD)
             : PmlCommonEntry(pml2_paddr, present, writable, userAccessible
                            , false, XD)
         {
@@ -554,14 +554,14 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML3 (PDPT) entry structure that points to a PML2 (PD) table.
          */
-        inline Pml3Entry(const paddr_t pml2_paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    PWT
-                       , const bool    PCD
-                       , const bool    accessed
-                       , const bool    XD)
+        inline Pml3Entry(paddr_t const pml2_paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const PWT
+                       , bool    const PCD
+                       , bool    const accessed
+                       , bool    const XD)
             : PmlCommonEntry(pml2_paddr, present, writable, userAccessible, PWT, PCD
                            , accessed, false, false, false, false, XD)
         {
@@ -571,12 +571,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML3 (PDPT) entry structure that maps a 1-GiB page.
          */
-        inline Pml3Entry(const paddr_t paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    global
-                       , const bool    XD)
+        inline Pml3Entry(paddr_t const paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const global
+                       , bool    const XD)
             : PmlCommonEntry(paddr, present, writable, userAccessible, false, false
                            , false, false, global, true, false, XD)
         {
@@ -586,17 +586,17 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML3 (PDPT) entry structure that maps a 1-GiB page.
          */
-        inline Pml3Entry(const paddr_t paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    PWT
-                       , const bool    PCD
-                       , const bool    accessed
-                       , const bool    dirty
-                       , const bool    global
-                       , const bool    pat
-                       , const bool    XD)
+        inline Pml3Entry(paddr_t const paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const PWT
+                       , bool    const PCD
+                       , bool    const accessed
+                       , bool    const dirty
+                       , bool    const global
+                       , bool    const pat
+                       , bool    const XD)
             : PmlCommonEntry(paddr, present, writable, userAccessible, PWT, PCD
                            , accessed, dirty, global, true, pat, XD)
         {
@@ -688,11 +688,11 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML4 entry structure that points to a PML3 (PDPT) table.
          */
-        inline Pml4Entry(const paddr_t pml3_paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    XD)
+        inline Pml4Entry(paddr_t const pml3_paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const XD)
             : PmlCommonEntry(pml3_paddr, present, writable, userAccessible
                            , false, XD)
         {
@@ -702,14 +702,14 @@ namespace Beelzebub { namespace Memory
         /**
          *  Creates a new PML4 entry structure that points to a PML3 (PDPT) table.
          */
-        inline Pml4Entry(const paddr_t pml3_paddr
-                       , const bool    present
-                       , const bool    writable
-                       , const bool    userAccessible
-                       , const bool    PWT
-                       , const bool    PCD
-                       , const bool    accessed
-                       , const bool    XD)
+        inline Pml4Entry(paddr_t const pml3_paddr
+                       , bool    const present
+                       , bool    const writable
+                       , bool    const userAccessible
+                       , bool    const PWT
+                       , bool    const PCD
+                       , bool    const accessed
+                       , bool    const XD)
             : PmlCommonEntry(pml3_paddr, present, writable, userAccessible, PWT, PCD
                            , accessed, false, false, false, false, XD)
         {

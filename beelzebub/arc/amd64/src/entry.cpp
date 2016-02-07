@@ -555,7 +555,7 @@ __cold Handle HandleKernelModule(size_t const index
  *  Processes a module.
  *  </summary>
  */
-__cold Handle HandleModule(const size_t index, const jg_info_module_t * const module)
+__cold Handle HandleModule(size_t const index, jg_info_module_t const * const module)
 {
     Handle res = HandleResult::Okay;
 
