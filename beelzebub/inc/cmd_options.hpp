@@ -43,6 +43,14 @@
 #include <string.h>
 #include <handles.h>
 
+#define CMDO(name, sf, lf, vt)                      \
+CommandLineOptionSpecification MCATS(CMDO_, name)   \
+{                                                   \
+    sf,                                             \
+    lf,                                             \
+    CommandLineOptionValueTypes::vt                 \
+}
+
 namespace Beelzebub
 {
     /**
@@ -60,34 +68,31 @@ namespace Beelzebub
     };
 
     /**
-     *  Flags indicating options for parsing command-line options.
-     */
-    enum class CommandLineOptionFlags
-        : uintptr_t
-    {
-        TableFill = 0x0000,
-        ReturnFromFunction = 0x0001,
-        FlexibleValues = 0x0000,
-        LimitedValues = 0x0002,
-    };
-
-    ENUMOPS(CommandLineOptionFlags, uintptr_t);
-
-    /**
      *  Represents specification for parsing command line options.
      */
     struct CommandLineOptionSpecification
     {
     public:
+        /*  Constructor(s)  */
+
+        inline CommandLineOptionSpecification(char * const sf
+                                            , char * const lf
+                                            , CommandLineOptionValueTypes const vt)
+            : ShortForm(sf)
+            , LongForm(lf)
+            , ValueType(vt)
+            , ParsingResult()
+            , StringValue(nullptr)
+        {
+
+        }
+
+        /*  Fields  */
 
         const char * ShortForm;
         const char * LongForm;
 
-        const void * ValueList;
-        const size_t ValuesCount;
         const CommandLineOptionValueTypes ValueType;
-
-        const CommandLineOptionFlags Flags;
 
         Handle ParsingResult;
 
@@ -106,16 +111,10 @@ namespace Beelzebub
     class CommandLineOptionParserState
     {
     public:
+        /*  Constructor(s)  */
 
-        char * const InputString;
-        size_t Length;
-        size_t Offset;
-
-        bool Done;
-        bool Started;
-
-        __forceinline CommandLineOptionParserState(char * const input)
-            : InputString(input)
+        inline CommandLineOptionParserState()
+            : InputString(nullptr)
             , Length(0)
             , Offset(0)
             , Done(false)
@@ -123,7 +122,20 @@ namespace Beelzebub
         {
             //  Nuthin'.
         }
-    };
 
-    Handle ParseCommandLineOptions(CommandLineOptionParserState & state);
+        /*  Operations  */
+
+        Handle StartParsing(char * const input);
+
+        Handle ParseOption(CommandLineOptionSpecification & opt);
+
+        /*  Fields  */
+
+        char * InputString;
+        size_t Length;
+        size_t Offset;
+
+        bool Done;
+        bool Started;
+    };
 }

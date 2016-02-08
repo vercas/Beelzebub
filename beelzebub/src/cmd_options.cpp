@@ -42,16 +42,30 @@
 
 using namespace Beelzebub;
 
-Handle Beelzebub::ParseCommandLineOptions(CommandLineOptionParserState & state)
+/*****************************************
+    CommandLineOptionParserState class
+*****************************************/
+
+/*  Operations  */
+
+Handle CommandLineOptionParserState::StartParsing(char * const input)
 {
-    if (!state.Started)
-    {
-        state.Length = strlen(state.InputString);
+    if (this->Started)
+        return HandleResult::UnsupportedOperation;
 
-        state.Started = true;
+    this->InputString = input;
+    this->Length = strlen(input);
 
-        msg("Length of \"%s\" is: %us.%n", state.InputString, state.Length);
-    }
+    this->Started = true;
+
+    msg("Length of \"%s\" is: %us.%n", this->InputString, this->Length);
+
+    return HandleResult::Okay;
+}
+
+Handle CommandLineOptionParserState::ParseOption(CommandLineOptionSpecification & opt)
+{
+
 
     return HandleResult::Okay;
 }

@@ -72,28 +72,32 @@
 #include <tests/stack_integrity.hpp>
 #endif
 
-#if __BEELZEBUB__TEST_METAP
+#ifdef __BEELZEBUB__TEST_METAP
 #include <tests/meta.hpp>
 #endif
 
-#if __BEELZEBUB__TEST_EXCP
+#ifdef __BEELZEBUB__TEST_EXCP
 #include <tests/exceptions.hpp>
 #endif
 
-#if __BEELZEBUB__TEST_STR
+#ifdef __BEELZEBUB__TEST_STR
 #include <tests/string.hpp>
 #endif
 
-#if __BEELZEBUB__TEST_TERMINAL
+#ifdef __BEELZEBUB__TEST_TERMINAL
 #include <tests/terminal.hpp>
 #endif
 
-#if __BEELZEBUB__TEST_OBJA
+#ifdef __BEELZEBUB__TEST_OBJA
 #include <tests/object_allocator.hpp>
 #endif
 
-#if __BEELZEBUB__TEST_AVL_TREE
+#ifdef __BEELZEBUB__TEST_AVL_TREE
 #include <tests/avl_tree.hpp>
+#endif
+
+#ifdef __BEELZEBUB__TEST_CMDO
+#include <tests/cmdo.hpp>
 #endif
 
 using namespace Beelzebub;
@@ -376,6 +380,14 @@ void Beelzebub::Main()
         MainTerminal->Write(">Testing string.h implementation...");
 
         TestStringLibrary();
+
+        MainTerminal->WriteLine(" Done.");
+#endif
+
+#ifdef __BEELZEBUB__TEST_CMDO
+        MainTerminal->Write(">Testing command-line options parsing...");
+
+        TestCmdo();
 
         MainTerminal->WriteLine(" Done.");
 #endif

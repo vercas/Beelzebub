@@ -123,6 +123,7 @@ ifneq (,$(findstring test-all,$(MAKECMDGOALS)))
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_STACKINT 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_AVL_TREE 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_TERMINAL 
+	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_CMDO 
 
 	SETTINGS			+= test-all
 else
@@ -178,6 +179,12 @@ else
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_TERMINAL 
 
 		SETTINGS			+= test-terminal 
+	endif
+
+	ifneq (,$(findstring test-cmdo,$(MAKECMDGOALS)))
+		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_CMDO 
+
+		SETTINGS			+= test-cmdo 
 	endif
 endif
 
