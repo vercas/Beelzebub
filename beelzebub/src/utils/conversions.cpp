@@ -38,6 +38,7 @@
 */
 
 #include <utils/conversions.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
@@ -45,13 +46,10 @@ using namespace Beelzebub::Utils;
 Handle StrToUInt64Base16(char const * str, uint64_t & val)
 {
     uint64_t res = 0;
-    char c;
+    size_t i = 0;
 
-    for (size_t i = 0; (c = *str) != '\0'; ++i, ++str)
+    for (char c; (c = *str) != '\0' && i < 16; ++i, ++str)
     {
-        if (i >= 16)
-            return HandleResult::ArgumentOutOfRange;
-
         res <<= 4;
         //  Shift by one hexadecimal digit.
 
@@ -75,12 +73,12 @@ Handle StrToUInt64Base16(char const * str, uint64_t & val)
                     continue;
                 }
             }
-        }
-        else if (c < 0x3A)
-        {
-            res |= (uint64_t)(c - 0x30);
+            else if (c < 0x3A)
+            {
+                res |= (uint64_t)(c - 0x30);
 
-            continue;
+                continue;
+            }
         }
 
         //  Reaching this point means invalid digit.
@@ -88,17 +86,41 @@ Handle StrToUInt64Base16(char const * str, uint64_t & val)
         return HandleResult::ArgumentOutOfRange;
     }
 
+    if (i >= 16 || i == 0)
+        return HandleResult::ArgumentOutOfRange;
+
+    val = res;
+
     return HandleResult::Okay;
 }
 
 Handle StrToUInt64Base10(char const * str, uint64_t & val)
 {
-    uint64_t res = 0;
+    uint64_t res = val = 0;
 
     for (size_t i = 0; *str != '\0'; ++i, ++str)
     {
+        res *= 10;
+        //  Shift by one decimal digit. I hope the compiler optimises this into
+        //  two shifts and addition.
 
+        if (res < val)
+            return HandleResult::ArgumentOutOfRange;
+        //  This indicates overflow. It may also kinda allow some overflow.
+
+        val = res;
+
+        if (c < 0x30 || c >= 0x3A)
+        {
+            //  So not a decimal digit.
+
+            return HandleResult::ArgumentOutOfRange;
+        }
+
+        res += (uint64_t)(c - 0x30);
     }
+
+    val = res;
 
     return HandleResult::Okay;
 }
@@ -106,11 +128,27 @@ Handle StrToUInt64Base10(char const * str, uint64_t & val)
 Handle StrToUInt64Base8(char const * str, uint64_t & val)
 {
     uint64_t res = 0;
+    size_t i = 0;
 
-    for (size_t i = 0; *str != '\0'; ++i, ++str)
+    for (char c; (c = *str) != '\0' && i < 21; ++i, ++str)
     {
+        res <<= 3;
+        //  Shift by one octal digit.
 
+        if (c < 0x30 || c >= 0x38)
+        {
+            //  So not an octal digit.
+
+            return HandleResult::ArgumentOutOfRange;
+        }
+
+        res |= (uint64_t)(c - 0x30);
     }
+
+    if (i >= 21 || i == 0)
+        return HandleResult::ArgumentOutOfRange;
+
+    val = res;
 
     return HandleResult::Okay;
 }
@@ -118,11 +156,27 @@ Handle StrToUInt64Base8(char const * str, uint64_t & val)
 Handle StrToUInt64Base2(char const * str, uint64_t & val)
 {
     uint64_t res = 0;
+    size_t i = 0;
 
-    for (size_t i = 0; *str != '\0'; ++i, ++str)
+    for (char c; (c = *str) != '\0' && i < 64; ++i, ++str)
     {
+        res <<= 1;
+        //  Shift by one octal digit.
 
+        if (c == 0x31)
+            res |= 1;
+        else if (c != 0x30)
+        {
+            //  So not a binary digit.
+
+            return HandleResult::ArgumentOutOfRange;
+        }
     }
+
+    if (i >= 64 || i == 0)
+        return HandleResult::ArgumentOutOfRange;
+
+    val = res;
 
     return HandleResult::Okay;
 }
@@ -176,7 +230,11 @@ namespace Beelzebub { namespace Utils
             return res;
 
         if (temp >> 63 != 0)
+        {
+            msg("!! top bit set !!%n");
+
             return HandleResult::ArgumentOutOfRange;
+        }
 
         if (negative)
             val = -static_cast<int64_t>(temp);
