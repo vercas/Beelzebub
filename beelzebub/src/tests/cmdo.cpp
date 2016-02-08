@@ -46,7 +46,7 @@
 
 using namespace Beelzebub;
 
-char OptionsString[] = "   --alpha=test -b yada --gamma rada --sierra -x  ";
+char OptionsString[] = "   --alpha='test a' -b \"yada yada\" --g\"amm\"a ra\\da --si\\erra -x  ";
 
 CommandLineOptionParserState parser;
 
@@ -73,6 +73,16 @@ void TestCmdo()
     ASSERT(res.IsOkayResult()
         , "Failed to start parsing command-line options: %H"
         , res);
+
+    // for (size_t i = 0; i < parser.Length; ++i)
+    //     if (parser.InputString[i] == '\0')
+    //         parser.InputString[i] = '_';
+
+    // msg("Length of \"%S\" is: %us.%n", parser.Length, parser.InputString, parser.Length);
+
+    ASSERT(parser.TokenCount == 7
+        , "Parser should have identified %us tokens, not %us."
+        , 7, parser.TokenCount);
 
     PARSE_OPT(1);
     PARSE_OPT(2);

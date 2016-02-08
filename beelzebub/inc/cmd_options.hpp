@@ -116,7 +116,7 @@ namespace Beelzebub
         inline CommandLineOptionParserState()
             : InputString(nullptr)
             , Length(0)
-            , Offset(0)
+            , TokenCount(0)
             , Done(false)
             , Started(false)
         {
@@ -133,7 +133,7 @@ namespace Beelzebub
 
         char * InputString;
         size_t Length;
-        size_t Offset;
+        size_t TokenCount;
 
         bool Done;
         bool Started;

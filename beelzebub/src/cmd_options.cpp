@@ -51,7 +51,6 @@
 */
 
 #include <cmd_options.hpp>
-#include <debug.hpp>
 
 using namespace Beelzebub;
 
@@ -69,7 +68,7 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
     size_t len;
 
     this->InputString = input;
-    this->Length = len = strlen(input);
+    len = strlen(input);
 
     //  First pass.
 
@@ -79,7 +78,7 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
     {
         if (underEscape)
         {
-            //  Maybe do something here..?
+            //  Nothing to do here at this step.
 
             underEscape = false;
         }
@@ -140,15 +139,53 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
 
     //  Second pass.
 
-    bool lastWasNull = false;
+    size_t j = 0, tkCnt = 0;
+    bool lastWasNull = true;
 
-    for (size_t i = 0, j = 0; i < len; ++i)
+    for (size_t i = 0; i < len; ++i)
     {
         if (underEscape)
         {
-            input[j++] = input[i];
-
             underEscape = false;
+
+            switch (input[i])
+            {
+                case '0':
+                    input[j++] = '\0';
+                    break;
+
+                case 'a':
+                    input[j++] = '\a';
+                    break;
+
+                case 'b':
+                    input[j++] = '\b';
+                    break;
+
+                case 'f':
+                    input[j++] = '\f';
+                    break;
+
+                case 'n':
+                    input[j++] = '\n';
+                    break;
+
+                case 'r':
+                    input[j++] = '\r';
+                    break;
+
+                case 'v':
+                    input[j++] = '\v';
+                    break;
+
+                case 't':
+                    input[j++] = '\t';
+                    break;
+
+                default:
+                    input[j++] = input[i];
+                    break;
+            }
         }
         else if (underSingleQuotes)
         {
@@ -186,41 +223,60 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
         }
         else
         {
-            switch (input[i])
+            if (input[i] == '\0')
             {
-                case '\\':
-                    underEscape = true;
-                    break;
+                if (!lastWasNull)
+                {
+                    lastWasNull = true;
 
-                case '\'':
-                    underSingleQuotes = true;
-                    break;
+                    input[j++] = input[i];
 
-                case '"':
-                    underDoubleQuotes = true;
-                    break;
+                    ++tkCnt;
+                }
 
-                case '\0':
-                    if (lastWasNull)
+                //  Else do nuthin'.
+            }
+            else
+            {
+                lastWasNull = false;
+
+                switch (input[i])
+                {
+                    case '\\':
+                        underEscape = true;
                         break;
 
-                    lastWasNull = true;
-                    input[j++] = input[i];
-                    break;
+                    case '\'':
+                        underSingleQuotes = true;
+                        break;
 
-                default:
-                    lastWasNull = false;
-                    input[j++] = input[i];
-                    break;
+                    case '"':
+                        underDoubleQuotes = true;
+                        break;
+
+                    default:
+                        input[j++] = input[i];
+                        break;
+                }
             }
         }
     }
 
+    if (!lastWasNull)
+    {
+        input[j] = '\0';
+
+        ++tkCnt;
+    }
+    else
+        --j;
+
+    this->Length = j;
+    this->TokenCount = tkCnt;
+
     //  Done.
 
     this->Started = true;
-
-    msg("Length of \"%s\" is: %us.%n", this->InputString, this->Length);
 
     return HandleResult::Okay;
 }
