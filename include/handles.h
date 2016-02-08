@@ -165,7 +165,7 @@ namespace Beelzebub
         ENUMINST(ThreadAlreadyLinked      , 0x50U, "Thr a. lnk.") \
         \
         /*  A command-line option was not specified. */ \
-        ENUMINST(CmdOptionUnspecified     , 0x60U, "Cmdo n spc.") \
+        ENUMINST(CmdOptionsMalformatted   , 0x60U, "Cmdo malfrm") \
         /*  A command-line option's value seems to be of the wrong type. */ \
         ENUMINST(CmdOptionValueTypeInvalid, 0x61U, "Cmdo vT inv") \
         /*  A command-line option's value is not found in the given table. */ \

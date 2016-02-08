@@ -57,9 +57,28 @@ CMDO(3, "c", "gamma", String);
 CMDO(4, "s", "sierra", BooleanByPresence);
 CMDO(5, "x", "xenulol", BooleanByPresence);
 
+#define PARSE_OPT(name) do {                            \
+res = parser.ParseOption(MCATS(CMDO_, name));           \
+ASSERT(res.IsOkayResult()                               \
+    , "Failed to parse command-line option \"%s\": %H"  \
+    , #name, res);                                      \
+} while (false)
+
 void TestCmdo()
 {
-    parser.StartParsing(OptionsString);
+    Handle res;
+
+    res = parser.StartParsing(OptionsString);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to start parsing command-line options: %H"
+        , res);
+
+    PARSE_OPT(1);
+    PARSE_OPT(2);
+    PARSE_OPT(3);
+    PARSE_OPT(4);
+    PARSE_OPT(5);
 }
 
 #endif

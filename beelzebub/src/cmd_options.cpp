@@ -46,6 +46,8 @@
 
     The second pass sanitizes the individual tokens so they can be used more
     quickly and efficiently by the individual option parsing function.
+    Sanitation means expanding escape sequences and compacting the elements
+    (removing multiplicate null terminators).
 */
 
 #include <cmd_options.hpp>
@@ -69,7 +71,9 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
     this->InputString = input;
     this->Length = len = strlen(input);
 
-    bool underEscape = false, underQuotes = false;
+    //  First pass.
+
+    bool underEscape = false, underSingleQuotes = false, underDoubleQuotes = false;
 
     for (size_t i = 0; i < len; ++i)
     {
@@ -79,7 +83,20 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
 
             underEscape = false;
         }
-        else if (underQuotes)
+        else if (underSingleQuotes)
+        {
+            switch (input[i])
+            {
+                case '\\':
+                    underEscape = true;
+                    break;
+
+                case '\'':
+                    underSingleQuotes = false;
+                    break;
+            }
+        }
+        else if (underDoubleQuotes)
         {
             switch (input[i])
             {
@@ -88,7 +105,7 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
                     break;
 
                 case '"':
-                    underQuotes = false;
+                    underDoubleQuotes = false;
                     break;
             }
         }
@@ -100,12 +117,106 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
                     underEscape = true;
                     break;
 
+                case '\'':
+                    underSingleQuotes = true;
+                    break;
+
                 case '"':
-                    underQuotes = true;
+                    underDoubleQuotes = true;
+                    break;
+
+                case ' ':
+                case '\t':
+                case '\n':
+                case '\r':
+                    input[i] = '\0';
                     break;
             }
         }
     }
+
+    if (underEscape || underSingleQuotes || underDoubleQuotes)
+        return HandleResult::CmdOptionsMalformatted;
+
+    //  Second pass.
+
+    bool lastWasNull = false;
+
+    for (size_t i = 0, j = 0; i < len; ++i)
+    {
+        if (underEscape)
+        {
+            input[j++] = input[i];
+
+            underEscape = false;
+        }
+        else if (underSingleQuotes)
+        {
+            switch (input[i])
+            {
+                case '\\':
+                    underEscape = true;
+                    break;
+
+                case '\'':
+                    underSingleQuotes = false;
+                    break;
+
+                default:
+                    input[j++] = input[i];
+                    break;
+            }
+        }
+        else if (underDoubleQuotes)
+        {
+            switch (input[i])
+            {
+                case '\\':
+                    underEscape = true;
+                    break;
+
+                case '"':
+                    underDoubleQuotes = false;
+                    break;
+
+                default:
+                    input[j++] = input[i];
+                    break;
+            }
+        }
+        else
+        {
+            switch (input[i])
+            {
+                case '\\':
+                    underEscape = true;
+                    break;
+
+                case '\'':
+                    underSingleQuotes = true;
+                    break;
+
+                case '"':
+                    underDoubleQuotes = true;
+                    break;
+
+                case '\0':
+                    if (lastWasNull)
+                        break;
+
+                    lastWasNull = true;
+                    input[j++] = input[i];
+                    break;
+
+                default:
+                    lastWasNull = false;
+                    input[j++] = input[i];
+                    break;
+            }
+        }
+    }
+
+    //  Done.
 
     this->Started = true;
 
