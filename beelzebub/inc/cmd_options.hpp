@@ -75,8 +75,8 @@ namespace Beelzebub
     public:
         /*  Constructor(s)  */
 
-        inline CommandLineOptionSpecification(char * const sf
-                                            , char * const lf
+        inline CommandLineOptionSpecification(char const * const sf
+                                            , char const * const lf
                                             , CommandLineOptionValueTypes const vt)
             : ShortForm(sf)
             , LongForm(lf)
@@ -89,8 +89,8 @@ namespace Beelzebub
 
         /*  Fields  */
 
-        const char * ShortForm;
-        const char * LongForm;
+        char const * ShortForm;
+        char const * LongForm;
 
         const CommandLineOptionValueTypes ValueType;
 

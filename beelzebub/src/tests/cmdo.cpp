@@ -40,14 +40,26 @@
 #ifdef __BEELZEBUB__TEST_CMDO
 
 #include <tests/cmdo.hpp>
+#include <cmd_options.hpp>
 
 #include <debug.hpp>
 
+using namespace Beelzebub;
+
 char OptionsString[] = "   --alpha=test -b yada --gamma rada --sierra -x  ";
+
+CommandLineOptionParserState parser;
+
+CMDO(1, "a", "alpha", String);
+CMDO(2, "b", "beta", String);
+CMDO(3, "c", "gamma", String);
+
+CMDO(4, "s", "sierra", BooleanByPresence);
+CMDO(5, "x", "xenulol", BooleanByPresence);
 
 void TestCmdo()
 {
-    
+    parser.StartParsing(OptionsString);
 }
 
 #endif
