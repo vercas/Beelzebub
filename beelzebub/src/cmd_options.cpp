@@ -51,6 +51,8 @@
 */
 
 #include <cmd_options.hpp>
+#include <string.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 
@@ -281,9 +283,122 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
     return HandleResult::Okay;
 }
 
+__noinline Handle HandleValue(CommandLineOptionSpecification & opt, char * input);
+//  Forward declaration.
+
 Handle CommandLineOptionParserState::ParseOption(CommandLineOptionSpecification & opt)
 {
+    if (opt.ParsingResult.IsOkayResult())
+        return opt.ParsingResult;
 
+    // msg("(( Trying option \"%s\"/\"%s\" ))%n", opt.ShortForm, opt.LongForm);
 
-    return HandleResult::Okay;
+    for (size_t i = 0, len; i + 1 < this->Length; i += len + 1)
+    {
+        len = strlen(this->InputString + i);
+        //  The incrementation step will move 'i' to the next token, basically.
+
+        if (this->InputString[i] != '-')
+            continue;
+        //  Not even an option.
+
+        // msg("<< TRYING @ %us, len %us; \"%s\" >>%n", i, len, this->InputString + i);
+
+        if (opt.ShortForm != nullptr && this->InputString[i + 1] != '-')
+        {
+            if (opt.ValueType != CommandLineOptionValueTypes::BooleanByPresence
+             && i + 2 + len >= this->Length)
+                break;
+            //  Definitely not this one.
+
+            if (opt.ShortForm[0] != '\0' && opt.ShortForm[1] == '\0')
+            {
+                //  One-letter short option means more can be grouped together.
+
+                if (memchr(this->InputString + i + 1, opt.ShortForm[0], len - 1) == nullptr)
+                    continue;
+                //  Flag not found.
+            }
+            else if (strncmp(this->InputString + i + 1, opt.ShortForm, len) != 0)
+                continue;
+            //  If the short form has more than one character, it must match the
+            //  whole option. Null terminator included.
+
+            //  So, if a short form is defined and the current token is '-'
+            //  followed by the short form, this is a hit!
+
+            // msg("!!HIT!!%n");
+
+            return opt.ParsingResult = HandleValue(opt, this->InputString + i + 1 + len);
+        }
+        else if (opt.LongForm != nullptr && this->InputString[i + 1] == '-')
+        {
+            len = strlen(opt.LongForm);
+            //  Repurposed!
+
+            if (opt.ValueType != CommandLineOptionValueTypes::BooleanByPresence
+             && i + 2 + len >= this->Length)
+                break;
+            //  Not enough room.
+
+            if (strncmp(this->InputString + i + 2, opt.LongForm, len) != 0)
+                continue;
+            //  No match.
+
+            if (this->InputString[i + 2 + len] != '\0' && this->InputString[i + 2 + len] != '=')
+                continue;
+            //  This is just a substring, oddly.
+
+            //  So, if a long form is defined and the current token is "--"
+            //  followed by the long form, this is a hit!
+
+            // msg("!!HIT!!%n");
+
+            return opt.ParsingResult = HandleValue(opt, this->InputString + i + 3 + len);
+            //  Handles both '=' and a null character.
+        }
+    }
+
+    if (opt.ValueType == CommandLineOptionValueTypes::BooleanByPresence)
+    {
+        opt.BooleanValue = false;
+
+        return opt.ParsingResult = HandleResult::Okay;
+    }
+
+    return opt.ParsingResult = HandleResult::Okay;  //  TODO: NOT GOOD!
+}
+
+/********************************************
+    Utilitary Methods for Parsing Options
+********************************************/
+
+Handle HandleValue(CommandLineOptionSpecification & opt, char * input)
+{
+    switch (opt.ValueType)
+    {
+        case CommandLineOptionValueTypes::BooleanByPresence:
+            opt.BooleanValue = true;
+
+            return HandleResult::Okay;
+
+        case CommandLineOptionValueTypes::BooleanExplicit:
+            return HandleResult::CmdOptionValueTypeInvalid;
+
+        case CommandLineOptionValueTypes::String:
+            opt.StringValue = input;
+
+            return HandleResult::Okay;
+
+        case CommandLineOptionValueTypes::SignedInteger:
+            return HandleResult::CmdOptionValueTypeInvalid;
+
+        case CommandLineOptionValueTypes::UnsignedInteger:
+            return HandleResult::CmdOptionValueTypeInvalid;
+
+        case CommandLineOptionValueTypes::Float:
+            return HandleResult::CmdOptionValueTypeInvalid;
+    }
+
+    return HandleResult::CmdOptionValueTypeInvalid;
 }

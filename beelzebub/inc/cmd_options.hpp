@@ -40,7 +40,6 @@
 #pragma once
 
 #include <metaprogramming.h>
-#include <string.h>
 #include <handles.h>
 
 #define CMDO(name, sf, lf, vt)                      \

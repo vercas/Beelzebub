@@ -42,33 +42,55 @@
 #include <tests/cmdo.hpp>
 #include <cmd_options.hpp>
 
+#include <string.h>
 #include <debug.hpp>
 
 using namespace Beelzebub;
 
-char OptionsString[] = "   --alpha='test a' -b \"yada yada\" --g\"amm\"a ra\\da --si\\erra -x  ";
+char OptionsString1[] = "   --alpha='test a' -b \"yada yada\" --g\"amm\"a ra\\da --si\\erra -x  ";
+char OptionsString2[] = "--alpha='test a' -bx \"yada yada\" --g\"amm\"a ra\\da --si\\erra";
 
 CommandLineOptionParserState parser;
 
-CMDO(1, "a", "alpha", String);
-CMDO(2, "b", "beta", String);
-CMDO(3, "c", "gamma", String);
+#define PARSE_OPT(name) do {                                \
+    res = parser.ParseOption(MCATS(CMDO_, name));           \
+    ASSERT(res.IsOkayResult()                               \
+        , "Failed to parse command-line option \"%s\": %H"  \
+        , #name, res);                                      \
+} while (false)
 
-CMDO(4, "s", "sierra", BooleanByPresence);
-CMDO(5, "x", "xenulol", BooleanByPresence);
+#define CHECK_STR(name, val) do {                                   \
+    ASSERT(MCATS(CMDO_, name).StringValue != nullptr                \
+        , "Command-line option \"%s\" should have had a non-null "  \
+          "string value."                                           \
+        , #name);                                                   \
+                                                                    \
+    ASSERT(strcmp(MCATS(CMDO_, name).StringValue, val) == 0         \
+        , "Command-line option \"%s\" should have had value \"%s\"" \
+          ", got \"%s\"."                                           \
+        , #name, val, MCATS(CMDO_, name).StringValue);              \
+} while (false)
 
-#define PARSE_OPT(name) do {                            \
-res = parser.ParseOption(MCATS(CMDO_, name));           \
-ASSERT(res.IsOkayResult()                               \
-    , "Failed to parse command-line option \"%s\": %H"  \
-    , #name, res);                                      \
+#define CHECK_BOL(name, val) do {                                   \
+    ASSERT(MCATS(CMDO_, name).BooleanValue == val                   \
+        , "Command-line option \"%s\" should have had value %B"     \
+          ", got %B."                                               \
+        , #name, val, MCATS(CMDO_, name).BooleanValue);             \
 } while (false)
 
 void TestCmdo()
 {
+    CMDO(1, "a", "alpha", String);
+    CMDO(2, "b", "beta", String);
+    CMDO(3, "c", "gamma", String);
+
+    CMDO(4, "s", "sierra", BooleanByPresence);
+    CMDO(5, "x", "xenulol", BooleanByPresence);
+    CMDO(6, "y", "york", BooleanByPresence);
+
     Handle res;
 
-    res = parser.StartParsing(OptionsString);
+    res = parser.StartParsing(OptionsString1);
 
     ASSERT(res.IsOkayResult()
         , "Failed to start parsing command-line options: %H"
@@ -89,6 +111,48 @@ void TestCmdo()
     PARSE_OPT(3);
     PARSE_OPT(4);
     PARSE_OPT(5);
+    PARSE_OPT(6);
+
+    CHECK_STR(1, "test a");
+    CHECK_STR(2, "yada yada");
+    CHECK_STR(3, "rada");
+    CHECK_BOL(4, true);
+    CHECK_BOL(5, true);
+    CHECK_BOL(6, false);
+
+    //  AND NOW ROUND 2!
+
+    new (&parser) CommandLineOptionParserState();
+
+    res = parser.StartParsing(OptionsString2);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to start parsing command-line options: %H"
+        , res);
+
+    // for (size_t i = 0; i < parser.Length; ++i)
+    //     if (parser.InputString[i] == '\0')
+    //         parser.InputString[i] = '_';
+
+    // msg("Length of \"%S\" is: %us.%n", parser.Length, parser.InputString, parser.Length);
+
+    ASSERT(parser.TokenCount == 6
+        , "Parser should have identified %us tokens, not %us."
+        , 7, parser.TokenCount);
+
+    PARSE_OPT(1);
+    PARSE_OPT(2);
+    PARSE_OPT(3);
+    PARSE_OPT(4);
+    PARSE_OPT(5);
+    PARSE_OPT(6);
+
+    CHECK_STR(1, "test a");
+    CHECK_STR(2, "yada yada");
+    CHECK_STR(3, "rada");
+    CHECK_BOL(4, true);
+    CHECK_BOL(5, true);
+    CHECK_BOL(6, false);
 }
 
 #endif
