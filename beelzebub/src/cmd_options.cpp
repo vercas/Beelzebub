@@ -37,6 +37,17 @@
     thorough explanation regarding other files.
 */
 
+/*
+    The input string must be prepared a little before it can be used efficiently.
+    This is done with a two-pass algorithm.
+
+    The first pass identifies the different elements of the input. An element is
+    a component of an option. Either its name, its value or both.
+
+    The second pass sanitizes the individual tokens so they can be used more
+    quickly and efficiently by the individual option parsing function.
+*/
+
 #include <cmd_options.hpp>
 #include <debug.hpp>
 
@@ -53,8 +64,48 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
     if (this->Started)
         return HandleResult::UnsupportedOperation;
 
+    size_t len;
+
     this->InputString = input;
-    this->Length = strlen(input);
+    this->Length = len = strlen(input);
+
+    bool underEscape = false, underQuotes = false;
+
+    for (size_t i = 0; i < len; ++i)
+    {
+        if (underEscape)
+        {
+            //  Maybe do something here..?
+
+            underEscape = false;
+        }
+        else if (underQuotes)
+        {
+            switch (input[i])
+            {
+                case '\\':
+                    underEscape = true;
+                    break;
+
+                case '"':
+                    underQuotes = false;
+                    break;
+            }
+        }
+        else
+        {
+            switch (input[i])
+            {
+                case '\\':
+                    underEscape = true;
+                    break;
+
+                case '"':
+                    underQuotes = true;
+                    break;
+            }
+        }
+    }
 
     this->Started = true;
 
