@@ -51,10 +51,12 @@
 */
 
 #include <cmd_options.hpp>
+#include <utils/conversions.hpp>
 #include <string.h>
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Utils;
 
 /*****************************************
     CommandLineOptionParserState class
@@ -391,7 +393,7 @@ Handle HandleValue(CommandLineOptionSpecification & opt, char * input)
             return HandleResult::Okay;
 
         case CommandLineOptionValueTypes::SignedInteger:
-            return HandleResult::CmdOptionValueTypeInvalid;
+            return FromString<int64_t>(input, opt.SignedIntegerValue);
 
         case CommandLineOptionValueTypes::UnsignedInteger:
             return HandleResult::CmdOptionValueTypeInvalid;

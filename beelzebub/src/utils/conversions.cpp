@@ -43,12 +43,15 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
 
-Handle StrToUInt64Base16(char const * str, uint64_t & val)
+/*  64-bit  */
+
+template<typename TInt, size_t limit>
+Handle StrToUIntBase16(char const * str, TInt & val)
 {
-    uint64_t res = 0;
+    TInt res = 0;
     size_t i = 0;
 
-    for (char c; (c = *str) != '\0' && i < 16; ++i, ++str)
+    for (char c; (c = *str) != '\0' && i < limit; ++i, ++str)
     {
         res <<= 4;
         //  Shift by one hexadecimal digit.
@@ -61,21 +64,21 @@ Handle StrToUInt64Base16(char const * str, uint64_t & val)
                 {
                     if (c <= 0x66)
                     {
-                        res |= (uint64_t)(c - 0x60);
+                        res |= (TInt)(c - 0x60);
 
                         continue;
                     }
                 }
                 else if (c <= 0x46)
                 {
-                    res |= (uint64_t)(c - 0x40);
+                    res |= (TInt)(c - 0x40);
 
                     continue;
                 }
             }
             else if (c < 0x3A)
             {
-                res |= (uint64_t)(c - 0x30);
+                res |= (TInt)(c - 0x30);
 
                 continue;
             }
@@ -86,7 +89,7 @@ Handle StrToUInt64Base16(char const * str, uint64_t & val)
         return HandleResult::ArgumentOutOfRange;
     }
 
-    if (i >= 16 || i == 0)
+    if (i >= limit || i == 0)
         return HandleResult::ArgumentOutOfRange;
 
     val = res;
@@ -94,11 +97,13 @@ Handle StrToUInt64Base16(char const * str, uint64_t & val)
     return HandleResult::Okay;
 }
 
-Handle StrToUInt64Base10(char const * str, uint64_t & val)
+template<typename TInt>
+Handle StrToUIntBase10(char const * str, TInt & val)
 {
-    uint64_t res = val = 0;
+    TInt res = val = 0;
+    char c;
 
-    for (size_t i = 0; *str != '\0'; ++i, ++str)
+    for (size_t i = 0; (c = *str) != '\0'; ++i, ++str)
     {
         res *= 10;
         //  Shift by one decimal digit. I hope the compiler optimises this into
@@ -111,13 +116,10 @@ Handle StrToUInt64Base10(char const * str, uint64_t & val)
         val = res;
 
         if (c < 0x30 || c >= 0x3A)
-        {
-            //  So not a decimal digit.
-
             return HandleResult::ArgumentOutOfRange;
-        }
+        //  So not a decimal digit.
 
-        res += (uint64_t)(c - 0x30);
+        res += (TInt)(c - 0x30);
     }
 
     val = res;
@@ -125,27 +127,25 @@ Handle StrToUInt64Base10(char const * str, uint64_t & val)
     return HandleResult::Okay;
 }
 
-Handle StrToUInt64Base8(char const * str, uint64_t & val)
+template<typename TInt, size_t limit>
+Handle StrToUIntBase8(char const * str, TInt & val)
 {
-    uint64_t res = 0;
+    TInt res = 0;
     size_t i = 0;
 
-    for (char c; (c = *str) != '\0' && i < 21; ++i, ++str)
+    for (char c; (c = *str) != '\0' && i < limit; ++i, ++str)
     {
         res <<= 3;
         //  Shift by one octal digit.
 
         if (c < 0x30 || c >= 0x38)
-        {
-            //  So not an octal digit.
-
             return HandleResult::ArgumentOutOfRange;
-        }
+        //  So not an octal digit.
 
-        res |= (uint64_t)(c - 0x30);
+        res |= (TInt)(c - 0x30);
     }
 
-    if (i >= 21 || i == 0)
+    if (i >= limit || i == 0)
         return HandleResult::ArgumentOutOfRange;
 
     val = res;
@@ -153,33 +153,29 @@ Handle StrToUInt64Base8(char const * str, uint64_t & val)
     return HandleResult::Okay;
 }
 
-Handle StrToUInt64Base2(char const * str, uint64_t & val)
+template<typename TInt>
+Handle StrToUIntBase2(char const * str, TInt & val)
 {
-    uint64_t res = 0;
+    TInt res = 0;
     size_t i = 0;
 
-    for (char c; (c = *str) != '\0' && i < 64; ++i, ++str)
-    {
-        res <<= 1;
-        //  Shift by one octal digit.
+    for (char c; (c = *str) != '\0' && i < (sizeof(TInt) * 8); ++i, ++str)
+        if (c == '1')
+            res = (res << 1) | 1;                       //  Shift by one binary digit and set the low one.
+        else if (c == '0')
+            res <<= 1;                                  //  Shift one bit; low one's zero.
+        else
+            return HandleResult::ArgumentOutOfRange;    //  So not a binary digit.
 
-        if (c == 0x31)
-            res |= 1;
-        else if (c != 0x30)
-        {
-            //  So not a binary digit.
-
-            return HandleResult::ArgumentOutOfRange;
-        }
-    }
-
-    if (i >= 64 || i == 0)
+    if (i >= (sizeof(TInt) * 8) || i == 0)
         return HandleResult::ArgumentOutOfRange;
 
     val = res;
 
     return HandleResult::Okay;
 }
+
+/*  Wrap up  */
 
 namespace Beelzebub { namespace Utils
 {
@@ -201,40 +197,24 @@ namespace Beelzebub { namespace Utils
             //  So... The base ain't 10.
 
             if (str[1] == 'x' || str[1] == 'X')
-            {
                 //  Hexadecimal (base 16).
-                
-                res = StrToUInt64Base16(str + 2, temp);
-            }
+                res = StrToUIntBase16<uint64_t, 16>(str + 2, temp);
             else if (str[1] == 'b' || str[1] == 'B')
-            {
                 //  Binary (base 2).
-                
-                res = StrToUInt64Base2(str + 2, temp);
-            }
+                res = StrToUIntBase2<uint64_t>(str + 2, temp);
             else
-            {
                 //  Octal (base 8).
-                
-                res = StrToUInt64Base8(str + 1, temp);
-            }
+                res = StrToUIntBase8<uint64_t, 21>(str + 1, temp);
         }
         else
-        {
             //  Decimal (base 10).
-            
-            res = StrToUInt64Base10(str, temp);
-        }
+            res = StrToUIntBase10<uint64_t>(str, temp);
 
         if (!res.IsOkayResult())
             return res;
 
         if (temp >> 63 != 0)
-        {
-            msg("!! top bit set !!%n");
-
             return HandleResult::ArgumentOutOfRange;
-        }
 
         if (negative)
             val = -static_cast<int64_t>(temp);
@@ -242,5 +222,146 @@ namespace Beelzebub { namespace Utils
             val = static_cast<int64_t>(temp);
 
         return res;
+    }
+
+    template<>
+    Handle FromString<uint64_t>(char const * str, uint64_t & val)
+    {
+        if (*str == '0')
+        {
+            //  So... The base ain't 10.
+
+            if (str[1] == 'x' || str[1] == 'X')
+            {
+                //  Hexadecimal (base 16).
+                
+                return StrToUIntBase16<uint64_t, 16>(str + 2, val);
+            }
+            else if (str[1] == 'b' || str[1] == 'B')
+            {
+                //  Binary (base 2).
+                
+                return StrToUIntBase2<uint64_t>(str + 2, val);
+            }
+            else
+            {
+                //  Octal (base 8).
+                
+                return StrToUIntBase8<uint64_t, 21>(str + 1, val);
+            }
+        }
+        else
+        {
+            //  Decimal (base 10).
+            
+            return StrToUIntBase10<uint64_t>(str, val);
+        }
+    }
+
+    template<>
+    Handle FromString<int32_t>(char const * str, int32_t & val)
+    {
+        Handle res;
+        uint32_t temp;
+        bool negative = false;
+
+        if (*str == '-')
+        {
+            ++str;
+            negative = true;
+        }
+
+        if (*str == '0')
+        {
+            //  So... The base ain't 10.
+
+            if (str[1] == 'x' || str[1] == 'X')
+            {
+                //  Hexadecimal (base 16).
+                
+                res = StrToUIntBase16<uint32_t, 16>(str + 2, temp);
+            }
+            else if (str[1] == 'b' || str[1] == 'B')
+            {
+                //  Binary (base 2).
+                
+                res = StrToUIntBase2<uint32_t>(str + 2, temp);
+            }
+            else
+            {
+                //  Octal (base 8).
+
+                uint64_t temp2;
+                
+                res = StrToUIntBase8<uint64_t, 11>(str + 1, temp2);
+
+                if ((temp2 & 0xFFFFFFFFULL) != 0)
+                    return HandleResult::ArgumentOutOfRange;
+
+                temp = static_cast<uint32_t>(temp2);
+            }
+        }
+        else
+        {
+            //  Decimal (base 10).
+            
+            res = StrToUIntBase10<uint32_t>(str, temp);
+        }
+
+        if (!res.IsOkayResult())
+            return res;
+
+        if (temp >> 31 != 0)
+            return HandleResult::ArgumentOutOfRange;
+
+        if (negative)
+            val = -static_cast<int32_t>(temp);
+        else
+            val = static_cast<int32_t>(temp);
+
+        return res;
+    }
+
+    template<>
+    Handle FromString<uint32_t>(char const * str, uint32_t & val)
+    {
+        if (*str == '0')
+        {
+            //  So... The base ain't 10.
+
+            if (str[1] == 'x' || str[1] == 'X')
+            {
+                //  Hexadecimal (base 16).
+                
+                return StrToUIntBase16<uint32_t, 16>(str + 2, val);
+            }
+            else if (str[1] == 'b' || str[1] == 'B')
+            {
+                //  Binary (base 2).
+                
+                return StrToUIntBase2<uint32_t>(str + 2, val);
+            }
+            else
+            {
+                //  Octal (base 8).
+
+                uint64_t temp;
+                
+                Handle res = StrToUIntBase8<uint64_t, 11>(str + 1, temp);
+
+                if (res.IsOkayResult() && (temp & 0xFFFFFFFFULL) != 0)
+                    return HandleResult::ArgumentOutOfRange;
+
+                val = temp;
+
+                return res;
+            }
+        }
+        else
+        {
+            //  Decimal (base 10).
+            
+            return StrToUIntBase10<uint32_t>(str, val);
+        }
     }
 }}

@@ -49,12 +49,20 @@ using namespace Beelzebub;
 
 char OptionsString1[] = "   --alpha='test a' -b \"yada yada\" --g\"amm\"a ra\\da --si\\erra -x  ";
 char OptionsString2[] = "--alpha='test a' -bx \"yada yada\" --g\"amm\"a ra\\da --si\\erra";
+char OptionsString3[] = "-1 -0x060 -2 -987 -3 0123 -4 0b0011001010";
 
 CommandLineOptionParserState parser;
 
 #define PARSE_OPT(name) do {                                \
     res = parser.ParseOption(MCATS(CMDO_, name));           \
     ASSERT(res.IsOkayResult()                               \
+        , "Failed to parse command-line option \"%s\": %H"  \
+        , #name, res);                                      \
+} while (false)
+
+#define PARSE_OPT2(name, resVal) do {                       \
+    res = parser.ParseOption(MCATS(CMDO_, name));           \
+    ASSERT(res == resVal                                    \
         , "Failed to parse command-line option \"%s\": %H"  \
         , #name, res);                                      \
 } while (false)
@@ -76,6 +84,13 @@ CommandLineOptionParserState parser;
         , "Command-line option \"%s\" should have had value %B"     \
           ", got %B."                                               \
         , #name, val, MCATS(CMDO_, name).BooleanValue);             \
+} while (false)
+
+#define CHECK_SINT(name, val) do {                                  \
+    ASSERT(MCATS(CMDO_, name).SignedIntegerValue == val             \
+        , "Command-line option \"%s\" should have had value %i8"    \
+          ", got %i8."                                              \
+        , #name, val, MCATS(CMDO_, name).SignedIntegerValue);       \
 } while (false)
 
 void TestCmdo()
@@ -138,7 +153,7 @@ void TestCmdo()
 
     ASSERT(parser.TokenCount == 6
         , "Parser should have identified %us tokens, not %us."
-        , 7, parser.TokenCount);
+        , 6, parser.TokenCount);
 
     PARSE_OPT(1);
     PARSE_OPT(2);
@@ -153,6 +168,41 @@ void TestCmdo()
     CHECK_BOL(4, true);
     CHECK_BOL(5, true);
     CHECK_BOL(6, false);
+
+    //  AND NOW ROUND 3!
+
+    CMDO(a, "1", "one", SignedInteger);
+    CMDO(b, "2", "two", SignedInteger);
+    CMDO(c, "3", "three", SignedInteger);
+    CMDO(d, "4", "four", SignedInteger);
+
+    new (&parser) CommandLineOptionParserState();
+
+    res = parser.StartParsing(OptionsString3);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to start parsing command-line options: %H"
+        , res);
+
+    // for (size_t i = 0; i < parser.Length; ++i)
+    //     if (parser.InputString[i] == '\0')
+    //         parser.InputString[i] = '_';
+
+    // msg("Length of \"%S\" is: %us.%n", parser.Length, parser.InputString, parser.Length);
+
+    ASSERT(parser.TokenCount == 8
+        , "Parser should have identified %us tokens, not %us."
+        , 8, parser.TokenCount);
+
+    PARSE_OPT(a);
+    PARSE_OPT(b);
+    PARSE_OPT(c);
+    PARSE_OPT(d);
+
+    CHECK_SINT(a, -0x60);
+    CHECK_SINT(b, -987);
+    CHECK_SINT(c, 0123);
+    CHECK_SINT(d, 0xCA);
 }
 
 #endif
