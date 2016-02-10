@@ -49,7 +49,7 @@ using namespace Beelzebub;
 
 char OptionsString1[] = "   --alpha='test a' -b \"yada yada\" --g\"amm\"a ra\\da --si\\erra -x  ";
 char OptionsString2[] = "--alpha='test a' -bx \"yada yada\" --g\"amm\"a ra\\da --si\\erra";
-char OptionsString3[] = "-1 -0x060 -2 -987 -3 0123 -4 0b0011001010";
+char OptionsString3[] = "-1 -0x060 -2 -987 -3 0123 -4 0b0011001010 --BT=On --BF No";
 
 CommandLineOptionParserState parser;
 
@@ -175,6 +175,8 @@ void TestCmdo()
     CMDO(b, "2", "two", SignedInteger);
     CMDO(c, "3", "three", SignedInteger);
     CMDO(d, "4", "four", SignedInteger);
+    CMDO(e, "BT", "BT", BooleanExplicit);
+    CMDO(f, "BF", "BF", BooleanExplicit);
 
     new (&parser) CommandLineOptionParserState();
 
@@ -190,19 +192,23 @@ void TestCmdo()
 
     // msg("Length of \"%S\" is: %us.%n", parser.Length, parser.InputString, parser.Length);
 
-    ASSERT(parser.TokenCount == 8
+    ASSERT(parser.TokenCount == 11
         , "Parser should have identified %us tokens, not %us."
-        , 8, parser.TokenCount);
+        , 11, parser.TokenCount);
 
     PARSE_OPT(a);
     PARSE_OPT(b);
     PARSE_OPT(c);
     PARSE_OPT(d);
+    PARSE_OPT(e);
+    PARSE_OPT(f);
 
     CHECK_SINT(a, -0x60);
     CHECK_SINT(b, -987);
     CHECK_SINT(c, 0123);
     CHECK_SINT(d, 0xCA);
+    CHECK_BOL(e, true);
+    CHECK_BOL(f, false);
 }
 
 #endif

@@ -38,12 +38,12 @@
 */
 
 #include <utils/conversions.hpp>
-#include <debug.hpp>
+#include <string.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
 
-/*  64-bit  */
+/*  Workers  */
 
 template<typename TInt, size_t limit>
 Handle StrToUIntBase16(char const * str, TInt & val)
@@ -175,7 +175,7 @@ Handle StrToUIntBase2(char const * str, TInt & val)
     return HandleResult::Okay;
 }
 
-/*  Wrap up  */
+/*  The juice!  */
 
 namespace Beelzebub { namespace Utils
 {
@@ -360,8 +360,55 @@ namespace Beelzebub { namespace Utils
         else
         {
             //  Decimal (base 10).
-            
+
             return StrToUIntBase10<uint32_t>(str, val);
         }
+    }
+
+    template<>
+    Handle FromString<bool>(char const * str, bool & val)
+    {
+        //  6 chars ought to be enough.
+        char buf[6] = "\0\0\0\0\0";
+        size_t i = 0;
+
+        for (char c; i < 6 && (c = str[i]) != '\0'; ++i)
+            if (c >= 'A' && c <= 'Z')
+                buf[i] = c + 32;
+            else
+                buf[i] = c;
+
+        //  Yes, it converts it all to lowercase.
+        //  Also, an on-stack buffer is used here so the source string isn't
+        //  modified.
+
+        if unlikely(i == 6)
+            return HandleResult::ArgumentOutOfRange;
+        //  Too many characters.
+
+        //  Also, case-insensitive comparisons could've been used, but many
+        //  may be needed, which are much faster when using same-case comparisons.
+
+        #define CHECKSTR(strval, boolval)                           \
+            if (memeq(buf, strval, i) && i == sizeof(strval) - 1)   \
+                val = boolval;                                      \
+            else
+        //  Yes, this is highly unorthodox. Blimey.
+
+        CHECKSTR("true", true)
+        CHECKSTR("false", false)
+
+        CHECKSTR("yes", true)
+        CHECKSTR("no", false)
+
+        CHECKSTR("on", true)
+        CHECKSTR("off", false)
+
+        /* else */ 
+            return HandleResult::ArgumentOutOfRange;
+
+        //  Please pay attention to that awful macro to understand this code.
+
+        return HandleResult::Okay;
     }
 }}

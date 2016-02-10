@@ -385,7 +385,7 @@ Handle HandleValue(CommandLineOptionSpecification & opt, char * input)
             return HandleResult::Okay;
 
         case CommandLineOptionValueTypes::BooleanExplicit:
-            return HandleResult::CmdOptionValueTypeInvalid;
+            return FromString<bool>(input, opt.BooleanValue);
 
         case CommandLineOptionValueTypes::String:
             opt.StringValue = input;
@@ -396,10 +396,11 @@ Handle HandleValue(CommandLineOptionSpecification & opt, char * input)
             return FromString<int64_t>(input, opt.SignedIntegerValue);
 
         case CommandLineOptionValueTypes::UnsignedInteger:
-            return HandleResult::CmdOptionValueTypeInvalid;
+            return FromString<uint64_t>(input, opt.UnsignedIntegerValue);
 
         case CommandLineOptionValueTypes::Float:
             return HandleResult::CmdOptionValueTypeInvalid;
+            //  TODO: Implement this...
     }
 
     return HandleResult::CmdOptionValueTypeInvalid;
