@@ -51,7 +51,7 @@ char OptionsString1[] = "   --alpha='test a' -b \"yada yada\" --g\"amm\"a ra\\da
 char OptionsString2[] = "--alpha='test a' -bx \"yada yada\" --g\"amm\"a ra\\da --si\\erra";
 char OptionsString3[] = "-1 -0x060 -2 -987 -3 0123 -4 0b0011001010 --BT=On --BF No";
 
-CommandLineOptionParserState parser;
+CommandLineOptionParser parser;
 
 #define PARSE_OPT(name) do {                                \
     res = parser.ParseOption(MCATS(CMDO_, name));           \
@@ -137,7 +137,7 @@ void TestCmdo()
 
     //  AND NOW ROUND 2!
 
-    new (&parser) CommandLineOptionParserState();
+    new (&parser) CommandLineOptionParser();
 
     res = parser.StartParsing(OptionsString2);
 
@@ -178,7 +178,7 @@ void TestCmdo()
     CMDO(e, "BT", "BT", BooleanExplicit);
     CMDO(f, "BF", "BF", BooleanExplicit);
 
-    new (&parser) CommandLineOptionParserState();
+    new (&parser) CommandLineOptionParser();
 
     res = parser.StartParsing(OptionsString3);
 

@@ -47,7 +47,8 @@ CommandLineOptionSpecification MCATS(CMDO_, name)   \
 {                                                   \
     sf,                                             \
     lf,                                             \
-    CommandLineOptionValueTypes::vt                 \
+    CommandLineOptionValueTypes::vt,                \
+    nullptr                                         \
 }
 
 namespace Beelzebub
@@ -76,12 +77,14 @@ namespace Beelzebub
 
         inline CommandLineOptionSpecification(char const * const sf
                                             , char const * const lf
-                                            , CommandLineOptionValueTypes const vt)
+                                            , CommandLineOptionValueTypes const vt
+                                            , CommandLineOptionSpecification * const next)
             : ShortForm(sf)
             , LongForm(lf)
             , ValueType(vt)
             , ParsingResult()
             , StringValue(nullptr)
+            , Next(next)
         {
 
         }
@@ -102,21 +105,27 @@ namespace Beelzebub
             int64_t  SignedIntegerValue;
             uint64_t UnsignedIntegerValue;
         };
+
+        CommandLineOptionSpecification * Next;
     };
 
     /**
      *  Represents the state of a command-line option parser.
      */
-    class CommandLineOptionParserState
+    class CommandLineOptionBatchState;
+
+    /**
+     *  Represents the state of a command-line option parser.
+     */
+    class CommandLineOptionParser
     {
     public:
         /*  Constructor(s)  */
 
-        inline CommandLineOptionParserState()
+        inline CommandLineOptionParser()
             : InputString(nullptr)
             , Length(0)
             , TokenCount(0)
-            , Done(false)
             , Started(false)
         {
             //  Nuthin'.
@@ -128,13 +137,47 @@ namespace Beelzebub
 
         Handle ParseOption(CommandLineOptionSpecification & opt);
 
+        Handle StartBatch(CommandLineOptionBatchState    & state
+                        , CommandLineOptionSpecification * head);
+
         /*  Fields  */
 
         char * InputString;
         size_t Length;
         size_t TokenCount;
 
-        bool Done;
         bool Started;
+    };
+
+    class CommandLineOptionBatchState
+    {
+    public:
+        /*  Constructor(s)  */
+
+        inline CommandLineOptionBatchState(CommandLineOptionParser * parser
+                                         , CommandLineOptionSpecification * head)
+            : Parser(parser)
+            , Head(head)
+            , Offset(0)
+            , Done(false)
+            , Result()
+        {
+            //  Nuthin'.
+        }
+
+        /*  Operations  */
+
+        Handle Next();
+
+        /*  Fields  */
+
+        CommandLineOptionParser const * const Parser;
+        CommandLineOptionSpecification * const Head;
+
+        size_t Offset;
+
+        bool Done;
+
+        Handle Result;
     };
 }

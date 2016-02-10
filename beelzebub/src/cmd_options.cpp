@@ -58,13 +58,18 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
 
-/*****************************************
-    CommandLineOptionParserState class
-*****************************************/
+/*  Forward declarations  */
+
+__noinline Handle HandleValue(CommandLineOptionSpecification & opt, char * input);
+//  Forward declaration.
+
+/************************************
+    CommandLineOptionParser class
+************************************/
 
 /*  Operations  */
 
-Handle CommandLineOptionParserState::StartParsing(char * const input)
+Handle CommandLineOptionParser::StartParsing(char * const input)
 {
     if (this->Started)
         return HandleResult::UnsupportedOperation;
@@ -285,10 +290,7 @@ Handle CommandLineOptionParserState::StartParsing(char * const input)
     return HandleResult::Okay;
 }
 
-__noinline Handle HandleValue(CommandLineOptionSpecification & opt, char * input);
-//  Forward declaration.
-
-Handle CommandLineOptionParserState::ParseOption(CommandLineOptionSpecification & opt)
+Handle CommandLineOptionParser::ParseOption(CommandLineOptionSpecification & opt)
 {
     if (opt.ParsingResult.IsOkayResult())
         return opt.ParsingResult;
@@ -369,6 +371,70 @@ Handle CommandLineOptionParserState::ParseOption(CommandLineOptionSpecification 
     }
 
     return opt.ParsingResult = HandleResult::Okay;  //  TODO: NOT GOOD!
+}
+
+Handle CommandLineOptionParser::StartBatch(CommandLineOptionBatchState    & state
+                                         , CommandLineOptionSpecification * head)
+{
+    new (&state) CommandLineOptionBatchState(this, head);
+
+    return HandleResult::Okay;
+}
+
+/****************************************
+    CommandLineOptionBatchState class
+****************************************/
+
+Handle BatchCheckOption(CommandLineOptionBatchState & batch
+                      , char * str, size_t len, size_t & off
+                      , CommandLineOptionSpecification * opt)
+{
+    if (opt == nullptr)
+        return HandleResult::NotFound;
+
+    return BatchCheckOption(batch, str, len, off, opt->Next);
+}
+
+Handle BatchInnerNext(CommandLineOptionBatchState & batch)
+{
+    CommandLineOptionParser const & parser = *(batch.Parser);
+    size_t i = batch.Offset;
+
+    for (size_t len; i + 1 < parser.Length; i += len + 1)
+    {
+        len = strlen(parser.InputString + i);
+        //  The incrementation step will move 'i' to the next token, basically.
+
+        if (parser.InputString[i] != '-')
+            continue;
+        //  Not even an option.
+
+        batch.Offset = i;
+
+        Handle res = BatchCheckOption(batch, parser.InputString + i, len
+                                    , batch.Offset, batch.Head);
+
+        if (batch.Offset >= parser.Length)
+            batch.Done = true;
+
+        return res;
+    }
+
+    //  Reching this point means no identified arguments... Which is not
+    //  necessarily bad..?
+
+    batch.Offset = i;
+    batch.Done = true;
+
+    return HandleResult::Okay;
+}
+
+Handle CommandLineOptionBatchState::Next()
+{
+    if (this->Done)
+        return HandleResult::UnsupportedOperation;
+
+    return this->Result = BatchInnerNext(*this);
 }
 
 /********************************************
