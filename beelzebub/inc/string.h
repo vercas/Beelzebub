@@ -194,3 +194,5 @@ __extern __used size_t strnlenex(const char * str, size_t len, bool * reached);
 __extern __used comp_t strcmp(const char * src1, const char * src2);
 
 __extern __used comp_t strncmp(const char * src1, const char * src2, size_t len);
+
+__extern __used comp_t strcasecmp(const char * src1, const char * src2);

@@ -315,3 +315,34 @@ comp_t strncmp(const char * src1, const char * src2, size_t len)
     return res; //*/
 }
 
+comp_t strcasecmp(const char * src1, const char * src2)
+{
+    comp_t res = 0;    //  Used to store subtraction/comparison results.
+
+    if (src1 == src2)
+        return res;
+
+    for (char c1, c2; (c1 = *src1) != 0 || (c2 = *src2) != 0; ++src1, ++src2)
+        if ((res = (comp_t)((sbyte)c1 - (sbyte)c2)) != (comp_t)0)
+        {
+            //  Considering this is ASCII, the only case where we need to continue
+            //  is when the characters are identical letters with opposite casing.
+            //  In other words, their difference is +/- 32 and either one of them
+            //  is in the right letter range.
+
+            if (res == 32 && c1 >= 'a' && c1 <= 'z')
+                continue;
+            //  c1 - c2 = 32 means c1 must be lowercase.
+
+            if (res == -32 && c1 >= 'A' && c1 <= 'A')
+                continue;
+            //  -32 means it has to be uppercase.
+
+            return res;
+        }
+    
+    //  This is just odd...
+
+    return res;
+}
+
