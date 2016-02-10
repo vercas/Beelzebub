@@ -50,7 +50,7 @@ using namespace Beelzebub;
 char OptionsString1[] = "   --alpha='test a' -b \"yada yada\" --g\"amm\"a ra\\da --si\\erra -x  ";
 char OptionsString2[] = "--alpha='test a' -bx \"yada yada\" --g\"amm\"a ra\\da --si\\erra";
 char OptionsString3[] = "-1 -0x060 -2 -987 -3 0123 -4 0b0011001010 --BT=On --BF No";
-char OptionsString4[] = "--aaa=1 --bbb 2 -c 3 --ddd --blergh=yada";
+char OptionsString4[] = "--aaa=1 --bbb 2 -cg 3 --ddd -freud --blergh=yada";
 
 CommandLineOptionParser parser;
 
@@ -66,6 +66,12 @@ CommandLineOptionParser parser;
     ASSERT(res == resVal                                    \
         , "Failed to parse command-line option \"%s\": %H"  \
         , #name, res);                                      \
+} while (false)
+
+#define CHECK_PARSED(name) do {                                     \
+    ASSERT(MCATS(CMDO_, name).ParsingResult.IsOkayResult()          \
+        , "Command-line option \"%s\" should've been parsed: %H"    \
+        , #name, res);                                              \
 } while (false)
 
 #define CHECK_STR(name, val) do {                                   \
@@ -120,7 +126,7 @@ void TestCmdo()
 
     ASSERT(parser.TokenCount == 7
         , "Parser should have identified %us tokens, not %us."
-        , 7, parser.TokenCount);
+        , (size_t)7, parser.TokenCount);
 
     PARSE_OPT(1);
     PARSE_OPT(2);
@@ -154,7 +160,7 @@ void TestCmdo()
 
     ASSERT(parser.TokenCount == 6
         , "Parser should have identified %us tokens, not %us."
-        , 6, parser.TokenCount);
+        , (size_t)6, parser.TokenCount);
 
     PARSE_OPT(1);
     PARSE_OPT(2);
@@ -195,7 +201,7 @@ void TestCmdo()
 
     ASSERT(parser.TokenCount == 11
         , "Parser should have identified %us tokens, not %us."
-        , 11, parser.TokenCount);
+        , (size_t)11, parser.TokenCount);
 
     PARSE_OPT(a);
     PARSE_OPT(b);
@@ -218,6 +224,8 @@ void TestCmdo()
     CMDO_LINKED(03, "c", "ccc", String, 02);
     CMDO_LINKED(04, "d", "ddd", BooleanByPresence, 03);
     CMDO_LINKED(05, "e", "eee", BooleanByPresence, 04);
+    CMDO_LINKED(06, "freud", "booohoooo", BooleanByPresence, 05);
+    CMDO_LINKED(07, "g", "ggg", BooleanByPresence, 06);
 
     new (&parser) CommandLineOptionParser();
 
@@ -227,13 +235,18 @@ void TestCmdo()
         , "Failed to start parsing command-line options: %H"
         , res);
 
-    ASSERT(parser.TokenCount == 7
+    ASSERT(parser.TokenCount == 8
         , "Parser should have identified %us tokens, not %us."
-        , 7, parser.TokenCount);
+        , (size_t)8, parser.TokenCount);
 
     CommandLineOptionBatchState batch;
 
-    res = parser.StartBatch(batch, &CMDO_05);
+    ASSERT(!batch.IsValid(), "Batch should be invalid.");
+
+    res = parser.StartBatch(batch, &CMDO_07);
+
+    ASSERT(batch.IsValid(), "Batch should be valid.");
+    ASSERT(!batch.IsFinished(), "Batch should not be finished.");
 
     ASSERT(res.IsOkayResult()
         , "Failed to start batch for processing command-line options: %H"
@@ -244,33 +257,48 @@ void TestCmdo()
 
     while (!(res = batch.Next()).IsResult(HandleResult::UnsupportedOperation))
     {
-        msg("?? %H ??%n", res);
+        // msg("?? %H ??%n", res);
 
-        if (counter < 4)
+        if (counter < 5 || counter == 6)
         {
             ASSERT(res.IsOkayResult()
-                , "Failed batch step of command-line options processing: %H"
-                , res);
+                , "Failed batch step #%us of command-line options processing: %H"
+                , counter, res);
         }
         else
         {
-            ASSERT(counter == 4
-                , "Counter shouldn't exceed 4! It is %us."
+            ASSERT(counter == 5
+                , "Counter shouldn't exceed 6! It is %us."
                 , counter);
 
             ASSERT(res.IsResult(HandleResult::NotFound)
-                , "Failed batch step of command-line options processing: %H"
-                , res);
+                , "Failed batch step #%us of command-line options processing: %H"
+                , counter, res);
         }
+
+        ASSERT(batch.IsFinished() == (counter == 6)
+            , "Batch should only be finished on step 6; current step is %us."
+            , counter);
 
         ++counter;
     }
+
+    ASSERT(batch.IsFinished(), "Batch should be finished.");
+
+    CHECK_PARSED(01);
+    CHECK_PARSED(02);
+    CHECK_PARSED(03);
+    CHECK_PARSED(04);
+    CHECK_PARSED(06);
+    CHECK_PARSED(07);
 
     CHECK_STR(01, "1");
     CHECK_STR(02, "2");
     CHECK_STR(03, "3");
     CHECK_BOL(04, true);
     CHECK_BOL(05, false);
+    CHECK_BOL(06, true);
+    CHECK_BOL(07, true);
 }
 
 #endif

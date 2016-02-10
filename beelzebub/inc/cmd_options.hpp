@@ -158,16 +158,29 @@ namespace Beelzebub
         bool Started;
     };
 
+    /**
+     *  The steps taken in processing a batch of command-line options.
+     */
+    enum class CommandLineOptionBatchStep
+    {
+        Starting = 0,
+        InProgress = 1,
+        WrappingUp = 2,
+        Finished = 4,
+
+        Invalid = -1,
+    };
+
     class CommandLineOptionBatchState
     {
     public:
-        /*  Constructor(s)  */
+        /*  Constructors  */
 
         inline CommandLineOptionBatchState()
             : Parser(nullptr)
             , Head(nullptr)
             , Offset(~((size_t)0))
-            , Done(false)
+            , Step(CommandLineOptionBatchStep::Invalid)
             , Result()
         {
             //  Nuthin'.
@@ -178,7 +191,7 @@ namespace Beelzebub
             : Parser(parser)
             , Head(head)
             , Offset(0)
-            , Done(false)
+            , Step(CommandLineOptionBatchStep::Starting)
             , Result()
         {
             //  Nuthin' here eitha'.
@@ -188,6 +201,20 @@ namespace Beelzebub
 
         Handle Next();
 
+        /*  Properties  */
+
+        __forceinline bool IsValid()
+        {
+            return this->Step != CommandLineOptionBatchStep::Invalid
+                && this->Head != nullptr && this->Parser != nullptr
+                && this->Offset != ~((size_t)0);
+        }
+
+        __forceinline bool IsFinished()
+        {
+            return this->Step == CommandLineOptionBatchStep::Finished;
+        }
+
         /*  Fields  */
 
         CommandLineOptionParser const * const Parser;
@@ -195,7 +222,7 @@ namespace Beelzebub
 
         size_t Offset;
 
-        bool Done;
+        CommandLineOptionBatchStep Step;
 
         Handle Result;
     };

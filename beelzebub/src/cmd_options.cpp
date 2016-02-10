@@ -397,12 +397,16 @@ Handle BatchCheckLongOption(CommandLineOptionBatchState & batch
         return HandleResult::NotFound;
     }
 
-    msg("!! str \"%s\" len %us left %us off %us; LF \"%s\" !!%n"
-        , str, len, left, off, opt->LongForm);
+    // msg("!! str \"%s\" len %us left %us off %us; LF \"%s\" !!%n"
+    //     , str, len, left, off, opt->LongForm);
 
     //  First and second chars are "--" otherwise this wouldn't have been called.
 
-    size_t lflen;   //  Declared here so the next jump is legal...
+    size_t lflen;   //  Declared here so the next jumps are legal...
+
+    if (opt->ParsingResult.IsValid())
+        goto nextOption;
+    //  May have already been handled.
 
     if (opt->LongForm == nullptr)
         goto nextOption;
@@ -453,10 +457,14 @@ Handle BatchCheckShortWholeOption(CommandLineOptionBatchState & batch
         return HandleResult::NotFound;
     }
 
-    msg("!! str \"%s\" len %us left %us off %us; SF \"%s\" !!%n"
-        , str, len, left, off, opt->ShortForm);
+    // msg("!! str \"%s\" len %us left %us off %us; SF \"%s\" whole !!%n"
+    //     , str, len, left, off, opt->ShortForm);
 
     //  First char is '-' otherwise this wouldn't have been called.
+
+    if (opt->ParsingResult.IsValid())
+        goto nextOption;
+    //  May have already been handled.
 
     if (opt->ValueType != CommandLineOptionValueTypes::BooleanByPresence
      && len + 2 >= left)
@@ -482,20 +490,31 @@ nextOption:
 
 Handle BatchCheckShortPartialOption(CommandLineOptionBatchState & batch
                                   , char * str, size_t len, size_t left, size_t & off
-                                  , CommandLineOptionSpecification * opt)
+                                  , CommandLineOptionSpecification * opt
+                                  , size_t optCnt)
 {
     if (opt == nullptr)
     {
         off += len + 1;
         //  Do the good deed.
 
-        return HandleResult::NotFound;
+        if (optCnt == len - 1)
+            return HandleResult::Okay;
+        else
+            return HandleResult::NotFound;
     }
 
-    msg("!! str \"%s\" len %us left %us off %us; SF \"%s\" !!%n"
-        , str, len, left, off, opt->ShortForm);
+    // msg("!! str \"%s\" len %us left %us off %us; SF \"%s\" partial, type %up !!%n"
+    //     , str, len, left, off, opt->ShortForm, opt->ValueType);
 
     //  First char is '-' otherwise this wouldn't have been called.
+
+    Handle tmpRes {};
+    size_t tmpOff = off;
+
+    if (opt->ParsingResult.IsValid())
+        goto nextOption;
+    //  May have already been handled.
 
     if (opt->ValueType != CommandLineOptionValueTypes::BooleanByPresence
      && len + 2 >= left)
@@ -508,15 +527,41 @@ Handle BatchCheckShortPartialOption(CommandLineOptionBatchState & batch
     //  The short form must have exactly one character, and it must be found within
     //  the option.
 
+    // msg("## pre off %us; ", off);
+
     if (opt->ValueType == CommandLineOptionValueTypes::BooleanByPresence)
         off += len + 1;
     else
         off += len + 2 + strlen(str + 1 + len);
 
-    return opt->ParsingResult = HandleValue(*opt, str + 1 + len);
+    // msg("post off %us ##%n", off);
+
+    tmpRes = opt->ParsingResult = HandleValue(*opt, str + 1 + len);
 
 nextOption:
-    return BatchCheckShortPartialOption(batch, str, len, left, off, opt->Next);
+    Handle res = BatchCheckShortPartialOption(batch, str, len, left, tmpOff, opt->Next
+        , tmpRes.IsOkayResult() ? (optCnt + 1) : optCnt);
+
+    if (tmpOff > off)
+        off = tmpOff;
+
+    return res;
+}
+
+Handle WrapUpOption(CommandLineOptionSpecification * opt)
+{
+    if (opt == nullptr)
+        return HandleResult::Okay;
+
+    if (opt->ValueType == CommandLineOptionValueTypes::BooleanByPresence
+     && !opt->ParsingResult.IsValid())
+    {
+        opt->BooleanValue = false;
+
+        opt->ParsingResult = HandleResult::Okay;
+    }
+
+    return WrapUpOption(opt->Next);
 }
 
 Handle BatchInnerNext(CommandLineOptionBatchState & batch)
@@ -542,19 +587,31 @@ Handle BatchInnerNext(CommandLineOptionBatchState & batch)
                                      , parser.Length - i, batch.Offset, batch.Head);
         else if (len == 2)
             res = BatchCheckShortPartialOption(batch, parser.InputString + i, len
-                                             , parser.Length - i, batch.Offset, batch.Head);
+                                             , parser.Length - i, batch.Offset, batch.Head
+                                             , 0);
         else
         {
+            size_t oldOffset = batch.Offset;
+            //  Gotta back it up.
+
             res = BatchCheckShortWholeOption(batch, parser.InputString + i, len
                                            , parser.Length - i, batch.Offset, batch.Head);
 
             if (res.IsResult(HandleResult::NotFound))
+            {
+                batch.Offset = oldOffset;
+                //  Restore, otherwise this will operate on the next argument's offset...
+
                 res = BatchCheckShortPartialOption(batch, parser.InputString + i, len
-                                                 , parser.Length - i, batch.Offset, batch.Head);
+                                                 , parser.Length - i, batch.Offset, batch.Head
+                                                 , 0);
+            }
         }
 
         if (batch.Offset >= parser.Length)
-            batch.Done = true;
+            batch.Step = CommandLineOptionBatchStep::WrappingUp;
+        else
+            batch.Step = CommandLineOptionBatchStep::InProgress;
 
         return res;
     }
@@ -563,15 +620,21 @@ Handle BatchInnerNext(CommandLineOptionBatchState & batch)
     //  necessarily bad..?
 
     batch.Offset = i;
-    batch.Done = true;
+    batch.Step = CommandLineOptionBatchStep::WrappingUp;
 
     return HandleResult::Okay;
 }
 
 Handle CommandLineOptionBatchState::Next()
 {
-    if (this->Done)
-        return HandleResult::UnsupportedOperation;
+    if (this->Step == CommandLineOptionBatchStep::Finished)
+        return this->Result = HandleResult::UnsupportedOperation;
+    else if (this->Step == CommandLineOptionBatchStep::WrappingUp)
+    {
+        this->Step = CommandLineOptionBatchStep::Finished;
+
+        return this->Result = WrapUpOption(this->Head);
+    }
 
     return this->Result = BatchInnerNext(*this);
 }
