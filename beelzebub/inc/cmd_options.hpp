@@ -42,6 +42,15 @@
 #include <metaprogramming.h>
 #include <handles.h>
 
+#define CMDO_LINKED(name, sf, lf, vt, other)        \
+CommandLineOptionSpecification MCATS(CMDO_, name)   \
+{                                                   \
+    sf,                                             \
+    lf,                                             \
+    CommandLineOptionValueTypes::vt,                \
+    &(MCATS(CMDO_, other))                          \
+}
+
 #define CMDO(name, sf, lf, vt)                      \
 CommandLineOptionSpecification MCATS(CMDO_, name)   \
 {                                                   \
@@ -154,6 +163,16 @@ namespace Beelzebub
     public:
         /*  Constructor(s)  */
 
+        inline CommandLineOptionBatchState()
+            : Parser(nullptr)
+            , Head(nullptr)
+            , Offset(~((size_t)0))
+            , Done(false)
+            , Result()
+        {
+            //  Nuthin'.
+        }
+
         inline CommandLineOptionBatchState(CommandLineOptionParser * parser
                                          , CommandLineOptionSpecification * head)
             : Parser(parser)
@@ -162,7 +181,7 @@ namespace Beelzebub
             , Done(false)
             , Result()
         {
-            //  Nuthin'.
+            //  Nuthin' here eitha'.
         }
 
         /*  Operations  */

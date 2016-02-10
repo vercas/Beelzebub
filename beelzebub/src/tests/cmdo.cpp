@@ -50,6 +50,7 @@ using namespace Beelzebub;
 char OptionsString1[] = "   --alpha='test a' -b \"yada yada\" --g\"amm\"a ra\\da --si\\erra -x  ";
 char OptionsString2[] = "--alpha='test a' -bx \"yada yada\" --g\"amm\"a ra\\da --si\\erra";
 char OptionsString3[] = "-1 -0x060 -2 -987 -3 0123 -4 0b0011001010 --BT=On --BF No";
+char OptionsString4[] = "--aaa=1 --bbb 2 -c 3 --ddd --blergh=yada";
 
 CommandLineOptionParser parser;
 
@@ -209,6 +210,67 @@ void TestCmdo()
     CHECK_SINT(d, 0xCA);
     CHECK_BOL(e, true);
     CHECK_BOL(f, false);
+
+    //  AND FINALLY ROUND 4!
+
+    CMDO(01, "a", "aaa", String);
+    CMDO_LINKED(02, "b", "bbb", String, 01);
+    CMDO_LINKED(03, "c", "ccc", String, 02);
+    CMDO_LINKED(04, "d", "ddd", BooleanByPresence, 03);
+    CMDO_LINKED(05, "e", "eee", BooleanByPresence, 04);
+
+    new (&parser) CommandLineOptionParser();
+
+    res = parser.StartParsing(OptionsString4);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to start parsing command-line options: %H"
+        , res);
+
+    ASSERT(parser.TokenCount == 7
+        , "Parser should have identified %us tokens, not %us."
+        , 7, parser.TokenCount);
+
+    CommandLineOptionBatchState batch;
+
+    res = parser.StartBatch(batch, &CMDO_05);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to start batch for processing command-line options: %H"
+        , res);
+    //  This shan't ever happen.
+
+    size_t counter = 0;
+
+    while (!(res = batch.Next()).IsResult(HandleResult::UnsupportedOperation))
+    {
+        msg("?? %H ??%n", res);
+
+        if (counter < 4)
+        {
+            ASSERT(res.IsOkayResult()
+                , "Failed batch step of command-line options processing: %H"
+                , res);
+        }
+        else
+        {
+            ASSERT(counter == 4
+                , "Counter shouldn't exceed 4! It is %us."
+                , counter);
+
+            ASSERT(res.IsResult(HandleResult::NotFound)
+                , "Failed batch step of command-line options processing: %H"
+                , res);
+        }
+
+        ++counter;
+    }
+
+    CHECK_STR(01, "1");
+    CHECK_STR(02, "2");
+    CHECK_STR(03, "3");
+    CHECK_BOL(04, true);
+    CHECK_BOL(05, false);
 }
 
 #endif

@@ -385,14 +385,138 @@ Handle CommandLineOptionParser::StartBatch(CommandLineOptionBatchState    & stat
     CommandLineOptionBatchState class
 ****************************************/
 
-Handle BatchCheckOption(CommandLineOptionBatchState & batch
-                      , char * str, size_t len, size_t & off
-                      , CommandLineOptionSpecification * opt)
+Handle BatchCheckLongOption(CommandLineOptionBatchState & batch
+                          , char * str, size_t len, size_t left, size_t & off
+                          , CommandLineOptionSpecification * opt)
 {
     if (opt == nullptr)
-        return HandleResult::NotFound;
+    {
+        off += len + 1;
+        //  Do the good deed.
 
-    return BatchCheckOption(batch, str, len, off, opt->Next);
+        return HandleResult::NotFound;
+    }
+
+    msg("!! str \"%s\" len %us left %us off %us; LF \"%s\" !!%n"
+        , str, len, left, off, opt->LongForm);
+
+    //  First and second chars are "--" otherwise this wouldn't have been called.
+
+    size_t lflen;   //  Declared here so the next jump is legal...
+
+    if (opt->LongForm == nullptr)
+        goto nextOption;
+    //  Not this. :c
+
+    //  Double dashes and long form present? Candidate.
+
+    lflen = strlen(opt->LongForm);
+
+    if (opt->ValueType == CommandLineOptionValueTypes::BooleanByPresence)
+    {
+        if (lflen > left)
+            goto nextOption;
+        //  Need enough room for this option exactly.
+    }
+    else if (lflen + 2 >= left)
+        goto nextOption;
+    //  Or for at least a one-character value (even empty string).
+
+    if (strncmp(str + 2, opt->LongForm, lflen) != 0)
+        goto nextOption;
+    //  No match.
+
+    if (str[lflen + 2] != '\0' && str[lflen + 2] != '=')
+        goto nextOption;
+    //  This is just a substring, oddly.
+
+    if (opt->ValueType == CommandLineOptionValueTypes::BooleanByPresence)
+        off += len + 1;
+    else
+        off += lflen + 3 + strlen(str + 3 + lflen);
+
+    return opt->ParsingResult = HandleValue(*opt, str + 3 + lflen);
+
+nextOption:
+    return BatchCheckLongOption(batch, str, len, left, off, opt->Next);
+}
+
+Handle BatchCheckShortWholeOption(CommandLineOptionBatchState & batch
+                                , char * str, size_t len, size_t left, size_t & off
+                                , CommandLineOptionSpecification * opt)
+{
+    if (opt == nullptr)
+    {
+        off += len + 1;
+        //  Do the good deed.
+
+        return HandleResult::NotFound;
+    }
+
+    msg("!! str \"%s\" len %us left %us off %us; SF \"%s\" !!%n"
+        , str, len, left, off, opt->ShortForm);
+
+    //  First char is '-' otherwise this wouldn't have been called.
+
+    if (opt->ValueType != CommandLineOptionValueTypes::BooleanByPresence
+     && len + 2 >= left)
+        goto nextOption;
+    //  Need to fit a string after.
+
+    if ((opt->ShortForm[0] != '\0' && opt->ShortForm[1] == '\0')
+     || strncmp(str + 1, opt->ShortForm, len) != 0)
+        goto nextOption;
+    //  The short form must have more than one character, and it must match the
+    //  whole option. Null terminator included.
+
+    if (opt->ValueType == CommandLineOptionValueTypes::BooleanByPresence)
+        off += len + 1;
+    else
+        off += len + 2 + strlen(str + 1 + len);
+
+    return opt->ParsingResult = HandleValue(*opt, str + 1 + len);
+
+nextOption:
+    return BatchCheckShortWholeOption(batch, str, len, left, off, opt->Next);
+}
+
+Handle BatchCheckShortPartialOption(CommandLineOptionBatchState & batch
+                                  , char * str, size_t len, size_t left, size_t & off
+                                  , CommandLineOptionSpecification * opt)
+{
+    if (opt == nullptr)
+    {
+        off += len + 1;
+        //  Do the good deed.
+
+        return HandleResult::NotFound;
+    }
+
+    msg("!! str \"%s\" len %us left %us off %us; SF \"%s\" !!%n"
+        , str, len, left, off, opt->ShortForm);
+
+    //  First char is '-' otherwise this wouldn't have been called.
+
+    if (opt->ValueType != CommandLineOptionValueTypes::BooleanByPresence
+     && len + 2 >= left)
+        goto nextOption;
+    //  Need to fit a string after.
+
+    if (opt->ShortForm[0] == '\0' || opt->ShortForm[1] != '\0'
+     || memchr(str + 1, opt->ShortForm[0], len - 1) == nullptr)
+        goto nextOption;
+    //  The short form must have exactly one character, and it must be found within
+    //  the option.
+
+    if (opt->ValueType == CommandLineOptionValueTypes::BooleanByPresence)
+        off += len + 1;
+    else
+        off += len + 2 + strlen(str + 1 + len);
+
+    return opt->ParsingResult = HandleValue(*opt, str + 1 + len);
+
+nextOption:
+    return BatchCheckShortPartialOption(batch, str, len, left, off, opt->Next);
 }
 
 Handle BatchInnerNext(CommandLineOptionBatchState & batch)
@@ -411,8 +535,23 @@ Handle BatchInnerNext(CommandLineOptionBatchState & batch)
 
         batch.Offset = i;
 
-        Handle res = BatchCheckOption(batch, parser.InputString + i, len
-                                    , batch.Offset, batch.Head);
+        Handle res;
+
+        if (parser.InputString[i + 1] == '-')
+            res = BatchCheckLongOption(batch, parser.InputString + i, len
+                                     , parser.Length - i, batch.Offset, batch.Head);
+        else if (len == 2)
+            res = BatchCheckShortPartialOption(batch, parser.InputString + i, len
+                                             , parser.Length - i, batch.Offset, batch.Head);
+        else
+        {
+            res = BatchCheckShortWholeOption(batch, parser.InputString + i, len
+                                           , parser.Length - i, batch.Offset, batch.Head);
+
+            if (res.IsResult(HandleResult::NotFound))
+                res = BatchCheckShortPartialOption(batch, parser.InputString + i, len
+                                                 , parser.Length - i, batch.Offset, batch.Head);
+        }
 
         if (batch.Offset >= parser.Length)
             batch.Done = true;
