@@ -575,10 +575,16 @@ TerminalBase * InitializeTerminalProto()
 
 TerminalBase * InitializeTerminalMain(char * clue)
 {
-    if (clue != nullptr && strcmp("serial", clue) == 0)
+    if (clue == nullptr || strcmp("vbe", clue) == 0)
+        return &initialVbeTerminal;
+
+    if (strcmp("serial", clue) == 0)
         return &initialSerialTerminal;
-    
-    return &initialVbeTerminal;
+
+    assert_or(false, "Unknown terminal type: %s", clue)
+    {
+        return &initialVbeTerminal;
+    }
 }
 
 /*****************
