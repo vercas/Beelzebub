@@ -53,7 +53,7 @@
 #include <cmd_options.hpp>
 #include <utils/conversions.hpp>
 #include <string.h>
-#include <debug.hpp>
+// #include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;

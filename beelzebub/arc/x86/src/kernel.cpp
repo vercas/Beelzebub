@@ -39,6 +39,7 @@
 
 #include <kernel.hpp>
 #include <entry.h>
+#include <global_options.hpp>
 
 #include <terminals/serial.hpp>
 #include <terminals/vbe.hpp>
@@ -159,6 +160,21 @@ void Beelzebub::Main()
 
         //  Setting up basic interrupt handlers 'n stuff.
         //  Again, platform-specific.
+        MainTerminal->Write("[....] Parsing command-line arguments...");
+        res = ParseKernelArguments();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to parse kernel command-line arguments: %H"
+                , res);
+        }
+
+        //  Setting up basic interrupt handlers 'n stuff.
+        //  Again, platform-specific.
         MainTerminal->Write("[....] Initializing interrupts...");
         res = InitializeInterrupts();
 
@@ -268,7 +284,7 @@ void Beelzebub::Main()
 #else
         //  Initialize the other processing units in the system.
         //  Mostly common on x86, but the executed code differs by arch.
-        if (Acpi::PresentLapicCount > 1)
+        if (Acpi::PresentLapicCount > 1 && (CMDO_SmpEnable.BooleanValue || !CMDO_SmpEnable.ParsingResult.IsValid()))
         {
             MainTerminal->Write("[....] Initializing extra processing units...");
             res = InitializeProcessingUnits();
@@ -320,7 +336,14 @@ void Beelzebub::Main()
         //  Upgrade the terminal to a more capable and useful one.
         //  Yet again, platform-specific.
         MainTerminal->Write("[....] Initializing main terminal...");
-        TerminalBase * secondaryTerminal = InitializeTerminalMain();
+
+        TerminalBase * secondaryTerminal;
+
+        if (CMDO_Term.ParsingResult.IsValid())
+            secondaryTerminal = InitializeTerminalMain(CMDO_Term.StringValue);
+        else
+            secondaryTerminal = InitializeTerminalMain(nullptr);
+
         MainTerminal->WriteLine(" Done.\r[OKAY]");
 
         MainTerminal->WriteLine("Switching over.");
@@ -550,8 +573,11 @@ TerminalBase * InitializeTerminalProto()
     return &initialVbeTerminal;
 }
 
-TerminalBase * InitializeTerminalMain()
+TerminalBase * InitializeTerminalMain(char * clue)
 {
+    if (clue != nullptr && strcmp("serial", clue) == 0)
+        return &initialSerialTerminal;
+    
     return &initialVbeTerminal;
 }
 

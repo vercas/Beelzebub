@@ -74,6 +74,8 @@ namespace Beelzebub
 }
 #endif
 
+__extern __cold __noinline Handle ParseKernelArguments();
+
 __extern __cold __noinline Handle InitializeInterrupts();
 __extern __cold __noinline Handle InitializePit();
 
@@ -92,7 +94,7 @@ __extern __cold __noinline Handle InitializeProcessingUnits();
 __extern __cold __noinline Handle InitializeModules();
 
 __extern __cold __noinline TerminalBase * InitializeTerminalProto();
-__extern __cold __noinline TerminalBase * InitializeTerminalMain();
+__extern __cold __noinline TerminalBase * InitializeTerminalMain(char * clue);
 
 #ifdef __BEELZEBUB__TEST_MT
 __extern __cold __noinline void StartMultitaskingTest();

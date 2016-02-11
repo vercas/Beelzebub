@@ -39,7 +39,6 @@
 
 #pragma once
 
-#include <metaprogramming.h>
 #include <handles.h>
 
 #define CMDO_LINKED(name, sf, lf, vt, other)        \
@@ -51,6 +50,15 @@ CommandLineOptionSpecification MCATS(CMDO_, name)   \
     &(MCATS(CMDO_, other))                          \
 }
 
+#define CMDO_LINKED2(name, sf, lf, vt, other)       \
+CommandLineOptionSpecification MCATS(CMDO_, name)   \
+{                                                   \
+    sf,                                             \
+    lf,                                             \
+    CommandLineOptionValueTypes::vt,                \
+    other                                           \
+}
+
 #define CMDO(name, sf, lf, vt)                      \
 CommandLineOptionSpecification MCATS(CMDO_, name)   \
 {                                                   \
@@ -59,6 +67,33 @@ CommandLineOptionSpecification MCATS(CMDO_, name)   \
     CommandLineOptionValueTypes::vt,                \
     nullptr                                         \
 }
+
+#define CMDO_LINKED_EX(name, sf, lf, vt, other)     \
+MCATS(CMDO_, name) = CommandLineOptionSpecification \
+(                                                   \
+    sf,                                             \
+    lf,                                             \
+    CommandLineOptionValueTypes::vt,                \
+    &(MCATS(CMDO_, other))                          \
+)
+
+#define CMDO_LINKED2_EX(name, sf, lf, vt, other)    \
+MCATS(CMDO_, name) = CommandLineOptionSpecification \
+(                                                   \
+    sf,                                             \
+    lf,                                             \
+    CommandLineOptionValueTypes::vt,                \
+    other                                           \
+)
+
+#define CMDO_EX(name, sf, lf, vt)                   \
+MCATS(CMDO_, name) = CommandLineOptionSpecification \
+(                                                   \
+    sf,                                             \
+    lf,                                             \
+    CommandLineOptionValueTypes::vt,                \
+    nullptr                                         \
+)
 
 namespace Beelzebub
 {
@@ -82,7 +117,18 @@ namespace Beelzebub
     struct CommandLineOptionSpecification
     {
     public:
-        /*  Constructor(s)  */
+        /*  Constructors  */
+
+        inline CommandLineOptionSpecification()
+            : ShortForm(nullptr)
+            , LongForm(nullptr)
+            , ValueType()
+            , ParsingResult()
+            , StringValue(nullptr)
+            , Next(nullptr)
+        {
+
+        }
 
         inline CommandLineOptionSpecification(char const * const sf
                                             , char const * const lf
@@ -103,7 +149,7 @@ namespace Beelzebub
         char const * ShortForm;
         char const * LongForm;
 
-        const CommandLineOptionValueTypes ValueType;
+        CommandLineOptionValueTypes ValueType;
 
         Handle ParsingResult;
 

@@ -58,6 +58,7 @@
 
 #include <kernel.hpp>
 #include <entry.h>
+#include <global_options.hpp>
 
 #include <synchronization/atomic.hpp>
 #include <math.h>
@@ -129,6 +130,77 @@ void kmain_ap()
     Beelzebub::Secondary();
 }
 #endif
+
+/*****************************
+    COMMAND-LINE ARGUMENTS
+*****************************/
+
+Handle ParseKernelArguments()
+{
+    Handle res;
+    char * cmdline = nullptr;
+
+    /*  First obtain the argument string  */
+
+    size_t const moduleCount = (size_t)JG_INFO_ROOT_EX->module_count;
+
+    for (size_t i = 0; i < moduleCount; ++i)
+    {
+        jg_info_module_t const * const module = JG_INFO_MODULE_EX + i;
+
+        if (strcmp("kernel64", JG_INFO_STRING_EX + module->name) == 0)
+        {
+            cmdline = JG_INFO_STRING_EX + module->cmdline;
+
+            break;
+        }
+    }
+
+    ASSERT(cmdline != nullptr
+        , "Failed to find command-line arguments of the kernel module!");
+
+    /*  Then initialize the global arguments  */
+
+    res = InstanceGlobalOptions();
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to initialize global list of command-line options: %H"
+        , res);
+
+    /*  Now prepare the parser  */
+
+    CommandLineOptionParser parser;
+
+    res = parser.StartParsing(cmdline);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to start parsing command-line options: %H"
+        , res);
+
+    CommandLineOptionBatchState batch;
+
+    res = parser.StartBatch(batch, CommandLineOptionsHead);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to start batch for processing command-line options: %H"
+        , res);
+
+    /*  And do the deed  */
+
+    size_t counter = 0, lastOff = batch.Offset;
+
+    while (!(res = batch.Next()).IsResult(HandleResult::UnsupportedOperation))
+    {
+        ASSERT(res.IsOkayResult()
+            , "Failed to parse command-line argument #%us: %H; %s"
+            , counter, res, parser.InputString + lastOff);
+
+        ++counter;
+        lastOff = batch.Offset;
+    }
+
+    return HandleResult::Okay;
+}
 
 /**********************
     PHYSICAL MEMORY
