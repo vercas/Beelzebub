@@ -44,7 +44,7 @@
 
 #include <string.h>
 
-bool memeq(const void * src1, const void * src2, size_t len)
+bool memeq(void const * src1, void const * src2, size_t len)
 {
     if (src1 == src2)
         return true;
@@ -61,8 +61,8 @@ bool memeq(const void * src1, const void * src2, size_t len)
 
     /* The following code is equivalent to the assembly above
 
-    const byte * s1 = (byte *)src1;
-    const byte * s2 = (byte *)src2;
+    byte const * s1 = (byte *)src1;
+    byte const * s2 = (byte *)src2;
 
     for (; len > 0; ++s1, ++s2, --len)
         if (*s1 != *s2)
@@ -71,7 +71,7 @@ bool memeq(const void * src1, const void * src2, size_t len)
     return true; //*/
 }
 
-comp_t memcmp(const void * src1, const void * src2, size_t len)
+comp_t memcmp(void const * src1, void const * src2, size_t len)
 {
     if (src1 == src2)
         return 0;
@@ -89,8 +89,8 @@ comp_t memcmp(const void * src1, const void * src2, size_t len)
     return ret;
 
     /* The following code is equivalent to the assembly above
-    const byte * s1 = (byte *)src1;
-    const byte * s2 = (byte *)src2;
+    byte const * s1 = (byte *)src1;
+    byte const * s2 = (byte *)src2;
 
     sbyte res = 0;    //  Used to store subtraction/comparison results.
 
@@ -101,24 +101,24 @@ comp_t memcmp(const void * src1, const void * src2, size_t len)
     return 0; //*/
 }
 
-void * memchr(const void * src, const int val, size_t len)
+void * memchr(void const * src, int const val, size_t len)
 {
-    asm volatile ( "repne scasb \n\t"
-                 : "+D"(src), "+c"(len)
-                 : "a"(val)
-                 : "memory" );
-    //  `ret` started at `len`, and is decremented once for every character
-    //  ecountered up to 0 inclusively. Therefore, `ret` will contain
-    //  `len - actual length` after the assembly block. `~ret` flips all the
-    //  bits, so I return `len - ret`.
+//     asm volatile ( "repne scasb   \n\t"
+//                    "cmovne %0, %1 \n\t"
+//                  : "+D"(src), "+c"(len)
+//                  : "a"(val)
+//                  : "memory" );
+//     //  `ret` started at `len`, and is decremented once for every character
+//     //  ecountered up to 0 inclusively. Therefore, `ret` will contain
+//     //  `len - actual length` after the assembly block. `~ret` flips all the
+//     //  bits, so I return `len - ret`.
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-    return src;
-#pragma GCC diagnostic pop
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
+//     return src == nullptr ? nullptr : ((uint8_t *)src) - 1;
+// #pragma GCC diagnostic pop
 
-    /* The following code is equivalent to the assembly above
-    const byte * s = (byte *)src;
+    byte const * s = (byte *)src;
 
     for (; len > 0; ++s, --len)
         if (*s == val)
@@ -127,7 +127,7 @@ void * memchr(const void * src, const int val, size_t len)
     return nullptr; //*/
 }
 
-void * memcpy(void * dst, const void * src, size_t len)
+void * memcpy(void * dst, void const * src, size_t len)
 {
     void * ret = dst;
 
@@ -145,7 +145,7 @@ void * memcpy(void * dst, const void * src, size_t len)
         return dst;
 
           byte * d = (byte *)dst;
-    const byte * s = (byte *)src;
+    byte const * s = (byte *)src;
 
     for (; len > 0; ++d, ++s, --len)
         *d = *s;
@@ -153,7 +153,7 @@ void * memcpy(void * dst, const void * src, size_t len)
     return dst; //*/
 }
 
-void * memmove(void * dst, const void * src, size_t len)
+void * memmove(void * dst, void const * src, size_t len)
 {
     void * ret = dst;
 
@@ -186,7 +186,7 @@ void * memmove(void * dst, const void * src, size_t len)
         return dst;
 
           byte * d = (byte *)dst;
-    const byte * s = (byte *)src;
+    byte const * s = (byte *)src;
 
     if (dst < src)
         for (; len > 0; ++d, ++s, --len)
@@ -203,7 +203,7 @@ void * memmove(void * dst, const void * src, size_t len)
     return dst; //*/
 }
 
-void * memset(void * dst, const int val, size_t len)
+void * memset(void * dst, int const val, size_t len)
 {
     void * ret = dst;
 
@@ -214,7 +214,7 @@ void * memset(void * dst, const int val, size_t len)
 
     /* The following code is equivalent to the assembly above
           byte * d = (byte *)dst;
-    const byte   v = (byte  )val;
+    byte const   v = (byte  )val;
 
     for (; len > 0; ++d, --len)
         *d = v; //*/
@@ -222,7 +222,7 @@ void * memset(void * dst, const int val, size_t len)
     return ret;
 }
 
-size_t strlen(const char * str)
+size_t strlen(char const * str)
 {
 #if   defined(__BEELZEBUB__ARCH_AMD64)
     register size_t ret  asm("rcx") = (size_t)0;
@@ -248,7 +248,7 @@ size_t strlen(const char * str)
     return ret;
 }
 
-size_t strnlen(const char * str, size_t len)
+size_t strnlen(char const * str, size_t len)
 {
     if (len == 0)
         return 0;
@@ -283,7 +283,7 @@ size_t strnlen(const char * str, size_t len)
     return null;
 }
 
-comp_t strcmp(const char * src1, const char * src2)
+comp_t strcmp(char const * src1, char const * src2)
 {
     comp_t res = 0;    //  Used to store subtraction/comparison results.
 
@@ -300,7 +300,7 @@ comp_t strcmp(const char * src1, const char * src2)
     return res; //*/
 }
 
-comp_t strncmp(const char * src1, const char * src2, size_t len)
+comp_t strncmp(char const * src1, char const * src2, size_t len)
 {
     comp_t res = 0;    //  Used to store subtraction/comparison results.
 
@@ -315,7 +315,7 @@ comp_t strncmp(const char * src1, const char * src2, size_t len)
     return res; //*/
 }
 
-comp_t strcasecmp(const char * src1, const char * src2)
+comp_t strcasecmp(char const * src1, char const * src2)
 {
     comp_t res = 0;    //  Used to store subtraction/comparison results.
 
@@ -346,3 +346,46 @@ comp_t strcasecmp(const char * src1, const char * src2)
     return res;
 }
 
+char const * strstr(char const * haystack, char const * needle)
+{
+    size_t hLen = strlen(haystack), nLen = strlen(needle);
+
+    if (hLen < nLen)
+        return nullptr;
+    //  No way the needle can be larger than the haystack.
+
+    size_t lenDiff = hLen - nLen;
+
+    for (size_t i = 0; i <= lenDiff; ++i)
+        if (memeq(haystack + i, needle, nLen))
+            return haystack + i;
+
+    return nullptr;
+}
+
+char const * strstrex(char const * haystack, char const * needle, char const * seps)
+{
+    size_t hLen = strlen(haystack), nLen = strlen(needle);
+
+    if (hLen < nLen)
+        return nullptr;
+    //  No way the needle can be larger than the haystack.
+
+    size_t lenDiff = hLen - nLen, sLen = strlen(seps) + 1;
+    //  sLen will include the null terminator.
+
+    for (size_t i = 0; i <= lenDiff; /* nothing */)
+    {
+        size_t j = i - 1;
+
+        while (memchr(seps, haystack[++j], sLen) == nullptr) ;
+        //  Basically finds the separator.
+
+        if (j - i == nLen && memeq(haystack + i, needle, nLen))
+            return haystack + i;
+
+        i = j + 1;
+    }
+
+    return nullptr;
+}

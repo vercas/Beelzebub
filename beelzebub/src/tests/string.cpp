@@ -152,6 +152,144 @@ ASSERT(MCATS(str, name, Nlen, tseq) == (size_t)(expctd)                 \
     testNlen(5, I, 100, tStrIlen);
     testNlen(5, J, 100, tStrJlen);
 
+
+    char const * strres = strstr(tStrD, tStrE);
+
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+    strres = strstr(tStrD, tStrB);
+    ASSERT(strres == tStrD, "Expected %Xp, got %Xp.", tStrD, strres);
+
+    strres = strstr(tStrD, tStrC);
+    ASSERT(strres == tStrD, "Expected %Xp, got %Xp.", tStrD, strres);
+
+    strres = strstr(tStrD, tStrD);
+    ASSERT(strres == tStrD, "Expected %Xp, got %Xp.", tStrD, strres);
+
+
+    strres = strstr(tStrG, tStrB);
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+    strres = strstr(tStrG, tStrE);
+    ASSERT(strres == tStrG, "Expected %Xp, got %Xp.", tStrG, strres);
+
+    strres = strstr(tStrG, tStrF);
+    ASSERT(strres == tStrG, "Expected %Xp, got %Xp.", tStrG, strres);
+
+    strres = strstr(tStrG, tStrG);
+    ASSERT(strres == tStrG, "Expected %Xp, got %Xp.", tStrG, strres);
+
+
+    strres = strstr(tStrG, "BC");
+    ASSERT(strres == tStrG + 1, "Expected %Xp, got %Xp.", tStrG + 1, strres);
+
+    strres = strstr(tStrG, "C");
+    ASSERT(strres == tStrG + 2, "Expected %Xp, got %Xp.", tStrG + 2, strres);
+
+
+    strres = strstr(tStrG, tStrH);
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+
+    char const * blahA = "a", * blahB = "bb", * blahC = "ccc";
+    char const * yadaA = "a,b", * yadaB = "bb,cd;ef", * yadaC = "ccc,def;ghi.jkl";
+
+
+    strres = strstrex(blahA, "a", ",;");
+    ASSERT(strres == blahA, "Expected %Xp, got %Xp.", blahA, strres);
+
+    strres = strstrex(blahB, "a", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+    strres = strstrex(blahC, "a", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+
+    strres = strstrex(blahB, "bb", ",;");
+    ASSERT(strres == blahB, "Expected %Xp, got %Xp.", blahB, strres);
+
+    strres = strstrex(yadaB, "bb", ",;");
+    ASSERT(strres == yadaB, "Expected %Xp, got %Xp.", yadaB, strres);
+
+
+    strres = strstrex(blahC, "ccc", ",;");
+    ASSERT(strres == blahC, "Expected %Xp, got %Xp.", blahC, strres);
+
+    strres = strstrex(yadaC, "ccc", ",;");
+    ASSERT(strres == yadaC, "Expected %Xp, got %Xp.", yadaC, strres);
+
+
+    strres = strstrex(blahA, "b", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+    strres = strstrex(blahB, "b", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+    strres = strstrex(blahC, "b", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+
+    strres = strstrex(yadaA, "a", ",;");
+    ASSERT(strres == yadaA, "Expected %Xp, got %Xp.", yadaA, strres);
+
+    strres = strstrex(yadaB, "a", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+    strres = strstrex(yadaC, "a", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+
+    strres = strstrex(yadaA, "b", ",;");
+    ASSERT(strres == yadaA + 2, "Expected %Xp, got %Xp.", yadaA + 2, strres);
+
+    strres = strstrex(yadaB, "b", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+    strres = strstrex(yadaC, "b", ",;");
+    ASSERT(strres == nullptr, "Expected null, got %Xp.", strres);
+
+
+    strres = strstrex(yadaB, "cd", ",;");
+    ASSERT(strres == yadaB + 3, "Expected %Xp, got %Xp.", yadaB + 3, strres);
+
+    strres = strstrex(yadaB, "ef", ",;");
+    ASSERT(strres == yadaB + 6, "Expected %Xp, got %Xp.", yadaB + 6, strres);
+
+
+    strres = strstrex(yadaB, "bb,cd", ";");
+    ASSERT(strres == yadaB, "Expected %Xp, got %Xp.", yadaB, strres);
+
+    strres = strstrex(yadaB, "ef", ";");
+    ASSERT(strres == yadaB + 6, "Expected %Xp, got %Xp.", yadaB + 6, strres);
+
+
+    strres = strstrex(yadaB, "bb", ",");
+    ASSERT(strres == yadaB, "Expected %Xp, got %Xp.", yadaB, strres);
+
+    strres = strstrex(yadaB, "cd;ef", ",");
+    ASSERT(strres == yadaB + 3, "Expected %Xp, got %Xp.", yadaB + 3, strres);
+
+
+    strres = strstrex(yadaB, "cd", ",;");
+    ASSERT(strres == yadaB + 3, "Expected %Xp, got %Xp.", yadaB + 3, strres);
+
+    strres = strstrex(yadaB, "ef", ",;");
+    ASSERT(strres == yadaB + 6, "Expected %Xp, got %Xp.", yadaB + 6, strres);
+
+
+    strres = strstrex(yadaC, "ccc", ".,;");
+    ASSERT(strres == yadaC, "Expected %Xp, got %Xp.", yadaC, strres);
+
+    strres = strstrex(yadaC, "def", ".,;");
+    ASSERT(strres == yadaC + 4, "Expected %Xp, got %Xp.", yadaC + 4, strres);
+
+    strres = strstrex(yadaC, "ghi", ".,;");
+    ASSERT(strres == yadaC + 8, "Expected %Xp, got %Xp.", yadaC + 8, strres);
+
+    strres = strstrex(yadaC, "jkl", ".,;");
+    ASSERT(strres == yadaC + 12, "Expected %Xp, got %Xp.", yadaC + 12, strres);
+
+
     return HandleResult::Okay;
 }
 

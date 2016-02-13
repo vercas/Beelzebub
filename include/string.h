@@ -196,3 +196,7 @@ __extern __used comp_t strcmp(char const * src1, char const * src2);
 __extern __used comp_t strncmp(char const * src1, char const * src2, size_t len);
 
 __extern __used comp_t strcasecmp(char const * src1, char const * src2);
+
+__extern __used char const * strstr(char const * haystack, char const * needle);
+
+__extern __used char const * strstrex(char const * haystack, char const * needle, char const * seps);
