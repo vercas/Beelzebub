@@ -77,10 +77,12 @@ Handle Beelzebub::InstanceGlobalOptions()
 
 Handle Beelzebub::InitializeTestFlags()
 {
-    msg("$$ %H $$%n", CMDO_Tests.ParsingResult);
+    // msg("$$ %H $$%n", CMDO_Tests.ParsingResult);
 
     if (!CMDO_Tests.ParsingResult.IsOkayResult())
         return CMDO_Tests.ParsingResult;
+
+    // msg("$$ %s $$%n", CMDO_Tests.StringValue);
 
     if (strcasecmp(CMDO_Tests.StringValue, "all") == 0)
     {
@@ -93,12 +95,10 @@ Handle Beelzebub::InitializeTestFlags()
     else
     {
         #define DECLARE_TEST(name) do {                                         \
-            msg("!! TEST \"%s\"; %Xp !!%n", #name                               \
-                , strcasestrex(CMDO_Tests.StringValue, #name, ",;"));           \
             if (strcasestrex(CMDO_Tests.StringValue, #name, ",;") != nullptr)   \
                 Beelzebub::MCATS2(TEST_FLAG_, name) = true;                     \
             else                                                                \
-                Beelzebub::MCATS2(TEST_FLAG_, name) = true;                     \
+                Beelzebub::MCATS2(TEST_FLAG_, name) = false;                    \
         } while (false)
 
         #include <tests.inc>

@@ -230,11 +230,19 @@ comp_t strcasecmp(char const * src1, char const * src2)
             //  is in the right letter range.
 
             if (res == 32 && c1 >= 'a' && c1 <= 'z')
+            {
+                res = 0;    //  In case it breaks.
+
                 continue;
+            }
             //  c1 - c2 = 32 means c1 must be lowercase.
 
             if (res == -32 && c1 >= 'A' && c1 <= 'A')
+            {
+                res = 0;
+
                 continue;
+            }
             //  -32 means it has to be uppercase.
 
             return res;
@@ -264,10 +272,18 @@ comp_t strcasencmp(char const * src1, char const * src2, size_t len)
         if unlikely(res != 0)
         {
             if (res == 32 && c1 >= 'a' && c1 <= 'z')
+            {
+                res = 0;
+
                 continue;
+            }
 
             if (res == -32 && c1 >= 'A' && c1 <= 'A')
+            {
+                res = 0;
+
                 continue;
+            }
 
             return res;
         }

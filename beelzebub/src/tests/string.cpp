@@ -301,7 +301,14 @@ ASSERT(MCATS(str, name, Nlen, tseq) == (size_t)(expctd)                 \
           " Result is %i4."                                                 \
         , strA, strB, strcasecmp(strA, strB));
 
+#define testCaseCmpEqN(strA, strB, len)                                     \
+    ASSERT(strcasencmp(strA, strB, len) == 0                                \
+        , "Strings \"%s\" and \"%s\" should be case-insensitively equal."   \
+          " Result is %i4."                                                 \
+        , strA, strB, strcasecmp(strA, strB));
+
     testCaseCmpEq("rada", "rAdA");
+    testCaseCmpEqN("rada", "rAdA", 5);
 
 
     return HandleResult::Okay;
