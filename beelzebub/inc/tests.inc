@@ -37,20 +37,13 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
-
-#include <cmd_options.hpp>
-#include <global_options.h>
-
-namespace Beelzebub
-{
-    extern CommandLineOptionSpecification CMDO_Term;
-    extern CommandLineOptionSpecification CMDO_Tests;
-    extern CommandLineOptionSpecification CMDO_SmpEnable;
-
-    extern CommandLineOptionSpecification * CommandLineOptionsHead;
-
-    __cold __noinline Handle InstanceGlobalOptions();
-
-    __cold __noinline Handle InitializeTestFlags();
-}
+DECLARE_TEST(MT);
+DECLARE_TEST(STR);
+DECLARE_TEST(OBJA);
+DECLARE_TEST(METAP);
+DECLARE_TEST(EXCP);
+DECLARE_TEST(APP);
+DECLARE_TEST(STACKINT);
+DECLARE_TEST(AVL_TREE);
+DECLARE_TEST(TERMINAL);
+DECLARE_TEST(CMDO);

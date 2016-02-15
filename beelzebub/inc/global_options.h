@@ -39,18 +39,23 @@
 
 #pragma once
 
-#include <cmd_options.hpp>
-#include <global_options.h>
+#include <metaprogramming.h>
 
+#ifdef __cplusplus
+    #define CHECK_TEST(name) (Beelzebub::MCATS2(TEST_FLAG_, name) == true)
+#else
+    #define CHECK_TEST(name) (MCATS2(TEST_FLAG_, name) == true)
+#endif
+
+#ifdef __cplusplus
 namespace Beelzebub
 {
-    extern CommandLineOptionSpecification CMDO_Term;
-    extern CommandLineOptionSpecification CMDO_Tests;
-    extern CommandLineOptionSpecification CMDO_SmpEnable;
+#endif
 
-    extern CommandLineOptionSpecification * CommandLineOptionsHead;
+#define DECLARE_TEST(name) __extern bool MCATS2(TEST_FLAG_, name)
+#include <tests.inc>
+#undef DECLARE_TEST
 
-    __cold __noinline Handle InstanceGlobalOptions();
-
-    __cold __noinline Handle InitializeTestFlags();
+#ifdef __cplusplus
 }
+#endif

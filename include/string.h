@@ -71,7 +71,6 @@ __extern __used bool memeq(void const * src1, void const * src2, size_t len);
  */
 __extern __used comp_t memcmp(void const * src1, void const * src2, size_t len);
 
-#ifdef __cplusplus
 /**
  *  <summary>
  *  Searches for the first occurrence of <paramref name="val"/> in the given block of memory.
@@ -84,37 +83,7 @@ __extern __used comp_t memcmp(void const * src1, void const * src2, size_t len);
  *  found; otherwise <c>nullptr</c>.
  *  </return>
  */
-extern __used void const * memchr(void const * src, int const val, size_t len);
-
-/**
- *  <summary>
- *  Searches for the first occurrence of <paramref name="val"/> in the given block of memory.
- *  </summary>
- *  <param name="src">Start of the memory block.</param>
- *  <param name="val">Value to look for; it is compared as a byte, not an integer.</param>
- *  <param name="len">The size of the memory block, in bytes.</param>
- *  <return>
- *  A pointer to the first occurrence of <paramref name="val"/> in the given block of memory if
- *  found; otherwise <c>nullptr</c>.
- *  </return>
- */
-  extern __used void * memchr(void * src, int const val, size_t len);
-#else   //  C vs C++. :(
-
-/**
- *  <summary>
- *  Searches for the first occurrence of <paramref name="val"/> in the given block of memory.
- *  </summary>
- *  <param name="src">Start of the memory block.</param>
- *  <param name="val">Value to look for; it is compared as a byte, not an integer.</param>
- *  <param name="len">The size of the memory block, in bytes.</param>
- *  <return>
- *  A pointer to the first occurrence of <paramref name="val"/> in the given block of memory if
- *  found; otherwise <c>nullptr</c>.
- *  </return>
- */
-__extern __used void * memchr(void const * const src, int const val, size_t len);
-#endif
+__extern __used void * memchr(void const * src, int val, size_t len);
 
 /**
  *  <summary>
@@ -192,11 +161,12 @@ __extern __used size_t strnlen(char const * str, size_t len);
 __extern __used size_t strnlenex(char const * str, size_t len, bool * reached);
 
 __extern __used comp_t strcmp(char const * src1, char const * src2);
-
 __extern __used comp_t strncmp(char const * src1, char const * src2, size_t len);
 
 __extern __used comp_t strcasecmp(char const * src1, char const * src2);
+__extern __used comp_t strcasencmp(char const * src1, char const * src2, size_t len);
 
 __extern __used char const * strstr(char const * haystack, char const * needle);
 
 __extern __used char const * strstrex(char const * haystack, char const * needle, char const * seps);
+__extern __used char const * strcasestrex(char const * haystack, char const * needle, char const * seps);

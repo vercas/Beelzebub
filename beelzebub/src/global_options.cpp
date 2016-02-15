@@ -38,10 +38,13 @@
 */
 
 #include <global_options.hpp>
+#include <string.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 
 CommandLineOptionSpecification Beelzebub::CMDO_Term;
+CommandLineOptionSpecification Beelzebub::CMDO_Tests;
 CommandLineOptionSpecification Beelzebub::CMDO_SmpEnable;
 
 CommandLineOptionSpecification * Beelzebub::CommandLineOptionsHead;
@@ -49,7 +52,8 @@ CommandLineOptionSpecification * Beelzebub::CommandLineOptionsHead;
 Handle Beelzebub::InstanceGlobalOptions()
 {
     CMDO_EX(Term, "t", "term", String);
-    CMDO_LINKED_EX(SmpEnable, nullptr, "smp", BooleanExplicit, Term);
+    CMDO_LINKED_EX(Tests, nullptr, "tests", String, Term);
+    CMDO_LINKED_EX(SmpEnable, nullptr, "smp", BooleanExplicit, Tests);
 
     CommandLineOptionsHead = &CMDO_SmpEnable;
 
@@ -62,3 +66,52 @@ Handle Beelzebub::InstanceGlobalOptions()
 // CMDO_LINKED(05, "e", "eee", BooleanByPresence, 04);
 // CMDO_LINKED(06, "freud", "booohoooo", BooleanByPresence, 05);
 // CMDO_LINKED(07, "g", "ggg", BooleanByPresence, 06);
+
+/************
+    Tests
+************/
+
+#define DECLARE_TEST(name) bool Beelzebub::MCATS2(TEST_FLAG_, name) = false
+#include <tests.inc>
+#undef DECLARE_TEST
+
+Handle Beelzebub::InitializeTestFlags()
+{
+    msg("$$ %H $$%n", CMDO_Tests.ParsingResult);
+
+    if (!CMDO_Tests.ParsingResult.IsOkayResult())
+        return CMDO_Tests.ParsingResult;
+
+    if (strcasecmp(CMDO_Tests.StringValue, "all") == 0)
+    {
+        #define DECLARE_TEST(name) Beelzebub::MCATS2(TEST_FLAG_, name) = true
+
+        #include <tests.inc>
+
+        #undef DECLARE_TEST
+    }
+    else
+    {
+        #define DECLARE_TEST(name) do {                                         \
+            msg("!! TEST \"%s\"; %Xp !!%n", #name                               \
+                , strcasestrex(CMDO_Tests.StringValue, #name, ",;"));           \
+            if (strcasestrex(CMDO_Tests.StringValue, #name, ",;") != nullptr)   \
+                Beelzebub::MCATS2(TEST_FLAG_, name) = true;                     \
+            else                                                                \
+                Beelzebub::MCATS2(TEST_FLAG_, name) = true;                     \
+        } while (false)
+
+        #include <tests.inc>
+
+        #undef DECLARE_TEST
+    }
+
+    return HandleResult::Okay;
+}
+
+__cold bool CheckTest(char const * const tname)
+{
+    return CMDO_Tests.ParsingResult.IsOkayResult()
+        && (strcasestrex(CMDO_Tests.StringValue, tname, ",;") != nullptr
+            || strcasecmp(CMDO_Tests.StringValue, "all") == 0);
+}

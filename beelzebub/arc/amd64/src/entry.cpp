@@ -661,7 +661,7 @@ __cold Handle HandleModule(size_t const index, jg_info_module_t const * const mo
     if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
         return HandleKernelModule(index, module, vaddr, size);
 #ifdef __BEELZEBUB__TEST_APP
-    else if (memeq("loadtest", JG_INFO_STRING_EX + module->name, 9))
+    else if (memeq("loadtest", JG_INFO_STRING_EX + module->name, 9) && CHECK_TEST(APP))
         return HandleLoadtest(index, module, vaddr, size);
 #endif
 
@@ -944,7 +944,8 @@ void StartMultitaskingTest()
     }
 
     #ifdef __BEELZEBUB__TEST_APP
-    TestApplication();
+    if (CHECK_TEST(APP))
+        TestApplication();
     #endif
 }
 

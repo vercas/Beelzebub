@@ -290,6 +290,20 @@ ASSERT(MCATS(str, name, Nlen, tseq) == (size_t)(expctd)                 \
     ASSERT(strres == yadaC + 12, "Expected %Xp, got %Xp.", yadaC + 12, strres);
 
 
+    char const * testArgs = "mt,app";
+    strres = strstrex(testArgs, "app", ",;");
+    ASSERT(strres == testArgs + 3, "Expected %Xp, got %Xp.", testArgs + 3, strres);
+
+
+#define testCaseCmpEq(strA, strB)                                           \
+    ASSERT(strcasecmp(strA, strB) == 0                                      \
+        , "Strings \"%s\" and \"%s\" should be case-insensitively equal."   \
+          " Result is %i4."                                                 \
+        , strA, strB, strcasecmp(strA, strB));
+
+    testCaseCmpEq("rada", "rAdA");
+
+
     return HandleResult::Okay;
 }
 

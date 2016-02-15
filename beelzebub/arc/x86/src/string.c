@@ -101,7 +101,7 @@ comp_t memcmp(void const * src1, void const * src2, size_t len)
     return 0; //*/
 }
 
-void * memchr(void const * src, int const val, size_t len)
+void * memchr(void const * src, int val, size_t len)
 {
 //     asm volatile ( "repne scasb   \n\t"
 //                    "cmovne %0, %1 \n\t"
@@ -118,10 +118,11 @@ void * memchr(void const * src, int const val, size_t len)
 //     return src == nullptr ? nullptr : ((uint8_t *)src) - 1;
 // #pragma GCC diagnostic pop
 
-    byte const * s = (byte *)src;
+    uint8_t const * s = (uint8_t const *)src;
+    uint8_t const bVal = val & 0xFF;
 
     for (; len > 0; ++s, --len)
-        if (*s == val)
+        if (*s == bVal)
             return (void *)s;   //  Need to discard the `const` qualifier.
 
     return nullptr; //*/
@@ -323,7 +324,7 @@ comp_t strcasecmp(char const * src1, char const * src2)
         return res;
 
     for (char c1, c2; (c1 = *src1) != 0 || (c2 = *src2) != 0; ++src1, ++src2)
-        if ((res = (comp_t)((sbyte)c1 - (sbyte)c2)) != (comp_t)0)
+        if ((res = (comp_t)((int8_t)c1 - (int8_t)c2)) != (comp_t)0)
         {
             //  Considering this is ASCII, the only case where we need to continue
             //  is when the characters are identical letters with opposite casing.
@@ -340,7 +341,31 @@ comp_t strcasecmp(char const * src1, char const * src2)
 
             return res;
         }
-    
+
+    //  This is just odd...
+
+    return res;
+}
+
+comp_t strcasencmp(char const * src1, char const * src2, size_t len)
+{
+    comp_t res = 0;    //  Used to store subtraction/comparison results.
+
+    if (src1 == src2)
+        return res;
+
+    for (char c1, c2; len > 0 && ((c1 = *src1) != 0 || (c2 = *src2) != 0); ++src1, ++src2, --len)
+        if ((res = (comp_t)((int8_t)c1 - (int8_t)c2)) != (comp_t)0)
+        {
+            if (res == 32 && c1 >= 'a' && c1 <= 'z')
+                continue;
+
+            if (res == -32 && c1 >= 'A' && c1 <= 'A')
+                continue;
+
+            return res;
+        }
+
     //  This is just odd...
 
     return res;
@@ -382,6 +407,33 @@ char const * strstrex(char const * haystack, char const * needle, char const * s
         //  Basically finds the separator.
 
         if (j - i == nLen && memeq(haystack + i, needle, nLen))
+            return haystack + i;
+
+        i = j + 1;
+    }
+
+    return nullptr;
+}
+
+char const * strcasestrex(char const * haystack, char const * needle, char const * seps)
+{
+    size_t hLen = strlen(haystack), nLen = strlen(needle);
+
+    if (hLen < nLen)
+        return nullptr;
+    //  No way the needle can be larger than the haystack.
+
+    size_t lenDiff = hLen - nLen, sLen = strlen(seps) + 1;
+    //  sLen will include the null terminator.
+
+    for (size_t i = 0; i <= lenDiff; /* nothing */)
+    {
+        size_t j = i - 1;
+
+        while (memchr(seps, haystack[++j], sLen) == nullptr) ;
+        //  Basically finds the separator.
+
+        if (j - i == nLen && strcasencmp(haystack + i, needle, nLen) == 0)
             return haystack + i;
 
         i = j + 1;

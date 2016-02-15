@@ -44,24 +44,26 @@
 
 #include <string.h>
 
-const void * memchr(const void * const src, const int val, size_t len)
-{
-    const byte * s = (byte *)src;
+// void const * memchr(void const * src, int val, size_t len)
+// {
+//     uint8_t const * s = (uint8_t const *)src;
+//     uint8_t const bVal = static_cast<uint8_t>(val & 0xFF);
 
-    for (; len > 0; ++s, --len)
-        if (*s == val)
-            return s;
+//     for (; len > 0; ++s, --len)
+//         if (*s == bVal)
+//             return s;
 
-    return nullptr;
-}
+//     return nullptr;
+// }
 
-void * memchr(void * const src, const int val, size_t len)
-{
-    byte * s = (byte *)src;
+// void * memchr(void * src, int val, size_t len)
+// {
+//     uint8_t * s = (uint8_t *)src;
+//     uint8_t const bVal = static_cast<uint8_t>(val & 0xFF);
 
-    for (; len > 0; ++s, --len)
-        if (*s == val)
-            return s;
+//     for (; len > 0; ++s, --len)
+//         if (*s == bVal)
+//             return s;
 
-    return nullptr;
-}
+//     return nullptr;
+// }

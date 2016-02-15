@@ -164,7 +164,24 @@ void Beelzebub::Main()
         res = ParseKernelArguments();
 
         if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        {
+            MainTerminal->Write(" And tests...");
+            res = InitializeTestFlags();
+
+            if (res.IsOkayResult())
+                MainTerminal->WriteLine(" Done.\r[OKAY]");
+            else
+            {
+                MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+                ASSERT(false, "Failed to initialize test flags (%H; \"%s\"): %H"
+                    , CMDO_Tests.ParsingResult
+                    , CMDO_Tests.ParsingResult.IsOkayResult()
+                        ? CMDO_Tests.StringValue
+                        : "NO VALUE"
+                    , res);
+            }
+        }
         else
         {
             MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
@@ -354,9 +371,12 @@ void Beelzebub::Main()
         MainTerminal->WriteLine();
 
 #ifdef __BEELZEBUB__TEST_OBJA
-        ObjectAllocatorTestBarrier1.Reset();
-        ObjectAllocatorTestBarrier2.Reset();
-        ObjectAllocatorTestBarrier3.Reset();
+        if (CHECK_TEST(OBJA))
+        {
+            ObjectAllocatorTestBarrier1.Reset();
+            ObjectAllocatorTestBarrier2.Reset();
+            ObjectAllocatorTestBarrier3.Reset();
+        }
 #endif
     }
 
@@ -384,67 +404,91 @@ void Beelzebub::Main()
         }
 
 #ifdef __BEELZEBUB__TEST_METAP
-        MainTerminal->Write(">Testing metaprgoramming facilities...");
+        if (CHECK_TEST(METAP))
+        {
+            MainTerminal->Write(">Testing metaprgoramming facilities...");
 
-        TestMetaprogramming();
+            TestMetaprogramming();
 
-        MainTerminal->WriteLine(" Done.");
+            MainTerminal->WriteLine(" Done.");
+        }
 #endif
 
 #ifdef __BEELZEBUB__TEST_EXCP
-        MainTerminal->Write(">Testing exceptions...");
+        if (CHECK_TEST(EXCP))
+        {
+            MainTerminal->Write(">Testing exceptions...");
 
-        TestExceptions();
+            TestExceptions();
 
-        MainTerminal->WriteLine(" Done.");
+            MainTerminal->WriteLine(" Done.");
+        }
 #endif
 
 #ifdef __BEELZEBUB__TEST_STR
-        MainTerminal->Write(">Testing string.h implementation...");
+        if (CHECK_TEST(STR))
+        {
+            MainTerminal->Write(">Testing string.h implementation...");
 
-        TestStringLibrary();
+            TestStringLibrary();
 
-        MainTerminal->WriteLine(" Done.");
+            MainTerminal->WriteLine(" Done.");
+        }
 #endif
 
 #ifdef __BEELZEBUB__TEST_CMDO
-        MainTerminal->Write(">Testing command-line options parsing...");
+        if (CHECK_TEST(CMDO))
+        {
+            MainTerminal->Write(">Testing command-line options parsing...");
 
-        TestCmdo();
+            TestCmdo();
 
-        MainTerminal->WriteLine(" Done.");
+            MainTerminal->WriteLine(" Done.");
+        }
 #endif
 
 #ifdef __BEELZEBUB__TEST_TERMINAL
-        MainTerminal->Write(">Testing terminal implementation(s)...");
+        if (CHECK_TEST(TERMINAL))
+        {
+            MainTerminal->Write(">Testing terminal implementation(s)...");
 
-        TestTerminal();
+            TestTerminal();
 
-        MainTerminal->WriteLine(" Done.");
+            MainTerminal->WriteLine(" Done.");
+        }
 #endif
 
 #ifdef __BEELZEBUB__TEST_AVL_TREE
-        MainTerminal->Write(">Testing AVL trees...");
+        if (CHECK_TEST(AVL_TREE))
+        {
+            MainTerminal->Write(">Testing AVL trees...");
 
-        TestAvlTree();
+            TestAvlTree();
 
-        MainTerminal->WriteLine(" Done.");
+            MainTerminal->WriteLine(" Done.");
+        }
 #endif
 
 #ifdef __BEELZEBUB__TEST_MT
-        MainTerminal->Write(">Starting multitasking test...");
+        if (CHECK_TEST(MT))
+        {
+            MainTerminal->Write(">Starting multitasking test...");
 
-        StartMultitaskingTest();
+            StartMultitaskingTest();
 
-        MainTerminal->WriteLine(" Done.");
+            MainTerminal->WriteLine(" Done.");
+        }
 #endif
 
 #ifdef __BEELZEBUB__TEST_STACKINT
-        // MainTerminal->Write(">Testing stack integrity...");
+        if (CHECK_TEST(STACKINT))
+        {
+            MainTerminal->Write(">Testing stack integrity...");
 
-        // TestStackIntegrity();
+            TestStackIntegrity();
 
-        // MainTerminal->WriteLine(" Done.");
+            MainTerminal->WriteLine(" Done.");
+        }
 #endif
 
         MainTerminal->WriteLine("\\Halting indefinitely now.");
@@ -454,13 +498,16 @@ void Beelzebub::Main()
     }
 
 #ifdef __BEELZEBUB__TEST_OBJA
-    withLock (TerminalMessageLock)
-        MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
-    
-    TestObjectAllocator(true);
+    if (CHECK_TEST(OBJA))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
+        
+        TestObjectAllocator(true);
 
-    withLock (TerminalMessageLock)
-        MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
+    }
 #endif
 
     //  Allow the CPU to rest.
@@ -510,13 +557,16 @@ void Beelzebub::Secondary()
     }
 
 #ifdef __BEELZEBUB__TEST_OBJA
-    withLock (TerminalMessageLock)
-        MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
+    if (CHECK_TEST(OBJA))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
 
-    TestObjectAllocator(false);
+        TestObjectAllocator(false);
 
-    withLock (TerminalMessageLock)
-        MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
+    }
 #endif
 
     //  Allow the CPU to rest.
