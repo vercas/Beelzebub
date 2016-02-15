@@ -301,7 +301,14 @@ void Beelzebub::Main()
 #else
         //  Initialize the other processing units in the system.
         //  Mostly common on x86, but the executed code differs by arch.
-        if (Acpi::PresentLapicCount > 1 && (CMDO_SmpEnable.BooleanValue || !CMDO_SmpEnable.ParsingResult.IsValid()))
+        if (CMDO_SmpEnable.ParsingResult.IsValid() && CMDO_SmpEnable.BooleanValue)
+        {
+            MainTerminal->WriteLine("[SKIP] Extra processing units ignored as indicated in arguments.");
+
+            CpuDataSetUp = true;
+            //  Let the kernel know that CPU data is available for use.
+        }
+        else if (Acpi::PresentLapicCount > 1)
         {
             MainTerminal->Write("[....] Initializing extra processing units...");
             res = InitializeProcessingUnits();
@@ -319,6 +326,9 @@ void Beelzebub::Main()
         else
         {
             MainTerminal->WriteLine("[SKIP] No extra processing units available.");
+
+            CpuDataSetUp = true;
+            //  Once again...
         }
 #endif
 
