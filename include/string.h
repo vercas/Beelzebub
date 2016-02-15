@@ -160,6 +160,15 @@ __extern __used size_t strnlen(char const * str, size_t len);
  */
 __extern __used size_t strnlenex(char const * str, size_t len, bool * reached);
 
+__extern __used char * strcat(char * dst, char const * src);
+__extern __used char * strncat(char * dst, char const * src, size_t len);
+
+__extern __used char * strcpy(char * dst, char const * src);
+__extern __used char * strncpy(char * dst, char const * src, size_t len);
+
+__extern __used char * strpbrk(char const * haystack, char const * needle);
+__extern __used char * strnpbrk(char const * haystack, char const * needle, size_t len);
+
 __extern __used comp_t strcmp(char const * src1, char const * src2);
 __extern __used comp_t strncmp(char const * src1, char const * src2, size_t len);
 
