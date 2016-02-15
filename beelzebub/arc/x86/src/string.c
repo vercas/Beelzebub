@@ -319,12 +319,19 @@ comp_t strncmp(char const * src1, char const * src2, size_t len)
 comp_t strcasecmp(char const * src1, char const * src2)
 {
     comp_t res = 0;    //  Used to store subtraction/comparison results.
+    char c1, c2;
 
     if (src1 == src2)
         return res;
 
-    for (char c1, c2; (c1 = *src1) != 0 || (c2 = *src2) != 0; ++src1, ++src2)
-        if ((res = (comp_t)((int8_t)c1 - (int8_t)c2)) != (comp_t)0)
+    do
+    {
+        c1 = *(src1++);
+        c2 = *(src2++);
+
+        res = (comp_t)((int8_t)c1 - (int8_t)c2);
+
+        if unlikely(res != 0)
         {
             //  Considering this is ASCII, the only case where we need to continue
             //  is when the characters are identical letters with opposite casing.
@@ -341,6 +348,7 @@ comp_t strcasecmp(char const * src1, char const * src2)
 
             return res;
         }
+    } while ((c1 != 0) || (c2 != 0));
 
     //  This is just odd...
 
@@ -350,12 +358,19 @@ comp_t strcasecmp(char const * src1, char const * src2)
 comp_t strcasencmp(char const * src1, char const * src2, size_t len)
 {
     comp_t res = 0;    //  Used to store subtraction/comparison results.
+    char c1, c2;
 
     if (src1 == src2)
         return res;
 
-    for (char c1, c2; len > 0 && ((c1 = *src1) != 0 || (c2 = *src2) != 0); ++src1, ++src2, --len)
-        if ((res = (comp_t)((int8_t)c1 - (int8_t)c2)) != (comp_t)0)
+    do
+    {
+        c1 = *(src1++);
+        c2 = *(src2++);
+
+        res = (comp_t)((int8_t)c1 - (int8_t)c2);
+
+        if unlikely(res != 0)
         {
             if (res == 32 && c1 >= 'a' && c1 <= 'z')
                 continue;
@@ -365,6 +380,7 @@ comp_t strcasencmp(char const * src1, char const * src2, size_t len)
 
             return res;
         }
+    } while (--len > 0 && ((c1 != 0) || (c2 != 0)));
 
     //  This is just odd...
 

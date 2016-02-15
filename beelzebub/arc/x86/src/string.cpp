@@ -44,6 +44,8 @@
 
 #include <string.h>
 
+#include <debug.hpp>
+
 // void const * memchr(void const * src, int val, size_t len)
 // {
 //     uint8_t const * s = (uint8_t const *)src;
