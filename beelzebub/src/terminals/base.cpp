@@ -121,7 +121,14 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
             NEXTLINE;
         }
         else if (c == '\t')
-            x = (x / tabWidth + 1) * tabWidth;
+        {
+            uint16_t diff = tabWidth - (x % tabWidth);
+
+            for (int16_t _x = 0; _x < diff; ++_x)
+                WriteCharAtXy(term, " ", x + _x, y);
+
+            x += diff;
+        }
         else if (c == '\b')
         {
             if (x > 0)
@@ -675,19 +682,19 @@ TerminalWriteResult TerminalBase::WriteFormat(const char * const fmt, ...)
 
 /*  Positioning  */
 
-#define I_HATE_REPEATING_MYSELF_1(prop) \
-Handle TerminalBase::MCATS2(Set, prop)(const int16_t x, const int16_t y) \
-{ \
-    return this->Descriptor->MCATS3(Set, prop, Xy)(this, x, y); \
-} \
-Handle TerminalBase::MCATS2(Set, prop)(const TerminalCoordinates pos) \
-{ \
-    return this->Descriptor->MCATS3(Set, prop, Coords)(this, pos); \
-} \
-TerminalCoordinates TerminalBase::MCATS2(Get, prop)() \
-{ \
-    return this->Descriptor->MCATS2(Get, prop)(this); \
-} \
+#define I_HATE_REPEATING_MYSELF_1(prop)                                     \
+Handle TerminalBase::MCATS2(Set, prop)(const int16_t x, const int16_t y)    \
+{                                                                           \
+    return this->Descriptor->MCATS3(Set, prop, Xy)(this, x, y);             \
+}                                                                           \
+Handle TerminalBase::MCATS2(Set, prop)(const TerminalCoordinates pos)       \
+{                                                                           \
+    return this->Descriptor->MCATS3(Set, prop, Coords)(this, pos);          \
+}                                                                           \
+TerminalCoordinates TerminalBase::MCATS2(Get, prop)()                       \
+{                                                                           \
+    return this->Descriptor->MCATS2(Get, prop)(this);                       \
+}
 
 I_HATE_REPEATING_MYSELF_1(CursorPosition)
 I_HATE_REPEATING_MYSELF_1(CurrentPosition)
