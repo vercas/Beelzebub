@@ -53,6 +53,7 @@
 #include <system/serial_ports.hpp>
 #include <system/timers/pit.hpp>
 #include <system/cpu.hpp>
+#include <system/fpu.hpp>
 
 #include <execution/images.hpp>
 
