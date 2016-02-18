@@ -60,8 +60,9 @@ namespace Beelzebub { namespace Execution
             , KernelStackBottom()
             , KernelStackPointer()
             , State()
-            , Previous()
-            , Next()
+            , ExtendedState(nullptr)
+            , Previous(nullptr)
+            , Next(nullptr)
             , EntryPoint()
             , Owner(nullptr) 
         {
@@ -76,8 +77,9 @@ namespace Beelzebub { namespace Execution
             , KernelStackBottom()
             , KernelStackPointer()
             , State()
-            , Previous()
-            , Next()
+            , ExtendedState(nullptr)
+            , Previous(nullptr)
+            , Next(nullptr)
             , EntryPoint()
             , Owner(owner) 
         {
@@ -99,6 +101,7 @@ namespace Beelzebub { namespace Execution
         /*  State  */
 
         ThreadState State;
+        void * ExtendedState;
 
         /*  Linkage  */
 

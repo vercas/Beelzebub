@@ -101,13 +101,17 @@
 #include <tests/cmdo.hpp>
 #endif
 
+#ifdef __BEELZEBUB__TEST_FPU
+#include <tests/fpu.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
-using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::System::InterruptControllers;
+using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Utils;
 
@@ -496,6 +500,17 @@ void Beelzebub::Main()
             MainTerminal->Write(">Testing stack integrity...");
 
             TestStackIntegrity();
+
+            MainTerminal->WriteLine(" Done.");
+        }
+#endif
+
+#ifdef __BEELZEBUB__TEST_FPU
+        if (CHECK_TEST(FPU))
+        {
+            MainTerminal->Write(">Testing FPU and SSE...");
+
+            TestFpu();
 
             MainTerminal->WriteLine(" Done.");
         }

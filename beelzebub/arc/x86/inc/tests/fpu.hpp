@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,9 +39,6 @@
 
 #pragma once
 
-#include <system/isr.hpp>
+#include <metaprogramming.h>
 
-namespace Beelzebub { namespace Execution
-{
-    typedef Beelzebub::System::IsrState ThreadState;
-}}
+__cold __noinline void TestFpu();

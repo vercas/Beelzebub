@@ -80,7 +80,15 @@ Handle Beelzebub::InitializeTestFlags()
     // msg("$$ %H $$%n", CMDO_Tests.ParsingResult);
 
     if (!CMDO_Tests.ParsingResult.IsOkayResult())
-        return CMDO_Tests.ParsingResult;
+    {
+        #define DECLARE_TEST(name) Beelzebub::MCATS2(TEST_FLAG_, name) = false
+
+        #include <tests.inc>
+
+        #undef DECLARE_TEST
+
+        return HandleResult::Okay;
+    }
 
     // msg("$$ %s $$%n", CMDO_Tests.StringValue);
 

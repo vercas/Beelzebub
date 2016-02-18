@@ -88,6 +88,9 @@ using namespace Beelzebub::System;
 SpinlockUninterruptible<false> TestLock1;
 Spinlock<false> TestLock2;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 __cold __noinline void TestMetaprogramming1()
 {
     int_cookie_t const cookie = Interrupts::PushDisable();
@@ -157,6 +160,8 @@ __cold __noinline void TestMetaprogramming8()
         bool volatile rada = true;
     }
 }
+
+#pragma GCC diagnostic pop
 
 void TestMetaprogramming()
 {

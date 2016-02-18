@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <utils/bitfields.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -142,17 +142,17 @@ namespace Beelzebub { namespace System
 
         /*  Properties  */
 
-        BITFIELD_DEFAULT_1W( 0, X87)
-        BITFIELD_DEFAULT_1W( 1, Sse)
-        BITFIELD_DEFAULT_1W( 2, Avx)
-        BITFIELD_DEFAULT_1W( 3, MpxBndregs)
-        BITFIELD_DEFAULT_1W( 4, MpxBndcsr)
-        BITFIELD_DEFAULT_1W( 5, Avx512Opmask)
-        BITFIELD_DEFAULT_1W( 6, Avx512ZmmHigh256)
-        BITFIELD_DEFAULT_1W( 7, Avx512High16Zmm)
-        BITFIELD_DEFAULT_1W( 8, Pt)
-        BITFIELD_DEFAULT_1W( 9, Pkru)
-        
+        BITFIELD_DEFAULT_1W(0, X87);
+        BITFIELD_DEFAULT_1W(1, Sse);
+        BITFIELD_DEFAULT_1W(2, Avx);
+        BITFIELD_DEFAULT_1W(3, MpxBndregs);
+        BITFIELD_DEFAULT_1W(4, MpxBndcsr);
+        BITFIELD_DEFAULT_1W(5, Avx512Opmask);
+        BITFIELD_DEFAULT_1W(6, Avx512ZmmHigh256);
+        BITFIELD_DEFAULT_1W(7, Avx512High16Zmm);
+        BITFIELD_DEFAULT_1W(8, Pt);
+        BITFIELD_DEFAULT_1W(9, Pkru);
+
         /*  Constructors  */
 
         /**
@@ -172,5 +172,19 @@ namespace Beelzebub { namespace System
                 uint32_t High;
             };
         };
+    };
+
+    /**
+     *  Contains functions for interacting with the x87 FPU.
+     */
+    class Fpu
+    {
+        /*  Statics  */
+
+        static bool Initialized, Sse, Avx;
+
+        /*  Operations  */
+
+        void Initialize();
     };
 }}

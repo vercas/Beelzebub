@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,11 +37,25 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <system/fpu.hpp>
+#include <entry.h>
 
-#include <system/isr.hpp>
+using namespace Beelzebub;
+using namespace Beelzebub::System;
 
-namespace Beelzebub { namespace Execution
+/****************
+	Fpu class
+****************/
+
+/*  Statics  */
+
+bool Fpu::Initialized = false;
+bool Fpu::Sse = false;
+bool Fpu::Avx = false;
+
+/*  Operations  */
+
+void Fpu::Initialize()
 {
-    typedef Beelzebub::System::IsrState ThreadState;
-}}
+    asm volatile ("fninit");
+}

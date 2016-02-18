@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,11 +37,28 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#ifdef __BEELZEBUB__TEST_FPU
 
-#include <system/isr.hpp>
+#include <tests/fpu.hpp>
 
-namespace Beelzebub { namespace Execution
+#include <debug.hpp>
+
+using namespace Beelzebub;
+using namespace Beelzebub::System;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+void TestFpu()
 {
-    typedef Beelzebub::System::IsrState ThreadState;
-}}
+    volatile double a = 1;
+
+    for (size_t i = 5; i > 0; --i)
+        a += a;
+
+    ASSERT(a == 32, "Eh...");
+}
+
+#pragma GCC diagnostic pop
+
+#endif

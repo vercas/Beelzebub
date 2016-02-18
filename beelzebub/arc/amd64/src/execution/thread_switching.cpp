@@ -39,8 +39,10 @@
 
 #include <execution/thread.hpp>
 #include <system/cpu.hpp>
-#include <debug.hpp>
+#include <system/fpu.hpp>
+
 #include <string.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -77,6 +79,11 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
         //msg("2");
     }
 
+    if (this->ExtendedState != nullptr)
+    {
+        //  Save state
+    }
+
     auto cpuData = Cpu::GetData();
 
     cpuData->ActiveThread = other;
@@ -86,6 +93,15 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     //msg("B");
 
     *dest = other->State;
+
+    if (other->ExtendedState != nullptr)
+    {
+        //  Restore state
+    }
+    else
+    {
+        //  Do... Something?
+    }
 
     //msg(" ++");
 
