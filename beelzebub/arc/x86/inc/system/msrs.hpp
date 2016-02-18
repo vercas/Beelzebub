@@ -99,7 +99,7 @@ namespace Beelzebub { namespace System
     };
 
     /**
-     *  Represents a processing unit of the system.
+     *  Contains functions for interacting with model-specific registers.
      */
     class Msrs
     {

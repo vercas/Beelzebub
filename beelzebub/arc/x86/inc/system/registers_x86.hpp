@@ -373,4 +373,56 @@ namespace Beelzebub { namespace System
             uint64_t Value;
         };
     };
+
+    struct Xcr0
+    {
+        /*  Bit structure for the XCR0 register:
+         *       0       : x87 State
+         *       1       : SSE State
+         *       2       : AVX State
+         *       3 -   4 : MPX State
+         *          3    : BNDREGS State
+         *          4    : BNDCSR State
+         *       5 -   7 : AVX-512 State
+         *          5    : Opmask State
+         *          6    : ZMM High 256 State
+         *          7    : High 16 ZMM State
+         *       8       : PT State
+         *       9       : PKRU State
+         *      10 -  63 : Reserved
+         */
+
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, X87)
+        BITFIELD_DEFAULT_1W( 1, Sse)
+        BITFIELD_DEFAULT_1W( 2, Avx)
+        BITFIELD_DEFAULT_1W( 3, MpxBndregs)
+        BITFIELD_DEFAULT_1W( 4, MpxBndcsr)
+        BITFIELD_DEFAULT_1W( 5, Avx512Opmask)
+        BITFIELD_DEFAULT_1W( 6, Avx512ZmmHigh256)
+        BITFIELD_DEFAULT_1W( 7, Avx512High16Zmm)
+        BITFIELD_DEFAULT_1W( 8, Pt)
+        BITFIELD_DEFAULT_1W( 9, Pkru)
+        
+        /*  Constructors  */
+
+        /**
+         *  Creates an empty XCR0 register structure.
+         */
+        inline Xcr0() : Value( 1ULL ) { }
+
+        /*  Fields  */
+
+        union
+        {
+            uint64_t Value;
+
+            struct
+            {
+                uint32_t Low;
+                uint32_t High;
+            };
+        };
+    };
 }}

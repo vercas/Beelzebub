@@ -301,7 +301,7 @@ void Beelzebub::Main()
 #else
         //  Initialize the other processing units in the system.
         //  Mostly common on x86, but the executed code differs by arch.
-        if (CMDO_SmpEnable.ParsingResult.IsValid() && CMDO_SmpEnable.BooleanValue)
+        if (CMDO_SmpEnable.ParsingResult.IsValid() && !CMDO_SmpEnable.BooleanValue)
         {
             MainTerminal->WriteLine("[SKIP] Extra processing units ignored as indicated in arguments.");
 

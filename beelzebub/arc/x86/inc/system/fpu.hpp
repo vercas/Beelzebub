@@ -137,7 +137,7 @@ namespace Beelzebub { namespace System
          *          7    : High 16 ZMM State
          *       8       : PT State
          *       9       : PKRU State
-         *      10 -  63 : Physical address of aligned 4-KiB page;
+         *      10 -  63 : Reserved
          */
 
         /*  Properties  */
