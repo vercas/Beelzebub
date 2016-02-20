@@ -352,7 +352,7 @@ namespace Beelzebub { namespace System
 #endif
 
         static __forceinline uint32_t FarGet32(uint16_t const sel
-                                                     , uintptr_t const off)
+                                             , uintptr_t const off)
         {
             uint32_t ret;
 
@@ -371,6 +371,13 @@ namespace Beelzebub { namespace System
         static __forceinline void Ltr(uint16_t const seg)
         {
             asm volatile ( "ltr %0 \n\t" : : "rm"(seg) );
+        }
+
+        /*  Miscellaneous  */
+
+        static __forceinline void Clts()
+        {
+            asm volatile ( "clts \n\t" : : : "memory" );
         }
     };
 }}

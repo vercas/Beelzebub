@@ -97,6 +97,9 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     if (other->ExtendedState != nullptr)
     {
         //  Restore state
+
+        if (this->ExtendedState != nullptr)
+            CpuInstructions::Clts();
     }
     else
     {

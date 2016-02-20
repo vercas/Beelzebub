@@ -44,18 +44,30 @@ using namespace Beelzebub;
 using namespace Beelzebub::System;
 
 /****************
-	Fpu class
+    Fpu class
 ****************/
 
 /*  Statics  */
 
-bool Fpu::Initialized = false;
+bool Fpu::Available = false;
 bool Fpu::Sse = false;
 bool Fpu::Avx = false;
 
 /*  Operations  */
 
-void Fpu::Initialize()
+void Fpu::InitializeMain()
 {
-    asm volatile ("fninit");
+    Fpu::Available = BootstrapCpuid.CheckFeature(CpuFeature::FPU);
+    Fpu::Sse = BootstrapCpuid.CheckFeature(CpuFeature::SSE);
+    Fpu::Avx = BootstrapCpuid.CheckFeature(CpuFeature::AVX);
+
+    Fpu::InitializeSecondary();
+}
+
+void Fpu::InitializeSecondary()
+{
+    if (Fpu::Available)
+    {
+        asm volatile ("fninit");
+    }
 }

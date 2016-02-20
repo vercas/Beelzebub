@@ -179,12 +179,22 @@ namespace Beelzebub { namespace System
      */
     class Fpu
     {
+        /*  Constructor(s)  */
+
+    protected:
+        Fpu() = default;
+
+    public:
+        Fpu(Fpu const &) = delete;
+        Fpu & operator =(Fpu const &) = delete;
+
         /*  Statics  */
 
-        static bool Initialized, Sse, Avx;
+        static bool Available, Sse, Avx;
 
         /*  Operations  */
 
-        void Initialize();
+        static void InitializeMain();
+        static void InitializeSecondary();
     };
 }}
