@@ -57,6 +57,10 @@ namespace Beelzebub { namespace Execution
         ExtendedStates(ExtendedStates const &) = delete;
         ExtendedStates & operator =(ExtendedStates const &) = delete;
 
+        /*  Statics  */
+
+        static bool Initialized;
+
         /*  Initialization  */
 
         static __cold Handle Initialize(size_t const size, size_t const alignment);

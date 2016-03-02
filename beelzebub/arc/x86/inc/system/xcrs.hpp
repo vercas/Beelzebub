@@ -41,7 +41,7 @@
 
 #include <system/registers_x86.hpp>
 
-#define MSRFUNC1(number, type)                                    \
+#define XCRFUNC1(number, type)                                    \
 static __forceinline type MCATS2(Get, number)()                   \
 {                                                                 \
     uint64_t temp = 0;                                            \
@@ -53,7 +53,7 @@ static __forceinline void MCATS2(Set, number)(type const val)     \
     Write(number, val.Value);                                     \
 }
 
-#define MSRFUNC2(number, type)                                    \
+#define XCRFUNC2(number, type)                                    \
 static __forceinline type MCATS2(Get, number)()                   \
 {                                                                 \
     uint64_t temp = 0;                                            \
@@ -129,6 +129,6 @@ namespace Beelzebub { namespace System
                          : "c" (reg), "a" (a), "d" (d) );
         }
 
-        XCRFUNC1(0, 0, Xcr0)
+        // XCRFUNC1(0, 0, Xcr0)
     };
 }}

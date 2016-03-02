@@ -78,6 +78,7 @@ namespace Beelzebub { namespace System
     void OverflowHandler(INTERRUPT_HANDLER_ARGS);
     void BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS);
     void InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS);
+    __hot void NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS);
     void DoubleFaultHandler(INTERRUPT_HANDLER_ARGS);
     void InvalidTssHandler(INTERRUPT_HANDLER_ARGS);
     void SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS);

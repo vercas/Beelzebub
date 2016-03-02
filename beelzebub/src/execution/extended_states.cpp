@@ -54,23 +54,41 @@ void * templateState = nullptr;
     ExtendedStates class
 ***************************/
 
+/*  Statics  */
+
+bool ExtendedStates::Initialized = false;
+
 /*  Initialization  */
 
 Handle ExtendedStates::Initialize(size_t const size, size_t const alignment)
 {
-    new (&ExtendedStatesAllocator) ObjectAllocatorSmp(size, alignment
-        , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
+    if (ExtendedStates::Initialized)
+        return HandleResult::CardinalityViolation;
 
     templateState = nullptr;
 
-    return HandleResult::Okay;
+    if (size == 0)
+    {
+        ExtendedStates::Initialized = false;
+
+        return HandleResult::UnsupportedOperation;
+    }
+    else
+    {
+        new (&ExtendedStatesAllocator) ObjectAllocatorSmp(size, alignment
+            , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
+
+        ExtendedStates::Initialized = true;
+
+        return HandleResult::Okay;
+    }
 }
 
 /*  Operations  */
 
 Handle ExtendedStates::AllocateTemplate(void * & state)
 {
-    if (templateState != nullptr)
+    if (templateState != nullptr || !ExtendedStates::Initialized)
         return HandleResult::UnsupportedOperation;
 
     Handle res = ExtendedStatesAllocator.AllocateObject(state);

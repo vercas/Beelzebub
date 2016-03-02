@@ -46,84 +46,6 @@
 namespace Beelzebub { namespace System
 {
     /**
-     * Represents the contents of the CR0 register.
-     */
-    struct Cr0
-    {
-        /*  Bit structure:
-         *       0       : Protected Mode Enable
-         *       1       : Monitor Co-processor
-         *       2       : Emulation
-         *       3       : Task Switched
-         *       4       : Extension Type
-         *       5       : Numeric Error
-         *      16       : Write Protect
-         *      18       : Alignment Mask
-         *      29       : Not-Write Through
-         *      30       : Cache Disable
-         *      31       : Paging
-         */
-
-        /*  Properties  */
-
-        BITFIELD_DEFAULT_1W( 0, ProtectedModeEnable)
-        BITFIELD_DEFAULT_1W( 1, MonitorCoprocessor )
-        BITFIELD_DEFAULT_1W( 2, Emulation          )
-        BITFIELD_DEFAULT_1W( 3, TaskSwitched       )
-        BITFIELD_DEFAULT_1W( 4, ExtensionType      )
-        BITFIELD_DEFAULT_1W( 5, NumericError       )
-        BITFIELD_DEFAULT_1W(16, WriteProtect       )
-        BITFIELD_DEFAULT_1W(18, AlignmentMask      )
-        BITFIELD_DEFAULT_1W(29, NotWriteThrough    )
-        BITFIELD_DEFAULT_1W(30, CacheDisable       )
-        BITFIELD_DEFAULT_1W(31, Paging             )
-
-        /*  Constructors  */
-
-        /**
-         *  Creates a new CR0 structure from the given raw value.
-         */
-        __forceinline Cr0(uint64_t const val)
-        {
-            this->Value = val;
-        }
-
-        /**
-         *  Creates a new CR0 structure with the given flags.
-         */
-        __forceinline Cr0(bool const protectedModeEnable
-                                , bool const monitorCoprocessor
-                                , bool const emulation
-                                , bool const taskSwitched
-                                , bool const extensionType
-                                , bool const numericError
-                                , bool const writeProtect
-                                , bool const alignmentMask
-                                , bool const notWriteThrough
-                                , bool const cacheDisable
-                                , bool const paging)
-        {
-            this->Value = (protectedModeEnable ? ProtectedModeEnableBit : 0)
-                        | (monitorCoprocessor  ? MonitorCoprocessorBit  : 0)
-                        | (emulation           ? EmulationBit           : 0)
-                        | (taskSwitched        ? TaskSwitchedBit        : 0)
-                        | (extensionType       ? ExtensionTypeBit       : 0)
-                        | (numericError        ? NumericErrorBit        : 0)
-                        | (writeProtect        ? WriteProtectBit        : 0)
-                        | (alignmentMask       ? AlignmentMaskBit       : 0)
-                        | (notWriteThrough     ? NotWriteThroughBit     : 0)
-                        | (cacheDisable        ? CacheDisableBit        : 0)
-                        | (paging              ? PagingBit              : 0);
-        }
-
-        /*  Field(s)  */
-
-    //private:
-
-        uint64_t Value;
-    };
-
-    /**
      * Represents the contents of the CR3 register.
      */
     struct Cr3
@@ -264,6 +186,4 @@ namespace Beelzebub { namespace System
 
         uint64_t Value;
     };
-
-    //  TODO: CR4
 }}

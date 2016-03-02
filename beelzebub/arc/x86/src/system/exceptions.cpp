@@ -112,6 +112,15 @@ void Beelzebub::System::InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS)
 }
 
 /**
+ *  Interrupt handler for device not available exception.
+ */
+void Beelzebub::System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
+{
+    ASSERT(false
+        , "<<DEVICE NOT AVAILABLE @ %Xp>>", INSTRUCTION_POINTER);
+}
+
+/**
  *  Interrupt handler for double faults.
  */
 void Beelzebub::System::DoubleFaultHandler(INTERRUPT_HANDLER_ARGS)

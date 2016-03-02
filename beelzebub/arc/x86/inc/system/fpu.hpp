@@ -179,7 +179,7 @@ namespace Beelzebub { namespace System
      */
     class Fpu
     {
-        /*  Constructor(s)  */
+        /*  Constructors  */
 
     protected:
         Fpu() = default;
@@ -190,11 +190,19 @@ namespace Beelzebub { namespace System
 
         /*  Statics  */
 
-        static bool Available, Sse, Avx;
+        static bool Available, Sse, Avx, Xsave;
+        static size_t StateSize, StateAlignment;
+
+        static XsaveRfbm Xcr0;
+
+        /*  Initialization  */
+
+        static __cold void InitializeMain();
+        static __cold void InitializeSecondary();
 
         /*  Operations  */
 
-        static void InitializeMain();
-        static void InitializeSecondary();
+        static __hot void SaveState(void * state);
+        static __hot void LoadState(void * state);
     };
 }}

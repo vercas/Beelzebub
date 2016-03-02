@@ -164,7 +164,7 @@ namespace Beelzebub { namespace System
         REGFUNC2(cr0, Cr0, creg_t, Beelzebub::System::Cr0)
         REGFUNC1(cr2, Cr2, void *)
         REGFUNC2(cr3, Cr3, creg_t, Beelzebub::System::Cr3)
-        REGFUNC1(cr4, Cr4, creg_t)
+        REGFUNC2(cr4, Cr4, creg_t, Beelzebub::System::Cr4)
 
         /*  Shortcuts  */
 

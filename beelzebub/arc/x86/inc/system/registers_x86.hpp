@@ -44,6 +44,155 @@
 namespace Beelzebub { namespace System
 {
     /**
+     * Represents the contents of the CR0 register.
+     */
+    struct Cr0
+    {
+        /*  Bit structure:
+         *       0       : Protected Mode Enable
+         *       1       : Monitor Co-processor
+         *       2       : Emulation
+         *       3       : Task Switched
+         *       4       : Extension Type
+         *       5       : Numeric Error
+         *      16       : Write Protect
+         *      18       : Alignment Mask
+         *      29       : Not-Write Through
+         *      30       : Cache Disable
+         *      31       : Paging
+         */
+
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, ProtectedModeEnable)
+        BITFIELD_DEFAULT_1W( 1, MonitorCoprocessor )
+        BITFIELD_DEFAULT_1W( 2, Emulation          )
+        BITFIELD_DEFAULT_1W( 3, TaskSwitched       )
+        BITFIELD_DEFAULT_1W( 4, ExtensionType      )
+        BITFIELD_DEFAULT_1W( 5, NumericError       )
+        BITFIELD_DEFAULT_1W(16, WriteProtect       )
+        BITFIELD_DEFAULT_1W(18, AlignmentMask      )
+        BITFIELD_DEFAULT_1W(29, NotWriteThrough    )
+        BITFIELD_DEFAULT_1W(30, CacheDisable       )
+        BITFIELD_DEFAULT_1W(31, Paging             )
+
+        /*  Constructors  */
+
+        /**
+         *  Creates a new CR0 structure from the given raw value.
+         */
+        __forceinline Cr0(uint64_t const val)
+        {
+            this->Value = val;
+        }
+
+        /**
+         *  Creates a new CR0 structure with the given flags.
+         */
+        __forceinline Cr0(bool const protectedModeEnable
+                        , bool const monitorCoprocessor
+                        , bool const emulation
+                        , bool const taskSwitched
+                        , bool const extensionType
+                        , bool const numericError
+                        , bool const writeProtect
+                        , bool const alignmentMask
+                        , bool const notWriteThrough
+                        , bool const cacheDisable
+                        , bool const paging)
+        {
+            this->Value = (protectedModeEnable ? ProtectedModeEnableBit : 0)
+                        | (monitorCoprocessor  ? MonitorCoprocessorBit  : 0)
+                        | (emulation           ? EmulationBit           : 0)
+                        | (taskSwitched        ? TaskSwitchedBit        : 0)
+                        | (extensionType       ? ExtensionTypeBit       : 0)
+                        | (numericError        ? NumericErrorBit        : 0)
+                        | (writeProtect        ? WriteProtectBit        : 0)
+                        | (alignmentMask       ? AlignmentMaskBit       : 0)
+                        | (notWriteThrough     ? NotWriteThroughBit     : 0)
+                        | (cacheDisable        ? CacheDisableBit        : 0)
+                        | (paging              ? PagingBit              : 0);
+        }
+
+        /*  Field(s)  */
+
+    //private:
+
+        uint64_t Value;
+    };
+
+    /**
+     * Represents the contents of the CR4 register.
+     */
+    struct Cr4
+    {
+        /*  Bit structure:
+         *       0       : Virtual-8086 Mode Extensions
+         *       1       : Protected-Mode Virtual Interrupts
+         *       2       : Time Stamp Disable
+         *       3       : Debugging Extensions
+         *       4       : Page Size Extensions
+         *       5       : Physical Address Extension
+         *       6       : Machine-Check Enable
+         *       7       : Page Global Enable
+         *       8       : Performance-Monitoring Counter Enable
+         *       9       : Operating System Support for FXSAVE and FXRSTOR instructions
+         *      10       : Operating System Support for Unmasked SIMD Floating-Point Exceptions
+         *      13       : VMX Enable
+         *      14       : SMX Enable
+         *      16       : FSGSBASE Enable
+         *      17       : PCID Enable
+         *      18       : XSAVE and Processor Extended States-Enable Bit
+         *      20       : SMEP Enable
+         *      21       : SMAP Enable
+         *      22       : Protection Key Enable
+         */
+
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1W( 0, Vme)
+        BITFIELD_DEFAULT_1W( 1, Pvi)
+        BITFIELD_DEFAULT_1W( 2, Tsd)
+        BITFIELD_DEFAULT_1W( 3, De)
+        BITFIELD_DEFAULT_1W( 4, Pse)
+        BITFIELD_DEFAULT_1W( 5, Pae)
+        BITFIELD_DEFAULT_1W( 6, Mce)
+        BITFIELD_DEFAULT_1W( 7, Pge)
+        BITFIELD_DEFAULT_1W( 8, Pce)
+        BITFIELD_DEFAULT_1W( 9, Osfxsr)
+        BITFIELD_DEFAULT_1W(10, Osxmmexcpt)
+
+        BITFIELD_DEFAULT_1W(13, Vmxe)
+        BITFIELD_DEFAULT_1W(14, Smxe)
+
+        BITFIELD_DEFAULT_1W(16, Fsgsbase)
+        BITFIELD_DEFAULT_1W(17, Pcide)
+        BITFIELD_DEFAULT_1W(18, Osxsave)
+
+        BITFIELD_DEFAULT_1W(20, Smep)
+        BITFIELD_DEFAULT_1W(21, Smap)
+        BITFIELD_DEFAULT_1W(22, Pke)
+
+        /*  Constructors  */
+
+        /**
+         *  Creates a new CR4 structure.
+         */
+        __forceinline Cr4() : Value(0) { }
+
+        /**
+         *  Creates a new CR4 structure from the given raw value.
+         */
+        __forceinline Cr4(uint64_t const val) : Value(val) { }
+
+        /*  Field(s)  */
+
+    //private:
+
+        uint64_t Value;
+    };
+
+    /**
      *  Flags in the (E|R)FLAGS register.
      */
     enum class FlagsRegisterFlags

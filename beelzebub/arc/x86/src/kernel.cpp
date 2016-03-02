@@ -46,7 +46,9 @@
 #include <multiboot.h>
 
 #include <system/cpu.hpp>
+#include <system/fpu.hpp>
 #include <execution/thread_init.hpp>
+#include <execution/extended_states.hpp>
 
 #include <system/exceptions.hpp>
 #include <system/interrupt_controllers/pic.hpp>
@@ -360,6 +362,53 @@ void Beelzebub::Main()
                 , res);
         }
 
+        //  Initialize the extended thread states manager.
+        //  Mostly common.
+
+        Fpu::InitializeMain();
+        //  Meh.
+
+        if (Fpu::StateSize != 0)
+        {
+            MainTerminal->Write("[....] Initializing extended thread states...");
+            res = ExtendedStates::Initialize(Fpu::StateSize, Fpu::StateAlignment);
+
+            if (res.IsOkayResult())
+            {
+                MainTerminal->Write(" Allocating template state...");
+
+                void * templateState;
+
+                res = ExtendedStates::AllocateTemplate(templateState);
+
+                if (res.IsOkayResult())
+                    MainTerminal->WriteLine(" Done.\r[OKAY]");
+                else
+                {
+                    MainTerminal->WriteLine("\r[FAIL]%n");
+                    MainTerminal->WriteLine("       Fail! Could not allocate template state.");
+
+                    ASSERT(false, "Failed to allocate template extended thread state: %H"
+                        , res);
+                }
+
+                Fpu::SaveState(templateState);
+
+                Cpu::SetCr0(Cpu::GetCr0().SetTaskSwitched(true));
+            }
+            else
+            {
+                MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+                ASSERT(false, "Failed to initialize extended thread states: %H"
+                    , res);
+            }
+        }
+        else
+        {
+            MainTerminal->WriteLine("[SKIP] Extended thread states not needed by present CPU features.");
+        }
+
         MainTerminal->Write("[....] Initializing syscalls...");
         Syscalls::Initialize();
         MainTerminal->WriteLine(" Done.\r[OKAY]");
@@ -560,6 +609,9 @@ void Beelzebub::Secondary()
     InitializationLock.Spin();
     //  Wait for the system to initialize.
 
+    Fpu::InitializeSecondary();
+    //  Meh...
+
     //  Now every core will print.
 
     withLock (TerminalMessageLock)
@@ -700,6 +752,7 @@ Handle InitializeInterrupts()
     InterruptHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidOpcode] = &InvalidOpcodeHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::NoMathCoprocessor] = &NoMathCoprocessorHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::DoubleFault] = &DoubleFaultHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidTss] = &InvalidTssHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::SegmentNotPresent] = &SegmentNotPresentHandler;
