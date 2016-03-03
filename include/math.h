@@ -43,6 +43,8 @@
 
 #ifdef __cplusplus
 
+namespace Beelzebub {
+
 #ifdef __BEELZEBUB__ARCH_X86
 template<typename TNum1, typename TNum2>
 __forceinline __const constexpr auto RoundUp(const TNum1 value, const TNum2 step) -> decltype(((value + step - 1) / step) * step)
@@ -244,4 +246,11 @@ __forceinline uint64_t GreatestCommonDivisor32(uint32_t a, uint32_t b) __const
     return a;
 }
 
+#endif
+
+__extern __const uint8_t Log2_32(uint32_t val);
+__extern __const uint8_t Log2_64(uint64_t val);
+
+#ifdef __cplusplus
+}
 #endif
