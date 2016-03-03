@@ -37,15 +37,8 @@
     thorough explanation regarding other files.
 */
 
-DECLARE_TEST(MT);
-DECLARE_TEST(STR);
-DECLARE_TEST(OBJA);
-DECLARE_TEST(METAP);
-DECLARE_TEST(EXCP);
-DECLARE_TEST(APP);
-DECLARE_TEST(STACKINT);
-DECLARE_TEST(AVL_TREE);
-DECLARE_TEST(TERMINAL);
-DECLARE_TEST(CMDO);
-DECLARE_TEST(FPU);
-DECLARE_TEST(BIGINT);
+#pragma once
+
+#include <metaprogramming.h>
+
+__cold __noinline void TestBigInt();

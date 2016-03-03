@@ -125,6 +125,7 @@ ifneq (,$(findstring test-all,$(MAKECMDGOALS)))
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_TERMINAL 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_CMDO 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_FPU 
+	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_BIGINT 
 
 	SETTINGS			+= test-all
 else
@@ -192,6 +193,12 @@ else
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_FPU 
 
 		SETTINGS			+= test-fpu 
+	endif
+
+	ifneq (,$(findstring test-bigint,$(MAKECMDGOALS)))
+		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_BIGINT 
+
+		SETTINGS			+= test-bigint 
 	endif
 endif
 

@@ -107,6 +107,10 @@
 #include <tests/fpu.hpp>
 #endif
 
+#ifdef __BEELZEBUB__TEST_BIGINT
+#include <tests/bigint.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -549,6 +553,17 @@ void Beelzebub::Main()
             MainTerminal->Write(">Testing stack integrity...");
 
             TestStackIntegrity();
+
+            MainTerminal->WriteLine(" Done.");
+        }
+#endif
+
+#ifdef __BEELZEBUB__TEST_BIGINT
+        if (CHECK_TEST(BIGINT))
+        {
+            MainTerminal->Write(">Testing big integer implementation...");
+
+            TestBigInt();
 
             MainTerminal->WriteLine(" Done.");
         }

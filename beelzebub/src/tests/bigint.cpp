@@ -37,15 +37,23 @@
     thorough explanation regarding other files.
 */
 
-DECLARE_TEST(MT);
-DECLARE_TEST(STR);
-DECLARE_TEST(OBJA);
-DECLARE_TEST(METAP);
-DECLARE_TEST(EXCP);
-DECLARE_TEST(APP);
-DECLARE_TEST(STACKINT);
-DECLARE_TEST(AVL_TREE);
-DECLARE_TEST(TERMINAL);
-DECLARE_TEST(CMDO);
-DECLARE_TEST(FPU);
-DECLARE_TEST(BIGINT);
+#ifdef __BEELZEBUB__TEST_BIGINT
+
+#include <utils/bigint.hpp>
+#include <math.h>
+
+#include <debug.hpp>
+
+using namespace Beelzebub;
+using namespace Beelzebub::Utils;
+
+typedef BigUInt<15> BIT;
+
+void TestBigInt()
+{
+    BIT a(5ULL), b(55ULL), c(1000ULL);
+
+
+}
+
+#endif
