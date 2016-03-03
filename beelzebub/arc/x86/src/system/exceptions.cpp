@@ -41,9 +41,11 @@
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
 #include <system/cpu.hpp>
+#include <system/fpu.hpp>
 #include <kernel.hpp>
 #include <entry.h>
 #include <system/serial_ports.hpp>
+#include <execution/extended_states.hpp>
 
 #include <_print/paging.hpp>
 #include <_print/isr.hpp>
@@ -116,8 +118,42 @@ void Beelzebub::System::InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS)
  */
 void Beelzebub::System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<DEVICE NOT AVAILABLE @ %Xp>>", INSTRUCTION_POINTER);
+    ASSERT(CpuDataSetUp
+        , "CPU data should be set up prior to using the FPU.");
+
+    CpuData * cpuData = Cpu::GetData();
+    Thread * activeThread = cpuData->ActiveThread;
+
+    ASSERT(activeThread != nullptr
+        , "There should be an active thread when trying to use the FPU.");
+
+    if likely(cpuData->LastExtendedStateThread != activeThread)
+    {
+        if likely(activeThread->ExtendedState == nullptr)
+        {
+            //  No extended state means we allocate one.
+
+            Handle res = ExtendedStates::AllocateNew(activeThread->ExtendedState);
+
+            ASSERT(res.IsOkayResult()
+                , "Failed to allocate extended thread state: %H"
+                , res);
+            //  TODO: Crash the thread gracefully.
+        }
+
+        // Cpu::SetCr0(Cpu::GetCr0().SetTaskSwitched(true));
+        CpuInstructions::Clts();
+
+        Fpu::LoadState(activeThread->ExtendedState);
+    }
+    else
+    {
+        //  So the same thread is trying to use the FPU state as last time.
+        //  In this case, no need to reload.
+
+        CpuInstructions::Clts();
+        //  Just let it do its job.
+    }
 }
 
 /**
@@ -248,7 +284,7 @@ void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
     Thread * activeThread = nullptr;
     if (CpuDataSetUp)
-        activeThread = Cpu::GetData()->ActiveThread;
+        activeThread = cpuData->ActiveThread;
 
     if (context == nullptr)
     {

@@ -43,8 +43,14 @@
                                               "no-fma4,no-lwp,no-ssse3,"            \
                                               "no-fancy-math-387,no-ieee-fp,"       \
                                               "no-recip")))
+    #define __fancy __attribute__((__target__("aes,mmx,pclmul,sse,"         \
+                                              "sse2,sse3,sse4,sse4a,"       \
+                                              "fma4,lwp,ssse3,"             \
+                                              "fancy-math-387,ieee-fp,"     \
+                                              "recip")))
 #else
     #define __bland  
+    #define __fancy  
 #endif
 
 //  All hail the preprocessor!

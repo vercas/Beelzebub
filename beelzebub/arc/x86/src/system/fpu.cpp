@@ -108,9 +108,9 @@ void Fpu::InitializeMain()
         Fpu::StateAlignment = 0;
     }
 
-    msg("** FPU%b SSE%b AVX%b XSAVE%b; SS=%us SA=%us **%n"
-        , Fpu::Available, Fpu::Sse, Fpu::Avx, Fpu::Xsave
-        , Fpu::StateSize, Fpu::StateAlignment);
+    // msg("** FPU%b SSE%b AVX%b XSAVE%b; SS=%us SA=%us **%n"
+    //     , Fpu::Available, Fpu::Sse, Fpu::Avx, Fpu::Xsave
+    //     , Fpu::StateSize, Fpu::StateAlignment);
 
     Fpu::InitializeSecondary();
 }

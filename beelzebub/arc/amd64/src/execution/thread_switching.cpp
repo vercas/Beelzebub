@@ -81,7 +81,8 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     if (this->ExtendedState != nullptr)
     {
-        //  Save state
+        Fpu::SaveState(this->ExtendedState);
+        //  Save the state now. This may change later.
     }
 
     auto cpuData = Cpu::GetData();
@@ -96,14 +97,33 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     if (other->ExtendedState != nullptr)
     {
-        //  Restore state
-
-        if (this->ExtendedState != nullptr)
+        if (this->ExtendedState == nullptr)
             CpuInstructions::Clts();
+        //  Need this now.
+
+        if (cpuData->LastExtendedStateThread != other)
+        {
+            //  So, the last thread whose extended state was used isn't this one.
+
+            Fpu::LoadState(other->ExtendedState);
+            //  Load new thread's extended state now. Don't waste cycles with yet
+            //  another exception.
+
+            if (this->ExtendedState != nullptr)
+                CpuInstructions::Clts();
+        }
+
+        cpuData->LastExtendedStateThread = nullptr;
     }
-    else
+    else if (this->ExtendedState != nullptr)
     {
-        //  Do... Something?
+        //  So, old thread had a state but the new one doesn't.
+
+        Cpu::SetCr0(Cpu::GetCr0().SetTaskSwitched(true));
+        //  This makes the FPU & SSE unusable.
+
+        cpuData->LastExtendedStateThread = this;
+        //  Remember the last thread whose extended state was used.
     }
 
     //msg(" ++");

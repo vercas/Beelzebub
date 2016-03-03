@@ -49,6 +49,17 @@ using namespace Beelzebub::System;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
+__cold __fancy __noinline void TestSse2()
+{
+    double b = -1, c = 0;
+
+    asm volatile ("addsd %1, %0 \n\t"
+                 : "+x"(c)
+                 : "mx"(b));
+
+    ASSERT(c == -1, "Eh...");
+}
+
 void TestFpu()
 {
     volatile double a = 1;
@@ -57,6 +68,8 @@ void TestFpu()
         a += a;
 
     ASSERT(a == 32, "Eh...");
+
+    TestSse2();
 }
 
 #pragma GCC diagnostic pop

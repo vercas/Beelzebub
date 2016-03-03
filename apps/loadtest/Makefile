@@ -37,7 +37,7 @@ LDFILE		:= ./link.$(ARC).ld
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS)
 GCCFLAGS	+= -ffreestanding -Wall -mcmodel=small 
 GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
-GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
+# GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
 
@@ -52,7 +52,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 
 LOFLAGS		:= -ffreestanding -Wall -mcmodel=small 
 LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe 
-LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
+# LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
 

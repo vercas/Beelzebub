@@ -774,6 +774,8 @@ void InitializeCpuData(bool const bsp)
 
     CpuInstructions::Ltr(data->TssSegment);
 
+    data->LastExtendedStateThread = nullptr;
+
     InitializeCpuStacks(bsp);
 
     //msg("-- Core #%us @ %Xp. --%n", ind, data);

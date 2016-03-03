@@ -4,13 +4,15 @@ using namespace Beelzebub;
 
 extern "C" __attribute__((__used__)) int _start()
 {
+beginning:
+
     uintptr_t volatile someAddress = 0x30000;
     uintptr_t volatile someEnd = someAddress + someAddress;
     //  Yay.
 
     *reinterpret_cast<uint64_t *>(someAddress) = 0;
 
-    do
+    for (size_t i = 0; i < 1000; ++i)
     {
         ++(*reinterpret_cast<uint64_t *>(someAddress));
 
@@ -18,8 +20,20 @@ extern "C" __attribute__((__used__)) int _start()
             ++(*ptr);
 
         PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("SYSCALL TEST LEL"), 0, 0, 0, 0);
+    }
 
-    } while (true);
+    double volatile d1 = -1, d2 = 0, d3 = 1;
+
+    double volatile d4 = d1 + d3;
+
+    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLERGH\r\n"), 0, 0, 0, 0);
+    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLAH\r\n"), 0, 0, 0, 0);
+    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLERGH\r\n"), 0, 0, 0, 0);
+    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLAH\r\n"), 0, 0, 0, 0);
+    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLERGH\r\n"), 0, 0, 0, 0);
+    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLAH\r\n"), 0, 0, 0, 0);
+
+    goto beginning;
 
     return 0;
 }

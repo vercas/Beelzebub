@@ -126,6 +126,8 @@ namespace Beelzebub { namespace System
         uint16_t GdtLength;
         uint16_t TssSegment;
         bool X2ApicMode;
+
+        Execution::Thread * LastExtendedStateThread;
     };
 
     /**
