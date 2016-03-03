@@ -93,12 +93,14 @@ bool Beelzebub::Utils::BigIntAdd(uint32_t * dst
     {
         //  First, add all 64-bit pairs.
 
+        uint64_t temp = *(reinterpret_cast<uint64_t const *>(src2));
+
         asm volatile ( "btb 0, %[carry] \n\t"
-                       "adcq %[src1], %[src2] \n\t"
+                       "adcq %[src1], %[temp] \n\t"
                        "setcb %[carry] \n\t"
-                       "movq %[src2], %[dst] \n\t"
+                       "movq %[temp], %[dst] \n\t"
                      : [dst]"+m"(*dst), [carry]"+rm"(carry)
-                     : [src1]"m"(*src1), [src2]"r"(*src2)
+                     : [src1]"m"(*src1), [temp]"r"(temp)
                      );
 
         size -= 2;
@@ -110,13 +112,15 @@ bool Beelzebub::Utils::BigIntAdd(uint32_t * dst
     if (size == 1)
     {
         //  Then the possible remainder of 32 bits.
+
+        uint32_t temp = *src2;
         
         asm volatile ( "btb 0, %[carry] \n\t"
-                       "adcl %[src1], %[src2] \n\t"
+                       "adcl %[src1], %[temp] \n\t"
                        "setcb %[carry] \n\t"
-                       "movl %[src2], %[dst] \n\t"
+                       "movl %[temp], %[dst] \n\t"
                      : [dst]"+m"(*dst), [carry]"+rm"(carry)
-                     : [src1]"m"(*src1), [src2]"r"(*src2)
+                     : [src1]"m"(*src1), [temp]"r"(temp)
                      );
     }
 

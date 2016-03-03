@@ -81,15 +81,8 @@ namespace Beelzebub { namespace Utils
 
         }
 
-        inline BigUInt(uint32_t const val)
-            : Data({val})
-            , CurrentSize(1)
-        {
-
-        }
-
         inline BigUInt(uint64_t const val)
-            : Data({val & 0xFFFFFFFF, val >> 32})
+            : Data({(uint32_t)(val & 0xFFFFFFFF), (uint32_t)(val >> 32)})
             , CurrentSize(2)
         {
 
@@ -101,8 +94,11 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            BigIntAdd(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
+            bool cout = BigIntAdd(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
                 , res.CurrentSize = Balance(*this, other), false);
+
+            if unlikely(cout && res.CurrentSize < MaxSize)
+                res.Data[res.CurrentSize++] = 1U;
 
             return res;
         }
@@ -111,7 +107,7 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            BigIntSub(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
+            bool cout = BigIntSub(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
                 , res.CurrentSize = Balance(*this, other), false);
 
             return res;
@@ -121,7 +117,7 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            BigIntMul(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
+            bool cout = BigIntMul(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
                 , res.CurrentSize = Balance(*this, other), false);
 
             return res;
@@ -131,7 +127,7 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            BigIntDiv(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
+            bool cout = BigIntDiv(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
                 , res.CurrentSize = Balance(*this, other), false);
 
             return res;
@@ -141,7 +137,7 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            BigIntMod(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
+            bool cout = BigIntMod(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
                 , res.CurrentSize = Balance(*this, other), false);
 
             return res;
