@@ -6,7 +6,7 @@ TMP="$(mktemp)"
 ${@:2} &> $TMP
 RES=$?
 
-sed -r 's,( *)(.+:[0-9]+:[0-9]+:),\1'$1'/\2,' < $TMP
+sed -r 's,(In file included from | *)(.+:[0-9]+:[0-9]+:),\1'$1'/\2,' < $TMP
 
 rm $TMP
 

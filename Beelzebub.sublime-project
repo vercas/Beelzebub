@@ -14,7 +14,7 @@
             "cmd": "bash runmake.sh conf-debug amd64 test-all",
             
             "working_dir": "$project_path",
-            "file_regex": "^ *(.+):([0-9]+):([0-9]+): (.*)$",
+            "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
 
             "windows":
             {
@@ -31,7 +31,7 @@
             "cmd": "bash runmake.sh conf-release amd64 test-all",
             
             "working_dir": "$project_path",
-            "file_regex": "^ *(.+):([0-9]+):([0-9]+): (.*)$",
+            "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
 
             "windows":
             {
