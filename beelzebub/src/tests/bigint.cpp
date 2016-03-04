@@ -51,9 +51,11 @@ typedef BigUInt<15> BIT;
 
 void TestBigInt()
 {
-    BIT a(5ULL), b(55ULL), c(1000ULL);
+    BIT a = 5ULL, b = 55ULL, c;
 
+    c = a + b;
 
+    ASSERT_EQ("%u4", 2U, c.CurrentSize);
 }
 
 #endif

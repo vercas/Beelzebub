@@ -74,18 +74,42 @@ namespace Beelzebub { namespace Utils
 
         /*  Constructors  */
 
-        inline BigUInt()
-            : Data({})
-            , CurrentSize(0)
-        {
+        inline BigUInt() : CurrentSize(0) { }
 
+        inline BigUInt(uint64_t const val) : CurrentSize((MaxSize > 1) ? 2 : 1)
+        {
+            this->Data[0] = (uint32_t)(val & 0xFFFFFFFFU);
+
+            if (MaxSize > 1)
+                this->Data[1] = (uint32_t)(val >> 32);
         }
 
-        inline BigUInt(uint64_t const val)
-            : Data({(uint32_t)(val & 0xFFFFFFFF), (uint32_t)(val >> 32)})
-            , CurrentSize(2)
+        inline BigUInt(BigUInt const & other) : CurrentSize(other.CurrentSize)
         {
+            for (size_t i = 0; i < this->CurrentSize; ++i)
+                this->Data[i] = other.Data[i];
+        }
 
+        inline BigUInt(BigUInt const && other) : CurrentSize(other.CurrentSize)
+        {
+            for (size_t i = 0; i < this->CurrentSize; ++i)
+                this->Data[i] = other.Data[i];
+        }
+
+        inline BigUInt & operator =(BigUInt const & other)
+        {
+            this->CurrentSize = other.CurrentSize;
+
+            for (size_t i = 0; i < this->CurrentSize; ++i)
+                this->Data[i] = other.Data[i];
+        }
+
+        inline BigUInt & operator =(BigUInt const && other)
+        {
+            this->CurrentSize = other.CurrentSize;
+
+            for (size_t i = 0; i < this->CurrentSize; ++i)
+                this->Data[i] = other.Data[i];
         }
 
         /*  Operators  */
