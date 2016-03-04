@@ -118,19 +118,19 @@ namespace Beelzebub { namespace Debug
                                                     , char const * const fmt, ...);
 
     __noinline void Assert(bool const condition
-                                 , char const * const file
-                                 , size_t const line
-                                 , char const * const msg);
+                         , char const * const file
+                         , size_t const line
+                         , char const * const msg);
 
     __noinline void Assert(bool const condition
-                                 , char const * const file
-                                 , size_t const line
-                                 , char const * const msg, va_list args);
+                         , char const * const file
+                         , size_t const line
+                         , char const * const msg, va_list args);
 
     __noinline void AssertFormat(bool const condition
-                                       , char const * const file
-                                       , size_t const line
-                                       , char const * const fmt, ...);
+                               , char const * const file
+                               , size_t const line
+                               , char const * const fmt, ...);
 }}
 
 #include <debug_arch.hpp>
@@ -138,3 +138,15 @@ namespace Beelzebub { namespace Debug
 #ifndef breakpoint
 #define breakpoint(...) do {} while (false)
 #endif
+
+#define ASSERT_EQ(fmt, expected, val) do {                                      \
+if unlikely((val) != (expected))                                                \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " == " #expected \
+        , "Expected " fmt ", got " fmt ".", expected, val);                     \
+} while (false)
+
+#define ASSERT_NEQ(fmt, expected, val) do {                                     \
+if unlikely((val) == (expected))                                                \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " != " #expected \
+        , "Expected anything but " fmt ".", expected);                          \
+} while (false)
