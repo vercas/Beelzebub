@@ -54,7 +54,7 @@ namespace Beelzebub { namespace Utils
     {
         /*  Operations  */
 
-        static uint32_t Balance(BigUInt && left, BigUInt && right)
+        static uint32_t Balance(BigUInt & left, BigUInt & right)
         {
             if (left.CurrentSize > right.CurrentSize)
             {
@@ -110,11 +110,13 @@ namespace Beelzebub { namespace Utils
 
             for (size_t i = 0; i < this->CurrentSize; ++i)
                 this->Data[i] = other.Data[i];
+
+            return *this;
         }
 
         /*  Operators  */
 
-        inline BigUInt operator +(BigUInt && other)
+        inline BigUInt operator +(BigUInt & other)
         {
             BigUInt res {};
 
@@ -127,7 +129,7 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        inline BigUInt operator -(BigUInt && other)
+        inline BigUInt operator -(BigUInt & other)
         {
             BigUInt res {};
 
@@ -137,7 +139,7 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        inline BigUInt operator *(BigUInt && other)
+        inline BigUInt operator *(BigUInt & other)
         {
             BigUInt res {};
 
@@ -147,7 +149,7 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        inline BigUInt operator /(BigUInt && other)
+        inline BigUInt operator /(BigUInt & other)
         {
             BigUInt res {};
 
@@ -157,7 +159,7 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        inline BigUInt operator %(BigUInt && other)
+        inline BigUInt operator %(BigUInt & other)
         {
             BigUInt res {};
 

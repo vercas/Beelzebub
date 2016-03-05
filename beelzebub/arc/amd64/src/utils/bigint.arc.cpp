@@ -37,6 +37,12 @@
     thorough explanation regarding other files.
 */
 
+/*  The inline assembly in this file uses an arcane feature of GCC documented
+    here: https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#x86Operandmodifiers
+
+    Cheers to froggey on #osdev for the info and documentation.
+*/
+
 #include <utils/bigint.hpp>
 
 using namespace Beelzebub;
@@ -44,17 +50,17 @@ using namespace Beelzebub::Utils;
 
 bool BigIntAdd2(uint32_t * dst, uint32_t const * src, uint32_t size, bool cin)
 {
-    bool carry = cin;
+    uint32_t carry = cin ? 1U : 0U;
 
     while (size > 1)
     {
         //  First, add all 64-bit pairs.
 
-        asm volatile ( "btb 0, %[carry] \n\t"
+        asm volatile ( "bt %[bit], %k[carry] \n\t"
                        "adcq %[src], %[dst] \n\t"
-                       "setcb %[carry] \n\t"
+                       "setcb %b[carry] \n\t"
                      : [dst]"+m"(*dst), [carry]"+rm"(carry)
-                     : [src]"r"(*src)
+                     : [src]"r"(*src), [bit]"Nr"(0)
                      );
 
         size -= 2;
@@ -66,15 +72,15 @@ bool BigIntAdd2(uint32_t * dst, uint32_t const * src, uint32_t size, bool cin)
     {
         //  Then the possible remainder of 32 bits.
 
-        asm volatile ( "btb 0, %[carry] \n\t"
+        asm volatile ( "bt %[bit], %k[carry] \n\t"
                        "adcl %[src], %[dst] \n\t"
-                       "setcb %[carry] \n\t"
+                       "setcb %b[carry] \n\t"
                      : [dst]"+m"(*dst), [carry]"+rm"(carry)
-                     : [src]"r"(*src)
+                     : [src]"r"(*src), [bit]"Nr"(0)
                      );
     }
 
-    return carry;
+    return carry != 0U;
 }
 
 bool Beelzebub::Utils::BigIntAdd(uint32_t * dst
@@ -87,7 +93,7 @@ bool Beelzebub::Utils::BigIntAdd(uint32_t * dst
 
     //  Otherwise, all 3 operands are different.
 
-    bool carry = cin;
+    uint32_t carry = cin ? 1U : 0U;
 
     while (size > 1)
     {
@@ -95,12 +101,12 @@ bool Beelzebub::Utils::BigIntAdd(uint32_t * dst
 
         uint64_t temp = *(reinterpret_cast<uint64_t const *>(src2));
 
-        asm volatile ( "btb 0, %[carry] \n\t"
+        asm volatile ( "bt %[bit], %k[carry] \n\t"
                        "adcq %[src1], %[temp] \n\t"
-                       "setcb %[carry] \n\t"
+                       "setcb %b[carry] \n\t"
                        "movq %[temp], %[dst] \n\t"
-                     : [dst]"+m"(*dst), [carry]"+rm"(carry)
-                     : [src1]"m"(*src1), [temp]"r"(temp)
+                     : [dst]"=m"(*dst), [carry]"+rm"(carry)
+                     : [src1]"m"(*src1), [temp]"r"(temp), [bit]"Nr"(0)
                      );
 
         size -= 2;
@@ -115,15 +121,15 @@ bool Beelzebub::Utils::BigIntAdd(uint32_t * dst
 
         uint32_t temp = *src2;
         
-        asm volatile ( "btb 0, %[carry] \n\t"
+        asm volatile ( "bt %[bit], %k[carry] \n\t"
                        "adcl %[src1], %[temp] \n\t"
-                       "setcb %[carry] \n\t"
+                       "setcb %b[carry] \n\t"
                        "movl %[temp], %[dst] \n\t"
-                     : [dst]"+m"(*dst), [carry]"+rm"(carry)
-                     : [src1]"m"(*src1), [temp]"r"(temp)
+                     : [dst]"=m"(*dst), [carry]"+rm"(carry)
+                     : [src1]"m"(*src1), [temp]"r"(temp), [bit]"Nr"(0)
                      );
     }
 
-    return carry;
+    return carry != 0U;
 }
 
