@@ -55,7 +55,9 @@ void TestBigInt()
 
     c = a + b;
 
-    ASSERT_EQ("%u4", 2U, c.CurrentSize);
+    ASSERT_EQ("%u4",  2U, c.CurrentSize);
+    ASSERT_EQ("%u4", 60U, c.Data[0]);
+    ASSERT_EQ("%u4",  0U, c.Data[1]);
 }
 
 #endif
