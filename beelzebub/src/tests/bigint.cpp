@@ -65,11 +65,49 @@ void TestBigInt()
     ASSERT_EQ("%u4", 115U, c.Data[0]);
     ASSERT_EQ("%u4",   0U, c.Data[1]);
 
-    // c -= a;
+    BIT d = 0xFFFFFFFAULL;
 
-    // ASSERT_EQ("%u4",   2U, c.CurrentSize);
-    // ASSERT_EQ("%u4", 110U, c.Data[0]);
-    // ASSERT_EQ("%u4",   0U, c.Data[1]);
+    c += d;
+
+    ASSERT_EQ("%u4",    2U, c.CurrentSize);
+    ASSERT_EQ("%u4", 0x6DU, c.Data[0]);
+    ASSERT_EQ("%u4",    1U, c.Data[1]);
+
+    BIT e = 0xFFFFFFFFFFFFFFFFULL;
+
+    c += e;
+
+    ASSERT_EQ("%u4",    3U, c.CurrentSize);
+    ASSERT_EQ("%u4", 0x6CU, c.Data[0]);
+    ASSERT_EQ("%u4",    1U, c.Data[1]);
+    ASSERT_EQ("%u4",    1U, c.Data[2]);
+
+    c += c;
+
+    ASSERT_EQ("%u4",    3U, c.CurrentSize);
+    ASSERT_EQ("%u4", 0xD8U, c.Data[0]);
+    ASSERT_EQ("%u4",    2U, c.Data[1]);
+    ASSERT_EQ("%u4",    2U, c.Data[2]);
+
+    c -= a;
+
+    ASSERT_EQ("%u4",    3U, c.CurrentSize);
+    ASSERT_EQ("%u4", 0xD3U, c.Data[0]);
+    ASSERT_EQ("%u4",    2U, c.Data[1]);
+    ASSERT_EQ("%u4",    2U, c.Data[2]);
+
+    b -= a;
+
+    ASSERT_EQ("%u4",  2U, b.CurrentSize);
+    ASSERT_EQ("%u4", 50U, b.Data[0]);
+    ASSERT_EQ("%u4",  0U, b.Data[1]);
+
+    c -= e;
+
+    ASSERT_EQ("%u4",    3U, c.CurrentSize);
+    ASSERT_EQ("%u4", 0xD4U, c.Data[0]);
+    ASSERT_EQ("%u4",    2U, c.Data[1]);
+    ASSERT_EQ("%u4",    1U, c.Data[2]);
 }
 
 #endif

@@ -143,3 +143,24 @@ using namespace Beelzebub::Utils;
 //     return carry != 0U;
 // }
 
+bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
+                               , uint32_t const * src1, uint32_t   size1
+                               , uint32_t const * src2, uint32_t   size2
+                               , uint32_t maxSize, bool cin)
+{
+    if (size1 > size2)
+    {
+        uint32_t sizeTmp = size1;
+        size1 = size2;
+        size2 = sizeTmp;
+
+        uint32_t const * srcTmp = src1;
+        src1 = src2;
+        src2 = srcTmp;
+    }
+
+    //  Now `src1` is the shortest number.
+
+
+}
+
