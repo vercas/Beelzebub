@@ -43,11 +43,11 @@
 
 namespace Beelzebub { namespace Utils
 {
-    __noinline bool BigIntAdd(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
-    __noinline bool BigIntSub(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
-    __noinline bool BigIntMul(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
-    __noinline bool BigIntDiv(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
-    __noinline bool BigIntMod(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __extern __noinline bool BigIntAdd(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __extern __noinline bool BigIntSub(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __extern __noinline bool BigIntMul(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __extern __noinline bool BigIntDiv(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __extern __noinline bool BigIntMod(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
 
     template<uint32_t MaxSize>
     struct BigUInt
@@ -167,6 +167,49 @@ namespace Beelzebub { namespace Utils
                 , res.CurrentSize = Balance(*this, other), false);
 
             return res;
+        }
+
+        inline BigUInt & operator +=(BigUInt & other)
+        {
+            bool cout = BigIntAdd(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
+                , Balance(*this, other), false);
+
+            if unlikely(cout && this->CurrentSize < MaxSize)
+                this->Data[this->CurrentSize++] = 1U;
+
+            return *this;
+        }
+
+        inline BigUInt & operator -=(BigUInt & other)
+        {
+            bool cout = BigIntSub(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
+                , Balance(*this, other), false);
+
+            return *this;
+        }
+
+        inline BigUInt & operator *=(BigUInt & other)
+        {
+            bool cout = BigIntMul(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
+                , Balance(*this, other), false);
+
+            return *this;
+        }
+
+        inline BigUInt & operator /=(BigUInt & other)
+        {
+            bool cout = BigIntDiv(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
+                , Balance(*this, other), false);
+
+            return *this;
+        }
+
+        inline BigUInt & operator %=(BigUInt & other)
+        {
+            bool cout = BigIntMod(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
+                , Balance(*this, other), false);
+
+            return *this;
         }
 
         /*  Fields  */
