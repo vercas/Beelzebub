@@ -134,6 +134,17 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
+        inline BigUInt & operator +=(BigUInt & other)
+        {
+            bool cout = BigIntAdd(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
+                , Balance(*this, other), false);
+
+            if unlikely(cout && this->CurrentSize < MaxSize)
+                this->Data[this->CurrentSize++] = 1U;
+
+            return *this;
+        }
+
         inline BigUInt operator -(BigUInt & other)
         {
             BigUInt res {};
@@ -142,6 +153,14 @@ namespace Beelzebub { namespace Utils
                 , res.CurrentSize = Balance(*this, other), false);
 
             return res;
+        }
+
+        inline BigUInt & operator -=(BigUInt & other)
+        {
+            BigIntSub(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
+                , Balance(*this, other), false);
+
+            return *this;
         }
 
         inline BigUInt operator *(BigUInt & other)
@@ -156,45 +175,6 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        inline BigUInt operator /(BigUInt & other)
-        {
-            BigUInt res {};
-
-            bool cout = BigIntDiv(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
-                , res.CurrentSize = Balance(*this, other), false);
-
-            return res;
-        }
-
-        inline BigUInt operator %(BigUInt & other)
-        {
-            BigUInt res {};
-
-            bool cout = BigIntMod(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
-                , res.CurrentSize = Balance(*this, other), false);
-
-            return res;
-        }
-
-        inline BigUInt & operator +=(BigUInt & other)
-        {
-            bool cout = BigIntAdd(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
-                , Balance(*this, other), false);
-
-            if unlikely(cout && this->CurrentSize < MaxSize)
-                this->Data[this->CurrentSize++] = 1U;
-
-            return *this;
-        }
-
-        inline BigUInt & operator -=(BigUInt & other)
-        {
-            BigIntSub(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
-                , Balance(*this, other), false);
-
-            return *this;
-        }
-
         inline BigUInt & operator *=(BigUInt & other)
         {
             bool ovrf = BigIntMul(&(this->Data[0]), this->CurrentSize
@@ -205,12 +185,32 @@ namespace Beelzebub { namespace Utils
             return *this;
         }
 
+        inline BigUInt operator /(BigUInt & other)
+        {
+            BigUInt res {};
+
+            bool cout = BigIntDiv(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
+                , res.CurrentSize = Balance(*this, other), false);
+
+            return res;
+        }
+
         inline BigUInt & operator /=(BigUInt & other)
         {
             bool cout = BigIntDiv(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
                 , Balance(*this, other), false);
 
             return *this;
+        }
+
+        inline BigUInt operator %(BigUInt & other)
+        {
+            BigUInt res {};
+
+            bool cout = BigIntMod(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
+                , res.CurrentSize = Balance(*this, other), false);
+
+            return res;
         }
 
         inline BigUInt & operator %=(BigUInt & other)
