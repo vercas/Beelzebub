@@ -173,6 +173,11 @@ __noinline bool BigIntMul2(uint32_t       * dst, uint32_t dstSize
     memcpy(&(bck[0]), dst, dstSize * sizeof(uint32_t));
     //  Meh.
 
+    memset(&(dst[0]), 0, limit * sizeof(uint32_t));
+
+    dst[0] = cin ? 1U : 0U;
+    //  First dword is the carry in.
+
     for (size_t i = 0; i < dstSize; ++i)
     {
         uint32_t currentDword = bck[i];
@@ -221,12 +226,10 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
 
     //  Now `src1` is the shortest number.
 
-    dst[0] = cin ? 1U : 0U;
-    //  First dword is the carry out.
+    memset(&(dst[0]), 0, limit * sizeof(uint32_t));
 
-    for (size_t i = 1; i < limit; ++i)
-        dst[i] = 0U;
-    //  Initialize the rest to zero.
+    dst[0] = cin ? 1U : 0U;
+    //  First dword is the carry in.
 
     Qword res;  //  Will be the last multiplication result.
 

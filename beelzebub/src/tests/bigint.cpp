@@ -142,6 +142,28 @@ void TestBigInt()
     ASSERT_EQ("%u4",     3U, c.Data[4]);
     ASSERT_EQ("%u4",     0U, c.Data[5]);
     ASSERT_EQ("%u4",     0U, c.Data[6]);
+
+    //  Now overflow propagation.
+
+    ASSERT_EQ("%u4",          2U, e.CurrentSize);
+    ASSERT_EQ("%u4", 0xFFFFFFFFU, e.Data[0]);
+    ASSERT_EQ("%u4", 0xFFFFFFFFU, e.Data[1]);
+
+    f = e * e;
+
+    ASSERT_EQ("%u4",          4U, f.CurrentSize);
+    ASSERT_EQ("%u4", 0x00000001U, f.Data[0]);
+    ASSERT_EQ("%u4", 0x00000000U, f.Data[1]);
+    ASSERT_EQ("%u4", 0xFFFFFFFEU, f.Data[2]);
+    ASSERT_EQ("%u4", 0xFFFFFFFFU, f.Data[3]);
+
+    e *= e;
+
+    ASSERT_EQ("%u4",          4U, e.CurrentSize);
+    ASSERT_EQ("%u4", 0x00000001U, e.Data[0]);
+    ASSERT_EQ("%u4", 0x00000000U, e.Data[1]);
+    ASSERT_EQ("%u4", 0xFFFFFFFEU, e.Data[2]);
+    ASSERT_EQ("%u4", 0xFFFFFFFFU, e.Data[3]);
 }
 
 #endif
