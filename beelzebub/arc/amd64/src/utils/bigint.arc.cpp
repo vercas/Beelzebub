@@ -44,9 +44,28 @@
 */
 
 #include <utils/bigint.hpp>
+#include <string.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
+
+union Qword
+{
+    uint64_t u64;
+    int64_t  i64;
+
+    struct
+    {
+        uint32_t u32l;
+        uint32_t u32h;
+    };
+
+    struct
+    {
+        int32_t i32l;
+        int32_t i32h;
+    };
+};
 
 // __noinline bool BigIntAdd2(uint32_t * dst, uint32_t const * src, uint32_t size, bool cin)
 // {
@@ -143,11 +162,52 @@ using namespace Beelzebub::Utils;
 //     return carry != 0U;
 // }
 
+__noinline bool BigIntMul2(uint32_t       * dst, uint32_t dstSize
+                         , uint32_t const * src, uint32_t size
+                         , uint32_t limit, bool cin)
+{
+    Qword res;  //  Will be the last multiplication result.
+
+    uint32_t bck[dstSize];  //  A backup.
+
+    memcpy(&(bck[0]), dst, dstSize * sizeof(uint32_t));
+    //  Meh.
+
+    for (size_t i = 0; i < dstSize; ++i)
+    {
+        uint32_t currentDword = bck[i];
+
+        if (currentDword != 0U)  //  Cheap optimization, kek.
+            for (size_t j = 0, k = i; j < size && k < limit; ++j, ++k)
+            {
+                res = {(uint64_t)currentDword * (uint64_t)src[j]};
+
+                for (size_t l = k; res.u64 != 0 && l < limit; ++l, res.u64 >>= 32)
+                {
+                    res.u64 += (uint64_t)dst[l];
+                    //  Done this way to catch carry into the overflow.
+
+                    dst[l] = res.u32l;
+                }
+            }
+    }
+
+    return res.u32h != 0;
+}
+
 bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
                                , uint32_t const * src1, uint32_t   size1
                                , uint32_t const * src2, uint32_t   size2
                                , uint32_t maxSize, bool cin)
 {
+    uint32_t const limit = dstSize = Minimum(size1 + size2, maxSize);
+    //  Number of dwords in the destination.
+
+    if (dst == src1)
+        return BigIntMul2(dst, size1, src2, size2, limit, cin);
+    else if (dst == src2)
+        return BigIntMul2(dst, size2, src1, size1, limit, cin);
+
     if (size1 > size2)
     {
         uint32_t sizeTmp = size1;
@@ -161,6 +221,33 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
 
     //  Now `src1` is the shortest number.
 
+    dst[0] = cin ? 1U : 0U;
+    //  First dword is the carry out.
 
+    for (size_t i = 1; i < limit; ++i)
+        dst[i] = 0U;
+    //  Initialize the rest to zero.
+
+    Qword res;  //  Will be the last multiplication result.
+
+    for (size_t i = 0; i < size1; ++i)
+    {
+        uint32_t currentDword = src1[i];
+
+        if (currentDword != 0U)  //  Cheap optimization, kek.
+            for (size_t j = 0, k = i; j < size2 && k < limit; ++j, ++k)
+            {
+                res = {(uint64_t)currentDword * (uint64_t)src2[j]};
+
+                for (size_t l = k; res.u64 != 0 && l < limit; ++l, res.u64 >>= 32)
+                {
+                    res.u64 += (uint64_t)dst[l];
+                    //  Done this way to catch carry into the overflow.
+
+                    dst[l] = res.u32l;
+                }
+            }
+    }
+
+    return res.u32h != 0;
 }
-
