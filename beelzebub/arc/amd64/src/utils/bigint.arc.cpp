@@ -162,60 +162,37 @@ union Qword
 //     return carry != 0U;
 // }
 
-__noinline bool BigIntMul2(uint32_t       * dst, uint32_t dstSize
-                         , uint32_t const * src, uint32_t size
-                         , uint32_t limit, bool cin)
-{
-    Qword res;  //  Will be the last multiplication result.
-    bool overflow = false;
-
-    uint32_t bck[dstSize];  //  A backup.
-
-    memcpy(&(bck[0]), dst, dstSize * sizeof(uint32_t));
-    //  Meh.
-
-    memset(&(dst[0]), 0, limit * sizeof(uint32_t));
-
-    dst[0] = cin ? 1U : 0U;
-    //  First dword is the carry in.
-
-    for (size_t i = 0; i < dstSize; ++i)
-    {
-        uint32_t currentDword = bck[i];
-
-        if (currentDword != 0U)  //  Cheap optimization, kek.
-            for (size_t j = 0, k = i; j < size && k < limit; ++j, ++k)
-            {
-                res = {(uint64_t)currentDword * (uint64_t)src[j]};
-
-                for (size_t l = k; res.u64 != 0 && l < limit; ++l, res.u64 >>= 32)
-                {
-                    res.u64 += (uint64_t)dst[l];
-                    //  Done this way to catch carry into the overflow.
-
-                    dst[l] = res.u32l;
-                }
-
-                if (res.u32h != 0)
-                    overflow = true;
-            }
-    }
-
-    return overflow;
-}
-
 bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
                                , uint32_t const * src1, uint32_t   size1
                                , uint32_t const * src2, uint32_t   size2
                                , uint32_t maxSize, bool cin)
 {
+    if (dst == src1)
+    {
+        uint32_t bck[size1];  //  A backup.
+
+        memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
+        //  Meh.
+
+        return BigIntMul(dst, dstSize, &(bck[0]), size1, src2, size2, maxSize, cin);
+    }
+    else if (dst == src2)
+    {
+        uint32_t bck[size2];  //  A backup.
+
+        memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
+        //  Meh.
+
+        return BigIntMul(dst, dstSize, src1, size1, &(bck[0]), size2, maxSize, cin);
+    }
+
     uint32_t const limit = dstSize = Minimum(size1 + size2, maxSize);
     //  Number of dwords in the destination.
 
-    if (dst == src1)
-        return BigIntMul2(dst, size1, src2, size2, limit, cin);
-    else if (dst == src2)
-        return BigIntMul2(dst, size2, src1, size1, limit, cin);
+    // if (dst == src1)
+    //     return BigIntMul2(dst, size1, src2, size2, limit, cin);
+    // else if (dst == src2)
+    //     return BigIntMul2(dst, size2, src1, size1, limit, cin);
 
     if (size1 > size2)
     {
