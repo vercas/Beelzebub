@@ -167,6 +167,7 @@ __noinline bool BigIntMul2(uint32_t       * dst, uint32_t dstSize
                          , uint32_t limit, bool cin)
 {
     Qword res;  //  Will be the last multiplication result.
+    bool overflow = false;
 
     uint32_t bck[dstSize];  //  A backup.
 
@@ -194,10 +195,13 @@ __noinline bool BigIntMul2(uint32_t       * dst, uint32_t dstSize
 
                     dst[l] = res.u32l;
                 }
+
+                if (res.u32h != 0)
+                    overflow = true;
             }
     }
 
-    return res.u32h != 0;
+    return overflow;
 }
 
 bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
@@ -232,6 +236,7 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
     //  First dword is the carry in.
 
     Qword res;  //  Will be the last multiplication result.
+    bool overflow = false;
 
     for (size_t i = 0; i < size1; ++i)
     {
@@ -249,8 +254,11 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
 
                     dst[l] = res.u32l;
                 }
+
+                if (res.u32h != 0)
+                    overflow = true;
             }
     }
 
-    return res.u32h != 0;
+    return overflow;
 }
