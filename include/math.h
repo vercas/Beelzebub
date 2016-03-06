@@ -251,8 +251,10 @@ __forceinline uint64_t GreatestCommonDivisor32(uint32_t a, uint32_t b) __const
 __extern __const uint8_t Log2_32(uint32_t val);
 __extern __const uint8_t Log2_64(uint64_t val);
 
-__extern __used __const uint32_t AddWithCarry32(uint32_t * dst, uint32_t src, uint32_t cin);
-__extern __used __const uint32_t AddWithCarry64(uint64_t * dst, uint64_t src, uint32_t cin);
+__extern __const uint32_t AddWithCarry32(uint32_t * dst, uint32_t src, uint32_t cin);
+__extern __const uint32_t AddWithCarry32_3(uint32_t * dst, uint32_t src1, uint32_t src2, uint32_t cin);
+
+__extern __const uint32_t AddWithCarry64(uint64_t * dst, uint64_t src, uint32_t cin);
 
 #ifdef __cplusplus
 }
