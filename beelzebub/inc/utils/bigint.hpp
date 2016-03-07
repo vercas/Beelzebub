@@ -51,8 +51,10 @@ namespace Beelzebub { namespace Utils
                                      , uint32_t const * src2, uint32_t   size2
                                      , uint32_t maxSize, bool cin);
 
-    __extern __noinline bool BigIntDiv(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
-    __extern __noinline bool BigIntMod(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __extern __noinline void BigIntDiv(uint32_t       * quot, uint32_t sizeQ
+                                     , uint32_t       * remn, uint32_t sizeR
+                                     , uint32_t const * src1, uint32_t size1
+                                     , uint32_t const * src2, uint32_t size2);
 
     template<uint32_t MaxSize>
     struct BigUInt
@@ -167,20 +169,20 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            bool ovrf = BigIntMul(&(res.Data[0]), res.CurrentSize
-                                , &(this->Data[0]), this->CurrentSize
-                                , &(other.Data[0]), other.CurrentSize
-                                , MaxSize, false);
+            BigIntMul(&(res.Data[0]), res.CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize
+                    , MaxSize, false);
 
             return res;
         }
 
         inline BigUInt & operator *=(BigUInt & other)
         {
-            bool ovrf = BigIntMul(&(this->Data[0]), this->CurrentSize
-                                , &(this->Data[0]), this->CurrentSize
-                                , &(other.Data[0]), other.CurrentSize
-                                , MaxSize, false);
+            BigIntMul(&(this->Data[0]), this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize
+                    , MaxSize, false);
 
             return *this;
         }
@@ -189,16 +191,22 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            bool cout = BigIntDiv(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
-                , res.CurrentSize = Balance(*this, other), false);
+            res.CurrentSize = Maximum(this->CurrentSize, other.CurrentSize);
+
+            BigIntDiv(&(  res.Data[0]),   res.CurrentSize
+                    , nullptr         , 0
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
 
             return res;
         }
 
         inline BigUInt & operator /=(BigUInt & other)
         {
-            bool cout = BigIntDiv(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
-                , Balance(*this, other), false);
+            BigIntDiv(&(this->Data[0]), this->CurrentSize
+                    , nullptr         , 0
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
 
             return *this;
         }
@@ -207,23 +215,31 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            bool cout = BigIntMod(&(res.Data[0]), &(this->Data[0]), &(other.Data[0])
-                , res.CurrentSize = Balance(*this, other), false);
+            res.CurrentSize = Maximum(this->CurrentSize, other.CurrentSize);
+
+            BigIntDiv(nullptr         , 0
+                    , &(  res.Data[0]),   res.CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
 
             return res;
         }
 
         inline BigUInt & operator %=(BigUInt & other)
         {
-            bool cout = BigIntMod(&(this->Data[0]), &(this->Data[0]), &(other.Data[0])
-                , Balance(*this, other), false);
+            BigIntDiv(nullptr         , 0
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
 
             return *this;
         }
 
         /*  Fields  */
 
-        uint32_t Data[MaxSize];
         uint32_t CurrentSize;
+        uint32_t Data[MaxSize];
+        //  Looks like a length-prefixed array.
+        
     } __aligned(16);
 }}

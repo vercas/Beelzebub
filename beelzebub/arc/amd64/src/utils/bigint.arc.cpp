@@ -239,3 +239,52 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
 
     return overflow;
 }
+
+void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
+                               , uint32_t       * remn, uint32_t sizeR
+                               , uint32_t const * src1, uint32_t size1
+                               , uint32_t const * src2, uint32_t size2)
+{
+    if (quot == nullptr)
+    {
+        sizeQ = Maximum(size1, size2);
+
+        uint32_t bck[sizeQ];
+        memset(&(bck[0]), 0, sizeQ * sizeof(uint32_t));
+
+        BigIntDiv(&(bck[0]), sizeQ, remn, sizeR, src1, size1, src2, size2);
+
+        return;
+    }
+    else if (remn == nullptr)
+    {
+        sizeR = Maximum(size1, size2);
+
+        uint32_t bck[sizeR];
+        memset(&(bck[0]), 0, sizeR * sizeof(uint32_t));
+
+        BigIntDiv(quot, sizeQ, &(bck[0]), sizeR, src1, size1, src2, size2);
+
+        return;
+    }
+    else if (src1 == quot || src1 == remn)
+    {
+        uint32_t bck[size1];
+        memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
+
+        BigIntDiv(quot, sizeQ, remn, sizeR, &(bck[0]), size1, src2, size2);
+
+        return;
+    }
+    else if (src2 == quot || src2 == remn)
+    {
+        uint32_t bck[size2];
+        memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
+
+        BigIntDiv(quot, sizeQ, remn, sizeR, src1, size1, &(bck[0]), size2);
+
+        return;
+    }
+
+    //  Isn't that a rather large number of special cases?
+}
