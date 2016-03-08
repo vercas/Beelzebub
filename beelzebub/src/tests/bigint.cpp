@@ -346,8 +346,7 @@ void TestBigInt()
 
     i >>= 4;
 
-    ASSERT_EQ("%u4",          8U, i.CurrentSize);
-    ASSERT_EQ("%X4", 0x00000000U, i.Data[7]);
+    ASSERT_EQ("%u4",          7U, i.CurrentSize);
     ASSERT_EQ("%X4", 0xFFFFFFFFU, i.Data[6]);
     ASSERT_EQ("%X4", 0xFFFFFFFFU, i.Data[5]);
     ASSERT_EQ("%X4", 0xFFFFFFFBU, i.Data[4]);
@@ -355,6 +354,14 @@ void TestBigInt()
     ASSERT_EQ("%X4", 0xFFFFFC8BU, i.Data[2]);
     ASSERT_EQ("%X4", 0x00000000U, i.Data[1]);
     ASSERT_EQ("%X4", 0x00000000U, i.Data[0]);
+
+    BIT j = i[4];
+
+    ASSERT_EQ("%u4",          4U, j.CurrentSize);
+    ASSERT_EQ("%X4", 0xFFFFFFF9U, j.Data[3]);
+    ASSERT_EQ("%X4", 0xFFFFFC8BU, j.Data[2]);
+    ASSERT_EQ("%X4", 0x00000000U, j.Data[1]);
+    ASSERT_EQ("%X4", 0x00000000U, j.Data[0]);
 }
 
 #endif

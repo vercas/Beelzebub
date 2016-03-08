@@ -466,47 +466,48 @@ bool Beelzebub::Utils::BigIntShR(uint32_t       * dst, uint32_t & sizeD
 
         return true;
     }
-    else if (amntMov != 0)
+    else
     {
         uint32_t underflow = (sizeS > sizeD) ? (src[sizeD] >> (32 - amnt)) : 0U;
         //  There may be underflow already.
 
-        sizeD = Minimum(sizeS, sizeD) - amntMov;
-
-        --amntMov;
-        //  Makes the following index computation easier.
-
-        for (size_t i = sizeD; i > 0; --i)
+        if (amntMov != 0)
         {
-            Qword window { ((uint64_t)(src[i + amntMov]) << amnt) };
+            sizeD = Minimum(sizeS, sizeD) - amntMov;
 
-            window.u32h |= (uint64_t)underflow;
+            --amntMov;
+            //  Makes the following index computation easier.
 
-            dst[i - 1] = window.u32h;
-            underflow = window.u32l;
+            for (size_t i = sizeD; i > 0; --i)
+            {
+                Qword window { ((uint64_t)(src[i + amntMov]) << amnt) };
+
+                window.u32h |= (uint64_t)underflow;
+
+                dst[i - 1] = window.u32h;
+                underflow = window.u32l;
+            }
+
+            //  This has to be done in reverse order, because underflow
+            //  propagates towards less significant bits/dwords.
+        }
+        else
+        {
+            if (sizeS < sizeD)
+                sizeD = sizeS;
+
+            for (size_t i = sizeD; i > 0; --i)
+            {
+                Qword window { ((uint64_t)(src[i - 1]) << amnt) };
+
+                window.u32h |= (uint64_t)underflow;
+
+                dst[i - 1] = window.u32h;
+                underflow = window.u32l;
+            }
         }
 
-        //  This has to be done in reverse order, because underflow
-        //  propagates towards less significant bits/dwords.
-
-        return underflow != 0U;
-    }
-    else
-    {
-        uint32_t underflow = (sizeS > sizeD) ? (src[sizeD] >> (32 - amnt)) : 0U;
-
-        if (sizeS < sizeD)
-            sizeD = sizeS;
-
-        for (size_t i = sizeD; i > 0; --i)
-        {
-            Qword window { ((uint64_t)(src[i - 1]) << amnt) };
-
-            window.u32h |= (uint64_t)underflow;
-
-            dst[i - 1] = window.u32h;
-            underflow = window.u32l;
-        }
+        while (dst[sizeD - 1] == 0) --sizeD;    //  Trim excess zeros.
 
         return underflow != 0U;
     }

@@ -416,6 +416,29 @@ namespace Beelzebub { namespace Utils
                 return (uint64_t)(this->Data[0]) | ((uint64_t)(this->Data[1]) << 32);
         }
 
+        /*  Slices  */
+
+        inline BigUInt operator [](uint32_t size)
+        {
+            BigUInt res {};
+            res.CurrentSize = Minimum(size, MaxSize);
+
+            if (size <= this->CurrentSize)
+                for (size_t i = 0; i < size; ++i)
+                    res.Data[i] = this->Data[i];
+            else
+            {
+                for (size_t i = 0; i < this->CurrentSize; ++i)
+                    res.Data[i] = this->Data[i];
+
+                for (size_t i = this->CurrentSize; i < size; ++i)
+                    res.Data[i] = 0;
+                //  Zero-extension.
+            }
+
+            return res;
+        }
+
         /*  Fields  */
 
         uint32_t CurrentSize;
