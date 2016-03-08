@@ -437,3 +437,77 @@ bool Beelzebub::Utils::BigIntShL(uint32_t       * dst, uint32_t & sizeD
         return false;
     }
 }
+
+bool Beelzebub::Utils::BigIntShR(uint32_t       * dst, uint32_t & sizeD
+                               , uint32_t const * src, uint32_t   sizeS
+                               , uint64_t amnt)
+{
+    if unlikely(src == dst)
+    {
+        uint32_t bck[sizeS];
+        memcpy(&(bck[0]), src, sizeS * sizeof(uint32_t));
+
+        return BigIntShR(dst, sizeD, &(bck[0]), sizeS, amnt);
+    }
+
+    size_t amntMov = (size_t)(amnt >> 5);
+    //  This is the amount of array positions to shift right by.
+
+    amnt = 32 - (amnt & 31);
+    //  This will be the actual amount to shift LEFT by.
+    //  A dword will be shifted left 32 positions, then right (amnt & 31)
+    //  positions, which is reduced to a single left shift.
+
+    if (amntMov >= sizeS)
+    {
+        //  This will shift more positions than available.
+
+        sizeD = 0;  //  Nothing else should be necessary.
+
+        return true;
+    }
+    else if (amntMov != 0)
+    {
+        uint32_t underflow = (sizeS > sizeD) ? (src[sizeD] >> (32 - amnt)) : 0U;
+        //  There may be underflow already.
+
+        sizeD = Minimum(sizeS, sizeD) - amntMov;
+
+        --amntMov;
+        //  Makes the following index computation easier.
+
+        for (size_t i = sizeD; i > 0; --i)
+        {
+            Qword window { ((uint64_t)(src[i + amntMov]) << amnt) };
+
+            window.u32h |= (uint64_t)underflow;
+
+            dst[i - 1] = window.u32h;
+            underflow = window.u32l;
+        }
+
+        //  This has to be done in reverse order, because underflow
+        //  propagates towards less significant bits/dwords.
+
+        return underflow != 0U;
+    }
+    else
+    {
+        uint32_t underflow = (sizeS > sizeD) ? (src[sizeD] >> (32 - amnt)) : 0U;
+
+        if (sizeS < sizeD)
+            sizeD = sizeS;
+
+        for (size_t i = sizeD; i > 0; --i)
+        {
+            Qword window { ((uint64_t)(src[i - 1]) << amnt) };
+
+            window.u32h |= (uint64_t)underflow;
+
+            dst[i - 1] = window.u32h;
+            underflow = window.u32l;
+        }
+
+        return underflow != 0U;
+    }
+}
