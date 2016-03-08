@@ -56,6 +56,29 @@ namespace Beelzebub { namespace Utils
                                      , uint32_t const * src1, uint32_t size1
                                      , uint32_t const * src2, uint32_t size2);
 
+    __extern __noinline void BigIntAnd(uint32_t       * dst , uint32_t sizeD
+                                     , uint32_t const * src1, uint32_t size1
+                                     , uint32_t const * src2, uint32_t size2);
+
+    __extern __noinline void BigIntOr (uint32_t       * dst , uint32_t sizeD
+                                     , uint32_t const * src1, uint32_t size1
+                                     , uint32_t const * src2, uint32_t size2);
+
+    __extern __noinline void BigIntXor(uint32_t       * dst , uint32_t sizeD
+                                     , uint32_t const * src1, uint32_t size1
+                                     , uint32_t const * src2, uint32_t size2);
+
+    __extern __noinline void BigIntNot(uint32_t       * dst , uint32_t sizeD
+                                     , uint32_t const * src , uint32_t sizeS);
+
+    __extern __noinline bool BigIntShL(uint32_t       * dst , uint32_t & sizeD
+                                     , uint32_t const * src , uint32_t   sizeS
+                                     , uint32_t sizeM, uint64_t amnt);
+
+    __extern __noinline bool BigIntShR(uint32_t       * dst , uint32_t & sizeD
+                                     , uint32_t const * src , uint32_t   sizeS
+                                     , uint64_t amnt);
+
     template<uint32_t MaxSize>
     struct BigUInt
     {
@@ -121,7 +144,7 @@ namespace Beelzebub { namespace Utils
             return *this;
         }
 
-        /*  Operators  */
+        /*  Arithmetic Operators  */
 
         inline BigUInt operator +(BigUInt & other)
         {
@@ -169,7 +192,7 @@ namespace Beelzebub { namespace Utils
         {
             BigUInt res {};
 
-            BigIntMul(&(res.Data[0]), res.CurrentSize
+            BigIntMul(&(  res.Data[0]),   res.CurrentSize
                     , &(this->Data[0]), this->CurrentSize
                     , &(other.Data[0]), other.CurrentSize
                     , MaxSize, false);
@@ -235,11 +258,169 @@ namespace Beelzebub { namespace Utils
             return *this;
         }
 
+        /*  Logical Operators  */
+
+        inline BigUInt operator &(BigUInt & other)
+        {
+            BigUInt res {};
+
+            BigIntAnd(&(  res.Data[0]),   res.CurrentSize = Minimum(this->CurrentSize, other.CurrentSize)
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
+
+            //  Minimum is chosen because the surplus would be all zeros anyway.
+
+            return res;
+        }
+
+        inline BigUInt & operator &=(BigUInt & other)
+        {
+            BigIntAnd(&(this->Data[0]), this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
+
+            return *this;
+        }
+
+        inline BigUInt operator |(BigUInt & other)
+        {
+            BigUInt res {};
+
+            BigIntOr (&(  res.Data[0]),   res.CurrentSize = Maximum(this->CurrentSize, other.CurrentSize)
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
+
+            //  Maximum is chosen because surplus comes from the largest source.
+
+            return res;
+        }
+
+        inline BigUInt & operator |=(BigUInt & other)
+        {
+            BigIntOr (&(this->Data[0]), this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
+
+            return *this;
+        }
+
+        inline BigUInt operator ^(BigUInt & other)
+        {
+            BigUInt res {};
+
+            BigIntXor(&(  res.Data[0]),   res.CurrentSize = Maximum(this->CurrentSize, other.CurrentSize)
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
+
+            //  Maximum is chosen because surplus comes from the largest source.
+
+            return res;
+        }
+
+        inline BigUInt & operator ^=(BigUInt & other)
+        {
+            BigIntXor(&(this->Data[0]), this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , &(other.Data[0]), other.CurrentSize);
+
+            return *this;
+        }
+
+        inline BigUInt operator ~()
+        {
+            BigUInt res {};
+
+            BigIntNot(&(  res.Data[0]),   res.CurrentSize = this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize);
+
+            return res;
+        }
+
+        inline BigUInt operator <<(uint64_t amnt)
+        {
+            BigUInt res {};
+
+            BigIntShL(&(  res.Data[0]),   res.CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , MaxSize, amnt);
+
+            return res;
+        }
+
+        inline BigUInt operator <<(BigUInt & other)
+        {
+            return *this << (uint64_t)other;
+        }
+
+        inline BigUInt & operator <<=(uint64_t amnt)
+        {
+            BigIntShL(&(this->Data[0]), this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , MaxSize, amnt);
+
+            return *this;
+        }
+
+        inline BigUInt & operator <<=(BigUInt & other)
+        {
+            return *this <<= (uint64_t)other;
+        }
+
+        inline BigUInt operator >>(uint64_t amnt)
+        {
+            BigUInt res {};
+
+            BigIntShR(&(  res.Data[0]),   res.CurrentSize = this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , amnt);
+
+            return res;
+        }
+
+        inline BigUInt operator >>(BigUInt & other)
+        {
+            return *this >> (uint64_t)other;
+        }
+
+        inline BigUInt & operator >>=(uint64_t amnt)
+        {
+            BigIntShR(&(this->Data[0]), this->CurrentSize
+                    , &(this->Data[0]), this->CurrentSize
+                    , amnt);
+
+            return *this;
+        }
+
+        inline BigUInt & operator >>=(BigUInt & other)
+        {
+            return *this >>= (uint64_t)other;
+        }
+
+        /*  Conversions  */
+
+        inline explicit operator uint32_t()
+        {
+            if unlikely(this->CurrentSize == 0)
+                return 0U;
+            else
+                return this->Data[0];
+        }
+
+        inline explicit operator uint64_t()
+        {
+            if unlikely(this->CurrentSize == 0)
+                return 0U;
+            else if (this->CurrentSize == 1)
+                return (uint64_t)(this->Data[0]);
+            else
+                return (uint64_t)(this->Data[0]) | ((uint64_t)(this->Data[1]) << 32);
+        }
+
         /*  Fields  */
 
         uint32_t CurrentSize;
         uint32_t Data[MaxSize];
         //  Looks like a length-prefixed array.
-        
+
     } __aligned(16);
 }}

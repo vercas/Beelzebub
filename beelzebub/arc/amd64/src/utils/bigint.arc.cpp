@@ -37,12 +37,6 @@
     thorough explanation regarding other files.
 */
 
-/*  The inline assembly in this file uses an arcane feature of GCC documented
-    here: https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#x86Operandmodifiers
-
-    Cheers to froggey on #osdev for the info and documentation.
-*/
-
 #include <utils/bigint.hpp>
 #include <string.h>
 
@@ -67,100 +61,7 @@ union Qword
     };
 };
 
-// __noinline bool BigIntAdd2(uint32_t * dst, uint32_t const * src, uint32_t size, bool cin)
-// {
-//     uint32_t carry = cin ? 1U : 0U;
-
-//     while (size > 1)
-//     {
-//         //  First, add all 64-bit pairs.
-
-//         asm volatile ( "bt %[bit], %k[carry] \n\t"
-//                        "adcq %[src], %[dst] \n\t"
-//                        "setcb %b[carry] \n\t"
-//                      : [dst]"+m"(*(reinterpret_cast<uint64_t *>(dst)))
-//                      , [carry]"+rm"(carry)
-//                      : [src]"r"(*(reinterpret_cast<uint64_t const *>(src)))
-//                      , [bit]"Nr"(0)
-//                      );
-
-//         size -= 2;
-//         dst += 2;
-//         src += 2;
-//     }
-
-//     if (size == 1)
-//     {
-//         //  Then the possible remainder of 32 bits.
-
-//         asm volatile ( "bt %[bit], %k[carry] \n\t"
-//                        "adcl %[src], %[dst] \n\t"
-//                        "setcb %b[carry] \n\t"
-//                      : [dst]"+m"(*dst)
-//                      , [carry]"+rm"(carry)
-//                      : [src]"r"(*src)
-//                      , [bit]"Nr"(0)
-//                      );
-//     }
-
-//     return carry != 0U;
-// }
-
-// bool Beelzebub::Utils::BigIntAdd(uint32_t * dst
-//     , uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin)
-// {
-//     if (dst == src1)
-//         return BigIntAdd2(dst, src2, size, cin);
-//     else if (dst == src2)
-//         return BigIntAdd2(dst, src1, size, cin);
-
-//     //  Otherwise, all 3 operands are different.
-
-//     uint32_t carry = cin ? 1U : 0U;
-
-//     while (size > 1)
-//     {
-//         //  First, add all 64-bit pairs.
-
-//         uint64_t temp = *(reinterpret_cast<uint64_t const *>(src2));
-
-//         asm ( "bt %[bit], %k[carry] \n\t"
-//               "adcq %[src1], %[temp] \n\t"
-//               "setcb %b[carry] \n\t"
-//               "movq %[temp], %[dst] \n\t"
-//             : [dst]"=m"(*(reinterpret_cast<uint64_t *>(dst)))
-//             , [carry]"+rm"(carry)
-//             : [src1]"m"(*(reinterpret_cast<uint64_t const *>(src1)))
-//             , [temp]"r"(temp)
-//             , [bit]"Nr"(0)
-//             : "flags");
-
-//         size -= 2;
-//         dst += 2;
-//         src1 += 2;
-//         src2 += 2;
-//     }
-
-//     if (size == 1)
-//     {
-//         //  Then the possible remainder of 32 bits.
-
-//         uint32_t temp = *src2;
-        
-//         asm ( "bt %[bit], %k[carry] \n\t"
-//               "adcl %[src1], %[temp] \n\t"
-//               "setcb %b[carry] \n\t"
-//               "movl %[temp], %[dst] \n\t"
-//             : [dst]"=m"(*dst)
-//             , [carry]"+rm"(carry)
-//             : [src1]"m"(*src1)
-//             , [temp]"r"(temp)
-//             , [bit]"Nr"(0)
-//             : "flags");
-//     }
-
-//     return carry != 0U;
-// }
+/*  Arithmetic Operations  */
 
 bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
                                , uint32_t const * src1, uint32_t   size1
@@ -287,4 +188,252 @@ void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
     }
 
     //  Isn't that a rather large number of special cases?
+}
+
+/*  Logic Operations  */
+
+__noinline void BigIntAnd2(uint32_t       * dst, uint32_t sizeD
+                         , uint32_t const * src, uint32_t sizeS)
+{
+    if (sizeS > sizeD)
+        sizeS = sizeD;
+    //  There is nothing to do with the surplus.
+
+    for (size_t i = 0; i < sizeS; ++i)
+        dst[i] &= src[i];
+
+    if (sizeD > sizeS)
+        memset(dst + sizeS, 0, (sizeD - sizeS) * sizeof(uint32_t));
+        //  The rest becomes 0, as if ANDed with 0.
+}
+
+void Beelzebub::Utils::BigIntAnd(uint32_t       * dst , uint32_t sizeD
+                               , uint32_t const * src1, uint32_t size1
+                               , uint32_t const * src2, uint32_t size2)
+{
+    if (dst == src1)
+        BigIntAnd2(dst, Minimum(sizeD, size1), src2, size2);
+    else if (dst == src2)
+        BigIntAnd2(dst, Minimum(sizeD, size2), src1, size1);
+    else
+    {
+        uint32_t const limit = Minimum(size1, size2);
+
+        for (size_t i = 0; i < limit; ++i)
+            dst[i] = src1[i] & src2[i];
+
+        if (sizeD > limit)
+            memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+        //  The rest becomes 0.
+    }
+}
+
+__noinline void BigIntOr2(uint32_t       * dst, uint32_t sizeD
+                         , uint32_t const * src, uint32_t sizeS)
+{
+    if (sizeS > sizeD)
+        sizeS = sizeD;
+    //  There is nothing to do with the surplus.
+
+    for (size_t i = 0; i < sizeS; ++i)
+        dst[i] |= src[i];
+
+    //  The rest remains unchanged, as if ORed with 0.
+}
+
+void Beelzebub::Utils::BigIntOr (uint32_t       * dst , uint32_t sizeD
+                               , uint32_t const * src1, uint32_t size1
+                               , uint32_t const * src2, uint32_t size2)
+{
+    if (dst == src1)
+        BigIntOr2(dst, Minimum(sizeD, size1), src2, size2);
+    else if (dst == src2)
+        BigIntOr2(dst, Minimum(sizeD, size2), src1, size1);
+    else
+    {
+        if (size1 > sizeD)
+            size1 = sizeD;
+        
+        if (size2 > sizeD)
+            size2 = sizeD;
+
+        //  There is nothing to do with the surpluses.
+
+        uint32_t limit = Minimum(size1, size2);
+
+        size_t i = 0;
+
+        for (/* nothing */; i < limit; ++i)
+            dst[i] = src1[i] | src2[i];
+
+        if (size1 > limit)
+        {
+            for (/* nothing */; i < size1; ++i)
+                dst[i] = src1[i];
+
+            limit = size1;
+        }
+        else if (size2 > limit)
+        {
+            for (/* nothing */; i < size2; ++i)
+                dst[i] = src2[i];
+
+            limit = size2;
+        }
+
+        //  The shortest source is zero-extended (virtually) to the same size as
+        //  the longest (other) source.
+
+        if (sizeD > limit)
+            memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+        //  The rest becomes 0.
+    }
+}
+
+__noinline void BigIntXor2(uint32_t       * dst, uint32_t sizeD
+                         , uint32_t const * src, uint32_t sizeS)
+{
+    if (sizeS > sizeD)
+        sizeS = sizeD;
+    //  There is nothing to do with the surplus.
+
+    for (size_t i = 0; i < sizeS; ++i)
+        dst[i] ^= src[i];
+
+    //  The rest remains unchanged, as if XORed with 0.
+}
+
+void Beelzebub::Utils::BigIntXor(uint32_t       * dst , uint32_t sizeD
+                               , uint32_t const * src1, uint32_t size1
+                               , uint32_t const * src2, uint32_t size2)
+{
+    if (dst == src1)
+        BigIntXor2(dst, Minimum(sizeD, size1), src2, size2);
+    else if (dst == src2)
+        BigIntXor2(dst, Minimum(sizeD, size2), src1, size1);
+    else
+    {
+        if (size1 > sizeD)
+            size1 = sizeD;
+        
+        if (size2 > sizeD)
+            size2 = sizeD;
+
+        //  There is nothing to do with the surpluses.
+
+        uint32_t limit = Minimum(size1, size2);
+
+        size_t i = 0;
+
+        for (/* nothing */; i < limit; ++i)
+            dst[i] = src1[i] ^ src2[i];
+
+        if (size1 > limit)
+        {
+            for (/* nothing */; i < size1; ++i)
+                dst[i] = src1[i];
+
+            limit = size1;
+        }
+        else if (size2 > limit)
+        {
+            for (/* nothing */; i < size2; ++i)
+                dst[i] = src2[i];
+
+            limit = size2;
+        }
+
+        //  The shortest source is zero-extended (virtually) to the same size as
+        //  the longest (other) source.
+
+        if (sizeD > limit)
+            memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+        //  The rest becomes 0.
+    }
+}
+
+void Beelzebub::Utils::BigIntNot(uint32_t       * dst, uint32_t sizeD
+                               , uint32_t const * src, uint32_t sizeS)
+{
+    uint32_t const limit = Minimum(sizeD, sizeS);
+
+    for (size_t i = 0; i < limit; ++i)
+        dst[i] = ~src[i];
+
+    //  `i` stands for "innuendo".
+}
+
+bool Beelzebub::Utils::BigIntShL(uint32_t       * dst, uint32_t & sizeD
+                               , uint32_t const * src, uint32_t   sizeS
+                               , uint32_t sizeM, uint64_t amnt)
+{
+    size_t const amntMov = (size_t)(amnt >> 5);
+    //  This is the amount of array positions to shift left by.
+
+    amnt &= 31;
+    //  This will be the actual amount to shift by.
+
+    if (amntMov >= sizeM)
+    {
+        //  This will shift more positions than available.
+
+        memset(dst, 0, (sizeD = sizeM) * sizeof(uint32_t));
+        //  Means all that's left is zeros.
+
+        return true;
+    }
+    else
+    {
+        sizeD = Minimum(sizeM, sizeS + amntMov);
+
+        uint32_t overflow = 0U;
+
+        if (amntMov != 0)
+        {
+            for (size_t i = sizeD - 1; i >= amntMov; --i)
+                dst[i] = src[i - amntMov];
+
+            //  This is done in reverse so that nothing is lost when the source
+            //  and destination are the same.
+
+            for (size_t i = amntMov; i < sizeD; ++i)
+            {
+                Qword window { (uint64_t)(src[i]) };
+                //  This should 0-extended the value.
+
+                window.u64 = (window.u64 << amnt) | (uint64_t)overflow;
+
+                dst[i] = window.u32l;
+                overflow = window.u32h;
+            }
+
+            //  This has to be done in order, because overflow propagates towards
+            //  more significant bits/dwords.
+
+            memset(dst, 0, amntMov * sizeof(uint32_t));
+
+            //  No carry in accounted for.
+        }
+        else
+            for (size_t i = 0; i < sizeD; ++i)
+            {
+                Qword window { (uint64_t)(src[i]) };
+                //  This should 0-extended the value.
+
+                window.u64 = (window.u64 << amnt) | (uint64_t)overflow;
+
+                dst[i] = window.u32l;
+                overflow = window.u32h;
+            }
+
+        if (overflow != 0U)
+        {
+            if (sizeD < sizeM)
+                dst[sizeD++] = overflow;    //  Maybe there's room for overflow.
+            else
+                return true;
+        }
+
+        return false;
+    }
 }
