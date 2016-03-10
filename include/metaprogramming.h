@@ -153,7 +153,7 @@
 #define __fastcall         __attribute__((__fastcall__))
 //  To be used on IA-32 on *some* functions.
 
-#define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__))
+#define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__, __optimize__("Os")))
 
 #else
 
