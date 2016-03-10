@@ -362,6 +362,35 @@ void TestBigInt()
     ASSERT_EQ("%X4", 0xFFFFFC8BU, j.Data[2]);
     ASSERT_EQ("%X4", 0x00000000U, j.Data[1]);
     ASSERT_EQ("%X4", 0x00000000U, j.Data[0]);
+
+    BIT k = 0xFFFFFFF9FFFFFC8BU, l = j >> 999, m = 0U;
+
+    ASSERT(  k == (j >> 64) , "Expected equality."  );
+    ASSERT(!(k == (j >> 63)), "Expected inequality.");
+    ASSERT(  k != (j >> 63) , "Expected inequality.");
+
+    ASSERT_EQ("%u4",          0U, l.CurrentSize);
+    ASSERT_EQ("%u4",          2U, m.CurrentSize);
+
+    ASSERT(m == 0U);
+        // , "Expected equality [%X4:%X4:%X4:%X4]."
+        // , m.Data[3], m.Data[2], m.Data[1], m.Data[0]);
+
+    ASSERT(l == m);
+        // , "Expected equality [%u4 %X4:%X4:%X4:%X4] vs [%u4 %X4:%X4:%X4:%X4].%n%i4%n"
+        // , l.CurrentSize, l.Data[3], l.Data[2], l.Data[1], l.Data[0]
+        // , m.CurrentSize, m.Data[3], m.Data[2], m.Data[1], m.Data[0]
+        // , BigIntCmp(&(l.Data[0]), l.CurrentSize, &(m.Data[0]), m.CurrentSize));
+
+    ASSERT(l == 0U);
+        // , "Expected equality [%X4:%X4:%X4:%X4]."
+        // , l.Data[3], l.Data[2], l.Data[1], l.Data[0]);
+
+    ASSERT(i > j); ASSERT(i >= j);
+    ASSERT(j < i); ASSERT(j <= i);
+
+    ASSERT(i > k); ASSERT(i >= k);
+    ASSERT(j > k); ASSERT(j >= k);
 }
 
 #endif

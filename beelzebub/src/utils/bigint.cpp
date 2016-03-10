@@ -39,6 +39,7 @@
 
 #include <utils/bigint.hpp>
 #include <string.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
@@ -511,4 +512,54 @@ bool Beelzebub::Utils::BigIntShR(uint32_t       * dst, uint32_t & sizeD
 
         return underflow != 0U;
     }
+}
+
+/*  Comparisons  */
+
+int Beelzebub::Utils::BigIntCmp(uint32_t const * srcL, uint32_t sizeL
+                              , uint32_t const * srcR, uint32_t sizeR)
+{
+    if (sizeL > sizeR)
+    {
+        for (size_t i = sizeR; i < sizeL; ++i)
+            if (srcL[i] != 0)
+                return 1;
+
+        //  Since the rest of the right source is assumed to be 0, any non-zero
+        //  element in the left side's extra means it is larger.
+
+        sizeL = sizeR;
+    }
+    else if (sizeR > sizeL)
+    {
+        for (size_t i = sizeL; i < sizeR; ++i)
+            if (srcR[i] != 0)
+                return -1;
+
+        //  Analogy for the right source.
+        //  And no need to update `sizeR`.
+    }
+
+    //  Sizes are equal now.
+
+    if (srcL == srcR || sizeL == 0)
+        return 0;
+    //  Just in case. Also, this check is done here (after the sizes) in case
+    //  the caller tries to do something "smart".
+
+    size_t i = sizeL;
+
+    do
+    {
+        --i;
+
+        uint32_t const l = srcL[i], r = srcR[i];
+
+        if (l > r)
+            return 1;
+        else if (r > l)
+            return -1;
+    } while (i > 0);
+
+    return 0;
 }
