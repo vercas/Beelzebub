@@ -78,17 +78,47 @@ else if (false)
 #define msg_(...) do {} while(false)
 #endif
 
-#define ASSERT(cond, ...) do {                                          \
+#define ASSERT_1(cond) do {                                             \
+if unlikely(!(cond))                                                    \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
+        , "ASSERTION FAILURE");                                         \
+} while (false)
+
+#define ASSERT_N(cond, ...) do {                                        \
 if unlikely(!(cond))                                                    \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
         , __VA_ARGS__);                                                 \
 } while (false)
+
+#define ASSERT(...) GET_MACRO100(__VA_ARGS__, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
+
 #define MSG(...) do {                                                   \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
     {                                                                   \
         Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
     }                                                                   \
 } while (false)
+
 #define MSG_(...) do {                                                  \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
         withLock (Beelzebub::Debug::MsgSpinlock)                        \
@@ -139,14 +169,36 @@ namespace Beelzebub { namespace Debug
 #define breakpoint(...) do {} while (false)
 #endif
 
-#define ASSERT_EQ(fmt, expected, val) do {                                      \
+#define ASSERT_EQ_2(expected, val) do {                                         \
+if unlikely((val) != (expected))                                                \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " == " #expected \
+        , "Given value is not equal to the expected one.");                     \
+} while (false)
+
+#define ASSERT_EQ_3(fmt, expected, val) do {                                    \
 if unlikely((val) != (expected))                                                \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " == " #expected \
         , "Expected " fmt ", got " fmt ".", expected, val);                     \
 } while (false)
 
-#define ASSERT_NEQ(fmt, expected, val) do {                                     \
+#define ASSERT_EQ_4(fmtE, fmtV, expected, val) do {                            \
+if unlikely((val) != (expected))                                                \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " == " #expected \
+        , "Expected " fmtE ", got " fmtV ".", expected, val);                   \
+} while (false)
+
+#define ASSERT_EQ(arg1, ...) GET_MACRO3(__VA_ARGS__, ASSERT_EQ_4, ASSERT_EQ_3, ASSERT_EQ_2)(arg1, __VA_ARGS__)
+
+#define ASSERT_NEQ_2(expected, val) do {                                        \
+if unlikely((val) == (expected))                                                \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " != " #expected \
+        , "Expected anything but the given value.", expected);                  \
+} while (false)
+
+#define ASSERT_NEQ_3(fmt, expected, val) do {                                   \
 if unlikely((val) == (expected))                                                \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " != " #expected \
         , "Expected anything but " fmt ".", expected);                          \
 } while (false)
+
+#define ASSERT_NEQ(arg1, ...) GET_MACRO2(__VA_ARGS__, ASSERT_NEQ_3, ASSERT_NEQ_2)(arg1, __VA_ARGS__)
