@@ -50,7 +50,7 @@ namespace Beelzebub
 
     extern CommandLineOptionSpecification * CommandLineOptionsHead;
 
-    __cold __noinline Handle InstanceGlobalOptions();
+    __startup Handle InstanceGlobalOptions();
 
-    __cold __noinline Handle InitializeTestFlags();
+    __startup Handle InitializeTestFlags();
 }

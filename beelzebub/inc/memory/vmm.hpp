@@ -149,7 +149,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Initialization  */
 
-        __cold static Handle Bootstrap(Execution::Process * const bootstrapProc);
+        __startup static Handle Bootstrap(Execution::Process * const bootstrapProc);
         static Handle Initialize(Execution::Process * const proc);
 
         /*  Activation and Status  */
