@@ -41,4 +41,4 @@
 
 #include <metaprogramming.h>
 
-__cold __noinline void TestAvlTree();
+__startup void TestAvlTree();

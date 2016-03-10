@@ -41,4 +41,4 @@
 
 #include <metaprogramming.h>
 
-__cold __noinline void TestFpu();
+__startup void TestFpu();

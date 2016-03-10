@@ -4,13 +4,19 @@ SECTIONS
 {
     . = 0xFFFFFFFF80000000;
 
-    .text : {
-        *(.text.startup)
-        . = ALIGN(16);
+    .text.unlikely : {
         *(.text.unlikely)
-        . = ALIGN(16);
+    }
+
+    . = ALIGN(16);
+
+    .text : {
         *(.text)
-        . = ALIGN(16);
+    }
+
+    . = ALIGN(16);
+
+    .text.hot : {
         *(.text.hot)
     }
 
@@ -42,5 +48,13 @@ SECTIONS
         *(.comment)
     }
 
+    . = ALIGN(4096);
+    startup_section_start = .;
+    
+    .text.startup : {
+        *(.text.startup)
+    }
+
+    startup_section_end = .;
     . = ALIGN(4096);
 }

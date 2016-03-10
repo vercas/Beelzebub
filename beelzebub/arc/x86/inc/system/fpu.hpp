@@ -197,7 +197,7 @@ namespace Beelzebub { namespace System
 
         /*  Initialization  */
 
-        static __cold void InitializeMain();
+        static __startup void InitializeMain();
         static __cold void InitializeSecondary();
 
         /*  Operations  */

@@ -41,4 +41,4 @@
 
 #include <terminals/base.hpp>
 
-__cold __noinline Beelzebub::Terminals::TerminalWriteResult TestTerminal();
+__startup Beelzebub::Terminals::TerminalWriteResult TestTerminal();

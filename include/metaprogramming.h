@@ -153,6 +153,8 @@
 #define __fastcall         __attribute__((__fastcall__))
 //  To be used on IA-32 on *some* functions.
 
+#define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__))
+
 #else
 
 #define __forceinline      inline
@@ -184,6 +186,8 @@
 
 #define __section(name)  
 #define __build_data  
+
+#define __startup  
 
 #endif
 

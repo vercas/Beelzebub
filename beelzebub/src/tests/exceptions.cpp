@@ -48,7 +48,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 
-__noinline void TestNullDereference(uintptr_t volatile * const testPtr)
+__startup void TestNullDereference(uintptr_t volatile * const testPtr)
 {
     uintptr_t volatile * volatile testNullPtr = reinterpret_cast<uintptr_t volatile *>(testPtr - testPtr);
 

@@ -98,8 +98,8 @@ CpuId Beelzebub::BootstrapCpuid;
     CpuData BspCpuData;
 #endif
 
-void InitializeCpuData(bool const bsp);
-void InitializeCpuStacks(bool const bsp);
+__startup void InitializeCpuData(bool const bsp);
+__startup void InitializeCpuStacks(bool const bsp);
 
 /*******************
     ENTRY POINTS
@@ -222,7 +222,7 @@ PageAllocator mainAllocator;
 /** 
  *  <summary>Creates an allocation space over the given physical range.</summary>
  */
-__cold PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end, Domain * domain)
+__startup PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end, Domain * domain)
 {
     /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
 
@@ -436,7 +436,7 @@ Handle InitializePhysicalMemory()
     VIRTUAL MEMORY
 *********************/
 
-__cold __noinline void RemapTerminal(TerminalBase * const terminal);
+__startup __noinline void RemapTerminal(TerminalBase * const terminal);
 //  Forward declaration.
 
 /**
@@ -627,7 +627,7 @@ void RemapTerminal(TerminalBase * const terminal)
  *  Does something with the kernel's module...
  *  </summary>
  */
-__cold Handle HandleKernelModule(size_t const index
+__startup Handle HandleKernelModule(size_t const index
                                , jg_info_module_t const * const module
                                , vaddr_t const vaddr
                                , size_t const size)
@@ -650,7 +650,7 @@ __cold Handle HandleKernelModule(size_t const index
  *  Processes a module.
  *  </summary>
  */
-__cold Handle HandleModule(size_t const index, jg_info_module_t const * const module)
+__startup Handle HandleModule(size_t const index, jg_info_module_t const * const module)
 {
     Handle res = HandleResult::Okay;
 

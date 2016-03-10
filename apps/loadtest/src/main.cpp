@@ -2,7 +2,7 @@
 
 using namespace Beelzebub;
 
-extern "C" __attribute__((__used__)) int _start()
+__extern __used int _start()
 {
 beginning:
 

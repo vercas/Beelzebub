@@ -41,4 +41,4 @@
 
 #include <metaprogramming.h>
 
-__cold __noinline void TestStackIntegrity();
+__startup void TestStackIntegrity();

@@ -63,11 +63,11 @@ namespace Beelzebub { namespace Execution
 
         /*  Initialization  */
 
-        static __cold Handle Initialize(size_t const size, size_t const alignment);
+        static __startup Handle Initialize(size_t const size, size_t const alignment);
 
         /*  Operations  */
 
-        static __cold Handle AllocateTemplate(void * & state);
+        static __startup Handle AllocateTemplate(void * & state);
         static __hot Handle AllocateNew(void * & state);
 
         static __hot Handle Deallocate(void * state);

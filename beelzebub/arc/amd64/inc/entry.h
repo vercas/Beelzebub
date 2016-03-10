@@ -64,8 +64,8 @@
 #define JG_INFO_MODULE_EX          ((jg_info_module_t *) JG_INFO_OFFSET_EX(module))
 #define JG_INFO_STRING_EX          ((char             *) JG_INFO_OFFSET_EX(string))
 
-__extern __cold void kmain_bsp();
-__extern __cold void kmain_ap();
+__extern __startup void kmain_bsp();
+__extern __startup void kmain_ap();
 
 #ifdef __cplusplus
 namespace Beelzebub
@@ -74,30 +74,30 @@ namespace Beelzebub
 }
 #endif
 
-__extern __cold __noinline Handle ParseKernelArguments();
+__extern __startup Handle ParseKernelArguments();
 
-__extern __cold __noinline Handle InitializeInterrupts();
-__extern __cold __noinline Handle InitializePit();
+__extern __startup Handle InitializeInterrupts();
+__extern __startup Handle InitializePit();
 
 // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
-__extern __cold __noinline Handle InitializePhysicalAllocator(jg_info_mmap_t * map
+__extern __startup Handle InitializePhysicalAllocator(jg_info_mmap_t * map
     , size_t cnt, uintptr_t freeStart, Beelzebub::System::Domain * domain);
-__extern __cold __noinline Handle InitializePhysicalMemory();
-__extern __cold __noinline Handle InitializeVirtualMemory();
+__extern __startup Handle InitializePhysicalMemory();
+__extern __startup Handle InitializeVirtualMemory();
 
-__extern __cold __noinline Handle InitializeAcpiTables();
+__extern __startup Handle InitializeAcpiTables();
 
-__extern __cold __noinline Handle InitializeApic();
+__extern __startup Handle InitializeApic();
 
-__extern __cold __noinline Handle InitializeProcessingUnits();
+__extern __startup Handle InitializeProcessingUnits();
 
-__extern __cold __noinline Handle InitializeModules();
+__extern __startup Handle InitializeModules();
 
-__extern __cold __noinline TerminalBase * InitializeTerminalProto();
-__extern __cold __noinline TerminalBase * InitializeTerminalMain(char * clue);
+__extern __startup TerminalBase * InitializeTerminalProto();
+__extern __startup TerminalBase * InitializeTerminalMain(char * clue);
 
 #ifdef __BEELZEBUB__TEST_MT
-__extern __cold __noinline void StartMultitaskingTest();
+__extern __startup void StartMultitaskingTest();
 #endif
 
 #ifdef __cplusplus

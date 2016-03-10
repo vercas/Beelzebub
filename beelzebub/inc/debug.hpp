@@ -181,7 +181,7 @@ if unlikely((val) != (expected))                                                
         , "Expected " fmt ", got " fmt ".", expected, val);                     \
 } while (false)
 
-#define ASSERT_EQ_4(fmtE, fmtV, expected, val) do {                            \
+#define ASSERT_EQ_4(fmtE, fmtV, expected, val) do {                             \
 if unlikely((val) != (expected))                                                \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " == " #expected \
         , "Expected " fmtE ", got " fmtV ".", expected, val);                   \
