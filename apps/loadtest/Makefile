@@ -34,7 +34,7 @@ LDFILE		:= ./link.$(ARC).ld
 #   Toolchain settings   #
 ##########################
 
-GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS)
+GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_APPLICATION 
 GCCFLAGS	+= -ffreestanding -Wall -mcmodel=small 
 GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
 # GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
