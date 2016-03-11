@@ -19,7 +19,7 @@ RUNTIME_DIR := $(SRC_DIR)/runtime
 
 include ../Beelzebub.mk
 
-.PHONY: all install uninstall clean linku linko build headers $(ARC) $(SETTINGS)
+.PHONY: all install uninstall clean linku build headers $(ARC) $(SETTINGS)
 
 #############
 # Toolchain #
@@ -123,7 +123,7 @@ KERNEL_PATH		:= $(BUILD_HOST)/$(KERNEL_BIN)
 
 ###############################################
 # Build everything and link the target binary #
-$(ARC):	linko
+$(ARC):	$(KERNEL_PATH)
 
 ###############################################
 #   OBJECTS, SOURCES, HEADERS and LIBRARIES   #
@@ -194,10 +194,6 @@ uninstall:
 clean:
 	@ echo "/REM:" $(BUILD_HOST)
 	@ rm -Rf $(BUILD_HOST)
-
-##################################################
-# Link the target binary with extra optimization #
-linko: $(KERNEL_PATH)
 
 ##########################
 # Link the target binary #
