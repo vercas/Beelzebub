@@ -868,7 +868,7 @@ __hot void * TestThreadEntryPoint(void * const arg)
     }
 }
 
-__cold void InitializeTestThread(Thread * const t, Process * const p)
+__startup void InitializeTestThread(Thread * const t, Process * const p)
 {
     new (t) Thread(p);
 
@@ -893,7 +893,7 @@ __cold void InitializeTestThread(Thread * const t, Process * const p)
     //  This sets up the thread so it goes directly to the entry point when switched to.
 }
 
-__cold char * AllocateTestPage(Process * const p)
+__startup char * AllocateTestPage(Process * const p)
 {
     Handle res;
     PageDescriptor * desc = nullptr;
