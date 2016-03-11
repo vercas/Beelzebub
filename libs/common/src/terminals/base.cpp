@@ -38,7 +38,7 @@
 */
 
 #include <terminals/base.hpp>
-#include <debug.hpp>
+// #include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;

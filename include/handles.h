@@ -393,10 +393,8 @@ public:
 
         /*  Printing  */
 
-#ifdef __BEELZEBUB_KERNEL
         __noinline char const * const GetTypeString() const;
         __noinline char const * const GetResultString() const;
-#endif
 
     } __packed;
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.
