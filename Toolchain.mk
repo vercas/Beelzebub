@@ -18,6 +18,7 @@ DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gdc
 AS			:= nasm
 LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 
 LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-ld
+AR			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc-ar 
 MKISO		:= mkisofs
 
 PRE_COMPILATION		:=  

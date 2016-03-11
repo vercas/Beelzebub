@@ -53,7 +53,7 @@ CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 
 ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 
-LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel 
+LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel -fuse-linker-plugin 
 LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe 
 LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
@@ -125,9 +125,9 @@ KERNEL_PATH		:= $(BUILD_HOST)/$(KERNEL_BIN)
 # Build everything and link the target binary #
 $(ARC):	linko
 
-####################################
-#   OBJECTS, SOURCES AND HEADERS   #
-####################################
+###############################################
+#   OBJECTS, SOURCES, HEADERS and LIBRARIES   #
+###############################################
 
 # Standard
 # INCFLAGS	:= -I$(INCPCH_DIR) -I$(INC_DIR) -I$(PREFIX)/include
@@ -140,6 +140,8 @@ OBJECTS		+= $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.cpp.o,$(shell find $(SRC_
 
 HEADERS		+= $(patsubst $(INC_DIR)/%.hpp,$(INCPCH_DIR)/%.hpp.gch,$(shell find $(INC_DIR) -name "*.hpp"))
 HEADERS		+= $(patsubst $(INC_DIR)/%.h,$(INCPCH_DIR)/%.h.gch,$(shell find $(INC_DIR) -name "*.h"))
+
+LIBRARIES	:= common.$(ARC)
 
 # When architecture-specific files are present...
 ifneq (,$(ARC))
@@ -166,8 +168,11 @@ ifneq (,$(AUX))
 endif
 
 # Bootstrapping
-CFLAGS		+= $(INCFLAGS)
-CXXFLAGS	+= $(INCFLAGS)
+CFLAGS		+= $(INCFLAGS) 
+CXXFLAGS	+= $(INCFLAGS) 
+
+LIBFLAGS	:= -L$(PREFIX)/libs $(patsubst %,-l%,$(LIBRARIES)) 
+LIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(LIBRARIES)) 
 
 #build::
 #	@ echo $(shell find $(ARC_DIR)/$(ARC) -name "*.c")
@@ -198,7 +203,7 @@ linko: $(KERNEL_PATH)
 # Link the target binary #
 linku: $(OBJECTS)
 	@ echo "/LNK/UNO:" $(KERNEL_PATH) "("$(LDFILE)")"
-	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(KERNEL_PATH) $(OBJECTS)
+	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(KERNEL_PATH) $(OBJECTS) $(LIBFLAGS) 
 
 ##########################
 # Build all object files #
@@ -225,9 +230,9 @@ $(KERNEL_INSTALL_PATH): $(KERNEL_PATH)
 
 ##################################################
 # Link the target binary with extra optimization #
-$(KERNEL_PATH): $(LDFILE) $(OBJECTS)
+$(KERNEL_PATH): $(LDFILE) $(LIBFILES) $(OBJECTS)
 	@ echo "/LNK/OPT:" $@ "("$(LDFILE)")"
-	@ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS)
+	@ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS) $(LIBFLAGS)
 
 ####################################### NORMAL FILES ##########
 
