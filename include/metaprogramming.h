@@ -154,6 +154,7 @@
 //  To be used on IA-32 on *some* functions.
 
 #define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__, __optimize__("Os")))
+#define __library          __extern __attribute__((__used__, __noinline__, __optimize__(2)))
 
 #else
 
@@ -188,6 +189,7 @@
 #define __build_data  
 
 #define __startup  
+#define __library          __extern 
 
 #endif
 

@@ -43,44 +43,44 @@
 
 namespace Beelzebub { namespace Utils
 {
-    __extern __noinline bool BigIntAdd(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
-    __extern __noinline bool BigIntSub(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __library bool BigIntAdd(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __library bool BigIntSub(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
 
-    __extern __noinline bool BigIntMul(uint32_t       * dst , uint32_t & dstSize
-                                     , uint32_t const * src1, uint32_t   size1
-                                     , uint32_t const * src2, uint32_t   size2
-                                     , uint32_t maxSize, bool cin);
+    __library bool BigIntMul(uint32_t       * dst , uint32_t & dstSize
+                           , uint32_t const * src1, uint32_t   size1
+                           , uint32_t const * src2, uint32_t   size2
+                           , uint32_t maxSize, bool cin);
 
-    __extern __noinline void BigIntDiv(uint32_t       * quot, uint32_t sizeQ
-                                     , uint32_t       * remn, uint32_t sizeR
-                                     , uint32_t const * src1, uint32_t size1
-                                     , uint32_t const * src2, uint32_t size2);
+    __library void BigIntDiv(uint32_t       * quot, uint32_t sizeQ
+                           , uint32_t       * remn, uint32_t sizeR
+                           , uint32_t const * src1, uint32_t size1
+                           , uint32_t const * src2, uint32_t size2);
 
-    __extern __noinline void BigIntAnd(uint32_t       * dst , uint32_t sizeD
-                                     , uint32_t const * src1, uint32_t size1
-                                     , uint32_t const * src2, uint32_t size2);
+    __library void BigIntAnd(uint32_t       * dst , uint32_t sizeD
+                           , uint32_t const * src1, uint32_t size1
+                           , uint32_t const * src2, uint32_t size2);
 
-    __extern __noinline void BigIntOr (uint32_t       * dst , uint32_t sizeD
-                                     , uint32_t const * src1, uint32_t size1
-                                     , uint32_t const * src2, uint32_t size2);
+    __library void BigIntOr (uint32_t       * dst , uint32_t sizeD
+                           , uint32_t const * src1, uint32_t size1
+                           , uint32_t const * src2, uint32_t size2);
 
-    __extern __noinline void BigIntXor(uint32_t       * dst , uint32_t sizeD
-                                     , uint32_t const * src1, uint32_t size1
-                                     , uint32_t const * src2, uint32_t size2);
+    __library void BigIntXor(uint32_t       * dst , uint32_t sizeD
+                           , uint32_t const * src1, uint32_t size1
+                           , uint32_t const * src2, uint32_t size2);
 
-    __extern __noinline void BigIntNot(uint32_t       * dst , uint32_t sizeD
-                                     , uint32_t const * src , uint32_t sizeS);
+    __library void BigIntNot(uint32_t       * dst , uint32_t sizeD
+                           , uint32_t const * src , uint32_t sizeS);
 
-    __extern __noinline bool BigIntShL(uint32_t       * dst , uint32_t & sizeD
-                                     , uint32_t const * src , uint32_t   sizeS
-                                     , uint32_t sizeM, uint64_t amnt);
+    __library bool BigIntShL(uint32_t       * dst , uint32_t & sizeD
+                           , uint32_t const * src , uint32_t   sizeS
+                           , uint32_t sizeM, uint64_t amnt);
 
-    __extern __noinline bool BigIntShR(uint32_t       * dst , uint32_t & sizeD
-                                     , uint32_t const * src , uint32_t   sizeS
-                                     , uint64_t amnt);
+    __library bool BigIntShR(uint32_t       * dst , uint32_t & sizeD
+                           , uint32_t const * src , uint32_t   sizeS
+                           , uint64_t amnt);
 
-    __extern __noinline int  BigIntCmp(uint32_t const * srcL, uint32_t sizeL
-                                     , uint32_t const * srcR, uint32_t sizeR);
+    __library int  BigIntCmp(uint32_t const * srcL, uint32_t sizeL
+                           , uint32_t const * srcR, uint32_t sizeR);
 
     template<uint32_t MaxSize>
     struct BigUInt
