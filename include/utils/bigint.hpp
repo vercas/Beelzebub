@@ -82,6 +82,9 @@ namespace Beelzebub { namespace Utils
     __library int  BigIntCmp(uint32_t const * srcL, uint32_t sizeL
                            , uint32_t const * srcR, uint32_t sizeR);
 
+    __library bool BigIntGetPow10(uint32_t * dst, uint32_t & sizeD
+                                , uint32_t sizeM, uint32_t exponent);
+
     template<uint32_t MaxSize>
     struct BigUInt
     {
@@ -162,6 +165,15 @@ namespace Beelzebub { namespace Utils
                 this->Data[i] = other.Data[i];
 
             return *this;
+        }
+
+        static BigUInt GetPowerOf10(uint32_t exponent)
+        {
+            BigUInt res {};
+
+            BigIntGetPow10(&(res.Data[0]), res.CurrentSize, MaxSize, exponent);
+
+            return res;
         }
 
         /*  Conversions  */

@@ -7,6 +7,8 @@ PREFIX		:= ./../../build
 INC_COMMON	:= ./../../include
 SRC_DIR		:= ./src
 INC_DIR		:= ./inc
+ARC_DIR		:= .
+AUX_DIR		:= .
 RUNTIME_DIR := $(SRC_DIR)/runtime
 
 include ../../Beelzebub.mk
