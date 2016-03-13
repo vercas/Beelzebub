@@ -1,7 +1,7 @@
 .SUFFIXES:  
 
-########################
-# Default architecture #
+###########
+# Default #
 all:
 	@ echo -n "Currently supported target architectures are: " 1>&2
 	@ echo "amd64, ia32pae, ia32" 1>&2
@@ -21,13 +21,28 @@ KERNEL_DIR	:= ./$(KERNEL_NAME)
 
 .PHONY: run qemu qemu-serial clean jegudiel image kernel apps libs $(ARC) $(SETTINGS)
 
-ia32:		image
-ia32pae:	image
-amd64:		jegudiel image
+$(ARC): image
+
+clean:
+	@ $(MAKE) -C image/ clean
+	@ $(MAKE) -C $(KERNEL_DIR)/ clean
+	@ $(MAKE) -C jegudiel/ clean
+	@ $(MAKE) -C apps/ clean
+	@ $(MAKE) -C libs/ clean
+	@ rm -Rf $(PREFIX)
+	@ rm -f last_settings.txt
+
+####################################### SPECIFICS ##########
+
+ifeq ($(ARC),amd64)
+kernel:: jegudiel
+endif
+
+####################################### TESTING & RUNNING ##########
 
 run: $(ISO_PATH)
 	@ bochs -q
-	
+
 qemu: $(ISO_PATH)
 	@ qemu-system-x86_64 -cdrom $(ISO_PATH) -smp 4
 
@@ -43,6 +58,8 @@ vmware2:
 	@ sleep 5
 	@ vmrun stop $(VMX_PATH)
 
+####################################### COMPONENTS ##########
+
 jegudiel:
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
@@ -51,7 +68,7 @@ image: kernel apps libs
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso
 
-kernel: libs
+kernel:: libs
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
@@ -62,12 +79,3 @@ apps: kernel libs
 libs:
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C libs/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
-
-clean:
-	@ $(MAKE) -C image/ clean
-	@ $(MAKE) -C $(KERNEL_DIR)/ clean
-	@ $(MAKE) -C jegudiel/ clean
-	@ $(MAKE) -C apps/ clean
-	@ $(MAKE) -C libs/ clean
-	@ rm -Rf $(PREFIX)
-	@ rm -f last_settings.txt

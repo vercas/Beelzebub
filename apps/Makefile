@@ -1,5 +1,13 @@
 .SUFFIXES:  
 
+###########
+# Default #
+all:
+	@ echo -n "Currently supported target architectures are: " 1>&2
+	@ echo "amd64, ia32pae, ia32" 1>&2
+	@ echo "Please choose one of them as a target!" 1>&2
+	@ return 42 # Yes, the answer to 'all', basically.
+
 ###############
 # Directories #
 PREFIX2		:= ./..
