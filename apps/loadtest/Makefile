@@ -101,10 +101,6 @@ ifeq ($(AUX),x86)
 	endif
 endif
 
-###############################################
-# Build everything and link the target binary #
-$(ARC):	$(APP_PATH)
-
 # Linker script
 LDFILE		:= ./link.$(ARC).ld
 
@@ -118,11 +114,18 @@ include ../../Sources.mk
 CFLAGS		+= $(INCFLAGS)
 CXXFLAGS	+= $(INCFLAGS)
 
-####################################### BASICS ##########
+################################################################################
+#                                   TARGETS                                    #
+################################################################################
+
+# Do nothing for the architecture as a target.
+$(ARC):
+	@ true
 
 ###############################
 # Install to prefix directory #
 install: $(APP_INSTALL_PATH)
+	@ true
 
 ####################################
 # Uninstalls from prefix directory #
@@ -144,6 +147,7 @@ linku: $(OBJECTS)
 ##########################
 # Build all object files #
 build: $(OBJECTS)
+	@ true
 
 ####################################### BINARY BLOBS ##########
 

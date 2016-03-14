@@ -4,24 +4,32 @@
 
 .SUFFIXES:  
 
-###########
-# Default #
+# There is no default target.
 all:
 	@ echo -n "Currently supported target architectures are: " 1>&2
 	@ echo "amd64, ia32pae, ia32" 1>&2
 	@ echo "Please choose one of them as a target!" 1>&2
 	@ return 42 # Yes, the answer to 'all', basically.
 
+# Solution directories
 PREFIX		:= ./build
 
+# Common settings
 include ./Beelzebub.mk
 
+# Fake targets.
 .PHONY: run qemu qemu-serial clean jegudiel image kernel apps libs $(ARC) $(SETTINGS)
 
+# Output file
+KERNEL_DIR	:= ./$(KERNEL_NAME)
+
+################################################################################
+#                             TOOLCHAIN & SETTINGS                             #
+################################################################################
+
+# Toolchain
 include ./Toolchain.mk
 #	This one is needed to determine Make flags.
-
-KERNEL_DIR	:= ./$(KERNEL_NAME)
 
 ################################################################################
 #                        ARCHITECTURE-SPECIFIC SETTINGS                        #
@@ -33,13 +41,13 @@ ifeq ($(ARC),amd64)
 kernel:: jegudiel
 endif
 
-$(ARC): image
-
 ################################################################################
 #                                   TARGETS                                    #
 ################################################################################
 
-####################################### BASICS ##########
+# Do nothing for the architecture as a target.
+$(ARC): image
+	@ true
 
 clean:
 	@ $(MAKE) -C image/ clean

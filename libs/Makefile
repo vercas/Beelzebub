@@ -4,8 +4,7 @@
 
 .SUFFIXES:  
 
-###########
-# Default #
+# There is no default target.
 all:
 	@ echo -n "Currently supported target architectures are: " 1>&2
 	@ echo "amd64, ia32pae, ia32" 1>&2
@@ -19,10 +18,13 @@ PROJ_SUBDIR	:= libs
 PREFIX2		:= ./..
 PREFIX		:= ./../build
 
+# Common settings
 include ../Beelzebub.mk
 
+# Fake targets.
 .PHONY: install clean common common-install common-clean $(ARC) $(SETTINGS)
 
+# Toolchain
 include ../Toolchain.mk
 #	This one is needed to determine Make flags.
 
@@ -30,9 +32,9 @@ include ../Toolchain.mk
 #                                   TARGETS                                    #
 ################################################################################
 
-$(ARC): install
-
-####################################### BASICS ##########
+# Do nothing for the architecture as a target.
+$(ARC):
+	@ true
 
 common:
 	@ echo "/MAK:" $@

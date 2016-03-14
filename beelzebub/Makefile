@@ -124,10 +124,6 @@ ifeq ($(AUX),x86)
 	endif
 endif
 
-###############################################
-# Build everything and link the target binary #
-$(ARC):	$(KERNEL_PATH)
-
 ################################################################################
 #                   OBJECTS, SOURCES, HEADERS and LIBRARIES                    #
 ################################################################################
@@ -146,11 +142,18 @@ LIBRARIES	:= common.$(ARC)
 LIBFLAGS	:= -L$(PREFIX)/libs $(patsubst %,-l%,$(LIBRARIES)) 
 LIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(LIBRARIES)) 
 
-####################################### BASICS ##########
+################################################################################
+#                                   TARGETS                                    #
+################################################################################
+
+# Do nothing for the architecture as a target.
+$(ARC):
+	@ true
 
 ###############################
 # Install to prefix directory #
 install: $(KERNEL_INSTALL_PATH)
+	@ true
 
 ####################################
 # Uninstalls from prefix directory #
@@ -172,10 +175,12 @@ linku: $(OBJECTS)
 ##########################
 # Build all object files #
 build: $(OBJECTS)
+	@ true
 
 ###############################
 # Precompile all header files #
 headers: $(HEADERS)
+	@ true
 
 ####################################### BINARY BLOBS ##########
 

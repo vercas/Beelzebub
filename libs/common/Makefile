@@ -96,10 +96,6 @@ ifeq ($(AUX),x86)
 	endif
 endif
 
-###############################################
-# Build everything and link the target binary #
-$(ARC):	$(LIB_PATH)
-
 ################################################################################
 #                             OBJECTS AND SOURCES                              #
 ################################################################################
@@ -110,11 +106,18 @@ include ../../Sources.mk
 CFLAGS		+= $(INCFLAGS)
 CXXFLAGS	+= $(INCFLAGS)
 
-####################################### BASICS ##########
+################################################################################
+#                                   TARGETS                                    #
+################################################################################
+
+# Do nothing for the architecture as a target.
+$(ARC):
+	@ true
 
 ###############################
 # Install to prefix directory #
 install: $(LIB_INSTALL_PATH)
+	@ true
 
 ####################################
 # Uninstalls from prefix directory #
@@ -130,6 +133,7 @@ clean:
 ##########################
 # Build all object files #
 build: $(OBJECTS)
+	@ true
 
 ####################################### BINARY BLOBS ##########
 

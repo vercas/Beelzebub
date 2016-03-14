@@ -1,17 +1,36 @@
-.PHONY: prepare iso clean
+################################################################################
+#                                   PROLOGUE                                   #
+################################################################################
+
 .SUFFIXES:  
 
-PREFIX2				:= ./..
-PREFIX				:= ./../build
-BUILD_DIR 			:= ./build
+# There is no default target.
+all:
+	@ echo -n "Currently supported target architectures are: " 1>&2
+	@ echo "amd64, ia32pae, ia32" 1>&2
+	@ echo "Please choose one of them as a target!" 1>&2
+	@ return 42 # Yes, the answer to 'all', basically.
 
+# Solution directories
+PREFIX2		:= ./..
+PREFIX		:= ./../build
+PROJ_SUBDIR	:= image
+
+# Local directories
+BUILD_DIR 	:= ./build
+
+# Common settings
 include ../Beelzebub.mk
 
-PROJ_SUBDIR	:= image
-include ../Toolchain.mk
-#	MKISO is defined here.
+# Fake targets.
+.PHONY: iso clean $(ARC) $(SETTINGS)
 
-####################################### VARIABLES ##########
+# Toolchain
+include ../Toolchain.mk
+
+################################################################################
+#                                    FILES                                     #
+################################################################################
 
 ISO_TARGET_DIR		:= $(BUILD_DIR)/iso
 
@@ -31,7 +50,9 @@ ISO_TARGET_APPS		:= apps
 
 BOOTLOADER			:= $(PREFIX)/bin/jegudiel.bin
 
-####################################### ARCHITECTURE-SPECIFIC ##########
+################################################################################
+#                        ARCHITECTURE-SPECIFIC SETTINGS                        #
+################################################################################
 
 MISCELLANEOUS_FILES		:=  
 MISCELLANEOUS_TARGETS	:= $(addprefix $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT), $(notdir $(MISCELLANEOUS_FILES)))
@@ -44,11 +65,16 @@ endif
 MISCELLANEOUS_FILES		+= $(PREFIX)/bin/loadtest.exe 
 MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe 
 
-####################################### BASICS ##########
+################################################################################
+#                                   TARGETS                                    #
+################################################################################
 
-ia32 ia32pae amd64:	iso
+# Do nothing for the architecture as a target.
+$(ARC):
+	@ true
 
 iso: $(ISO_PATH)
+	@ true
 
 ###################
 # Create ISO file #
@@ -65,22 +91,13 @@ $(ISO_PATH): $(ISO_TARGET_DIR)/$(ISO_TARGET_KERNEL) \
 # - GRUB El Torito bootloader binary blob
 # - GRUB configuration file
 
-prepare:
-	@ echo "> Copying binaries"
-	@ echo "/CPY:" $(BOOTLOADER) ">" $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/
-	@ cp $(BOOTLOADER) $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/
-
-	ifneq ($(strip $(MODULES)),)
-		@ cp $(MODULES) $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/
-	endif
-
 ############
 # Clean up #
 clean:
 	@ echo "/REM:" $(BUILD_DIR)
 	@ rm -Rf $(BUILD_DIR)/*
 
-####################################### MANDATORY FILES AND FOLDERS ##########
+####################################### ISO: MANDATORY FILES AND FOLDERS ##########
 
 ###########################
 # Copy kernel binary blob #
@@ -124,7 +141,7 @@ $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS):
 	@ echo "/MKD:" $@
 	@ mkdir -p $@
 
-####################################### OTHER FILES AND FOLDERS ##########
+####################################### ISO: OTHER FILES AND FOLDERS ##########
 
 ifeq ($(ARC),amd64)
 $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin: $(PREFIX)/bin/jegudiel.bin
