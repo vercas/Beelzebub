@@ -76,108 +76,108 @@
 
 #include <metaprogramming.h>
 
+#define ENUM_HANDLETYPE(ENUMINST) \
+    /*  This be an invalid handle. */ \
+    ENUMINST(Invalid                  , 0x00U, "INVL") \
+    /*  A general result code. */ \
+    ENUMINST(Result                   , 0x01U, "RES") \
+    /*  A unit of execution. */ \
+    ENUMINST(Thread                   , 0x10U, "THRD") \
+    /*  A unit of isolation. */ \
+    ENUMINST(Process                  , 0x11U, "PRCS") \
+    /*  A unit of management. */ \
+    ENUMINST(Job                      , 0x12U, "JOB") \
+    /*  A miscellaneous/anonymous object belonging to the kernel. */ \
+    ENUMINST(KernelObject             , 0x21U, "KOBJ") \
+    /*  A miscellaneous/anonymous object belonging to a service. */ \
+    ENUMINST(ServiceObject            , 0x22U, "SOBJ") \
+    /*  A miscellaneous/anonymous object belonging to an application. */ \
+    ENUMINST(ApplicationObject        , 0x23U, "AOBJ") \
+    /*  An table which associates handles with resources. */ \
+    ENUMINST(HandleTable              , 0xF0U, "HTBL") \
+    /*  A finite set of handles. */ \
+    ENUMINST(MultiHandle              , 0xF1U, "MHND") \
+
+#define ENUM_HANDLERESULT(ENUMINST) \
+    /*  Saul Goodman! */ \
+    ENUMINST(Okay                     , 0x00U, "Okay") \
+    /*  Not enough memory available to complete an operation. */ \
+    ENUMINST(OutOfMemory              , 0x01U, "No mem.") \
+    /*  An object that was looked for was not found. */ \
+    ENUMINST(NotFound                 , 0x02U, "Not Found") \
+    /*  An object or data set failed an integrity check */ \
+    ENUMINST(IntegrityFailure         , 0x03U, "Intg Fail") \
+    /*  Too many or not enough instances of an object/entity are ecnountered. */ \
+    ENUMINST(CardinalityViolation     , 0x04U, "Card Viol") \
+    /*  An operation is taking too long to complete and has timed out. */ \
+    ENUMINST(Timeout                  , 0x05U, "Timeout") \
+    /*  The requested operation isn't supported by the object/interface. */ \
+    ENUMINST(UnsupportedOperation     , 0x09U, "Unsp. Op.") \
+    /*  Operation not implemented by the object/interface. */ \
+    ENUMINST(NotImplemented           , 0x0AU, "Not Impl.") \
+    /*  An operation was attempted on an object that has been disposed. */ \
+    ENUMINST(ObjectDisposed           , 0x0BU, "Obj Disp.") \
+    \
+    /*  An argument given to a function/method has been given an invalid template argument. */ \
+    ENUMINST(ArgumentTemplateInvalid  , 0x10U, "Arg. T inv.") \
+    /*  An argument given to a function/method is outside of the expected/supported range. */ \
+    ENUMINST(ArgumentOutOfRange       , 0x11U, "Arg. OOR") \
+    /*  An argument given to a function/method shouldn't be null. */ \
+    ENUMINST(ArgumentNull             , 0x12U, "Arg. Null") \
+    /*  A selected syscal lis invalid. */ \
+    ENUMINST(SyscallSelectionInvalid  , 0x1FU, "Sysc S inv.") \
+    \
+    /*  An unknown format specifier was encountered in the format string. */ \
+    ENUMINST(FormatBadSpecifier       , 0x20U, "Frm. BSpc.") \
+    /*  The size given for a format argument is invalid. */ \
+    ENUMINST(FormatBadArgumentSize    , 0x21U, "Frm. BAS") \
+    \
+    /*  An operation was attempted on a range of pages that */ \
+    /*  aren't covered by the page allocator. */ \
+    ENUMINST(PagesOutOfAllocatorRange , 0x30U, "Pag OOAR") \
+    /*  An invalid operation was attempted on a reserved page. */ \
+    ENUMINST(PageReserved             , 0x31U, "Pag Res.") \
+    /*  An invalid operation was attempted on a free page. */ \
+    ENUMINST(PageFree                 , 0x32U, "Pag Free") \
+    /*  An invalid operation was attempted on a used page. */ \
+    ENUMINST(PageInUse                , 0x33U, "Pag Used") \
+    /*  An invalid operation was attempted on a caching page. */ \
+    ENUMINST(PageCaching              , 0x34U, "Pag Cach.") \
+    /*  A page cannot be pushed to the stack because it is already on the stack. */ \
+    ENUMINST(PageStacked              , 0x35U, "Pag Stkd") \
+    /*  A page cannot be popped off the stack because it is not on the stack. */ \
+    ENUMINST(PageNotStacked           , 0x36U, "Pag N Stkd") \
+    \
+    /*  A/The target page is in an illegal range. */ \
+    ENUMINST(PageMapIllegalRange      , 0x40U, "Pag rng ill") \
+    /*  A/The target page is (already) mapped. */ \
+    ENUMINST(PageMapped               , 0x41U, "Pag mapped") \
+    /*  A/The target page is (already) unmapped. */ \
+    ENUMINST(PageUnmapped             , 0x42U, "Pag unmp.") \
+    /*  A given page is unaligned. */ \
+    ENUMINST(PageUnaligned            , 0x43U, "Pag unal.") \
+    \
+    /*  A thread is already linked. */ \
+    ENUMINST(ThreadAlreadyLinked      , 0x50U, "Thr a. lnk.") \
+    \
+    /*  A command-line option was not specified. */ \
+    ENUMINST(CmdOptionsMalformatted   , 0x60U, "Cmdo malfrm") \
+    /*  A command-line option's value seems to be of the wrong type. */ \
+    ENUMINST(CmdOptionValueTypeInvalid, 0x61U, "Cmdo vT inv") \
+    /*  A command-line option's value is not found in the given table. */ \
+    ENUMINST(CmdOptionValueNotInTable , 0x62U, "Cmdo v nit.") \
+    \
+    /*  An object could not be allocated due to pool exhaustion. */ \
+    ENUMINST(ObjaPoolsExhausted       , 0x70U, "Obja P exh.") \
+    /*  An attempt was made to free an object which is already free. */ \
+    ENUMINST(ObjaAlreadyFree          , 0x71U, "Obja A Free") \
+    /*  An object allocator has reached maximum capacity. */ \
+    ENUMINST(ObjaMaximumCapacity      , 0x72U, "Obja M cap.") \
+
 #ifdef __cplusplus
 
 namespace Beelzebub
 {
-    #define ENUM_HANDLETYPE(ENUMINST) \
-        /*  This be an invalid handle. */ \
-        ENUMINST(Invalid                  , 0x00U, "INVL") \
-        /*  A general result code. */ \
-        ENUMINST(Result                   , 0x01U, "RES") \
-        /*  A unit of execution. */ \
-        ENUMINST(Thread                   , 0x10U, "THRD") \
-        /*  A unit of isolation. */ \
-        ENUMINST(Process                  , 0x11U, "PRCS") \
-        /*  A unit of management. */ \
-        ENUMINST(Job                      , 0x12U, "JOB") \
-        /*  A miscellaneous/anonymous object belonging to the kernel. */ \
-        ENUMINST(KernelObject             , 0x21U, "KOBJ") \
-        /*  A miscellaneous/anonymous object belonging to a service. */ \
-        ENUMINST(ServiceObject            , 0x22U, "SOBJ") \
-        /*  A miscellaneous/anonymous object belonging to an application. */ \
-        ENUMINST(ApplicationObject        , 0x23U, "AOBJ") \
-        /*  An table which associates handles with resources. */ \
-        ENUMINST(HandleTable              , 0xF0U, "HTBL") \
-        /*  A finite set of handles. */ \
-        ENUMINST(MultiHandle              , 0xF1U, "MHND") \
-
-    #define ENUM_HANDLERESULT(ENUMINST) \
-        /*  Saul Goodman! */ \
-        ENUMINST(Okay                     , 0x00U, "Okay") \
-        /*  Not enough memory available to complete an operation. */ \
-        ENUMINST(OutOfMemory              , 0x01U, "No mem.") \
-        /*  An object that was looked for was not found. */ \
-        ENUMINST(NotFound                 , 0x02U, "Not Found") \
-        /*  An object or data set failed an integrity check */ \
-        ENUMINST(IntegrityFailure         , 0x03U, "Intg Fail") \
-        /*  Too many or not enough instances of an object/entity are ecnountered. */ \
-        ENUMINST(CardinalityViolation     , 0x04U, "Card Viol") \
-        /*  An operation is taking too long to complete and has timed out. */ \
-        ENUMINST(Timeout                  , 0x05U, "Timeout") \
-        /*  The requested operation isn't supported by the object/interface. */ \
-        ENUMINST(UnsupportedOperation     , 0x09U, "Unsp. Op.") \
-        /*  Operation not implemented by the object/interface. */ \
-        ENUMINST(NotImplemented           , 0x0AU, "Not Impl.") \
-        /*  An operation was attempted on an object that has been disposed. */ \
-        ENUMINST(ObjectDisposed           , 0x0BU, "Obj Disp.") \
-        \
-        /*  An argument given to a function/method has been given an invalid template argument. */ \
-        ENUMINST(ArgumentTemplateInvalid  , 0x10U, "Arg. T inv.") \
-        /*  An argument given to a function/method is outside of the expected/supported range. */ \
-        ENUMINST(ArgumentOutOfRange       , 0x11U, "Arg. OOR") \
-        /*  An argument given to a function/method shouldn't be null. */ \
-        ENUMINST(ArgumentNull             , 0x12U, "Arg. Null") \
-        /*  A selected syscal lis invalid. */ \
-        ENUMINST(SyscallSelectionInvalid  , 0x1FU, "Sysc S inv.") \
-        \
-        /*  An unknown format specifier was encountered in the format string. */ \
-        ENUMINST(FormatBadSpecifier       , 0x20U, "Frm. BSpc.") \
-        /*  The size given for a format argument is invalid. */ \
-        ENUMINST(FormatBadArgumentSize    , 0x21U, "Frm. BAS") \
-        \
-        /*  An operation was attempted on a range of pages that */ \
-        /*  aren't covered by the page allocator. */ \
-        ENUMINST(PagesOutOfAllocatorRange , 0x30U, "Pag OOAR") \
-        /*  An invalid operation was attempted on a reserved page. */ \
-        ENUMINST(PageReserved             , 0x31U, "Pag Res.") \
-        /*  An invalid operation was attempted on a free page. */ \
-        ENUMINST(PageFree                 , 0x32U, "Pag Free") \
-        /*  An invalid operation was attempted on a used page. */ \
-        ENUMINST(PageInUse                , 0x33U, "Pag Used") \
-        /*  An invalid operation was attempted on a caching page. */ \
-        ENUMINST(PageCaching              , 0x34U, "Pag Cach.") \
-        /*  A page cannot be pushed to the stack because it is already on the stack. */ \
-        ENUMINST(PageStacked              , 0x35U, "Pag Stkd") \
-        /*  A page cannot be popped off the stack because it is not on the stack. */ \
-        ENUMINST(PageNotStacked           , 0x36U, "Pag N Stkd") \
-        \
-        /*  A/The target page is in an illegal range. */ \
-        ENUMINST(PageMapIllegalRange      , 0x40U, "Pag rng ill") \
-        /*  A/The target page is (already) mapped. */ \
-        ENUMINST(PageMapped               , 0x41U, "Pag mapped") \
-        /*  A/The target page is (already) unmapped. */ \
-        ENUMINST(PageUnmapped             , 0x42U, "Pag unmp.") \
-        /*  A given page is unaligned. */ \
-        ENUMINST(PageUnaligned            , 0x43U, "Pag unal.") \
-        \
-        /*  A thread is already linked. */ \
-        ENUMINST(ThreadAlreadyLinked      , 0x50U, "Thr a. lnk.") \
-        \
-        /*  A command-line option was not specified. */ \
-        ENUMINST(CmdOptionsMalformatted   , 0x60U, "Cmdo malfrm") \
-        /*  A command-line option's value seems to be of the wrong type. */ \
-        ENUMINST(CmdOptionValueTypeInvalid, 0x61U, "Cmdo vT inv") \
-        /*  A command-line option's value is not found in the given table. */ \
-        ENUMINST(CmdOptionValueNotInTable , 0x62U, "Cmdo v nit.") \
-        \
-        /*  An object could not be allocated due to pool exhaustion. */ \
-        ENUMINST(ObjaPoolsExhausted       , 0x70U, "Obja P exh.") \
-        /*  An attempt was made to free an object which is already free. */ \
-        ENUMINST(ObjaAlreadyFree          , 0x71U, "Obja A Free") \
-        /*  An object allocator has reached maximum capacity. */ \
-        ENUMINST(ObjaMaximumCapacity      , 0x72U, "Obja M cap.") \
-
     enum class HandleType : uint8_t
     {
         ENUM_HANDLETYPE(ENUMINST_VAL)
@@ -402,6 +402,16 @@ public:
 
 #else
     
+    enum HANDLE_TYPE
+    {
+        ENUM_HANDLETYPE(ENUMINST_VAL)
+    };
+
+    enum HANDLE_RESULT
+    {
+        ENUM_HANDLERESULT(ENUMINST_VAL)
+    };
+
     typedef union Handle
     {
         uint64_t Value;

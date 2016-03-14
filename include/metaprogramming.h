@@ -203,7 +203,7 @@
 
 #ifdef __cplusplus
 
-#define ENUMOPS2(T, U)                                                     \
+#define ENUMOPS2(T, U)                                                        \
 inline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
 inline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
 inline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
