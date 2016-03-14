@@ -29,7 +29,7 @@
 #include "stdint.h"
 #include "stddef.h"
 
-#if   defined(__BEELZEBUB_KERNEL)
+#if   defined(__BEELZEBUB_KERNEL) || defined(__BEELZEBUB_STATIC_LIBRARY)
 #include <cpp_support.h>
 #endif
 
