@@ -12,7 +12,7 @@ all:
 	@ return 42 # Yes, the answer to 'all', basically.
 
 # Solution directories
-PROJ_SUBDIR	:= apps/loadtest
+PROJ_SUBDIR	:= libs/common
 PREFIX2		:= ./../..
 PREFIX		:= ./../../build
 INC_COMMON	:= ./../../include
