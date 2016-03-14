@@ -289,8 +289,8 @@ typedef uintptr_t UIntPtr;
 
 /*  Some funnction types...  */
 
-typedef bool (*PredicateFunction0)(/* nothing */);
-typedef void (*ActionFunction0)(/* nothing */);
+typedef bool (*PredicateFunction0)(void);
+typedef void (*ActionFunction0)(void);
 
 /*  Memory barriers and forced ordering  */
 
@@ -304,3 +304,9 @@ typedef void (*ActionFunction0)(/* nothing */);
     for (bool MCATS(_go_, __LINE__) = true; MCATS(_go_, __LINE__); )    \
     for (primExp; MCATS(_go_, __LINE__); MCATS(_go_, __LINE__) = false)
 //  Astonishingly, GCC can optimize this.
+
+#ifdef __BEELZEBUB__DEBUG
+    #define onDebug if (true)
+#else
+    #define onDebug if (false)
+#endif

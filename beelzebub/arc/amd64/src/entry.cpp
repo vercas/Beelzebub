@@ -348,8 +348,7 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
 
     //  DUMPING MMAP ?
 
-#ifdef __BEELZEBUB__DEBUG
-    if (domain == &Domain0)
+    onDebug if (domain == &Domain0)
     {
         msg("%nIND |A|    Address     |     Length     |       End      |%n");
 
@@ -377,7 +376,6 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
 
         msg("%n");//*/
     }
-#endif
 
     //  SPACE CREATION
 
