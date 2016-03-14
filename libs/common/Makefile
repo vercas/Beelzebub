@@ -1,64 +1,68 @@
+################################################################################
+#                                   PROLOGUE                                   #
+################################################################################
+
 .SUFFIXES:  
 
-###########
-# Default #
+# There is no default target.
 all:
 	@ echo -n "Currently supported target architectures are: " 1>&2
 	@ echo "amd64, ia32pae, ia32" 1>&2
 	@ echo "Please choose one of them as a target!" 1>&2
 	@ return 42 # Yes, the answer to 'all', basically.
 
-###############
-# Directories #
+# Solution directories
+PROJ_SUBDIR	:= apps/loadtest
 PREFIX2		:= ./../..
 PREFIX		:= ./../../build
 INC_COMMON	:= ./../../include
+
+# Local directories
 SRC_DIR		:= ./src
 INC_DIR		:= ./inc
 ARC_DIR		:= .
 AUX_DIR		:= .
-RUNTIME_DIR := $(SRC_DIR)/runtime
+BUILD_HOST	:= ./build
+BUILD_DIR	:= $(BUILD_HOST)/$(ARC)
 
+# Common settings
 include ../../Beelzebub.mk
 
-.PHONY: all install uninstall clean linku linko build headers $(ARC) $(SETTINGS)
+# Fake targets.
+.PHONY: all install uninstall clean linku build headers $(ARC) $(SETTINGS)
 
-#########
-# Files #
+# Output files
 LIB_BIN				:= libcommon.$(ARC).a
+LIB_PATH			:= $(BUILD_HOST)/$(LIB_BIN)
 LIB_INSTALL_DIR		:= $(PREFIX)/libs
 LIB_INSTALL_PATH	:= $(LIB_INSTALL_DIR)/$(LIB_BIN)
 
-#############
-# Toolchain #
-PROJ_SUBDIR	:= libs/common
+################################################################################
+#                             TOOLCHAIN & SETTINGS                             #
+################################################################################
+
+# Toolchain
 include ../../Toolchain.mk
-#	That easy!
 
-#############################
-# Objects and linker script #
-OBJECTS		:=  
-
-##########################
-#   Toolchain settings   #
-##########################
-
+# Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_STATIC_LIBRARY 
 GCCFLAGS	+= -ffreestanding -Wall -mcmodel=large -fno-omit-frame-pointer 
 GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
 GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
+# C/C++ options
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
-
 CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 
+# Assembler options
 ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 
+# Archiver options
 ARFLAGS		:= rcs 
 
-######################################
-#	ARCHITECTURE-SPECIFIC SETTINGS   #
-######################################
+################################################################################
+#                        ARCHITECTURE-SPECIFIC SETTINGS                        #
+################################################################################
 
 ##############
 # 64-bit x86 #
@@ -92,47 +96,15 @@ ifeq ($(AUX),x86)
 	endif
 endif
 
-# Output directories
-BUILD_HOST		:= ./build
-BUILD_DIR		:= $(BUILD_HOST)/$(ARC)
-INCPCH_DIR		:= $(BUILD_DIR)/inc
-
-# Binary blob
-LIB_PATH		:= $(BUILD_HOST)/$(LIB_BIN)
-
 ###############################################
 # Build everything and link the target binary #
 $(ARC):	$(LIB_PATH)
 
-###########################
-#   OBJECTS AND SOURCES   #
-###########################
+################################################################################
+#                             OBJECTS AND SOURCES                              #
+################################################################################
 
-# Standard
-# INCFLAGS	:= -I$(INCPCH_DIR) -I$(INC_DIR) -I$(PREFIX)/include
-INCFLAGS	:= -I$(INC_COMMON) -I$(INC_DIR) -I$(PREFIX)/include
-
-OBJECTS		+= $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.c.o,$(shell find $(SRC_DIR) -name "*.c"))
-OBJECTS		+= $(patsubst $(SRC_DIR)/%.asm,$(BUILD_DIR)/%.asm.o,$(shell find $(SRC_DIR) -name "*.asm"))
-OBJECTS		+= $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.cpp.o,$(shell find $(SRC_DIR) -name "*.cpp"))
-
-# When architecture-specific files are present...
-ifneq (,$(ARC))
-	INCFLAGS	+= -I$(INC_COMMON)/$(ARC) -I$(ARC_DIR)/$(ARC)/inc
-
-	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.c,$(BUILD_DIR)/%.c.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.c"))
-	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.asm,$(BUILD_DIR)/%.asm.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.asm"))
-	OBJECTS		+= $(patsubst $(ARC_DIR)/$(ARC)/src/%.cpp,$(BUILD_DIR)/%.cpp.arc.o,$(shell find $(ARC_DIR)/$(ARC)/src -name "*.cpp"))
-endif
-
-# When auxiliary files are present...
-ifneq (,$(AUX))
-	INCFLAGS	+= -I$(INC_COMMON)/$(AUX) -I$(AUX_DIR)/$(AUX)/inc
-
-	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.c,$(BUILD_DIR)/%.c.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.c"))
-	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.asm,$(BUILD_DIR)/%.asm.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.asm"))
-	OBJECTS		+= $(patsubst $(AUX_DIR)/$(AUX)/src/%.cpp,$(BUILD_DIR)/%.cpp.aux.o,$(shell find $(AUX_DIR)/$(AUX)/src -name "*.cpp"))
-endif
+include ../../Sources.mk
 
 # Bootstrapping
 CFLAGS		+= $(INCFLAGS)

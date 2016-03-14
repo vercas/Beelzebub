@@ -1,3 +1,7 @@
+################################################################################
+#                                   PROLOGUE                                   #
+################################################################################
+
 .SUFFIXES:  
 
 ###########
@@ -8,22 +12,27 @@ all:
 	@ echo "Please choose one of them as a target!" 1>&2
 	@ return 42 # Yes, the answer to 'all', basically.
 
-###############
-# Directories #
+# Solution directories
+PROJ_SUBDIR	:= libs
+
+# Local directories
 PREFIX2		:= ./..
 PREFIX		:= ./../build
 
 include ../Beelzebub.mk
 
-.PHONY: clean common common-install common-clean $(ARC) $(SETTINGS)
+.PHONY: install clean common common-install common-clean $(ARC) $(SETTINGS)
 
-PROJ_SUBDIR	:= libs
 include ../Toolchain.mk
 #	This one is needed to determine Make flags.
 
-####################################### BASICS ##########
+################################################################################
+#                                   TARGETS                                    #
+################################################################################
 
 $(ARC): install
+
+####################################### BASICS ##########
 
 common:
 	@ echo "/MAK:" $@
@@ -38,5 +47,7 @@ common-clean:
 	@ $(MAKE) -C common/ clean $(MAKE_FLAGS)
 
 install: common-install
+	@ true
 	
 clean: common-clean
+	@ true

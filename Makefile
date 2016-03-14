@@ -1,3 +1,7 @@
+################################################################################
+#                                   PROLOGUE                                   #
+################################################################################
+
 .SUFFIXES:  
 
 ###########
@@ -12,16 +16,30 @@ PREFIX		:= ./build
 
 include ./Beelzebub.mk
 
+.PHONY: run qemu qemu-serial clean jegudiel image kernel apps libs $(ARC) $(SETTINGS)
+
 include ./Toolchain.mk
 #	This one is needed to determine Make flags.
 
 KERNEL_DIR	:= ./$(KERNEL_NAME)
 
-####################################### BASICS ##########
+################################################################################
+#                        ARCHITECTURE-SPECIFIC SETTINGS                        #
+################################################################################
 
-.PHONY: run qemu qemu-serial clean jegudiel image kernel apps libs $(ARC) $(SETTINGS)
+##############
+# 64-bit x86 #
+ifeq ($(ARC),amd64)
+kernel:: jegudiel
+endif
 
 $(ARC): image
+
+################################################################################
+#                                   TARGETS                                    #
+################################################################################
+
+####################################### BASICS ##########
 
 clean:
 	@ $(MAKE) -C image/ clean
@@ -31,12 +49,6 @@ clean:
 	@ $(MAKE) -C libs/ clean
 	@ rm -Rf $(PREFIX)
 	@ rm -f last_settings.txt
-
-####################################### SPECIFICS ##########
-
-ifeq ($(ARC),amd64)
-kernel:: jegudiel
-endif
 
 ####################################### TESTING & RUNNING ##########
 

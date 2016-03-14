@@ -1,3 +1,7 @@
+################################################################################
+#                                   PROLOGUE                                   #
+################################################################################
+
 .SUFFIXES:  
 
 ###########
@@ -8,22 +12,27 @@ all:
 	@ echo "Please choose one of them as a target!" 1>&2
 	@ return 42 # Yes, the answer to 'all', basically.
 
-###############
-# Directories #
+# Solution directories
+PROJ_SUBDIR	:= apps
+
+# Local directories
 PREFIX2		:= ./..
 PREFIX		:= ./../build
 
 include ../Beelzebub.mk
 
-.PHONY: clean loadtest loadtest-install loadtest-clean $(ARC) $(SETTINGS)
+.PHONY: install clean loadtest loadtest-install loadtest-clean $(ARC) $(SETTINGS)
 
-PROJ_SUBDIR	:= apps
 include ../Toolchain.mk
 #	This one is needed to determine Make flags.
 
-####################################### BASICS ##########
+################################################################################
+#                                   TARGETS                                    #
+################################################################################
 
 $(ARC): install
+
+####################################### BASICS ##########
 
 loadtest:
 	@ echo "/MAK:" $@
@@ -38,5 +47,7 @@ loadtest-clean:
 	@ $(MAKE) -C loadtest/ clean $(MAKE_FLAGS)
 
 install: loadtest-install
+	@ true
 	
 clean: loadtest-clean
+	@ true

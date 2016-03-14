@@ -13,9 +13,6 @@ AUX						:=
 PRECOMPILER_FLAGS		:= __BEELZEBUB 
 SETTINGS 				:=
 
-SMP						:= true
-#	Defaults to enabled.
-
 ################################################
 #	ARCHITECTURE-SPECIFIC SETTINGS AND FLAGS   #
 ################################################
@@ -79,8 +76,6 @@ endif
 ###############
 # SMP disable #
 ifneq (,$(findstring no-smp,$(MAKECMDGOALS)))
-	SMP					:=
-
 	PRECOMPILER_FLAGS	+= __BEELZEBUB_SETTINGS_NO_SMP 
 	PRECOMPILER_FLAGS	+= __JEGUDIEL_SETTINGS_NO_SMP 
 
@@ -95,8 +90,6 @@ endif
 #############################################
 # Lock type for fixed-size object allocator #
 ifneq (,$(findstring obja-rrspinlock,$(MAKECMDGOALS)))
-	SMP					:=
-
 	PRECOMPILER_FLAGS	+= __BEELZEBUB_SETTINGS_OBJA_RRSPINLOCK 
 
 	SETTINGS			+= obja-rrspinlock
