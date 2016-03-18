@@ -530,7 +530,7 @@ void RemapTerminal(TerminalBase * const terminal)
 {
     Handle res;
 
-    if (terminal->Descriptor->Capabilities.Type == TerminalType::PixelMatrix)
+    if (terminal->Capabilities->Type == TerminalType::PixelMatrix)
     {
         VbeTerminal * const term = (VbeTerminal *)terminal;
         const size_t size = ((size_t)term->Pitch * (size_t)term->Height + PageSize - 1) & ~0xFFFULL;

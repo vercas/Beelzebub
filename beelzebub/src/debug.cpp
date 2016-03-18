@@ -59,7 +59,7 @@ namespace Beelzebub { namespace Debug
                  , char const * const cond
                  , const char * const msg)
     {
-        if (DebugTerminal != nullptr && DebugTerminal->Descriptor->Capabilities.CanOutput)
+        if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
             withLock (MsgSpinlock)
             {
                 DebugTerminal->WriteLine("");
@@ -90,7 +90,7 @@ namespace Beelzebub { namespace Debug
                  , char const * const cond
                  , const char * const fmt, va_list args)
     {
-        if (DebugTerminal != nullptr && DebugTerminal->Descriptor->Capabilities.CanOutput)
+        if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
             withLock (MsgSpinlock)
             {
                 DebugTerminal->WriteLine("");
