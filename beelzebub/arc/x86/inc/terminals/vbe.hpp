@@ -60,15 +60,15 @@ namespace Beelzebub { namespace Terminals
 		/*  Constructors  */
 
 		VbeTerminal() : TerminalBase( nullptr ), VideoMemory((uintptr_t)nullptr) { }
-        VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32_t pit, uint8_t bytesPerPixel);
+        VbeTerminal(uintptr_t const mem, uint16_t wid, uint16_t hei, uint32_t pit, uint8_t bytesPerPixel);
 
 		/*  Writing  */
 
-        static __hot __noinline TerminalWriteResult WriteCharAtXy(TerminalBase * const term, const char * c, const int16_t cx, const int16_t cy);
+        virtual TerminalWriteResult WriteUtf8At(char const * const c, int16_t const x, int16_t const y);
 
         /*  Positioning  */
 
-        static TerminalCoordinates VbeGetSize(TerminalBase * const term);
+        virtual TerminalCoordinates GetSize();
 
         /*  Remapping  */
 

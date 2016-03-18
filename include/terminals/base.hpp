@@ -88,108 +88,72 @@ namespace Beelzebub { namespace Terminals
 
         /*  STATICS  */
 
-        static const uint16_t DefaultTabulatorWidth = 8;
-
-        /*  Writing  */
-
-        static TerminalWriteResult DefaultWriteCharAtXy(TerminalBase * const term, const char * c, const int16_t x, const int16_t y);
-        static TerminalWriteResult DefaultWriteCharAtCoords(TerminalBase * const term, const char * c, const TerminalCoordinates pos);
-        static TerminalWriteResult DefaultWriteStringAt(TerminalBase * const term, const char * const str, const TerminalCoordinates pos);
-
-        static TerminalWriteResult DefaultWriteChar(TerminalBase * const term, const char * c);
-        static TerminalWriteResult DefaultWriteString(TerminalBase * const term, const char * const str);
-        static TerminalWriteResult DefaultWriteStringVarargs(TerminalBase * const term, const char * const fmt, va_list args);
-        static TerminalWriteResult DefaultWriteStringLine(TerminalBase * const term, const char * const str);
-        static TerminalWriteResult DefaultWriteStringFormat(TerminalBase * const term, const char * const fmt, ...);
-
-        /*  Positioning  */
-
-        static Handle DefaultSetCursorPositionXy(TerminalBase * const term, const int16_t x, const int16_t y);
-        static Handle DefaultSetCursorPositionCoords(TerminalBase * const term, const TerminalCoordinates pos);
-        static TerminalCoordinates DefaultGetCursorPosition(TerminalBase * const term);
-
-        static Handle DefaultSetCurrentPositionXy(TerminalBase * const term, const int16_t x, const int16_t y);
-        static Handle DefaultSetCurrentPositionCoords(TerminalBase * const term, const TerminalCoordinates pos);
-        static TerminalCoordinates DefaultGetCurrentPosition(TerminalBase * const term);
-
-        static Handle DefaultSetSizeXy(TerminalBase * const term, const int16_t w, const int16_t h);
-        static Handle DefaultSetSizeCoords(TerminalBase * const term, const TerminalCoordinates pos);
-        static TerminalCoordinates DefaultGetSize(TerminalBase * const term);
-
-        static Handle DefaultSetBufferSizeXy(TerminalBase * const term, const int16_t w, const int16_t h);
-        static Handle DefaultSetBufferSizeCoords(TerminalBase * const term, const TerminalCoordinates pos);
-        static TerminalCoordinates DefaultGetBufferSize(TerminalBase * const term);
-
-        static Handle DefaultSetTabulatorWidth(TerminalBase * const term, const uint16_t w);
-        static uint16_t DefaultGetTabulatorWidth(TerminalBase * const term);
-
-        /*  Styling  */
-
-        // ... sooooon.
-        
-        /*  DYNAMICS  */
+        static uint16_t const DefaultTabulatorWidth = 8;
 
         /*  Descriptor  */
 
-        const TerminalDescriptor * Descriptor;
+        const TerminalCapabilities * Capabilities;
 
         /*  Constructor  */
 
-        TerminalBase(const TerminalDescriptor * const desc);
+        TerminalBase(TerminalCapabilities const * const caps);
 
         /*  Writing  */
 
-        TerminalWriteResult WriteAt(const char c, const int16_t x, const int16_t y);
-        TerminalWriteResult WriteAt(const char c, const TerminalCoordinates pos);
-        TerminalWriteResult WriteAt(const char * const str, const TerminalCoordinates pos);
+        virtual TerminalWriteResult WriteUtf8At(char const * const c, int16_t const x, int16_t const y);
+        virtual TerminalWriteResult WriteUtf8(char const * const c);
 
-        TerminalWriteResult Write(const char c);
-        TerminalWriteResult Write(const char * const str);
-        TerminalWriteResult Write(const char * const fmt, va_list args);
-        TerminalWriteResult WriteLine(const char * const str);
-        __noinline TerminalWriteResult WriteFormat(const char * const fmt, ...);
+        TerminalWriteResult WriteAt(char const c, int16_t const x, int16_t const y);
+        TerminalWriteResult WriteAt(char const c, TerminalCoordinates const pos);
+        virtual TerminalWriteResult WriteAt(char const * const str, TerminalCoordinates const pos);
+
+        virtual TerminalWriteResult Write(char const c);
+        virtual TerminalWriteResult Write(char const * const str);
+        virtual TerminalWriteResult Write(char const * const fmt, va_list args);
+        virtual TerminalWriteResult WriteLine(char const * const str);
+        __noinline TerminalWriteResult WriteFormat(char const * const fmt, ...);
 
         /*  Positioning  */
 
-        Handle SetCursorPosition(const int16_t x, const int16_t y);
-        Handle SetCursorPosition(const TerminalCoordinates pos);
-        TerminalCoordinates GetCursorPosition();
+        Handle SetCursorPosition(int16_t const x, int16_t const y);
+        virtual Handle SetCursorPosition(TerminalCoordinates const pos);
+        virtual TerminalCoordinates GetCursorPosition();
 
-        Handle SetCurrentPosition(const int16_t x, const int16_t y);
-        Handle SetCurrentPosition(const TerminalCoordinates pos);
-        TerminalCoordinates GetCurrentPosition();
+        Handle SetCurrentPosition(int16_t const x, int16_t const y);
+        virtual Handle SetCurrentPosition(TerminalCoordinates const pos);
+        virtual TerminalCoordinates GetCurrentPosition();
 
-        Handle SetSize(const int16_t w, const int16_t h);
-        Handle SetSize(const TerminalCoordinates pos);
-        TerminalCoordinates GetSize();
+        Handle SetSize(int16_t const w, int16_t const h);
+        virtual Handle SetSize(TerminalCoordinates const pos);
+        virtual TerminalCoordinates GetSize();
 
-        Handle SetBufferSize(const int16_t w, const int16_t h);
-        Handle SetBufferSize(const TerminalCoordinates pos);
-        TerminalCoordinates GetBufferSize();
+        Handle SetBufferSize(int16_t const w, int16_t const h);
+        virtual Handle SetBufferSize(TerminalCoordinates const pos);
+        virtual TerminalCoordinates GetBufferSize();
 
-        Handle SetTabulatorWidth(const uint16_t w);
-        uint16_t GetTabulatorWidth();
+        virtual Handle SetTabulatorWidth(uint16_t const w);
+        virtual uint16_t GetTabulatorWidth();
 
         /*  Utilitary methods  */
 
-        TerminalWriteResult WriteHandle(const Handle val);
+        virtual TerminalWriteResult WriteHandle(const Handle val);
 
-        TerminalWriteResult WriteIntD(const int64_t val);
-        TerminalWriteResult WriteUIntD(const uint64_t val);
+        virtual TerminalWriteResult WriteIntD(int64_t const val);
+        virtual TerminalWriteResult WriteUIntD(uint64_t const val);
 
-        TerminalWriteResult WriteHex8(const uint8_t val);
-        TerminalWriteResult WriteHex16(const uint16_t val);
-        TerminalWriteResult WriteHex32(const uint32_t val);
-        TerminalWriteResult WriteHex64(const uint64_t val);
+        virtual TerminalWriteResult WriteHex8(uint8_t const val);
+        virtual TerminalWriteResult WriteHex16(uint16_t const val);
+        virtual TerminalWriteResult WriteHex32(uint32_t const val);
+        virtual TerminalWriteResult WriteHex64(uint64_t const val);
 
-        TerminalWriteResult WriteHexDump(const uintptr_t start, const size_t length, const size_t charsPerLine);
-        __forceinline TerminalWriteResult WriteHexDump(const void * const start, const size_t length, const size_t charsPerLine)
+        virtual TerminalWriteResult WriteHexDump(uintptr_t const start, size_t const length, size_t const charsPerLine);
+        __forceinline TerminalWriteResult WriteHexDump(void const * const start, size_t const length, size_t const charsPerLine)
         {
             return this->WriteHexDump((uintptr_t)start, length, charsPerLine);
         }
 
-        TerminalWriteResult WriteHexTable(const uintptr_t start, const size_t length, const size_t charsPerLine, const bool ascii);
-        __forceinline TerminalWriteResult WriteHexTable(const void * const start, const size_t length, const size_t charsPerLine, const bool ascii)
+        virtual TerminalWriteResult WriteHexTable(uintptr_t const start, size_t const length, size_t const charsPerLine, bool const ascii);
+        __forceinline TerminalWriteResult WriteHexTable(void const * const start, size_t const length, size_t const charsPerLine, bool const ascii)
         {
             return this->WriteHexTable((uintptr_t)start, length, charsPerLine, ascii);
         }

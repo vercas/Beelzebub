@@ -46,12 +46,12 @@ using namespace Beelzebub::Terminals;
     TerminalCoordinates struct
 *********************************/
 
-inline TerminalCoordinates TerminalCoordinates::operator+(const TerminalCoordinates other)
+inline TerminalCoordinates TerminalCoordinates::operator+(TerminalCoordinates const other)
 {
     return { (int16_t)(this->X + other.X), (int16_t)(this->Y + other.Y) };
 }
 
-inline TerminalCoordinates TerminalCoordinates::operator-(const TerminalCoordinates other)
+inline TerminalCoordinates TerminalCoordinates::operator-(TerminalCoordinates const other)
 {
     return { (int16_t)(this->X - other.X), (int16_t)(this->Y - other.Y) };
 }

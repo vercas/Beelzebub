@@ -47,44 +47,83 @@ using namespace Beelzebub::Terminals;
     TerminalBase class
 *************************/
 
-/*  STATICS  */
+/*  Constructor  */
+
+TerminalBase::TerminalBase(const TerminalCapabilities * const caps)
+    : Capabilities(caps)
+    , CurrentPosition({0, 0})
+    , TabulatorWidth(4)
+    , Overflown(false)
+{
+
+}
 
 /*  Writing  */
 
-TerminalWriteResult TerminalBase::DefaultWriteCharAtXy(TerminalBase * const term, const char * c, const int16_t x, const int16_t y)
+TerminalWriteResult TerminalBase::WriteUtf8At(char const * c, int16_t const x, int16_t const y)
 {
-    return {Handle(HandleResult::NotImplemented), 0U, InvalidCoordinates};
+    return {HandleResult::NotImplemented, 0U, InvalidCoordinates};
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteCharAtCoords(TerminalBase * const term, const char * c, const TerminalCoordinates pos)
+TerminalWriteResult TerminalBase::WriteUtf8(char const * c)
 {
-    return term->Descriptor->WriteCharAtXy(term, c, pos.X, pos.Y);
+    if (!(this->Capabilities->CanOutput
+       && this->Capabilities->CanGetOutputPosition))
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    char temp[7] = "\0\0\0\0\0";
+    temp[0] = *c;
+    //  6 bytes + null terminator in UTF-8 character.
+
+    if ((*c & 0xC0) == 0xC0)
+    {
+        size_t i = 1;
+
+        do
+        {
+            temp[i] = c[i];
+
+            ++i;
+        } while ((c[i] & 0xC0) == 0x80 && i < 7);
+
+        //  This copies the remainder of the bytes, up to 6.
+    }
+
+    return this->WriteAt(temp, this->GetCurrentPosition());
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term, const char * const str, const TerminalCoordinates pos)
+TerminalWriteResult TerminalBase::WriteAt(char const c, int16_t const x, int16_t const y)
 {
-    if (!term->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    return this->WriteUtf8At(&c, x, y);
+}
+
+TerminalWriteResult TerminalBase::WriteAt(char const c, TerminalCoordinates const pos)
+{
+    return this->WriteUtf8At(&c, pos.X, pos.Y);
+}
+
+TerminalWriteResult TerminalBase::WriteAt(char const * const str, TerminalCoordinates const pos)
+{
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
     //  First of all, the terminal needs to be capable of output.
 
     TerminalCoordinates size;
 
-    if (term->Descriptor->Capabilities.CanGetBufferSize)
-        size = term->GetBufferSize();
-    else if (term->Descriptor->Capabilities.CanGetSize)
-        size = term->GetSize();
+    if (this->Capabilities->CanGetBufferSize)
+        size = this->GetBufferSize();
+    else if (this->Capabilities->CanGetSize)
+        size = this->GetSize();
     else
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
     //  A buffer or window size is required to prevent drawing outside
     //  the boundaries.
 
     uint16_t tabWidth = TerminalBase::DefaultTabulatorWidth;
 
-    if (term->Descriptor->Capabilities.CanGetTabulatorWidth)
-        tabWidth = term->GetTabulatorWidth();
+    if (this->Capabilities->CanGetTabulatorWidth)
+        tabWidth = this->GetTabulatorWidth();
     //  Tabulator width is required for proper handling of \t
-
-    WriteCharAtXyFunc WriteCharAtXy = term->Descriptor->WriteCharAtXy;
 
     int16_t x = pos.X, y = pos.Y;
     //  These are used for positioning characters.
@@ -94,14 +133,14 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
 #define NEXTLINE do {                           \
     if (y == size.Y)                            \
     {                                           \
-        term->Overflown = true;                 \
+        this->Overflown = true;                 \
         y = 0;                                  \
         for (int16_t _x = 0; _x < size.X; ++_x) \
-            WriteCharAtXy(term, " ", _x, y);    \
+            this->WriteUtf8At(" ", _x, y);      \
     }                                           \
-    else if (term->Overflown)                   \
+    else if (this->Overflown)                   \
         for (int16_t _x = 0; _x < size.X; ++_x) \
-            WriteCharAtXy(term, " ", _x, y);    \
+            this->WriteUtf8At(" ", _x, y);      \
 } while (false)
 
     uint32_t i = 0, u = 0;
@@ -125,7 +164,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
             uint16_t diff = tabWidth - (x % tabWidth);
 
             for (int16_t _x = 0; _x < diff; ++_x)
-                WriteCharAtXy(term, " ", x + _x, y);
+                this->WriteUtf8At(" ", x + _x, y);
 
             x += diff;
         }
@@ -140,7 +179,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
             if (x == size.X)
             {  x = 0; y++; NEXTLINE;  }
 
-            TerminalWriteResult tmp = WriteCharAtXy(term, str + i, x, y);
+            TerminalWriteResult tmp = this->WriteUtf8At(str + i, x, y);
             //  str + i = &c;
 
             if (!tmp.Result.IsOkayResult())
@@ -153,66 +192,41 @@ TerminalWriteResult TerminalBase::DefaultWriteStringAt(TerminalBase * const term
         }
     }
 
-    if (term->Descriptor->Capabilities.CanSetOutputPosition)
+    if (this->Capabilities->CanSetOutputPosition)
     {
-        Handle res = term->SetCurrentPosition(x, y);
+        Handle res = this->SetCurrentPosition(x, y);
 
         return {res, i, {x, y}};
     }
 
-    return {Handle(HandleResult::Okay), u, {x, y}};
+    return {HandleResult::Okay, u, {x, y}};
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteChar(TerminalBase * const term, const char * c)
+TerminalWriteResult TerminalBase::Write(char const c)
 {
-    if (!(term->Descriptor->Capabilities.CanOutput
-       && term->Descriptor->Capabilities.CanGetOutputPosition))
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
-
-    char temp[7] = "\0\0\0\0\0";
-    temp[0] = *c;
-    //  6 bytes + null terminator in UTF-8 character.
-
-    if ((*c & 0xC0) == 0xC0)
-    {
-        size_t i = 1;
-
-        do
-        {
-            temp[i] = c[i];
-
-            ++i;
-        } while ((c[i] & 0xC0) == 0x80 && i < 7);
-
-        //  This copies the remainder of the bytes, up to 6.
-    }
-
-    return term->WriteAt(temp, term->GetCurrentPosition());
+    return this->WriteUtf8(&c);
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteString(TerminalBase * const term, const char * const str)
+TerminalWriteResult TerminalBase::Write(char const * const str)
 {
-    if (!(term->Descriptor->Capabilities.CanOutput
-       && term->Descriptor->Capabilities.CanGetOutputPosition))
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!(this->Capabilities->CanOutput
+       && this->Capabilities->CanGetOutputPosition))
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
-    return term->WriteAt(str, term->GetCurrentPosition());
+    return this->WriteAt(str, this->GetCurrentPosition());
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const term, const char * const fmt, va_list args)
+TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
 {
-    if (!term->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
-
-    WriteCharFunc writeChar = term->Descriptor->WriteChar;
-    WriteStringFunc writeString = term->Descriptor->WriteString;
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     TerminalWriteResult res {};
     uint32_t cnt = 0U;
 
     bool inFormat = false;
     char c;
-    const char * fmts = fmt;
+    char const * fmts = fmt;
 
     while ((c = *fmts++) != 0)
     {
@@ -251,7 +265,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                     case '8':
                         {
                             uint64_t val8 = va_arg(args, uint64_t);
-                            TERMTRY1(term->WriteUIntD(val8), res, cnt);
+                            TERMTRY1(this->WriteUIntD(val8), res, cnt);
                         }
                         break;
 
@@ -262,12 +276,12 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
 
                         {
                             uint32_t val4 = va_arg(args, uint32_t);
-                            TERMTRY1(term->WriteUIntD(val4), res, cnt);
+                            TERMTRY1(this->WriteUIntD(val4), res, cnt);
                         }
                         break;
 
                     default:
-                        return {Handle(HandleResult::FormatBadArgumentSize), cnt, InvalidCoordinates};
+                        return {HandleResult::FormatBadArgumentSize, cnt, InvalidCoordinates};
                 }
             }
             else if (c == 'i')       //  Unsigned decimal.
@@ -303,7 +317,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                     case '8':
                         {
                             int64_t val8 = va_arg(args, int64_t);
-                            TERMTRY1(term->WriteIntD(val8), res, cnt);
+                            TERMTRY1(this->WriteIntD(val8), res, cnt);
                         }
                         break;
 
@@ -314,12 +328,12 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
 
                         {
                             int32_t val4 = va_arg(args, int32_t);
-                            TERMTRY1(term->WriteIntD(val4), res, cnt);
+                            TERMTRY1(this->WriteIntD(val4), res, cnt);
                         }
                         break;
 
                     default:
-                        return {Handle(HandleResult::FormatBadArgumentSize), cnt, InvalidCoordinates};
+                        return {HandleResult::FormatBadArgumentSize, cnt, InvalidCoordinates};
                 }
             }
             else if (c == 'X')       //  Hexadecimal.
@@ -355,14 +369,14 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                     case '8':
                         {
                             uint64_t val8 = va_arg(args, uint64_t);
-                            TERMTRY1(term->WriteHex64(val8), res, cnt);
+                            TERMTRY1(this->WriteHex64(val8), res, cnt);
                         }
                         break;
 
                     case '4':
                         {
                             uint32_t val4 = va_arg(args, uint32_t);
-                            TERMTRY1(term->WriteHex32(val4), res, cnt);
+                            TERMTRY1(this->WriteHex32(val4), res, cnt);
                         }
                         break;
 
@@ -371,7 +385,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
 
                         {
                             uint32_t val2 = va_arg(args, uint32_t);
-                            TERMTRY1(term->WriteHex16((uint16_t)val2), res, cnt);
+                            TERMTRY1(this->WriteHex16((uint16_t)val2), res, cnt);
                         }
                         break;
 
@@ -380,43 +394,43 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
 
                         {
                             uint32_t val1 = va_arg(args, uint32_t);
-                            TERMTRY1(term->WriteHex8((uint8_t)val1), res, cnt);
+                            TERMTRY1(this->WriteHex8((uint8_t)val1), res, cnt);
                         }
                         break;
 
                     default:
-                        return {Handle(HandleResult::FormatBadArgumentSize), cnt, InvalidCoordinates};
+                        return {HandleResult::FormatBadArgumentSize, cnt, InvalidCoordinates};
                 }
             }
             else if (c == 'H')  //  Handle.
             {
                 Handle h = va_arg(args, Handle);
 
-                TERMTRY1(term->WriteHandle(h), res, cnt);
+                TERMTRY1(this->WriteHandle(h), res, cnt);
             }
             else if (c == 'B')  //  Boolean (T/F)
             {
                 uint32_t val = va_arg(args, uint32_t);
 
-                TERMTRY1(writeChar(term, (bool)val ? "T" : "F"), res, cnt);
+                TERMTRY1(this->WriteUtf8((bool)val ? "T" : "F"), res, cnt);
             }
             else if (c == 'b')  //  Boolean/bit (1/0)
             {
                 uint32_t val = va_arg(args, uint32_t);
 
-                TERMTRY1(writeChar(term, (bool)val ? "1" : "0"), res, cnt);
+                TERMTRY1(this->WriteUtf8((bool)val ? "1" : "0"), res, cnt);
             }
             else if (c == 't')  //  Tick (X/ )
             {
                 uint32_t val = va_arg(args, uint32_t);
 
-                TERMTRY1(writeChar(term, (bool)val ? "X" : " "), res, cnt);
+                TERMTRY1(this->WriteUtf8((bool)val ? "X" : " "), res, cnt);
             }
             else if (c == 's')  //  String.
             {
                 char * str = va_arg(args, char *);
 
-                TERMTRY1(writeString(term, str), res, cnt);
+                TERMTRY1(this->Write(str), res, cnt);
             }
             else if (c == 'S')  //  Solid String.
             {
@@ -424,19 +438,19 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
                 char * str = va_arg(args, char *);
 
                 for (size_t i = 0; i < len; ++i)
-                    TERMTRY1(writeChar(term, str + i), res, cnt);
+                    TERMTRY1(this->WriteUtf8(str + i), res, cnt);
             }
             else if (c == 'C')  //  Character from pointer.
             {
                 char * chr = va_arg(args, char *);
 
-                TERMTRY1Ex(writeChar(term, chr), res, cnt);
+                TERMTRY1Ex(this->WriteUtf8(chr), res, cnt);
             }
             else if (c == 'c')  //  Character.
             {
                 char const chr = (char)(va_arg(args, uint32_t));
 
-                TERMTRY1(writeChar(term, &chr), res, cnt);
+                TERMTRY1(this->WriteUtf8(&chr), res, cnt);
             }
             else if (c == '#')  //  Get current character count.
             {
@@ -452,7 +466,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
 
                 for (size_t i = n; i > 0; --i)
                 {
-                    res = writeChar(term, " ");
+                    res = this->WriteUtf8(" ");
 
                     if (!res.Result.IsOkayResult())
                         return res;
@@ -462,12 +476,12 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
             }
             else if (c == 'n')  //  Newline.
             {
-                TERMTRY1(writeString(term, "\r\n"), res, cnt);
+                TERMTRY1(this->Write("\r\n"), res, cnt);
             }
             else if (c == '%')
-                TERMTRY1(writeChar(term, "%"), res, cnt);
+                TERMTRY1(this->WriteUtf8("%"), res, cnt);
             else
-                return {Handle(HandleResult::FormatBadSpecifier), cnt, InvalidCoordinates};
+                return {HandleResult::FormatBadSpecifier, cnt, InvalidCoordinates};
 
             inFormat = false;
         }
@@ -477,7 +491,7 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
         {
             cnt = res.Size;
 
-            res = writeChar(term, fmts - 1);
+            res = this->WriteUtf8(fmts - 1);
             //  `fmts - 1` = &c
 
             if (res.Result.IsOkayResult())
@@ -496,185 +510,27 @@ TerminalWriteResult TerminalBase::DefaultWriteStringVarargs(TerminalBase * const
     return res;
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteStringLine(TerminalBase * const term, const char * const str)
+TerminalWriteResult TerminalBase::WriteLine(char const * const str)
 {
-    TerminalWriteResult tmp = term->Write(str);
+    TerminalWriteResult tmp = this->Write(str);
 
     if (!tmp.Result.IsOkayResult())
         return tmp;
 
-    return term->Write("\r\n");
+    return this->Write("\r\n");
 }
 
-TerminalWriteResult TerminalBase::DefaultWriteStringFormat(TerminalBase * const term, const char * const fmt, ...)
+TerminalWriteResult TerminalBase::WriteFormat(char const * const fmt, ...)
 {
-    if (!term->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
-
-    TerminalWriteResult res;
-    va_list args;
-
-    va_start(args, fmt);
-    res = term->Descriptor->WriteStringVarargs(term, fmt, args);
-    va_end(args);
-
-    return res;
-}
-
-/*  Positioning  */
-
-
-Handle TerminalBase::DefaultSetCursorPositionXy(TerminalBase * const term, const int16_t x, const int16_t y)
-{
-    return Handle(HandleResult::UnsupportedOperation);
-}
-
-Handle TerminalBase::DefaultSetCursorPositionCoords(TerminalBase * const term, const TerminalCoordinates pos)
-{
-    return term->SetCursorPosition(pos.X, pos.Y);
-}
-
-TerminalCoordinates TerminalBase::DefaultGetCursorPosition(TerminalBase * const term)
-{
-    return InvalidCoordinates;
-}
-
-
-Handle TerminalBase::DefaultSetCurrentPositionXy(TerminalBase * const term, const int16_t x, const int16_t y)
-{
-    return term->SetCurrentPosition({x, y});
-}
-
-Handle TerminalBase::DefaultSetCurrentPositionCoords(TerminalBase * const term, const TerminalCoordinates pos)
-{
-    if (!term->Descriptor->Capabilities.CanSetOutputPosition)
-        return Handle(HandleResult::UnsupportedOperation);
-
-    term->CurrentPosition = pos;
-
-    return Handle(HandleResult::Okay);
-}
-
-TerminalCoordinates TerminalBase::DefaultGetCurrentPosition(TerminalBase * const term)
-{
-    if (!term->Descriptor->Capabilities.CanGetOutputPosition)
-        return InvalidCoordinates;
-
-    return term->CurrentPosition;
-}
-
-
-Handle TerminalBase::DefaultSetSizeXy(TerminalBase * const term, const int16_t w, const int16_t h)
-{
-    return Handle(HandleResult::UnsupportedOperation);
-}
-
-Handle TerminalBase::DefaultSetSizeCoords(TerminalBase * const term, const TerminalCoordinates pos)
-{
-    return term->SetSize(pos.X, pos.Y);
-}
-
-TerminalCoordinates TerminalBase::DefaultGetSize(TerminalBase * const term)
-{
-    return InvalidCoordinates;
-}
-
-
-Handle TerminalBase::DefaultSetBufferSizeXy(TerminalBase * const term, const int16_t w, const int16_t h)
-{
-    return Handle(HandleResult::UnsupportedOperation);
-}
-
-Handle TerminalBase::DefaultSetBufferSizeCoords(TerminalBase * const term, const TerminalCoordinates pos)
-{
-    return term->SetBufferSize(pos.X, pos.Y);
-}
-
-TerminalCoordinates TerminalBase::DefaultGetBufferSize(TerminalBase * const term)
-{
-    return InvalidCoordinates;
-}
-
-
-Handle TerminalBase::DefaultSetTabulatorWidth(TerminalBase * const term, const uint16_t w)
-{
-    if (!term->Descriptor->Capabilities.CanSetTabulatorWidth)
-        return Handle(HandleResult::UnsupportedOperation);
-
-    term->TabulatorWidth = w;
-
-    return Handle(HandleResult::Okay);
-}
-
-uint16_t TerminalBase::DefaultGetTabulatorWidth(TerminalBase * const term)
-{
-    if (!term->Descriptor->Capabilities.CanGetTabulatorWidth)
-        return ~((uint16_t)0);
-
-    return term->TabulatorWidth;
-}
-
-/*  DYNAMICS  */
-
-/*  Constructor  */
-
-TerminalBase::TerminalBase(const TerminalDescriptor * const desc)
-    : Descriptor(desc)
-    , CurrentPosition({0, 0})
-    , TabulatorWidth(4)
-    , Overflown(false)
-{
-
-}
-
-/*  Writing  */
-
-TerminalWriteResult TerminalBase::WriteAt(const char c, const int16_t x, const int16_t y)
-{
-    return this->Descriptor->WriteCharAtXy(this, &c, x, y);
-}
-
-TerminalWriteResult TerminalBase::WriteAt(const char c, const TerminalCoordinates pos)
-{
-    return this->Descriptor->WriteCharAtCoords(this, &c, pos);
-}
-
-TerminalWriteResult TerminalBase::WriteAt(const char * const str, const TerminalCoordinates pos)
-{
-    return this->Descriptor->WriteStringAtCoords(this, str, pos);
-}
-
-TerminalWriteResult TerminalBase::Write(const char c)
-{
-    return this->Descriptor->WriteChar(this, &c);
-}
-
-TerminalWriteResult TerminalBase::Write(const char * const str)
-{
-    return this->Descriptor->WriteString(this, str);
-}
-
-TerminalWriteResult TerminalBase::Write(const char * const str, va_list args)
-{
-    return this->Descriptor->WriteStringVarargs(this, str, args);
-}
-
-TerminalWriteResult TerminalBase::WriteLine(const char * const str)
-{
-    return this->Descriptor->WriteLineString(this, str);
-}
-
-TerminalWriteResult TerminalBase::WriteFormat(const char * const fmt, ...)
-{
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
     //  I do the check here to avoid messing with the varargs.
 
     TerminalWriteResult res;
     va_list args;
 
     va_start(args, fmt);
-    res = this->Descriptor->WriteStringVarargs(this, fmt, args);
+    res = this->Write(fmt, args);
     va_end(args);
 
     return res;
@@ -682,48 +538,108 @@ TerminalWriteResult TerminalBase::WriteFormat(const char * const fmt, ...)
 
 /*  Positioning  */
 
-#define I_HATE_REPEATING_MYSELF_1(prop)                                     \
-Handle TerminalBase::MCATS2(Set, prop)(const int16_t x, const int16_t y)    \
-{                                                                           \
-    return this->Descriptor->MCATS3(Set, prop, Xy)(this, x, y);             \
-}                                                                           \
-Handle TerminalBase::MCATS2(Set, prop)(const TerminalCoordinates pos)       \
-{                                                                           \
-    return this->Descriptor->MCATS3(Set, prop, Coords)(this, pos);          \
-}                                                                           \
-TerminalCoordinates TerminalBase::MCATS2(Get, prop)()                       \
-{                                                                           \
-    return this->Descriptor->MCATS2(Get, prop)(this);                       \
+Handle TerminalBase::SetCursorPosition(int16_t const x, int16_t const y)
+{
+    return HandleResult::UnsupportedOperation;
 }
 
-I_HATE_REPEATING_MYSELF_1(CursorPosition)
-I_HATE_REPEATING_MYSELF_1(CurrentPosition)
-I_HATE_REPEATING_MYSELF_1(Size)
-I_HATE_REPEATING_MYSELF_1(BufferSize)
-
-
-Handle TerminalBase::SetTabulatorWidth(const uint16_t w)
+Handle TerminalBase::SetCursorPosition(TerminalCoordinates const pos)
 {
-    return this->Descriptor->SetTabulatorWidth(this, w);
+    return this->SetCursorPosition(pos.X, pos.Y);
+}
+
+TerminalCoordinates TerminalBase::GetCursorPosition()
+{
+    return InvalidCoordinates;
+}
+
+
+Handle TerminalBase::SetCurrentPosition(int16_t const x, int16_t const y)
+{
+    return this->SetCurrentPosition({x, y});
+}
+
+Handle TerminalBase::SetCurrentPosition(TerminalCoordinates const pos)
+{
+    if (!this->Capabilities->CanSetOutputPosition)
+        return HandleResult::UnsupportedOperation;
+
+    this->CurrentPosition = pos;
+
+    return HandleResult::Okay;
+}
+
+TerminalCoordinates TerminalBase::GetCurrentPosition()
+{
+    if (!this->Capabilities->CanGetOutputPosition)
+        return InvalidCoordinates;
+
+    return this->CurrentPosition;
+}
+
+
+Handle TerminalBase::SetSize(int16_t const w, int16_t const h)
+{
+    return HandleResult::UnsupportedOperation;
+}
+
+Handle TerminalBase::SetSize(TerminalCoordinates const pos)
+{
+    return this->SetSize(pos.X, pos.Y);
+}
+
+TerminalCoordinates TerminalBase::GetSize()
+{
+    return InvalidCoordinates;
+}
+
+
+Handle TerminalBase::SetBufferSize(int16_t const w, int16_t const h)
+{
+    return HandleResult::UnsupportedOperation;
+}
+
+Handle TerminalBase::SetBufferSize(TerminalCoordinates const pos)
+{
+    return this->SetBufferSize(pos.X, pos.Y);
+}
+
+TerminalCoordinates TerminalBase::GetBufferSize()
+{
+    return InvalidCoordinates;
+}
+
+
+Handle TerminalBase::SetTabulatorWidth(uint16_t const w)
+{
+    if (!this->Capabilities->CanSetTabulatorWidth)
+        return HandleResult::UnsupportedOperation;
+
+    this->TabulatorWidth = w;
+
+    return HandleResult::Okay;
 }
 
 uint16_t TerminalBase::GetTabulatorWidth()
 {
-    return this->Descriptor->GetTabulatorWidth(this);
+    if (!this->Capabilities->CanGetTabulatorWidth)
+        return ~((uint16_t)0);
+
+    return this->TabulatorWidth;
 }
 
 /*  Utility  */
 
 TerminalWriteResult TerminalBase::WriteHandle(const Handle val)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char str[22] = "<    | |            >";
     //  <type|global/fatal|result/index>
 
-    const char * const strType = val.GetTypeString();
-    const char * const strRes  = val.GetResultString();
+    char const * const strType = val.GetTypeString();
+    char const * const strRes  = val.GetResultString();
 
     for (size_t i = 0; 0 != strType[i] && i < 4; ++i)
         str[1 + i] = strType[i];
@@ -751,7 +667,7 @@ TerminalWriteResult TerminalBase::WriteHandle(const Handle val)
             str[6] = 'G';
 
         char * const str2 = str + 8;
-        const uint64_t ind = val.GetIndex();
+        uint64_t const ind = val.GetIndex();
 
         for (size_t i = 0; i < 12; ++i)
         {
@@ -761,13 +677,13 @@ TerminalWriteResult TerminalBase::WriteHandle(const Handle val)
         }
     }
 
-    return this->Descriptor->WriteString(this, str);
+    return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteIntD(const int64_t val)
+TerminalWriteResult TerminalBase::WriteIntD(int64_t const val)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char str[21];
     str[20] = 0;
@@ -788,13 +704,13 @@ TerminalWriteResult TerminalBase::WriteIntD(const int64_t val)
     if (val < 0)
         str[19 - i++] = '-';
 
-    return this->Descriptor->WriteString(this, str + 20 - i);
+    return this->Write(str + 20 - i);
 }
 
-TerminalWriteResult TerminalBase::WriteUIntD(const uint64_t val)
+TerminalWriteResult TerminalBase::WriteUIntD(uint64_t const val)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char str[21];
     str[20] = 0;
@@ -812,13 +728,13 @@ TerminalWriteResult TerminalBase::WriteUIntD(const uint64_t val)
     }
     while (x > 0 && i < 20);
 
-    return this->Descriptor->WriteString(this, str + 20 - i);
+    return this->Write(str + 20 - i);
 }
 
-TerminalWriteResult TerminalBase::WriteHex8(const uint8_t val)
+TerminalWriteResult TerminalBase::WriteHex8(uint8_t const val)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char str[3];
     str[2] = '\0';
@@ -830,13 +746,13 @@ TerminalWriteResult TerminalBase::WriteHex8(const uint8_t val)
         str[1 - i] = (nib > 9 ? '7' : '0') + nib;
     }
 
-    return this->Descriptor->WriteString(this, str);
+    return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteHex16(const uint16_t val)
+TerminalWriteResult TerminalBase::WriteHex16(uint16_t const val)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char str[5];
     str[4] = '\0';
@@ -848,13 +764,13 @@ TerminalWriteResult TerminalBase::WriteHex16(const uint16_t val)
         str[3 - i] = (nib > 9 ? '7' : '0') + nib;
     }
 
-    return this->Descriptor->WriteString(this, str);
+    return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteHex32(const uint32_t val)
+TerminalWriteResult TerminalBase::WriteHex32(uint32_t const val)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char str[9];
     str[8] = '\0';
@@ -866,13 +782,13 @@ TerminalWriteResult TerminalBase::WriteHex32(const uint32_t val)
         str[7 - i] = (nib > 9 ? '7' : '0') + nib;
     }
 
-    return this->Descriptor->WriteString(this, str);
+    return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteHex64(const uint64_t val)
+TerminalWriteResult TerminalBase::WriteHex64(uint64_t const val)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char str[17];
     str[16] = '\0';
@@ -884,19 +800,16 @@ TerminalWriteResult TerminalBase::WriteHex64(const uint64_t val)
         str[15 - i] = (nib > 9 ? '7' : '0') + nib;
     }
 
-    return this->Descriptor->WriteString(this, str);
+    return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteHexDump(const uintptr_t start, const size_t length, const size_t charsPerLine)
+TerminalWriteResult TerminalBase::WriteHexDump(uintptr_t const start, size_t const length, size_t const charsPerLine)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char addrhexstr[sizeof(size_t) * 2 + 1], wordhexstr[5], spaces[11] = "          ";
     addrhexstr[sizeof(size_t) * 2] = '\0'; wordhexstr[4] = '\0';
-
-    //WriteCharFunc writeChar = this->Descriptor->WriteChar;
-    WriteStringFunc writeString = this->Descriptor->WriteString;
 
     TerminalWriteResult res {};
     uint32_t cnt;
@@ -912,8 +825,8 @@ TerminalWriteResult TerminalBase::WriteHexDump(const uintptr_t start, const size
             addrhexstr[sizeof(size_t) * 2 - 1 - j] = (nib > 9 ? '7' : '0') + nib;
         }
 
-        TERMTRY1(writeString(this, addrhexstr), res, cnt);
-        TERMTRY1(writeString(this, ": "), res, cnt);
+        TERMTRY1(this->Write(addrhexstr), res, cnt);
+        TERMTRY1(this->Write(": "), res, cnt);
 
         for (size_t j = 0; j < charsPerLine; j += 2)
         {
@@ -934,7 +847,7 @@ TerminalWriteResult TerminalBase::WriteHexDump(const uintptr_t start, const size
                 //  This is undoubtedly the ugliest hack I've ever written.
             }
 
-            TERMTRY1(writeString(this, spaces + spacesOffset), res, cnt);
+            TERMTRY1(this->Write(spaces + spacesOffset), res, cnt);
 
             uint16_t val = *(uint16_t *)(lStart + j);
 
@@ -947,36 +860,33 @@ TerminalWriteResult TerminalBase::WriteHexDump(const uintptr_t start, const size
                 //  bit, so bytes are big endian but the whole word is not.
             }
 
-            TERMTRY1(writeString(this, wordhexstr), res, cnt);
+            TERMTRY1(this->Write(wordhexstr), res, cnt);
         }
 
-        TERMTRY1(writeString(this, "\n\r"), res, cnt);
+        TERMTRY1(this->Write("\n\r"), res, cnt);
     }
 
     return res;
 }
 
-TerminalWriteResult TerminalBase::WriteHexTable(const uintptr_t start, const size_t length, const size_t charsPerLine, const bool ascii)
+TerminalWriteResult TerminalBase::WriteHexTable(uintptr_t const start, size_t const length, size_t const charsPerLine, bool const ascii)
 {
-    if (!this->Descriptor->Capabilities.CanOutput)
-        return {Handle(HandleResult::UnsupportedOperation), 0U, InvalidCoordinates};
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
     char addrhexstr[sizeof(size_t) * 2 + 1], wordhexstr[4] = "   ";
     addrhexstr[sizeof(size_t) * 2] = '\0';
 
-    WriteCharFunc writeChar = this->Descriptor->WriteChar;
-    WriteStringFunc writeString = this->Descriptor->WriteString;
-
-    TerminalWriteResult res = {Handle(HandleResult::Okay), 0U, InvalidCoordinates};
+    TerminalWriteResult res = {HandleResult::Okay, 0U, InvalidCoordinates};
     uint32_t cnt = 0U;
 
     size_t actualCharsPerLine = charsPerLine;
 
     if (0 == actualCharsPerLine)
     {
-        if (this->Descriptor->Capabilities.CanGetBufferSize)
+        if (this->Capabilities->CanGetBufferSize)
         {
-            TerminalCoordinates size = this->Descriptor->GetBufferSize(this);
+            TerminalCoordinates size = this->GetBufferSize();
     
             if (ascii)
             {
@@ -996,7 +906,7 @@ TerminalWriteResult TerminalBase::WriteHexTable(const uintptr_t start, const siz
             }
         }
         else
-            return {Handle(HandleResult::ArgumentOutOfRange), 0U, InvalidCoordinates};
+            return {HandleResult::ArgumentOutOfRange, 0U, InvalidCoordinates};
     }
 
     for (size_t i = 0; i < length; i += actualCharsPerLine)
@@ -1010,8 +920,8 @@ TerminalWriteResult TerminalBase::WriteHexTable(const uintptr_t start, const siz
             addrhexstr[sizeof(size_t) * 2 - 1 - j] = (nib > 9 ? '7' : '0') + nib;
         }
 
-        TERMTRY1(writeString(this, addrhexstr), res, cnt);
-        TERMTRY1(writeChar(this, ":"), res, cnt);
+        TERMTRY1(this->Write(addrhexstr), res, cnt);
+        TERMTRY1(this->WriteUtf8(":"), res, cnt);
 
         for (size_t j = 0; j < actualCharsPerLine; ++j)
         {
@@ -1022,27 +932,27 @@ TerminalWriteResult TerminalBase::WriteHexTable(const uintptr_t start, const siz
             nib = (val >> 4) & 0xF;
             wordhexstr[1] = (nib > 9 ? '7' : '0') + nib;
 
-            TERMTRY1(writeString(this, wordhexstr), res, cnt);
+            TERMTRY1(this->Write(wordhexstr), res, cnt);
         }
 
         if (ascii)
         {
-            TERMTRY1(writeString(this, " |"), res, cnt);
+            TERMTRY1(this->Write(" |"), res, cnt);
 
             for (size_t j = 0; j < actualCharsPerLine; ++j)
             {
                 uint8_t val = *(uint8_t *)(lStart + j);
 
                 if (val >= 32 && val != 127)
-                    TERMTRY1(writeChar(this, reinterpret_cast<char *>(&val)), res, cnt);
+                    TERMTRY1(this->WriteUtf8(reinterpret_cast<char *>(&val)), res, cnt);
                 else
-                    TERMTRY1(writeChar(this, "."), res, cnt);
+                    TERMTRY1(this->WriteUtf8("."), res, cnt);
             }
 
-            TERMTRY1(writeString(this, "|\n\r"), res, cnt);
+            TERMTRY1(this->Write("|\n\r"), res, cnt);
         }
         else
-            TERMTRY1(writeString(this, "\n\r"), res, cnt);
+            TERMTRY1(this->Write("\n\r"), res, cnt);
     }
 
     return res;
@@ -1052,12 +962,12 @@ TerminalWriteResult TerminalBase::WriteHexTable(const uintptr_t start, const siz
     TerminalCoordinates struct
 *********************************/
 
-inline TerminalCoordinates TerminalCoordinates::operator+(const TerminalCoordinates other)
+inline TerminalCoordinates TerminalCoordinates::operator+(TerminalCoordinates const other)
 {
     return { (int16_t)(this->X + other.X), (int16_t)(this->Y + other.Y) };
 }
 
-inline TerminalCoordinates TerminalCoordinates::operator-(const TerminalCoordinates other)
+inline TerminalCoordinates TerminalCoordinates::operator-(TerminalCoordinates const other)
 {
     return { (int16_t)(this->X - other.X), (int16_t)(this->Y - other.Y) };
 }

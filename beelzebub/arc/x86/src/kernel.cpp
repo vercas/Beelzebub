@@ -939,7 +939,7 @@ Handle InitializeApic()
                 auto lanmi = (acpi_madt_local_apic_nmi *)e;
 
                 MainTerminal->WriteFormat("%n%*(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))"
-                    , (size_t)34, lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
+                    , (size_t)32, lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
             }
             break;
         }

@@ -45,72 +45,43 @@ using namespace Beelzebub::Terminals;
 
 /*  Serial terminal descriptor  */
 
-TerminalDescriptor SerialTerminalDescriptor = {
-    &TerminalBase::DefaultWriteCharAtXy,
-    &TerminalBase::DefaultWriteCharAtCoords,
-    &TerminalBase::DefaultWriteStringAt,
-    &SerialTerminal::WriteChar,
-    &SerialTerminal::WriteString,
-    &TerminalBase::DefaultWriteStringVarargs,
-    &SerialTerminal::WriteStringLine,
+TerminalCapabilities SerialTerminalCapabilities = {
+    true,   //  bool CanOutput;            //  Characters can be written to the terminal.
+    false,  //  bool CanInput;             //  Characters can be received from the terminal.
+    false,  //  bool CanRead;              //  Characters can be read back from the terminal's output.
 
-    &TerminalBase::DefaultSetCursorPositionXy,
-    &TerminalBase::DefaultSetCursorPositionCoords,
-    &TerminalBase::DefaultGetCursorPosition,
+    false,  //  bool CanGetOutputPosition; //  Position of next output character can be retrieved.
+    false,  //  bool CanSetOutputPosition; //  Position of output characters can be set arbitrarily.
+    false,  //  bool CanPositionCursor;    //  Terminal features a positionable cursor.
 
-    &TerminalBase::DefaultSetCurrentPositionXy,
-    &TerminalBase::DefaultSetCurrentPositionCoords,
-    &TerminalBase::DefaultGetCurrentPosition,
+    false,  //  bool CanGetSize;           //  Terminal (window) size can be retrieved.
+    false,  //  bool CanSetSize;           //  Terminal (window) size can be changed.
 
-    &TerminalBase::DefaultSetSizeXy,
-    &TerminalBase::DefaultSetSizeCoords,
-    &TerminalBase::DefaultGetSize,
+    false,  //  bool Buffered;             //  Terminal acts as a window over a buffer.
+    false,  //  bool CanGetBufferSize;     //  Buffer size can be retrieved.
+    false,  //  bool CanSetBufferSize;     //  Buffer size can be changed.
+    false,  //  bool CanPositionWindow;    //  The "window" can be positioned arbitrarily over the buffer.
 
-    &TerminalBase::DefaultSetBufferSizeXy,
-    &TerminalBase::DefaultSetBufferSizeCoords,
-    &TerminalBase::DefaultGetBufferSize,
+    false,  //  bool CanColorBackground;   //  Area behind/around output characters can be colored.
+    false,  //  bool CanColorForeground;   //  Output characters can be colored.
+    false,  //  bool FullColor;            //  32-bit BGRA, or ARGB in little endian.
+    false,  //  bool ForegroundAlpha;      //  Alpha channel of foreground color is supported. (ignored if false)
+    false,  //  bool BackgroundAlpha;      //  Alpha channel of background color is supported. (ignored if false)
 
-    &TerminalBase::DefaultSetTabulatorWidth,
-    &TerminalBase::DefaultGetTabulatorWidth,
+    false,  //  bool CanBold;              //  Output characters can be made bold.
+    false,  //  bool CanUnderline;         //  Output characters can be underlined.
+    false,  //  bool CanBlink;             //  Output characters can blink.
 
-    {
-        true,   //  bool CanOutput;            //  Characters can be written to the terminal.
-        false,  //  bool CanInput;             //  Characters can be received from the terminal.
-        false,  //  bool CanRead;              //  Characters can be read back from the terminal's output.
+    false,  //  bool CanGetStyle;          //  Current style settings can be retrieved.
 
-        false,  //  bool CanGetOutputPosition; //  Position of next output character can be retrieved.
-        false,  //  bool CanSetOutputPosition; //  Position of output characters can be set arbitrarily.
-        false,  //  bool CanPositionCursor;    //  Terminal features a positionable cursor.
+    false,  //  bool CanGetTabulatorWidth; //  Tabulator width may be retrieved.
+    false,  //  bool CanSetTabulatorWidth; //  Tabulator width may be changed.
+    
+    true,   //  bool SequentialOutput;     //  Character sequences can be output without explicit position.
 
-        false,  //  bool CanGetSize;           //  Terminal (window) size can be retrieved.
-        false,  //  bool CanSetSize;           //  Terminal (window) size can be changed.
+    false,  //  bool SupportsTitle;        //  Supports assignment of a title.
 
-        false,  //  bool Buffered;             //  Terminal acts as a window over a buffer.
-        false,  //  bool CanGetBufferSize;     //  Buffer size can be retrieved.
-        false,  //  bool CanSetBufferSize;     //  Buffer size can be changed.
-        false,  //  bool CanPositionWindow;    //  The "window" can be positioned arbitrarily over the buffer.
-
-        false,  //  bool CanColorBackground;   //  Area behind/around output characters can be colored.
-        false,  //  bool CanColorForeground;   //  Output characters can be colored.
-        false,  //  bool FullColor;            //  32-bit BGRA, or ARGB in little endian.
-        false,  //  bool ForegroundAlpha;      //  Alpha channel of foreground color is supported. (ignored if false)
-        false,  //  bool BackgroundAlpha;      //  Alpha channel of background color is supported. (ignored if false)
-
-        false,  //  bool CanBold;              //  Output characters can be made bold.
-        false,  //  bool CanUnderline;         //  Output characters can be underlined.
-        false,  //  bool CanBlink;             //  Output characters can blink.
-
-        false,  //  bool CanGetStyle;          //  Current style settings can be retrieved.
-
-        false,  //  bool CanGetTabulatorWidth; //  Tabulator width may be retrieved.
-        false,  //  bool CanSetTabulatorWidth; //  Tabulator width may be changed.
-        
-        true,   //  bool SequentialOutput;     //  Character sequences can be output without explicit position.
-
-        false,  //  bool SupportsTitle;        //  Supports assignment of a title.
-
-        TerminalType::Serial    //  TerminalType Type;         //  The known type of the terminal.
-    }
+    TerminalType::Serial    //  TerminalType Type;         //  The known type of the terminal.
 };
 
 /****************************
@@ -120,7 +91,7 @@ TerminalDescriptor SerialTerminalDescriptor = {
 /*  Constructors    */
 
 SerialTerminal::SerialTerminal(ManagedSerialPort * const port)
-    : TerminalBase(&SerialTerminalDescriptor)
+    : TerminalBase(&SerialTerminalCapabilities)
     , Port(port)
 {
     
@@ -128,28 +99,22 @@ SerialTerminal::SerialTerminal(ManagedSerialPort * const port)
 
 /*  Writing  */
 
-TerminalWriteResult SerialTerminal::WriteChar(TerminalBase * const term, const char * c)
+TerminalWriteResult SerialTerminal::WriteUtf8(const char * c)
 {
-    SerialTerminal * const sterm = (SerialTerminal *)term;
-
-    uint32_t const charBytes = (uint32_t)(sterm->Port->WriteUtf8Char(c));
+    uint32_t const charBytes = (uint32_t)(this->Port->WriteUtf8Char(c));
 
     return {Handle(HandleResult::Okay), charBytes, InvalidCoordinates};
 }
 
-TerminalWriteResult SerialTerminal::WriteString(TerminalBase * const term, const char * const str)
+TerminalWriteResult SerialTerminal::Write(const char * const str)
 {
-    SerialTerminal * const sterm = (SerialTerminal *)term;
-
-    return {Handle(HandleResult::Okay), (uint32_t)sterm->Port->WriteNtString(str), InvalidCoordinates};
+    return {Handle(HandleResult::Okay), (uint32_t)this->Port->WriteNtString(str), InvalidCoordinates};
 }
 
-TerminalWriteResult SerialTerminal::WriteStringLine(TerminalBase * const term, const char * const str)
+TerminalWriteResult SerialTerminal::WriteLine(const char * const str)
 {
-    SerialTerminal * const sterm = (SerialTerminal *)term;
-
-    size_t n = sterm->Port->WriteNtString(str);
-    n += sterm->Port->WriteNtString("\r\n");
+    size_t n = this->Port->WriteNtString(str);
+    n += this->Port->WriteNtString("\r\n");
 
     return {Handle(HandleResult::Okay), (uint32_t)n, InvalidCoordinates};
 }
