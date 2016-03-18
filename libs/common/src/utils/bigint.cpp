@@ -146,6 +146,14 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
     return overflow;
 }
 
+__noinline void BigIntDiv32(uint32_t       * quot, uint32_t sizeQ
+                          , uint32_t       * remn, uint32_t sizeR
+                          , uint32_t const * src1, uint32_t size1
+                          , uint32_t src2)
+{
+
+}
+
 void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
                                , uint32_t       * remn, uint32_t sizeR
                                , uint32_t const * src1, uint32_t size1
@@ -158,9 +166,7 @@ void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
         uint32_t bck[sizeQ];
         memset(&(bck[0]), 0, sizeQ * sizeof(uint32_t));
 
-        BigIntDiv(&(bck[0]), sizeQ, remn, sizeR, src1, size1, src2, size2);
-
-        return;
+        return BigIntDiv(&(bck[0]), sizeQ, remn, sizeR, src1, size1, src2, size2);
     }
     else if (remn == nullptr)
     {
@@ -169,28 +175,25 @@ void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
         uint32_t bck[sizeR];
         memset(&(bck[0]), 0, sizeR * sizeof(uint32_t));
 
-        BigIntDiv(quot, sizeQ, &(bck[0]), sizeR, src1, size1, src2, size2);
-
-        return;
+        return BigIntDiv(quot, sizeQ, &(bck[0]), sizeR, src1, size1, src2, size2);
     }
     else if (src1 == quot || src1 == remn)
     {
         uint32_t bck[size1];
         memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
 
-        BigIntDiv(quot, sizeQ, remn, sizeR, &(bck[0]), size1, src2, size2);
-
-        return;
+        return BigIntDiv(quot, sizeQ, remn, sizeR, &(bck[0]), size1, src2, size2);
     }
     else if (src2 == quot || src2 == remn)
     {
         uint32_t bck[size2];
         memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
 
-        BigIntDiv(quot, sizeQ, remn, sizeR, src1, size1, &(bck[0]), size2);
-
-        return;
+        return BigIntDiv(quot, sizeQ, remn, sizeR, src1, size1, &(bck[0]), size2);
     }
+
+    if (size2 == 1)
+        return BigIntDiv32(quot, sizeQ, remn, sizeR, src1, size1, *src2);
 
     //  Isn't that a rather large number of special cases?
 }
@@ -217,20 +220,18 @@ void Beelzebub::Utils::BigIntAnd(uint32_t       * dst , uint32_t sizeD
                                , uint32_t const * src2, uint32_t size2)
 {
     if (dst == src1)
-        BigIntAnd2(dst, Minimum(sizeD, size1), src2, size2);
+        return BigIntAnd2(dst, Minimum(sizeD, size1), src2, size2);
     else if (dst == src2)
-        BigIntAnd2(dst, Minimum(sizeD, size2), src1, size1);
-    else
-    {
-        uint32_t const limit = Minimum(size1, size2);
+        return BigIntAnd2(dst, Minimum(sizeD, size2), src1, size1);
 
-        for (size_t i = 0; i < limit; ++i)
-            dst[i] = src1[i] & src2[i];
+    uint32_t const limit = Minimum(size1, size2);
 
-        if (sizeD > limit)
-            memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
-        //  The rest becomes 0.
-    }
+    for (size_t i = 0; i < limit; ++i)
+        dst[i] = src1[i] & src2[i];
+
+    if (sizeD > limit)
+        memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+    //  The rest becomes 0.
 }
 
 __noinline void BigIntOr2(uint32_t       * dst, uint32_t sizeD
@@ -251,48 +252,46 @@ void Beelzebub::Utils::BigIntOr (uint32_t       * dst , uint32_t sizeD
                                , uint32_t const * src2, uint32_t size2)
 {
     if (dst == src1)
-        BigIntOr2(dst, Minimum(sizeD, size1), src2, size2);
+        return BigIntOr2(dst, Minimum(sizeD, size1), src2, size2);
     else if (dst == src2)
-        BigIntOr2(dst, Minimum(sizeD, size2), src1, size1);
-    else
+        return BigIntOr2(dst, Minimum(sizeD, size2), src1, size1);
+
+    if (size1 > sizeD)
+        size1 = sizeD;
+    
+    if (size2 > sizeD)
+        size2 = sizeD;
+
+    //  There is nothing to do with the surpluses.
+
+    uint32_t limit = Minimum(size1, size2);
+
+    size_t i = 0;
+
+    for (/* nothing */; i < limit; ++i)
+        dst[i] = src1[i] | src2[i];
+
+    if (size1 > limit)
     {
-        if (size1 > sizeD)
-            size1 = sizeD;
-        
-        if (size2 > sizeD)
-            size2 = sizeD;
+        for (/* nothing */; i < size1; ++i)
+            dst[i] = src1[i];
 
-        //  There is nothing to do with the surpluses.
-
-        uint32_t limit = Minimum(size1, size2);
-
-        size_t i = 0;
-
-        for (/* nothing */; i < limit; ++i)
-            dst[i] = src1[i] | src2[i];
-
-        if (size1 > limit)
-        {
-            for (/* nothing */; i < size1; ++i)
-                dst[i] = src1[i];
-
-            limit = size1;
-        }
-        else if (size2 > limit)
-        {
-            for (/* nothing */; i < size2; ++i)
-                dst[i] = src2[i];
-
-            limit = size2;
-        }
-
-        //  The shortest source is zero-extended (virtually) to the same size as
-        //  the longest (other) source.
-
-        if (sizeD > limit)
-            memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
-        //  The rest becomes 0.
+        limit = size1;
     }
+    else if (size2 > limit)
+    {
+        for (/* nothing */; i < size2; ++i)
+            dst[i] = src2[i];
+
+        limit = size2;
+    }
+
+    //  The shortest source is zero-extended (virtually) to the same size as
+    //  the longest (other) source.
+
+    if (sizeD > limit)
+        memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+    //  The rest becomes 0.
 }
 
 __noinline void BigIntXor2(uint32_t       * dst, uint32_t sizeD
@@ -313,48 +312,46 @@ void Beelzebub::Utils::BigIntXor(uint32_t       * dst , uint32_t sizeD
                                , uint32_t const * src2, uint32_t size2)
 {
     if (dst == src1)
-        BigIntXor2(dst, Minimum(sizeD, size1), src2, size2);
+        return BigIntXor2(dst, Minimum(sizeD, size1), src2, size2);
     else if (dst == src2)
-        BigIntXor2(dst, Minimum(sizeD, size2), src1, size1);
-    else
+        return BigIntXor2(dst, Minimum(sizeD, size2), src1, size1);
+
+    if (size1 > sizeD)
+        size1 = sizeD;
+    
+    if (size2 > sizeD)
+        size2 = sizeD;
+
+    //  There is nothing to do with the surpluses.
+
+    uint32_t limit = Minimum(size1, size2);
+
+    size_t i = 0;
+
+    for (/* nothing */; i < limit; ++i)
+        dst[i] = src1[i] ^ src2[i];
+
+    if (size1 > limit)
     {
-        if (size1 > sizeD)
-            size1 = sizeD;
-        
-        if (size2 > sizeD)
-            size2 = sizeD;
+        for (/* nothing */; i < size1; ++i)
+            dst[i] = src1[i];
 
-        //  There is nothing to do with the surpluses.
-
-        uint32_t limit = Minimum(size1, size2);
-
-        size_t i = 0;
-
-        for (/* nothing */; i < limit; ++i)
-            dst[i] = src1[i] ^ src2[i];
-
-        if (size1 > limit)
-        {
-            for (/* nothing */; i < size1; ++i)
-                dst[i] = src1[i];
-
-            limit = size1;
-        }
-        else if (size2 > limit)
-        {
-            for (/* nothing */; i < size2; ++i)
-                dst[i] = src2[i];
-
-            limit = size2;
-        }
-
-        //  The shortest source is zero-extended (virtually) to the same size as
-        //  the longest (other) source.
-
-        if (sizeD > limit)
-            memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
-        //  The rest becomes 0.
+        limit = size1;
     }
+    else if (size2 > limit)
+    {
+        for (/* nothing */; i < size2; ++i)
+            dst[i] = src2[i];
+
+        limit = size2;
+    }
+
+    //  The shortest source is zero-extended (virtually) to the same size as
+    //  the longest (other) source.
+
+    if (sizeD > limit)
+        memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+    //  The rest becomes 0.
 }
 
 void Beelzebub::Utils::BigIntNot(uint32_t       * dst, uint32_t sizeD

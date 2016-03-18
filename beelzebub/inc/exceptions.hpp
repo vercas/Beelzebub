@@ -49,7 +49,7 @@
     if (Beelzebub::EnterExceptionContext(&(MCATS(_excp_guard_, __LINE__).Context)))
 
 #define __catch(name) \
-    else with (Beelzebub::Exception  const* const name = Beelzebub::GetException())
+    else with (Beelzebub::Exception const * const name = Beelzebub::GetException())
 
 namespace Beelzebub
 {
