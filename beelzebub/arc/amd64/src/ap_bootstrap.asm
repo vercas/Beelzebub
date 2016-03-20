@@ -191,6 +191,9 @@ bits 64 ;   Then long mode directly.
 
     ;debugchar 'K'
 
+    push    qword 0
+    ;   Align stack.
+
     mov     rax, kmain_ap
     jmp     rax
     ;   Finally, jump to kernel.

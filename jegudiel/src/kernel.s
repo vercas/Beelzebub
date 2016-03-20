@@ -57,6 +57,9 @@ kernel_enter:
   
     mov     rsp, rsi
     ;   Stack reset.
+
+    push    qword 0
+    ;   Dummy, for stack alignment...
     
     push rdi                        ; Push rdi as a return address
 
