@@ -217,7 +217,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     Vmm::Switch(nullptr, bootstrapProc);
     //  Re-activate, to flush the identity maps.
 
-    return Handle(HandleResult::Okay);
+    return HandleResult::Okay;
 }
 
 Handle Vmm::Initialize(Process * const proc)
@@ -410,7 +410,7 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
         paddr_t const MCATS(newPml, N) = alloc->AllocatePage(desc);                             \
                                                                                                 \
         if (MCATS(newPml, N) == nullpaddr)                                                      \
-            return Handle(HandleResult::OutOfMemory);                                           \
+            return HandleResult::OutOfMemory;                                           \
                                                                                                 \
         desc->IncrementReferenceCount();                                                        \
                                                                                                 \

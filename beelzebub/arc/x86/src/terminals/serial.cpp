@@ -103,12 +103,12 @@ TerminalWriteResult SerialTerminal::WriteUtf8(const char * c)
 {
     uint32_t const charBytes = (uint32_t)(this->Port->WriteUtf8Char(c));
 
-    return {Handle(HandleResult::Okay), charBytes, InvalidCoordinates};
+    return {HandleResult::Okay, charBytes, InvalidCoordinates};
 }
 
 TerminalWriteResult SerialTerminal::Write(const char * const str)
 {
-    return {Handle(HandleResult::Okay), (uint32_t)this->Port->WriteNtString(str), InvalidCoordinates};
+    return {HandleResult::Okay, (uint32_t)this->Port->WriteNtString(str), InvalidCoordinates};
 }
 
 TerminalWriteResult SerialTerminal::WriteLine(const char * const str)
@@ -116,5 +116,5 @@ TerminalWriteResult SerialTerminal::WriteLine(const char * const str)
     size_t n = this->Port->WriteNtString(str);
     n += this->Port->WriteNtString("\r\n");
 
-    return {Handle(HandleResult::Okay), (uint32_t)n, InvalidCoordinates};
+    return {HandleResult::Okay, (uint32_t)n, InvalidCoordinates};
 }

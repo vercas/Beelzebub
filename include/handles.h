@@ -237,7 +237,7 @@ namespace Beelzebub
         Handle(Handle const&) = default;
 
         //  Arbitrary-type handle.
-        __forceinline constexpr Handle(HandleType const type
+        inline constexpr Handle(HandleType const type
                                      ,   uint64_t const index
                                      ,       bool const global = false)
             : Value((uint64_t)type
@@ -248,7 +248,7 @@ namespace Beelzebub
         }
 
         //  Result handle.
-        __forceinline constexpr Handle(HandleResult const res)
+        inline constexpr Handle(HandleResult const res)
             : Value((uint64_t)( (uint16_t)HandleType::Result
                              | ((uint16_t)res << ResultPrimaryOffset)))
         {
@@ -256,7 +256,7 @@ namespace Beelzebub
         }
 
         //  Result handle, optionally fatal.
-        __forceinline constexpr Handle(HandleResult const res, bool const fatal)
+        inline constexpr Handle(HandleResult const res, bool const fatal)
             : Value((uint64_t)( (uint16_t)HandleType::Result
                              | ((uint16_t)res << ResultPrimaryOffset))
                   | (fatal ? GlobalFatalBit : 0))
@@ -267,7 +267,7 @@ namespace Beelzebub
 
 private:
         //  Use is discouraged, but meh.
-        __forceinline constexpr Handle(uint64_t val)
+        inline constexpr Handle(uint64_t val)
             : Value( val)
         {
 
@@ -276,17 +276,17 @@ private:
 public:
         /*  Type  */
 
-        __forceinline HandleType GetType() const
+        inline HandleType GetType() const
         {
             return (HandleType)(this->Bytes[0]);
         }
 
-        __forceinline bool IsType(HandleType const type) const
+        inline bool IsType(HandleType const type) const
         {
             return this->Bytes[0] == (uint8_t)type;
         }
 
-        __forceinline bool IsGlobal() const
+        inline bool IsGlobal() const
         {
             HandleType type = this->GetType();
 
@@ -295,19 +295,19 @@ public:
                 && type != HandleType::Invalid;
         }
 
-        __forceinline bool IsValid() const
+        inline bool IsValid() const
         {
             return !this->IsType(HandleType::Invalid);
         }
 
-        __forceinline bool IsLiterally(uint64_t const val) const
+        inline bool IsLiterally(uint64_t const val) const
         {
             return this->Value == val;
         }
 
         /*  Generic  */
 
-        __forceinline uint64_t GetIndex() const
+        inline uint64_t GetIndex() const
         {
             return (this->IsType(HandleType::Result) || this->IsType(HandleType::Invalid))
                 ? ~0ULL
@@ -316,12 +316,12 @@ public:
 
         /*  Result  */
 
-        __forceinline HandleResult GetResult() const
+        inline HandleResult GetResult() const
         {
             return (HandleResult)(this->Bytes[ResultPrimaryByteIndex]);
         }
 
-        __forceinline size_t GetResultCount() const
+        inline size_t GetResultCount() const
         {
             return (size_t)((this->Bytes[ResultCountByteIndex] & ResultCountByteBits) >> ResultCountByteOffset);
         }
@@ -355,23 +355,23 @@ public:
             //  affect themselves. Don't be a smartbutt.
         }
 
-        __forceinline bool IsResult(HandleResult const res) const
+        inline bool IsResult(HandleResult const res) const
         {
             return this->Bytes[ResultPrimaryByteIndex] == (uint8_t)res && this->GetType() == HandleType::Result;
         }
 
-        __forceinline bool IsFatalResult() const
+        inline bool IsFatalResult() const
         {
             return 0 != (this->Bytes[GlobalFatalByteIndex] & GlobalFatalByteBit)
                 && this->GetType() == HandleType::Result;
         }
 
-        __forceinline bool IsGlobalOrFatal() const
+        inline bool IsGlobalOrFatal() const
         {
             return 0 != (this->Bytes[GlobalFatalByteIndex] & GlobalFatalByteBit);
         }
 
-        __forceinline bool IsOkayResult() const
+        inline bool IsOkayResult() const
         {
             return this->Words[0] == OkayResultWord;
             //  Other bits are irrelevant.

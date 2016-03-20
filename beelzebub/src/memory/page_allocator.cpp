@@ -189,7 +189,7 @@ Handle PageAllocationSpace::InitializeControlStructures()
 Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t count, const PageReservationOptions options)
 {
     if unlikely(start + count > this->AllocablePageCount)
-        return Handle(HandleResult::PagesOutOfAllocatorRange);
+        return HandleResult::PagesOutOfAllocatorRange;
 
     bool const inclInUse    = (0 != (options & PageReservationOptions::IncludeInUse  ));
     bool const ignrReserved = (0 != (options & PageReservationOptions::IgnoreReserved));
@@ -225,14 +225,14 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
                 withLock (this->Locker)
                     page->Reserve();
             else
-                return Handle(HandleResult::PageInUse);
+                return HandleResult::PageInUse;
 
             //  Yes, locking is enough. It will reserve and unlock later.
         }
         else if (ignrReserved)
             continue;
         else
-            return Handle(HandleResult::PageReserved);
+            return HandleResult::PageReserved;
     }
 
     this->FreePageCount -= count;
@@ -241,13 +241,13 @@ Handle PageAllocationSpace::ReservePageRange(const pgind_t start, const psize_t 
     this->FreeSize = this->FreePageCount * this->PageSize;
     this->ReservedSize = this->ReservedPageCount * this->PageSize;
 
-    return Handle(HandleResult::Okay);
+    return HandleResult::Okay;
 }
 
 Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t count)
 {
     if unlikely(start + count > this->AllocablePageCount)
-        return Handle(HandleResult::PagesOutOfAllocatorRange);
+        return HandleResult::PagesOutOfAllocatorRange;
 
     PageDescriptor * const map = this->Map + start;
 
@@ -269,15 +269,15 @@ Handle PageAllocationSpace::FreePageRange(const pgind_t start, const psize_t cou
             //  Free pages are already free.
 
             if (status == PageDescriptorStatus::Reserved)
-                return Handle(HandleResult::PageReserved);
+                return HandleResult::PageReserved;
             else
-                return Handle(HandleResult::PageFree);
+                return HandleResult::PageFree;
 
             //  The proper error must be returned!
         }
     }
 
-    return Handle(HandleResult::Okay);
+    return HandleResult::Okay;
 }
 
 paddr_t PageAllocationSpace::AllocatePage(PageDescriptor * & desc)
@@ -328,7 +328,7 @@ paddr_t PageAllocationSpace::AllocatePages(const psize_t count)
 Handle PageAllocationSpace::PopPage(const pgind_t ind)
 {
     if unlikely(ind >= this->AllocablePageCount)
-        return Handle(HandleResult::PagesOutOfAllocatorRange);
+        return HandleResult::PagesOutOfAllocatorRange;
 
     PageDescriptor * const page = this->Map + ind;
 
@@ -344,10 +344,10 @@ Handle PageAllocationSpace::PopPage(const pgind_t ind)
         this->FreeSize -= this->PageSize;
         //  Change the info accordingly.
 
-        return Handle(HandleResult::Okay);
+        return HandleResult::Okay;
     }
 
-    return Handle(HandleResult::PageNotStacked);
+    return HandleResult::PageNotStacked;
 }
 
 /*  Debug  */
@@ -447,7 +447,7 @@ Handle PageAllocator::ReserveByteRange(const paddr_t phys_start, const psize_t l
         space = space->Next;
     }
 
-    return Handle(HandleResult::PagesOutOfAllocatorRange);
+    return HandleResult::PagesOutOfAllocatorRange;
 }
 
 Handle PageAllocator::FreeByteRange(const paddr_t phys_start, const psize_t length)
@@ -465,7 +465,7 @@ Handle PageAllocator::FreeByteRange(const paddr_t phys_start, const psize_t leng
         space = space->Next;
     }
 
-    return Handle(HandleResult::PagesOutOfAllocatorRange);
+    return HandleResult::PagesOutOfAllocatorRange;
 }
 
 Handle PageAllocator::FreePageAtAddress(const paddr_t phys_addr)
@@ -483,7 +483,7 @@ Handle PageAllocator::FreePageAtAddress(const paddr_t phys_addr)
         space = space->Next;
     }
 
-    return Handle(HandleResult::PagesOutOfAllocatorRange);
+    return HandleResult::PagesOutOfAllocatorRange;
 }
 
 paddr_t PageAllocator::AllocatePage(const PageAllocationOptions options, PageDescriptor * & desc)

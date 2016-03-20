@@ -127,7 +127,7 @@ TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, c
     if (*c == ' ')
     {
         if (colb == NOCOL)
-            return {Handle(HandleResult::Okay), 1U, {cx, cy}};
+            return {HandleResult::Okay, 1U, {cx, cy}};
 
         for (ly = 0; ly < h; ++ly)
         {
@@ -181,7 +181,7 @@ TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, c
 
 skip_bitmap:
 
-    return {Handle(HandleResult::Okay), i, {cx, cy}};
+    return {HandleResult::Okay, i, {cx, cy}};
 }
 
 /*  Positioning  */
