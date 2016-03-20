@@ -121,6 +121,7 @@
 
 #define __forceinline      inline  __attribute__((__always_inline__))
 #define __noinline         __attribute__((__noinline__))
+#define __noclone          __attribute__((__noclone__))
 
 #define __const            __attribute__((__const__))
 #define __cold             __attribute__((__cold__))
@@ -159,7 +160,8 @@
 #else
 
 #define __forceinline      inline
-#define __noinline
+#define __noinline  
+#define __noclone  
 
 #define __const
 #define __cold
