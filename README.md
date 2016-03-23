@@ -1,4 +1,4 @@
-# Beelzebub [![Build Status](https://travis-ci.org/vercas/Beelzebub.svg?branch=master)](https://travis-ci.org/vercas/Beelzebub)
+# Beelzebub [![Build Status](https://travis-ci.org/vercas/Beelzebub.svg?branch=master)](https://travis-ci.org/vercas/Beelzebub) [![IRC Channel](https://img.shields.io/badge/IRC-beelzebub-blue.svg)](http://webchat.freenode.net/?channels=%23%23beelzebub)
 
 ### Building
 
