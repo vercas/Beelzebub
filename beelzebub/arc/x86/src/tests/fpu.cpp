@@ -70,6 +70,10 @@ void TestFpu()
     ASSERT(a == 32, "Eh...");
 
     TestSse2();
+
+    union { double d; uint64_t u; } b = {a};
+
+    MSG("<< %X8 (%us); %Xd >>%n", b.u, sizeof(double), a);
 }
 
 #pragma GCC diagnostic pop

@@ -111,7 +111,7 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult Write(char const * const str);
         virtual TerminalWriteResult Write(char const * const fmt, va_list args);
         virtual TerminalWriteResult WriteLine(char const * const str);
-        __noinline TerminalWriteResult WriteFormat(char const * const fmt, ...);
+        __noinline __noclone __min_float TerminalWriteResult WriteFormat(char const * const fmt, ...);
 
         /*  Positioning  */
 
@@ -145,6 +145,9 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult WriteHex16(uint16_t const val);
         virtual TerminalWriteResult WriteHex32(uint32_t const val);
         virtual TerminalWriteResult WriteHex64(uint64_t const val);
+
+        virtual __min_float TerminalWriteResult WriteHexFloat(float const val);
+        virtual __min_float TerminalWriteResult WriteHexDouble(double const val);
 
         virtual TerminalWriteResult WriteHexDump(uintptr_t const start, size_t const length, size_t const charsPerLine);
         __forceinline TerminalWriteResult WriteHexDump(void const * const start, size_t const length, size_t const charsPerLine)

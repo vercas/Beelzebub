@@ -48,9 +48,21 @@
                                               "fma4,lwp,ssse3,"             \
                                               "fancy-math-387,ieee-fp,"     \
                                               "recip")))
+    #define __sse2 __attribute__((__target__("mmx,sse,sse2,fancy-math-387," \
+                                             "ieee-fp")))
+    #define __fpu __attribute__((__target__("fancy-math-387,ieee-fp")))
+
+    #if   defined(__BEELZEBUB__ARCH_AMD64)
+        #define __min_float __sse2
+    #else
+        #define __min_float __fpu
+    #endif
 #else
     #define __bland  
     #define __fancy  
+    #define __sse2  
+    #define __fpu  
+    #define __min_float  
 #endif
 
 //  All hail the preprocessor!

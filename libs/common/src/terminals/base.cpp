@@ -324,8 +324,6 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                     case '4':
                     case '2':
                     case '1':
-                        /*  Apparently chars and shorts are promoted to integers!  */
-
                         {
                             int32_t val4 = va_arg(args, int32_t);
                             TERMTRY1(this->WriteIntD(val4), res, cnt);
@@ -381,8 +379,6 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                         break;
 
                     case '2':
-                        /*  Apparently chars and shorts are promoted to integers!  */
-
                         {
                             uint32_t val2 = va_arg(args, uint32_t);
                             TERMTRY1(this->WriteHex16((uint16_t)val2), res, cnt);
@@ -390,11 +386,22 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                         break;
 
                     case '1':
-                        /*  Apparently chars and shorts are promoted to integers!  */
-
                         {
                             uint32_t val1 = va_arg(args, uint32_t);
                             TERMTRY1(this->WriteHex8((uint8_t)val1), res, cnt);
+                        }
+                        break;
+
+                    case 'f':
+                    case 'd':
+                        {
+                            auto func = [&args, this]() __fancy
+                            {
+                                double valF = va_arg(args, double);
+                                return this->WriteHexDouble(valF);
+                            };
+
+                            TERMTRY1(func(), res, cnt);
                         }
                         break;
 
@@ -639,7 +646,6 @@ TerminalWriteResult TerminalBase::WriteHandle(const Handle val)
     //  <type|global/fatal|result/index>
 
     char const * const strType = val.GetTypeString();
-    char const * const strRes  = val.GetResultString();
 
     for (size_t i = 0; 0 != strType[i] && i < 4; ++i)
         str[1 + i] = strType[i];
@@ -657,6 +663,8 @@ TerminalWriteResult TerminalBase::WriteHandle(const Handle val)
             str[6] = 'F';
 
         char * const str2 = str + 8;
+
+        char const * const strRes  = val.GetResultString();
 
         for (size_t i = 0; 0 != strRes[i] && i < 12; ++i)
             str2[i] = strRes[i];
@@ -801,6 +809,58 @@ TerminalWriteResult TerminalBase::WriteHex64(uint64_t const val)
     }
 
     return this->Write(str);
+}
+
+TerminalWriteResult TerminalBase::WriteHexFloat(float const val)
+{
+    union { float fVal; uint32_t iVal; } value = {val};
+
+    uint32_t fraction = (value.iVal & 0x007FFFFFU) << 1;
+    int32_t exponent = (int32_t)((value.iVal & 0x7F800000U) >> 23) - 127;
+    bool negative = (value.iVal >> 31) != 0;
+
+    char str[] = "-0x1.XxXxXx<<";
+
+    for (size_t i = 0; i < 6; ++i)
+    {
+        uint8_t const nib = (fraction >> (i << 2)) & 0xF;
+
+        str[10 - i] = (nib > 9 ? '7' : '0') + nib;
+    }
+
+    TerminalWriteResult res {};
+    uint32_t cnt;
+
+    TERMTRY1(this->Write(str + (negative ? 0 : 1)), res, cnt);
+    TERMTRY1(this->WriteIntD(exponent), res, cnt);
+
+    return res;
+}
+
+TerminalWriteResult TerminalBase::WriteHexDouble(double const val)
+{
+    union { double fVal; uint64_t iVal; } value = {val};
+
+    uint64_t fraction = value.iVal & 0x000FFFFFFFFFFFFFU;
+    int64_t exponent = (int64_t)((value.iVal & 0x7FF0000000000000U) >> 52) - 1023;
+    bool negative = (value.iVal >> 63) != 0;
+
+    char str[] = "-0x1.XxXxXxXxXxXxX<<";
+
+    for (size_t i = 0; i < 13; ++i)
+    {
+        uint8_t const nib = (fraction >> (i << 2)) & 0xF;
+
+        str[17 - i] = (nib > 9 ? '7' : '0') + nib;
+    }
+
+    TerminalWriteResult res {};
+    uint32_t cnt;
+
+    TERMTRY1(this->Write(str + (negative ? 0 : 1)), res, cnt);
+    TERMTRY1(this->WriteIntD(exponent), res, cnt);
+
+    return res;
 }
 
 TerminalWriteResult TerminalBase::WriteHexDump(uintptr_t const start, size_t const length, size_t const charsPerLine)
@@ -956,18 +1016,4 @@ TerminalWriteResult TerminalBase::WriteHexTable(uintptr_t const start, size_t co
     }
 
     return res;
-}
-
-/*********************************
-    TerminalCoordinates struct
-*********************************/
-
-inline TerminalCoordinates TerminalCoordinates::operator+(TerminalCoordinates const other)
-{
-    return { (int16_t)(this->X + other.X), (int16_t)(this->Y + other.Y) };
-}
-
-inline TerminalCoordinates TerminalCoordinates::operator-(TerminalCoordinates const other)
-{
-    return { (int16_t)(this->X - other.X), (int16_t)(this->Y - other.Y) };
 }
