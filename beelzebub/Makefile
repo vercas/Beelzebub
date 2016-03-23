@@ -25,7 +25,6 @@ AUX_DIR		:= ./arc
 RUNTIME_DIR := $(SRC_DIR)/runtime
 INCPCH_DIR	:= $(BUILD_DIR)/inc
 BUILD_HOST	:= ./build
-BUILD_DIR	:= $(BUILD_HOST)/$(ARC)
 
 # Common settings
 include ../Beelzebub.mk
@@ -33,8 +32,9 @@ include ../Beelzebub.mk
 # Fake targets.
 .PHONY: all install uninstall clean linku build headers $(ARC) $(SETTINGS)
 
-# Output file
-KERNEL_PATH		:= $(BUILD_HOST)/$(KERNEL_BIN)
+# Output files
+BUILD_DIR			:= $(BUILD_HOST)/$(ARC)
+KERNEL_PATH			:= $(BUILD_HOST)/$(KERNEL_BIN)
 
 ################################################################################
 #                             TOOLCHAIN & SETTINGS                             #
@@ -46,7 +46,7 @@ include ../Toolchain.mk
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 GCCFLAGS	+= -ffreestanding -Wall -mcmodel=kernel -fno-omit-frame-pointer 
-GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
+GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe -lgcc -static-libgcc 
 GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 # C/C++ options
@@ -64,7 +64,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 
 # Linker options, with optimization
 LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel -fuse-linker-plugin 
-LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe 
+LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 
 LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 # Linker options, without optimization

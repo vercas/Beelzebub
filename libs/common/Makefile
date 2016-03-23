@@ -23,7 +23,6 @@ INC_DIR		:= ./inc
 ARC_DIR		:= .
 AUX_DIR		:= .
 BUILD_HOST	:= ./build
-BUILD_DIR	:= $(BUILD_HOST)/$(ARC)
 
 # Common settings
 include ../../Beelzebub.mk
@@ -32,6 +31,7 @@ include ../../Beelzebub.mk
 .PHONY: all install uninstall clean linku build headers $(ARC) $(SETTINGS)
 
 # Output files
+BUILD_DIR			:= $(BUILD_HOST)/$(ARC)
 LIB_BIN				:= libcommon.$(ARC).a
 LIB_PATH			:= $(BUILD_HOST)/$(LIB_BIN)
 LIB_INSTALL_DIR		:= $(PREFIX)/libs
@@ -47,7 +47,7 @@ include ../../Toolchain.mk
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_STATIC_LIBRARY 
 GCCFLAGS	+= -ffreestanding -Wall -mcmodel=large -fno-omit-frame-pointer 
-GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
+GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe -lgcc -static-libgcc 
 GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 # C/C++ options
@@ -147,7 +147,7 @@ $(LIB_INSTALL_PATH): $(LIB_PATH)
 ##################################################
 # Link the target binary with extra optimization #
 $(LIB_PATH): $(OBJECTS)
-	@ echo "/AR/OPT:" $@
+	@ echo "/AR:" $@
 	@ $(AR) $(ARFLAGS) $@ $(OBJECTS)
 
 ####################################### CODE FILES ##########

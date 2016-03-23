@@ -23,15 +23,15 @@ INC_DIR		:= ./inc
 ARC_DIR		:= .
 AUX_DIR		:= .
 BUILD_HOST	:= ./build
-BUILD_DIR	:= $(BUILD_HOST)/$(ARC)
 
 # Common settings
 include ../../Beelzebub.mk
 
 # Fake targets.
-.PHONY: all install uninstall clean linku build headers $(ARC) $(SETTINGS)
+.PHONY: all install uninstall clean linku build $(ARC) $(SETTINGS)
 
 # Output files
+BUILD_DIR			:= $(BUILD_HOST)/$(ARC)
 APP_BIN				:= loadtest.exe
 APP_PATH			:= $(BUILD_HOST)/$(APP_BIN)
 APP_INSTALL_DIR		:= $(PREFIX)/bin
@@ -46,7 +46,7 @@ include ../../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_APPLICATION 
-GCCFLAGS	+= -ffreestanding -Wall -mcmodel=small 
+GCCFLAGS	+= -ffreestanding -Wall -mcmodel=small -lgcc -static-libgcc 
 GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
 # GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
@@ -58,7 +58,7 @@ CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 
 # Linker options, with optimization
-LOFLAGS		:= -ffreestanding -Wall -mcmodel=small 
+LOFLAGS		:= -ffreestanding -Wall -mcmodel=small -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 
 LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe 
 # LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
@@ -162,6 +162,7 @@ $(APP_INSTALL_PATH): $(APP_PATH)
 # Link the target binary with extra optimization #
 $(APP_PATH): $(LDFILE) $(OBJECTS)
 	@ echo "/LNK/OPT:" $@ "("$(LDFILE)")"
+	@ mkdir -p $(@D)
 	@ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS)
 
 ####################################### CODE FILES ##########

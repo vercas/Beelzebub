@@ -20,7 +20,6 @@ PREFIX		:= ./../build
 SOURCE_DIR	:= ./src
 INC_DIR		:= ./inc
 BUILD_HOST	:= ./build
-BUILD_DIR	:= $(BUILD_HOST)
 
 # Common settings
 include ../Beelzebub.mk
@@ -30,6 +29,7 @@ include ../Beelzebub.mk
 #	I write 'amd64' and not '$(ARC)' so other architectures will error out.
 
 # Output files
+BUILD_DIR			:= $(BUILD_HOST)
 BTL_BIN				:= jegudiel.bin
 BTL_PATH			:= $(BUILD_HOST)/$(BTL_BIN)
 BTL_INSTALL_DIR		:= $(PREFIX)/bin
@@ -44,7 +44,7 @@ include ../Toolchain.mk
 
 # Toolchain options/flags
 INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
-CFLAGS		:= -m64 -ffreestanding -Wall -mcmodel=large $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0
+CFLAGS		:= -m64 -ffreestanding -Wall -mcmodel=large $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0 -lgcc -static-libgcc 
 ASFLAGS		:= -f elf64
 LDFLAGS		:= -z max-page-size=0x1000
 

@@ -12,11 +12,11 @@ endif
 
 #############
 # Toolchain #
-CC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc -lgcc -static-libgcc 
-CXX			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc -lgcc -static-libgcc 
+CC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc 
+CXX			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc 
 DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gdc
 AS			:= nasm
-LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 
+LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc 
 LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-ld
 AR			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc-ar 
 MKISO		:= mkisofs
@@ -58,7 +58,7 @@ endif
 #	.gitignore.
 
 # Some X-plainations:
-#	CXXC = C++ Compiler (not sure if this is standard or not, lel)
+#	CXX  = C++ Compiler (not sure if this is standard or not, lel)
 #	DC   = D Compiler
 #	LO   = Linker-optimizer
 # Should be 'nuff.
