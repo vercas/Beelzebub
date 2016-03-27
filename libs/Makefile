@@ -22,7 +22,9 @@ PREFIX		:= ./../build
 include ../Beelzebub.mk
 
 # Fake targets.
-.PHONY: install clean common common-install common-clean $(ARC) $(SETTINGS)
+.PHONY: install clean common common-install common-clean \
+                      runtime runtime-install runtime-clean \
+                      $(ARC) $(SETTINGS)
 
 # Toolchain
 include ../Toolchain.mk
@@ -40,16 +42,32 @@ common:
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C common/ $(ARC) $(SETTINGS) $(MAKE_FLAGS)
 
+runtime: common-install
+	@ echo "/MAK:" $@
+	@ $(MAKE) -C runtime/ $(ARC) $(SETTINGS) $(MAKE_FLAGS)
+
+####################################### INSTALLATION ##########
+
+install: common-install runtime-install
+	@ true
+
 common-install:
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C common/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
+
+runtime-install: common-install
+	@ echo "/MAK:" $@
+	@ $(MAKE) -C runtime/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
+
+####################################### CLEAN UP ##########
+
+clean: common-clean runtime-clean
+	@ true
 
 common-clean:
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C common/ clean $(MAKE_FLAGS)
 
-install: common-install
-	@ true
-	
-clean: common-clean
-	@ true
+runtime-clean:
+	@ echo "/MAK:" $@
+	@ $(MAKE) -C runtime/ clean $(MAKE_FLAGS)
