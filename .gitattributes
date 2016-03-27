@@ -1,0 +1,47 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Custom for Visual Studio
+*.cs     diff=csharp
+
+# Standard to msysgit
+*.doc	 diff=astextplain
+*.DOC	 diff=astextplain
+*.docx diff=astextplain
+*.DOCX diff=astextplain
+*.dot  diff=astextplain
+*.DOT  diff=astextplain
+*.pdf  diff=astextplain
+*.PDF	 diff=astextplain
+*.rtf	 diff=astextplain
+*.RTF	 diff=astextplain
+
+*.sln text eol=crlf
+*.suo text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.user text eol=crlf
+*.vcxproj.filters text eol=crlf
+*.idc text eol=crlf
+
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.mk text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.ld text eol=lf
+
+Makefile text eol=lf
+
+*.yml text eol=lf
+*.cfg text eol=lf
+
+*.c   text eol=lf
+*.cpp text eol=lf
+*.h   text eol=lf
+*.hpp text eol=lf
+*.inc text eol=lf
+*.asm text eol=lf
+*.s   text eol=lf
+*.d   text eol=lf
+
