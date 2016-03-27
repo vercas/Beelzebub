@@ -1,4 +1,4 @@
-CROSSCOMPILER_DIRECTORY		:= /usr/local/gcc-x86_64-elf/bin
+CROSSCOMPILER_DIRECTORY		:= /usr/local/gcc-x86_64-beelzebub/bin
 #	Default
 
 MAKE_FLAGS	:= -j 
@@ -12,13 +12,13 @@ endif
 
 #############
 # Toolchain #
-CC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc 
-CXX			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc 
-DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gdc
+CC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc 
+CXX			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc 
+DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gdc
 AS			:= nasm
-LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc 
-LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-ld
-AR			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-elf-gcc-ar 
+LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc 
+LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-ld
+AR			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc-ar 
 MKISO		:= mkisofs
 
 PRE_COMPILATION		:=  

@@ -11,18 +11,18 @@ fi
 
 mkdir -p $CROSSCOMPILERS_DIR
 
-if [ ! -d "$CROSSCOMPILERS_DIR/gcc-x86_64-elf" ]
+if [ ! -d "$CROSSCOMPILERS_DIR/gcc-x86_64-beelzebub" ]
 then
 	TMP="$(mktemp)"
 
 	pushd "$CROSSCOMPILERS_DIR"
 
-	$PRECMD wget "http://u.vercas.com/gcc-x86_64-elf.tar.xz" -O $TMP
+	$PRECMD wget "http://u.vercas.com/gcc-x86_64-beelzebub.tar.xz" -O $TMP
 	RES=$?
 	
 	if [ $RES != 0 ]
 	then
-		$PRECMD wget "https://dl.dropboxusercontent.com/u/1217587/gcc-x86_64-elf.tar.xz" -O $TMP
+		$PRECMD wget "https://dl.dropboxusercontent.com/u/1217587/gcc-x86_64-beelzebub.tar.xz" -O $TMP
 	fi
 
 	$PRECMD tar --no-same-owner -xJf $TMP
