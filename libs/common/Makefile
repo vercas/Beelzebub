@@ -56,6 +56,7 @@ CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 
 # Assembler options
 ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
+GASFLAGS	:= $(GCCFLAGS) 
 
 # Archiver options
 ARFLAGS		:= rcs 
@@ -102,6 +103,10 @@ endif
 
 include ../../Sources.mk
 
+# CRTs
+CRTS		:= 0 i n
+CRT_TARGETS	:= $(patsubst %,$(SYSROOT)/usr/lib/crt%.o,$(CRTS)) 
+
 # Bootstrapping
 CFLAGS		+= $(INCFLAGS)
 CXXFLAGS	+= $(INCFLAGS)
@@ -116,7 +121,7 @@ $(ARC):
 
 ###############################
 # Install to prefix directory #
-install: $(LIB_INSTALL_PATH)
+install: $(LIB_INSTALL_PATH) $(CRT_TARGETS)
 	@ true
 
 ####################################
@@ -141,7 +146,7 @@ build: $(OBJECTS)
 # Install binary blob to prefix directory #
 $(LIB_INSTALL_PATH): $(LIB_PATH)
 	@ echo "/CPY:" $< ">" $@
-	@ mkdir -p $(LIB_INSTALL_DIR)
+	@ mkdir -p $(@D)
 	@ cp $< $@
 
 ##################################################
@@ -149,6 +154,23 @@ $(LIB_INSTALL_PATH): $(LIB_PATH)
 $(LIB_PATH): $(OBJECTS)
 	@ echo "/AR:" $@
 	@ $(AR) $(ARFLAGS) $@ $(OBJECTS)
+
+####################################### CRTS ##########
+
+$(SYSROOT)/usr/lib/crt0.o: $(BUILD_DIR)/crt0.cpp.arc.o
+	@ echo "/CRT:" $< ">" $@
+	@ mkdir -p $(@D)
+	@ cp $< $@
+
+$(SYSROOT)/usr/lib/crti.o: $(BUILD_DIR)/crti.s.arc.o
+	@ echo "/CRT:" $< ">" $@
+	@ mkdir -p $(@D)
+	@ cp $< $@
+
+$(SYSROOT)/usr/lib/crtn.o: $(BUILD_DIR)/crtn.s.arc.o
+	@ echo "/CRT:" $< ">" $@
+	@ mkdir -p $(@D)
+	@ cp $< $@
 
 ####################################### CODE FILES ##########
 

@@ -130,6 +130,8 @@
 #define __returns_twice    __attribute__((__returns_twice__))
 #define __used             __attribute__((__used__))
 #define __unused           __attribute__((__unused__))
+#define __weak             __attribute__((__weak__))
+#define __alias(sym)       __attribute__((__alias__(#sym), __weak__, __used__))
 #define __must_check       __attribute__((__warn_unused_result__))
 #define __restrict         __restrict__
 #define __nonnull(...)     __attribute__((__nonnull__(__VA_ARGS__)))
@@ -156,6 +158,7 @@
 
 #define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__, __optimize__("Os")))
 #define __library          __extern __attribute__((__used__, __noinline__, __optimize__(2)))
+#define __shared           __extern __attribute__((__used__, __noinline__, __optimize__(3)))
 
 #else
 
@@ -170,6 +173,8 @@
 #define __returns_twice  
 #define __used
 #define __unused
+#define __weak  
+#define __alias(sym)  
 #define __must_check
 #define __restrict
 #define __nonnull(...)  
@@ -192,6 +197,7 @@
 
 #define __startup  
 #define __library          __extern 
+#define __shared           __extern 
 
 #endif
 

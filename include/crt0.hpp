@@ -37,21 +37,13 @@
     thorough explanation regarding other files.
 */
 
-#include <crt0.hpp>
+#pragma once
 
-using namespace Beelzebub;
+#include <handles.h>
 
-__extern __used int add(int const a, int b)
+namespace Beelzebub
 {
-    return a + b;
-}
+    __shared __bland Handle InitializeRuntime(bool legacy, char * args, char * * & argv, int & argc);
 
-Handle Beelzebub::InitializeRuntime(bool legacy, char * args, char * * & argv, int & argc)
-{
-    return HandleResult::Okay;
-}
-
-void Beelzebub::QuitProcess(Handle hRes, int iRes)
-{
-    while (true) ;
+    __shared __bland void QuitProcess(Handle hRes, int iRes);
 }

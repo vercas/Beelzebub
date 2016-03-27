@@ -14,10 +14,11 @@ endif
 # Toolchain #
 CC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc 
 CXX			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc 
-DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gdc
-AS			:= nasm
+GAS			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc 
+DC			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gdc 
+AS			:= nasm 
 LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc 
-LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-ld
+LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-ld 
 AR			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc-ar 
 MKISO		:= mkisofs
 

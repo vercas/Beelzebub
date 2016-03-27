@@ -61,6 +61,7 @@ CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 
 # Assembler options
 ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
+GASFLAGS	:= $(GCCFLAGS) 
 
 # Linker options, with optimization
 LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel -fuse-linker-plugin 
@@ -133,14 +134,16 @@ include ../Sources.mk
 # A small extra
 INCFLAGS	+= -I./../acpica/include
 
-# Bootstrapping
-CFLAGS		+= $(INCFLAGS) 
-CXXFLAGS	+= $(INCFLAGS) 
-
 # Libraries
-LIBRARIES	:= common.$(ARC)
-LIBFLAGS	:= -L$(PREFIX)/libs $(patsubst %,-l%,$(LIBRARIES)) 
-LIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(LIBRARIES)) 
+SLIBRARIES	:= common.$(ARC)
+LIBRARIES	:= $(patsubst %,-l%,$(SLIBRARIES)) 
+SLIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(SLIBRARIES)) 
+
+# Bootstrapping
+CFLAGS		+= $(INCFLAGS)
+CXXFLAGS	+= $(INCFLAGS)
+LDFLAGS		+= -L$(PREFIX)/libs 
+LOFLAGS		+= -L$(PREFIX)/libs 
 
 ################################################################################
 #                                   TARGETS                                    #
@@ -168,9 +171,9 @@ clean:
 
 ##########################
 # Link the target binary #
-linku: $(OBJECTS)
+linku: $(LDFILE) $(SLIBFILES) $(OBJECTS)
 	@ echo "/LNK/UNO:" $(KERNEL_PATH) "("$(LDFILE)")"
-	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(KERNEL_PATH) $(OBJECTS) $(LIBFLAGS) 
+	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(KERNEL_PATH) $(OBJECTS) $(LIBRARIES) 
 
 ##########################
 # Build all object files #
@@ -193,9 +196,9 @@ $(KERNEL_INSTALL_PATH): $(KERNEL_PATH)
 
 ##################################################
 # Link the target binary with extra optimization #
-$(KERNEL_PATH): $(LDFILE) $(LIBFILES) $(OBJECTS)
+$(KERNEL_PATH): $(LDFILE) $(SLIBFILES) $(OBJECTS)
 	@ echo "/LNK/OPT:" $@ "("$(LDFILE)")"
-	@ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS) $(LIBFLAGS)
+	@ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS) $(LIBRARIES)
 
 ####################################### CODE FILES ##########
 

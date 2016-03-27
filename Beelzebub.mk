@@ -214,6 +214,9 @@ endif
 # Binary blobs
 KERNEL_BIN				:= $(KERNEL_NAME).$(ARC).bin
 
+# Sysroot
+SYSROOT					:= $(PREFIX)/sysroot.$(ARC)
+
 # Installation
 KERNEL_INSTALL_DIR		:= $(PREFIX)/bin
 KERNEL_INSTALL_PATH		:= $(KERNEL_INSTALL_DIR)/$(KERNEL_BIN)

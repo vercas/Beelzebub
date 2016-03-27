@@ -351,6 +351,9 @@ void * JumpToRing3(void * arg)
 
     for (size_t i = segmentCount, j = 1; i > 0; --i, ++j, ++programCursor)
     {
+        if (programCursor->Type != ElfProgramHeaderType::Load)
+            continue;
+        
         vaddr_t const segVaddr    = RoundDown(programCursor->VAddr, PageSize);
         vaddr_t const segVaddrEnd = RoundUp  (programCursor->VAddr + programCursor->VSize, PageSize);
 

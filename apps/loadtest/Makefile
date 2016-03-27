@@ -49,6 +49,7 @@ GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_APPLICATION
 GCCFLAGS	+= -ffreestanding -Wall -mcmodel=small -lgcc -static-libgcc 
 GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
 # GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
+GCCFLAGS	+= --sysroot=$(SYSROOT)
 
 # C/C++ options
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
@@ -59,8 +60,9 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 
 # Linker options, with optimization
 LOFLAGS		:= -ffreestanding -Wall -mcmodel=small -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 
-LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe 
+LOFLAGS		+= -mno-red-zone -O2 -flto -pipe 
 # LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
+LOFLAGS		+= --sysroot=$(SYSROOT)
 
 # Linker options, without optimization
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
@@ -110,9 +112,16 @@ LDFILE		:= ./link.$(ARC).ld
 
 include ../../Sources.mk
 
+# Libraries
+SLIBRARIES	:= common.$(ARC)
+LIBRARIES	:= $(patsubst %,-l%,$(SLIBRARIES)) 
+SLIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(SLIBRARIES)) 
+
 # Bootstrapping
 CFLAGS		+= $(INCFLAGS)
 CXXFLAGS	+= $(INCFLAGS)
+LDFLAGS		+= -L$(PREFIX)/libs 
+LOFLAGS		+= -L$(PREFIX)/libs 
 
 ################################################################################
 #                                   TARGETS                                    #
@@ -140,9 +149,9 @@ clean:
 
 ##########################
 # Link the target binary #
-linku: $(OBJECTS)
+linku: $(LDFILE) $(SLIBFILES) $(OBJECTS)
 	@ echo "/LNK/UNO:" $(APP_PATH) "("$(LDFILE)")"
-	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(APP_PATH) $(OBJECTS)
+	@ $(LD) $(LDFLAGS) -o $(APP_PATH) $(OBJECTS) $(LIBRARIES)
 
 ##########################
 # Build all object files #
@@ -160,10 +169,10 @@ $(APP_INSTALL_PATH): $(APP_PATH)
 
 ##################################################
 # Link the target binary with extra optimization #
-$(APP_PATH): $(LDFILE) $(OBJECTS)
+$(APP_PATH): $(LDFILE) $(SLIBFILES) $(OBJECTS)
 	@ echo "/LNK/OPT:" $@ "("$(LDFILE)")"
 	@ mkdir -p $(@D)
-	@ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS)
+	@ $(LO) -o $@ $(LOFLAGS) $(OBJECTS) $(LIBRARIES)
 
 ####################################### CODE FILES ##########
 

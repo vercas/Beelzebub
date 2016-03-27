@@ -173,6 +173,9 @@
     ENUMINST(ObjaAlreadyFree          , 0x71U, "Obja A Free") \
     /*  An object allocator has reached maximum capacity. */ \
     ENUMINST(ObjaMaximumCapacity      , 0x72U, "Obja M cap.") \
+    \
+    /*  A process exited with a non-zero return code. */ \
+    ENUMINST(NonZeroReturnCode        , 0xFFU, "Non-0 ret c") \
 
 #ifdef __cplusplus
 

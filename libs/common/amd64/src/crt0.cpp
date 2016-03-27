@@ -41,17 +41,53 @@
 
 using namespace Beelzebub;
 
-__extern __used int add(int const a, int b)
+/// Global constructors.
+__extern __used void _init(void);
+/// Global destructors.
+__extern __used void _fini(void);
+
+/// Legacy entry point.
+__extern __used int main(int argc, char * * argv);
+
+/// Beelzebub entry point, which is preferred.
+__extern __used __weak Handle BeelMain();
+
+__extern __used void _start(char * args)
 {
-    return a + b;
+    //  At this point, all registers should have nice null values, 'xept the ones
+    //  used to pass arguments.
+
+    bool legacy = &BeelMain == nullptr;
+
+    int argc = -1;
+    char * * argv = nullptr;
+
+    Handle hRes = InitializeRuntime(legacy, args, argv, argc);
+    //  First, initialize the runtime (this should come from the runtime library)
+
+    if unlikely(!hRes.IsOkayResult())
+        return QuitProcess(hRes, -1);
+    //  Any failures means urgent termination.
+
+    _init();
+    //  Secondly, invoke global constructors.
+
+    if (legacy)
+    {
+        int iRes = main(argc, argv);
+        //  This is the legacy entry point.
+
+        return QuitProcess(iRes == 0 ? HandleResult::Okay : HandleResult::NonZeroReturnCode
+            , iRes);
+    }
+    else
+    {
+        //  TODO: Maybe parse argument through a default way?
+
+        hRes = BeelMain();
+
+        return QuitProcess(hRes, 0);
+    }
 }
 
-Handle Beelzebub::InitializeRuntime(bool legacy, char * args, char * * & argv, int & argc)
-{
-    return HandleResult::Okay;
-}
-
-void Beelzebub::QuitProcess(Handle hRes, int iRes)
-{
-    while (true) ;
-}
+__extern void __start(char * input) __alias(_start);

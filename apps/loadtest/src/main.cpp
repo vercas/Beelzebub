@@ -2,7 +2,7 @@
 
 using namespace Beelzebub;
 
-__extern __used int _start()
+int main(int argc, char * * argv)
 {
 beginning:
 
@@ -22,9 +22,14 @@ beginning:
         PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("SYSCALL TEST LEL"), 0, 0, 0, 0);
     }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
     double volatile d1 = -1, d2 = 0, d3 = 1;
 
     double volatile d4 = d1 + d3;
+
+#pragma GCC diagnostic pop
 
     PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLERGH\r\n"), 0, 0, 0, 0);
     PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLAH\r\n"), 0, 0, 0, 0);
