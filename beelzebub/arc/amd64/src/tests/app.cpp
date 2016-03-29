@@ -158,10 +158,12 @@ Handle HandleLoadtest(size_t const index
         addr + eh2->SectionHeaderTableOffset
     );
 
+    char const * sectionNames = reinterpret_cast<char const *>(addr + sectionCursor[eh3->SectionNameStringTableIndex].Offset);
+
     for (size_t i = eh3->SectionHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++sectionCursor)
     {
         msg("\t#%us:%n"
-            "\t\tName: %X4%n"
+            "\t\tName: %X4 (%s)%n"
             "\t\tType: %u8 (%s)%n"
             "\t\tFlags:       %X8%n"
             "\t\tAddress:     %X8%n"
@@ -172,7 +174,7 @@ Handle HandleLoadtest(size_t const index
             "\t\tAlignment:   %X8%n"
             "\t\tEntrry Size: %X8%n"
             , j
-            , sectionCursor->Name
+            , sectionCursor->Name, sectionNames + sectionCursor->Name
             , (uint64_t)(sectionCursor->Type), EnumToString(sectionCursor->Type)
             , sectionCursor->Flags
             , sectionCursor->Address
@@ -215,6 +217,31 @@ Handle HandleLoadtest(size_t const index
             , programCursor->VSize
             , programCursor->Alignment
         );
+
+        if (programCursor->Type == ElfProgramHeaderType::Dynamic)
+        {
+            msg("\t\tEntries:%n");
+
+            ElfDynamicEntry * dynEntCursor = reinterpret_cast<ElfDynamicEntry *>(
+                addr + programCursor->Offset
+            );
+            size_t offset = 0, k = 0;
+
+            do
+            {
+                msg("\t\t\t#%us:%n"
+                    "\t\t\t\tTag:   %Xp (%s)%n"
+                    "\t\t\t\tValue: %Xp%n"
+                    , k
+                    , (intptr_t)(dynEntCursor->Tag), EnumToString(dynEntCursor->Tag)
+                    , dynEntCursor->Value
+                );
+
+                ++dynEntCursor;
+                offset += sizeof(ElfDynamicEntry);
+                ++k;
+            } while (offset < programCursor->PSize && dynEntCursor->Tag != ElfDynamicEntryTag::Null);
+        }
     }
 
     msg("%n");
@@ -353,7 +380,7 @@ void * JumpToRing3(void * arg)
     {
         if (programCursor->Type != ElfProgramHeaderType::Load)
             continue;
-        
+
         vaddr_t const segVaddr    = RoundDown(programCursor->VAddr, PageSize);
         vaddr_t const segVaddrEnd = RoundUp  (programCursor->VAddr + programCursor->VSize, PageSize);
 
@@ -381,7 +408,11 @@ void * JumpToRing3(void * arg)
         }
 
         memcpy(reinterpret_cast<void *>(programCursor->VAddr)
-            , executable + programCursor->Offset, programCursor->VSize);
+            , executable + programCursor->Offset, programCursor->PSize);
+
+        if (programCursor->VSize > programCursor->PSize)
+            memset(reinterpret_cast<void *>(programCursor->VAddr + programCursor->PSize)
+                , 0, programCursor->VSize - programCursor->PSize);
     }
 
     //  Finally, a region for test incrementation.

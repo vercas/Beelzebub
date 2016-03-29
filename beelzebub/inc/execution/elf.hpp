@@ -297,6 +297,49 @@ namespace Beelzebub { namespace Execution {
 
     inline ENUM_TO_STRING(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS)
 
+    #define ENUM_ELFDYNAMICENTRYTAG(ENUMINST) \
+        ENUMINST(Null                   ,  0) \
+        ENUMINST(Needed                 ,  1) \
+        ENUMINST(PltRelicationEntrySize ,  2) \
+        ENUMINST(LinkageTableAddress    ,  3) \
+        ENUMINST(Hash                   ,  4) \
+        ENUMINST(StringTable            ,  5) \
+        ENUMINST(SymbolTable            ,  6) \
+        ENUMINST(RelaAddress            ,  7) \
+        ENUMINST(RelaSize               ,  8) \
+        ENUMINST(RelaEntrySize          ,  9) \
+        ENUMINST(StringTableSize        , 10) \
+        ENUMINST(SymbolTableEntrySize   , 11) \
+        ENUMINST(InitFuncAddress        , 12) \
+        ENUMINST(FiniFuncAddress        , 13) \
+        ENUMINST(SharedObjectame        , 14) \
+        ENUMINST(SearchPathString       , 15) \
+        ENUMINST(Symbolic               , 16) \
+        ENUMINST(RelAddress             , 17) \
+        ENUMINST(RelSize                , 18) \
+        ENUMINST(RelEntrySize           , 19) \
+        ENUMINST(RelocationType         , 20) \
+        ENUMINST(Debug                  , 21) \
+        ENUMINST(NonWritableRelocations , 22) \
+        ENUMINST(PltRelocationsAddress  , 23) \
+        ENUMINST(BindNow                , 24) \
+        ENUMINST(InitFunctionsArray     , 25) \
+        ENUMINST(FiniFunctionsArray     , 26) \
+        ENUMINST(InitArraySize          , 27) \
+        ENUMINST(FiniArraySize          , 28) \
+
+    /**
+     *  Types of ELF segments.
+     */
+    enum class ElfDynamicEntryTag : intptr_t
+    {
+        ENUM_ELFDYNAMICENTRYTAG(ENUMINST_VAL)
+    };
+
+    ENUMOPS(ElfDynamicEntryTag, intptr_t)
+
+    inline ENUM_TO_STRING(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG)
+
     /*  Structures  */
 
     /**
@@ -427,5 +470,14 @@ namespace Beelzebub { namespace Execution {
         uint64_t              PSize; /* 32 - 39 */
         uint64_t              VSize; /* 40 - 47 */
         uint64_t          Alignment; /* 48 - 55 */
+    } __packed;
+
+    /**
+     *  Represents an entry in the DYNAMIC program header.
+     */
+    struct ElfDynamicEntry
+    {                           /*  32-bit |  64-bit */
+        ElfDynamicEntryTag Tag; /*  0 -  3 |  0 -  7 */
+        uintptr_t        Value; /*  4 -  7 |  8 - 15 */
     } __packed;
 }}
