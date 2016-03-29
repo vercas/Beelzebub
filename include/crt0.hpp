@@ -43,7 +43,7 @@
 
 namespace Beelzebub
 {
-    __shared __bland Handle InitializeRuntime(bool legacy, char * args, char * * & argv, int & argc);
+    __shared __weak __bland Handle InitializeRuntime(bool legacy, char * args, char * * & argv, int & argc);
 
-    __shared __bland void QuitProcess(Handle hRes, int iRes);
+    __shared __weak __bland void QuitProcess(Handle hRes, int iRes);
 }

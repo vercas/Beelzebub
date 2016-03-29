@@ -45,21 +45,23 @@ LIB_INSTALL_PATH	:= $(LIB_INSTALL_DIR)/$(LIB_BIN)
 include ../../Toolchain.mk
 
 # Common options for GCC
-GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_STATIC_LIBRARY 
-GCCFLAGS	+= -ffreestanding -Wall -mcmodel=large -fno-omit-frame-pointer 
-GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe -lgcc -static-libgcc 
-GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
+GCCFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_STATIC_LIBRARY 
+GCCFLAGS		+= -ffreestanding -Wall -mcmodel=large -fno-omit-frame-pointer 
+GCCFLAGS		+= -mno-red-zone -O2 -nostdlib -pipe -lgcc -static-libgcc 
+GCCFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 # C/C++ options
-CFLAGS		:= $(GCCFLAGS) -std=gnu99
-CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
+CFLAGS			:= $(GCCFLAGS) -std=gnu99 -flto
+CXXFLAGS_CRT	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
+CXXFLAGS		:= $(CXXFLAGS_CRT) -flto
 
 # Assembler options
-ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
-GASFLAGS	:= $(GCCFLAGS) 
+ASFLAGS			:= $(GCC_PRECOMPILER_FLAGS)
+GASFLAGS_CRT	:= $(GCCFLAGS) 
+GASFLAGS		:= $(GASFLAGS_CRT) -flto 
 
 # Archiver options
-ARFLAGS		:= rcs 
+ARFLAGS			:= rcs 
 
 ################################################################################
 #                        ARCHITECTURE-SPECIFIC SETTINGS                        #
@@ -68,23 +70,26 @@ ARFLAGS		:= rcs
 ##############
 # 64-bit x86 #
 ifeq ($(ARC),amd64)
-	ASFLAGS		+= -f elf64
-	CFLAGS		+= -m64
-	CXXFLAGS	+= -m64
+	ASFLAGS			+= -f elf64 
+	CFLAGS			+= -m64 
+	CXXFLAGS		+= -m64 
+	CXXFLAGS_CRT	+= -m64 
 
 ####################################
 # 32-bit x86 with 36-bit addresses #
 else ifeq ($(ARC),ia32pae)
-	ASFLAGS		+= -f elf32
-	CFLAGS		+= -m32
-	CXXFLAGS	+= -m32
+	ASFLAGS			+= -f elf32 
+	CFLAGS			+= -m32 
+	CXXFLAGS		+= -m32 
+	CXXFLAGS_CRT	+= -m32 
 
 ##############
 # 32-bit x86 #
 else ifeq ($(ARC),ia32)
-	ASFLAGS		+= -f elf32
-	CFLAGS		+= -m32
-	CXXFLAGS	+= -m32
+	ASFLAGS			+= -f elf32 
+	CFLAGS			+= -m32 
+	CXXFLAGS		+= -m32 
+	CXXFLAGS_CRT	+= -m32 
 
 endif
 
@@ -108,8 +113,9 @@ CRTS		:= 0 i n
 CRT_TARGETS	:= $(patsubst %,$(SYSROOT)/usr/lib/crt%.o,$(CRTS)) 
 
 # Bootstrapping
-CFLAGS		+= $(INCFLAGS)
-CXXFLAGS	+= $(INCFLAGS)
+CFLAGS			+= $(INCFLAGS)
+CXXFLAGS		+= $(INCFLAGS)
+CXXFLAGS_CRT	+= $(INCFLAGS)
 
 ################################################################################
 #                                   TARGETS                                    #
@@ -157,20 +163,22 @@ $(LIB_PATH): $(OBJECTS)
 
 ####################################### CRTS ##########
 
-$(SYSROOT)/usr/lib/crt0.o: $(BUILD_DIR)/crt0.cpp.arc.o
-	@ echo "/CRT:" $< ">" $@
-	@ mkdir -p $(@D)
-	@ cp $< $@
+#	crt0.o needs to be compiled without LTO, otherwise it won't be linkable.
 
-$(SYSROOT)/usr/lib/crti.o: $(BUILD_DIR)/crti.s.arc.o
-	@ echo "/CRT:" $< ">" $@
+$(SYSROOT)/usr/lib/crt0.o: $(ARC_DIR)/$(ARC)/crt/crt0.cpp
+	@ echo "/CRT/C++:" $< ">" $@
 	@ mkdir -p $(@D)
-	@ cp $< $@
+	@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS_CRT) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
-$(SYSROOT)/usr/lib/crtn.o: $(BUILD_DIR)/crtn.s.arc.o
-	@ echo "/CRT:" $< ">" $@
+$(SYSROOT)/usr/lib/crti.o: $(ARC_DIR)/$(ARC)/crt/crti.s
+	@ echo "/CRT/Gas:" $< ">" $@
 	@ mkdir -p $(@D)
-	@ cp $< $@
+	@ $(PRE_COMPILATION)    $(GAS) $(GASFLAGS_CRT) -c $< -o $@    $(POST_COMPILATION)
+
+$(SYSROOT)/usr/lib/crtn.o: $(ARC_DIR)/$(ARC)/crt/crtn.s
+	@ echo "/CRT/Gas:" $< ">" $@
+	@ mkdir -p $(@D)
+	@ $(PRE_COMPILATION)    $(GAS) $(GASFLAGS_CRT) -c $< -o $@    $(POST_COMPILATION)
 
 ####################################### CODE FILES ##########
 

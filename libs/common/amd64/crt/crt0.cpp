@@ -52,12 +52,14 @@ __extern __used int main(int argc, char * * argv);
 /// Beelzebub entry point, which is preferred.
 __extern __used __weak Handle BeelMain();
 
-__extern __used void _start(char * args)
+void * volatile BeelMainAddress = reinterpret_cast<void *>(&BeelMain);
+
+__extern __bland __used void _start(char * args)
 {
     //  At this point, all registers should have nice null values, 'xept the ones
     //  used to pass arguments.
 
-    bool legacy = &BeelMain == nullptr;
+    bool legacy = BeelMainAddress == nullptr;
 
     int argc = -1;
     char * * argv = nullptr;
@@ -67,7 +69,7 @@ __extern __used void _start(char * args)
 
     if unlikely(!hRes.IsOkayResult())
         return QuitProcess(hRes, -1);
-    //  Any failures means urgent termination.
+    //  Any failures mean urgent termination.
 
     _init();
     //  Secondly, invoke global constructors.
