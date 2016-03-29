@@ -59,6 +59,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 # Linker options, with optimization
 LOFLAGS		:= -shared -fPIC -O3 -flto -Wall -ffreestanding -nostdlib 
 LOFLAGS		+= -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 -pipe 
+LOFLAGS		+= -fno-omit-frame-pointer 
 
 ################################################################################
 #                        ARCHITECTURE-SPECIFIC SETTINGS                        #
@@ -160,7 +161,6 @@ $(LIB_INSTALL_PATH): $(LIB_PATH)
 $(LIB_PATH): $(OBJECTS)
 	@ echo "/LNK/OPT:" $@
 	@ mkdir -p $(@D)
-	@ echo $(LO) $(LOFLAGS) -o $@ $(OBJECTS) $(LIBFLAGS)
 	@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS) $(LIBFLAGS)
 
 ####################################### CODE FILES ##########

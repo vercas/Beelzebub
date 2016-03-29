@@ -47,7 +47,7 @@ include ../../Toolchain.mk
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_APPLICATION 
 GCCFLAGS	+= -ffreestanding -Wall -mcmodel=small -lgcc -static-libgcc 
-GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe 
+GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe -fno-omit-frame-pointer 
 # GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 GCCFLAGS	+= --sysroot=$(SYSROOT)
 
@@ -60,7 +60,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 
 # Linker options, with optimization
 LOFLAGS		:= -ffreestanding -Wall -mcmodel=small -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 
-LOFLAGS		+= -mno-red-zone -O2 -flto -pipe 
+LOFLAGS		+= -mno-red-zone -O2 -flto -pipe -fno-omit-frame-pointer 
 # LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 LOFLAGS		+= --sysroot=$(SYSROOT)
 
