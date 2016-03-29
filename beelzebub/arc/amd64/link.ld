@@ -38,23 +38,31 @@ SECTIONS
     }
 
     . = ALIGN(4096);
-    
+
     .bss : {
         *(.bss)
-    }
-    
-    /DISCARD/ : {
-        *(.eh_frame)
-        *(.comment)
     }
 
     . = ALIGN(4096);
     startup_section_start = .;
-    
+
     .text.startup : {
         *(.text.startup)
     }
 
     startup_section_end = .;
     . = ALIGN(4096);
+    userland_section_start = .;
+
+    .text.userland : {
+        *(.text.userland)
+    }
+
+    userland_section_end = .;
+    . = ALIGN(4096);
+
+    /DISCARD/ : {
+        *(.eh_frame)
+        *(.comment)
+    }
 }

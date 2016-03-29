@@ -126,6 +126,7 @@
 #define __const            __attribute__((__const__))
 #define __cold             __attribute__((__cold__))
 #define __hot              __attribute__((__hot__))
+#define __unoptimized      __attribute__((__optimize__(0)))
 #define __noreturn         __attribute__((__noreturn__))
 #define __returns_twice    __attribute__((__returns_twice__))
 #define __used             __attribute__((__used__))
@@ -157,6 +158,8 @@
 //  To be used on IA-32 on *some* functions.
 
 #define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__, __optimize__("Os")))
+#define __userland         __attribute__((__section__(".text.userland"), __used__))
+
 #define __library          __extern __attribute__((__used__, __noinline__, __optimize__(2)))
 #define __shared           __extern __attribute__((__used__, __noinline__, __optimize__(3)))
 
@@ -166,13 +169,14 @@
 #define __noinline  
 #define __noclone  
 
-#define __const
-#define __cold
-#define __hot
-#define __noreturn
+#define __const  
+#define __cold  
+#define __hot  
+#define __unoptimized  
+#define __noreturn  
 #define __returns_twice  
-#define __used
-#define __unused
+#define __used  
+#define __unused  
 #define __weak  
 #define __alias(sym)  
 #define __must_check
@@ -186,7 +190,7 @@
 #define ctconst(val)       (false)
 
 #define __unreachable_code do { } while (false)
-#define __prefetch(...)    do { } while (false)
+#define __prefetch(...)  
 
 #define __packed  
 #define __aligned(n)  
@@ -196,6 +200,8 @@
 #define __build_data  
 
 #define __startup  
+#define __userland  
+
 #define __library          __extern 
 #define __shared           __extern 
 
