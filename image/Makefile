@@ -47,6 +47,7 @@ ISO_TARGET_FONT		:= $(ISO_TARGET_GRUB)/font.pf2
 ISO_TARGET_KERNEL	:= $(ISO_TARGET_BOOT)/$(KERNEL_BIN)
 
 ISO_TARGET_APPS		:= apps
+ISO_TARGET_LIBS		:= libs
 
 BOOTLOADER			:= $(PREFIX)/bin/jegudiel.bin
 
@@ -62,8 +63,9 @@ ifeq ($(ARC),amd64)
 	MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin 
 endif
 
-MISCELLANEOUS_FILES		+= $(PREFIX)/bin/loadtest.exe 
-MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe 
+MISCELLANEOUS_FILES		+= $(PREFIX)/bin/loadtest.exe $(PREFIX)/libs/libbeelzebub.$(ARC).so 
+MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe \
+                           $(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)/libbeelzebub.$(ARC).so 
 
 ################################################################################
 #                                   TARGETS                                    #
@@ -136,8 +138,14 @@ $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT):
 	@ mkdir -p $@
 
 #######################
-# Make boot directory #
+# Make apps directory #
 $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS):
+	@ echo "/MKD:" $@
+	@ mkdir -p $@
+
+#######################
+# Make libs directory #
+$(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS):
 	@ echo "/MKD:" $@
 	@ mkdir -p $@
 
@@ -150,5 +158,9 @@ $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin: $(PREFIX)/bin/jegudiel.bin
 endif
 
 $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe: $(PREFIX)/bin/loadtest.exe $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)
+	@ echo "/CPY:" $< ">" $@
+	@ cp $< $@
+
+$(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)/libbeelzebub.$(ARC).so: $(PREFIX)/libs/libbeelzebub.$(ARC).so $(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)
 	@ echo "/CPY:" $< ">" $@
 	@ cp $< $@
