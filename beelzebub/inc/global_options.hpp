@@ -46,6 +46,7 @@ namespace Beelzebub
 {
     extern CommandLineOptionSpecification CMDO_Term;
     extern CommandLineOptionSpecification CMDO_Tests;
+    extern CommandLineOptionSpecification CMDO_UnitTests;
     extern CommandLineOptionSpecification CMDO_SmpEnable;
 
     extern CommandLineOptionSpecification * CommandLineOptionsHead;

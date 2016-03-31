@@ -45,6 +45,7 @@ using namespace Beelzebub;
 
 CommandLineOptionSpecification Beelzebub::CMDO_Term;
 CommandLineOptionSpecification Beelzebub::CMDO_Tests;
+CommandLineOptionSpecification Beelzebub::CMDO_UnitTests;
 CommandLineOptionSpecification Beelzebub::CMDO_SmpEnable;
 
 CommandLineOptionSpecification * Beelzebub::CommandLineOptionsHead;
@@ -53,7 +54,8 @@ Handle Beelzebub::InstanceGlobalOptions()
 {
     CMDO_EX(Term, "t", "term", String);
     CMDO_LINKED_EX(Tests, nullptr, "tests", String, Term);
-    CMDO_LINKED_EX(SmpEnable, nullptr, "smp", BooleanExplicit, Tests);
+    CMDO_LINKED_EX(UnitTests, nullptr, "unit-tests", BooleanByPresence, Tests);
+    CMDO_LINKED_EX(SmpEnable, nullptr, "smp", BooleanExplicit, UnitTests);
 
     CommandLineOptionsHead = &CMDO_SmpEnable;
 
