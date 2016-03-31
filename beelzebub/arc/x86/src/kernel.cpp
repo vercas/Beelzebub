@@ -40,6 +40,7 @@
 #include <kernel.hpp>
 #include <entry.h>
 #include <global_options.hpp>
+#include <utils/unit_tests.hpp>
 
 #include <terminals/serial.hpp>
 #include <terminals/vbe.hpp>
@@ -258,6 +259,14 @@ void Beelzebub::Main()
 
             ASSERT(false, "Failed to initialize virtual memory: %H"
                 , res);
+        }
+
+        //  Run all available unit tests, if asked.
+        if (CMDO_UnitTests.ParsingResult.IsValid() && CMDO_UnitTests.BooleanValue)
+        {
+            MainTerminal->Write("[....] Running unit tests...");
+            RunUnitTests();
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
         }
 
         //  Initialize the ACPI tables for easier use.
