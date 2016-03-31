@@ -524,7 +524,13 @@ TerminalWriteResult TerminalBase::WriteLine(char const * const str)
     if (!tmp.Result.IsOkayResult())
         return tmp;
 
-    return this->Write("\r\n");
+    uint32_t cnt = tmp.Size;
+
+    tmp = this->Write("\r\n");
+
+    tmp.Size += cnt;
+
+    return tmp;
 }
 
 TerminalWriteResult TerminalBase::WriteFormat(char const * const fmt, ...)
