@@ -56,10 +56,10 @@ void Beelzebub::ThrowException()
     //  This will find the first ready context.
 
     asm volatile ( "movq %[context], %%rdi \n\t"
-                   "jmp %[address] \n\t"
+                   "jmp *%[address] \n\t"
                  :
                  : [context]"rm"(context)
-                 , [address]"rm"(context->SwapPointer) );
+                 , [address]"m"(context->SwapPointer) );
 
     __unreachable_code;
 }
