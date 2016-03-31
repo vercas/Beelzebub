@@ -27,8 +27,6 @@ then
 
 	$PRECMD tar --no-same-owner -xJf $TMP
 
-	mv x86_64-beelzebub-5.3.0-Linux-x86_64 gcc-x86_64-beelzebub
-
 	rm $TMP
 
 	popd
