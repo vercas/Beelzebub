@@ -68,6 +68,19 @@ __startup void TestNullDereference(uintptr_t volatile * const testPtr)
     }
 }
 
+__startup void TestManualThrow()
+{
+    Exception * x = GetException();
+
+    x->Type = ExceptionType::ArithmeticOverflow;
+    x->InstructionPointer = 42;
+    x->StackPointer = 144;
+
+    ThrowException();
+
+    ASSERT(false, "This part of the code should not execute!");
+}
+
 void TestExceptions()
 {
     uintptr_t volatile * volatile testPtr = reinterpret_cast<uintptr_t volatile *>(0x1234567);
@@ -105,6 +118,27 @@ void TestExceptions()
         }
 
     TestNullDereference(testPtr);
+
+    __try
+    {
+        TestManualThrow();
+
+        ASSERT(false, "This part of the code should not execute!");
+    }
+    __catch (x)
+    {
+        ASSERT(x->Type == ExceptionType::ArithmeticOverflow
+            , "Exception %s should be %up, not %up!"
+            , "type", ExceptionType::MemoryAccessViolation, x->Type);
+
+        ASSERT(x->InstructionPointer == 42
+            , "Exception %s should be %up, not %up!"
+            , "instruction pointer", 42, x->InstructionPointer);
+
+        ASSERT(x->StackPointer == 144
+            , "Exception %s should be %up, not %up!"
+            , "stack pointer", 144, x->StackPointer);
+    }
 }
 
 #endif

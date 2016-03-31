@@ -68,6 +68,9 @@ namespace Beelzebub
         //  Invalid instruction encoding or opcode.
         InvalidInstruction      = 5,
 
+        //  A unit test failed.
+        UnitTestFailure         = 100,
+
         //  Haywire.
         Unknown                 = ~((uintptr_t)0),
     };
@@ -118,6 +121,12 @@ namespace Beelzebub
         MemoryAccessType AccessType;
     };
 
+    struct UnitTestFailureData
+    {
+        char const * FileName;
+        int Line;
+    };
+
     struct Exception
     {
         ExceptionType Type;
@@ -127,6 +136,7 @@ namespace Beelzebub
         union
         {
             MemoryAccessViolationData MemoryAccessViolation;
+            UnitTestFailureData UnitTestFailure;
         };
     };
 }
@@ -144,6 +154,8 @@ namespace Beelzebub
     //  Defined in code file to avoid dependency hell.
 
     __hot Exception * GetException();
+
+    __extern void ThrowException();
 
     /// <summary>Guards a scope with an exception context.</summary>
     struct ExceptionGuard
