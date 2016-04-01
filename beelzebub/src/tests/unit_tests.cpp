@@ -45,14 +45,25 @@ using namespace Beelzebub::Utils;
 
 DEFINE_TEST("Unit Tests", "Test Case 1")
 {
-    INFO("%s", "This should NOT appear.");
+    INFO("%s%n", "This should NOT appear.");
+
+    REQUIRE(true, "This message should NOT pop up in unit test case %i4.%n", 1);
 }
 
 DEFINE_TEST("Unit Tests", "Test Case 2")
 {
-    INFO("%s", "This should appear.");
+    INFO("%s%n", "This should appear.");
 
     REQUIRE(false, "This message should pop up in unit test case %i4.%n", 2);
+
+    ASSERT(false, "Ow...");
+}
+
+DEFINE_TEST("Unit Tests", "Test Case 3")
+{
+    INFO("%s%n", "This should also appear.");
+
+    REQUIRE(false, "This message should pop up in unit test case %i4.%n", 3);
 
     ASSERT(false, "Ow...");
 }
