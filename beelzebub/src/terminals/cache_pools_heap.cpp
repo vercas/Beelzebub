@@ -90,7 +90,7 @@ Handle Terminals::AcquireCharPoolInKernelHeap(size_t minSize
     new (pool) CharPool((uint32_t)capacity);
     //  Construct in place to initialize the fields.
 
-    memset(pool->GetString(), 0, capacity + 1);
+    memset(const_cast<char *>(pool->GetString()), 0, capacity + 1);
     //  Fill it with zeros, so any string appended into this pool will have a
     //  null terminator.
 
@@ -182,7 +182,7 @@ Handle Terminals::EnlargeCharPoolInKernelHeap(size_t minSize
     uint32_t const oldSize = pool->Capacity;
     pool->Capacity = (curPageCount * PageSize) - headerSize - 1;
 
-    memset(pool->GetString() + oldSize, 0, pool->Capacity - oldSize);
+    memset(const_cast<char *>(pool->GetString()) + oldSize, 0, pool->Capacity - oldSize);
     //  Now anything appended will still yield a valid string.
 
     return HandleResult::Okay;

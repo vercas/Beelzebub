@@ -235,13 +235,11 @@ void Beelzebub::Utils::FailUnitTest(char const * const fileName, int const line)
 
 #ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
     if (Debug::DebugTerminal != nullptr)
-    {
-        Debug::DebugTerminal->WriteLine("################################## INFO START ##################################");
-
-        cacheTerminal.Dump(*(Debug::DebugTerminal));
-
-        Debug::DebugTerminal->WriteLine("################################### INFO END ###################################");
-    }
+        *(Debug::DebugTerminal)
+            << "################################## INFO START ##################################"
+            << EndLine << cacheTerminal << EndLine
+            << "################################### INFO END ###################################"
+            << EndLine;
 #endif
 
     ThrowException();

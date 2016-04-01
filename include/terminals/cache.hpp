@@ -72,9 +72,9 @@ namespace Beelzebub { namespace Terminals
 
         /*  Utilities  */
 
-        inline char * GetString()
+        inline char const * GetString() const
         {
-            return reinterpret_cast<char *>(this) + sizeof(CharPool);
+            return reinterpret_cast<char const *>(this) + sizeof(CharPool);
         }
 
         /*  Fields  */
@@ -125,7 +125,7 @@ namespace Beelzebub { namespace Terminals
 
         /*  Flushing & Cleanup  */
 
-        TerminalWriteResult Dump(TerminalBase & target);
+        TerminalWriteResult Dump(TerminalBase & target) const;
         void Clear();
 
         Handle Destroy();

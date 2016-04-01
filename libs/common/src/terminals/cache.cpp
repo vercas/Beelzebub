@@ -248,7 +248,7 @@ TerminalWriteResult CacheTerminal::Write(const char * const str)
 
 /*  Flushing & Cleanup  */
 
-TerminalWriteResult CacheTerminal::Dump(TerminalBase & target)
+TerminalWriteResult CacheTerminal::Dump(TerminalBase & target) const
 {
     if unlikely(this->AcquirePool == nullptr)
         return {HandleResult::ObjectDisposed, 0U, InvalidCoordinates};
@@ -277,7 +277,7 @@ void CacheTerminal::Clear()
 
     while (pool != nullptr)
     {
-        memset(pool->GetString(), 0, pool->Size);
+        memset(const_cast<char *>(pool->GetString()), 0, pool->Size);
         pool->Size = 0;
 
         pool = pool->Next;
@@ -310,3 +310,16 @@ Handle CacheTerminal::Destroy()
 
     return ReleasePoolList(*this, this->FirstPool);
 }
+
+/*  Now to implement the << operator.  */
+
+namespace Beelzebub { namespace Terminals
+{
+    template<>
+    TerminalBase & operator << <CacheTerminal>(TerminalBase & term, CacheTerminal const value)
+    {
+        value.Dump(term);
+
+        return term;
+    }
+}}
