@@ -78,7 +78,7 @@ SpinlockUninterruptible<> syncer;
 
 bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;
 
-static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
+static __startup Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
 {
     Handle res;
     PageDescriptor * desc = nullptr;
@@ -116,10 +116,10 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
     return res;
 }
 
-static __noinline void FillPool(ObjectPoolBase volatile * volatile pool
-                              , size_t const objectSize
-                              , size_t const headerSize
-                              , obj_ind_t const objectCount)
+static __startup void FillPool(ObjectPoolBase volatile * volatile pool
+                             , size_t const objectSize
+                             , size_t const headerSize
+                             , obj_ind_t const objectCount)
 {
     pool->Capacity = objectCount;
     pool->FreeCount = objectCount;
@@ -185,7 +185,7 @@ static __noinline void FillPool(ObjectPoolBase volatile * volatile pool
     COMPILER_MEMORY_BARRIER();
 }
 
-Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPoolBase * & result)
+__startup Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPoolBase * & result)
 {
     askedToAcquire = true;
 
@@ -222,7 +222,7 @@ Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjec
     return HandleResult::Okay;
 }
 
-Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPoolBase * pool)
+__startup Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPoolBase * pool)
 {
     if (!canEnlarge)
         return HandleResult::UnsupportedOperation;
@@ -345,7 +345,7 @@ Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtra
     return HandleResult::Okay;
 }
 
-Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * pool)
+__startup Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * pool)
 {
     askedToRemove = true;
 
@@ -441,7 +441,7 @@ Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * po
     , "Test objects \"" #n1 "\" and \"" #n2 "\" should be different: %Xp." \
     , MCATS(tO, n1));
 
-Handle ObjectAllocatorSpamTest()
+__startup Handle ObjectAllocatorSpamTest()
 {
     Handle res;
 
@@ -557,7 +557,7 @@ Handle ObjectAllocatorSpamTest()
     return HandleResult::Okay;
 }
 
-__noinline Handle ThreePoolTest()
+__startup Handle ThreePoolTest()
 {
     Handle res;
 
@@ -762,7 +762,7 @@ __noinline Handle ThreePoolTest()
     return HandleResult::Okay;
 }
 
-Handle ObjectAllocatorParallelAcquireTest()
+__startup Handle ObjectAllocatorParallelAcquireTest()
 {
     Handle res;
 
