@@ -63,11 +63,11 @@ namespace Beelzebub { namespace Terminals
 
 		/*  Writing  */
 
-        virtual TerminalWriteResult WriteUtf8At(char const * const c, int16_t const x, int16_t const y);
+        virtual TerminalWriteResult WriteUtf8At(char const * const c, int16_t const x, int16_t const y) override;
 
         /*  Positioning  */
 
-        virtual TerminalCoordinates GetSize();
+        virtual TerminalCoordinates GetSize() override;
 
         /*  Remapping  */
 
