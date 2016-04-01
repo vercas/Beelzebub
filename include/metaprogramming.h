@@ -324,3 +324,9 @@ typedef void (*ActionFunction0)(void);
 #else
     #define onDebug if (false)
 #endif
+
+#ifdef __BEELZEBUB_KERNEL
+    #define onKernel if (true)
+#else
+    #define onKernel if (false)
+#endif
