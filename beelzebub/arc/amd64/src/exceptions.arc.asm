@@ -59,11 +59,15 @@ EnterExceptionContext:
     mov     [rdi + 88], rax
     ;   Sets the payload to null.
 
+    mov     rax, [rsp]
+    mov     [rdi + 16], rax
+    ;   Save RBP.
+
     mov     [rdi + 48], r15
     mov     [rdi + 40], r14
     mov     [rdi + 32], r13
     mov     [rdi + 24], r12
-    mov     [rdi + 16], rbp
+    ;   Base pointer excluded!
     mov     [rdi +  8], rcx
     mov     [rdi     ], rbx
     ;   These are callee-saved registers.
@@ -75,7 +79,7 @@ EnterExceptionContext:
     mov     [rdi + 72], rax
     ;   Stores the current stack pointer, the resume pointer and the swap pointer.
 
-    mov     rdx, [rsp]
+    mov     rdx, [rsp + 8]
     mov     [rdi + 80], rdx
     ;   This preserves the return address.
 
@@ -105,10 +109,14 @@ EnterExceptionContext:
     mov     r14, [rdi + 40]
     mov     r13, [rdi + 32]
     mov     r12, [rdi + 24]
-    mov     rbp, [rdi + 16]
+    ;   Base pointer excluded!
     mov     rcx, [rdi +  8]
     mov     rbx, [rdi     ]
     ;   This restores stack pointer and all calee-saved registers.
+
+    mov     rax, [rdi + 16]
+    mov     [rsp], rax
+    ;   Prepares RBP for being restored.
 
     ;   Swapping ends with resuming.
     ;   When resumed by an exception handler, normally it's going to be the one
@@ -123,7 +131,7 @@ EnterExceptionContext:
     ;   Marks the context as not ready.
 
     mov     rax, [rdi + 80]
-    mov     [rsp], rax
+    mov     [rsp + 8], rax
     ;   This restores the return address.
 
     ;   The previous exception context is not restored as the current context

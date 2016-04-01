@@ -39,13 +39,23 @@
 
 #include <utils/unit_tests.hpp>
 #include <exceptions.hpp>
+
+#include <terminals/cache.hpp>
+#include <terminals/cache_pools_heap.hpp>
+
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Utils;
 
 __extern uintptr_t tests_data_section_start;
 __extern uintptr_t tests_data_section_end;
+
+TerminalBase * Beelzebub::Utils::UnitTestTerminal;
+
+static CacheTerminal cacheTerminal;
+static UnitTestDeclaration * currentTest;
 
 void Beelzebub::Utils::RunUnitTests()
 {
@@ -81,6 +91,12 @@ void Beelzebub::Utils::RunUnitTests()
         last = decl;
     }
 
+    new (&cacheTerminal) CacheTerminal(&AcquireCharPoolInKernelHeap
+                                     , &EnlargeCharPoolInKernelHeap
+                                     , &ReleaseCharPoolFromKernelHeap);
+
+    UnitTestTerminal = &cacheTerminal;
+
     size_t countAll = 0, countSucceded = 0, countFailed = 0;
 
     for (/* nothing */; last != nullptr; last = last->Next)
@@ -88,7 +104,7 @@ void Beelzebub::Utils::RunUnitTests()
         last->Status = UnitTestStatus::Running;
         ++countAll;
 
-        bool success = false;
+        currentTest = last;
 
         __try
         {
@@ -97,20 +113,39 @@ void Beelzebub::Utils::RunUnitTests()
             last->Status = UnitTestStatus::Succeeded;
             ++countSucceded;
 
-            success = true;
+            msg("[UNIT TEST] (%s) %s -> %s%n"
+                , "SUCCESS"
+                , last->Suite, last->Case);
         }
         __catch (x)
         {
             last->Status = UnitTestStatus::Failed;
             ++countFailed;
 
-            success = false;
+            msg("[UNIT TEST] (%s) %s -> %s%n"
+                , "FAIL"
+                , last->Suite, last->Case);
+
+            msg("%s:%i4%n"
+                , x->UnitTestFailure.FileName
+                , x->UnitTestFailure.Line);
+
+            cacheTerminal.Dump(*(Debug::DebugTerminal));
         }
 
-        msg("[UNIT TEST] (%s) %s -> %s%n"
-            , success ? "OKAY" : "FAIL"
-            , last->Suite, last->Case);
+        cacheTerminal.Clear();
     }
+
+    UnitTestTerminal = nullptr;
+
+    msg("[UNIT TEST] (REPORT) %us tests, %us succeeded, %us failed.%n"
+        , countAll, countSucceded, countFailed);
+
+    Handle res = cacheTerminal.Destroy();
+
+    assert(res.IsOkayResult()
+        , "Failed to destroy unit test cache terminal: %H%n"
+        , res);
 }
 
 void Beelzebub::Utils::FailUnitTest(char const * const fileName, int const line)
@@ -129,19 +164,4 @@ void Beelzebub::Utils::FailUnitTest(char const * const fileName, int const line)
     ASSERT(false
         , "Unit test failure in:%n%s:%i4%nThere was no exception context available."
         , fileName, line);
-}
-
-void Beelzebub::Utils::UnitTestMessage(char const * fmt, ...)
-{
-    //  TODO: Implement buffering and only display the info on failure!
-
-    if (Debug::DebugTerminal == nullptr)
-        return;
-    //  I do the check here to avoid messing with the varargs.
-
-    va_list args;
-
-    va_start(args, fmt);
-    Debug::DebugTerminal->Write(fmt, args);
-    va_end(args);
 }

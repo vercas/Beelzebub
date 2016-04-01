@@ -39,20 +39,36 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <terminals/base.hpp>
 
-#define __test_function static __used __section(text.tests) void 
+#ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
+    #define __test_function static __used __section(text.tests) void 
 
-#define __test_declaration(dName, ...) \
-    static __used __section(data.tests) UnitTestDeclaration dName {__VA_ARGS__}
+    #define __test_declaration(dName, ...) \
+        static __used __section(data.tests) UnitTestDeclaration dName {__VA_ARGS__}
 
-#define DEFINE_TEST(tSuite, tCase) \
-    __test_function MCATS(__test_function_, __LINE__)(); \
-    __test_declaration(MCATS(__test_declaration_, __LINE__), &(MCATS(__test_function_, __LINE__)), tSuite, tCase); \
-    void MCATS(__test_function_, __LINE__)()
+    #define DEFINE_TEST(tSuite, tCase) \
+        __test_function MCATS(__test_function_, __LINE__)(); \
+        __test_declaration(MCATS(__test_declaration_, __LINE__), &(MCATS(__test_function_, __LINE__)), tSuite, tCase); \
+        void MCATS(__test_function_, __LINE__)()
+
+    #define __unit_test_startup __startup
+#else
+    #define __test_function static __unused __section(text.tests) void 
+    
+    #define __test_declaration(dName, ...) \
+        static __unused __section(data.tests) UnitTestDeclaration dName {__VA_ARGS__}
+
+    #define DEFINE_TEST(tSuite, tCase) \
+        static __unused void MCATS(__test_function_, __LINE__)()
+
+    #define __unit_test_startup __startup __unused
+#endif
 
 namespace Beelzebub { namespace Utils
 {
+    extern Terminals::TerminalBase * UnitTestTerminal;
+
     typedef void (* TestFunction)(void);
 
     enum class UnitTestStatus : uintptr_t
@@ -103,23 +119,30 @@ namespace Beelzebub { namespace Utils
         uintptr_t const Epilogue;
     } __packed __aligned(8);
 
-    __startup void RunUnitTests();
+    __unit_test_startup void RunUnitTests();
 
-    __startup __noreturn void FailUnitTest(char const * const fileName
-                                                 , int const line);
-
-    __startup void UnitTestMessage(char const * fmt, ...);
+    __unit_test_startup __noreturn void FailUnitTest(char const * const fileName
+                                                   , int const line);
 }}
 
-#define REQUIRE_1(cond) do {                                            \
-if unlikely(!(cond))                                                    \
-    Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__);                 \
+#define INFO(...) do { \
+    if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+        Beelzebub::Utils::UnitTestTerminal->WriteFormat(__VA_ARGS__); \
 } while (false)
 
-#define REQUIRE_N(cond, ...) do {                                       \
-if unlikely(!(cond))                                                    \
-    Beelzebub::Utils::UnitTestMessage(__VA_ARGS__);                     \
-    Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__);                 \
+#define REQUIRE_1(cond) do { \
+    if unlikely(!(cond)) \
+        Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__); \
+} while (false)
+
+#define REQUIRE_N(cond, ...) do { \
+    if unlikely(!(cond)) \
+    { \
+        if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+            Beelzebub::Utils::UnitTestTerminal->WriteFormat(__VA_ARGS__); \
+ \
+        Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__); \
+    } \
 } while (false)
 
 #define REQUIRE(...) GET_MACRO100(__VA_ARGS__, \

@@ -85,9 +85,9 @@ TerminalCapabilities CacheTerminalCapabilities = {
     TerminalType::Serial    //  TerminalType Type;         //  The known type of the terminal.
 };
 
-/***************************
-    CacheTerminal struct
-****************************/
+/*************************
+    CacheTerminal class
+**************************/
 
 /*  Constructors    */
 
@@ -110,14 +110,17 @@ CacheTerminal::CacheTerminal(AcquireCharPoolFunc const acquire
 
 TerminalWriteResult CacheTerminal::InternalWrite(char const * const str)
 {
+    if unlikely(this->AcquirePool == nullptr)
+        return {HandleResult::ObjectDisposed, 0U, InvalidCoordinates};
+    
     if unlikely(str == nullptr)
-        return {HandleResult::ArgumentNull, 0, InvalidCoordinates};
+        return {HandleResult::ArgumentNull, 0U, InvalidCoordinates};
 
     size_t const len = strlen(str);
     size_t written = 0, left = len;
 
     if unlikely(len == 0)
-        return {HandleResult::Okay, 0, InvalidCoordinates};
+        return {HandleResult::Okay, 0U, InvalidCoordinates};
     //  Very unlikely that an empty string was given, but a lot of useless
     //  computation can be avoided if handled separately.
 
@@ -153,6 +156,15 @@ copyIntoPool:
 
     if (left > 0)
     {
+        if (pool != nullptr && pool->Next != nullptr)
+        {
+            //  There appeared to be a next pool...
+
+            pool = pool->Next;
+
+            goto copyIntoPool;
+        }
+
         //  Okay, so there are characters left to pool but there is no pool
         //  available. Thus, the first attempt is at enlarging the last pool.
 
@@ -214,4 +226,69 @@ TerminalWriteResult CacheTerminal::WriteUtf8(const char * c)
 TerminalWriteResult CacheTerminal::Write(const char * const str)
 {
     return this->InternalWrite(str);
+}
+
+/*  Flushing & Cleanup  */
+
+TerminalWriteResult CacheTerminal::Dump(TerminalBase & target)
+{
+    if unlikely(this->AcquirePool == nullptr)
+        return {HandleResult::ObjectDisposed, 0U, InvalidCoordinates};
+    
+    TerminalWriteResult res {};
+    uint32_t cnt;
+
+    CharPool * pool = this->FirstPool;
+
+    while (pool != nullptr)
+    {
+        TERMTRY1(this->Write(pool->GetString()), res, cnt);
+
+        pool = pool->Next;
+    }
+
+    return res;
+}
+
+void CacheTerminal::Clear()
+{
+    if unlikely(this->AcquirePool == nullptr)
+        return;
+    
+    CharPool * pool = this->FirstPool;
+
+    while (pool != nullptr)
+    {
+        memset(pool->GetString(), 0, pool->Size);
+        pool->Size = 0;
+
+        pool = pool->Next;
+    }
+}
+
+static Handle ReleasePoolList(CacheTerminal & term, CharPool * & pool)
+{
+    if unlikely(pool == nullptr)
+        return HandleResult::Okay;
+
+    Handle res = ReleasePoolList(term, pool->Next);
+    //  Yes, the last pool is released first.
+
+    if unlikely(!res.IsOkayResult())
+        return res;
+
+    res = term.ReleasePool(sizeof(CharPool), pool);
+
+    if likely(res.IsOkayResult())
+        pool = nullptr;
+
+    return res;
+}
+
+Handle CacheTerminal::Destroy()
+{
+    if unlikely(this->AcquirePool == nullptr)
+        return HandleResult::ObjectDisposed;
+
+    return ReleasePoolList(*this, this->FirstPool);
 }

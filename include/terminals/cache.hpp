@@ -83,7 +83,7 @@ namespace Beelzebub { namespace Terminals
         uint32_t Capacity;
 
         CharPool * Next;
-    } __packed;
+    };
 
     typedef Handle (*AcquireCharPoolFunc)(size_t minSize, size_t headerSize, CharPool * & result);
     typedef Handle (*EnlargeCharPoolFunc)(size_t minSize, size_t headerSize, CharPool * pool);
@@ -116,21 +116,22 @@ namespace Beelzebub { namespace Terminals
 
         /*  Writing  */
 
-private:
+    private:
         TerminalWriteResult InternalWrite(char const * const str);
 
-public:
+    public:
         virtual TerminalWriteResult WriteUtf8(char const * const c);
         virtual TerminalWriteResult Write(char const * const str);
 
         /*  Flushing & Cleanup  */
 
         TerminalWriteResult Dump(TerminalBase & target);
-        Handle Clear();
+        void Clear();
+
+        Handle Destroy();
 
         /*  Parameters  */
 
-    private:
         AcquireCharPoolFunc AcquirePool;    //  When this is null, the cache
         EnlargeCharPoolFunc EnlargePool;    //  terminal is invalid.
         ReleaseCharPoolFunc ReleasePool;
