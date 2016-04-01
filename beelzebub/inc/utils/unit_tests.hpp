@@ -140,7 +140,14 @@ namespace Beelzebub { namespace Utils
         uintptr_t const Epilogue;
     } __packed __aligned(8);
 
-    __unit_test_startup void RunUnitTests();
+    struct UnitTestsReport
+    {
+        size_t TestCount, SuccessCount;
+
+        UnitTestDeclaration * FirstTest;
+    };
+
+    __unit_test_startup UnitTestsReport RunUnitTests();
 
     __unit_test_startup __noreturn void FailUnitTest(char const * const fileName
                                                    , int const line);

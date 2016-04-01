@@ -265,9 +265,12 @@ void Beelzebub::Main()
         //  Run all available unit tests, if asked.
         if (CMDO_UnitTests.ParsingResult.IsValid() && CMDO_UnitTests.BooleanValue)
         {
-            MainTerminal->Write("[....] Running unit tests...");
-            RunUnitTests();
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
+            MainTerminal->Write("[....] Running unit tests... ");
+
+            UnitTestsReport report = RunUnitTests();
+
+            *MainTerminal << report.SuccessCount << "/" << report.TestCount
+                << " successful.\r[OKAY]" << EndLine;
         }
 #endif
 

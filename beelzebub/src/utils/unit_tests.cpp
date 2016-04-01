@@ -105,7 +105,7 @@ static __unit_test_startup void PrintSection(UnitTestSection const * const secti
     }
 }
 
-void Beelzebub::Utils::RunUnitTests()
+UnitTestsReport Beelzebub::Utils::RunUnitTests()
 {
     UnitTestDeclaration * last = nullptr;
 
@@ -150,6 +150,7 @@ void Beelzebub::Utils::RunUnitTests()
 #endif
 
     size_t countAll = 0, countSucceded = 0, countFailed = 0;
+    UnitTestDeclaration * first = last; //  Makes little sense, but oh well.
 
     for (/* nothing */; last != nullptr; last = last->Next)
     {
@@ -207,6 +208,8 @@ void Beelzebub::Utils::RunUnitTests()
         , "Failed to destroy unit test cache terminal: %H%n"
         , res);
 #endif
+
+    return {countAll, countSucceded, first};
 }
 
 void Beelzebub::Utils::FailUnitTest(char const * const fileName, int const line)
