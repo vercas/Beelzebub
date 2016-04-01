@@ -105,10 +105,10 @@ namespace Beelzebub { namespace Utils
 
     __startup void RunUnitTests();
 
-    __cold __noinline __noreturn void FailUnitTest(char const * const fileName
+    __startup __noreturn void FailUnitTest(char const * const fileName
                                                  , int const line);
 
-    __noinline void UnitTestMessage(char const * fmt, ...);
+    __startup void UnitTestMessage(char const * fmt, ...);
 }}
 
 #define REQUIRE_1(cond) do {                                            \
