@@ -99,6 +99,18 @@ else
 	SETTINGS			+= obja-spinlock
 endif
 
+#################
+# No Unit Tests #
+ifneq (,$(findstring no-unit-tests,$(MAKECMDGOALS)))
+	PRECOMPILER_FLAGS	+= __BEELZEBUB_SETTINGS_NO_UNIT_TESTS 
+
+	SETTINGS			+= no-unit-tests
+else
+	PRECOMPILER_FLAGS	+= __BEELZEBUB_SETTINGS_UNIT_TESTS 
+
+	SETTINGS			+= unit-tests
+endif
+
 ####################################### Tests ##########
 
 ############
