@@ -47,7 +47,7 @@
     #define __test_declaration(dName, ...) \
         static __used __section(data.tests) UnitTestDeclaration dName {__VA_ARGS__}
 
-    #define DEFINE_TEST(tSuite, tCase) \
+    #define DEFINE_TEST_2(tSuite, tCase) \
         __test_function MCATS(__test_function_, __LINE__)(); \
         __test_declaration(MCATS(__test_declaration_, __LINE__), &(MCATS(__test_function_, __LINE__)), tSuite, tCase); \
         void MCATS(__test_function_, __LINE__)()
@@ -59,17 +59,41 @@
     #define __test_declaration(dName, ...) \
         static __unused __section(data.tests) UnitTestDeclaration dName {__VA_ARGS__}
 
-    #define DEFINE_TEST(tSuite, tCase) \
+    #define DEFINE_TEST_2(tSuite, tCase) \
         static __unused void MCATS(__test_function_, __LINE__)()
 
     #define __unit_test_startup __startup __unused
 #endif
+
+#define DEFINE_TEST_1(tSuite) DEFINE_TEST_2(tSuite, nullptr)
+
+#define DEFINE_TEST(...) GET_MACRO2(__VA_ARGS__, DEFINE_TEST_2, DEFINE_TEST_1)(__VA_ARGS__)
+
+#define SECTION(name) with (Beelzebub::Utils::UnitTestSection MCATS(__unit_test_section_, __LINE__) {name})
 
 namespace Beelzebub { namespace Utils
 {
     extern Terminals::TerminalBase * UnitTestTerminal;
 
     typedef void (* TestFunction)(void);
+
+    struct UnitTestSection
+    {
+        /*  Constructors  */
+
+        __unit_test_startup UnitTestSection(char const * const name);
+        __unit_test_startup UnitTestSection(char const * const name
+                               , UnitTestSection const * const next);
+
+        /*  Destructor  */
+
+        __unit_test_startup ~UnitTestSection();
+        
+        /*  Fields  */
+
+        char const * const Name;
+        UnitTestSection const * const Next;
+    };
 
     enum class UnitTestStatus : uintptr_t
     {
@@ -125,10 +149,17 @@ namespace Beelzebub { namespace Utils
                                                    , int const line);
 }}
 
+
 #define INFO(...) do { \
     if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
         Beelzebub::Utils::UnitTestTerminal->WriteFormat(__VA_ARGS__); \
 } while (false)
+
+#define INFO_(...) do { \
+    if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+        (*(Beelzebub::Utils::UnitTestTerminal) << __VA_ARGS__); \
+} while (false)
+
 
 #define REQUIRE_1(cond) do { \
     if unlikely(!(cond)) \
@@ -166,3 +197,68 @@ REQUIRE_N, REQUIRE_N, REQUIRE_N, REQUIRE_N, REQUIRE_N, \
 REQUIRE_N, REQUIRE_N, REQUIRE_N, REQUIRE_N, REQUIRE_N, \
 REQUIRE_N, REQUIRE_N, REQUIRE_N, REQUIRE_N, REQUIRE_N, \
 REQUIRE_N, REQUIRE_N, REQUIRE_N, REQUIRE_N, REQUIRE_1)(__VA_ARGS__)
+
+
+#define REQUIRE_EQ(expected, val) do { \
+if unlikely((val) != (expected)) { \
+    if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+        *(Beelzebub::Utils::UnitTestTerminal) << "Expected " \
+            << expected << ", got " << val << "." \
+            << Beelzebub::Terminals::EndLine; \
+ \
+    Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__); \
+} } while (false)
+
+
+#define REQUIRE_NE(expected, val) do { \
+if unlikely((val) == (expected)) { \
+    if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+        *(Beelzebub::Utils::UnitTestTerminal) << "Expected anything but " \
+            << expected << "!" << Beelzebub::Terminals::EndLine; \
+ \
+    Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__); \
+} } while (false)
+
+
+#define REQUIRE_LT(expected, val) do { \
+if unlikely((val) >= (expected)) { \
+    if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+        *(Beelzebub::Utils::UnitTestTerminal) << "Expected less than " \
+            << expected << ", got " << val << "." \
+            << Beelzebub::Terminals::EndLine; \
+ \
+    Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__); \
+} } while (false)
+
+
+#define REQUIRE_LE(expected, val) do { \
+if unlikely((val) > (expected)) { \
+    if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+        *(Beelzebub::Utils::UnitTestTerminal) << "Expected less than on requal to " \
+            << expected << ", got " << val << "." \
+            << Beelzebub::Terminals::EndLine; \
+ \
+    Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__); \
+} } while (false)
+
+
+#define REQUIRE_GT(expected, val) do { \
+if unlikely((val) <= (expected)) { \
+    if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+        *(Beelzebub::Utils::UnitTestTerminal) << "Expected greater than " \
+            << expected << ", got " << val << "." \
+            << Beelzebub::Terminals::EndLine; \
+ \
+    Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__); \
+} } while (false)
+
+
+#define REQUIRE_GE(expected, val) do { \
+if unlikely((val) < (expected)) { \
+    if likely(Beelzebub::Utils::UnitTestTerminal != nullptr) \
+        *(Beelzebub::Utils::UnitTestTerminal) << "Expected greater than or equal to " \
+            << expected << ", got " << val << "." \
+            << Beelzebub::Terminals::EndLine; \
+ \
+    Beelzebub::Utils::FailUnitTest(__FILE__, __LINE__); \
+} } while (false)

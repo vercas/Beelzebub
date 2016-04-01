@@ -50,7 +50,7 @@ DEFINE_TEST("Unit Tests", "Test Case 1")
     REQUIRE(true, "This message should NOT pop up in unit test case %i4.%n", 1);
 }
 
-DEFINE_TEST("Unit Tests", "Test Case 2")
+DEFINE_TEST("Unit Tests")
 {
     INFO("%s%n", "This should appear.");
 
@@ -64,6 +64,33 @@ DEFINE_TEST("Unit Tests", "Test Case 3")
     INFO("%s%n", "This should also appear.");
 
     REQUIRE(false, "This message should pop up in unit test case %i4.%n", 3);
+
+    ASSERT(false, "Ow...");
+}
+
+DEFINE_TEST("Unit Tests", "Test Case 4")
+{
+    INFO("%s%n", "This should also appear...");
+
+    SECTION("Test Section 4")
+    {
+        REQUIRE(false, "This message should pop up in unit test case %i4.%n", 4);
+    }
+
+    ASSERT(false, "Ow...");
+}
+
+DEFINE_TEST("Unit Tests", "Test Case 5")
+{
+    INFO("%s%n", "This should also appear!");
+
+    SECTION("Test Section 5A")
+    {
+        SECTION("Test Section 5B")
+        {
+            REQUIRE(false, "This message should pop up in unit test case %i4.%n", 5);
+        }
+    }
 
     ASSERT(false, "Ow...");
 }

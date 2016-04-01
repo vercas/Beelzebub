@@ -85,7 +85,7 @@ TerminalCapabilities CacheTerminalCapabilities = {
     TerminalType::Serial    //  TerminalType Type;         //  The known type of the terminal.
 };
 
-/*************************
+/**************************
     CacheTerminal class
 **************************/
 

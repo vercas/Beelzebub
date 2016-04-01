@@ -84,7 +84,7 @@ TerminalCapabilities SerialTerminalCapabilities = {
     TerminalType::Serial    //  TerminalType Type;         //  The known type of the terminal.
 };
 
-/****************************
+/*****************************
     SerialTerminal struct
 *****************************/
 

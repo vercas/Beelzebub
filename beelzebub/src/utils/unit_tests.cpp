@@ -49,13 +49,61 @@ using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
 using namespace Beelzebub::Utils;
 
+/*****************************
+    UnitTestSection struct
+*****************************/
+
+static UnitTestSection const * currentSection = nullptr;
+
+/*  Constructors  */
+
+UnitTestSection::UnitTestSection(char const * const name)
+    : Name(name), Next(currentSection)
+{
+    currentSection = this;
+}
+
+UnitTestSection::UnitTestSection(char const * const name
+                    , UnitTestSection const * const next)
+    : Name(name), Next(next)
+{
+    currentSection = this;
+}
+
+/*  Destructor  */
+
+UnitTestSection::~UnitTestSection()
+{
+    currentSection = this->Next;
+}
+
+/****************************
+    Other unit test stuff
+****************************/
+
 __extern uintptr_t tests_data_section_start;
 __extern uintptr_t tests_data_section_end;
 
-TerminalBase * Beelzebub::Utils::UnitTestTerminal;
+TerminalBase * Beelzebub::Utils::UnitTestTerminal = nullptr;
 
+#ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
 static CacheTerminal cacheTerminal;
+#endif
+
 static UnitTestDeclaration * currentTest;
+
+static __unit_test_startup void PrintSection(UnitTestSection const * const section)
+{
+    if likely(section != nullptr)
+    {
+        PrintSection(section->Next);
+        //  Aye, 'last' (top) section is printed first.
+
+        //  DebugTerminal is guaranteed to be non-null.
+
+        *(Debug::DebugTerminal) << " -> " << section->Name;
+    }
+}
 
 void Beelzebub::Utils::RunUnitTests()
 {
@@ -91,11 +139,15 @@ void Beelzebub::Utils::RunUnitTests()
         last = decl;
     }
 
+#ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
     new (&cacheTerminal) CacheTerminal(&AcquireCharPoolInKernelHeap
                                      , &EnlargeCharPoolInKernelHeap
                                      , &ReleaseCharPoolFromKernelHeap);
 
     UnitTestTerminal = &cacheTerminal;
+#else
+    UnitTestTerminal = nullptr;
+#endif
 
     size_t countAll = 0, countSucceded = 0, countFailed = 0;
 
@@ -106,6 +158,10 @@ void Beelzebub::Utils::RunUnitTests()
 
         currentTest = last;
 
+        currentSection = nullptr;
+        //  The current section needs to be reset, because a failing test may
+        //  have left a chain of sections.
+
         __try
         {
             last->Function();
@@ -113,39 +169,44 @@ void Beelzebub::Utils::RunUnitTests()
             last->Status = UnitTestStatus::Succeeded;
             ++countSucceded;
 
-            msg("[UNIT TEST] (%s) %s -> %s%n"
-                , "SUCCESS"
-                , last->Suite, last->Case);
+            if (Debug::DebugTerminal != nullptr)
+            {
+                *(Debug::DebugTerminal) << "[UNIT TEST] (" << "SUCCESS" << ") [SUITE] "
+                    << (currentTest->Suite == nullptr ? "% NULL %" : currentTest->Suite);
+
+                if (currentTest->Case != nullptr)
+                    *(Debug::DebugTerminal) << " [CASE] " << currentTest->Case;
+
+                *(Debug::DebugTerminal) << EndLine;
+            }
         }
         __catch (x)
         {
             last->Status = UnitTestStatus::Failed;
             ++countFailed;
-
-            msg("[UNIT TEST] (%s) %s -> %s%n"
-                , "FAIL"
-                , last->Suite, last->Case);
-
-            msg("%s:%i4%n"
-                , x->UnitTestFailure.FileName
-                , x->UnitTestFailure.Line);
-
-            cacheTerminal.Dump(*(Debug::DebugTerminal));
         }
 
+#ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
         cacheTerminal.Clear();
+#endif
     }
 
+#ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
     UnitTestTerminal = nullptr;
+#endif
 
-    msg("[UNIT TEST] (REPORT) %us tests, %us succeeded, %us failed.%n"
-        , countAll, countSucceded, countFailed);
+    if (Debug::DebugTerminal != nullptr)
+        *(Debug::DebugTerminal) << "[UNIT TEST] (REPORT) " << countAll
+            << " tests, " << countSucceded << " succeeded, " << countFailed
+            << " failed." << EndLine;
 
+#ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
     Handle res = cacheTerminal.Destroy();
 
     assert(res.IsOkayResult()
         , "Failed to destroy unit test cache terminal: %H%n"
         , res);
+#endif
 }
 
 void Beelzebub::Utils::FailUnitTest(char const * const fileName, int const line)
@@ -155,6 +216,30 @@ void Beelzebub::Utils::FailUnitTest(char const * const fileName, int const line)
     x->Type = ExceptionType::UnitTestFailure;
     x->UnitTestFailure.FileName = fileName;
     x->UnitTestFailure.Line = line;
+
+    if (Debug::DebugTerminal != nullptr)
+    {
+        *(Debug::DebugTerminal) << "[UNIT TEST] (" << "FAIL" << ") [SUITE] "
+            << (currentTest->Suite == nullptr ? "% NULL %" : currentTest->Suite);
+
+        if (currentTest->Case != nullptr)
+            *(Debug::DebugTerminal) << " [CASE] " << currentTest->Case;
+
+        PrintSection(currentSection);
+
+        *(Debug::DebugTerminal) << EndLine << fileName << ":" << line << EndLine;
+    }
+
+#ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
+    if (Debug::DebugTerminal != nullptr)
+    {
+        Debug::DebugTerminal->WriteLine("################################## INFO START ##################################");
+
+        cacheTerminal.Dump(*(Debug::DebugTerminal));
+
+        Debug::DebugTerminal->WriteLine("################################### INFO END ###################################");
+    }
+#endif
 
     ThrowException();
 
