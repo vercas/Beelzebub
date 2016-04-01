@@ -39,7 +39,6 @@
 
 #pragma once
 
-#include <metaprogramming.h>
 #include <terminals/base.hpp>
 
 #define NOCOL  ((uint32_t)0x90011337)

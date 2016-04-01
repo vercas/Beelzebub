@@ -1088,6 +1088,50 @@ namespace Beelzebub { namespace Terminals
 #endif
     
     template<>
+    TerminalBase & operator << <void *>(TerminalBase & term, void * const value)
+    {
+        uintptr_t const ptr = reinterpret_cast<uintptr_t>(value);
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        term.WriteHex64(ptr, term.FormatState.NumericUppercase);
+#else
+        term.WriteHex32(ptr, term.FormatState.NumericUppercase);
+#endif
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <void const *>(TerminalBase & term, void const * const value)
+    {
+        uintptr_t const ptr = reinterpret_cast<uintptr_t>(value);
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        term.WriteHex64(ptr, term.FormatState.NumericUppercase);
+#else
+        term.WriteHex32(ptr, term.FormatState.NumericUppercase);
+#endif
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <float>(TerminalBase & term, float const value)
+    {
+        term.WriteHexFloat(value, term.FormatState.NumericUppercase);
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <double>(TerminalBase & term, double const value)
+    {
+        term.WriteHexDouble(value, term.FormatState.NumericUppercase);
+
+        return term;
+    }
+    
+    template<>
     TerminalBase & operator << <char>(TerminalBase & term, char const value)
     {
         term.Write(value);

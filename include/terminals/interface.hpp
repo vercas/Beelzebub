@@ -39,10 +39,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
 #include <handles.h>
-
-#include "stdarg.h"
 
 namespace Beelzebub { namespace Terminals
 {

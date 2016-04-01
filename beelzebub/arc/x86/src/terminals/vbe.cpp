@@ -37,7 +37,6 @@
     thorough explanation regarding other files.
 */
 
-#include <metaprogramming.h>
 #include <terminals/vbe.hpp>
 #include <terminals/font.hpp>
 

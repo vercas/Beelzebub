@@ -157,7 +157,8 @@ TerminalWriteResult TestTerminal()
           << HandleResult::NotImplemented << EndLine
           << Hexadecimal << (short)12345 << Decimal << EndLine
           << ShowPlus << -1 << ' ' << 1 << HidePlus << EndLine
-          << NumericLowercase << Hexadecimal << (unsigned char)0xAB << Decimal << NumericUppercase << EndLine;
+          << NumericLowercase << Hexadecimal << (unsigned char)0xAB << Decimal << NumericUppercase << EndLine
+          << "Terminal is @ " << (void *)term << '.' << EndLine;
 
     return res;
 }
