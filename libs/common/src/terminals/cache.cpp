@@ -242,7 +242,7 @@ TerminalWriteResult CacheTerminal::Dump(TerminalBase & target)
 
     while (pool != nullptr)
     {
-        TERMTRY1(this->Write(pool->GetString()), res, cnt);
+        TERMTRY1(target.Write(pool->GetString()), res, cnt);
 
         pool = pool->Next;
     }
