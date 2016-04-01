@@ -152,6 +152,13 @@ TerminalWriteResult TestTerminal()
 
     TERMTRY1(term->WriteLine(), res, cnt);
 
+    *term << 123 << " equals " << 123ULL << EndLine
+          << "This should be on another line." << EndLine
+          << HandleResult::NotImplemented << EndLine
+          << Hexadecimal << (short)12345 << Decimal << EndLine
+          << ShowPlus << -1 << ' ' << 1 << HidePlus << EndLine
+          << NumericLowercase << Hexadecimal << (unsigned char)0xAB << Decimal << NumericUppercase << EndLine;
+
     return res;
 }
 

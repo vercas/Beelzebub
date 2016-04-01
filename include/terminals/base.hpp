@@ -82,17 +82,45 @@ namespace Beelzebub { namespace Terminals
     /**
      * Represents a set of terminal capabilities.
      **/
+    class TerminalBase;
+
+    typedef TerminalBase & (* TerminalModifier)(TerminalBase & term);
+
+    template<typename TArg>
+    TerminalBase & operator <<(TerminalBase & term, TArg const value);
+
+    enum class TerminalIntegerBase : uint16_t
+    {
+        Decimal = 10,
+        Hexadecimal = 16,
+    };
+
+    struct TerminalFormatState
+    {
+        /*  Constructors  */
+
+        inline TerminalFormatState()
+            : IntegerBase(TerminalIntegerBase::Decimal)
+            , ShowPlus(false)
+            , NumericUppercase(true)
+        {
+
+        }
+
+        /*  Fields  */
+
+        TerminalIntegerBase IntegerBase;
+        bool ShowPlus;
+        bool NumericUppercase;
+    };
+
     class TerminalBase
     {
     public:
 
-        /*  STATICS  */
+        /*  Statics  */
 
         static uint16_t const DefaultTabulatorWidth = 8;
-
-        /*  Descriptor  */
-
-        const TerminalCapabilities * Capabilities;
 
         /*  Constructor  */
 
@@ -141,13 +169,13 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult WriteIntD(int64_t const val);
         virtual TerminalWriteResult WriteUIntD(uint64_t const val);
 
-        virtual TerminalWriteResult WriteHex8(uint8_t const val);
-        virtual TerminalWriteResult WriteHex16(uint16_t const val);
-        virtual TerminalWriteResult WriteHex32(uint32_t const val);
-        virtual TerminalWriteResult WriteHex64(uint64_t const val);
+        virtual TerminalWriteResult WriteHex8(uint8_t const val, bool const upper = true);
+        virtual TerminalWriteResult WriteHex16(uint16_t const val, bool const upper = true);
+        virtual TerminalWriteResult WriteHex32(uint32_t const val, bool const upper = true);
+        virtual TerminalWriteResult WriteHex64(uint64_t const val, bool const upper = true);
 
-        virtual __min_float TerminalWriteResult WriteHexFloat(float const val);
-        virtual __min_float TerminalWriteResult WriteHexDouble(double const val);
+        virtual __min_float TerminalWriteResult WriteHexFloat(float const val, bool const upper = true);
+        virtual __min_float TerminalWriteResult WriteHexDouble(double const val, bool const upper = true);
 
         virtual TerminalWriteResult WriteHexDump(uintptr_t const start, size_t const length, size_t const charsPerLine);
         __forceinline TerminalWriteResult WriteHexDump(void const * const start, size_t const length, size_t const charsPerLine)
@@ -166,10 +194,28 @@ namespace Beelzebub { namespace Terminals
             return this->WriteLine("");
         }
 
-    protected:
+        /*  Fields  */
 
+    public:
+        TerminalCapabilities const * const Capabilities;
+
+    protected:
         TerminalCoordinates CurrentPosition;
         uint16_t TabulatorWidth;
         bool Overflown;
+
+    public:
+        TerminalFormatState FormatState;
     };
+
+    TerminalBase & EndLine(TerminalBase & term);
+
+    TerminalBase & Decimal(TerminalBase & term);
+    TerminalBase & Hexadecimal(TerminalBase & term);
+
+    TerminalBase & ShowPlus(TerminalBase & term);
+    TerminalBase & HidePlus(TerminalBase & term);
+
+    TerminalBase & NumericUppercase(TerminalBase & term);
+    TerminalBase & NumericLowercase(TerminalBase & term);
 }}

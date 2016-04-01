@@ -52,8 +52,9 @@ using namespace Beelzebub::Terminals;
 TerminalBase::TerminalBase(const TerminalCapabilities * const caps)
     : Capabilities(caps)
     , CurrentPosition({0, 0})
-    , TabulatorWidth(4)
+    , TabulatorWidth(DefaultTabulatorWidth)
     , Overflown(false)
+    , FormatState()
 {
 
 }
@@ -234,8 +235,6 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
         {
             if (c == 'u')       //  Unsigned decimal.
             {
-                /*  Unsigned decimal integer  */
-
                 char size = *fmts++;
 
                 switch (size)
@@ -284,10 +283,8 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                         return {HandleResult::FormatBadArgumentSize, cnt, InvalidCoordinates};
                 }
             }
-            else if (c == 'i')       //  Unsigned decimal.
+            else if (c == 'i')       //  Signed decimal.
             {
-                /*  Unsigned decimal integer  */
-
                 char size = *fmts++;
 
                 switch (size)
@@ -334,10 +331,9 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                         return {HandleResult::FormatBadArgumentSize, cnt, InvalidCoordinates};
                 }
             }
-            else if (c == 'X')       //  Hexadecimal.
+            else if (c == 'X' || c == 'x')  //  Hexadecimal, any case.
             {
-                /*  Unsigned decimal integer  */
-
+                bool upper = c == 'X';
                 char size = *fmts++;
 
                 switch (size)
@@ -367,38 +363,38 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                     case '8':
                         {
                             uint64_t val8 = va_arg(args, uint64_t);
-                            TERMTRY1(this->WriteHex64(val8), res, cnt);
+                            TERMTRY1(this->WriteHex64(val8, upper), res, cnt);
                         }
                         break;
 
                     case '4':
                         {
                             uint32_t val4 = va_arg(args, uint32_t);
-                            TERMTRY1(this->WriteHex32(val4), res, cnt);
+                            TERMTRY1(this->WriteHex32(val4, upper), res, cnt);
                         }
                         break;
 
                     case '2':
                         {
                             uint32_t val2 = va_arg(args, uint32_t);
-                            TERMTRY1(this->WriteHex16((uint16_t)val2), res, cnt);
+                            TERMTRY1(this->WriteHex16((uint16_t)val2, upper), res, cnt);
                         }
                         break;
 
                     case '1':
                         {
                             uint32_t val1 = va_arg(args, uint32_t);
-                            TERMTRY1(this->WriteHex8((uint8_t)val1), res, cnt);
+                            TERMTRY1(this->WriteHex8((uint8_t)val1, upper), res, cnt);
                         }
                         break;
 
                     case 'f':
                     case 'd':
                         {
-                            auto func = [&args, this]() __fancy
+                            auto func = [&args, this, upper]() __fancy
                             {
                                 double valF = va_arg(args, double);
-                                return this->WriteHexDouble(valF);
+                                return this->WriteHexDouble(valF, upper);
                             };
 
                             TERMTRY1(func(), res, cnt);
@@ -745,10 +741,12 @@ TerminalWriteResult TerminalBase::WriteUIntD(uint64_t const val)
     return this->Write(str + 20 - i);
 }
 
-TerminalWriteResult TerminalBase::WriteHex8(uint8_t const val)
+TerminalWriteResult TerminalBase::WriteHex8(uint8_t const val, bool const upper)
 {
     if (!this->Capabilities->CanOutput)
         return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
 
     char str[3];
     str[2] = '\0';
@@ -757,16 +755,18 @@ TerminalWriteResult TerminalBase::WriteHex8(uint8_t const val)
     {
         uint8_t nib = (val >> (i << 2)) & 0xF;
 
-        str[1 - i] = (nib > 9 ? '7' : '0') + nib;
+        str[1 - i] = (nib > 9 ? alphaBase : '0') + nib;
     }
 
     return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteHex16(uint16_t const val)
+TerminalWriteResult TerminalBase::WriteHex16(uint16_t const val, bool const upper)
 {
     if (!this->Capabilities->CanOutput)
         return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
 
     char str[5];
     str[4] = '\0';
@@ -775,16 +775,18 @@ TerminalWriteResult TerminalBase::WriteHex16(uint16_t const val)
     {
         uint8_t nib = (val >> (i << 2)) & 0xF;
 
-        str[3 - i] = (nib > 9 ? '7' : '0') + nib;
+        str[3 - i] = (nib > 9 ? alphaBase : '0') + nib;
     }
 
     return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteHex32(uint32_t const val)
+TerminalWriteResult TerminalBase::WriteHex32(uint32_t const val, bool const upper)
 {
     if (!this->Capabilities->CanOutput)
         return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
 
     char str[9];
     str[8] = '\0';
@@ -793,16 +795,18 @@ TerminalWriteResult TerminalBase::WriteHex32(uint32_t const val)
     {
         uint8_t nib = (val >> (i << 2)) & 0xF;
 
-        str[7 - i] = (nib > 9 ? '7' : '0') + nib;
+        str[7 - i] = (nib > 9 ? alphaBase : '0') + nib;
     }
 
     return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteHex64(uint64_t const val)
+TerminalWriteResult TerminalBase::WriteHex64(uint64_t const val, bool const upper)
 {
     if (!this->Capabilities->CanOutput)
         return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
 
     char str[17];
     str[16] = '\0';
@@ -811,13 +815,13 @@ TerminalWriteResult TerminalBase::WriteHex64(uint64_t const val)
     {
         uint8_t nib = (val >> (i << 2)) & 0xF;
 
-        str[15 - i] = (nib > 9 ? '7' : '0') + nib;
+        str[15 - i] = (nib > 9 ? alphaBase : '0') + nib;
     }
 
     return this->Write(str);
 }
 
-TerminalWriteResult TerminalBase::WriteHexFloat(float const val)
+TerminalWriteResult TerminalBase::WriteHexFloat(float const val, bool const upper)
 {
     union { float fVal; uint32_t iVal; } value = {val};
 
@@ -825,13 +829,15 @@ TerminalWriteResult TerminalBase::WriteHexFloat(float const val)
     int32_t exponent = (int32_t)((value.iVal & 0x7F800000U) >> 23) - 127;
     bool negative = (value.iVal >> 31) != 0;
 
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
+
     char str[] = "-0x1.XxXxXx<<";
 
     for (size_t i = 0; i < 6; ++i)
     {
         uint8_t const nib = (fraction >> (i << 2)) & 0xF;
 
-        str[10 - i] = (nib > 9 ? '7' : '0') + nib;
+        str[10 - i] = (nib > 9 ? alphaBase : '0') + nib;
     }
 
     TerminalWriteResult res {};
@@ -843,7 +849,7 @@ TerminalWriteResult TerminalBase::WriteHexFloat(float const val)
     return res;
 }
 
-TerminalWriteResult TerminalBase::WriteHexDouble(double const val)
+TerminalWriteResult TerminalBase::WriteHexDouble(double const val, bool const upper)
 {
     union { double fVal; uint64_t iVal; } value = {val};
 
@@ -851,13 +857,15 @@ TerminalWriteResult TerminalBase::WriteHexDouble(double const val)
     int64_t exponent = (int64_t)((value.iVal & 0x7FF0000000000000U) >> 52) - 1023;
     bool negative = (value.iVal >> 63) != 0;
 
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
+
     char str[] = "-0x1.XxXxXxXxXxXxX<<";
 
     for (size_t i = 0; i < 13; ++i)
     {
         uint8_t const nib = (fraction >> (i << 2)) & 0xF;
 
-        str[17 - i] = (nib > 9 ? '7' : '0') + nib;
+        str[17 - i] = (nib > 9 ? alphaBase : '0') + nib;
     }
 
     TerminalWriteResult res {};
@@ -1022,4 +1030,155 @@ TerminalWriteResult TerminalBase::WriteHexTable(uintptr_t const start, size_t co
     }
 
     return res;
+}
+
+/*  Now to implement the << operator.  */
+
+namespace Beelzebub { namespace Terminals
+{
+    #define SPAWN_INT(size, type) template<> \
+    TerminalBase & operator << <type>(TerminalBase & term, type const value) \
+    { \
+        if (term.FormatState.IntegerBase == TerminalIntegerBase::Decimal) \
+        { \
+            if unlikely(term.FormatState.ShowPlus && value > (type)0) \
+                if unlikely(!term.Write('+').Result.IsOkayResult()) \
+                    return term; \
+ \
+            term.WriteIntD(value); \
+        } \
+        else if (term.FormatState.IntegerBase == TerminalIntegerBase::Hexadecimal) \
+            term.MCATS(WriteHex, size)(static_cast<MCATS(uint, size, _t)>(value), term.FormatState.NumericUppercase); \
+ \
+        return term; \
+    }
+
+    #define SPAWN_UINT(size, type) template<> \
+    TerminalBase & operator << <type>(TerminalBase & term, type const value) \
+    { \
+        if (term.FormatState.IntegerBase == TerminalIntegerBase::Decimal) \
+        { \
+            if unlikely(term.FormatState.ShowPlus) \
+                if unlikely(!term.Write('+').Result.IsOkayResult()) \
+                    return term; \
+ \
+            term.WriteUIntD(value); \
+        } \
+        else if (term.FormatState.IntegerBase == TerminalIntegerBase::Hexadecimal) \
+            term.MCATS(WriteHex, size)(value, term.FormatState.NumericUppercase); \
+ \
+        return term; \
+    }
+
+    SPAWN_INT(16, signed short)
+    SPAWN_INT(32, signed int)
+    SPAWN_INT(64, signed long long)
+
+    SPAWN_UINT( 8, unsigned char)
+    SPAWN_UINT(16, unsigned short)
+    SPAWN_UINT(32, unsigned int)
+    SPAWN_UINT(64, unsigned long long)
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+    SPAWN_INT(64, signed long)
+    SPAWN_UINT(64, unsigned long)
+#else
+    SPAWN_INT(32, signed long)
+    SPAWN_UINT(32, unsigned long)
+#endif
+    
+    template<>
+    TerminalBase & operator << <char>(TerminalBase & term, char const value)
+    {
+        term.Write(value);
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <char const *>(TerminalBase & term, char const * const value)
+    {
+        term.Write(value);
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <char *>(TerminalBase & term, char * const value)
+    {
+        term.Write(const_cast<char const *>(value));
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <Handle>(TerminalBase & term, Handle const value)
+    {
+        term.WriteHandle(value);
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <HandleResult>(TerminalBase & term, HandleResult const value)
+    {
+        term.WriteHandle(value);
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <TerminalModifier>(TerminalBase & term, TerminalModifier const value)
+    {
+        return value(term);
+    }
+}}
+
+TerminalBase & Beelzebub::Terminals::EndLine(TerminalBase & term)
+{
+    term.WriteLine();
+
+    return term;
+}
+
+TerminalBase & Beelzebub::Terminals::Decimal(TerminalBase & term)
+{
+    term.FormatState.IntegerBase = TerminalIntegerBase::Decimal;
+
+    return term;
+}
+
+TerminalBase & Beelzebub::Terminals::Hexadecimal(TerminalBase & term)
+{
+    term.FormatState.IntegerBase = TerminalIntegerBase::Hexadecimal;
+
+    return term;
+}
+
+TerminalBase & Beelzebub::Terminals::ShowPlus(TerminalBase & term)
+{
+    term.FormatState.ShowPlus = true;
+
+    return term;
+}
+
+TerminalBase & Beelzebub::Terminals::HidePlus(TerminalBase & term)
+{
+    term.FormatState.ShowPlus = false;
+
+    return term;
+}
+
+TerminalBase & Beelzebub::Terminals::NumericUppercase(TerminalBase & term)
+{
+    term.FormatState.NumericUppercase = true;
+
+    return term;
+}
+
+TerminalBase & Beelzebub::Terminals::NumericLowercase(TerminalBase & term)
+{
+    term.FormatState.NumericUppercase = false;
+
+    return term;
 }
