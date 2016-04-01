@@ -220,7 +220,25 @@ copyIntoPool:
 
 TerminalWriteResult CacheTerminal::WriteUtf8(const char * c)
 {
-    return this->InternalWrite(c);
+    char temp[7] = "\0\0\0\0\0\0";
+    temp[0] = *c;
+    //  6 bytes + null terminator in UTF-8 character.
+
+    if ((*c & 0xC0) == 0xC0)
+    {
+        size_t i = 1;
+
+        do
+        {
+            temp[i] = c[i];
+
+            ++i;
+        } while ((c[i] & 0xC0) == 0x80 && i < 7);
+
+        //  This copies the remainder of the bytes, up to 6.
+    }
+
+    return this->InternalWrite(temp);
 }
 
 TerminalWriteResult CacheTerminal::Write(const char * const str)

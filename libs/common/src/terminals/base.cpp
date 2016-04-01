@@ -71,7 +71,7 @@ TerminalWriteResult TerminalBase::WriteUtf8(char const * c)
        && this->Capabilities->CanGetOutputPosition))
         return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
-    char temp[7] = "\0\0\0\0\0";
+    char temp[7] = "\0\0\0\0\0\0";
     temp[0] = *c;
     //  6 bytes + null terminator in UTF-8 character.
 
