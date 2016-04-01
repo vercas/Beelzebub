@@ -98,9 +98,9 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
 }
 
 static __noinline void FillPool(ObjectPoolBase volatile * volatile pool
-                                      , size_t const objectSize
-                                      , size_t const headerSize
-                                      , obj_ind_t const objectCount)
+                              , size_t const objectSize
+                              , size_t const headerSize
+                              , obj_ind_t const objectCount)
 {
     pool->Capacity = objectCount;
     pool->FreeCount = objectCount;
