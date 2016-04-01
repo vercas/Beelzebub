@@ -58,9 +58,24 @@ namespace Beelzebub { namespace Terminals
 
         }
 
+        inline CharPool(uint32_t const cap)
+            : Size( 0)
+            , Capacity(cap)
+            , Next(nullptr)
+        {
+
+        }
+
         CharPool(CharPool const &) = delete;
         CharPool & operator =(const CharPool &) = delete;
         //  No copying.
+
+        /*  Utilities  */
+
+        inline char * GetString()
+        {
+            return reinterpret_cast<char *>(this) + sizeof(CharPool);
+        }
 
         /*  Fields  */
 
