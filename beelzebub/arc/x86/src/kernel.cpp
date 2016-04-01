@@ -261,6 +261,7 @@ void Beelzebub::Main()
                 , res);
         }
 
+#ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
         //  Run all available unit tests, if asked.
         if (CMDO_UnitTests.ParsingResult.IsValid() && CMDO_UnitTests.BooleanValue)
         {
@@ -268,6 +269,7 @@ void Beelzebub::Main()
             RunUnitTests();
             MainTerminal->WriteLine(" Done.\r[OKAY]");
         }
+#endif
 
         //  Initialize the ACPI tables for easier use.
         //  Mostly common on x86.

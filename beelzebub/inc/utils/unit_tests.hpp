@@ -42,25 +42,22 @@
 #include <terminals/base.hpp>
 
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
-    #define __test_function static __used __section(text.tests) void 
+    #define __unit_test_declaration __used __section(text.tests) 
 
-    #define __test_declaration(dName, ...) \
+    #define __DECLARE_TEST(dName, ...) \
         static __used __section(data.tests) UnitTestDeclaration dName {__VA_ARGS__}
 
     #define DEFINE_TEST_2(tSuite, tCase) \
-        __test_function MCATS(__test_function_, __LINE__)(); \
-        __test_declaration(MCATS(__test_declaration_, __LINE__), &(MCATS(__test_function_, __LINE__)), tSuite, tCase); \
+        static __unit_test_declaration void MCATS(__test_function_, __LINE__)(); \
+        __DECLARE_TEST(MCATS(__test_declaration_, __LINE__), &(MCATS(__test_function_, __LINE__)), tSuite, tCase); \
         void MCATS(__test_function_, __LINE__)()
 
     #define __unit_test_startup __startup
 #else
-    #define __test_function static __unused __section(text.tests) void 
-    
-    #define __test_declaration(dName, ...) \
-        static __unused __section(data.tests) UnitTestDeclaration dName {__VA_ARGS__}
+    #define __unit_test_declaration __unused __section(text.tests) 
 
     #define DEFINE_TEST_2(tSuite, tCase) \
-        static __unused void MCATS(__test_function_, __LINE__)()
+        static __unit_test_declaration void MCATS(__test_function_, __LINE__)()
 
     #define __unit_test_startup __startup __unused
 #endif
