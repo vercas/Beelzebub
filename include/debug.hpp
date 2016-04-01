@@ -42,40 +42,45 @@
 #include "stdarg.h"
 
 #include <terminals/base.hpp>
+
+#ifdef __BEELZEBUB_KERNEL
 #include <synchronization/spinlock_uninterruptible.hpp>
+#endif
 
 //  NOTE: debug_arch.hpp is included near the end.
 
 #ifdef __BEELZEBUB__DEBUG
-#define assert(cond, ...) do {                                          \
-if unlikely(!(cond))                                                    \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
-        , __VA_ARGS__);                                                 \
-} while (false)
-#define assert_or(cond, ...) if unlikely(!(cond))                       \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
-        , __VA_ARGS__);                                                 \
-else if (false)
+    #define assert(cond, ...) do {                                          \
+    if unlikely(!(cond))                                                    \
+        Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
+            , __VA_ARGS__);                                                 \
+    } while (false)
+    #define assert_or(cond, ...) if unlikely(!(cond))                       \
+        Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
+            , __VA_ARGS__);                                                 \
+    else if (false)
 
-//#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
-#define msg(...) do {                                                   \
-    if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-    {                                                                   \
-        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
-    }                                                                   \
-} while (false)
+    //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
+    #define msg(...) do {                                                   \
+        if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+        {                                                                   \
+            Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
+        }                                                                   \
+    } while (false)
 
-#define msg_(...) do {                                                  \
-    if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-        withLock (Beelzebub::Debug::MsgSpinlock)                        \
-            Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
-} while (false)
+    #ifdef __BEELZEBUB_KERNEL
+        #define msg_(...) do {                                                  \
+            if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+                withLock (Beelzebub::Debug::MsgSpinlock)                        \
+                    Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
+        } while (false)
+    #endif
 #else
-#define assert(...) do {} while(false)
-#define assert_or(cond, ...) if unlikely(!(cond))
+    #define assert(...) do {} while(false)
+    #define assert_or(cond, ...) if unlikely(!(cond))
 
-#define msg(...) do {} while(false)
-#define msg_(...) do {} while(false)
+    #define msg(...) do {} while(false)
+    #define msg_(...) do {} while(false)
 #endif
 
 #define ASSERT_1(cond) do {                                             \
@@ -119,18 +124,22 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
     }                                                                   \
 } while (false)
 
-#define MSG_(...) do {                                                  \
-    if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-        withLock (Beelzebub::Debug::MsgSpinlock)                        \
-            Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
-} while (false)
+#ifdef __BEELZEBUB_KERNEL
+    #define MSG_(...) do {                                                  \
+        if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+            withLock (Beelzebub::Debug::MsgSpinlock)                        \
+                Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
+    } while (false)
+#endif
 //  Thse three are available for all configurations!
 
 namespace Beelzebub { namespace Debug
 {
     extern Terminals::TerminalBase * DebugTerminal;
 
+#ifdef __BEELZEBUB_KERNEL
     extern Synchronization::SpinlockUninterruptible<> MsgSpinlock;
+#endif
 
     __cold __noinline __noreturn void CatchFire(char const * const file
                                               , size_t const line
@@ -163,10 +172,12 @@ namespace Beelzebub { namespace Debug
                                , char const * const fmt, ...);
 }}
 
-#include <debug_arch.hpp>
+#ifdef __BEELZEBUB_KERNEL
+    #include <debug_arch.hpp>
 
-#ifndef breakpoint
-#define breakpoint(...) do {} while (false)
+    #ifndef breakpoint
+    #define breakpoint(...) do {} while (false)
+    #endif
 #endif
 
 #define ASSERT_EQ_2(expected, val) do {                                         \
