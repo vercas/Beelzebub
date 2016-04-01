@@ -228,8 +228,13 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
             break;
         }
 
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, desc);
+        res = Vmm::MapPage(
+            CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess,
+            vaddr + i * PageSize,
+            paddr,
+            MemoryFlags::Global | MemoryFlags::Writable,
+            desc
+        );
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP; #%us) for extending object pool "
@@ -305,7 +310,11 @@ Handle Memory::ReleasePoolFromKernelHeap(size_t objectSize
 
     for (/* nothing */; i > 0; --i, vaddr -= PageSize)
     {
-        res = Vmm::UnmapPage(&BootstrapProcess, vaddr, desc);
+        res = Vmm::UnmapPage(
+            CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess,
+            vaddr,
+            desc
+        );
 
         assert_or(res.IsOkayResult()
             , "Failed to unmap page #%us from pool %Xp.%n"
