@@ -109,14 +109,16 @@ endif
 
 include ../../Sources.mk
 
+# Libraries
+SLIBRARIES	:= common.$(ARC)
+LIBRARIES	:= $(patsubst %,-l%,$(SLIBRARIES)) 
+SLIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(SLIBRARIES)) 
+
 # Bootstrapping
 CFLAGS		+= $(INCFLAGS) 
 CXXFLAGS	+= $(INCFLAGS) 
-
-# Libraries
-LIBRARIES	:= common.$(ARC)
-LIBFLAGS	:= -L$(PREFIX)/libs $(patsubst %,-l%,$(LIBRARIES)) 
-LIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(LIBRARIES)) 
+LDFLAGS		+= -L$(PREFIX)/libs 
+LOFLAGS		+= -L$(PREFIX)/libs 
 
 ################################################################################
 #                                   TARGETS                                    #
@@ -158,10 +160,10 @@ $(LIB_INSTALL_PATH): $(LIB_PATH)
 
 ##################################################
 # Link the target binary with extra optimization #
-$(LIB_PATH): $(OBJECTS)
+$(LIB_PATH): $(SLIBFILES) $(OBJECTS)
 	@ echo "/LNK/OPT:" $@
 	@ mkdir -p $(@D)
-	@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS) $(LIBFLAGS)
+	@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS) $(LIBRARIES)
 
 ####################################### CODE FILES ##########
 
