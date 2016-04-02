@@ -64,7 +64,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 GASFLAGS	:= $(GCCFLAGS) 
 
 # Linker options, with optimization
-LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel -fuse-linker-plugin 
+LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel -fno-omit-frame-pointer -fuse-linker-plugin 
 LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 
 LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
