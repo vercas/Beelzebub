@@ -577,8 +577,6 @@ __startup Handle HandleKernelModule(size_t const index
                                , vaddr_t const vaddr
                                , size_t const size)
 {
-    msg("THIS IS THE KERNEL MODULE!%n");
-
     Image * kimg;
 
     Handle res = Images::Load("kernel", ImageRole::Kernel
@@ -631,6 +629,8 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
 #ifdef __BEELZEBUB__TEST_APP
     else if (memeq("loadtest", JG_INFO_STRING_EX + module->name, 9) && CHECK_TEST(APP))
         return HandleLoadtest(index, module, vaddr, size);
+    else if (memeq("runtime64", JG_INFO_STRING_EX + module->name, 10) && CHECK_TEST(APP))
+        return HandleRuntimeLib(index, module, vaddr, size);
 #endif
 
     return res;

@@ -82,20 +82,20 @@ Handle HandleLoadtest(size_t const index
                     , size_t const size)
 {
     uint8_t * const addr = reinterpret_cast<uint8_t *>(vaddr);
-    size_t const len = module->length;
+    // size_t const len = module->length;
 
     executable = addr;
 
-    msg("%n");
+    *(Debug::DebugTerminal) << EndLine
+        << "############################## LOADTEST APP START ##############################"
+        << EndLine;
 
     ElfHeader1 * eh1 = reinterpret_cast<ElfHeader1 *>(addr);
 
     *(Debug::DebugTerminal) << *eh1 << EndLine;
 
-    ASSERT(eh1->Identification.Class == ElfClass::Elf64
-        , "Expected class ELF64!");
-    ASSERT(eh1->Identification.DataEncoding == ElfDataEncoding::LittleEndian
-        , "Expected class ELF64!");
+    ASSERT(eh1->Identification.Class == ElfClass::Elf64);
+    ASSERT(eh1->Identification.DataEncoding == ElfDataEncoding::LittleEndian);
 
     ElfHeader2_64 * eh2 = reinterpret_cast<ElfHeader2_64 *>(addr + sizeof(ElfHeader1));
 
@@ -146,7 +146,7 @@ Handle HandleLoadtest(size_t const index
     //     );
     // }
 
-    msg("%nSegments:%n");
+    *(Debug::DebugTerminal) << EndLine << "Segments:" << EndLine;
 
     ElfProgramHeader_64 * programCursor = reinterpret_cast<ElfProgramHeader_64 *>(
         addr + eh2->ProgramHeaderTableOffset
@@ -190,13 +190,7 @@ Handle HandleLoadtest(size_t const index
 
             do
             {
-                msg("\t\t\t#%us:%n"
-                    "\t\t\t\tTag:   %Xp (%s)%n"
-                    "\t\t\t\tValue: %Xp%n"
-                    , k
-                    , (intptr_t)(dynEntCursor->Tag), EnumToString(dynEntCursor->Tag)
-                    , dynEntCursor->Value
-                );
+                *(Debug::DebugTerminal) << "\t#" << k << ": " << *dynEntCursor << EndLine;
 
                 ++dynEntCursor;
                 offset += sizeof(ElfDynamicEntry);
@@ -205,7 +199,84 @@ Handle HandleLoadtest(size_t const index
         }
     }
 
-    msg("%n");
+    *(Debug::DebugTerminal) << EndLine
+        << "############################### LOADTEST APP END ###############################"
+        << EndLine;
+
+    return HandleResult::Okay;
+}
+
+Handle HandleRuntimeLib(size_t const index
+                      , jg_info_module_t const * const module
+                      , const vaddr_t vaddr
+                      , size_t const size)
+{
+    uint8_t * const addr = reinterpret_cast<uint8_t *>(vaddr);
+    // size_t const len = module->length;
+
+    // executable = addr;
+
+    *(Debug::DebugTerminal) << EndLine
+        << "############################## RUNTIME LIB  START ##############################"
+        << EndLine;
+
+    ElfHeader1 * eh1 = reinterpret_cast<ElfHeader1 *>(addr);
+
+    *(Debug::DebugTerminal) << *eh1 << EndLine;
+
+    ASSERT(eh1->Identification.Class == ElfClass::Elf64);
+    ASSERT(eh1->Identification.DataEncoding == ElfDataEncoding::LittleEndian);
+
+    ElfHeader2_64 * eh2 = reinterpret_cast<ElfHeader2_64 *>(addr + sizeof(ElfHeader1));
+
+    *(Debug::DebugTerminal) << Hexadecimal << *eh2 << Decimal << EndLine;
+
+    // entryPoint = eh2->EntryPoint;
+
+    ElfHeader3 * eh3 = reinterpret_cast<ElfHeader3 *>(addr + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
+
+    *(Debug::DebugTerminal) << *eh3 << EndLine;
+
+    ASSERT(eh3->SectionHeaderTableEntrySize == sizeof(ElfSectionHeader_64)
+        , "Unusual section header type: %us; expected %us."
+        , (size_t)(eh3->SectionHeaderTableEntrySize), sizeof(ElfSectionHeader_64));
+
+    *(Debug::DebugTerminal) << EndLine << "Segments:" << EndLine;
+
+    ElfProgramHeader_64 * programCursor = reinterpret_cast<ElfProgramHeader_64 *>(
+        addr + eh2->ProgramHeaderTableOffset
+    );
+
+    // segments = programCursor;
+    // segmentCount = eh3->ProgramHeaderTableEntryCount;
+
+    for (size_t i = eh3->ProgramHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++programCursor)
+    {
+        *(Debug::DebugTerminal) << "#" << j << ": " << *programCursor << EndLine;
+
+        if (programCursor->Type == ElfProgramHeaderType::Dynamic)
+        {
+            msg("\tEntries:%n");
+
+            ElfDynamicEntry * dynEntCursor = reinterpret_cast<ElfDynamicEntry *>(
+                addr + programCursor->Offset
+            );
+            size_t offset = 0, k = 0;
+
+            do
+            {
+                *(Debug::DebugTerminal) << "\t#" << k << ": " << *dynEntCursor << EndLine;
+
+                ++dynEntCursor;
+                offset += sizeof(ElfDynamicEntry);
+                ++k;
+            } while (offset < programCursor->PSize && dynEntCursor->Tag != ElfDynamicEntryTag::Null);
+        }
+    }
+
+    *(Debug::DebugTerminal) << EndLine
+        << "############################### RUNTIME LIB  END ###############################"
+        << EndLine;
 
     return HandleResult::Okay;
 }

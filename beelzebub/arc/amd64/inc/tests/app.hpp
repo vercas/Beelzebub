@@ -49,7 +49,12 @@ __cold __noinline void TestApplication();
  *  Handles the ELF load test & ring 3 execution.
  *  </summary>
  */
-__cold Beelzebub::Handle HandleLoadtest(size_t const index
-                                      , jg_info_module_t const * const module
-                                      , const vaddr_t vaddr
-                                      , size_t const size);
+__startup Beelzebub::Handle HandleLoadtest(size_t const index
+                                         , jg_info_module_t const * const module
+                                         , const vaddr_t vaddr
+                                         , size_t const size);
+
+__startup Beelzebub::Handle HandleRuntimeLib(size_t const index
+                                           , jg_info_module_t const * const module
+                                           , const vaddr_t vaddr
+                                           , size_t const size);

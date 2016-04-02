@@ -82,6 +82,8 @@ namespace Beelzebub { namespace Terminals
 
     SPAWN_ENUM(ElfProgramHeaderType)
 
+    SPAWN_ENUM(ElfDynamicEntryTag)
+
     template<>
     TerminalBase & operator << <ElfProgramHeaderFlags>(TerminalBase & term, ElfProgramHeaderFlags const value)
     {
@@ -153,6 +155,27 @@ namespace Beelzebub { namespace Terminals
     }
 
     template<>
+    TerminalBase & operator << <ElfProgramHeader_32>(TerminalBase & term, ElfProgramHeader_32 const value)
+    {
+        term << "[ELF Program Header, ELF32 | Flags " << value.Flags
+            << "; Offset ";
+        term.WriteHex32(value.Offset);
+
+        term.Write("; VAddr ");
+        term.WriteHex32(value.VAddr);
+        term.Write("; PAddr ");
+        term.WriteHex32(value.PAddr);
+        term.Write("; VSize ");
+        term.WriteHex32(value.VSize);
+        term.Write("; PSize ");
+        term.WriteHex32(value.PSize);
+        term.Write("; Alignment ");
+        term.WriteHex32(value.Alignment);
+
+        return term << "; Type " << value.Type << "]";
+    }
+
+    template<>
     TerminalBase & operator << <ElfProgramHeader_64>(TerminalBase & term, ElfProgramHeader_64 const value)
     {
         term << "[ELF Program Header, ELF64 | Flags " << value.Flags
@@ -171,5 +194,14 @@ namespace Beelzebub { namespace Terminals
         term.WriteHex64(value.Alignment);
 
         return term << "; Type " << value.Type << "]";
+    }
+
+    template<>
+    TerminalBase & operator << <ElfDynamicEntry>(TerminalBase & term, ElfDynamicEntry const value)
+    {
+        term.Write("[ELF Dynamic Entry | Value ");
+        term.WriteHex64(value.Value);
+
+        return term << "; Tag " << value.Tag << "]";
     }
 }}
