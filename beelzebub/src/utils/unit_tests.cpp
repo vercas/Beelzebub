@@ -101,7 +101,7 @@ static __unit_test_startup void PrintSection(UnitTestSection const * const secti
 
         //  DebugTerminal is guaranteed to be non-null.
 
-        *(Debug::DebugTerminal) << " -> " << section->Name;
+        DEBUG_TERM << " -> " << section->Name;
     }
 }
 
@@ -172,13 +172,13 @@ UnitTestsReport Beelzebub::Utils::RunUnitTests()
 
             if (Debug::DebugTerminal != nullptr)
             {
-                *(Debug::DebugTerminal) << "[UNIT TEST] (" << "SUCCESS" << ") [SUITE] "
+                DEBUG_TERM << "[UNIT TEST] (" << "SUCCESS" << ") [SUITE] "
                     << (currentTest->Suite == nullptr ? "% NULL %" : currentTest->Suite);
 
                 if (currentTest->Case != nullptr)
-                    *(Debug::DebugTerminal) << " [CASE] " << currentTest->Case;
+                    DEBUG_TERM << " [CASE] " << currentTest->Case;
 
-                *(Debug::DebugTerminal) << EndLine;
+                DEBUG_TERM << EndLine;
             }
         }
         __catch (x)
@@ -197,9 +197,9 @@ UnitTestsReport Beelzebub::Utils::RunUnitTests()
 #endif
 
     if (Debug::DebugTerminal != nullptr)
-        *(Debug::DebugTerminal) << "[UNIT TEST] (REPORT) " << countAll
-            << " tests, " << countSucceded << " succeeded, " << countFailed
-            << " failed." << EndLine;
+        DEBUG_TERM  << "[UNIT TEST] (REPORT) " << countAll
+                    << " tests, " << countSucceded << " succeeded, " << countFailed
+                    << " failed." << EndLine;
 
 #ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
     Handle res = cacheTerminal.Destroy();
@@ -222,24 +222,23 @@ void Beelzebub::Utils::FailUnitTest(char const * const fileName, int const line)
 
     if (Debug::DebugTerminal != nullptr)
     {
-        *(Debug::DebugTerminal) << "[UNIT TEST] (" << "FAIL" << ") [SUITE] "
+        DEBUG_TERM << "[UNIT TEST] (" << "FAIL" << ") [SUITE] "
             << (currentTest->Suite == nullptr ? "% NULL %" : currentTest->Suite);
 
         if (currentTest->Case != nullptr)
-            *(Debug::DebugTerminal) << " [CASE] " << currentTest->Case;
+            DEBUG_TERM << " [CASE] " << currentTest->Case;
 
         PrintSection(currentSection);
 
-        *(Debug::DebugTerminal) << EndLine << fileName << ":" << line << EndLine;
+        DEBUG_TERM << EndLine << fileName << ":" << line << EndLine;
     }
 
 #ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
     if (Debug::DebugTerminal != nullptr)
-        *(Debug::DebugTerminal)
-            << "################################## INFO START ##################################"
-            << EndLine << cacheTerminal << EndLine
-            << "################################### INFO END ###################################"
-            << EndLine;
+        DEBUG_TERM  << "################################## INFO START ##################################"
+                    << EndLine << cacheTerminal << EndLine
+                    << "################################### INFO END ###################################"
+                    << EndLine;
 #endif
 
     ThrowException();

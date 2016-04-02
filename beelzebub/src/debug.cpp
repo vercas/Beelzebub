@@ -85,10 +85,10 @@ namespace Beelzebub { namespace Debug
         __unreachable_code;
     }
 
-    void CatchFire(const char * const file
-                 , const size_t line
-                 , char const * const cond
-                 , const char * const fmt, va_list args)
+    __cold __noinline __noreturn void CatchFire(const char * const file
+                                              , const size_t line
+                                              , char const * const cond
+                                              , const char * const fmt, va_list args)
     {
         if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
             withLock (MsgSpinlock)

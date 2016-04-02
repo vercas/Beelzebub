@@ -39,8 +39,6 @@
 
 #pragma once
 
-#include "stdarg.h"
-
 #include <terminals/base.hpp>
 
 #ifdef __BEELZEBUB_KERNEL
@@ -48,6 +46,8 @@
 #endif
 
 //  NOTE: debug_arch.hpp is included near the end.
+
+#define DEBUG_TERM (*(Beelzebub::Debug::DebugTerminal))
 
 #ifdef __BEELZEBUB__DEBUG
     #define assert(cond, ...) do {                                          \
@@ -146,11 +146,6 @@ namespace Beelzebub { namespace Debug
                                               , char const * const cond
                                               , char const * const msg);
 
-    __cold __noinline __noreturn void CatchFire(char const * const file
-                                              , size_t const line
-                                              , char const * const cond
-                                              , char const * const fmt, va_list args);
-
     __cold __noinline __noreturn void CatchFireFormat(char const * const file
                                                     , size_t const line
                                                     , char const * const cond
@@ -160,11 +155,6 @@ namespace Beelzebub { namespace Debug
                          , char const * const file
                          , size_t const line
                          , char const * const msg);
-
-    __noinline void Assert(bool const condition
-                         , char const * const file
-                         , size_t const line
-                         , char const * const msg, va_list args);
 
     __noinline void AssertFormat(bool const condition
                                , char const * const file
