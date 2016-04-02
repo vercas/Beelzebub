@@ -40,9 +40,16 @@
 #include <syscalls.kernel.hpp>
 
 #include <terminals/base.hpp>
+
+#include <memory/vmm.hpp>
+#include <system/cpu.hpp>
+
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Memory;
+using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
 
 Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * const arg1
                               , uintptr_t const arg2, uintptr_t const arg3
@@ -51,7 +58,32 @@ Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * const ar
     switch (selector)
     {
     case SyscallSelection::DebugPrint:
-        return Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1)).Result;
+        if (arg2 == 0)
+            return Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1)).Result;
+        else if (arg2 < 0x0000800000000000ULL && (arg2 & 0x3) == 0)
+        {
+            //  The 2nd argument must be in the userland memory region and 4-byte aligned.
+
+            MemoryFlags mf = MemoryFlags::None;
+            Handle hRes = Vmm::GetPageFlags(Cpu::GetData()->ActiveThread->Owner, arg2, mf);
+
+            if unlikely(!hRes.IsOkayResult())
+                return hRes;
+            //  No flags retrieved.
+
+            if ((MemoryFlags::Writable | MemoryFlags::Userland) != (mf & (MemoryFlags::Writable | MemoryFlags::Userland)))
+                return HandleResult::ArgumentOutOfRange;
+            //  The pointer must be within a writable userland page!
+
+            uint32_t * const sizePtr = reinterpret_cast<uint32_t *>(arg2);
+            
+            TerminalWriteResult twRes = Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1));
+
+            *sizePtr = twRes.Size;
+            return twRes.Result;
+        }
+        else
+            return HandleResult::ArgumentOutOfRange;
 
     default:
         return HandleResult::SyscallSelectionInvalid;
