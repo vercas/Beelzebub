@@ -434,8 +434,7 @@ Handle InitializePhysicalMemory()
     VIRTUAL MEMORY
 *********************/
 
-__startup __noinline void RemapTerminal(TerminalBase * const terminal);
-//  Forward declaration.
+__startup void RemapTerminal(TerminalBase * const terminal);
 
 /**
  *  <summary>
@@ -563,58 +562,6 @@ void RemapTerminal(TerminalBase * const terminal)
 
     //  TODO: Make a VGA text terminal and also handle it here.
 }
-
-/***********************
-    PROCESSING UNITS
-***********************/
-
-/**
- *  <summary>
- *  Initializes the other processing units in the system.
- *  </summary>
- */
-/*Handle InitializeAcpiTables()
-{
-
-
-    return HandleResult::Okay;
-}//*/
-
-/**
- *  <summary>
- *  Initializes the system memory for the boostrap processor.
- *  </summary>
- */
-/*Handle InitializeMemory()
-{
-    BootstrapCpuid = CpuId();
-    BootstrapCpuid.Initialize();
-    //  This is required to page all the available memory.
-
-    BootstrapCpuid.PrintToTerminal(DebugTerminal);
-    msg("%n");
-
-    InitializeVirtualMemory();
-
-    msg("%n");
-
-    //  DUMPING CONTROL REGISTERS
-
-    PrintToDebugTerminal(Cpu::GetCr0());
-    msg("%n");
-
-    msg("CR4: %Xs%n", (uint64_t)Cpu::GetCr4());
-    msg("%n");
-
-    CpuInstructions::WriteBackAndInvalidateCache();
-
-    auto GDTR = GdtRegister::Retrieve();
-
-    PrintToDebugTerminal(GDTR);
-    msg("%n%n");
-
-    return HandleResult::Okay;
-}//*/
 
 /**************
     MODULES
