@@ -276,8 +276,17 @@ inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
         }                                           \
     }
 
+#define ENUM_TO_STRING_EX2(enumName, enumDef, cppnamespace) \
+    ENUM_TO_STRING_EX1(enumName, , cppnamespace::EnumToString(enumName const val), val, enumDef)
+
+/*#define ENUM_TO_STRING_EX2_DECL(enumName, enumDef, cppnamespace) \
+    char const * const cppnamespace::EnumToString(enumName const val)*/
+
 #define ENUM_TO_STRING(enumName, enumDef) \
     ENUM_TO_STRING_EX1(enumName, , EnumToString(enumName const val), val, enumDef)
+
+#define ENUM_TO_STRING_DECL(enumName, enumDef) \
+    char const * const EnumToString(enumName const val)
 
 /*  Some type aliases...  */
 

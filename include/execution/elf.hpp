@@ -39,7 +39,6 @@
 
 #pragma once
 
-#include <metaprogramming.h>
 #include <handles.h>
 
 namespace Beelzebub { namespace Execution
@@ -65,7 +64,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfClass, uint8_t)
 
-    inline ENUM_TO_STRING(ElfClass, ENUM_ELFCLASS)
+    ENUM_TO_STRING_DECL(ElfClass, ENUM_ELFCLASS);
 
     #define ENUM_ELFDATAENCODING(ENUMINST) \
         ENUMINST(None         , 0) \
@@ -82,7 +81,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfDataEncoding, uint8_t)
 
-    inline ENUM_TO_STRING(ElfDataEncoding, ENUM_ELFDATAENCODING)
+    ENUM_TO_STRING_DECL(ElfDataEncoding, ENUM_ELFDATAENCODING);
 
     #define ENUM_ELFOSABI(ENUMINST) \
         ENUMINST(None            ,  0) \
@@ -115,7 +114,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfOsAbi, uint8_t)
 
-    inline ENUM_TO_STRING(ElfOsAbi, ENUM_ELFOSABI)
+    ENUM_TO_STRING_DECL(ElfOsAbi, ENUM_ELFOSABI);
 
     #define ENUM_ELFFILETYPE(ENUMINST) \
         ENUMINST(None                        , 0     ) \
@@ -138,7 +137,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfFileType, uint16_t)
 
-    inline ENUM_TO_STRING(ElfFileType, ENUM_ELFFILETYPE)
+    ENUM_TO_STRING_DECL(ElfFileType, ENUM_ELFFILETYPE);
     
     #define ENUM_ELFMACHINE(ENUMINST) \
         ENUMINST(None          ,   0) \
@@ -175,7 +174,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfMachine, uint16_t)
 
-    inline ENUM_TO_STRING(ElfMachine, ENUM_ELFMACHINE)
+    ENUM_TO_STRING_DECL(ElfMachine, ENUM_ELFMACHINE);
 
     #define ENUM_ELFSECTIONHEADERTYPE(ENUMINST) \
         ENUMINST(Null                       ,  0) \
@@ -206,7 +205,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfSectionHeaderType, uint32_t)
 
-    inline ENUM_TO_STRING(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE)
+    ENUM_TO_STRING_DECL(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE);
 
     #define ENUM_ELFSECTIONHEADERFLAGS32(ENUMINST) \
         ENUMINST(Writable           , 0x001) \
@@ -231,7 +230,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfSectionHeaderFlags_32, uint32_t)
 
-    inline ENUM_TO_STRING(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32)
+    ENUM_TO_STRING_DECL(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32);
 
     #define ENUM_ELFSECTIONHEADERFLAGS64(ENUMINST) \
         ENUMINST(Writable           , 0x001) \
@@ -256,7 +255,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfSectionHeaderFlags_64, uint64_t)
 
-    inline ENUM_TO_STRING(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64)
+    ENUM_TO_STRING_DECL(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64);
 
     #define ENUM_ELFPROGRAMHEADERTYPE(ENUMINST) \
         ENUMINST(Null        ,  0) \
@@ -278,7 +277,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfProgramHeaderType, uint32_t)
 
-    inline ENUM_TO_STRING(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE)
+    ENUM_TO_STRING_DECL(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE);
 
     #define ENUM_ELFPROGRAMHEADERFLAGS(ENUMINST) \
         ENUMINST(None       ,  0) \
@@ -296,7 +295,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfProgramHeaderFlags, uint32_t)
 
-    inline ENUM_TO_STRING(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS)
+    ENUM_TO_STRING_DECL(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS);
 
     #define ENUM_ELFDYNAMICENTRYTAG(ENUMINST) \
         ENUMINST(Null                   ,  0) \
@@ -339,7 +338,7 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS(ElfDynamicEntryTag, intptr_t)
 
-    inline ENUM_TO_STRING(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG)
+    ENUM_TO_STRING_DECL(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG);
 
     /*  Structures  */
 

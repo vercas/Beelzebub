@@ -60,6 +60,7 @@ using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
 
 uint8_t * executable;
 ElfProgramHeader_64 * segments;
@@ -89,29 +90,7 @@ Handle HandleLoadtest(size_t const index
 
     ElfHeader1 * eh1 = reinterpret_cast<ElfHeader1 *>(addr);
 
-    msg("Identification:%n");
-
-    msg("\tMagic number: %S%n", (size_t)4, &(eh1->Identification.MagicNumber));
-
-    msg("\tClass: %u8 (%s)%n"
-        "\tData Encoding: %u8 (%s)%n"
-        "\tVersion: %u8%n"
-        "\tOS ABI: %u8 (%s)%n"
-        "\tABI Version: %u8%n"
-        , (uint64_t)(eh1->Identification.Class       ), EnumToString(eh1->Identification.Class       )
-        , (uint64_t)(eh1->Identification.DataEncoding), EnumToString(eh1->Identification.DataEncoding)
-        , (uint64_t)(eh1->Identification.Version     )
-        , (uint64_t)(eh1->Identification.OsAbi       ), EnumToString(eh1->Identification.OsAbi       )
-        , (uint64_t)(eh1->Identification.AbiVersion  )
-    );
-
-    msg("Type: %u8 (%s)%n"
-        "Machine: %u8 (%s)%n"
-        "Version: %u8%n"
-        , (uint64_t)(eh1->Type), EnumToString(eh1->Type)
-        , (uint64_t)(eh1->Machine), EnumToString(eh1->Machine)
-        , (uint64_t)(eh1->Version)
-    );
+    *(Debug::DebugTerminal) << *eh1 << EndLine;
 
     ASSERT(eh1->Identification.Class == ElfClass::Elf64
         , "Expected class ELF64!");
@@ -120,72 +99,52 @@ Handle HandleLoadtest(size_t const index
 
     ElfHeader2_64 * eh2 = reinterpret_cast<ElfHeader2_64 *>(addr + sizeof(ElfHeader1));
 
-    msg("Entry Point                : %X8%n"
-        "Program Header Table Offset: %X8%n"
-        "Section Header Table Offset: %X8%n"
-        , eh2->EntryPoint
-        , eh2->ProgramHeaderTableOffset
-        , eh2->SectionHeaderTableOffset
-    );
+    *(Debug::DebugTerminal) << Hexadecimal << *eh2 << Decimal << EndLine;
 
     entryPoint = eh2->EntryPoint;
 
     ElfHeader3 * eh3 = reinterpret_cast<ElfHeader3 *>(addr + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
 
-    msg("Flags:   %X4%n"
-        "Header Size: %X2 (%u2)%n"
-        "Program Header Table Entry Size: %u2%n"
-        "Program Header Table Entry Count: %u2%n"
-        "Section Header Table Entry Size: %u2%n"
-        "Section Header Table Entry Count: %u2%n"
-        "Section Name String Table Index: %u2%n"
-        , eh3->Flags
-        , eh3->HeaderSize, eh3->HeaderSize
-        , eh3->ProgramHeaderTableEntrySize
-        , eh3->ProgramHeaderTableEntryCount
-        , eh3->SectionHeaderTableEntrySize
-        , eh3->SectionHeaderTableEntryCount
-        , eh3->SectionNameStringTableIndex
-    );
+    *(Debug::DebugTerminal) << *eh3 << EndLine;
 
     ASSERT(eh3->SectionHeaderTableEntrySize == sizeof(ElfSectionHeader_64)
         , "Unusual section header type: %us; expected %us."
         , (size_t)(eh3->SectionHeaderTableEntrySize), sizeof(ElfSectionHeader_64));
 
-    msg("%nSections:%n");
+    // msg("%nSections:%n");
 
-    ElfSectionHeader_64 * sectionCursor = reinterpret_cast<ElfSectionHeader_64 *>(
-        addr + eh2->SectionHeaderTableOffset
-    );
+    // ElfSectionHeader_64 * sectionCursor = reinterpret_cast<ElfSectionHeader_64 *>(
+    //     addr + eh2->SectionHeaderTableOffset
+    // );
 
-    char const * sectionNames = reinterpret_cast<char const *>(addr + sectionCursor[eh3->SectionNameStringTableIndex].Offset);
+    // char const * sectionNames = reinterpret_cast<char const *>(addr + sectionCursor[eh3->SectionNameStringTableIndex].Offset);
 
-    for (size_t i = eh3->SectionHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++sectionCursor)
-    {
-        msg("\t#%us:%n"
-            "\t\tName: %X4 (%s)%n"
-            "\t\tType: %u8 (%s)%n"
-            "\t\tFlags:       %X8%n"
-            "\t\tAddress:     %X8%n"
-            "\t\tOffset:      %X8%n"
-            "\t\tSize:        %X8%n"
-            "\t\tLink:        %X4%n"
-            "\t\tInfo:        %X4%n"
-            "\t\tAlignment:   %X8%n"
-            "\t\tEntrry Size: %X8%n"
-            , j
-            , sectionCursor->Name, sectionNames + sectionCursor->Name
-            , (uint64_t)(sectionCursor->Type), EnumToString(sectionCursor->Type)
-            , sectionCursor->Flags
-            , sectionCursor->Address
-            , sectionCursor->Offset
-            , sectionCursor->Size
-            , sectionCursor->Link
-            , sectionCursor->Info
-            , sectionCursor->AddressAlignment
-            , sectionCursor->EntrySize
-        );
-    }
+    // for (size_t i = eh3->SectionHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++sectionCursor)
+    // {
+    //     msg("\t#%us:%n"
+    //         "\t\tName: %X4 (%s)%n"
+    //         "\t\tType: %u8 (%s)%n"
+    //         "\t\tFlags:       %X8%n"
+    //         "\t\tAddress:     %X8%n"
+    //         "\t\tOffset:      %X8%n"
+    //         "\t\tSize:        %X8%n"
+    //         "\t\tLink:        %X4%n"
+    //         "\t\tInfo:        %X4%n"
+    //         "\t\tAlignment:   %X8%n"
+    //         "\t\tEntrry Size: %X8%n"
+    //         , j
+    //         , sectionCursor->Name, sectionNames + sectionCursor->Name
+    //         , (uint64_t)(sectionCursor->Type), EnumToString(sectionCursor->Type)
+    //         , sectionCursor->Flags
+    //         , sectionCursor->Address
+    //         , sectionCursor->Offset
+    //         , sectionCursor->Size
+    //         , sectionCursor->Link
+    //         , sectionCursor->Info
+    //         , sectionCursor->AddressAlignment
+    //         , sectionCursor->EntrySize
+    //     );
+    // }
 
     msg("%nSegments:%n");
 
@@ -198,29 +157,31 @@ Handle HandleLoadtest(size_t const index
 
     for (size_t i = eh3->ProgramHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++programCursor)
     {
-        msg("\t#%us:%n"
-            "\t\tType: %u8 (%s)%n"
-            "\t\tFlags:     %X4%n"
-            "\t\tOffset:    %X8%n"
-            "\t\tVAddr:     %X8%n"
-            "\t\tPAddr:     %X8%n"
-            "\t\tVSize:     %X8%n"
-            "\t\tPSize:     %X8%n"
-            "\t\tAlignment: %X8%n"
-            , j
-            , (uint64_t)(programCursor->Type), EnumToString(programCursor->Type)
-            , programCursor->Flags
-            , programCursor->Offset
-            , programCursor->VAddr
-            , programCursor->PAddr
-            , programCursor->PSize
-            , programCursor->VSize
-            , programCursor->Alignment
-        );
+        // msg("\t#%us:%n"
+        //     "\t\tType: %u8 (%s)%n"
+        //     "\t\tFlags:     %X4%n"
+        //     "\t\tOffset:    %X8%n"
+        //     "\t\tVAddr:     %X8%n"
+        //     "\t\tPAddr:     %X8%n"
+        //     "\t\tVSize:     %X8%n"
+        //     "\t\tPSize:     %X8%n"
+        //     "\t\tAlignment: %X8%n"
+        //     , j
+        //     , (uint64_t)(programCursor->Type), EnumToString(programCursor->Type)
+        //     , programCursor->Flags
+        //     , programCursor->Offset
+        //     , programCursor->VAddr
+        //     , programCursor->PAddr
+        //     , programCursor->PSize
+        //     , programCursor->VSize
+        //     , programCursor->Alignment
+        // );
+
+        *(Debug::DebugTerminal) << "#" << j << ": " << *programCursor << EndLine;
 
         if (programCursor->Type == ElfProgramHeaderType::Dynamic)
         {
-            msg("\t\tEntries:%n");
+            msg("\tEntries:%n");
 
             ElfDynamicEntry * dynEntCursor = reinterpret_cast<ElfDynamicEntry *>(
                 addr + programCursor->Offset
