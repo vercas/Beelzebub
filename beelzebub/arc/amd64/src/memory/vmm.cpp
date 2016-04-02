@@ -766,7 +766,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
 Handle Vmm::GetPageFlags(Process * const proc, uintptr_t const vaddr
     , MemoryFlags & flags, bool const lock)
 {
-    Handle res = TryTranslate(proc, vaddr, [&flags](Pml1Entry * pE)
+    return TryTranslate(proc, vaddr, [&flags](Pml1Entry * pE)
     {
         if likely(pE->GetPresent())
         {
@@ -789,11 +789,6 @@ Handle Vmm::GetPageFlags(Process * const proc, uintptr_t const vaddr
             return HandleResult::PageUnmapped;
         }
     }, lock);
-
-    if (!res.IsOkayResult())
-        return res;
-
-    return Vmm::InvalidatePage(proc, vaddr, true);
 }
 
 Handle Vmm::SetPageFlags(Process * const proc, uintptr_t const vaddr
