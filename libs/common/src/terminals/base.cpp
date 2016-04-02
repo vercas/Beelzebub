@@ -1035,6 +1035,14 @@ TerminalWriteResult TerminalBase::WriteHexTable(uintptr_t const start, size_t co
 
 namespace Beelzebub { namespace Terminals
 {
+    template<>
+    TerminalBase & operator << <bool>(TerminalBase & term, bool const value)
+    {
+        term.Write(value ? "True" : "False");
+
+        return term;
+    }
+    
     #define SPAWN_INT(size, type) template<> \
     TerminalBase & operator << <type>(TerminalBase & term, type const value) \
     { \
