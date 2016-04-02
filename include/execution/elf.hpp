@@ -42,7 +42,8 @@
 #include <metaprogramming.h>
 #include <handles.h>
 
-namespace Beelzebub { namespace Execution {
+namespace Beelzebub { namespace Execution
+{
     /*  Constants  */
 
     extern uint32_t ElfMagicNumber;
