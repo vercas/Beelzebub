@@ -9,4 +9,4 @@ else
 	OBJDUMP="/usr/local/gcc-x86_64-beelzebub/bin/x86_64-beelzebub-objdump"
 fi
 
-$OBJDUMP -M intel -CdlSw --no-show-raw-insn apps/loadtest/build/loadtest.exe | less
+$OBJDUMP -M intel -CdlSw --no-show-raw-insn libs/runtime/build/libbeelzebub.amd64.so | less
