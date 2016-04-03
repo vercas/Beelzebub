@@ -62,9 +62,9 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFCLASS(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfClass, uint8_t)
-
+    ENUMOPS(ElfClass)
     ENUM_TO_STRING_DECL(ElfClass, ENUM_ELFCLASS);
+
 
     #define ENUM_ELFDATAENCODING(ENUMINST) \
         ENUMINST(None         , 0) \
@@ -79,9 +79,9 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFDATAENCODING(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfDataEncoding, uint8_t)
-
+    ENUMOPS(ElfDataEncoding)
     ENUM_TO_STRING_DECL(ElfDataEncoding, ENUM_ELFDATAENCODING);
+
 
     #define ENUM_ELFOSABI(ENUMINST) \
         ENUMINST(None            ,  0) \
@@ -112,9 +112,9 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFOSABI(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfOsAbi, uint8_t)
-
+    ENUMOPS(ElfOsAbi)
     ENUM_TO_STRING_DECL(ElfOsAbi, ENUM_ELFOSABI);
+
 
     #define ENUM_ELFFILETYPE(ENUMINST) \
         ENUMINST(None                        , 0     ) \
@@ -135,10 +135,10 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFFILETYPE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfFileType, uint16_t)
-
+    ENUMOPS(ElfFileType)
     ENUM_TO_STRING_DECL(ElfFileType, ENUM_ELFFILETYPE);
     
+
     #define ENUM_ELFMACHINE(ENUMINST) \
         ENUMINST(None          ,   0) \
         ENUMINST(We32100       ,   1) \
@@ -172,9 +172,9 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFMACHINE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfMachine, uint16_t)
-
+    ENUMOPS(ElfMachine)
     ENUM_TO_STRING_DECL(ElfMachine, ENUM_ELFMACHINE);
+
 
     #define ENUM_ELFSECTIONHEADERTYPE(ENUMINST) \
         ENUMINST(Null                       ,  0) \
@@ -203,9 +203,9 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFSECTIONHEADERTYPE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfSectionHeaderType, uint32_t)
-
+    ENUMOPS(ElfSectionHeaderType)
     ENUM_TO_STRING_DECL(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE);
+
 
     #define ENUM_ELFSECTIONHEADERFLAGS32(ENUMINST) \
         ENUMINST(Writable           , 0x001) \
@@ -228,9 +228,9 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFSECTIONHEADERFLAGS32(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfSectionHeaderFlags_32, uint32_t)
-
+    ENUMOPS(ElfSectionHeaderFlags_32)
     ENUM_TO_STRING_DECL(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32);
+
 
     #define ENUM_ELFSECTIONHEADERFLAGS64(ENUMINST) \
         ENUMINST(Writable           , 0x001) \
@@ -253,9 +253,9 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFSECTIONHEADERFLAGS64(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfSectionHeaderFlags_64, uint64_t)
-
+    ENUMOPS(ElfSectionHeaderFlags_64)
     ENUM_TO_STRING_DECL(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64);
+
 
     #define ENUM_ELFPROGRAMHEADERTYPE(ENUMINST) \
         ENUMINST(Null        ,  0) \
@@ -275,9 +275,9 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFPROGRAMHEADERTYPE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfProgramHeaderType, uint32_t)
-
+    ENUMOPS(ElfProgramHeaderType)
     ENUM_TO_STRING_DECL(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE);
+
 
     #define ENUM_ELFPROGRAMHEADERFLAGS(ENUMINST) \
         ENUMINST(None       ,  0) \
@@ -286,16 +286,16 @@ namespace Beelzebub { namespace Execution
         ENUMINST(Readable   ,  4) \
 
     /**
-     *  Types of ELF segments.
+     *  ELF segment flags.
      */
     enum class ElfProgramHeaderFlags : uint32_t
     {
         ENUM_ELFPROGRAMHEADERFLAGS(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfProgramHeaderFlags, uint32_t)
-
+    ENUMOPS(ElfProgramHeaderFlags)
     ENUM_TO_STRING_DECL(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS);
+
 
     #define ENUM_ELFDYNAMICENTRYTAG(ENUMINST) \
         ENUMINST(Null                   ,  0) \
@@ -329,18 +329,75 @@ namespace Beelzebub { namespace Execution
         ENUMINST(FiniArraySize          , 28) \
 
     /**
-     *  Types of ELF segments.
+     *  ELF DYNAMIC segment entry tags.
      */
-    enum class ElfDynamicEntryTag : intptr_t
+    enum class ElfDynamicEntryTag : int32_t
     {
         ENUM_ELFDYNAMICENTRYTAG(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfDynamicEntryTag, intptr_t)
-
+    ENUMOPS(ElfDynamicEntryTag)
     ENUM_TO_STRING_DECL(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG);
 
+
+    #define ENUM_ELFRELOCATIONTYPE(ENUMINST) \
+        ENUMINST(R_386_NONE    ,  0) \
+        ENUMINST(R_386_32      ,  1) \
+        ENUMINST(R_386_PC32    ,  2) \
+        ENUMINST(R_386_GOT32   ,  3) \
+        ENUMINST(R_386_PLT32   ,  4) \
+        ENUMINST(R_386_COPY    ,  5) \
+        ENUMINST(R_386_GLOB_DAT,  6) \
+        ENUMINST(R_386_JMP_SLOT,  7) \
+        ENUMINST(R_386_RELATIVE,  8) \
+        ENUMINST(R_386_GOTOFF  ,  9) \
+        ENUMINST(R_386_GOTPC   , 10) \
+        ENUMINST(R_386_32PLT   , 11) \
+        ENUMINST(R_AMD64_NONE     ,  0) \
+        ENUMINST(R_AMD64_64       ,  1) \
+        ENUMINST(R_AMD64_PC32     ,  2) \
+        ENUMINST(R_AMD64_GOT32    ,  3) \
+        ENUMINST(R_AMD64_PLT32    ,  4) \
+        ENUMINST(R_AMD64_COPY     ,  5) \
+        ENUMINST(R_AMD64_GLOB_DAT ,  6) \
+        ENUMINST(R_AMD64_JUMP_SLOT,  7) \
+        ENUMINST(R_AMD64_RELATIVE ,  8) \
+        ENUMINST(R_AMD64_GOTPCREL ,  9) \
+        ENUMINST(R_AMD64_32       , 10) \
+        ENUMINST(R_AMD64_32S      , 11) \
+        ENUMINST(R_AMD64_16       , 12) \
+        ENUMINST(R_AMD64_PC16     , 13) \
+        ENUMINST(R_AMD64_8        , 14) \
+        ENUMINST(R_AMD64_PC8      , 15) \
+        ENUMINST(R_AMD64_DPTMOD64 , 16) \
+        ENUMINST(R_AMD64_DTPOFF64 , 17) \
+        ENUMINST(R_AMD64_TPOFF64  , 18) \
+        ENUMINST(R_AMD64_TLSGD    , 19) \
+        ENUMINST(R_AMD64_TLSLD    , 20) \
+        ENUMINST(R_AMD64_DTPOFF32 , 21) \
+        ENUMINST(R_AMD64_GOTTPOFF , 22) \
+        ENUMINST(R_AMD64_TPOFF32  , 23) \
+        ENUMINST(R_AMD64_PC64     , 24) \
+        ENUMINST(R_AMD64_GOTOFF64 , 25) \
+        ENUMINST(R_AMD64_GOTPC32  , 26) \
+        ENUMINST(R_AMD64_SIZE32   , 32) \
+        ENUMINST(R_AMD64_SIZE64   , 33) \
+
+
+    /**
+     *  ELF relocation types.
+     */
+    enum ElfRelType : uint8_t
+    {
+        ENUM_ELFRELOCATIONTYPE(ENUMINST_VAL)
+    };
+
+    ENUMOPS(ElfRelType)
+    ENUM_TO_STRING_DECL(ElfRelType, ENUM_ELFRELOCATIONTYPE);
+
+
     /*  Structures  */
+
 
     /**
      *  Represents the information that mark the file as an object file
@@ -374,6 +431,7 @@ namespace Beelzebub { namespace Execution
         uint32_t          Version;                       /* 20 - 23 */
     } __packed;
 
+
     /**
      *  Represents the header section specific to the 32-bit ELF class.
      */
@@ -394,6 +452,7 @@ namespace Beelzebub { namespace Execution
         uint64_t SectionHeaderTableOffset; /* 40 - 47 */
     } __packed;
 
+
     /**
      *  Represents the common final header of an ELF file.
      */
@@ -407,6 +466,7 @@ namespace Beelzebub { namespace Execution
         uint16_t SectionHeaderTableEntryCount; /* 48 - 49 | 60 - 61 */
         uint16_t SectionNameStringTableIndex;  /* 50 - 51 | 62 - 63 */
     } __packed;
+
 
     /**
      *  Represents the header of a section in a 32-bit ELF.
@@ -442,6 +502,7 @@ namespace Beelzebub { namespace Execution
         uint64_t             EntrySize; /* 56 - 63 */
     } __packed;
 
+
     /**
      *  Represents the header of a segment in a 32-bit ELF.
      */
@@ -472,12 +533,107 @@ namespace Beelzebub { namespace Execution
         uint64_t          Alignment; /* 48 - 55 */
     } __packed;
 
+
     /**
-     *  Represents an entry in the DYNAMIC program header.
+     *  Represents an entry in the DYNAMIC program header of a 32-bit ELF.
      */
-    struct ElfDynamicEntry
-    {                           /*  32-bit |  64-bit */
-        ElfDynamicEntryTag Tag; /*  0 -  3 |  0 -  7 */
-        uintptr_t        Value; /*  4 -  7 |  8 - 15 */
+    struct ElfDynamicEntry_32
+    {
+        ElfDynamicEntryTag Tag; /*  0 -  3 */
+        uint32_t         Value; /*  4 -  7 */
+    } __packed;
+
+    /**
+     *  Represents an entry in the DYNAMIC program header of a 64-bit ELF.
+     */
+    struct ElfDynamicEntry_64
+    {
+        ElfDynamicEntryTag Tag; /*  0 -  4 */
+        uint32_t    TagPadding; /*  4 -  7 */
+        uint64_t         Value; /*  8 - 15 */
+    } __packed;
+
+
+    /**
+     *  Represents the info of a relocation entry in a 32-bit ELF.
+     */
+    union ElfRelEntryInfoType_64
+    {
+        uint32_t         Value; /*  0 -  3 */
+        uint8_t       Bytes[4]; /*  0 -  3 */
+
+        inline constexpr ElfRelEntryInfoType_64(uint32_t data, ElfRelType type)
+            : Value((uint8_t)type | (data << 8)) { }
+
+        inline uint32_t GetData() { return this->Value >> 8; }
+        inline ElfRelType GetType() { return (ElfRelType)(this->Bytes[0]); }
+    } __packed;
+
+
+    /**
+     *  Represents the info of a relocation entry in a 32-bit ELF.
+     */
+    union ElfRelEntryInfo_32
+    {
+        uint32_t         Value; /*  0 -  3 */
+        uint8_t       Bytes[4]; /*  0 -  3 */
+
+        inline constexpr ElfRelEntryInfo_32(uint32_t symbol, ElfRelType type)
+            : Value((uint8_t)type | (symbol << 8)) { }
+
+        inline uint32_t GetSymbol() { return this->Value >> 8; }
+        inline ElfRelType GetType() { return (ElfRelType)(this->Bytes[0]); }
+    } __packed;
+
+    /**
+     *  Represents the info of a relocation entry in a 64-bit ELF.
+     */
+    struct ElfRelEntryInfo_64
+    {
+        ElfRelEntryInfoType_64 Type; /*  0 -  3 */
+        uint32_t             Symbol; /*  4 -  7 */
+
+        inline constexpr ElfRelEntryInfo_64(uint32_t symbol, ElfRelType type, uint32_t data)
+            : Type({data, type}), Symbol(symbol) { }
+
+        inline uint32_t GetSymbol() { return this->Symbol; }
+        inline ElfRelType GetType() { return this->Type.GetType(); }
+        inline uint32_t GetData() { return this->Type.GetData(); }
+    } __packed;
+
+
+    /**
+     *  Represents a Rel entry in a 32-bit ELF.
+     */
+    struct ElfRelEntry_32
+    {
+        uint32_t         Offset; /*  0 -  3 */
+        ElfRelEntryInfo_32 Info; /*  4 -  7 */
+    } __packed;
+
+    /**
+     *  Represents a Rel entry in a 64-bit ELF.
+     */
+    struct ElfRelEntry_64
+    {
+        uint64_t         Offset; /*  0 -  7 */
+        ElfRelEntryInfo_64 Info; /*  8 - 15 */
+    } __packed;
+
+
+    /**
+     *  Represents a Rela entry in a 32-bit ELF.
+     */
+    struct ElfRelaEntry_32 : public ElfRelEntry_32
+    {
+        int32_t          Append; /*  8 - 11 */
+    } __packed;
+
+    /**
+     *  Represents a Rela entry in a 64-bit ELF.
+     */
+    struct ElfRelaEntry_64 : public ElfRelEntry_64
+    {
+        int64_t          Append; /* 16 - 23 */
     } __packed;
 }}

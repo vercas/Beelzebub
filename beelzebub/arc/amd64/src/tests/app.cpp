@@ -183,7 +183,7 @@ Handle HandleLoadtest(size_t const index
         {
             msg("\tEntries:%n");
 
-            ElfDynamicEntry * dynEntCursor = reinterpret_cast<ElfDynamicEntry *>(
+            ElfDynamicEntry_64 * dynEntCursor = reinterpret_cast<ElfDynamicEntry_64 *>(
                 addr + programCursor->Offset
             );
             size_t offset = 0, k = 0;
@@ -193,7 +193,7 @@ Handle HandleLoadtest(size_t const index
                 DEBUG_TERM << "\t#" << k << ": " << *dynEntCursor << EndLine;
 
                 ++dynEntCursor;
-                offset += sizeof(ElfDynamicEntry);
+                offset += sizeof(ElfDynamicEntry_64);
                 ++k;
             } while (offset < programCursor->PSize && dynEntCursor->Tag != ElfDynamicEntryTag::Null);
         }
@@ -258,7 +258,7 @@ Handle HandleRuntimeLib(size_t const index
         {
             msg("\tEntries:%n");
 
-            ElfDynamicEntry * dynEntCursor = reinterpret_cast<ElfDynamicEntry *>(
+            ElfDynamicEntry_64 * dynEntCursor = reinterpret_cast<ElfDynamicEntry_64 *>(
                 addr + programCursor->Offset
             );
             size_t offset = 0, k = 0;
@@ -268,7 +268,7 @@ Handle HandleRuntimeLib(size_t const index
                 DEBUG_TERM << "\t#" << k << ": " << *dynEntCursor << EndLine;
 
                 ++dynEntCursor;
-                offset += sizeof(ElfDynamicEntry);
+                offset += sizeof(ElfDynamicEntry_64);
                 ++k;
             } while (offset < programCursor->PSize && dynEntCursor->Tag != ElfDynamicEntryTag::Null);
         }

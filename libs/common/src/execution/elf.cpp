@@ -197,7 +197,16 @@ namespace Beelzebub { namespace Terminals
     }
 
     template<>
-    TerminalBase & operator << <ElfDynamicEntry>(TerminalBase & term, ElfDynamicEntry const value)
+    TerminalBase & operator << <ElfDynamicEntry_32>(TerminalBase & term, ElfDynamicEntry_32 const value)
+    {
+        term.Write("[ELF Dynamic Entry | Value ");
+        term.WriteHex32(value.Value);
+
+        return term << "; Tag " << value.Tag << "]";
+    }
+
+    template<>
+    TerminalBase & operator << <ElfDynamicEntry_64>(TerminalBase & term, ElfDynamicEntry_64 const value)
     {
         term.Write("[ELF Dynamic Entry | Value ");
         term.WriteHex64(value.Value);
