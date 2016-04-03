@@ -565,8 +565,8 @@ namespace Beelzebub { namespace Execution
         inline constexpr ElfRelEntryInfoType_64(uint32_t data, ElfRelType type)
             : Value((uint8_t)type | (data << 8)) { }
 
-        inline uint32_t GetData() { return this->Value >> 8; }
-        inline ElfRelType GetType() { return (ElfRelType)(this->Bytes[0]); }
+        inline uint32_t   GetData() const { return this->Value >> 8;             }
+        inline ElfRelType GetType() const { return (ElfRelType)(this->Bytes[0]); }
     } __packed;
 
 
@@ -581,8 +581,8 @@ namespace Beelzebub { namespace Execution
         inline constexpr ElfRelEntryInfo_32(uint32_t symbol, ElfRelType type)
             : Value((uint8_t)type | (symbol << 8)) { }
 
-        inline uint32_t GetSymbol() { return this->Value >> 8; }
-        inline ElfRelType GetType() { return (ElfRelType)(this->Bytes[0]); }
+        inline uint32_t GetSymbol() const { return this->Value >> 8;             }
+        inline ElfRelType GetType() const { return (ElfRelType)(this->Bytes[0]); }
     } __packed;
 
     /**
@@ -596,9 +596,9 @@ namespace Beelzebub { namespace Execution
         inline constexpr ElfRelEntryInfo_64(uint32_t symbol, ElfRelType type, uint32_t data)
             : Type({data, type}), Symbol(symbol) { }
 
-        inline uint32_t GetSymbol() { return this->Symbol; }
-        inline ElfRelType GetType() { return this->Type.GetType(); }
-        inline uint32_t GetData() { return this->Type.GetData(); }
+        inline uint32_t GetSymbol() const { return this->Symbol;         }
+        inline ElfRelType GetType() const { return this->Type.GetType(); }
+        inline uint32_t   GetData() const { return this->Type.GetData(); }
     } __packed;
 
 

@@ -62,19 +62,20 @@ using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-uint8_t * executable;
-ElfProgramHeader_64 * segments;
-size_t segmentCount;
-uintptr_t entryPoint;
+static uint8_t * executable;
+static ElfProgramHeader_64 * segments;
+static size_t segmentCount;
+static uintptr_t entryPoint;
+static uintptr_t executable_base = 0x1000000;
 
-Thread testThread;
-Thread testWatcher;
-Process testProcess;
-uintptr_t const userStackBottom = 0x40000000;
-uintptr_t const userStackTop = 0x40000000 + PageSize;
+static Thread testThread;
+static Thread testWatcher;
+static Process testProcess;
+static uintptr_t const userStackBottom = 0x40000000;
+static uintptr_t const userStackTop = 0x40000000 + PageSize;
 
-__cold void * JumpToRing3(void *);
-__cold void * WatchTestThread(void *);
+static __cold void * JumpToRing3(void *);
+static __cold void * WatchTestThread(void *);
 
 Handle HandleLoadtest(size_t const index
                     , jg_info_module_t const * const module
@@ -84,7 +85,7 @@ Handle HandleLoadtest(size_t const index
     uint8_t * const addr = reinterpret_cast<uint8_t *>(vaddr);
     // size_t const len = module->length;
 
-    executable = addr;
+    // executable = addr;
 
     DEBUG_TERM << EndLine
         << "############################## LOADTEST APP START ##############################"
@@ -101,7 +102,7 @@ Handle HandleLoadtest(size_t const index
 
     DEBUG_TERM << Hexadecimal << *eh2 << Decimal << EndLine;
 
-    entryPoint = eh2->EntryPoint;
+    // entryPoint = eh2->EntryPoint;
 
     ElfHeader3 * eh3 = reinterpret_cast<ElfHeader3 *>(addr + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
 
@@ -152,8 +153,8 @@ Handle HandleLoadtest(size_t const index
         addr + eh2->ProgramHeaderTableOffset
     );
 
-    segments = programCursor;
-    segmentCount = eh3->ProgramHeaderTableEntryCount;
+    // segments = programCursor;
+    // segmentCount = eh3->ProgramHeaderTableEntryCount;
 
     for (size_t i = eh3->ProgramHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++programCursor)
     {
@@ -214,7 +215,7 @@ Handle HandleRuntimeLib(size_t const index
     uint8_t * const addr = reinterpret_cast<uint8_t *>(vaddr);
     // size_t const len = module->length;
 
-    // executable = addr;
+    executable = addr;
 
     DEBUG_TERM << EndLine
         << "############################## RUNTIME LIB  START ##############################"
@@ -231,7 +232,7 @@ Handle HandleRuntimeLib(size_t const index
 
     DEBUG_TERM << Hexadecimal << *eh2 << Decimal << EndLine;
 
-    // entryPoint = eh2->EntryPoint;
+    entryPoint = eh2->EntryPoint;
 
     ElfHeader3 * eh3 = reinterpret_cast<ElfHeader3 *>(addr + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
 
@@ -247,8 +248,9 @@ Handle HandleRuntimeLib(size_t const index
         addr + eh2->ProgramHeaderTableOffset
     );
 
-    // segments = programCursor;
-    // segmentCount = eh3->ProgramHeaderTableEntryCount;
+    segments = programCursor;
+    segmentCount = eh3->ProgramHeaderTableEntryCount;
+    uint64_t rela_offset = 0, rela_size = 0, rela_entry_size = 0;
 
     for (size_t i = eh3->ProgramHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++programCursor)
     {
@@ -267,11 +269,45 @@ Handle HandleRuntimeLib(size_t const index
             {
                 DEBUG_TERM << "\t#" << k << ": " << *dynEntCursor << EndLine;
 
+                switch (dynEntCursor->Tag)
+                {
+                case ElfDynamicEntryTag::RelaAddress:
+                    rela_offset = dynEntCursor->Value;
+                    break;
+
+                case ElfDynamicEntryTag::RelaSize:
+                    rela_size = dynEntCursor->Value;
+                    break;
+
+                case ElfDynamicEntryTag::RelaEntrySize:
+                    rela_entry_size = dynEntCursor->Value;
+                    break;
+
+                default: break;
+                }
+
                 ++dynEntCursor;
                 offset += sizeof(ElfDynamicEntry_64);
                 ++k;
             } while (offset < programCursor->PSize && dynEntCursor->Tag != ElfDynamicEntryTag::Null);
         }
+    }
+
+    DEBUG_TERM << Hexadecimal << "RELA: Offset " << rela_offset << ", Size " << rela_size << ", Entry Size " << Decimal << rela_entry_size << EndLine;
+
+    ASSERT(rela_entry_size == sizeof(ElfRelaEntry_64));
+
+    size_t rela_entry_count = rela_size / rela_entry_size;
+
+    DEBUG_TERM << "RELA: Entry Count " << rela_entry_count << EndLine;
+
+    DEBUG_TERM << "Relocations:" << EndLine;
+
+    for (size_t i = 0; i < rela_entry_count; ++i)
+    {
+        ElfRelaEntry_64 * rela = reinterpret_cast<ElfRelaEntry_64 *>(addr + rela_offset + i * rela_entry_size);
+
+        DEBUG_TERM << "#" << i << ": " << *rela << EndLine;
     }
 
     DEBUG_TERM << EndLine
@@ -286,6 +322,8 @@ Spinlock<> TestRegionLock;
 void TestApplication()
 {
     TestRegionLock.Acquire();
+
+    DEBUG_TERM << "Library will be loaded with base " << Hexadecimal << executable_base << Decimal << "." << EndLine;
 
     new (&testProcess) Process();
     //  Initialize a new process for thread series B.
@@ -413,8 +451,8 @@ void * JumpToRing3(void * arg)
         if (programCursor->Type != ElfProgramHeaderType::Load)
             continue;
 
-        vaddr_t const segVaddr    = RoundDown(programCursor->VAddr, PageSize);
-        vaddr_t const segVaddrEnd = RoundUp  (programCursor->VAddr + programCursor->VSize, PageSize);
+        vaddr_t const segVaddr    = executable_base + RoundDown(programCursor->VAddr, PageSize);
+        vaddr_t const segVaddrEnd = executable_base + RoundUp  (programCursor->VAddr + programCursor->VSize, PageSize);
 
         MemoryFlags pageFlags = MemoryFlags::Userland;
 
@@ -439,11 +477,11 @@ void * JumpToRing3(void * arg)
                 , j, res);
         }
 
-        memcpy(reinterpret_cast<void *>(programCursor->VAddr)
+        memcpy(reinterpret_cast<void *>(executable_base + programCursor->VAddr)
             , executable + programCursor->Offset, programCursor->PSize);
 
         if (programCursor->VSize > programCursor->PSize)
-            memset(reinterpret_cast<void *>(programCursor->VAddr + programCursor->PSize)
+            memset(reinterpret_cast<void *>(executable_base + programCursor->VAddr + programCursor->PSize)
                 , 0, programCursor->VSize - programCursor->PSize);
     }
 
@@ -455,9 +493,9 @@ void * JumpToRing3(void * arg)
 
     //while (true) CpuInstructions::Halt();
 
-    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(entryPoint));
+    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(executable_base + entryPoint));
 
-    return GoToRing3_64(entryPoint, userStackTop);
+    return GoToRing3_64(executable_base + entryPoint, userStackTop);
 }
 
 void * WatchTestThread(void *)
@@ -469,9 +507,11 @@ void * WatchTestThread(void *)
 
     while (true)
     {
-        Thread * activeThread = Cpu::GetData()->ActiveThread;
+        void * activeThread = Cpu::GetData()->ActiveThread;
 
-        MSG("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
+        // MSG("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
+        DEBUG_TERM  << "WATCHER (" << Hexadecimal << activeThread << Decimal
+                    << ") sees " << *data << " & " << *data2 << "!" << EndLine;
     }
 }
 

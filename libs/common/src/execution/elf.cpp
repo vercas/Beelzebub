@@ -157,7 +157,7 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalBase & operator << <ElfProgramHeader_32>(TerminalBase & term, ElfProgramHeader_32 const value)
     {
-        term << "[ELF Program Header, ELF32 | Flags " << value.Flags
+        term << "[ELF32 Program Header | Flags " << value.Flags
             << "; Offset ";
         term.WriteHex32(value.Offset);
 
@@ -178,7 +178,7 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalBase & operator << <ElfProgramHeader_64>(TerminalBase & term, ElfProgramHeader_64 const value)
     {
-        term << "[ELF Program Header, ELF64 | Flags " << value.Flags
+        term << "[ELF64 Program Header | Flags " << value.Flags
             << "; Offset ";
         term.WriteHex64(value.Offset);
 
@@ -199,7 +199,7 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalBase & operator << <ElfDynamicEntry_32>(TerminalBase & term, ElfDynamicEntry_32 const value)
     {
-        term.Write("[ELF Dynamic Entry | Value ");
+        term.Write("[ELF32 Dynamic Entry | Value ");
         term.WriteHex32(value.Value);
 
         return term << "; Tag " << value.Tag << "]";
@@ -208,9 +208,51 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalBase & operator << <ElfDynamicEntry_64>(TerminalBase & term, ElfDynamicEntry_64 const value)
     {
-        term.Write("[ELF Dynamic Entry | Value ");
+        term.Write("[ELF64 Dynamic Entry | Value ");
         term.WriteHex64(value.Value);
 
         return term << "; Tag " << value.Tag << "]";
+    }
+
+    template<>
+    TerminalBase & operator << <ElfRelEntryInfo_32>(TerminalBase & term, ElfRelEntryInfo_32 const value)
+    {
+        term.Write("[ELF32 Rela Info | Symbol ");
+        term.WriteHex24(value.GetSymbol());
+
+        return term << "; Type " << (uint8_t)(value.GetType()) << "]";
+    }
+
+    template<>
+    TerminalBase & operator << <ElfRelEntryInfo_64>(TerminalBase & term, ElfRelEntryInfo_64 const value)
+    {
+        term.Write("[ELF64 Rela Info | Symbol ");
+        term.WriteHex32(value.GetSymbol());
+        term.Write("; Data ");
+        term.WriteHex24(value.GetData());
+
+        return term << "; Type " << (uint8_t)(value.GetType()) << "]";
+    }
+
+    template<>
+    TerminalBase & operator << <ElfRelaEntry_32>(TerminalBase & term, ElfRelaEntry_32 const value)
+    {
+        term.Write("[ELF32 Rela Entry | Offset ");
+        term.WriteHex32(value.Offset);
+        term.Write("; Append ");
+        term.WriteHex32(value.Append);
+
+        return term << "; Info " << value.Info << "]";
+    }
+
+    template<>
+    TerminalBase & operator << <ElfRelaEntry_64>(TerminalBase & term, ElfRelaEntry_64 const value)
+    {
+        term.Write("[ELF64 Rela Entry | Offset ");
+        term.WriteHex64(value.Offset);
+        term.Write("; Append ");
+        term.WriteHex64(value.Append);
+
+        return term << "; " << value.Info << "]";
     }
 }}
