@@ -261,6 +261,7 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                 switch (size)
                 {
                     case '8':
+                    case '6':
                         {
                             uint64_t val8 = va_arg(args, uint64_t);
                             TERMTRY1(this->WriteUIntD(val8), res, cnt);
@@ -268,6 +269,7 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                         break;
 
                     case '4':
+                    case '3':
                     case '2':
                     case '1':
                         /*  Apparently chars and shorts are promoted to integers!  */
@@ -311,6 +313,7 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                 switch (size)
                 {
                     case '8':
+                    case '6':
                         {
                             int64_t val8 = va_arg(args, int64_t);
                             TERMTRY1(this->WriteIntD(val8), res, cnt);
@@ -318,6 +321,7 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                         break;
 
                     case '4':
+                    case '3':
                     case '2':
                     case '1':
                         {
@@ -366,10 +370,24 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
                         }
                         break;
 
+                    case '6':
+                        {
+                            uint64_t val8 = va_arg(args, uint64_t);
+                            TERMTRY1(this->WriteHex48(val8, upper), res, cnt);
+                        }
+                        break;
+
                     case '4':
                         {
                             uint32_t val4 = va_arg(args, uint32_t);
                             TERMTRY1(this->WriteHex32(val4, upper), res, cnt);
+                        }
+                        break;
+
+                    case '3':
+                        {
+                            uint32_t val4 = va_arg(args, uint32_t);
+                            TERMTRY1(this->WriteHex24(val4, upper), res, cnt);
                         }
                         break;
 
@@ -780,6 +798,26 @@ TerminalWriteResult TerminalBase::WriteHex16(uint16_t const val, bool const uppe
     return this->Write(str);
 }
 
+TerminalWriteResult TerminalBase::WriteHex24(uint32_t const val, bool const upper)
+{
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
+
+    char str[7];
+    str[6] = '\0';
+
+    for (size_t i = 0; i < 6; ++i)
+    {
+        uint8_t nib = (val >> (i << 2)) & 0xF;
+
+        str[5 - i] = (nib > 9 ? alphaBase : '0') + nib;
+    }
+
+    return this->Write(str);
+}
+
 TerminalWriteResult TerminalBase::WriteHex32(uint32_t const val, bool const upper)
 {
     if (!this->Capabilities->CanOutput)
@@ -795,6 +833,26 @@ TerminalWriteResult TerminalBase::WriteHex32(uint32_t const val, bool const uppe
         uint8_t nib = (val >> (i << 2)) & 0xF;
 
         str[7 - i] = (nib > 9 ? alphaBase : '0') + nib;
+    }
+
+    return this->Write(str);
+}
+
+TerminalWriteResult TerminalBase::WriteHex48(uint64_t const val, bool const upper)
+{
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
+
+    char str[13];
+    str[12] = '\0';
+
+    for (size_t i = 0; i < 12; ++i)
+    {
+        uint8_t nib = (val >> (i << 2)) & 0xF;
+
+        str[11 - i] = (nib > 9 ? alphaBase : '0') + nib;
     }
 
     return this->Write(str);
