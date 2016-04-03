@@ -119,14 +119,14 @@ typedef             int     comp_t; //  Result of comparison functions.
 typedef unsigned     char     byte; //  Uhm...
 typedef   signed     char    sbyte; //  Yeah...
 
-#if   !defined(__cplusplus) && defined(__BEELZEBUB_KERNEL)
-typedef char bool;
+// #if   !defined(__cplusplus) && defined(__BEELZEBUB_KERNEL)
+// typedef char bool;
 
-#define true    ((bool)1)
-#define TRUE    ((bool)1)
-#define false   ((bool)0)
-#define FALSE   ((bool)0)
-#endif
+// #define true    ((bool)1)
+// #define TRUE    ((bool)1)
+// #define false   ((bool)0)
+// #define FALSE   ((bool)0)
+// #endif
 
 /*  Constants  */
 

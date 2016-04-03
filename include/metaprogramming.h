@@ -29,6 +29,10 @@
 #include "stdint.h"
 #include "stddef.h"
 
+#ifndef __cplusplus
+#include "stdbool.h"
+#endif
+
 #if   defined(__BEELZEBUB_KERNEL) || defined(__BEELZEBUB_STATIC_LIBRARY)
 #include <cpp_support.h>
 #endif
@@ -232,7 +236,7 @@ inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
 #define ENUMOPS1(T) ENUMOPS2(T, __underlying_type(T))
 //  All nice and dandy, but it uses a GCC extension for type traits because
-//   I can't include the type_traits.h header!
+//  the type_traits.h header is unavailable.
 
 #define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
 
