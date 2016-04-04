@@ -47,10 +47,13 @@
 
 //  NOTE: debug_arch.hpp is included near the end.
 
-#define DEBUG_TERM (*(Beelzebub::Debug::DebugTerminal))
+#define DEBUG_TERM if (Beelzebub::Debug::DebugTerminal != nullptr) \
+    (*(Beelzebub::Debug::DebugTerminal)) 
 
 #ifdef __BEELZEBUB_KERNEL
-#define DEBUG_TERM_ withLock (Beelzebub::Debug::MsgSpinlock) DEBUG_TERM
+    #define DEBUG_TERM_ if (Beelzebub::Debug::DebugTerminal != nullptr) \
+        withLock (Beelzebub::Debug::MsgSpinlock) \
+            (*(Beelzebub::Debug::DebugTerminal)) 
 #endif
 
 #ifdef __BEELZEBUB__DEBUG
