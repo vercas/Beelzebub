@@ -69,7 +69,10 @@ LOFLAGS		+= -mno-red-zone -O2 -flto -nostdlib -pipe -lgcc -static-libgcc -Wl,-z,
 LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 
 # Linker options, without optimization
-LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
+LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs 
+
+# Strip options
+STRIPFLAGS	:= -s -K "jegudiel_header" 
 
 ################################################################################
 #                        CONFIGURATION-SPECIFIC SETTINGS                       #
@@ -190,9 +193,10 @@ headers: $(HEADERS)
 ###########################################
 # Install binary blob to prefix directory #
 $(KERNEL_INSTALL_PATH): $(KERNEL_PATH)
-	@ echo "/CPY:" $< ">" $@
+	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(KERNEL_INSTALL_DIR)
-	@ cp $< $@
+#	@ cp $< $@
+	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
 
 ##################################################
 # Link the target binary with extra optimization #

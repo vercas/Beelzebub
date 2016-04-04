@@ -49,7 +49,10 @@ ASFLAGS		:= -f elf64
 LDFLAGS		:= -z max-page-size=0x1000
 
 # Link File
-LDFILE		:= link.ld
+LDFILE		:= link.ld 
+
+# Strip options
+STRIPFLAGS	:= -s -K "multiboot_header" 
 
 ################################################################################
 #                             OBJECTS AND SOURCES                              #
@@ -99,9 +102,10 @@ build: $(OBJECTS)
 ###########################################
 # Install binary blob to prefix directory #
 $(BTL_INSTALL_PATH): $(BTL_PATH)
-	@ echo "/CPY:" $< ">" $@
+	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(@D)
-	@ cp $< $@
+#	@ cp $< $@
+	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
 
 ##########################
 # Link the target binary #

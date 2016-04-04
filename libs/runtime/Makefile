@@ -63,6 +63,9 @@ LOFLAGS		+= -ffreestanding -Wall -fno-omit-frame-pointer
 LOFLAGS		+= -O3 -flto -nodefaultlibs -pipe -fPIC -lgcc -static-libgcc 
 LOFLAGS		+= --sysroot=$(SYSROOT) -Wl,-Bsymbolic 
 
+# Strip options
+STRIPFLAGS	:= -s 
+
 ################################################################################
 #                        ARCHITECTURE-SPECIFIC SETTINGS                        #
 ################################################################################
@@ -156,9 +159,10 @@ build: $(OBJECTS)
 ###########################################
 # Install binary blob to prefix directory #
 $(LIB_INSTALL_PATH): $(LIB_PATH)
-	@ echo "/CPY:" $< ">" $@
+	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(LIB_INSTALL_DIR)
-	@ cp $< $@
+#	@ cp $< $@
+	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
 
 ##################################################
 # Link the target binary with extra optimization #

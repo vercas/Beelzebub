@@ -20,6 +20,7 @@ AS			:= nasm
 LO			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc 
 LD			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-ld 
 AR			:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-gcc-ar 
+STRIP		:= $(CROSSCOMPILER_DIRECTORY)/x86_64-beelzebub-strip 
 MKISO		:= mkisofs
 
 PRE_COMPILATION		:=  

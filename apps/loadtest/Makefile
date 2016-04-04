@@ -65,7 +65,10 @@ LOFLAGS		+= -mno-red-zone -O2 -flto -pipe -fno-omit-frame-pointer
 LOFLAGS		+= --sysroot=$(SYSROOT)
 
 # Linker options, without optimization
-LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs
+LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs 
+
+# Strip options
+STRIPFLAGS	:= -s 
 
 ################################################################################
 #                        ARCHITECTURE-SPECIFIC SETTINGS                        #
@@ -163,9 +166,10 @@ build: $(OBJECTS)
 ###########################################
 # Install binary blob to prefix directory #
 $(APP_INSTALL_PATH): $(APP_PATH)
-	@ echo "/CPY:" $< ">" $@
+	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(APP_INSTALL_DIR)
-	@ cp $< $@
+#	@ cp $< $@
+	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
 
 ##################################################
 # Link the target binary with extra optimization #
