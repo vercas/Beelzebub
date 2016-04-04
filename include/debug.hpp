@@ -49,6 +49,10 @@
 
 #define DEBUG_TERM (*(Beelzebub::Debug::DebugTerminal))
 
+#ifdef __BEELZEBUB_KERNEL
+#define DEBUG_TERM_ withLock (Beelzebub::Debug::MsgSpinlock) DEBUG_TERM
+#endif
+
 #ifdef __BEELZEBUB__DEBUG
     #define assert(cond, ...) do {                                          \
     if unlikely(!(cond))                                                    \

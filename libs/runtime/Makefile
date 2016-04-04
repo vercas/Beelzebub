@@ -47,7 +47,8 @@ include ../../Toolchain.mk
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_DYNAMIC_LIBRARY 
 GCCFLAGS	+= -ffreestanding -Wall -fno-omit-frame-pointer 
-GCCFLAGS	+= -O3 -flto -nostdlib -pipe -fPIC -lgcc -static-libgcc 
+GCCFLAGS	+= -O3 -flto -nodefaultlibs -pipe -fPIC -lgcc -static-libgcc 
+GCCFLAGS	+= --sysroot=$(SYSROOT)
 
 # C/C++ options
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
@@ -59,7 +60,8 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 # Linker options, with optimization
 LOFLAGS		:= -shared -Wl,-z,max-page-size=0x1000 -fuse-linker-plugin 
 LOFLAGS		+= -ffreestanding -Wall -fno-omit-frame-pointer 
-LOFLAGS		+= -O3 -flto -nostdlib -pipe -fPIC -lgcc -static-libgcc 
+LOFLAGS		+= -O3 -flto -nodefaultlibs -pipe -fPIC -lgcc -static-libgcc 
+LOFLAGS		+= --sysroot=$(SYSROOT) -Wl,-Bsymbolic 
 
 ################################################################################
 #                        ARCHITECTURE-SPECIFIC SETTINGS                        #

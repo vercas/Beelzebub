@@ -60,6 +60,9 @@ ENUM_TO_STRING_EX2(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64, Beelz
 ENUM_TO_STRING_EX2(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE, Beelzebub::Execution)
 ENUM_TO_STRING_EX2(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS, Beelzebub::Execution)
 ENUM_TO_STRING_EX2(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG, Beelzebub::Execution)
+ENUM_TO_STRING_EX2(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING, Beelzebub::Execution)
+ENUM_TO_STRING_EX2(ElfSymbolType, ENUM_ELFSYMBOLTYPE, Beelzebub::Execution)
+ENUM_TO_STRING_EX2(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY, Beelzebub::Execution)
 
 /*  Now to implement some << operator magic.  */
 
@@ -83,6 +86,10 @@ namespace Beelzebub { namespace Terminals
     SPAWN_ENUM(ElfProgramHeaderType)
 
     SPAWN_ENUM(ElfDynamicEntryTag)
+
+    SPAWN_ENUM(ElfSymbolBinding)
+    SPAWN_ENUM(ElfSymbolType)
+    SPAWN_ENUM(ElfSymbolVisibility)
 
     template<>
     TerminalBase & operator << <ElfProgramHeaderFlags>(TerminalBase & term, ElfProgramHeaderFlags const value)
@@ -254,5 +261,37 @@ namespace Beelzebub { namespace Terminals
         term.WriteHex64(value.Append);
 
         return term << "; " << value.Info << "]";
+    }
+
+    template<>
+    TerminalBase & operator << <ElfSymbol_32>(TerminalBase & term, ElfSymbol_32 const value)
+    {
+        term.Write("[ELF32 Symbol | Value ");
+        term.WriteHex32(value.Value);
+        term.Write("; Size ");
+        term.WriteHex32(value.Size);
+        term.Write("; S Index ");
+        term.WriteHex16(value.SectionIndex);
+
+        return term  << "; Type " << value.Info.GetType()
+                     << "; Binding " << value.Info.GetBinding()
+                     << "; Visibility " << value.Other.GetVisibility()
+                     << "]";
+    }
+
+    template<>
+    TerminalBase & operator << <ElfSymbol_64>(TerminalBase & term, ElfSymbol_64 const value)
+    {
+        term.Write("[ELF64 Symbol | Value ");
+        term.WriteHex64(value.Value);
+        term.Write("; Size ");
+        term.WriteHex64(value.Size);
+        term.Write("; S Index ");
+        term.WriteHex16(value.SectionIndex);
+
+        return term  << "; Type " << value.Info.GetType()
+                     << "; Binding " << value.Info.GetBinding()
+                     << "; Visibility " << value.Other.GetVisibility()
+                     << "]";
     }
 }}

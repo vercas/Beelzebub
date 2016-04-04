@@ -41,7 +41,12 @@
 
 using namespace Beelzebub;
 
-__extern __used int add(int const a, int b)
+/// Global destructors.
+__extern __used void _fini(void);
+
+void Beelzebub::QuitProcess(Handle hRes, int iRes)
 {
-    return a + b;
+    _fini();
+    
+    while (true) ;
 }

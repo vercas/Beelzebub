@@ -63,9 +63,16 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
 static uint8_t * executable;
+static uintptr_t entryPoint;
+
 static ElfProgramHeader_64 * segments;
 static size_t segmentCount;
-static uintptr_t entryPoint;
+
+static ElfRelaEntry_64 * relocationsA, * relocationsJ;
+static size_t relocationsACount, relocationsJCount;
+
+static ElfSymbol_64 * symbols;
+
 static uintptr_t executable_base = 0x1000000;
 
 static Thread testThread;
@@ -250,7 +257,11 @@ Handle HandleRuntimeLib(size_t const index
 
     segments = programCursor;
     segmentCount = eh3->ProgramHeaderTableEntryCount;
+
     uint64_t rela_offset = 0, rela_size = 0, rela_entry_size = 0;
+    uint64_t relj_offset = 0, relj_size = 0;
+    uint64_t symtab_offset = 0, symtab_entry_size = 0;
+    uint64_t strtab_offset = 0, strtab_size = 0;
 
     for (size_t i = eh3->ProgramHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++programCursor)
     {
@@ -269,20 +280,26 @@ Handle HandleRuntimeLib(size_t const index
             {
                 DEBUG_TERM << "\t#" << k << ": " << *dynEntCursor << EndLine;
 
+                #define TAG_CASE(type, var) \
+                    case ElfDynamicEntryTag::type: \
+                        var = dynEntCursor->Value; \
+                        break;
+
                 switch (dynEntCursor->Tag)
                 {
-                case ElfDynamicEntryTag::RelaAddress:
-                    rela_offset = dynEntCursor->Value;
-                    break;
+                    TAG_CASE(RelaAddress, rela_offset)
+                    TAG_CASE(RelaSize, rela_size)
+                    TAG_CASE(RelaEntrySize, rela_entry_size)
 
-                case ElfDynamicEntryTag::RelaSize:
-                    rela_size = dynEntCursor->Value;
-                    break;
+                    TAG_CASE(SymbolTable, symtab_offset)
+                    TAG_CASE(SymbolTableEntrySize, symtab_entry_size)
 
-                case ElfDynamicEntryTag::RelaEntrySize:
-                    rela_entry_size = dynEntCursor->Value;
-                    break;
+                    TAG_CASE(StringTable, strtab_offset)
+                    TAG_CASE(StringTableSize, strtab_size)
 
+                    TAG_CASE(PltRelocationsAddress, relj_offset)
+                    TAG_CASE(PltRelicationSize, relj_size)
+                    
                 default: break;
                 }
 
@@ -293,22 +310,57 @@ Handle HandleRuntimeLib(size_t const index
         }
     }
 
-    DEBUG_TERM << Hexadecimal << "RELA: Offset " << rela_offset << ", Size " << rela_size << ", Entry Size " << Decimal << rela_entry_size << EndLine;
+    DEBUG_TERM << "STRTAB: Offset " << Hexadecimal << strtab_offset << Decimal << ", Size " << strtab_size << EndLine;
 
+    DEBUG_TERM << Hexadecimal << "RELA: Offset " << rela_offset << ", Size " << Decimal << rela_size << ", Entry Size " << rela_entry_size << EndLine;
     ASSERT(rela_entry_size == sizeof(ElfRelaEntry_64));
 
-    size_t rela_entry_count = rela_size / rela_entry_size;
-
+    size_t const rela_entry_count = rela_size / rela_entry_size;
     DEBUG_TERM << "RELA: Entry Count " << rela_entry_count << EndLine;
 
-    DEBUG_TERM << "Relocations:" << EndLine;
+    relocationsA = reinterpret_cast<ElfRelaEntry_64 *>(addr + rela_offset);
+    relocationsACount = rela_entry_count;
 
-    for (size_t i = 0; i < rela_entry_count; ++i)
-    {
-        ElfRelaEntry_64 * rela = reinterpret_cast<ElfRelaEntry_64 *>(addr + rela_offset + i * rela_entry_size);
+    // DEBUG_TERM << "Relocations:" << EndLine;
 
-        DEBUG_TERM << "#" << i << ": " << *rela << EndLine;
-    }
+    // for (size_t i = 0; i < rela_entry_count; ++i)
+    // {
+    //     ElfRelaEntry_64 * rela = reinterpret_cast<ElfRelaEntry_64 *>(addr + rela_offset) + i;
+
+    //     DEBUG_TERM << "#" << i << ": " << *rela << EndLine;
+    // }
+
+    DEBUG_TERM << Hexadecimal << "RELJ: Offset " << relj_offset << ", Size " << Decimal << relj_size << EndLine;
+
+    size_t const relj_entry_count = relj_size / sizeof(ElfRelaEntry_64);
+    DEBUG_TERM << "RELJ: Entry Count " << relj_entry_count << EndLine;
+
+    relocationsJ = reinterpret_cast<ElfRelaEntry_64 *>(addr + relj_offset);
+    relocationsJCount = relj_entry_count;
+
+    // DEBUG_TERM << "Jump Relocations:" << EndLine;
+
+    // for (size_t i = 0; i < relj_entry_count; ++i)
+    // {
+    //     ElfRelaEntry_64 * rela = reinterpret_cast<ElfRelaEntry_64 *>(addr + relj_offset) + i;
+
+    //     DEBUG_TERM << "#" << i << ": " << *rela << EndLine;
+    // }
+
+    DEBUG_TERM << Hexadecimal << "SYMTAB: Offset " << symtab_offset << ", Entry Size " << Decimal << symtab_entry_size << EndLine;
+    ASSERT(symtab_entry_size == sizeof(ElfSymbol_64));
+
+    symbols = reinterpret_cast<ElfSymbol_64 *>(addr + symtab_offset);
+
+    // DEBUG_TERM << "Symbols:" << EndLine;
+
+    // for (size_t i = 0; i < 90; ++i)
+    // {
+    //     ElfSymbol_64 * sym = reinterpret_cast<ElfSymbol_64 *>(addr + symtab_offset + i * symtab_entry_size);
+
+    //     DEBUG_TERM  << "#" << i << ": " << reinterpret_cast<char *>(addr + strtab_offset + sym->Name) << EndLine
+    //                 << *sym << EndLine;
+    // }
 
     DEBUG_TERM << EndLine
         << "############################### RUNTIME LIB  END ###############################"
@@ -485,6 +537,110 @@ void * JumpToRing3(void * arg)
                 , 0, programCursor->VSize - programCursor->PSize);
     }
 
+    //  Now let's apply some relocations...
+
+    DEBUG_TERM_ << "APPLYING RELA RELOCATIONS" << EndLine;
+
+    for (size_t i = 0; i < relocationsACount; ++i)
+    {
+        ElfRelaEntry_64 * rela = relocationsA + i;
+
+        switch (rela->Info.GetType())
+        {
+        case R_AMD64_RELATIVE:
+            {
+                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
+                uint64_t const oldVal = *addr;
+
+                *addr = executable_base + rela->Append;
+
+                DEBUG_TERM_ << "RELOCATING RELA " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
+                            << *addr << "; " << executable_base << " + " << rela->Append
+                            << Decimal << EndLine;
+            }
+            break;
+
+        case R_AMD64_GLOB_DAT:
+        case R_AMD64_JUMP_SLOT:
+            {
+                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
+                uint64_t const oldVal = *addr;
+
+                *addr = symbols[rela->Info.GetSymbol()].Value;
+
+                DEBUG_TERM_ << "RELOCATING GDAT " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
+                            << *addr << Decimal << EndLine;
+            }
+            break;
+
+        case R_AMD64_64:
+            {
+                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
+                uint64_t const oldVal = *addr;
+
+                *addr = symbols[rela->Info.GetSymbol()].Value + rela->Append;
+
+                DEBUG_TERM_ << "RELOCATING  64  " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
+                            << *addr << "; " << symbols[rela->Info.GetSymbol()].Value
+                            << " + " << rela->Append << Decimal << EndLine;
+            }
+            break;
+
+        default: break; //  A warning should be emitted, perhaps?
+        }
+    }
+
+    DEBUG_TERM_ << "APPLYING JUMP TABLE RELOCATIONS" << EndLine;
+
+    for (size_t i = 0; i < relocationsJCount; ++i)
+    {
+        ElfRelaEntry_64 * rela = relocationsJ + i;
+
+        switch (rela->Info.GetType())
+        {
+        case R_AMD64_RELATIVE:
+            {
+                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
+                uint64_t const oldVal = *addr;
+
+                *addr = executable_base + rela->Append;
+
+                DEBUG_TERM_ << "RELOCATING RELA " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
+                            << *addr << "; " << executable_base << " + " << rela->Append
+                            << Decimal << EndLine;
+            }
+            break;
+
+        case R_AMD64_GLOB_DAT:
+        case R_AMD64_JUMP_SLOT:
+            {
+                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
+                uint64_t const oldVal = *addr;
+
+                *addr = symbols[rela->Info.GetSymbol()].Value;
+
+                DEBUG_TERM_ << "RELOCATING JUMP " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
+                            << *addr << Decimal << EndLine;
+            }
+            break;
+
+        case R_AMD64_64:
+            {
+                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
+                uint64_t const oldVal = *addr;
+
+                *addr = symbols[rela->Info.GetSymbol()].Value + rela->Append;
+
+                DEBUG_TERM_ << "RELOCATING  64  " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
+                            << *addr << "; " << symbols[rela->Info.GetSymbol()].Value
+                            << " + " << rela->Append << Decimal << EndLine;
+            }
+            break;
+
+        default: break; //  A warning should be emitted, perhaps?
+        }
+    }
+
     //  Finally, a region for test incrementation.
 
     AllocateTestRegion();
@@ -510,8 +666,8 @@ void * WatchTestThread(void *)
         void * activeThread = Cpu::GetData()->ActiveThread;
 
         // MSG("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
-        DEBUG_TERM  << "WATCHER (" << Hexadecimal << activeThread << Decimal
-                    << ") sees " << *data << " & " << *data2 << "!" << EndLine;
+        // DEBUG_TERM  << "WATCHER (" << Hexadecimal << activeThread << Decimal
+        //             << ") sees " << *data << " & " << *data2 << "!" << EndLine;
     }
 }
 

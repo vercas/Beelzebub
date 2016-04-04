@@ -41,7 +41,7 @@
 
 using namespace Beelzebub;
 
-__extern __used int add(int const a, int b)
+Handle Beelzebub::InitializeRuntime(bool legacy, char * args, char * * & argv, int & argc)
 {
-    return a + b;
+    return HandleResult::Okay;
 }

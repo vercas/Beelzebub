@@ -174,6 +174,10 @@
     /*  An object allocator has reached maximum capacity. */ \
     ENUMINST(ObjaMaximumCapacity      , 0x72U, "Obja M cap.") \
     \
+    /*  A process/thread/task (unit of work) requested immediate termination. */ \
+    ENUMINST(ImmediateTermination     , 0xFDU, "Imm. termin") \
+    /*  An assertion was failed. */ \
+    ENUMINST(AssertionFailure         , 0xFEU, "Assret fail") \
     /*  A process exited with a non-zero return code. */ \
     ENUMINST(NonZeroReturnCode        , 0xFFU, "Non-0 ret c") \
 

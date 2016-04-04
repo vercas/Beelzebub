@@ -225,6 +225,7 @@
 inline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
 inline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
 inline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
+inline  T   operator &  (T   a, U b) { return (T  )(  (U  )(a) &       b ); } \
 inline  T   operator ^  (T   a, T b) { return (T  )(  (U  )(a) ^  (U )(b)); } \
 inline  T & operator |= (T & a, T b) { return (T &)(  (U &)(a) |= (U )(b)); } \
 inline  T & operator &= (T & a, T b) { return (T &)(  (U &)(a) &= (U )(b)); } \

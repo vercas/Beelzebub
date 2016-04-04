@@ -45,7 +45,7 @@ using namespace Beelzebub::Terminals;
 
 /*  Debug terminal descriptor  */
 
-TerminalCapabilities DebugTerminalCapabilities = {
+static TerminalCapabilities DebugTerminalCapabilities = {
     true,   //  bool CanOutput;            //  Characters can be written to the terminal.
     false,  //  bool CanInput;             //  Characters can be received from the terminal.
     false,  //  bool CanRead;              //  Characters can be read back from the terminal's output.

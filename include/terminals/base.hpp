@@ -97,7 +97,7 @@ namespace Beelzebub { namespace Terminals
     {
         /*  Constructors  */
 
-        inline TerminalFormatState()
+        inline constexpr TerminalFormatState()
             : IntegerBase(TerminalIntegerBase::Decimal)
             , ShowPlus(false)
             , NumericUppercase(true)
@@ -122,7 +122,15 @@ namespace Beelzebub { namespace Terminals
 
         /*  Constructor  */
 
-        TerminalBase(TerminalCapabilities const * const caps);
+        inline constexpr TerminalBase(TerminalCapabilities const * const caps)
+            : Capabilities( caps)
+            , CurrentPosition({0, 0})
+            , TabulatorWidth(DefaultTabulatorWidth)
+            , Overflown(false)
+            , FormatState()
+        {
+
+        }
 
         /*  Writing  */
 

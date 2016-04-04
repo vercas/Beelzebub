@@ -39,14 +39,31 @@
 
 #include <crt0.hpp>
 #include <syscalls.h>
+#include <terminals/debug.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Terminals;
+
+/// Global constructors.
+__extern __used void _init(void);
+
+static DebugTerminal procDbgTrm;
 
 __extern __bland __used void _start(char * args)
 {
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("LIBRARY ENTRY POINT\r\n"), 0, 0, 0, 0);
+    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("\r\nLIBRARY ENTRY POINT\r\n"), 0, 0, 0, 0);
 
-    while (true) ;
+    _init();
+
+    Debug::DebugTerminal = &procDbgTrm;
+
+    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("\r\nABOUT TO TRY DEBUG_TERM\r\n"), 0, 0, 0, 0);
+
+    DEBUG_TERM  << "Testing stream operator on the debug terminal inside the "
+                << "runtime's entry point!";
+
+    QuitProcess(HandleResult::Okay, 0);
 }
 
 __extern void __start(char * input) __alias(_start);

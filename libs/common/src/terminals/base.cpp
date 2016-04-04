@@ -48,15 +48,15 @@ using namespace Beelzebub::Terminals;
 
 /*  Constructor  */
 
-TerminalBase::TerminalBase(const TerminalCapabilities * const caps)
-    : Capabilities(caps)
-    , CurrentPosition({0, 0})
-    , TabulatorWidth(DefaultTabulatorWidth)
-    , Overflown(false)
-    , FormatState()
-{
+// TerminalBase::TerminalBase(const TerminalCapabilities * const caps)
+//     : Capabilities(caps)
+//     , CurrentPosition({0, 0})
+//     , TabulatorWidth(DefaultTabulatorWidth)
+//     , Overflown(false)
+//     , FormatState()
+// {
 
-}
+// }
 
 /*  Writing  */
 

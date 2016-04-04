@@ -300,7 +300,7 @@ namespace Beelzebub { namespace Execution
     #define ENUM_ELFDYNAMICENTRYTAG(ENUMINST) \
         ENUMINST(Null                   ,  0) \
         ENUMINST(Needed                 ,  1) \
-        ENUMINST(PltRelicationEntrySize ,  2) \
+        ENUMINST(PltRelicationSize      ,  2) \
         ENUMINST(LinkageTableAddress    ,  3) \
         ENUMINST(Hash                   ,  4) \
         ENUMINST(StringTable            ,  5) \
@@ -312,7 +312,7 @@ namespace Beelzebub { namespace Execution
         ENUMINST(SymbolTableEntrySize   , 11) \
         ENUMINST(InitFuncAddress        , 12) \
         ENUMINST(FiniFuncAddress        , 13) \
-        ENUMINST(SharedObjectame        , 14) \
+        ENUMINST(SharedObjectName       , 14) \
         ENUMINST(SearchPathString       , 15) \
         ENUMINST(Symbolic               , 16) \
         ENUMINST(RelAddress             , 17) \
@@ -341,47 +341,52 @@ namespace Beelzebub { namespace Execution
 
 
     #define ENUM_ELFRELOCATIONTYPE(ENUMINST) \
-        ENUMINST(R_386_NONE    ,  0) \
-        ENUMINST(R_386_32      ,  1) \
-        ENUMINST(R_386_PC32    ,  2) \
-        ENUMINST(R_386_GOT32   ,  3) \
-        ENUMINST(R_386_PLT32   ,  4) \
-        ENUMINST(R_386_COPY    ,  5) \
-        ENUMINST(R_386_GLOB_DAT,  6) \
-        ENUMINST(R_386_JMP_SLOT,  7) \
-        ENUMINST(R_386_RELATIVE,  8) \
-        ENUMINST(R_386_GOTOFF  ,  9) \
-        ENUMINST(R_386_GOTPC   , 10) \
-        ENUMINST(R_386_32PLT   , 11) \
-        ENUMINST(R_AMD64_NONE     ,  0) \
-        ENUMINST(R_AMD64_64       ,  1) \
-        ENUMINST(R_AMD64_PC32     ,  2) \
-        ENUMINST(R_AMD64_GOT32    ,  3) \
-        ENUMINST(R_AMD64_PLT32    ,  4) \
-        ENUMINST(R_AMD64_COPY     ,  5) \
-        ENUMINST(R_AMD64_GLOB_DAT ,  6) \
-        ENUMINST(R_AMD64_JUMP_SLOT,  7) \
-        ENUMINST(R_AMD64_RELATIVE ,  8) \
-        ENUMINST(R_AMD64_GOTPCREL ,  9) \
-        ENUMINST(R_AMD64_32       , 10) \
-        ENUMINST(R_AMD64_32S      , 11) \
-        ENUMINST(R_AMD64_16       , 12) \
-        ENUMINST(R_AMD64_PC16     , 13) \
-        ENUMINST(R_AMD64_8        , 14) \
-        ENUMINST(R_AMD64_PC8      , 15) \
-        ENUMINST(R_AMD64_DPTMOD64 , 16) \
-        ENUMINST(R_AMD64_DTPOFF64 , 17) \
-        ENUMINST(R_AMD64_TPOFF64  , 18) \
-        ENUMINST(R_AMD64_TLSGD    , 19) \
-        ENUMINST(R_AMD64_TLSLD    , 20) \
-        ENUMINST(R_AMD64_DTPOFF32 , 21) \
-        ENUMINST(R_AMD64_GOTTPOFF , 22) \
-        ENUMINST(R_AMD64_TPOFF32  , 23) \
-        ENUMINST(R_AMD64_PC64     , 24) \
-        ENUMINST(R_AMD64_GOTOFF64 , 25) \
-        ENUMINST(R_AMD64_GOTPC32  , 26) \
-        ENUMINST(R_AMD64_SIZE32   , 32) \
-        ENUMINST(R_AMD64_SIZE64   , 33) \
+        ENUMINST(R_386_NONE        ,  0) \
+        ENUMINST(R_386_32          ,  1) \
+        ENUMINST(R_386_PC32        ,  2) \
+        ENUMINST(R_386_GOT32       ,  3) \
+        ENUMINST(R_386_PLT32       ,  4) \
+        ENUMINST(R_386_COPY        ,  5) \
+        ENUMINST(R_386_GLOB_DAT    ,  6) \
+        ENUMINST(R_386_JMP_SLOT    ,  7) \
+        ENUMINST(R_386_RELATIVE    ,  8) \
+        ENUMINST(R_386_GOTOFF      ,  9) \
+        ENUMINST(R_386_GOTPC       , 10) \
+        ENUMINST(R_386_32PLT       , 11) \
+        ENUMINST(R_AMD64_NONE      ,  0) \
+        ENUMINST(R_AMD64_64        ,  1) \
+        ENUMINST(R_AMD64_PC32      ,  2) \
+        ENUMINST(R_AMD64_GOT32     ,  3) \
+        ENUMINST(R_AMD64_PLT32     ,  4) \
+        ENUMINST(R_AMD64_COPY      ,  5) \
+        ENUMINST(R_AMD64_GLOB_DAT  ,  6) \
+        ENUMINST(R_AMD64_JUMP_SLOT ,  7) \
+        ENUMINST(R_AMD64_RELATIVE  ,  8) \
+        ENUMINST(R_AMD64_GOTPCREL  ,  9) \
+        ENUMINST(R_AMD64_32        , 10) \
+        ENUMINST(R_AMD64_32S       , 11) \
+        ENUMINST(R_AMD64_16        , 12) \
+        ENUMINST(R_AMD64_PC16      , 13) \
+        ENUMINST(R_AMD64_8         , 14) \
+        ENUMINST(R_AMD64_PC8       , 15) \
+        ENUMINST(R_AMD64_DPTMOD64  , 16) \
+        ENUMINST(R_AMD64_DTPOFF64  , 17) \
+        ENUMINST(R_AMD64_TPOFF64   , 18) \
+        ENUMINST(R_AMD64_TLSGD     , 19) \
+        ENUMINST(R_AMD64_TLSLD     , 20) \
+        ENUMINST(R_AMD64_DTPOFF32  , 21) \
+        ENUMINST(R_AMD64_GOTTPOFF  , 22) \
+        ENUMINST(R_AMD64_TPOFF32   , 23) \
+        ENUMINST(R_AMD64_PC64      , 24) \
+        ENUMINST(R_AMD64_GOTOFF64  , 25) \
+        ENUMINST(R_AMD64_GOTPC32   , 26) \
+        ENUMINST(R_AMD64_GOT64     , 27) \
+        ENUMINST(R_AMD64_GOTPCREL64, 28) \
+        ENUMINST(R_AMD64_GOTPC64   , 29) \
+        ENUMINST(R_AMD64_GOTPLT64  , 30) \
+        ENUMINST(R_AMD64_PLTOFF64  , 31) \
+        ENUMINST(R_AMD64_SIZE32    , 32) \
+        ENUMINST(R_AMD64_SIZE64    , 33) \
 
 
     /**
@@ -393,7 +398,103 @@ namespace Beelzebub { namespace Execution
     };
 
     ENUMOPS(ElfRelType)
-    ENUM_TO_STRING_DECL(ElfRelType, ENUM_ELFRELOCATIONTYPE);
+
+
+    #define ENUM_ELFSYMBOLBINDING(ENUMINST) \
+        ENUMINST(Local      , 0x00) \
+        ENUMINST(Global     , 0x10) \
+        ENUMINST(Weak       , 0x20) \
+        ENUMINST(Os1        , 0xA0) \
+        ENUMINST(Os2        , 0xB0) \
+        ENUMINST(Os3        , 0xC0) \
+        ENUMINST(Proc1      , 0xD0) \
+        ENUMINST(Proc2      , 0xE0) \
+        ENUMINST(Proc3      , 0xF0) \
+
+    /**
+     *  ELF symbol bindings.
+     */
+    enum class ElfSymbolBinding : uint8_t
+    {
+        ENUM_ELFSYMBOLBINDING(ENUMINST_VAL)
+    };
+
+    //  Note: Yes, all the values are actually offset 4 bits left, as they would
+    //  appear in the `st_info` field.
+
+    ENUMOPS(ElfSymbolBinding)
+    ENUM_TO_STRING_DECL(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING);
+
+
+    #define ENUM_ELFSYMBOLTYPE(ENUMINST) \
+        ENUMINST(None         , 0x0) \
+        ENUMINST(Object       , 0x1) \
+        ENUMINST(Function     , 0x2) \
+        ENUMINST(Section      , 0x3) \
+        ENUMINST(File         , 0x4) \
+        ENUMINST(Common       , 0x5) \
+        ENUMINST(Tls          , 0x6) \
+        ENUMINST(Os1          , 0xA) \
+        ENUMINST(Os2          , 0xB) \
+        ENUMINST(Os3          , 0xC) \
+        ENUMINST(SparcRegister, 0xD) \
+        ENUMINST(Proc2        , 0xE) \
+        ENUMINST(Proc3        , 0xF) \
+
+    /**
+     *  ELF symbol bindings.
+     */
+    enum class ElfSymbolType : uint8_t
+    {
+        ENUM_ELFSYMBOLTYPE(ENUMINST_VAL)
+    };
+
+    ENUMOPS(ElfSymbolType)
+    ENUM_TO_STRING_DECL(ElfSymbolType, ENUM_ELFSYMBOLTYPE);
+
+
+    #define ENUM_ELFSYMBOLVISIBILITY(ENUMINST) \
+        ENUMINST(Default      , 0x0) \
+        ENUMINST(Internal     , 0x1) \
+        ENUMINST(Hidden       , 0x2) \
+        ENUMINST(Protected    , 0x3) \
+        ENUMINST(Exported     , 0x4) \
+        ENUMINST(Singleton    , 0x5) \
+        ENUMINST(Eliminate    , 0x6) \
+
+    /**
+     *  ELF symbol bindings.
+     */
+    enum class ElfSymbolVisibility : uint8_t
+    {
+        ENUM_ELFSYMBOLVISIBILITY(ENUMINST_VAL)
+    };
+
+    ENUMOPS(ElfSymbolVisibility)
+    ENUM_TO_STRING_DECL(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY);
+
+
+    #define ENUM_ELFSECTIONINDEXES(ENUMINST) \
+        ENUMINST(SHN_UNDEF    , 0x0000) \
+        ENUMINST(SHN_LORESERVE, 0xFF00) \
+        ENUMINST(SHN_LOPROC   , 0xFF00) \
+        ENUMINST(SHN_HIPROC   , 0xFF1F) \
+        ENUMINST(SHN_LOOS     , 0xFF20) \
+        ENUMINST(SHN_HIOS     , 0xFF3F) \
+        ENUMINST(SHN_ABS      , 0xFFF1) \
+        ENUMINST(SHN_COMMON   , 0xFFF2) \
+        ENUMINST(SHN_XINDEX   , 0xFFFF) \
+        ENUMINST(SHN_HIRESERVE, 0xFFFF) \
+
+    /**
+     *  Special ELF section indexes, with equally special meaning.
+     */
+    enum ElfSectionIndexes : uint16_t
+    {
+        ENUM_ELFSECTIONINDEXES(ENUMINST_VAL)
+    };
+
+    ENUMOPS(ElfSectionIndexes)
 
 
     /*  Structures  */
@@ -555,7 +656,7 @@ namespace Beelzebub { namespace Execution
 
 
     /**
-     *  Represents the info of a relocation entry in a 32-bit ELF.
+     *  Represents the type of a relocation entry's info in a 64-bit ELF.
      */
     union ElfRelEntryInfoType_64
     {
@@ -635,5 +736,69 @@ namespace Beelzebub { namespace Execution
     struct ElfRelaEntry_64 : public ElfRelEntry_64
     {
         int64_t          Append; /* 16 - 23 */
+    } __packed;
+
+
+    /**
+     *  Represents the info of a symbol in an ELF.
+     */
+    union ElfSymbolInfo
+    {
+        uint8_t            Value; /* byte 0     */
+        ElfSymbolType       Type; /* bits 0 - 3 */
+        ElfSymbolBinding Binding; /* bits 4 - 7 */
+
+        inline constexpr ElfSymbolInfo(ElfSymbolBinding binding, ElfSymbolType type)
+            : Value(((uint8_t)type & 0xF) | ((uint8_t)binding & 0xF0)) { }
+
+        inline ElfSymbolType    GetType()    const { return this->Type    & 0xF;  }
+        inline ElfSymbolBinding GetBinding() const { return this->Binding & 0xF0; }
+    } __packed;
+
+
+
+    /**
+     *  Represents the st_other field of a symbol in an ELF.
+     */
+    union ElfSymbolOther
+    {
+        uint8_t                  Value; /* byte 0     */
+        ElfSymbolVisibility Visibility; /* bits 0 - ? */
+
+        //  NOTE: Documentation found here:
+        //  https://docs.oracle.com/cd/E23824_01/html/819-0690/chapter6-79797.html#chapter6-tbl-21
+        //  ... says the mask for visiblity should be 0x3, but meh.
+
+        inline constexpr ElfSymbolOther(ElfSymbolVisibility visibility)
+            : Value((uint8_t)visibility & 0x07) { }
+
+        inline ElfSymbolVisibility GetVisibility() const { return this->Visibility & 0x7; }
+    } __packed;
+
+
+    /**
+     *  Represents a symbol in a 32-bit ELF.
+     */
+    struct ElfSymbol_32
+    {
+        uint32_t           Name; /*  0 -  3 */
+        uint32_t          Value; /*  4 -  7 */
+        uint32_t           Size; /*  8 - 11 */
+        ElfSymbolInfo      Info; /* 12      */
+        ElfSymbolOther    Other; /* 13      */
+        uint16_t   SectionIndex; /* 14 - 15 */
+    } __packed;
+
+    /**
+     *  Represents a symbol in a 64-bit ELF.
+     */
+    struct ElfSymbol_64
+    {
+        uint32_t           Name; /*  0 -  3 */
+        ElfSymbolInfo      Info; /*  4      */
+        ElfSymbolOther    Other; /*  5      */
+        uint16_t   SectionIndex; /*  6 -  7 */
+        uint64_t          Value; /*  8 - 15 */
+        uint64_t           Size; /* 16 - 23 */
     } __packed;
 }}
