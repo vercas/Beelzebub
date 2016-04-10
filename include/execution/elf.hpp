@@ -851,6 +851,8 @@ namespace Beelzebub { namespace Execution
         ENUMINST(Unloadable                 , 18) \
         ENUMINST(Unrelocatable              , 19) \
         ENUMINST(LoadFailure                , 20) \
+        ENUMINST(DynamicSegmentMultiplicate , 21) \
+        ENUMINST(Unlocated                  , 22) \
 
     /**
      *  Results of ELF validation.
@@ -875,11 +877,25 @@ namespace Beelzebub { namespace Execution
         typedef bool (* SegmentValidatorFunc)(uintptr_t addr, size_t size, ElfProgramHeaderFlags flags, void * data);
         typedef bool (* HeaderValidatorFunc )(ElfHeader1 const * header, void * data);
 
-        typedef bool (* SegmentMapper32Func  )(uintptr_t loc, ElfProgramHeader_32 const & phdr, void * data);
+        typedef bool (* SegmentMapper32Func  )(uintptr_t loc, uintptr_t img, ElfProgramHeader_32 const & phdr, void * data);
         typedef bool (* SegmentUnmapper32Func)(uintptr_t loc, ElfProgramHeader_32 const & phdr, void * data);
 
-        typedef bool (* SegmentMapper64Func  )(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data);
+        typedef bool (* SegmentMapper64Func  )(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data);
         typedef bool (* SegmentUnmapper64Func)(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data);
+
+        /**
+         *  Represents the header of the hashtable in an ELF.
+         */
+        struct Symbol
+        {
+            char const * Name;
+            uintptr_t Value;
+            size_t Size;
+            ElfSymbolType Type;
+            ElfSymbolBinding Binding;
+            ElfSymbolVisibility Visibility;
+            bool Exists;
+        };
 
         /*  Constructors  */
 
@@ -887,21 +903,29 @@ namespace Beelzebub { namespace Execution
 
         inline Elf(uintptr_t addr, size_t size) : Elf(reinterpret_cast<void const *>(addr), size) { }
 
+        inline Elf() : Elf(nullptr, 0) { }
+
         /*  Methods  */
 
     private:
         ElfValidationResult ValidateParseElf32(SegmentValidatorFunc segval, void * valdata);
         ElfValidationResult ValidateParseElf64(SegmentValidatorFunc segval, void * valdata);
 
-        ElfValidationResult ValidateParseDt32();
-        ElfValidationResult ValidateParseDt64();
+        ElfValidationResult ValidateParseDt32(ElfDynamicEntry_32 const * dts);
+        ElfValidationResult ValidateParseDt64(ElfDynamicEntry_64 const * dts);
 
     public:
         ElfValidationResult ValidateAndParse(HeaderValidatorFunc headerval, SegmentValidatorFunc segval, void * valdata);
-        bool Relocate(uintptr_t newAddress);
+        ElfValidationResult Relocate(uintptr_t newAddress);
 
-        ElfValidationResult LoadAndValidate32(uintptr_t loc, SegmentMapper32Func segmap, SegmentUnmapper32Func segunmap, void * lddata);
-        ElfValidationResult LoadAndValidate64(uintptr_t loc, SegmentMapper64Func segmap, SegmentUnmapper64Func segunmap, void * lddata);
+        ElfValidationResult LoadAndValidate32(SegmentMapper32Func segmap, SegmentUnmapper32Func segunmap, void * lddata) const;
+        ElfValidationResult LoadAndValidate64(SegmentMapper64Func segmap, SegmentUnmapper64Func segunmap, void * lddata) const;
+
+        Symbol GetSymbol32(uint32_t index) const;
+        Symbol GetSymbol64(uint32_t index) const;
+
+        Symbol GetSymbol32(char const * name) const;
+        Symbol GetSymbol64(char const * name) const;
 
         /*  Properties  */
 
@@ -954,6 +978,26 @@ namespace Beelzebub { namespace Execution
             }
             else
                 return nullptr;
+        }
+
+        inline size_t GetSizeInMemory() const
+        {
+            return this->EndAddress - this->BaseAddress;
+        }
+
+        inline ptrdiff_t GetLocationDifference() const
+        {
+            return this->NewLocation - this->BaseAddress;
+        }
+
+        inline uintptr_t GetEntryPoint() const
+        {
+            auto h2_64 = this->GetH2_64();
+
+            if (h2_64 == nullptr)
+                return this->GetLocationDifference() + this->GetH2_32()->EntryPoint;
+            else
+                return this->GetLocationDifference() + h2_64->EntryPoint;
         }
 
         /*  Fields  */

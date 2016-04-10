@@ -63,15 +63,15 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
 static uint8_t * executable;
-static uintptr_t entryPoint;
+// static uintptr_t entryPoint;
 
-static ElfProgramHeader_64 * segments;
-static size_t segmentCount;
+// static ElfProgramHeader_64 * segments;
+// static size_t segmentCount;
 
-static ElfRelaEntry_64 * relocationsA, * relocationsJ;
-static size_t relocationsACount, relocationsJCount;
+// static ElfRelaEntry_64 * relocationsA, * relocationsJ;
+// static size_t relocationsACount, relocationsJCount;
 
-static ElfSymbol_64 * symbols;
+// static ElfSymbol_64 * symbols;
 
 static uintptr_t executable_base = 0x1000000;
 
@@ -81,12 +81,14 @@ static Process testProcess;
 static uintptr_t const userStackBottom = 0x40000000;
 static uintptr_t const userStackTop = 0x40000000 + PageSize;
 
+static Elf rtElf;
+
 static __cold void * JumpToRing3(void *);
 static __cold void * WatchTestThread(void *);
 
 Handle HandleLoadtest(size_t const index
                     , jg_info_module_t const * const module
-                    , const vaddr_t vaddr
+                    , vaddr_t const vaddr
                     , size_t const size)
 {
     uint8_t * const addr = reinterpret_cast<uint8_t *>(vaddr);
@@ -216,7 +218,7 @@ Handle HandleLoadtest(size_t const index
 
 Handle HandleRuntimeLib(size_t const index
                       , jg_info_module_t const * const module
-                      , const vaddr_t vaddr
+                      , vaddr_t const vaddr
                       , size_t const size)
 {
     uint8_t * const addr = reinterpret_cast<uint8_t *>(vaddr);
@@ -224,147 +226,10 @@ Handle HandleRuntimeLib(size_t const index
 
     executable = addr;
 
-    DEBUG_TERM << EndLine
-        << "############################## RUNTIME LIB  START ##############################"
-        << EndLine;
+    new (&rtElf) Elf(addr, size);
 
-    ElfHeader1 * eh1 = reinterpret_cast<ElfHeader1 *>(addr);
-
-    DEBUG_TERM << *eh1 << EndLine;
-
-    ASSERT(eh1->Identification.Class == ElfClass::Elf64);
-    ASSERT(eh1->Identification.DataEncoding == ElfDataEncoding::LittleEndian);
-
-    ElfHeader2_64 * eh2 = reinterpret_cast<ElfHeader2_64 *>(addr + sizeof(ElfHeader1));
-
-    DEBUG_TERM << Hexadecimal << *eh2 << Decimal << EndLine;
-
-    entryPoint = eh2->EntryPoint;
-
-    ElfHeader3 * eh3 = reinterpret_cast<ElfHeader3 *>(addr + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
-
-    DEBUG_TERM << *eh3 << EndLine;
-
-    ASSERT(eh3->SectionHeaderTableEntrySize == sizeof(ElfSectionHeader_64)
-        , "Unusual section header type: %us; expected %us."
-        , (size_t)(eh3->SectionHeaderTableEntrySize), sizeof(ElfSectionHeader_64));
-
-    DEBUG_TERM << EndLine << "Segments:" << EndLine;
-
-    ElfProgramHeader_64 * programCursor = reinterpret_cast<ElfProgramHeader_64 *>(
-        addr + eh2->ProgramHeaderTableOffset
-    );
-
-    segments = programCursor;
-    segmentCount = eh3->ProgramHeaderTableEntryCount;
-
-    uint64_t rela_offset = 0, rela_size = 0, rela_entry_size = 0;
-    uint64_t relj_offset = 0, relj_size = 0;
-    uint64_t symtab_offset = 0, symtab_entry_size = 0;
-    uint64_t strtab_offset = 0, strtab_size = 0;
-
-    for (size_t i = eh3->ProgramHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++programCursor)
-    {
-        DEBUG_TERM << "#" << j << ": " << *programCursor << EndLine;
-
-        if (programCursor->Type == ElfProgramHeaderType::Dynamic)
-        {
-            msg("\tEntries:%n");
-
-            ElfDynamicEntry_64 * dynEntCursor = reinterpret_cast<ElfDynamicEntry_64 *>(
-                addr + programCursor->Offset
-            );
-            size_t offset = 0, k = 0;
-
-            do
-            {
-                DEBUG_TERM << "\t#" << k << ": " << *dynEntCursor << EndLine;
-
-                #define TAG_CASE(type, var) \
-                    case ElfDynamicEntryTag::type: \
-                        var = dynEntCursor->Value; \
-                        break;
-
-                switch (dynEntCursor->Tag)
-                {
-                    TAG_CASE(DT_RELA, rela_offset)
-                    TAG_CASE(DT_RELASZ, rela_size)
-                    TAG_CASE(DT_RELAENT, rela_entry_size)
-
-                    TAG_CASE(DT_SYMTAB, symtab_offset)
-                    TAG_CASE(DT_SYMENT, symtab_entry_size)
-
-                    TAG_CASE(DT_STRTAB, strtab_offset)
-                    TAG_CASE(DT_STRSZ, strtab_size)
-
-                    TAG_CASE(DT_JMPREL, relj_offset)
-                    TAG_CASE(DT_PLTRELSZ, relj_size)
-                    
-                default: break;
-                }
-
-                ++dynEntCursor;
-                offset += sizeof(ElfDynamicEntry_64);
-                ++k;
-            } while (offset < programCursor->PSize && dynEntCursor->Tag != DT_NULL);
-        }
-    }
-
-    DEBUG_TERM << "STRTAB: Offset " << Hexadecimal << strtab_offset << Decimal << ", Size " << strtab_size << EndLine;
-
-    DEBUG_TERM << Hexadecimal << "RELA: Offset " << rela_offset << ", Size " << Decimal << rela_size << ", Entry Size " << rela_entry_size << EndLine;
-    ASSERT(rela_entry_size == sizeof(ElfRelaEntry_64));
-
-    size_t const rela_entry_count = rela_size / rela_entry_size;
-    DEBUG_TERM << "RELA: Entry Count " << rela_entry_count << EndLine;
-
-    relocationsA = reinterpret_cast<ElfRelaEntry_64 *>(addr + rela_offset);
-    relocationsACount = rela_entry_count;
-
-    // DEBUG_TERM << "Relocations:" << EndLine;
-
-    // for (size_t i = 0; i < rela_entry_count; ++i)
-    // {
-    //     ElfRelaEntry_64 * rela = reinterpret_cast<ElfRelaEntry_64 *>(addr + rela_offset) + i;
-
-    //     DEBUG_TERM << "#" << i << ": " << *rela << EndLine;
-    // }
-
-    DEBUG_TERM << Hexadecimal << "RELJ: Offset " << relj_offset << ", Size " << Decimal << relj_size << EndLine;
-
-    size_t const relj_entry_count = relj_size / sizeof(ElfRelaEntry_64);
-    DEBUG_TERM << "RELJ: Entry Count " << relj_entry_count << EndLine;
-
-    relocationsJ = reinterpret_cast<ElfRelaEntry_64 *>(addr + relj_offset);
-    relocationsJCount = relj_entry_count;
-
-    // DEBUG_TERM << "Jump Relocations:" << EndLine;
-
-    // for (size_t i = 0; i < relj_entry_count; ++i)
-    // {
-    //     ElfRelaEntry_64 * rela = reinterpret_cast<ElfRelaEntry_64 *>(addr + relj_offset) + i;
-
-    //     DEBUG_TERM << "#" << i << ": " << *rela << EndLine;
-    // }
-
-    DEBUG_TERM << Hexadecimal << "SYMTAB: Offset " << symtab_offset << ", Entry Size " << Decimal << symtab_entry_size << EndLine;
-    ASSERT(symtab_entry_size == sizeof(ElfSymbol_64));
-
-    symbols = reinterpret_cast<ElfSymbol_64 *>(addr + symtab_offset);
-
-    // DEBUG_TERM << "Symbols:" << EndLine;
-
-    // for (size_t i = 0; i < 90; ++i)
-    // {
-    //     ElfSymbol_64 * sym = reinterpret_cast<ElfSymbol_64 *>(addr + symtab_offset + i * symtab_entry_size);
-
-    //     DEBUG_TERM  << "#" << i << ": " << reinterpret_cast<char *>(addr + strtab_offset + sym->Name) << EndLine
-    //                 << *sym << EndLine;
-    // }
-
-    DEBUG_TERM << EndLine
-        << "############################### RUNTIME LIB  END ###############################"
-        << EndLine;
+    DEBUG_TERM  << "Runtime lib validation/parse result: "
+                << rtElf.ValidateAndParse(nullptr, nullptr, nullptr) << EndLine;
 
     return HandleResult::Okay;
 }
@@ -473,13 +338,55 @@ __cold uint8_t * AllocateTestRegion()
     return (uint8_t *)(uintptr_t)vaddr2;
 }
 
+bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
+{
+    Handle res;
+    PageDescriptor * desc = nullptr;
+    //  Intermediate results.
+
+    vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
+    vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
+
+    MemoryFlags pageFlags = MemoryFlags::Userland;
+
+    if (0 != (phdr.Flags & ElfProgramHeaderFlags::Writable))
+        pageFlags |= MemoryFlags::Writable;
+    if (0 != (phdr.Flags & ElfProgramHeaderFlags::Executable))
+        pageFlags |= MemoryFlags::Executable;
+
+    for (vaddr_t vaddr = segVaddr; vaddr < segVaddrEnd; vaddr += PageSize)
+    {
+        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
+
+        ASSERT(paddr != nullpaddr && desc != nullptr
+            , "Unable to allocate a physical page for test app segment %Xp!"
+            , phdr);
+
+        res = Vmm::MapPage(&testProcess, vaddr, paddr, pageFlags, desc);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to map page at %Xp (%XP) for test app segment %Xp: %H."
+            , vaddr, paddr
+            , &phdr, res);
+    }
+
+    memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
+        ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
+
+    if (phdr.VSize > phdr.PSize)
+        memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
+            , 0, phdr.VSize - phdr.PSize);
+
+    return true;
+}
+
 void * JumpToRing3(void * arg)
 {
     Handle res;
     PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    //  ... then, the userland stack page.
+    //  First, the userland stack page.
 
     paddr_t const stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
 
@@ -494,164 +401,25 @@ void * JumpToRing3(void * arg)
         , userStackBottom, stackPaddr
         , res);
 
-    //  Then, the app's segments.
+    //  Then, relocate the ELF.
 
-    ElfProgramHeader_64 * programCursor = segments;
+    DEBUG_TERM_ << rtElf.Relocate(executable_base) << EndLine;
 
-    for (size_t i = segmentCount, j = 1; i > 0; --i, ++j, ++programCursor)
-    {
-        if (programCursor->Type != ElfProgramHeaderType::Load)
-            continue;
+    //  Then map the segments...
 
-        vaddr_t const segVaddr    = executable_base + RoundDown(programCursor->VAddr, PageSize);
-        vaddr_t const segVaddrEnd = executable_base + RoundUp  (programCursor->VAddr + programCursor->VSize, PageSize);
-
-        MemoryFlags pageFlags = MemoryFlags::Userland;
-
-        if (0 != (programCursor->Flags & ElfProgramHeaderFlags::Writable))
-            pageFlags |= MemoryFlags::Writable;
-        if (0 != (programCursor->Flags & ElfProgramHeaderFlags::Executable))
-            pageFlags |= MemoryFlags::Executable;
-
-        for (vaddr_t vaddr = segVaddr; vaddr < segVaddrEnd; vaddr += PageSize)
-        {
-            paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
-
-            ASSERT(paddr != nullpaddr && desc != nullptr
-                , "Unable to allocate a physical page for test app segment #%us!"
-                , j);
-
-            res = Vmm::MapPage(&testProcess, vaddr, paddr, pageFlags, desc);
-
-            ASSERT(res.IsOkayResult()
-                , "Failed to map page at %Xp (%XP) for test app segment #%us: %H."
-                , vaddr, paddr
-                , j, res);
-        }
-
-        memcpy(reinterpret_cast<void *>(executable_base + programCursor->VAddr)
-            , executable + programCursor->Offset, programCursor->PSize);
-
-        if (programCursor->VSize > programCursor->PSize)
-            memset(reinterpret_cast<void *>(executable_base + programCursor->VAddr + programCursor->PSize)
-                , 0, programCursor->VSize - programCursor->PSize);
-    }
-
-    //  Now let's apply some relocations...
-
-    DEBUG_TERM_ << "APPLYING RELA RELOCATIONS" << EndLine;
-
-    for (size_t i = 0; i < relocationsACount; ++i)
-    {
-        ElfRelaEntry_64 * rela = relocationsA + i;
-
-        switch (rela->Info.GetType())
-        {
-        case R_AMD64_RELATIVE:
-            {
-                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
-                uint64_t const oldVal = *addr;
-
-                *addr = executable_base + rela->Append;
-
-                DEBUG_TERM_ << "RELOCATING RELA " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
-                            << *addr << "; " << executable_base << " + " << rela->Append
-                            << Decimal << EndLine;
-            }
-            break;
-
-        case R_AMD64_GLOB_DAT:
-        case R_AMD64_JUMP_SLOT:
-            {
-                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
-                uint64_t const oldVal = *addr;
-
-                *addr = symbols[rela->Info.GetSymbol()].Value;
-
-                DEBUG_TERM_ << "RELOCATING GDAT " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
-                            << *addr << Decimal << EndLine;
-            }
-            break;
-
-        case R_AMD64_64:
-            {
-                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
-                uint64_t const oldVal = *addr;
-
-                *addr = symbols[rela->Info.GetSymbol()].Value + rela->Append;
-
-                DEBUG_TERM_ << "RELOCATING  64  " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
-                            << *addr << "; " << symbols[rela->Info.GetSymbol()].Value
-                            << " + " << rela->Append << Decimal << EndLine;
-            }
-            break;
-
-        default: break; //  A warning should be emitted, perhaps?
-        }
-    }
-
-    DEBUG_TERM_ << "APPLYING JUMP TABLE RELOCATIONS" << EndLine;
-
-    for (size_t i = 0; i < relocationsJCount; ++i)
-    {
-        ElfRelaEntry_64 * rela = relocationsJ + i;
-
-        switch (rela->Info.GetType())
-        {
-        case R_AMD64_RELATIVE:
-            {
-                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
-                uint64_t const oldVal = *addr;
-
-                *addr = executable_base + rela->Append;
-
-                DEBUG_TERM_ << "RELOCATING RELA " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
-                            << *addr << "; " << executable_base << " + " << rela->Append
-                            << Decimal << EndLine;
-            }
-            break;
-
-        case R_AMD64_GLOB_DAT:
-        case R_AMD64_JUMP_SLOT:
-            {
-                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
-                uint64_t const oldVal = *addr;
-
-                *addr = symbols[rela->Info.GetSymbol()].Value;
-
-                DEBUG_TERM_ << "RELOCATING JUMP " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
-                            << *addr << Decimal << EndLine;
-            }
-            break;
-
-        case R_AMD64_64:
-            {
-                uint64_t * const addr = reinterpret_cast<uint64_t *>(executable_base + rela->Offset);
-                uint64_t const oldVal = *addr;
-
-                *addr = symbols[rela->Info.GetSymbol()].Value + rela->Append;
-
-                DEBUG_TERM_ << "RELOCATING  64  " << (void *)(addr) << " FROM " << Hexadecimal << oldVal << " INTO "
-                            << *addr << "; " << symbols[rela->Info.GetSymbol()].Value
-                            << " + " << rela->Append << Decimal << EndLine;
-            }
-            break;
-
-        default: break; //  A warning should be emitted, perhaps?
-        }
-    }
+    DEBUG_TERM_ << rtElf.LoadAndValidate64(&MapSegment64, nullptr, nullptr) << EndLine;
 
     //  Finally, a region for test incrementation.
 
     AllocateTestRegion();
 
-    MSG_("About to go to ring 3!%n");
+    DEBUG_TERM_ << "About to go to ring 3!" << EndLine;
 
     //while (true) CpuInstructions::Halt();
 
-    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(executable_base + entryPoint));
+    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(rtElf.GetEntryPoint()));
 
-    return GoToRing3_64(executable_base + entryPoint, userStackTop);
+    return GoToRing3_64(rtElf.GetEntryPoint(), userStackTop);
 }
 
 void * WatchTestThread(void *)

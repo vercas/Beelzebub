@@ -66,6 +66,8 @@ ENUM_TO_STRING_EX2(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING, Beelzebub::Execution
 ENUM_TO_STRING_EX2(ElfSymbolType, ENUM_ELFSYMBOLTYPE, Beelzebub::Execution)
 ENUM_TO_STRING_EX2(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY, Beelzebub::Execution)
 
+ENUM_TO_STRING_EX2(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, Beelzebub::Execution)
+
 /*  Now to implement some << operator magic.  */
 
 namespace Beelzebub { namespace Terminals
@@ -92,6 +94,8 @@ namespace Beelzebub { namespace Terminals
     SPAWN_ENUM(ElfSymbolBinding)
     SPAWN_ENUM(ElfSymbolType)
     SPAWN_ENUM(ElfSymbolVisibility)
+
+    SPAWN_ENUM(ElfValidationResult)
 
     template<>
     TerminalBase & operator << <ElfProgramHeaderFlags>(TerminalBase & term, ElfProgramHeaderFlags const value)
@@ -302,8 +306,6 @@ namespace Beelzebub { namespace Terminals
     ELF class
 ****************/
 
-ENUM_TO_STRING_EX2(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, Beelzebub::Execution)
-
 /*  Constructors  */
 
 Elf::Elf(void const * addr, size_t size)
@@ -338,13 +340,34 @@ ElfValidationResult Elf::ValidateAndParse(Elf::HeaderValidatorFunc headerval, El
     }
 }
 
-bool Elf::Relocate(uintptr_t newAddress)
+ElfValidationResult Elf::Relocate(uintptr_t newAddress)
 {
     if (!this->Loadable)
-        return false;
+        return ElfValidationResult::Unloadable;
+
+    if (this->H1->Type != ElfFileType::Dynamic)
+        return ElfValidationResult::Unrelocatable;
+    //  Only DYN-type ELF files can be relocated. Even PIE are of type DYN.
 
     ptrdiff_t const diff = newAddress - this->BaseAddress;
 
 #define RELOCATE(var) \
-    this->var = reinterpret_cast<decltype(this->var)>(reinterpret_cast<uintptr_t>(this->var));
+    if (this->var != (decltype(this->var))(nullptr)) \
+        this->var = reinterpret_cast<decltype(this->var)>(reinterpret_cast<uintptr_t>(this->var) + diff);
+    //  This macro should be m'kay.
+
+    RELOCATE(DT_32);
+    RELOCATE(REL_32);
+    RELOCATE(RELA_32);
+    RELOCATE(PLT_REL_32);
+    RELOCATE(PLT_GOT);
+    RELOCATE(DYNSYM_32);
+    RELOCATE(STRTAB);
+    RELOCATE(HASH);
+    RELOCATE(INIT);
+    RELOCATE(FINI);
+
+    this->NewLocation = newAddress;
+
+    return ElfValidationResult::Success;
 }

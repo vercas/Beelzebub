@@ -84,12 +84,12 @@ static RangeLoadStatus CheckRangeLoaded(Elf const * elf, uint64_t rStart, uint64
             switch (opts)
             {
             case RangeLoadOptions::Writable:
-                if ((load.Flags & ElfProgramHeaderFlags::Writable) != 0)
+                if likely((load.Flags & ElfProgramHeaderFlags::Writable) != 0)
                     return RangeLoadStatus::FullyLoaded;
                 else
                     return RangeLoadStatus::OptionsNotMet;
             case RangeLoadOptions::Executable:
-                if ((load.Flags & ElfProgramHeaderFlags::Executable) != 0)
+                if likely((load.Flags & ElfProgramHeaderFlags::Executable) != 0)
                     return RangeLoadStatus::FullyLoaded;
                 else
                     return RangeLoadStatus::OptionsNotMet;
@@ -111,22 +111,24 @@ static RangeLoadStatus CheckRangeLoaded(Elf const * elf, uint64_t rStart, uint64
     return RangeLoadStatus::CompletelyAbsent;
 }
 
+#include <execution/elf64.arc.inc>
+
 /****************
     ELF class
 ****************/
 
 /*  Methods  */
 
-ElfValidationResult Elf::ValidateParseDt64()
+ElfValidationResult Elf::ValidateParseDt64(ElfDynamicEntry_64 const * dts)
 {
-    ElfDynamicEntry_64 const * dtCursor = this->DT_64;
+    ElfDynamicEntry_64 const * dtCursor = dts;
     size_t offset = 0, dtCount;
 
     size_t tagCounters[(size_t)(ElfDynamicEntryTag::DT__MAX)] = {0};
 
     do
     {
-        if ((size_t)(dtCursor->Tag) < (size_t)(ElfDynamicEntryTag::DT__MAX))
+        if likely((size_t)(dtCursor->Tag) < (size_t)(ElfDynamicEntryTag::DT__MAX))
             ++tagCounters[(size_t)(dtCursor->Tag)];
         //  Count all the tags that are relevant. Also, the conversion is there
         //  because the tag's underlying type is signed. Brilliant, IKR...
@@ -139,7 +141,7 @@ ElfValidationResult Elf::ValidateParseDt64()
             DT_CASE_C(DT_RELASZ, this->RELA_Size, size_t)
 
             case DT_RELAENT:
-                if (dtCursor->Value != sizeof(ElfRelaEntry_64))
+                if unlikely(dtCursor->Value != sizeof(ElfRelaEntry_64))
                     return ElfValidationResult::StructureSizeMismatch;
                 break;
 
@@ -149,7 +151,7 @@ ElfValidationResult Elf::ValidateParseDt64()
             DT_CASE_C(DT_RELSZ, this->REL_Size, size_t)
 
             case DT_RELENT:
-                if (dtCursor->Value != sizeof(ElfRelEntry_64))
+                if unlikely(dtCursor->Value != sizeof(ElfRelEntry_64))
                     return ElfValidationResult::StructureSizeMismatch;
                 break;
 
@@ -180,7 +182,7 @@ ElfValidationResult Elf::ValidateParseDt64()
             DT_CASE_P(DT_SYMTAB, this->DYNSYM_64, ElfSymbol_64 *)
 
             case DT_SYMENT:
-                if (dtCursor->Value != sizeof(ElfSymbol_64))
+                if unlikely(dtCursor->Value != sizeof(ElfSymbol_64))
                     return ElfValidationResult::StructureSizeMismatch;
                 break;
 
@@ -205,7 +207,7 @@ ElfValidationResult Elf::ValidateParseDt64()
         ++dtCount;
         offset += sizeof(ElfDynamicEntry_64);
 
-        if (offset > this->DT_Size - sizeof(ElfDynamicEntry_64))
+        if unlikely(offset > this->DT_Size - sizeof(ElfDynamicEntry_64))
             return ElfValidationResult::DtEntryOutOfBounds;
         //  This is done after the increment because the null entry must be
         //  valid and within the segment as well.
@@ -224,8 +226,8 @@ ElfValidationResult Elf::ValidateParseDt64()
     DT_IMPLY(DT_JMPREL, DT_PLTRELSZ, DT_PLTREL) return ElfValidationResult::DtEntryMultiplicate;
     //  DT_PLTGOT is not mandatory.
 
-    if (DT_CNT(DT_INIT) > 1) return ElfValidationResult::DtEntryMultiplicate;
-    if (DT_CNT(DT_FINI) > 1) return ElfValidationResult::DtEntryMultiplicate;
+    if unlikely(DT_CNT(DT_INIT) > 1) return ElfValidationResult::DtEntryMultiplicate;
+    if unlikely(DT_CNT(DT_FINI) > 1) return ElfValidationResult::DtEntryMultiplicate;
 
     //  Now to check the boundaries.
 
@@ -284,6 +286,8 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
     auto phdrs = this->GetPhdrs_64();
     size_t loadableCount = 0;
 
+    ElfDynamicEntry_64 const * dts = nullptr;
+
     for (size_t i = 0; i < phdr_count; ++i)
     {
         auto phdr = phdrs[i];
@@ -303,7 +307,7 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
         {
             //  Load segments' addresses need to be checked!
 
-            if unlikely(segval != nullptr && !segval(reinterpret_cast<uintptr_t>(phdr.VAddr), reinterpret_cast<size_t>(phdr.VSize), phdr.Flags, valdata))
+            if unlikely(segval != nullptr && !segval((uintptr_t)(phdr.VAddr), (size_t)(phdr.VSize), phdr.Flags, valdata))
                 return ElfValidationResult::SegmentRangeInvalid;
 
             //  And now an overlap check, with the previous segments, which passed
@@ -329,8 +333,13 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
         }
         else if (phdr.Type == ElfProgramHeaderType::Dynamic)
         {
-            this->DT_64 = reinterpret_cast<ElfDynamicEntry_64 const *>(this->Start + phdr.Offset);
-            this->DT_Size = (size_t)(phdr.PSize);
+            if unlikely(this->DT_64 != nullptr)
+                return ElfValidationResult::DynamicSegmentMultiplicate;
+
+            dts = reinterpret_cast<ElfDynamicEntry_64 const *>(this->Start + phdr.Offset);
+
+            this->DT_64 = reinterpret_cast<ElfDynamicEntry_64 const *>(phdr.VAddr);
+            this->DT_Size = (size_t)(phdr.VSize);
         }
     }
 
@@ -365,24 +374,26 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
     //  Headers appear to be fine so far. Next step is checking the dynamic tags,
     //  if any.
 
-    if (this->DT_64 != nullptr)
+    if (dts != nullptr)
     {
-        ElfValidationResult res = this->ValidateParseDt64();
+        ElfValidationResult res = this->ValidateParseDt64(dts);
 
         if (res != ElfValidationResult::Success)
             return res;
     }
 
-    if ((this->Loadable = (loadableCount > 0)))
+    if likely((this->Loadable = (loadableCount > 0)))
         return ElfValidationResult::Success;
     else
         return ElfValidationResult::Unloadable;
 }
 
-ElfValidationResult Elf::LoadAndValidate64(uintptr_t loc, Elf::SegmentMapper64Func segmap, Elf::SegmentUnmapper64Func segunmap, void * lddata)
+ElfValidationResult Elf::LoadAndValidate64(Elf::SegmentMapper64Func segmap, Elf::SegmentUnmapper64Func segunmap, void * lddata) const
 {
-    if (!this->Loadable)
+    if unlikely(!this->Loadable)
         return ElfValidationResult::Unloadable;
+
+    ElfValidationResult res = ElfValidationResult::LoadFailure;
 
     //  Step 1 is trying to map all the segments.
 
@@ -398,7 +409,7 @@ ElfValidationResult Elf::LoadAndValidate64(uintptr_t loc, Elf::SegmentMapper64Fu
         if (phdr.Type != ElfProgramHeaderType::Load)
             continue;
 
-        if (!segmap(loc, phdr, lddata))
+        if unlikely(!segmap(this->GetLocationDifference(), this->Start, phdr, lddata))
         {
             //  Okay, mapping this load segment failed. Time to roll everything
             //  back. :(
@@ -425,20 +436,96 @@ rollbackMapping:
         if (phdr.Type != ElfProgramHeaderType::Load)
             continue;
 
-        segunmap(loc, phdr, lddata);
+        segunmap(this->GetLocationDifference(), phdr, lddata);
         //  This could fail, but there's nothing to do if it does...
     }
 
-    return ElfValidationResult::LoadFailure;
+    return res;
 
 skipRollback:
     
     //  So, next step is performing relocations, if any.
 
-    if (this->DT_64 != nullptr)
-    {
+    if (this->REL_64 != nullptr)
+        for (size_t i = 0, offset = this->REL_Size; offset > 0; ++i, offset -= sizeof(ElfRelEntry_64))
+        {
+            ElfRelEntry_64 const & rel = this->REL_64[i];
 
+            res = PerformRelocation64(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData());
+
+            if (res != ElfValidationResult::Success)
+                goto rollbackMapping;
+        }
+
+    if (this->RELA_64 != nullptr)
+        for (size_t i = 0, offset = this->RELA_Size; offset > 0; ++i, offset -= sizeof(ElfRelaEntry_64))
+        {
+            ElfRelaEntry_64 const & rel = this->RELA_64[i];
+
+            res = PerformRelocation64(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData());
+
+            if (res != ElfValidationResult::Success)
+                goto rollbackMapping;
+        }
+
+    if (this->PLT_REL_64 != nullptr)
+    {
+        if (this->PLT_REL_Type == DT_REL)
+            for (size_t i = 0, offset = this->PLT_REL_Size; offset > 0; ++i, offset -= sizeof(ElfRelEntry_64))
+            {
+                ElfRelEntry_64 const & rel = this->PLT_REL_64[i];
+
+                res = PerformRelocation64(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData());
+
+                if (res != ElfValidationResult::Success)
+                    goto rollbackMapping;
+            }
+        else
+            for (size_t i = 0, offset = this->PLT_REL_Size; offset > 0; ++i, offset -= sizeof(ElfRelaEntry_64))
+            {
+                ElfRelaEntry_64 const & rel = this->PLT_RELA_64[i];
+
+                res = PerformRelocation64(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData());
+
+                if (res != ElfValidationResult::Success)
+                    goto rollbackMapping;
+            }
     }
 
     return ElfValidationResult::Success;
+}
+
+Elf::Symbol Elf::GetSymbol64(uint32_t index) const
+{
+    if unlikely(!this->Loadable)
+        return {0};
+
+    if unlikely(this->NewLocation == 0 && this->H1->Type == ElfFileType::Dynamic)
+        return {0};
+
+    if unlikely(this->HASH == nullptr || this->DYNSYM_64 == nullptr || this->STRTAB == nullptr)
+        return {0};
+
+    if unlikely(index >= this->HASH->ChainCount)
+        return {0};
+
+    ElfSymbol_64 const & sym = this->DYNSYM_64[index];
+
+    Elf::Symbol ret = {
+        this->STRTAB + sym.Name,
+        (uintptr_t)(sym.Value),
+        (size_t)(sym.Size),
+        sym.Info.GetType(),
+        sym.Info.GetBinding(),
+        sym.Other.GetVisibility(),
+        true
+    };
+
+    if (sym.SectionIndex != SHN_UNDEF && sym.SectionIndex != SHN_ABS)
+    {
+        // if (ret.Binding != ElfSymbolBinding::Weak)
+            ret.Value += this->GetLocationDifference();
+    }
+
+    return ret;
 }

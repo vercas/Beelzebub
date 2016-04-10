@@ -52,7 +52,7 @@
         break;
 #define DT_CASE_P(type, var, vType) \
     case Beelzebub::Execution::ElfDynamicEntryTag::type: \
-        var = reinterpret_cast<vType>(/*this->Start +*/ dtCursor->Value); \
+        var = reinterpret_cast<vType>((uintptr_t)dtCursor->Value); \
         break;
 
 //  Number of occurrences of a specific tag.
@@ -61,9 +61,9 @@
 //  Makes sure the given tag is found on a unique entry.
 #define DT_UNIQUE1(type) do \
 { \
-    if (DT_CNT(type) == 0) \
+    if unlikely(DT_CNT(type) == 0) \
         return Beelzebub::Execution::ElfValidationResult::DtEntryMissing; \
-    else if (DT_CNT(type) > 1) \
+    else if unlikely(DT_CNT(type) > 1) \
         return Beelzebub::Execution::ElfValidationResult::DtEntryMultiplicate; \
 } while (false)
 
@@ -78,10 +78,10 @@
 //  Makes sure that the presence of a single entry of the first type also implies
 //  the existence of a unique entry of the second type. Otherwise, the following
 //  block/expression is executed when multiplicates are found.
-#define DT_IMPLY1(type1, type2) if (DT_CNT(type1) == 1) DT_UNIQUE(type2); else if (DT_CNT(type1) > 1)
+#define DT_IMPLY1(type1, type2) if (DT_CNT(type1) == 1) DT_UNIQUE(type2); else if unlikely(DT_CNT(type1) > 1)
 
-#define DT_IMPLY2(t1, t2, t3) if (DT_CNT(t1) == 1) { DT_UNIQUE(t2); DT_UNIQUE(t3); } else if (DT_CNT(t1) > 1)
-#define DT_IMPLY3(t1, t2, t3, t4) if (DT_CNT(t1) == 1) { DT_UNIQUE(t2); DT_UNIQUE(t3); DT_UNIQUE(t4); } else if (DT_CNT(t1) > 1)
+#define DT_IMPLY2(t1, t2, t3) if (DT_CNT(t1) == 1) { DT_UNIQUE(t2); DT_UNIQUE(t3); } else if unlikely(DT_CNT(t1) > 1)
+#define DT_IMPLY3(t1, t2, t3, t4) if (DT_CNT(t1) == 1) { DT_UNIQUE(t2); DT_UNIQUE(t3); DT_UNIQUE(t4); } else if unlikely(DT_CNT(t1) > 1)
 
 #define DT_IMPLY(arg1, ...) GET_MACRO3(__VA_ARGS__, DT_IMPLY3, DT_IMPLY2, DT_IMPLY1)(arg1, __VA_ARGS__)
 

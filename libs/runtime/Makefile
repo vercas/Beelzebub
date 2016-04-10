@@ -61,7 +61,8 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 LOFLAGS		:= -shared -Wl,-z,max-page-size=0x1000 -fuse-linker-plugin 
 LOFLAGS		+= -ffreestanding -Wall -fno-omit-frame-pointer 
 LOFLAGS		+= -O3 -flto -nodefaultlibs -pipe -fPIC -lgcc -static-libgcc 
-LOFLAGS		+= --sysroot=$(SYSROOT) -Wl,-Bsymbolic 
+LOFLAGS		+= --sysroot=$(SYSROOT) 
+# LOFLAGS		+= -Wl,-Bsymbolic 
 
 # Strip options
 STRIPFLAGS	:= -s 
