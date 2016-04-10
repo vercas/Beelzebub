@@ -46,8 +46,8 @@ include ../../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_APPLICATION 
-GCCFLAGS	+= -ffreestanding -Wall -lgcc -static-libgcc 
-GCCFLAGS	+= -O2 -flto -pipe -fno-omit-frame-pointer -fPIE 
+GCCFLAGS	+= -Wall -fno-omit-frame-pointer 
+GCCFLAGS	+= -O2 -flto -pipe 
 GCCFLAGS	+= --sysroot=$(SYSROOT) 
 
 # C/C++ options
@@ -58,9 +58,10 @@ CXXFLAGS	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
 ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 
 # Linker options, with optimization
-LOFLAGS		:= -ffreestanding -Wall -lgcc -static-libgcc 
-LOFLAGS		+= -O2 -flto -pipe -fno-omit-frame-pointer -fPIE 
-LOFLAGS		+= --sysroot=$(SYSROOT) -Wl,-z,max-page-size=0x1000 
+LOFLAGS		:= -Wl,-z,max-page-size=0x1000 -fuse-linker-plugin 
+LOFLAGS		+= -Wall -fno-omit-frame-pointer 
+LOFLAGS		+= -O2 -flto -pipe 
+LOFLAGS		+= --sysroot=$(SYSROOT) 
 
 # Linker options, without optimization
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs 
@@ -167,7 +168,7 @@ $(APP_INSTALL_PATH): $(APP_PATH)
 $(APP_PATH): $(OBJECTS)
 	@ echo "/LNK/OPT:" $@
 	@ mkdir -p $(@D)
-	@ $(LO) -o $@ $(LOFLAGS) $(OBJECTS)
+	@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS)
 
 ####################################### CODE FILES ##########
 
