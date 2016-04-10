@@ -199,17 +199,14 @@ void * memset(void * dst, int const val, size_t len)
 size_t strlen(char const * str)
 {
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-    register size_t ret  asm("rcx") = (size_t)0;
-    register size_t null asm("rax") = (size_t)0;
+    register size_t ret  asm("rcx") = ~((size_t)0);
+    register size_t null asm("rax") =   (size_t)0;
 #else
-    register size_t ret  asm("ecx") = (size_t)0;
-    register size_t null asm("eax") = (size_t)0;
+    register size_t ret  asm("ecx") = ~((size_t)0);
+    register size_t null asm("eax") =   (size_t)0;
 #endif
 
-    asm volatile ( "not   %1    \n\t"
-                   "repne scasb \n\t"
-                   "not   %1    \n\t"
-                   "dec   %1    \n\t"
+    asm volatile ( "repne scasb \n\t"
                  : "+D"(str), "+c"(ret)
                  : "a"(null)
                  : "memory" );
@@ -219,12 +216,12 @@ size_t strlen(char const * str)
     //  so the value becomes `length + 2 - 1` (`length + 1`), so the `- 1`
     //  brings it to the desired result.
 
-    return ret;
+    return ~ret - 1;
 }
 
 size_t strnlen(char const * str, size_t len)
 {
-    if (len == 0)
+    if unlikely(len == 0)
         return 0;
     //  GCC seems to be nice and treat this as an unlikely case. It XORs
     //  (E|R)AX with itself, tests the length, and if it's 0, it jumps to
