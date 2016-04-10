@@ -1,6 +1,11 @@
-#include <syscalls.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Terminals;
+
+int main(int, char * *);
+
+static __used void * const main_ptr = (void *)(&main);
 
 int main(int argc, char * * argv)
 {
@@ -19,7 +24,7 @@ beginning:
         for (uint8_t * ptr = reinterpret_cast<uint8_t *>(someAddress + 8); (uintptr_t)ptr < someEnd; ++ptr)
             ++(*ptr);
 
-        PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("SYSCALL TEST LEL"), 0, 0, 0, 0);
+        DEBUG_TERM << "Syscall test from userland app!" << EndLine;
     }
 
 #pragma GCC diagnostic push
@@ -31,12 +36,11 @@ beginning:
 
 #pragma GCC diagnostic pop
 
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLERGH\r\n"), 0, 0, 0, 0);
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLAH\r\n"), 0, 0, 0, 0);
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLERGH\r\n"), 0, 0, 0, 0);
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLAH\r\n"), 0, 0, 0, 0);
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLERGH\r\n"), 0, 0, 0, 0);
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("BLAH\r\n"), 0, 0, 0, 0);
+    DEBUG_TERM  << "BLERGH" << EndLine << "BLAH" << EndLine
+                << "BLERGH" << EndLine << "BLAH" << EndLine
+                << "BLERGH" << EndLine << "BLAH" << EndLine;
+
+    DEBUG_TERM << "My 'main' is at " << main_ptr << EndLine;
 
     goto beginning;
 
