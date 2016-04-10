@@ -42,8 +42,8 @@
 #include <metaprogramming.h>
 
 #ifdef __cplusplus
-
-namespace Beelzebub {
+namespace Beelzebub
+{
 
 #ifdef __BEELZEBUB__ARCH_X86
 template<typename TNum1, typename TNum2>
@@ -255,6 +255,14 @@ __extern __const uint32_t AddWithCarry32(uint32_t * dst, uint32_t src, uint32_t 
 __extern __const uint32_t AddWithCarry32_3(uint32_t * dst, uint32_t src1, uint32_t src2, uint32_t cin);
 
 __extern __const uint32_t AddWithCarry64(uint64_t * dst, uint64_t src, uint32_t cin);
+
+struct PointerAndSize
+{
+    uintptr_t Start;
+    size_t Size;
+};
+
+__extern __const struct PointerAndSize IntersectMemoryRanges(struct PointerAndSize a, struct PointerAndSize b);
 
 #ifdef __cplusplus
 }

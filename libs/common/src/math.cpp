@@ -39,6 +39,8 @@
 
 #include <math.h>
 
+using namespace Beelzebub;
+
 #define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
 
 uint8_t const LogTable[] = {
@@ -74,9 +76,9 @@ uint8_t Beelzebub::Log2_32(uint32_t val)
             return 16 + LogTable[val >> 16];
     else
         if (val >= (1U << 8))
-            return  8 + LogTable[val >> 8];
+            return  8 + LogTable[val >>  8];
         else
-            return      LogTable[val     ];
+            return      LogTable[val      ];
 }
 
 uint8_t Beelzebub::Log2_64(uint64_t val)
@@ -100,7 +102,18 @@ uint8_t Beelzebub::Log2_64(uint64_t val)
                 return 16 + LogTable[val >> 16];
         else
             if (val >= (1ULL << 8))
-                return  8 + LogTable[val >> 8];
+                return  8 + LogTable[val >>  8];
             else
-                return      LogTable[val     ];
+                return      LogTable[val      ];
+}
+
+struct PointerAndSize Beelzebub::IntersectMemoryRanges(struct PointerAndSize a, struct PointerAndSize b)
+{
+    uintptr_t maxStart = Maximum(a.Start, b.Start);
+    uintptr_t minEnd = Minimum(a.Start + a.Size, b.Start + b.Size);
+
+    if (minEnd <= maxStart)
+        return {0, 0};
+    else
+        return {maxStart, minEnd - maxStart};
 }
