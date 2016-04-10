@@ -203,7 +203,7 @@ Handle HandleLoadtest(size_t const index
                 ++dynEntCursor;
                 offset += sizeof(ElfDynamicEntry_64);
                 ++k;
-            } while (offset < programCursor->PSize && dynEntCursor->Tag != ElfDynamicEntryTag::Null);
+            } while (offset < programCursor->PSize && dynEntCursor->Tag != DT_NULL);
         }
     }
 
@@ -287,18 +287,18 @@ Handle HandleRuntimeLib(size_t const index
 
                 switch (dynEntCursor->Tag)
                 {
-                    TAG_CASE(RelaAddress, rela_offset)
-                    TAG_CASE(RelaSize, rela_size)
-                    TAG_CASE(RelaEntrySize, rela_entry_size)
+                    TAG_CASE(DT_RELA, rela_offset)
+                    TAG_CASE(DT_RELASZ, rela_size)
+                    TAG_CASE(DT_RELAENT, rela_entry_size)
 
-                    TAG_CASE(SymbolTable, symtab_offset)
-                    TAG_CASE(SymbolTableEntrySize, symtab_entry_size)
+                    TAG_CASE(DT_SYMTAB, symtab_offset)
+                    TAG_CASE(DT_SYMENT, symtab_entry_size)
 
-                    TAG_CASE(StringTable, strtab_offset)
-                    TAG_CASE(StringTableSize, strtab_size)
+                    TAG_CASE(DT_STRTAB, strtab_offset)
+                    TAG_CASE(DT_STRSZ, strtab_size)
 
-                    TAG_CASE(PltRelocationsAddress, relj_offset)
-                    TAG_CASE(PltRelicationSize, relj_size)
+                    TAG_CASE(DT_JMPREL, relj_offset)
+                    TAG_CASE(DT_PLTRELSZ, relj_size)
                     
                 default: break;
                 }
@@ -306,7 +306,7 @@ Handle HandleRuntimeLib(size_t const index
                 ++dynEntCursor;
                 offset += sizeof(ElfDynamicEntry_64);
                 ++k;
-            } while (offset < programCursor->PSize && dynEntCursor->Tag != ElfDynamicEntryTag::Null);
+            } while (offset < programCursor->PSize && dynEntCursor->Tag != DT_NULL);
         }
     }
 

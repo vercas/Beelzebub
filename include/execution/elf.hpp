@@ -62,7 +62,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFCLASS(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfClass)
+    ENUMOPS_LITE(ElfClass)
     ENUM_TO_STRING_DECL(ElfClass, ENUM_ELFCLASS);
 
 
@@ -79,7 +79,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFDATAENCODING(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfDataEncoding)
+    ENUMOPS_LITE(ElfDataEncoding)
     ENUM_TO_STRING_DECL(ElfDataEncoding, ENUM_ELFDATAENCODING);
 
 
@@ -112,7 +112,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFOSABI(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfOsAbi)
+    ENUMOPS_LITE(ElfOsAbi)
     ENUM_TO_STRING_DECL(ElfOsAbi, ENUM_ELFOSABI);
 
 
@@ -135,7 +135,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFFILETYPE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfFileType)
+    ENUMOPS_LITE(ElfFileType)
     ENUM_TO_STRING_DECL(ElfFileType, ENUM_ELFFILETYPE);
     
 
@@ -172,7 +172,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFMACHINE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfMachine)
+    ENUMOPS_LITE(ElfMachine)
     ENUM_TO_STRING_DECL(ElfMachine, ENUM_ELFMACHINE);
 
 
@@ -203,7 +203,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFSECTIONHEADERTYPE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfSectionHeaderType)
+    ENUMOPS_LITE(ElfSectionHeaderType)
     ENUM_TO_STRING_DECL(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE);
 
 
@@ -275,7 +275,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFPROGRAMHEADERTYPE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfProgramHeaderType)
+    ENUMOPS_LITE(ElfProgramHeaderType)
     ENUM_TO_STRING_DECL(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE);
 
 
@@ -298,45 +298,46 @@ namespace Beelzebub { namespace Execution
 
 
     #define ENUM_ELFDYNAMICENTRYTAG(ENUMINST) \
-        ENUMINST(Null                   ,  0) \
-        ENUMINST(Needed                 ,  1) \
-        ENUMINST(PltRelicationSize      ,  2) \
-        ENUMINST(LinkageTableAddress    ,  3) \
-        ENUMINST(Hash                   ,  4) \
-        ENUMINST(StringTable            ,  5) \
-        ENUMINST(SymbolTable            ,  6) \
-        ENUMINST(RelaAddress            ,  7) \
-        ENUMINST(RelaSize               ,  8) \
-        ENUMINST(RelaEntrySize          ,  9) \
-        ENUMINST(StringTableSize        , 10) \
-        ENUMINST(SymbolTableEntrySize   , 11) \
-        ENUMINST(InitFuncAddress        , 12) \
-        ENUMINST(FiniFuncAddress        , 13) \
-        ENUMINST(SharedObjectName       , 14) \
-        ENUMINST(SearchPathString       , 15) \
-        ENUMINST(Symbolic               , 16) \
-        ENUMINST(RelAddress             , 17) \
-        ENUMINST(RelSize                , 18) \
-        ENUMINST(RelEntrySize           , 19) \
-        ENUMINST(RelocationType         , 20) \
-        ENUMINST(Debug                  , 21) \
-        ENUMINST(NonWritableRelocations , 22) \
-        ENUMINST(PltRelocationsAddress  , 23) \
+        ENUMINST(DT_NULL                ,  0) \
+        ENUMINST(DT_NEEDED              ,  1) \
+        ENUMINST(DT_PLTRELSZ            ,  2) \
+        ENUMINST(DT_PLTGOT              ,  3) \
+        ENUMINST(DT_HASH                ,  4) \
+        ENUMINST(DT_STRTAB              ,  5) \
+        ENUMINST(DT_SYMTAB              ,  6) \
+        ENUMINST(DT_RELA                ,  7) \
+        ENUMINST(DT_RELASZ              ,  8) \
+        ENUMINST(DT_RELAENT             ,  9) \
+        ENUMINST(DT_STRSZ               , 10) \
+        ENUMINST(DT_SYMENT              , 11) \
+        ENUMINST(DT_INIT                , 12) \
+        ENUMINST(DT_FINI                , 13) \
+        ENUMINST(DT_SONAME              , 14) \
+        ENUMINST(DT_RPATH               , 15) \
+        ENUMINST(DT_SYMBOLIC            , 16) \
+        ENUMINST(DT_REL                 , 17) \
+        ENUMINST(DT_RELSZ               , 18) \
+        ENUMINST(DT_RELENT              , 19) \
+        ENUMINST(DT_PLTREL              , 20) \
+        ENUMINST(DT_DEBUG               , 21) \
+        ENUMINST(DT_TEXTREL             , 22) \
+        ENUMINST(DT_JMPREL              , 23) \
         ENUMINST(BindNow                , 24) \
         ENUMINST(InitFunctionsArray     , 25) \
         ENUMINST(FiniFunctionsArray     , 26) \
         ENUMINST(InitArraySize          , 27) \
         ENUMINST(FiniArraySize          , 28) \
+        ENUMINST(DT__MAX                , 30) /* Not really a tag value */ \
 
     /**
      *  ELF DYNAMIC segment entry tags.
      */
-    enum class ElfDynamicEntryTag : int32_t
+    enum ElfDynamicEntryTag : int32_t
     {
         ENUM_ELFDYNAMICENTRYTAG(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfDynamicEntryTag)
+    ENUMOPS_LITE(ElfDynamicEntryTag)
     ENUM_TO_STRING_DECL(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG);
 
 
@@ -387,6 +388,7 @@ namespace Beelzebub { namespace Execution
         ENUMINST(R_AMD64_PLTOFF64  , 31) \
         ENUMINST(R_AMD64_SIZE32    , 32) \
         ENUMINST(R_AMD64_SIZE64    , 33) \
+        ENUMINST(R_AMD64__MAX      , 34) \
 
 
     /**
@@ -397,7 +399,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFRELOCATIONTYPE(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfRelType)
+    ENUMOPS_LITE(ElfRelType)
 
 
     #define ENUM_ELFSYMBOLBINDING(ENUMINST) \
@@ -494,7 +496,7 @@ namespace Beelzebub { namespace Execution
         ENUM_ELFSECTIONINDEXES(ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfSectionIndexes)
+    ENUMOPS_LITE(ElfSectionIndexes)
 
 
     /*  Structures  */
@@ -801,4 +803,241 @@ namespace Beelzebub { namespace Execution
         uint64_t          Value; /*  8 - 15 */
         uint64_t           Size; /* 16 - 23 */
     } __packed;
+
+
+    /**
+     *  Represents the header of the hashtable in an ELF.
+     */
+    struct ElfHashTable
+    {
+        typedef uint32_t BucketType;
+        typedef uint32_t ChainType;
+
+        uint32_t    BucketCount; /*  0 -  3 */
+        uint32_t     ChainCount; /*  4 -  7 */
+
+        inline size_t GetTotalSize() const { return sizeof(*this) + this->BucketCount * sizeof(BucketType) + this->ChainCount * sizeof(ChainType); }
+
+        inline uint32_t const * GetBuckets() const { return reinterpret_cast<uint32_t const *>(this) + 2; }
+        inline uint32_t const * GetChains () const { return reinterpret_cast<uint32_t const *>(this) + 2 + this->BucketCount; }
+
+        inline uint32_t GetBucket(size_t const ind) const { return this->GetBuckets()[ind]; }
+        inline uint32_t GetChain (size_t const ind) const { return this->GetChains()[ind]; }
+    } __packed;
+
+
+    /*  ELF class  */
+
+
+    #define ENUM_ELFVALIDATIONRESULT(ENUMINST) \
+        ENUMINST(Success                    ,  0) \
+        ENUMINST(InvalidClass               ,  1) \
+        ENUMINST(SegmentRangeInvalid        ,  2) \
+        ENUMINST(HeaderRejected             ,  3) \
+        ENUMINST(StructureSizeMismatch      ,  4) \
+        ENUMINST(SegmentHeadersOutOfBounds  ,  5) \
+        ENUMINST(SegmentOutOfBounds         ,  6) \
+        ENUMINST(SegmentNonCongruent        ,  7) \
+        ENUMINST(SegmentsOverlap            ,  8) \
+        ENUMINST(SegmentOutOfLoad           ,  9) \
+        ENUMINST(SegmentInPartialLoad       , 10) \
+        ENUMINST(DtEntryOutOfBounds         , 11) \
+        ENUMINST(DtEntryMissing             , 12) \
+        ENUMINST(DtEntryMultiplicate        , 13) \
+        ENUMINST(DtEntryAddressOutOfBounds  , 14) \
+        ENUMINST(DtEntryAddressInPartialLoad, 15) \
+        ENUMINST(DtInvalidPltRelocationType , 16) \
+        ENUMINST(DtEntryWrongSegmentFlags   , 17) \
+        ENUMINST(Unloadable                 , 18) \
+        ENUMINST(Unrelocatable              , 19) \
+        ENUMINST(LoadFailure                , 20) \
+
+    /**
+     *  Results of ELF validation.
+     */
+    enum class ElfValidationResult : uint8_t
+    {
+        ENUM_ELFVALIDATIONRESULT(ENUMINST_VAL)
+    };
+
+    ENUMOPS_LITE(ElfValidationResult)
+    ENUM_TO_STRING_DECL(ElfValidationResult, ENUM_ELFVALIDATIONRESULT);
+
+
+    /**
+     *  Represents the header of the hashtable in an ELF.
+     */
+    class Elf
+    {
+    public:
+        /*  Types  */
+
+        typedef bool (* SegmentValidatorFunc)(uintptr_t addr, size_t size, ElfProgramHeaderFlags flags, void * data);
+        typedef bool (* HeaderValidatorFunc )(ElfHeader1 const * header, void * data);
+
+        typedef bool (* SegmentMapper32Func  )(uintptr_t loc, ElfProgramHeader_32 const & phdr, void * data);
+        typedef bool (* SegmentUnmapper32Func)(uintptr_t loc, ElfProgramHeader_32 const & phdr, void * data);
+
+        typedef bool (* SegmentMapper64Func  )(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data);
+        typedef bool (* SegmentUnmapper64Func)(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data);
+
+        /*  Constructors  */
+
+        Elf(void const * addr, size_t size);
+
+        inline Elf(uintptr_t addr, size_t size) : Elf(reinterpret_cast<void const *>(addr), size) { }
+
+        /*  Methods  */
+
+    private:
+        ElfValidationResult ValidateParseElf32(SegmentValidatorFunc segval, void * valdata);
+        ElfValidationResult ValidateParseElf64(SegmentValidatorFunc segval, void * valdata);
+
+        ElfValidationResult ValidateParseDt32();
+        ElfValidationResult ValidateParseDt64();
+
+    public:
+        ElfValidationResult ValidateAndParse(HeaderValidatorFunc headerval, SegmentValidatorFunc segval, void * valdata);
+        bool Relocate(uintptr_t newAddress);
+
+        ElfValidationResult LoadAndValidate32(uintptr_t loc, SegmentMapper32Func segmap, SegmentUnmapper32Func segunmap, void * lddata);
+        ElfValidationResult LoadAndValidate64(uintptr_t loc, SegmentMapper64Func segmap, SegmentUnmapper64Func segunmap, void * lddata);
+
+        /*  Properties  */
+
+        inline bool IsElf32() const { return this->H1->Identification.Class == ElfClass::Elf32; }
+        inline bool IsElf64() const { return this->H1->Identification.Class == ElfClass::Elf64; }
+
+        inline ElfHeader2_32 const * GetH2_32() const
+        {
+            return this->IsElf32()
+                ? reinterpret_cast<ElfHeader2_32 const *>(this->H1 + 1)
+                : nullptr;
+        }
+
+        inline ElfHeader2_64 const * GetH2_64() const
+        {
+            return this->IsElf64()
+                ? reinterpret_cast<ElfHeader2_64 const *>(this->H1 + 1)
+                : nullptr;
+        }
+
+        inline ElfHeader3 const * GetH3() const
+        {
+            if (this->IsElf32())
+                return reinterpret_cast<ElfHeader3 const *>(this->Start + sizeof(ElfHeader1) + sizeof(ElfHeader2_32));
+            else if (this->IsElf64())
+                return reinterpret_cast<ElfHeader3 const *>(this->Start + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
+            else
+                return nullptr;
+        }
+
+        inline ElfProgramHeader_32 const * GetPhdrs_32() const
+        {
+            if (this->IsElf32())
+            {
+                auto H2 = reinterpret_cast<ElfHeader2_32 const *>(this->H1 + 1);
+
+                return reinterpret_cast<ElfProgramHeader_32 const *>(this->Start + H2->ProgramHeaderTableOffset);
+            }
+            else
+                return nullptr;
+        }
+
+        inline ElfProgramHeader_64 const * GetPhdrs_64() const
+        {
+            if (this->IsElf64())
+            {
+                auto H2 = reinterpret_cast<ElfHeader2_64 const *>(this->H1 + 1);
+
+                return reinterpret_cast<ElfProgramHeader_64 const *>(this->Start + H2->ProgramHeaderTableOffset);
+            }
+            else
+                return nullptr;
+        }
+
+        /*  Fields  */
+
+        size_t Size;
+
+        union
+        {
+            ElfHeader1 const * H1;
+            uintptr_t Start;
+        };
+
+        uintptr_t BaseAddress;
+        uintptr_t EndAddress;
+        uintptr_t NewLocation;
+
+        bool Symbolic, TextRelocation, Loadable;
+
+        //  Dynamic section/segment.
+
+        union
+        {
+            ElfDynamicEntry_32 const * DT_32;
+            ElfDynamicEntry_64 const * DT_64;
+        };
+
+        size_t DT_Size;
+        size_t DT_Count;
+
+        //  REL relocations
+
+        union
+        {
+            ElfRelEntry_32 const * REL_32;
+            ElfRelEntry_64 const * REL_64;
+        };
+
+        size_t REL_Size;
+
+        //  RELA relocations
+
+        union
+        {
+            ElfRelaEntry_32 const * RELA_32;
+            ElfRelaEntry_64 const * RELA_64;
+        };
+
+        size_t RELA_Size;
+
+        //  PLT relocations
+
+        union
+        {
+            ElfRelEntry_32 const * PLT_REL_32;
+            ElfRelEntry_64 const * PLT_REL_64;
+            ElfRelaEntry_32 const * PLT_RELA_32;
+            ElfRelaEntry_64 const * PLT_RELA_64;
+        };
+
+        size_t PLT_REL_Size;
+        ElfDynamicEntryTag PLT_REL_Type;
+        uintptr_t PLT_GOT;
+
+        //  Dynamic symbol table
+
+        union
+        {
+            ElfSymbol_32 * DYNSYM_32;
+            ElfSymbol_64 * DYNSYM_64;
+        };
+
+        size_t DYNSYM_Count;
+
+        //  String table (for dynamic symbols)
+
+        char const * STRTAB;
+        size_t STRTAB_Size;
+
+        //  Hash table (also for dynamic symbols)
+
+        ElfHashTable const * HASH;
+
+        //  Initializers and finalizers
+
+        ActionFunction0 INIT, FINI;
+    };
 }}

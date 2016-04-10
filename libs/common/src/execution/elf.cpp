@@ -39,6 +39,8 @@
 
 #include <execution/elf.hpp>
 #include <terminals/base.hpp>
+#include <math.h>
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -115,32 +117,32 @@ namespace Beelzebub { namespace Terminals
             , value.Identification.MagicNumber == ElfMagicNumber);
 
         return term << "; Class " << value.Identification.Class
-            << "; D. Encoding " << value.Identification.DataEncoding
-            << "; Version " << value.Identification.Version
-            << "; OS ABI " << value.Identification.OsAbi
-            << "; ABI Version " << value.Identification.AbiVersion
-            << "; Type " << value.Type
-            << "; Machine " << value.Machine
-            << "; Version " << value.Version
-            << "]";
+                    << "; D. Encoding " << value.Identification.DataEncoding
+                    << "; Version " << value.Identification.Version
+                    << "; OS ABI " << value.Identification.OsAbi
+                    << "; ABI Version " << value.Identification.AbiVersion
+                    << "; Type " << value.Type
+                    << "; Machine " << value.Machine
+                    << "; Version " << value.Version
+                    << "]";
     }
 
     template<>
     TerminalBase & operator << <ElfHeader2_32>(TerminalBase & term, ElfHeader2_32 const value)
     {
         return term << "[ELF Header 2, ELF32 | Entry Point " << value.EntryPoint
-            << "; PHTO " << value.ProgramHeaderTableOffset
-            << "; SHTO " << value.SectionHeaderTableOffset
-            << "]";
+                    << "; PHTO " << value.ProgramHeaderTableOffset
+                    << "; SHTO " << value.SectionHeaderTableOffset
+                    << "]";
     }
 
     template<>
     TerminalBase & operator << <ElfHeader2_64>(TerminalBase & term, ElfHeader2_64 const value)
     {
         return term << "[ELF Header 2, ELF64 | Entry Point " << value.EntryPoint
-            << "; PHTO " << value.ProgramHeaderTableOffset
-            << "; SHTO " << value.SectionHeaderTableOffset
-            << "]";
+                    << "; PHTO " << value.ProgramHeaderTableOffset
+                    << "; SHTO " << value.SectionHeaderTableOffset
+                    << "]";
     }
 
     template<>
@@ -154,11 +156,11 @@ namespace Beelzebub { namespace Terminals
         term.WriteUIntD(value.HeaderSize);
 
         return term << "); PHTE Size " << value.ProgramHeaderTableEntrySize
-            << "; PHTE Count " << value.ProgramHeaderTableEntryCount
-            << "; SHTE Size " << value.SectionHeaderTableEntrySize
-            << "; SHTE Count " << value.SectionHeaderTableEntryCount
-            << "; SNST Index " << value.SectionNameStringTableIndex
-            << "]";
+                    << "; PHTE Count " << value.ProgramHeaderTableEntryCount
+                    << "; SHTE Size " << value.SectionHeaderTableEntrySize
+                    << "; SHTE Count " << value.SectionHeaderTableEntryCount
+                    << "; SNST Index " << value.SectionNameStringTableIndex
+                    << "]";
     }
 
     template<>
@@ -273,10 +275,10 @@ namespace Beelzebub { namespace Terminals
         term.Write("; S Index ");
         term.WriteHex16(value.SectionIndex);
 
-        return term  << "; Type " << value.Info.GetType()
-                     << "; Binding " << value.Info.GetBinding()
-                     << "; Visibility " << value.Other.GetVisibility()
-                     << "]";
+        return term << "; Type " << value.Info.GetType()
+                    << "; Binding " << value.Info.GetBinding()
+                    << "; Visibility " << value.Other.GetVisibility()
+                    << "]";
     }
 
     template<>
@@ -289,9 +291,60 @@ namespace Beelzebub { namespace Terminals
         term.Write("; S Index ");
         term.WriteHex16(value.SectionIndex);
 
-        return term  << "; Type " << value.Info.GetType()
-                     << "; Binding " << value.Info.GetBinding()
-                     << "; Visibility " << value.Other.GetVisibility()
-                     << "]";
+        return term << "; Type " << value.Info.GetType()
+                    << "; Binding " << value.Info.GetBinding()
+                    << "; Visibility " << value.Other.GetVisibility()
+                    << "]";
     }
 }}
+
+/****************
+    ELF class
+****************/
+
+ENUM_TO_STRING_EX2(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, Beelzebub::Execution)
+
+/*  Constructors  */
+
+Elf::Elf(void const * addr, size_t size)
+    : Size( size), H1(reinterpret_cast<ElfHeader1 const *>(addr))
+    , BaseAddress(~((uintptr_t)0)), EndAddress(0), NewLocation(0)
+    , Symbolic(false), TextRelocation(false), Loadable(false)
+    , DT_32(nullptr), DT_Size(0), DT_Count(0)
+    , REL_32(nullptr), REL_Size(0), RELA_32(nullptr), RELA_Size(0)
+    , PLT_REL_32(nullptr), PLT_REL_Size(0), PLT_REL_Type(DT_NULL), PLT_GOT(0)
+    , DYNSYM_32(nullptr), DYNSYM_Count(0)
+    , STRTAB(nullptr), STRTAB_Size(0)
+    , HASH(nullptr), INIT(nullptr), FINI(nullptr)
+{
+
+}
+
+/*  Methods  */
+
+ElfValidationResult Elf::ValidateAndParse(Elf::HeaderValidatorFunc headerval, Elf::SegmentValidatorFunc segval, void * valdata)
+{
+    if unlikely(headerval != nullptr && !headerval(this->H1, valdata))
+        return ElfValidationResult::HeaderRejected;
+
+    switch (this->H1->Identification.Class)
+    {
+    case ElfClass::Elf32:
+        return this->ValidateParseElf32(segval, valdata);
+    case ElfClass::Elf64:
+        return this->ValidateParseElf64(segval, valdata);
+    default:
+        return ElfValidationResult::InvalidClass;
+    }
+}
+
+bool Elf::Relocate(uintptr_t newAddress)
+{
+    if (!this->Loadable)
+        return false;
+
+    ptrdiff_t const diff = newAddress - this->BaseAddress;
+
+#define RELOCATE(var) \
+    this->var = reinterpret_cast<decltype(this->var)>(reinterpret_cast<uintptr_t>(this->var));
+}
