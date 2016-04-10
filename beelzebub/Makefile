@@ -140,13 +140,14 @@ INCFLAGS	+= -I./../acpica/include
 # Libraries
 SLIBRARIES	:= common.$(ARC)
 LIBRARIES	:= $(patsubst %,-l%,$(SLIBRARIES)) 
-SLIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(SLIBRARIES)) 
+SLIBFILES	:= $(patsubst %,$(SYSROOT)/usr/lib/lib%.a,$(SLIBRARIES)) 
 
 # Bootstrapping
 CFLAGS		+= $(INCFLAGS)
 CXXFLAGS	+= $(INCFLAGS)
-LDFLAGS		+= -L$(PREFIX)/libs 
-LOFLAGS		+= -L$(PREFIX)/libs 
+LDFLAGS		+= -L$(SYSROOT)/usr/lib 
+LOFLAGS		+= -L$(SYSROOT)/usr/lib 
+#	I don't want to set the sysroot here.
 
 ################################################################################
 #                                   TARGETS                                    #

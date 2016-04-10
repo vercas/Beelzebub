@@ -63,7 +63,7 @@ ifeq ($(ARC),amd64)
 	MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin 
 endif
 
-MISCELLANEOUS_FILES		+= $(PREFIX)/bin/loadtest.exe $(PREFIX)/libs/libbeelzebub.$(ARC).so 
+MISCELLANEOUS_FILES		+= $(PREFIX)/bin/loadtest.exe $(SYSROOT)/usr/lib/libbeelzebub.$(ARC).so 
 MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe \
                            $(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)/libbeelzebub.$(ARC).so 
 
@@ -161,6 +161,6 @@ $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe: $(PREFIX)/bin/loadtest.exe $(
 	@ echo "/CPY:" $< ">" $@
 	@ cp $< $@
 
-$(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)/libbeelzebub.$(ARC).so: $(PREFIX)/libs/libbeelzebub.$(ARC).so $(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)
+$(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)/libbeelzebub.$(ARC).so: $(SYSROOT)/usr/lib/libbeelzebub.$(ARC).so $(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)
 	@ echo "/CPY:" $< ">" $@
 	@ cp $< $@

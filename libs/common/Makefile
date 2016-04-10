@@ -34,7 +34,7 @@ include ../../Beelzebub.mk
 BUILD_DIR			:= $(BUILD_HOST)/$(ARC)
 LIB_BIN				:= libcommon.$(ARC).a
 LIB_PATH			:= $(BUILD_HOST)/$(LIB_BIN)
-LIB_INSTALL_DIR		:= $(PREFIX)/libs
+LIB_INSTALL_DIR		:= $(SYSROOT)/usr/lib
 LIB_INSTALL_PATH	:= $(LIB_INSTALL_DIR)/$(LIB_BIN)
 
 ################################################################################

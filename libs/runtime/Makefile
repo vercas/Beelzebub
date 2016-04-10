@@ -34,7 +34,7 @@ include ../../Beelzebub.mk
 BUILD_DIR			:= $(BUILD_HOST)/$(ARC)
 LIB_BIN				:= libbeelzebub.$(ARC).so
 LIB_PATH			:= $(BUILD_HOST)/$(LIB_BIN)
-LIB_INSTALL_DIR		:= $(PREFIX)/libs
+LIB_INSTALL_DIR		:= $(SYSROOT)/usr/lib
 LIB_INSTALL_PATH	:= $(LIB_INSTALL_DIR)/$(LIB_BIN)
 
 ################################################################################
@@ -117,13 +117,11 @@ include ../../Sources.mk
 # Libraries
 SLIBRARIES	:= common.$(ARC)
 LIBRARIES	:= $(patsubst %,-l%,$(SLIBRARIES)) 
-SLIBFILES	:= $(patsubst %,$(PREFIX)/libs/lib%.a,$(SLIBRARIES)) 
+SLIBFILES	:= $(patsubst %,$(SYSROOT)/usr/lib/lib%.a,$(SLIBRARIES)) 
 
 # Bootstrapping
 CFLAGS		+= $(INCFLAGS) 
 CXXFLAGS	+= $(INCFLAGS) 
-LDFLAGS		+= -L$(PREFIX)/libs 
-LOFLAGS		+= -L$(PREFIX)/libs 
 
 ################################################################################
 #                                   TARGETS                                    #
