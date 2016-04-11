@@ -207,7 +207,7 @@ namespace Beelzebub { namespace Memory
             , uintptr_t const vaddr, bool const broadcast = true);
 
         __hot static __noinline Handle Translate(Execution::Process * const proc
-            , uintptr_t const vaddr, paddr_t & paddr);
+            , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true);
 
         /*  Allocation  */
 

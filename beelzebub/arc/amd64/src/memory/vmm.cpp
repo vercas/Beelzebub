@@ -588,6 +588,25 @@ Handle Vmm::InvalidatePage(Process * const proc, uintptr_t const vaddr
     return HandleResult::Okay;
 }
 
+Handle Vmm::Translate(Execution::Process * const proc, uintptr_t const vaddr, paddr_t & paddr, bool const lock)
+{
+    return TryTranslate(proc, vaddr, [&paddr](Pml1Entry * pE)
+    {
+        if likely(pE->GetPresent())
+        {
+            paddr = pE->GetAddress();
+
+            return HandleResult::Okay;
+        }
+        else
+        {
+            paddr = nullpaddr;
+
+            return HandleResult::PageUnmapped;
+        }
+    }, lock);
+}
+
 /*  Allocation  */
 
 Handle Vmm::AllocatePages(Process * const proc, size_t const count
