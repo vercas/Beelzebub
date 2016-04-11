@@ -40,7 +40,7 @@
 #ifdef __BEELZEBUB__TEST_APP
 
 #include <tests/app.hpp>
-#include <execution/elf.hpp>
+#include <execution/runtime64.hpp>
 #include <execution/thread.hpp>
 #include <execution/thread_init.hpp>
 #include <execution/ring_3.hpp>
@@ -49,7 +49,6 @@
 #include <kernel.hpp>
 #include <entry.h>
 #include <system/cpu.hpp>
-#include <execution/elf_default_mapper.hpp>
 
 #include <string.h>
 #include <math.h>
@@ -63,18 +62,7 @@ using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-static uint8_t * executable;
-// static uintptr_t entryPoint;
-
-// static ElfProgramHeader_64 * segments;
-// static size_t segmentCount;
-
-// static ElfRelaEntry_64 * relocationsA, * relocationsJ;
-// static size_t relocationsACount, relocationsJCount;
-
-// static ElfSymbol_64 * symbols;
-
-static uintptr_t executable_base = 0x1000000;
+static uintptr_t rtlib_base = 0x1000000;
 
 static Thread testThread;
 static Thread testWatcher;
@@ -122,115 +110,9 @@ Handle HandleLoadtest(size_t const index
         , "Unusual section header type: %us; expected %us."
         , (size_t)(eh3->SectionHeaderTableEntrySize), sizeof(ElfSectionHeader_64));
 
-    // msg("%nSections:%n");
-
-    // ElfSectionHeader_64 * sectionCursor = reinterpret_cast<ElfSectionHeader_64 *>(
-    //     addr + eh2->SectionHeaderTableOffset
-    // );
-
-    // char const * sectionNames = reinterpret_cast<char const *>(addr + sectionCursor[eh3->SectionNameStringTableIndex].Offset);
-
-    // for (size_t i = eh3->SectionHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++sectionCursor)
-    // {
-    //     msg("\t#%us:%n"
-    //         "\t\tName: %X4 (%s)%n"
-    //         "\t\tType: %u8 (%s)%n"
-    //         "\t\tFlags:       %X8%n"
-    //         "\t\tAddress:     %X8%n"
-    //         "\t\tOffset:      %X8%n"
-    //         "\t\tSize:        %X8%n"
-    //         "\t\tLink:        %X4%n"
-    //         "\t\tInfo:        %X4%n"
-    //         "\t\tAlignment:   %X8%n"
-    //         "\t\tEntrry Size: %X8%n"
-    //         , j
-    //         , sectionCursor->Name, sectionNames + sectionCursor->Name
-    //         , (uint64_t)(sectionCursor->Type), EnumToString(sectionCursor->Type)
-    //         , sectionCursor->Flags
-    //         , sectionCursor->Address
-    //         , sectionCursor->Offset
-    //         , sectionCursor->Size
-    //         , sectionCursor->Link
-    //         , sectionCursor->Info
-    //         , sectionCursor->AddressAlignment
-    //         , sectionCursor->EntrySize
-    //     );
-    // }
-
-    DEBUG_TERM << EndLine << "Segments:" << EndLine;
-
-    ElfProgramHeader_64 * programCursor = reinterpret_cast<ElfProgramHeader_64 *>(
-        addr + eh2->ProgramHeaderTableOffset
-    );
-
-    // segments = programCursor;
-    // segmentCount = eh3->ProgramHeaderTableEntryCount;
-
-    for (size_t i = eh3->ProgramHeaderTableEntryCount, j = 1; i > 0; --i, ++j, ++programCursor)
-    {
-        // msg("\t#%us:%n"
-        //     "\t\tType: %u8 (%s)%n"
-        //     "\t\tFlags:     %X4%n"
-        //     "\t\tOffset:    %X8%n"
-        //     "\t\tVAddr:     %X8%n"
-        //     "\t\tPAddr:     %X8%n"
-        //     "\t\tVSize:     %X8%n"
-        //     "\t\tPSize:     %X8%n"
-        //     "\t\tAlignment: %X8%n"
-        //     , j
-        //     , (uint64_t)(programCursor->Type), EnumToString(programCursor->Type)
-        //     , programCursor->Flags
-        //     , programCursor->Offset
-        //     , programCursor->VAddr
-        //     , programCursor->PAddr
-        //     , programCursor->PSize
-        //     , programCursor->VSize
-        //     , programCursor->Alignment
-        // );
-
-        DEBUG_TERM << "#" << j << ": " << *programCursor << EndLine;
-
-        if (programCursor->Type == ElfProgramHeaderType::Dynamic)
-        {
-            msg("\tEntries:%n");
-
-            ElfDynamicEntry_64 * dynEntCursor = reinterpret_cast<ElfDynamicEntry_64 *>(
-                addr + programCursor->Offset
-            );
-            size_t offset = 0, k = 0;
-
-            do
-            {
-                DEBUG_TERM << "\t#" << k << ": " << *dynEntCursor << EndLine;
-
-                ++dynEntCursor;
-                offset += sizeof(ElfDynamicEntry_64);
-                ++k;
-            } while (offset < programCursor->PSize && dynEntCursor->Tag != DT_NULL);
-        }
-    }
-
     DEBUG_TERM << EndLine
         << "############################### LOADTEST APP END ###############################"
         << EndLine;
-
-    return HandleResult::Okay;
-}
-
-Handle HandleRuntimeLib(size_t const index
-                      , jg_info_module_t const * const module
-                      , vaddr_t const vaddr
-                      , size_t const size)
-{
-    uint8_t * const addr = reinterpret_cast<uint8_t *>(vaddr);
-    // size_t const len = module->length;
-
-    executable = addr;
-
-    new (&rtElf) Elf(addr, size);
-
-    DEBUG_TERM  << "Runtime lib validation/parse result: "
-                << rtElf.ValidateAndParse(nullptr, nullptr, nullptr) << EndLine;
 
     return HandleResult::Okay;
 }
@@ -240,8 +122,6 @@ Spinlock<> TestRegionLock;
 void TestApplication()
 {
     TestRegionLock.Acquire();
-
-    DEBUG_TERM << "Library will be loaded with base " << Hexadecimal << executable_base << Decimal << "." << EndLine;
 
     new (&testProcess) Process();
     //  Initialize a new process for thread series B.
@@ -360,13 +240,13 @@ void * JumpToRing3(void * arg)
         , userStackBottom, stackPaddr
         , res);
 
-    //  Then, relocate the ELF.
+    //  Then, deploy the runtime.
 
-    DEBUG_TERM_ << rtElf.Relocate(executable_base) << EndLine;
+    res = Runtime64::Deploy(&testProcess, rtlib_base);
 
-    //  Then map the segments...
-
-    DEBUG_TERM_ << rtElf.LoadAndValidate64(&MapSegment64, nullptr, nullptr) << EndLine;
+    ASSERT(res.IsOkayResult()
+        , "Failed to deploy runtime64 library into test app process: %H."
+        , res);
 
     //  Finally, a region for test incrementation.
 
@@ -376,9 +256,9 @@ void * JumpToRing3(void * arg)
 
     //while (true) CpuInstructions::Halt();
 
-    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(rtElf.GetEntryPoint()));
+    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(rtlib_base + Runtime64::Template.GetEntryPoint()));
 
-    return GoToRing3_64(rtElf.GetEntryPoint(), userStackTop);
+    return GoToRing3_64(rtlib_base + Runtime64::Template.GetEntryPoint(), userStackTop);
 }
 
 void * WatchTestThread(void *)

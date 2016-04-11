@@ -51,10 +51,5 @@ __cold __noinline void TestApplication();
  */
 __startup Beelzebub::Handle HandleLoadtest(size_t const index
                                          , jg_info_module_t const * const module
-                                         , const vaddr_t vaddr
+                                         , vaddr_t const vaddr
                                          , size_t const size);
-
-__startup Beelzebub::Handle HandleRuntimeLib(size_t const index
-                                           , jg_info_module_t const * const module
-                                           , const vaddr_t vaddr
-                                           , size_t const size);

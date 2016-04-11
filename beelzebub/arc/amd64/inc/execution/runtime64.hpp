@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,73 +39,36 @@
 
 #pragma once
 
-#include <synchronization/spinlock_uninterruptible.hpp>
-#include <synchronization/rw_spinlock_uninterruptible.hpp>
-#include <synchronization/atomic.hpp>
-
-#include <memory/regions.hpp>
-#include <utils/avl_tree.hpp>
+#include <execution/elf.hpp>
+#include <execution/process.hpp>
+#include <jegudiel.h>
 
 namespace Beelzebub { namespace Execution
 {
     /**
-     *  A unit of isolation.
+     *  Represents a processing unit of the system.
      */
-    class Process
+    class Runtime64
     {
     public:
+        /*  Statics  */
+
+        static Elf Template;
 
         /*  Constructors  */
 
-        inline Process()
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(nullvaddr)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(nullpaddr)
-            , VasLock()
-            , Vas()
-            , RuntimeLoaded(false)
-        {
+    protected:
+        Runtime64() = default;
 
-        }
+    public:
+        Runtime64(Runtime64 const &) = delete;
+        Runtime64 & operator =(Runtime64 const &) = delete;
 
-        Process(Process const &) = delete;
-        Process & operator =(Process const &) = delete;
+        /*  Methods  */
 
-        inline Process(paddr_t const pt)
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(1 << 24)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(pt)
-            , VasLock()
-            , Vas()
-            , RuntimeLoaded(false)
-        {
+        static Handle HandleTemplate(size_t index, jg_info_module_t const * module
+                                   , vaddr_t vaddr, size_t size);
 
-        }
-
-        /*  Operations  */
-
-        __hot Handle SwitchTo(Process * const other);
-
-        Synchronization::Atomic<size_t> ActiveCoreCount;
-
-        /*  Memory  */
-
-        Synchronization::SpinlockUninterruptible<> UserHeapLock;
-        Synchronization::Atomic<vaddr_t> UserHeapCursor;
-        Synchronization::Atomic<bool> UserHeapOverflown;
-
-        Synchronization::SpinlockUninterruptible<> AlienPagingTablesLock;
-        paddr_t PagingTable;
-
-        Synchronization::RwSpinlockUninterruptible VasLock;
-        Utils::AvlTree<Memory::MemoryRange> Vas;
-
-        bool RuntimeLoaded;
+        static Handle Deploy(Process * target, uintptr_t base);
     };
 }}

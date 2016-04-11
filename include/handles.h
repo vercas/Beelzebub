@@ -174,6 +174,13 @@
     /*  An object allocator has reached maximum capacity. */ \
     ENUMINST(ObjaMaximumCapacity      , 0x72U, "Obja M cap.") \
     \
+    /*  An executable image failed to load. */ \
+    ENUMINST(ImageLoadingFailure      , 0x80U, "Img ld fail") \
+    /*  An executable image failed to relocate. */ \
+    ENUMINST(ImageRelocationFailure   , 0x81U, "Img rl fail") \
+    /*  The runtime library seems to not match the kernel. */ \
+    ENUMINST(RuntimeMismatch          , 0x82U, "RT mismatch") \
+    \
     /*  A process/thread/task (unit of work) requested immediate termination. */ \
     ENUMINST(ImmediateTermination     , 0xFDU, "Imm. termin") \
     /*  An assertion was failed. */ \

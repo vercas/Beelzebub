@@ -37,17 +37,9 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <self.hpp>
 
-#include <execution/elf.hpp>
+using namespace Beelzebub;
+using namespace Beelzebub::Execution;
 
-namespace Beelzebub { namespace Execution
-{
-    struct DefaultMappingOptions
-    {
-        bool AllowInKernel;
-    };
-
-    bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data);
-    bool UnmapSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data);
-}}
+Elf Beelzebub::Self;

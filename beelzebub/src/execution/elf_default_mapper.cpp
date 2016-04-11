@@ -181,7 +181,7 @@ rollbackMapping:
     return false;
 }
 
-bool SegmentUnmapper64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data)
+bool Execution::UnmapSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data)
 {
     vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
     vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);

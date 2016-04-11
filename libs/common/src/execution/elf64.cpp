@@ -43,72 +43,9 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 
-enum class RangeLoadStatus
+static inline RangeLoadStatus CheckRangeLoaded(Elf const * elf, uint64_t rStart, uint64_t rSize, RangeLoadOptions opts = RangeLoadOptions::None)
 {
-    FullyLoaded = 0,
-    CompletelyAbsent = 1,
-    PartiallyLoaded = 2,
-    OptionsNotMet = 3,
-};
-
-enum class RangeLoadOptions
-{
-    None = 0,
-    Writable = 1,
-    Executable = 2,
-};
-
-static RangeLoadStatus CheckRangeLoaded(Elf const * elf, uint64_t rStart, uint64_t rSize, RangeLoadOptions opts = RangeLoadOptions::None)
-{
-    auto phdr_count = elf->GetH3()->ProgramHeaderTableEntryCount;
-    auto phdrs = elf->GetPhdrs_64();
-
-    for (size_t i = 0; i < phdr_count; ++i)
-    {
-        auto load = phdrs[i];
-
-        if (load.Type != ElfProgramHeaderType::Load)
-            continue;
-
-        //  Note: It is assumed that the given range can only be within one
-        //  single load segment.
-
-        auto intersection = IntersectMemoryRanges({(uintptr_t)rStart, (size_t)rSize}, {load.VAddr, load.VSize});
-
-        if likely(intersection.Size == 0)
-            continue;
-        //  Not this segment.
-
-        if likely(intersection.Start == rStart && intersection.Size == rSize)
-        {
-            switch (opts)
-            {
-            case RangeLoadOptions::Writable:
-                if likely((load.Flags & ElfProgramHeaderFlags::Writable) != 0)
-                    return RangeLoadStatus::FullyLoaded;
-                else
-                    return RangeLoadStatus::OptionsNotMet;
-            case RangeLoadOptions::Executable:
-                if likely((load.Flags & ElfProgramHeaderFlags::Executable) != 0)
-                    return RangeLoadStatus::FullyLoaded;
-                else
-                    return RangeLoadStatus::OptionsNotMet;
-            default:
-                //  No speshul options.
-                return RangeLoadStatus::FullyLoaded;
-            }
-        }
-        //  This is it!
-
-        //  If this point is reached, the given range fits into this load segment
-        //  only partially. As load segments don't overlap in virtual memory,
-        //  and the given range cannot sit in more than one segment, this isn't
-        //  tolerated.
-
-        return RangeLoadStatus::PartiallyLoaded;
-    }
-
-    return RangeLoadStatus::CompletelyAbsent;
+    return elf->CheckRangeLoaded64(rStart, rSize, opts);
 }
 
 #include <execution/elf64.arc.inc>
@@ -359,7 +296,7 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
         //  If that happens, though, send a bag of coal to the developers of
         //  your linker.
 
-        switch (CheckRangeLoaded(this, nonload.VAddr, nonload.VSize))
+        switch (this->CheckRangeLoaded64(nonload.VAddr, nonload.VSize))
         {
         case RangeLoadStatus::CompletelyAbsent:
             return ElfValidationResult::SegmentOutOfLoad;
@@ -528,4 +465,57 @@ Elf::Symbol Elf::GetSymbol64(uint32_t index) const
     }
 
     return ret;
+}
+
+RangeLoadStatus Elf::CheckRangeLoaded64(uint64_t rStart, uint64_t rSize, RangeLoadOptions opts) const
+{
+    auto phdr_count = this->GetH3()->ProgramHeaderTableEntryCount;
+    auto phdrs = this->GetPhdrs_64();
+
+    for (size_t i = 0; i < phdr_count; ++i)
+    {
+        auto load = phdrs[i];
+
+        if (load.Type != ElfProgramHeaderType::Load)
+            continue;
+
+        //  Note: It is assumed that the given range can only be within one
+        //  single load segment.
+
+        auto intersection = IntersectMemoryRanges({(uintptr_t)rStart, (size_t)rSize}, {load.VAddr, load.VSize});
+
+        if likely(intersection.Size == 0)
+            continue;
+        //  Not this segment.
+
+        if likely(intersection.Start == rStart && intersection.Size == rSize)
+        {
+            switch (opts)
+            {
+            case RangeLoadOptions::Writable:
+                if likely((load.Flags & ElfProgramHeaderFlags::Writable) != 0)
+                    return RangeLoadStatus::FullyLoaded;
+                else
+                    return RangeLoadStatus::OptionsNotMet;
+            case RangeLoadOptions::Executable:
+                if likely((load.Flags & ElfProgramHeaderFlags::Executable) != 0)
+                    return RangeLoadStatus::FullyLoaded;
+                else
+                    return RangeLoadStatus::OptionsNotMet;
+            default:
+                //  No speshul options.
+                return RangeLoadStatus::FullyLoaded;
+            }
+        }
+        //  This is it!
+
+        //  If this point is reached, the given range fits into this load segment
+        //  only partially. As load segments don't overlap in virtual memory,
+        //  and the given range cannot sit in more than one segment, this isn't
+        //  tolerated.
+
+        return RangeLoadStatus::PartiallyLoaded;
+    }
+
+    return RangeLoadStatus::CompletelyAbsent;
 }

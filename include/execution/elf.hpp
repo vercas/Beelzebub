@@ -862,6 +862,8 @@ namespace Beelzebub { namespace Execution
         ENUMINST(RelocationOutOfLoad        , 25) \
         ENUMINST(RelocationInPartialLoad    , 26) \
         ENUMINST(RelocationUnchangeable     , 27) \
+        ENUMINST(WrongMagicNumber           , 28) \
+        ENUMINST(WrongEndianness            , 29) \
 
     /**
      *  Results of ELF validation.
@@ -873,6 +875,22 @@ namespace Beelzebub { namespace Execution
 
     ENUMOPS_LITE(ElfValidationResult)
     ENUM_TO_STRING_DECL(ElfValidationResult, ENUM_ELFVALIDATIONRESULT);
+
+
+    enum class RangeLoadStatus
+    {
+        FullyLoaded = 0,
+        CompletelyAbsent = 1,
+        PartiallyLoaded = 2,
+        OptionsNotMet = 3,
+    };
+
+    enum class RangeLoadOptions
+    {
+        None = 0,
+        Writable = 1,
+        Executable = 2,
+    };
 
 
     /**
@@ -906,6 +924,10 @@ namespace Beelzebub { namespace Execution
             bool Exists;
         };
 
+        /*  Statics  */
+
+        static uint32_t Hash(char const * name);
+
         /*  Constructors  */
 
         Elf(void const * addr, size_t size);
@@ -926,9 +948,6 @@ namespace Beelzebub { namespace Execution
         Symbol GetSymbol32(uint32_t index) const;
         Symbol GetSymbol64(uint32_t index) const;
 
-        Symbol GetSymbol32(char const * name) const;
-        Symbol GetSymbol64(char const * name) const;
-
     public:
         ElfValidationResult ValidateAndParse(HeaderValidatorFunc headerval, SegmentValidatorFunc segval, void * valdata);
         ElfValidationResult Relocate(uintptr_t newAddress);
@@ -938,6 +957,9 @@ namespace Beelzebub { namespace Execution
 
         Symbol GetSymbol(uint32_t index) const;
         Symbol GetSymbol(char const * name) const;
+
+        RangeLoadStatus CheckRangeLoaded32(uint32_t rStart, uint32_t rSize, RangeLoadOptions opts = RangeLoadOptions::None) const;
+        RangeLoadStatus CheckRangeLoaded64(uint64_t rStart, uint64_t rSize, RangeLoadOptions opts = RangeLoadOptions::None) const;
 
         /*  Properties  */
 
@@ -1014,17 +1036,20 @@ namespace Beelzebub { namespace Execution
 
         /*  Fields  */
 
-        size_t Size;
+        union { size_t Size; uint64_t Dummy0; };
 
         union
         {
             ElfHeader1 const * H1;
             uintptr_t Start;
+            uint64_t Dummy1;
         };
 
-        uintptr_t BaseAddress;
-        uintptr_t EndAddress;
-        uintptr_t NewLocation;
+        union { uintptr_t BaseAddress; uint64_t Dummy2; };
+
+        union { uintptr_t EndAddress; uint64_t Dummy3; };
+
+        union { uintptr_t NewLocation; uint64_t Dummy4; };
 
         bool Symbolic, TextRelocation, Loadable;
 
@@ -1034,10 +1059,12 @@ namespace Beelzebub { namespace Execution
         {
             ElfDynamicEntry_32 const * DT_32;
             ElfDynamicEntry_64 const * DT_64;
+            uint64_t Dummy5;
         };
 
-        size_t DT_Size;
-        size_t DT_Count;
+        union { size_t DT_Size; uint64_t Dummy6; };
+
+        union { size_t DT_Count; uint64_t Dummy7; };
 
         //  REL relocations
 
@@ -1045,9 +1072,10 @@ namespace Beelzebub { namespace Execution
         {
             ElfRelEntry_32 const * REL_32;
             ElfRelEntry_64 const * REL_64;
+            uint64_t Dummy8;
         };
 
-        size_t REL_Size;
+        union { size_t REL_Size; uint64_t Dummy9; };
 
         //  RELA relocations
 
@@ -1055,9 +1083,10 @@ namespace Beelzebub { namespace Execution
         {
             ElfRelaEntry_32 const * RELA_32;
             ElfRelaEntry_64 const * RELA_64;
+            uint64_t Dummy10;
         };
 
-        size_t RELA_Size;
+        union { size_t RELA_Size; uint64_t Dummy11; };
 
         //  PLT relocations
 
@@ -1067,11 +1096,12 @@ namespace Beelzebub { namespace Execution
             ElfRelEntry_64 const * PLT_REL_64;
             ElfRelaEntry_32 const * PLT_RELA_32;
             ElfRelaEntry_64 const * PLT_RELA_64;
+            uint64_t Dummy12;
         };
 
-        size_t PLT_REL_Size;
+        union { size_t PLT_REL_Size; uint64_t Dummy13; };
         ElfDynamicEntryTag PLT_REL_Type;
-        uintptr_t PLT_GOT;
+        union { uintptr_t PLT_GOT; uint64_t Dummy14; };
 
         //  Dynamic symbol table
 
@@ -1079,21 +1109,23 @@ namespace Beelzebub { namespace Execution
         {
             ElfSymbol_32 * DYNSYM_32;
             ElfSymbol_64 * DYNSYM_64;
+            uint64_t Dummy15;
         };
 
-        size_t DYNSYM_Count;
+        union { size_t DYNSYM_Count; uint64_t Dummy16; };
 
         //  String table (for dynamic symbols)
 
-        char const * STRTAB;
-        size_t STRTAB_Size;
+        union { char const * STRTAB; uint64_t Dummy17; };
+        union { size_t STRTAB_Size; uint64_t Dummy18; };
 
         //  Hash table (also for dynamic symbols)
 
-        ElfHashTable const * HASH;
+        union { ElfHashTable const * HASH; uint64_t Dummy19; };
 
         //  Initializers and finalizers
 
-        ActionFunction0 INIT, FINI;
+        union { ActionFunction0 INIT; uint64_t Dummy20; };
+        union { ActionFunction0 FINI; uint64_t Dummy21; };
     };
 }}

@@ -39,6 +39,7 @@
 
 #include <execution/elf.hpp>
 #include <terminals/base.hpp>
+#include <string.h>
 #include <math.h>
 #include <debug.hpp>
 
@@ -47,7 +48,7 @@ using namespace Beelzebub::Execution;
 
 /*  Constants  */
 
-uint32_t Beelzebub::Execution::ElfMagicNumber = 0x464C457F;
+uint32_t Execution::ElfMagicNumber = 0x464C457F;
 
 /*  Enum-to-string  */
 
@@ -275,7 +276,7 @@ namespace Beelzebub { namespace Terminals
         term.Write("[ELF32 Symbol | Value ");
         term.WriteHex32(value.Value);
         term.Write("; Size ");
-        term.WriteHex32(value.Size);
+        term.WriteUIntD(value.Size);
         term.Write("; S Index ");
         term.WriteHex16(value.SectionIndex);
 
@@ -291,7 +292,7 @@ namespace Beelzebub { namespace Terminals
         term.Write("[ELF64 Symbol | Value ");
         term.WriteHex64(value.Value);
         term.Write("; Size ");
-        term.WriteHex64(value.Size);
+        term.WriteUIntD(value.Size);
         term.Write("; S Index ");
         term.WriteHex16(value.SectionIndex);
 
@@ -300,11 +301,45 @@ namespace Beelzebub { namespace Terminals
                     << "; Visibility " << value.Other.GetVisibility()
                     << "]";
     }
+
+    template<>
+    TerminalBase & operator << <Elf::Symbol>(TerminalBase & term, Elf::Symbol const value)
+    {
+        term.Write("[ELF Symbol | Value ");
+        term.WriteHex64(value.Value);
+        term.Write("; Size ");
+        term.WriteUIntD(value.Size);
+
+        return term << "; Name " << value.Name
+                    << "; Type " << value.Type
+                    << "; Binding " << value.Binding
+                    << "; Visibility " << value.Visibility
+                    << "]";
+    }
 }}
 
 /****************
     ELF class
 ****************/
+
+/*  Statics  */
+
+uint32_t Elf::Hash(char const * name)
+{
+    uint32_t h = 0, g;
+ 
+    while (*name)
+    {
+        h = (h << 4) + *(reinterpret_cast<uint8_t const *>(name++));
+
+        if ((g = h & 0xF0000000))
+            h ^= g >> 24;
+
+        h &= ~g;
+    }
+
+    return h;
+}
 
 /*  Constructors  */
 
@@ -328,6 +363,12 @@ ElfValidationResult Elf::ValidateAndParse(Elf::HeaderValidatorFunc headerval, El
 {
     if unlikely(headerval != nullptr && !headerval(this->H1, valdata))
         return ElfValidationResult::HeaderRejected;
+
+    if (this->H1->Identification.MagicNumber != ElfMagicNumber)
+        return ElfValidationResult::WrongMagicNumber;
+
+    if (this->H1->Identification.DataEncoding != ElfDataEncoding::LittleEndian)
+        return ElfValidationResult::WrongEndianness;
 
     switch (this->H1->Identification.Class)
     {
@@ -386,4 +427,36 @@ Elf::Symbol Elf::GetSymbol(uint32_t index) const
     default:
         return {0};
     }
+}
+
+Elf::Symbol Elf::GetSymbol(char const * name) const
+{
+    if unlikely(!this->Loadable)
+        return {0};
+
+    if unlikely(this->NewLocation == 0 && this->H1->Type == ElfFileType::Dynamic)
+        return {0};
+
+    if unlikely(this->HASH == nullptr || this->DYNSYM_64 == nullptr || this->STRTAB == nullptr)
+        return {0};
+
+    //  Step one is obtaining the hash.
+
+    uint32_t hash = Hash(name) % this->HASH->BucketCount;
+
+    //  Step two is walking the hash chain...
+
+    unsigned id = this->HASH->GetBucket(hash);
+
+    do
+    {
+        Symbol res = this->GetSymbol64(id);
+
+        if (strcmp(res.Name, name) == 0)
+            return res;
+        //  Found, apparently.
+    } while((id = this->HASH->GetChain(id)) != 0 && id != this->HASH->GetBucket(hash));
+
+    return {0};
+    //  Not found. :c
 }

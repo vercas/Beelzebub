@@ -56,6 +56,7 @@
 #include <system/fpu.hpp>
 
 #include <execution/images.hpp>
+#include <execution/runtime64.hpp>
 
 #include <kernel.hpp>
 #include <entry.h>
@@ -626,11 +627,11 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
 
     if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
         return HandleKernelModule(index, module, vaddr, size);
+    else if (memeq("runtime64", JG_INFO_STRING_EX + module->name, 10) && CHECK_TEST(APP))
+        return Runtime64::HandleTemplate(index, module, vaddr, size);
 #ifdef __BEELZEBUB__TEST_APP
     else if (memeq("loadtest", JG_INFO_STRING_EX + module->name, 9) && CHECK_TEST(APP))
         return HandleLoadtest(index, module, vaddr, size);
-    else if (memeq("runtime64", JG_INFO_STRING_EX + module->name, 10) && CHECK_TEST(APP))
-        return HandleRuntimeLib(index, module, vaddr, size);
 #endif
 
     return res;

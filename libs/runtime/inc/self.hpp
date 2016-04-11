@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,73 +39,9 @@
 
 #pragma once
 
-#include <synchronization/spinlock_uninterruptible.hpp>
-#include <synchronization/rw_spinlock_uninterruptible.hpp>
-#include <synchronization/atomic.hpp>
+#include <execution/elf.hpp>
 
-#include <memory/regions.hpp>
-#include <utils/avl_tree.hpp>
-
-namespace Beelzebub { namespace Execution
+namespace Beelzebub
 {
-    /**
-     *  A unit of isolation.
-     */
-    class Process
-    {
-    public:
-
-        /*  Constructors  */
-
-        inline Process()
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(nullvaddr)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(nullpaddr)
-            , VasLock()
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        Process(Process const &) = delete;
-        Process & operator =(Process const &) = delete;
-
-        inline Process(paddr_t const pt)
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(1 << 24)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(pt)
-            , VasLock()
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        /*  Operations  */
-
-        __hot Handle SwitchTo(Process * const other);
-
-        Synchronization::Atomic<size_t> ActiveCoreCount;
-
-        /*  Memory  */
-
-        Synchronization::SpinlockUninterruptible<> UserHeapLock;
-        Synchronization::Atomic<vaddr_t> UserHeapCursor;
-        Synchronization::Atomic<bool> UserHeapOverflown;
-
-        Synchronization::SpinlockUninterruptible<> AlienPagingTablesLock;
-        paddr_t PagingTable;
-
-        Synchronization::RwSpinlockUninterruptible VasLock;
-        Utils::AvlTree<Memory::MemoryRange> Vas;
-
-        bool RuntimeLoaded;
-    };
-}}
+    __extern Execution::Elf Self;
+}
