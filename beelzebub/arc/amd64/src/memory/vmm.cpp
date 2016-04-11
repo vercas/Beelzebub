@@ -101,6 +101,11 @@ inline void Alienate(Process * const proc)
 
 Atomic<vaddr_t> Vmm::KernelHeapCursor {VmmArc::KernelHeapStart};
 
+vaddr_t Vmm::UserlandStart = 1ULL << 20;    //  1 MiB
+vaddr_t Vmm::UserlandEnd = VmmArc::LowerHalfEnd;
+vaddr_t Vmm::KernelStart = VmmArc::KernelHeapStart;
+vaddr_t Vmm::KernelEnd = VmmArc::KernelHeapEnd;
+
 /*  Initialization  */
 
 Handle Vmm::Bootstrap(Process * const bootstrapProc)
@@ -544,7 +549,7 @@ Handle Vmm::UnmapPage(Process * const proc, uintptr_t const vaddr
         }
     }, lock);
 
-    if (!res.IsOkayResult())
+    if unlikely(!res.IsOkayResult())
     {
         desc = nullptr;
 
@@ -555,7 +560,7 @@ Handle Vmm::UnmapPage(Process * const proc, uintptr_t const vaddr
 
     Vmm::InvalidatePage(proc, vaddr, true);
 
-    if (alloc->TryGetPageDescriptor(paddr, desc))
+    if likely(alloc->TryGetPageDescriptor(paddr, desc))
     {
         auto refcnt = desc->DecrementReferenceCount();
 

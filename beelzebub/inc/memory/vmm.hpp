@@ -138,6 +138,11 @@ namespace Beelzebub { namespace Memory
 
         static Synchronization::Atomic<vaddr_t> KernelHeapCursor;
 
+        static vaddr_t UserlandStart;
+        static vaddr_t UserlandEnd;
+        static vaddr_t KernelStart;
+        static vaddr_t KernelEnd;
+
         /*  Constructor(s)  */
 
     protected:
