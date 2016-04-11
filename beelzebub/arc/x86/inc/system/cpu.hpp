@@ -135,6 +135,11 @@ namespace Beelzebub { namespace System
      */
     class Cpu
     {
+    public:
+        /*  Data  */
+
+        // static CpuData Data asm("%gs:0");
+
         /*  Constructor(s)  */
 
     protected:
