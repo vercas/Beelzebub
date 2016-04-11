@@ -38,8 +38,9 @@
 */
 
 #include <crt0.hpp>
-#include <syscalls.h>
+// #include <syscalls.h>
 #include <terminals/debug.hpp>
+#include <self.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -52,16 +53,23 @@ static DebugTerminal procDbgTrm;
 
 __extern __bland __used void _start(char * args)
 {
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("\r\nLIBRARY ENTRY POINT\r\n"), 0, 0, 0, 0);
+    // PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("\r\nLIBRARY ENTRY POINT\r\n"), 0, 0, 0, 0);
 
     _init();
 
     Debug::DebugTerminal = &procDbgTrm;
 
-    PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("\r\nABOUT TO TRY DEBUG_TERM\r\n"), 0, 0, 0, 0);
+    // PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>("\r\nABOUT TO TRY DEBUG_TERM\r\n"), 0, 0, 0, 0);
 
     DEBUG_TERM  << "Testing stream operator on the debug terminal inside the "
-                << "runtime's entry point!";
+                << "runtime's entry point!" << EndLine;
+
+    DEBUG_TERM  << Self.GetSymbol("Self")       << EndLine
+                << Self.GetSymbol("_start")     << EndLine
+                << Self.GetSymbol("__start")    << EndLine
+                << Self.GetSymbol("_init")      << EndLine
+                << Self.GetSymbol("_fini")      << EndLine
+                << Self.GetSymbol("BLEEEERGH")  << EndLine;
 
     QuitProcess(HandleResult::Okay, 0);
 }

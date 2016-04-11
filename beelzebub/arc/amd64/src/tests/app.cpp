@@ -242,7 +242,7 @@ void * JumpToRing3(void * arg)
 
     //  Then, deploy the runtime.
 
-    res = Runtime64::Deploy(&testProcess, rtlib_base);
+    res = Runtime64::Deploy(rtlib_base);
 
     ASSERT(res.IsOkayResult()
         , "Failed to deploy runtime64 library into test app process: %H."

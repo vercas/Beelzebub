@@ -305,16 +305,21 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalBase & operator << <Elf::Symbol>(TerminalBase & term, Elf::Symbol const value)
     {
-        term.Write("[ELF Symbol | Value ");
-        term.WriteHex64(value.Value);
-        term.Write("; Size ");
-        term.WriteUIntD(value.Size);
+        if (value.Exists)
+        {
+            term.Write("[ELF Symbol | Value ");
+            term.WriteHex64(value.Value);
+            term.Write("; Size ");
+            term.WriteUIntD(value.Size);
 
-        return term << "; Name " << value.Name
-                    << "; Type " << value.Type
-                    << "; Binding " << value.Binding
-                    << "; Visibility " << value.Visibility
-                    << "]";
+            return term << "; Name " << (value.Name == nullptr ? "% NULL %" : value.Name)
+                        << "; Type " << value.Type
+                        << "; Binding " << value.Binding
+                        << "; Visibility " << value.Visibility
+                        << "]";
+        }
+
+        return term << "[ELF Symbol | NON-EXISTENT ]";
     }
 }}
 

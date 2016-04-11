@@ -40,7 +40,6 @@
 #pragma once
 
 #include <execution/elf.hpp>
-#include <execution/process.hpp>
 #include <jegudiel.h>
 
 namespace Beelzebub { namespace Execution
@@ -69,6 +68,6 @@ namespace Beelzebub { namespace Execution
         static Handle HandleTemplate(size_t index, jg_info_module_t const * module
                                    , vaddr_t vaddr, size_t size);
 
-        static Handle Deploy(Process * target, uintptr_t base);
+        static Handle Deploy(uintptr_t base);
     };
 }}

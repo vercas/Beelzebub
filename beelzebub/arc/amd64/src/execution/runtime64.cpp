@@ -39,10 +39,13 @@
 
 #include <execution/runtime64.hpp>
 #include <execution/elf_default_mapper.hpp>
+#include <memory/vmm.hpp>
+#include <kernel.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
+using namespace Beelzebub::Memory;
 
 static bool HeaderValidator(ElfHeader1 const * header, void * data)
 {
@@ -62,6 +65,18 @@ Elf Runtime64::Template;
 Handle Runtime64::HandleTemplate(size_t index, jg_info_module_t const * module
                                , vaddr_t vaddr, size_t size)
 {
+    for (size_t offset = 0; offset < size; offset += PageSize)
+    {
+        Handle res = Vmm::SetPageFlags(&BootstrapProcess, vaddr + offset
+            , MemoryFlags::Global | MemoryFlags::Userland);
+        //  Modules are normally global-supervisor-writable. This one needs to
+        //  be global-userland-readable.
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to change flags of page at %Xp for 64-bit runtime module: %H."
+            , vaddr + offset, res);
+    }
+
     new (&Template) Elf(reinterpret_cast<void *>(vaddr), size);
 
     ElfValidationResult evRes = Template.ValidateAndParse(&HeaderValidator, nullptr, nullptr);
@@ -77,7 +92,7 @@ Handle Runtime64::HandleTemplate(size_t index, jg_info_module_t const * module
     return HandleResult::Okay;
 }
 
-Handle Runtime64::Deploy(Process * target, uintptr_t base)
+Handle Runtime64::Deploy(uintptr_t base)
 {
     Elf copy = Runtime64::Template;
     //  A copy is needed; the original mustn't be modified.
@@ -88,8 +103,8 @@ Handle Runtime64::Deploy(Process * target, uintptr_t base)
 
     if (evRes != ElfValidationResult::Success)
     {
-        DEBUG_TERM_ << "Failed to relocate 64-bit runtime library into process "
-                    << (void *)target << ": " << evRes << Terminals::EndLine;
+        DEBUG_TERM_ << "Failed to relocate 64-bit runtime library: " << evRes
+                    << Terminals::EndLine;
 
         assert_or(false, "Failed to relocate 64-bit runtime.")
             return HandleResult::ImageRelocationFailure;
@@ -101,8 +116,8 @@ Handle Runtime64::Deploy(Process * target, uintptr_t base)
 
     if (evRes != ElfValidationResult::Success)
     {
-        DEBUG_TERM_ << "Failed to load 64-bit runtime library into process "
-                    << (void *)target << ": " << evRes << Terminals::EndLine;
+        DEBUG_TERM_ << "Failed to load 64-bit runtime library: " << evRes
+                    << Terminals::EndLine;
 
         assert_or(false, "Failed to load 64-bit runtime.")
             return HandleResult::ImageLoadingFailure;

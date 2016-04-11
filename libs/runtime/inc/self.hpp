@@ -44,4 +44,7 @@
 namespace Beelzebub
 {
     __extern Execution::Elf Self;
+    //  Due to boundless ingenuity, this variable resides in the .bss section
+    //  and will be filled in by the kernel with the appropriate info, after the
+    //  runtime's ELF is actually loaded.
 }

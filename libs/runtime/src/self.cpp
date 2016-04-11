@@ -42,4 +42,4 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 
-Elf Beelzebub::Self;
+Elf Beelzebub::Self {};
