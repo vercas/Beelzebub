@@ -115,7 +115,7 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS)
             break;
 
         case KEYBOARD_CODE_UP:
-            Thread * const activeThread = Cpu::GetData()->ActiveThread;
+            Thread * const activeThread = Cpu::GetThread();
 
             if (activeThread != nullptr)
             {

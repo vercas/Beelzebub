@@ -65,7 +65,7 @@ Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * const ar
             //  The 2nd argument must be in the userland memory region and 4-byte aligned.
 
             MemoryFlags mf = MemoryFlags::None;
-            Handle hRes = Vmm::GetPageFlags(Cpu::GetData()->ActiveThread->Owner, arg2, mf);
+            Handle hRes = Vmm::GetPageFlags(Cpu::GetProcess(), arg2, mf);
 
             if unlikely(!hRes.IsOkayResult())
                 return hRes;

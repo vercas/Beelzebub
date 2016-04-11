@@ -66,7 +66,7 @@ void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS)
 
     if (CpuDataSetUp && Scheduling)
     {
-        Thread * const activeThread = Cpu::GetData()->ActiveThread;
+        Thread * const activeThread = Cpu::GetThread();
 
         if (activeThread != nullptr && activeThread->Next != activeThread)
         {

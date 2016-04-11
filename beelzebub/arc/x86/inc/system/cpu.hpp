@@ -112,6 +112,8 @@ namespace Beelzebub { namespace System
 
         uintptr_t SyscallStack;
 
+        //  All before this comment are reserved positions.
+
         paddr_t LastAlienPml4;
         //  Used to invalidate TLBs when dealing with alien mappings, smartly.
 
@@ -119,8 +121,9 @@ namespace Beelzebub { namespace System
         Tss EmbeddedTss;
 
         Execution::Thread * ActiveThread;
-        ExceptionContext * XContext;
+        Execution::Process * ActiveProcess;
 
+        ExceptionContext * XContext;
         Exception X;
 
         uint16_t GdtLength;
@@ -195,6 +198,36 @@ namespace Beelzebub { namespace System
         {
             return reinterpret_cast<CpuData *>(CpuInstructions::GsGetPointer(
                 offsetof(struct CpuData, SelfPointer)
+            ));
+        }
+
+        static __forceinline Execution::Thread * GetThread()
+        {
+            return reinterpret_cast<Execution::Thread *>(CpuInstructions::GsGetPointer(
+                offsetof(struct CpuData, ActiveThread)
+            ));
+        }
+
+        static __forceinline Execution::Thread * SetThread(Execution::Thread const * val)
+        {
+            return reinterpret_cast<Execution::Thread *>(CpuInstructions::GsSetPointer(
+                offsetof(struct CpuData, ActiveThread),
+                reinterpret_cast<uintptr_t>(val)
+            ));
+        }
+
+        static __forceinline Execution::Process * GetProcess()
+        {
+            return reinterpret_cast<Execution::Process *>(CpuInstructions::GsGetPointer(
+                offsetof(struct CpuData, ActiveProcess)
+            ));
+        }
+
+        static __forceinline Execution::Process * SetProcess(Execution::Process const * val)
+        {
+            return reinterpret_cast<Execution::Process *>(CpuInstructions::GsSetPointer(
+                offsetof(struct CpuData, ActiveProcess),
+                reinterpret_cast<uintptr_t>(val)
             ));
         }
     };

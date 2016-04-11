@@ -804,7 +804,7 @@ __hot void * TestThreadEntryPoint(void * const arg)
 
     while (true)
     {
-        Thread * activeThread = Cpu::GetData()->ActiveThread;
+        Thread * activeThread = Cpu::GetThread();
         char volatile specialChar = *myChars;
 
         MSG_("Printing from thread %Xp! (%c)%n", activeThread, specialChar);
@@ -821,7 +821,7 @@ __startup void InitializeTestThread(Thread * const t, Process * const p)
 
     uintptr_t stackVaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess
+    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
         , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 

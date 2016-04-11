@@ -256,7 +256,7 @@ void TestApplication()
 
     uintptr_t stackVaddr;
 
-    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess
+    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
         , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 
@@ -277,7 +277,7 @@ void TestApplication()
 
     //  Secondly, the kernel stack page of the watcher thread.
 
-    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess
+    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
         , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 
@@ -370,8 +370,7 @@ bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr
                 goto rollbackMapping;
             }
 
-            Handle res = Vmm::MapPage(Cpu::GetData()->ActiveThread->Owner
-                , vaddr, paddr, pageFlags, desc);
+            Handle res = Vmm::MapPage(Cpu::GetProcess(), vaddr, paddr, pageFlags, desc);
 
             assert_or(res.IsOkayResult()
                 , "Failed to map page at %Xp (%XP) for mapping writable ELF segment %Xp: %H."
@@ -399,8 +398,7 @@ bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr
         {
             paddr_t paddr;
 
-            Handle res = Vmm::Translate(Cpu::GetData()->ActiveThread->Owner
-                , imgVaddr, paddr);
+            Handle res = Vmm::Translate(Cpu::GetProcess(), imgVaddr, paddr);
 
             assert_or(res.IsOkayResult() && paddr != nullpaddr
                 , "Failed to retrieve physical address at %Xp for mapping non-writable ELF segment %Xp: %H."
@@ -409,8 +407,7 @@ bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr
                 goto rollbackMapping;
             }
 
-            res = Vmm::MapPage(Cpu::GetData()->ActiveThread->Owner
-                , vaddr, paddr, pageFlags);
+            res = Vmm::MapPage(Cpu::GetProcess(), vaddr, paddr, pageFlags);
 
             assert_or(res.IsOkayResult()
                 , "Failed to map page at %Xp (%XP) for mapping non-writable ELF segment %Xp: %H."
@@ -432,7 +429,7 @@ rollbackMapping:
     {
         vaddr -= PageSize;
 
-        Handle res = Vmm::UnmapPage(Cpu::GetData()->ActiveThread->Owner, vaddr);
+        Handle res = Vmm::UnmapPage(Cpu::GetProcess(), vaddr);
 
         ASSERT(res.IsOkayResult()
             , "Failed to unmap page at %Xp for unrolling ELF segment %Xp: %H."
@@ -493,7 +490,7 @@ void * WatchTestThread(void *)
 
     while (true)
     {
-        void * activeThread = Cpu::GetData()->ActiveThread;
+        void * activeThread = Cpu::GetThread();
 
         // MSG("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
         // DEBUG_TERM  << "WATCHER (" << Hexadecimal << activeThread << Decimal

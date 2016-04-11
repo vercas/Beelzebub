@@ -318,7 +318,8 @@ void Beelzebub::Main()
                 , res);
         }
 
-        Cpu::GetData()->ActiveThread = &BootstrapThread;
+        Cpu::SetThread(&BootstrapThread);
+        Cpu::SetProcess(&BootstrapProcess);
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
         MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");

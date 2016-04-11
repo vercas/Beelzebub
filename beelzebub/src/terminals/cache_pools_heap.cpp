@@ -55,7 +55,7 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
     vaddr_t vaddr;
 
     Handle res = Vmm::AllocatePages(
-        CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess
+        CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
         , pageCount, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable, vaddr);
 
@@ -153,7 +153,7 @@ Handle Terminals::EnlargeCharPoolInKernelHeap(size_t minSize
         }
 
         res = Vmm::MapPage(
-            CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess,
+            CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess,
             vaddr + i * PageSize,
             paddr,
             MemoryFlags::Global | MemoryFlags::Writable,
@@ -208,7 +208,7 @@ Handle Terminals::ReleaseCharPoolFromKernelHeap(size_t headerSize
     for (/* nothing */; i > 0; --i, vaddr -= PageSize)
     {
         res = Vmm::UnmapPage(
-            CpuDataSetUp ? Cpu::GetData()->ActiveThread->Owner : &BootstrapProcess,
+            CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess,
             vaddr,
             desc
         );

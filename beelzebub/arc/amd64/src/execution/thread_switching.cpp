@@ -88,6 +88,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     auto cpuData = Cpu::GetData();
 
     cpuData->ActiveThread = other;
+    cpuData->ActiveProcess = other->Owner;
     cpuData->EmbeddedTss.Rsp[0] = other->KernelStackTop;
     cpuData->SyscallStack = other->KernelStackTop;
 

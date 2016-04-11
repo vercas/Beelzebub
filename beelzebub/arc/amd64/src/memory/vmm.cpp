@@ -242,7 +242,7 @@ Handle Vmm::Initialize(Process * const proc)
     SpinlockUninterruptible<> * alienLock = nullptr;
 
     if (CpuDataSetUp)
-        alienLock = &(Cpu::GetData()->ActiveThread->Owner->AlienPagingTablesLock);
+        alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
     LockGuardFlexible<SpinlockUninterruptible<> > pml4Lg {*alienLock};
 
@@ -323,7 +323,7 @@ __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
     {   //  Lock-guarded.
 
         if (nonLocal && CpuDataSetUp)
-            alienLock = &(Cpu::GetData()->ActiveThread->Owner->AlienPagingTablesLock);
+            alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
         LockGuardFlexible<SpinlockUninterruptible<> > pml4Lg {*alienLock};
 
@@ -430,7 +430,7 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
     {   //  Lock-guarded.
 
         if (nonLocal && CpuDataSetUp)
-            alienLock = &(Cpu::GetData()->ActiveThread->Owner->AlienPagingTablesLock);
+            alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
         LockGuardFlexible<SpinlockUninterruptible<> > pml4Lg {*alienLock};
 
