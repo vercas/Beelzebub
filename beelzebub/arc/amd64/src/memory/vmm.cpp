@@ -406,13 +406,13 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
 #define ALLOCATE_TABLE(N, M)                                                                    \
     if unlikely(!MCATS(pml, M)[ind].GetPresent())                                               \
     {                                                                                           \
-        PageDescriptor * desc;                                                                  \
-        paddr_t const MCATS(newPml, N) = alloc->AllocatePage(desc);                             \
+        PageDescriptor * tDsc;                                                                  \
+        paddr_t const MCATS(newPml, N) = alloc->AllocatePage(tDsc);                             \
                                                                                                 \
         if (MCATS(newPml, N) == nullpaddr)                                                      \
             return HandleResult::OutOfMemory;                                                   \
                                                                                                 \
-        desc->IncrementReferenceCount();                                                        \
+        tDsc->IncrementReferenceCount();                                                        \
                                                                                                 \
         MCATS(pml, M)[ind] = MCATS(Pml, M, Entry)(MCATS(newPml, N), true, true, true, false);   \
         /*  Present, writable, user-accessible, executable.  */                                 \
