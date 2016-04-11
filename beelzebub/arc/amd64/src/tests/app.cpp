@@ -340,42 +340,66 @@ __cold uint8_t * AllocateTestRegion()
 
 bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
 {
-    Handle res;
-    PageDescriptor * desc = nullptr;
-    //  Intermediate results.
-
     vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
     vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
 
     MemoryFlags pageFlags = MemoryFlags::Userland;
 
-    if (0 != (phdr.Flags & ElfProgramHeaderFlags::Writable))
-        pageFlags |= MemoryFlags::Writable;
     if (0 != (phdr.Flags & ElfProgramHeaderFlags::Executable))
         pageFlags |= MemoryFlags::Executable;
 
-    for (vaddr_t vaddr = segVaddr; vaddr < segVaddrEnd; vaddr += PageSize)
+    if (0 != (phdr.Flags & ElfProgramHeaderFlags::Writable))
     {
-        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
+        pageFlags |= MemoryFlags::Writable;
 
-        ASSERT(paddr != nullpaddr && desc != nullptr
-            , "Unable to allocate a physical page for test app segment %Xp!"
-            , phdr);
+        for (vaddr_t vaddr = segVaddr; vaddr < segVaddrEnd; vaddr += PageSize)
+        {
+            PageDescriptor * desc = nullptr;
+            paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
 
-        res = Vmm::MapPage(&testProcess, vaddr, paddr, pageFlags, desc);
+            ASSERT(paddr != nullpaddr && desc != nullptr
+                , "Unable to allocate a physical page for test app segment %Xp!"
+                , &phdr);
 
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for test app segment %Xp: %H."
-            , vaddr, paddr
-            , &phdr, res);
+            Handle res = Vmm::MapPage(Cpu::GetData()->ActiveThread->Owner
+                , vaddr, paddr, pageFlags, desc);
+
+            ASSERT(res.IsOkayResult()
+                , "Failed to map page at %Xp (%XP) for test app segment %Xp: %H."
+                , vaddr, paddr
+                , &phdr, res);
+        }
+
+        memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
+            ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
+
+        if (phdr.VSize > phdr.PSize)
+            memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
+                , 0, phdr.VSize - phdr.PSize);
     }
+    else
+    {
+        for (vaddr_t vaddr = segVaddr; vaddr < segVaddrEnd; vaddr += PageSize)
+        {
+            paddr_t paddr;
 
-    memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
-        ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
+            Handle res = Vmm::Translate(Cpu::GetData()->ActiveThread->Owner
+                , img + phdr.Offset, paddr);
 
-    if (phdr.VSize > phdr.PSize)
-        memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
-            , 0, phdr.VSize - phdr.PSize);
+            ASSERT(res.IsOkayResult() && paddr != nullpaddr
+                , "Failed to retrieve physical address at %Xp for test app segment %Xp: %H."
+                , vaddr
+                , &phdr, res);
+
+            res = Vmm::MapPage(Cpu::GetData()->ActiveThread->Owner
+                , vaddr, paddr, pageFlags);
+
+            ASSERT(res.IsOkayResult()
+                , "Failed to map page at %Xp (%XP) for test app segment %Xp: %H."
+                , vaddr, paddr
+                , &phdr, res);
+        }
+    }
 
     return true;
 }

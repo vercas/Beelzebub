@@ -37,13 +37,13 @@
     thorough explanation regarding other files.
 */
 
+#include <string.h>
+
 using namespace Beelzebub::Terminals;
 
-static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset, uintptr_t append, ElfRelType rtype, uint32_t symInd, uint32_t data)
+static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset, uintptr_t A, ElfRelType rtype, uint32_t symInd, uint32_t data)
 {
-    Elf::Symbol sym = elf->GetSymbol64(symInd);
-
-    ptrdiff_t const base = elf->GetLocationDifference();
+    ptrdiff_t const B = elf->GetLocationDifference();
 
     union
     {
@@ -51,60 +51,115 @@ static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset
         uint32_t * u32;
         uint16_t * u16;
         uint8_t  * u8;
-    } const addr = {reinterpret_cast<uint64_t *>(base + offset)};
+        uintptr_t uptr;
+    } const addr = {reinterpret_cast<uint64_t *>(B + offset)};
 
-    size_t relocSize = 8;
+    Elf::Symbol sym = elf->GetSymbol(symInd);
+    uintptr_t S = sym.Value;
+    size_t Z = sym.Size;
 
-    //  TODO: Find reloc size depending on type, and check for type validity.
+    //  Now all the information for processing the relocation has been optained.
+
+    size_t relocSize;
 
     switch (rtype)
     {
-    case R_AMD64_RELATIVE:
-        {
-            uint64_t const oldVal = *(addr.u64);
-
-            *(addr.u64) = base + append;
-
-            DEBUG_TERM  << "RELOCATING RELA " << (void *)(addr.u64) << " FROM " << Hexadecimal << oldVal << " INTO "
-                        << *(addr.u64) << "; " << base << " + " << append
-                        << Decimal << EndLine;
-        }
+    case R_AMD64_COPY:
+        relocSize = Z;  //  Speshul case.
         break;
 
-    case R_AMD64_GLOB_DAT:
-        {
-            uint64_t const oldVal = *(addr.u64);
-
-            *(addr.u64) = sym.Value;
-
-            DEBUG_TERM  << "RELOCATING GDAT " << (void *)(addr.u64) << " FROM " << Hexadecimal << oldVal << " INTO "
-                        << *(addr.u64) << Decimal << " (symbol " << sym.Name << ")" << EndLine;
-        }
-        break;
-
-    case R_AMD64_JUMP_SLOT:
-        {
-            uint64_t const oldVal = *(addr.u64);
-
-            *(addr.u64) = sym.Value;
-
-            DEBUG_TERM  << "RELOCATING JUMP " << (void *)(addr.u64) << " FROM " << Hexadecimal << oldVal << " INTO "
-                        << *(addr.u64) << Decimal << " (symbol " << sym.Name << ")" << EndLine;
-        }
+    case R_AMD64_TLSDESC:
+        relocSize = 16;
         break;
 
     case R_AMD64_64:
-        {
-            uint64_t const oldVal = *(addr.u64);
-
-            *(addr.u64) = sym.Value + append;
-
-            DEBUG_TERM  << "RELOCATING  64  " << (void *)(addr.u64) << " FROM " << Hexadecimal << oldVal << " INTO "
-                        << *(addr.u64) << "; " << sym.Value << " + " << append << Decimal << EndLine;
-        }
+    case R_AMD64_GLOB_DAT:
+    case R_AMD64_JUMP_SLOT:
+    case R_AMD64_RELATIVE:
+    case R_AMD64_PC64:
+    case R_AMD64_GOTOFF64:
+    case R_AMD64_GOT64:
+    case R_AMD64_GOTPCREL64:
+    case R_AMD64_GOTPC64:
+    case R_AMD64_GOTPLT64:
+    case R_AMD64_PLTOFF64:
+    case R_AMD64_SIZE64:
+    case R_AMD64_IRELATIVE:
+        relocSize = 8;
         break;
 
-    default: break; //  A warning should be emitted, perhaps?
+    case R_AMD64_PC32:
+    case R_AMD64_GOT32:
+    case R_AMD64_PLT32:
+    case R_AMD64_GOTPCREL:
+    case R_AMD64_32:
+    case R_AMD64_32S:
+    case R_AMD64_GOTPC32:
+    case R_AMD64_SIZE32:
+    case R_AMD64_GOTPC32_TLSDESC:
+        relocSize = 4;
+        break;
+
+    case R_AMD64_16:
+    case R_AMD64_PC16:
+        relocSize = 2;
+        break;
+
+    case R_AMD64_8:
+    case R_AMD64_PC8:
+        relocSize = 1;
+        break;
+
+    case R_AMD64_NONE:
+    case R_AMD64_TLSDESC_CALL:
+        relocSize = 0;
+        break;
+
+    default:
+        return ElfValidationResult::UnknownRelocationType;
+    }
+
+    //  Now the size of the relocation is known, and invalid/unknown relocations
+    //  are reported. Next step is checking whether it is actually possible to
+    //  perform the relocation.
+
+    if (rtype != R_AMD64_NONE)
+        switch (CheckRangeLoaded(elf, offset, relocSize, RangeLoadOptions::Writable))
+        {
+        case RangeLoadStatus::CompletelyAbsent:
+            return ElfValidationResult::RelocationOutOfLoad;
+
+        case RangeLoadStatus::PartiallyLoaded:
+            return ElfValidationResult::RelocationInPartialLoad;
+
+        case RangeLoadStatus::OptionsNotMet:
+            return ElfValidationResult::RelocationUnchangeable;
+
+        default: break;
+        }
+
+    //  So now it is certain that the relocation can proceed. But before the
+    //  actual relocation, the symbol must be looked up in *all* the loaded
+    //  executable images...
+
+    //  TODO: Global symbol resolution!
+
+    //  Final step is performing the actual relocation.
+
+    switch (rtype)
+    {
+    case R_AMD64_NONE: break;
+
+    case R_AMD64_64:        *(addr.u64) = S + A;    break;
+
+    case R_AMD64_COPY: memcpy(addr.u8, reinterpret_cast<void *>(S), Z); break;
+
+    case R_AMD64_GLOB_DAT:
+    case R_AMD64_JUMP_SLOT: *(addr.u64) = S;        break;
+
+    case R_AMD64_RELATIVE:  *(addr.u64) = B + A;    break;
+
+    default: return ElfValidationResult::UnsupportedRelocationType;
     }
 
     return ElfValidationResult::Success;

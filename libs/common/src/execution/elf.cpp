@@ -371,3 +371,19 @@ ElfValidationResult Elf::Relocate(uintptr_t newAddress)
 
     return ElfValidationResult::Success;
 }
+
+Elf::Symbol Elf::GetSymbol(uint32_t index) const
+{
+    if unlikely(!this->Loadable)
+        return {0};
+
+    switch (this->H1->Identification.Class)
+    {
+    case ElfClass::Elf32:
+        return this->GetSymbol32(index);
+    case ElfClass::Elf64:
+        return this->GetSymbol64(index);
+    default:
+        return {0};
+    }
+}

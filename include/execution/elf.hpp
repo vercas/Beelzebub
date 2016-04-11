@@ -342,53 +342,57 @@ namespace Beelzebub { namespace Execution
 
 
     #define ENUM_ELFRELOCATIONTYPE(ENUMINST) \
-        ENUMINST(R_386_NONE        ,  0) \
-        ENUMINST(R_386_32          ,  1) \
-        ENUMINST(R_386_PC32        ,  2) \
-        ENUMINST(R_386_GOT32       ,  3) \
-        ENUMINST(R_386_PLT32       ,  4) \
-        ENUMINST(R_386_COPY        ,  5) \
-        ENUMINST(R_386_GLOB_DAT    ,  6) \
-        ENUMINST(R_386_JMP_SLOT    ,  7) \
-        ENUMINST(R_386_RELATIVE    ,  8) \
-        ENUMINST(R_386_GOTOFF      ,  9) \
-        ENUMINST(R_386_GOTPC       , 10) \
-        ENUMINST(R_386_32PLT       , 11) \
-        ENUMINST(R_AMD64_NONE      ,  0) \
-        ENUMINST(R_AMD64_64        ,  1) \
-        ENUMINST(R_AMD64_PC32      ,  2) \
-        ENUMINST(R_AMD64_GOT32     ,  3) \
-        ENUMINST(R_AMD64_PLT32     ,  4) \
-        ENUMINST(R_AMD64_COPY      ,  5) \
-        ENUMINST(R_AMD64_GLOB_DAT  ,  6) \
-        ENUMINST(R_AMD64_JUMP_SLOT ,  7) \
-        ENUMINST(R_AMD64_RELATIVE  ,  8) \
-        ENUMINST(R_AMD64_GOTPCREL  ,  9) \
-        ENUMINST(R_AMD64_32        , 10) \
-        ENUMINST(R_AMD64_32S       , 11) \
-        ENUMINST(R_AMD64_16        , 12) \
-        ENUMINST(R_AMD64_PC16      , 13) \
-        ENUMINST(R_AMD64_8         , 14) \
-        ENUMINST(R_AMD64_PC8       , 15) \
-        ENUMINST(R_AMD64_DPTMOD64  , 16) \
-        ENUMINST(R_AMD64_DTPOFF64  , 17) \
-        ENUMINST(R_AMD64_TPOFF64   , 18) \
-        ENUMINST(R_AMD64_TLSGD     , 19) \
-        ENUMINST(R_AMD64_TLSLD     , 20) \
-        ENUMINST(R_AMD64_DTPOFF32  , 21) \
-        ENUMINST(R_AMD64_GOTTPOFF  , 22) \
-        ENUMINST(R_AMD64_TPOFF32   , 23) \
-        ENUMINST(R_AMD64_PC64      , 24) \
-        ENUMINST(R_AMD64_GOTOFF64  , 25) \
-        ENUMINST(R_AMD64_GOTPC32   , 26) \
-        ENUMINST(R_AMD64_GOT64     , 27) \
-        ENUMINST(R_AMD64_GOTPCREL64, 28) \
-        ENUMINST(R_AMD64_GOTPC64   , 29) \
-        ENUMINST(R_AMD64_GOTPLT64  , 30) \
-        ENUMINST(R_AMD64_PLTOFF64  , 31) \
-        ENUMINST(R_AMD64_SIZE32    , 32) \
-        ENUMINST(R_AMD64_SIZE64    , 33) \
-        ENUMINST(R_AMD64__MAX      , 34) \
+        ENUMINST(R_386_NONE             ,  0) \
+        ENUMINST(R_386_32               ,  1) \
+        ENUMINST(R_386_PC32             ,  2) \
+        ENUMINST(R_386_GOT32            ,  3) \
+        ENUMINST(R_386_PLT32            ,  4) \
+        ENUMINST(R_386_COPY             ,  5) \
+        ENUMINST(R_386_GLOB_DAT         ,  6) \
+        ENUMINST(R_386_JMP_SLOT         ,  7) \
+        ENUMINST(R_386_RELATIVE         ,  8) \
+        ENUMINST(R_386_GOTOFF           ,  9) \
+        ENUMINST(R_386_GOTPC            , 10) \
+        ENUMINST(R_386_32PLT            , 11) \
+        ENUMINST(R_AMD64_NONE           ,  0) \
+        ENUMINST(R_AMD64_64             ,  1) \
+        ENUMINST(R_AMD64_PC32           ,  2) \
+        ENUMINST(R_AMD64_GOT32          ,  3) \
+        ENUMINST(R_AMD64_PLT32          ,  4) \
+        ENUMINST(R_AMD64_COPY           ,  5) \
+        ENUMINST(R_AMD64_GLOB_DAT       ,  6) \
+        ENUMINST(R_AMD64_JUMP_SLOT      ,  7) \
+        ENUMINST(R_AMD64_RELATIVE       ,  8) \
+        ENUMINST(R_AMD64_GOTPCREL       ,  9) \
+        ENUMINST(R_AMD64_32             , 10) \
+        ENUMINST(R_AMD64_32S            , 11) \
+        ENUMINST(R_AMD64_16             , 12) \
+        ENUMINST(R_AMD64_PC16           , 13) \
+        ENUMINST(R_AMD64_8              , 14) \
+        ENUMINST(R_AMD64_PC8            , 15) \
+        ENUMINST(R_AMD64_DPTMOD64       , 16) \
+        ENUMINST(R_AMD64_DTPOFF64       , 17) \
+        ENUMINST(R_AMD64_TPOFF64        , 18) \
+        ENUMINST(R_AMD64_TLSGD          , 19) \
+        ENUMINST(R_AMD64_TLSLD          , 20) \
+        ENUMINST(R_AMD64_DTPOFF32       , 21) \
+        ENUMINST(R_AMD64_GOTTPOFF       , 22) \
+        ENUMINST(R_AMD64_TPOFF32        , 23) \
+        ENUMINST(R_AMD64_PC64           , 24) \
+        ENUMINST(R_AMD64_GOTOFF64       , 25) \
+        ENUMINST(R_AMD64_GOTPC32        , 26) \
+        ENUMINST(R_AMD64_GOT64          , 27) \
+        ENUMINST(R_AMD64_GOTPCREL64     , 28) \
+        ENUMINST(R_AMD64_GOTPC64        , 29) \
+        ENUMINST(R_AMD64_GOTPLT64       , 30) \
+        ENUMINST(R_AMD64_PLTOFF64       , 31) \
+        ENUMINST(R_AMD64_SIZE32         , 32) \
+        ENUMINST(R_AMD64_SIZE64         , 33) \
+        ENUMINST(R_AMD64_GOTPC32_TLSDESC, 34) \
+        ENUMINST(R_AMD64_TLSDESC_CALL   , 35) \
+        ENUMINST(R_AMD64_TLSDESC        , 36) \
+        ENUMINST(R_AMD64_IRELATIVE      , 37) \
+        ENUMINST(R_AMD64__MAX           , 38) \
 
 
     /**
@@ -853,6 +857,11 @@ namespace Beelzebub { namespace Execution
         ENUMINST(LoadFailure                , 20) \
         ENUMINST(DynamicSegmentMultiplicate , 21) \
         ENUMINST(Unlocated                  , 22) \
+        ENUMINST(UnknownRelocationType      , 23) \
+        ENUMINST(UnsupportedRelocationType  , 24) \
+        ENUMINST(RelocationOutOfLoad        , 25) \
+        ENUMINST(RelocationInPartialLoad    , 26) \
+        ENUMINST(RelocationUnchangeable     , 27) \
 
     /**
      *  Results of ELF validation.
@@ -914,6 +923,12 @@ namespace Beelzebub { namespace Execution
         ElfValidationResult ValidateParseDt32(ElfDynamicEntry_32 const * dts);
         ElfValidationResult ValidateParseDt64(ElfDynamicEntry_64 const * dts);
 
+        Symbol GetSymbol32(uint32_t index) const;
+        Symbol GetSymbol64(uint32_t index) const;
+
+        Symbol GetSymbol32(char const * name) const;
+        Symbol GetSymbol64(char const * name) const;
+
     public:
         ElfValidationResult ValidateAndParse(HeaderValidatorFunc headerval, SegmentValidatorFunc segval, void * valdata);
         ElfValidationResult Relocate(uintptr_t newAddress);
@@ -921,11 +936,8 @@ namespace Beelzebub { namespace Execution
         ElfValidationResult LoadAndValidate32(SegmentMapper32Func segmap, SegmentUnmapper32Func segunmap, void * lddata) const;
         ElfValidationResult LoadAndValidate64(SegmentMapper64Func segmap, SegmentUnmapper64Func segunmap, void * lddata) const;
 
-        Symbol GetSymbol32(uint32_t index) const;
-        Symbol GetSymbol64(uint32_t index) const;
-
-        Symbol GetSymbol32(char const * name) const;
-        Symbol GetSymbol64(char const * name) const;
+        Symbol GetSymbol(uint32_t index) const;
+        Symbol GetSymbol(char const * name) const;
 
         /*  Properties  */
 
