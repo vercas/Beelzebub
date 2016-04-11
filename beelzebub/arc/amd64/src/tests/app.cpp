@@ -343,31 +343,45 @@ bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr
     vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
     vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
 
+    vaddr_t vaddr = segVaddr;
+    //  Will be used for rollback.
+
     MemoryFlags pageFlags = MemoryFlags::Userland;
 
     if (0 != (phdr.Flags & ElfProgramHeaderFlags::Executable))
         pageFlags |= MemoryFlags::Executable;
 
     if (0 != (phdr.Flags & ElfProgramHeaderFlags::Writable))
+        pageFlags |= MemoryFlags::Writable;
+
+    if (0 != (pageFlags & MemoryFlags::Writable) || phdr.VSize != phdr.PSize)
     {
         pageFlags |= MemoryFlags::Writable;
 
-        for (vaddr_t vaddr = segVaddr; vaddr < segVaddrEnd; vaddr += PageSize)
+        for (/* nothing */; vaddr < segVaddrEnd; vaddr += PageSize)
         {
             PageDescriptor * desc = nullptr;
             paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
 
-            ASSERT(paddr != nullpaddr && desc != nullptr
-                , "Unable to allocate a physical page for test app segment %Xp!"
-                , &phdr);
+            assert_or(paddr != nullpaddr && desc != nullptr
+                , "Unable to allocate a physical page for mapping writable ELF segment %Xp!"
+                , &phdr)
+            {
+                goto rollbackMapping;
+            }
 
             Handle res = Vmm::MapPage(Cpu::GetData()->ActiveThread->Owner
                 , vaddr, paddr, pageFlags, desc);
 
-            ASSERT(res.IsOkayResult()
-                , "Failed to map page at %Xp (%XP) for test app segment %Xp: %H."
-                , vaddr, paddr
-                , &phdr, res);
+            assert_or(res.IsOkayResult()
+                , "Failed to map page at %Xp (%XP) for mapping writable ELF segment %Xp: %H."
+                , vaddr, paddr, &phdr, res)
+            {
+                Cpu::GetData()->DomainDescriptor->PhysicalAllocator->FreePageAtAddress(paddr);
+                //  First free the page that was allocated for this vaddr. :(
+
+                goto rollbackMapping;
+            }
         }
 
         memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
@@ -379,29 +393,53 @@ bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr
     }
     else
     {
-        for (vaddr_t vaddr = segVaddr; vaddr < segVaddrEnd; vaddr += PageSize)
+        vaddr_t imgVaddr = img + RoundDown(phdr.Offset, PageSize);
+
+        for (/* nothing */; vaddr < segVaddrEnd; vaddr += PageSize, imgVaddr += PageSize)
         {
             paddr_t paddr;
 
             Handle res = Vmm::Translate(Cpu::GetData()->ActiveThread->Owner
-                , img + phdr.Offset, paddr);
+                , imgVaddr, paddr);
 
-            ASSERT(res.IsOkayResult() && paddr != nullpaddr
-                , "Failed to retrieve physical address at %Xp for test app segment %Xp: %H."
-                , vaddr
-                , &phdr, res);
+            assert_or(res.IsOkayResult() && paddr != nullpaddr
+                , "Failed to retrieve physical address at %Xp for mapping non-writable ELF segment %Xp: %H."
+                , vaddr, &phdr, res)
+            {
+                goto rollbackMapping;
+            }
 
             res = Vmm::MapPage(Cpu::GetData()->ActiveThread->Owner
                 , vaddr, paddr, pageFlags);
 
-            ASSERT(res.IsOkayResult()
-                , "Failed to map page at %Xp (%XP) for test app segment %Xp: %H."
-                , vaddr, paddr
-                , &phdr, res);
+            assert_or(res.IsOkayResult()
+                , "Failed to map page at %Xp (%XP) for mapping non-writable ELF segment %Xp: %H."
+                , vaddr, paddr, &phdr, res)
+            {
+                goto rollbackMapping;
+            }
         }
     }
 
     return true;
+
+rollbackMapping:
+
+    //  It starts with a decrement because vaddr points to a page that failed
+    //  to map.
+
+    do
+    {
+        vaddr -= PageSize;
+
+        Handle res = Vmm::UnmapPage(Cpu::GetData()->ActiveThread->Owner, vaddr);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to unmap page at %Xp for unrolling ELF segment %Xp: %H."
+            , vaddr, &phdr, res);
+    } while (vaddr > segVaddr);
+
+    return false;
 }
 
 void * JumpToRing3(void * arg)
