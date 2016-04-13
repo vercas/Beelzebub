@@ -60,7 +60,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 # Linker options, with optimization
 LOFLAGS		:= -Wl,-z,max-page-size=0x1000 -fuse-linker-plugin 
 LOFLAGS		+= -Wall -fno-omit-frame-pointer 
-LOFLAGS		+= -O2 -flto -pipe 
+LOFLAGS		+= -O2 -flto=jobserver -pipe 
 LOFLAGS		+= --sysroot=$(SYSROOT) 
 
 # Linker options, without optimization
@@ -168,7 +168,7 @@ $(APP_INSTALL_PATH): $(APP_PATH)
 $(APP_PATH): $(OBJECTS)
 	@ echo "/LNK/OPT:" $@
 	@ mkdir -p $(@D)
-	@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS)
+	+@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS)
 
 ####################################### CODE FILES ##########
 

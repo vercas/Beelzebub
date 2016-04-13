@@ -86,7 +86,7 @@ jegudiel:
 
 image: kernel apps libs
 	@ echo "/MAK:" $@
-	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso
+	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso $(MAKE_FLAGS)
 
 kernel:: libs
 	@ echo "/MAK:" $@

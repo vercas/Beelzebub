@@ -60,7 +60,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 # Linker options, with optimization
 LOFLAGS		:= -shared -Wl,-z,max-page-size=0x1000 -fuse-linker-plugin 
 LOFLAGS		+= -ffreestanding -Wall -fno-omit-frame-pointer 
-LOFLAGS		+= -O3 -flto -nodefaultlibs -pipe -fPIC -lgcc -static-libgcc 
+LOFLAGS		+= -O3 -flto=jobserver -nodefaultlibs -pipe -fPIC -lgcc -static-libgcc 
 LOFLAGS		+= --sysroot=$(SYSROOT) 
 # LOFLAGS		+= -Wl,-Bsymbolic 
 
@@ -168,7 +168,7 @@ $(LIB_INSTALL_PATH): $(LIB_PATH)
 $(LIB_PATH): $(SLIBFILES) $(OBJECTS)
 	@ echo "/LNK/OPT:" $@
 	@ mkdir -p $(@D)
-	@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS) $(LIBRARIES)
+	+@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS) $(LIBRARIES)
 
 ####################################### CODE FILES ##########
 
