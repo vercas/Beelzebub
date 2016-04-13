@@ -26,7 +26,7 @@ MKISO		:= mkisofs
 PRE_COMPILATION		:=  
 POST_COMPILATION	:=  
 
-ifneq ($(shell $(MKISO) --version; echo $$?),0)
+ifneq ($(shell $(MKISO) --version 2> /dev/null; echo $$?),0)
 	#	So, mkisofs may not be absent.
 	#	Maybe it comes from an external source?
 	ifdef MISC_TOOLS_DIR
