@@ -40,11 +40,27 @@
 #pragma once
 
 #include <synchronization/lock_guard.hpp>
-#include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
-    typedef size_t volatile spinlock_t;
+#ifndef __BEELZEBUB_SPINLOCK_T
+#define __BEELZEBUB_SPINLOCK_T
+    typedef union spinlock_t
+    {
+        uint32_t volatile Overall;
+        struct
+        {
+            uint16_t Head;
+            uint16_t Tail;
+        };
+
+        spinlock_t() = default;
+        inline spinlock_t(uint32_t o) : Overall(o) { }
+        inline spinlock_t(uint16_t h, uint16_t t) : Head(h), Tail(t) { }
+    } spinlock_t;
+#endif
+
+    static_assert(sizeof(spinlock_t) == 4, "");
 
     //  Lemme clarify here.
     //  For non-SMP builds, SMP spinlocks are gonna be dummies.
@@ -93,9 +109,16 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline __must_check bool TryAcquire() volatile
         {
-            spinlock_t oldValue = __sync_lock_test_and_set(&this->Value, 1);
+            uint16_t const oldTail = this->Value.Tail;
+            spinlock_t cmp {oldTail, oldTail};
+            spinlock_t const newVal {oldTail, (uint16_t)(oldTail + 1)};
+            spinlock_t const cmpCpy = cmp;
 
-            return !oldValue;
+            asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
+                        : [curVal]"+m"(this->Value), "+a"(cmp)
+                        : [newVal]"r"(newVal) );
+
+            return cmp.Overall == cmpCpy.Overall;
         }
 
         /**
@@ -104,10 +127,14 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Spin() const volatile
         {
+            spinlock_t copy;
+
             do
             {
-                System::CpuInstructions::DoNothing();
-            } while (this->Value);
+                copy = {this->Value.Overall};
+
+                asm volatile ( "pause \n\t" : : : "memory" );
+            } while (copy.Tail != copy.Head);
         }
 
         /**
@@ -116,8 +143,14 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Await() const volatile
         {
-            while (this->Value)
-                System::CpuInstructions::DoNothing();
+            spinlock_t copy = {this->Value.Overall};
+
+            while (copy.Tail != copy.Head)
+            {
+                asm volatile ( "pause \n\t" : : : "memory" );
+
+                copy = {this->Value.Overall};
+            }
         }
 
         /**
@@ -125,8 +158,15 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Acquire() volatile
         {
-            while (__sync_lock_test_and_set(&this->Value, 1))
-                this->Spin();
+            uint16_t myTicket = 1;
+
+            asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
+                        : [tail]"+m"(this->Value.Tail)
+                        , [ticket]"+r"(myTicket) );
+            //  It's possible to address the upper word directly.
+
+            while (this->Value.Head != myTicket)
+                asm volatile ( "pause \n\t" : : : "memory" );
         }
 
         /**
@@ -140,7 +180,8 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Release() volatile
         {
-            __sync_lock_release(&this->Value);
+            asm volatile( "lock addw $1, %[head] \n\t"
+                        : [head]"+m"(this->Value.Head) );
         }
 
         /**
@@ -153,14 +194,17 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline __must_check bool Check() const volatile
         {
-            return this->Value == 0;
+            spinlock_t copy = {this->Value.Overall};
+
+            return copy.Head == copy.Tail;
         }
 
-        /*  Properties  */
-
-        __forceinline spinlock_t GetValue() const volatile
+        /**
+         *  Reset the spinlock.
+         */
+        __forceinline void Reset() volatile
         {
-            return this->Value;
+            this->Value.Overall = 0;
         }
 
         /*  Fields  */
