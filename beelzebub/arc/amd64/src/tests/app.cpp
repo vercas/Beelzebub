@@ -121,6 +121,7 @@ Spinlock<> TestRegionLock;
 
 void TestApplication()
 {
+    TestRegionLock.Reset();
     TestRegionLock.Acquire();
 
     new (&testProcess) Process();

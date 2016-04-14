@@ -156,8 +156,10 @@ void Beelzebub::Main()
     new (&Domain0) Domain();
     //  Initialize domain 0. Make sure it's not in a possibly-invalid state.
 
-    Domain0.GdtLock.Release();
-    //  Make sure it's clear.
+    InitializationLock.Reset();
+    TerminalMessageLock.Reset();
+    Domain0.GdtLock.Reset();
+    //  Make sure these are clear.
 
     Domain0.Gdt = GdtRegister::Retrieve();
 

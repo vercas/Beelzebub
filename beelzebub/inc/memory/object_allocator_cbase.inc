@@ -139,7 +139,7 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
         COMPILER_MEMORY_BARRIER();
 
 #ifdef OBJA_MULTICONSUMER
-        reinterpret_cast<OBJA_POOL_TYPE *>(justAllocated)->PropertiesLock.Release();
+        reinterpret_cast<OBJA_POOL_TYPE *>(justAllocated)->PropertiesLock.Reset();
 #endif
 
         ++this->PoolCount;
@@ -280,7 +280,7 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
     COMPILER_MEMORY_BARRIER();
 
 #ifdef OBJA_MULTICONSUMER
-    reinterpret_cast<OBJA_POOL_TYPE *>(justAllocated)->PropertiesLock.Release();
+    reinterpret_cast<OBJA_POOL_TYPE *>(justAllocated)->PropertiesLock.Reset();
 #endif
 
     ++this->PoolCount;
