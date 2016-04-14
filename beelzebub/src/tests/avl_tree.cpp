@@ -422,6 +422,10 @@ void TestAvlTree()
 
     for (size_t i = 0; i < 8; ++i)
         ASSERT(arr[i], "Error detected after level-order tree traversal (%us)!", i);
+
+    res = Tree.Clear();
+
+    ASSERT(res.IsOkayResult());
 }
 
 namespace Beelzebub { namespace Utils

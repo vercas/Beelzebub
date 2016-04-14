@@ -195,7 +195,7 @@ namespace Beelzebub { namespace Utils
         static constexpr size_t const NodeSize = sizeof(Node);
 
         static Handle AllocateNode(Node * & node);
-        static Handle RemoveNode(Node * const node);
+        static Handle RemoveNode(Node * node);
 
         static Handle Create(Node * & node)
         {
@@ -221,7 +221,7 @@ namespace Beelzebub { namespace Utils
         }
 
         template<typename TKey>
-        static Comparable<TPayload> * Find(TKey const & key, Node * & node)
+        static Comparable<TPayload> * Find(TKey const & key, Node * node)
         {
             if unlikely(node == nullptr)
                 return nullptr;
@@ -257,7 +257,7 @@ namespace Beelzebub { namespace Utils
             {
                 //  Enforce uniqueness, otherwise problems occur.
                 cover.Finding = node->Payload;
-                
+
                 return HandleResult::CardinalityViolation;
             }
 
@@ -543,6 +543,24 @@ namespace Beelzebub { namespace Utils
             //  Tail recursion, hopefully.
         }
 
+        static Handle Clear(Node * const node)
+        {
+            if unlikely(node == nullptr)
+                return HandleResult::Okay;
+
+            Handle const res1 = Clear(node->Left);
+            Handle const res2 = Clear(node->Right);
+            Handle const res3 = RemoveNode(node);
+
+            if likely(res1.IsOkayResult())
+                if likely(res2.IsOkayResult())
+                    return res3;
+                else
+                    return res2;
+            else
+                return res1;
+        }
+
         /*  Constructors  */
 
         AvlTree() = default;
@@ -564,7 +582,7 @@ namespace Beelzebub { namespace Utils
         }
 
         template<typename TCover>
-        Handle * InsertOrFind(TCover & cover)
+        Handle InsertOrFind(TCover & cover)
         {
             return InsertOrFind<TCover>(cover, this->Root);
         }
@@ -700,6 +718,19 @@ namespace Beelzebub { namespace Utils
             }
 
             return false;
+        }
+
+        /*  Clearing  */
+
+        Handle Clear()
+        {
+            Handle res = Clear(this->Root);
+
+            this->Root = nullptr;
+            this->NodeCount = 0;
+            //  These ought to be done even on failure.
+
+            return res;
         }
 
         /*  Fields  */
