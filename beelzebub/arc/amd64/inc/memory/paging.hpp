@@ -302,12 +302,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        inline Pml1Entry & operator [](vaddrptr_t const vaddr)
+        inline Pml1Entry & operator [](void const * const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
             //  And use that as an index! :D
-            return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
+            return this->Entries[(reinterpret_cast<uintptr_t>(vaddr) & AddressBits) >> IndexOffset];
         }
 
         /*  Field(s)  */
@@ -469,12 +469,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        inline Pml2Entry & operator [](vaddrptr_t const vaddr)
+        inline Pml2Entry & operator [](void const * const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
             //  And use that as an index! :D
-            return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
+            return this->Entries[(reinterpret_cast<uintptr_t>(vaddr) & AddressBits) >> IndexOffset];
         }
 
         /*  Field(s)  */
@@ -636,12 +636,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        inline Pml3Entry & operator [](vaddrptr_t const vaddr)
+        inline Pml3Entry & operator [](void const * const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
             //  And use that as an index! :D
-            return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
+            return this->Entries[(reinterpret_cast<uintptr_t>(vaddr) & AddressBits) >> IndexOffset];
         }
 
         /*  Field(s)  */
@@ -748,12 +748,12 @@ namespace Beelzebub { namespace Memory
         /**
          *  Gets the entry corresponding to the given linear address.
          */
-        inline Pml4Entry & operator [](vaddrptr_t const vaddr)
+        inline Pml4Entry & operator [](void const * const vaddr)
         {
             //  Take the interesting bits from the linear address...
             //  Shift it by the required amount of bits...
             //  And use that as an index! :D
-            return this->Entries[(vaddr.val & AddressBits) >> IndexOffset];
+            return this->Entries[(reinterpret_cast<uintptr_t>(vaddr) & AddressBits) >> IndexOffset];
         }
 
         /*  Field(s)  */

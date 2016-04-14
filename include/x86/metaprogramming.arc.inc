@@ -104,20 +104,12 @@ typedef void * int_cookie_t;
 
 #endif
 
-typedef uint16_t seg_t; //  Segment register.
+typedef uint16_t   seg_t; //  Segment register.
 
-#ifdef __GNUC__
-typedef union
-{
-    void * ptr;
-    vaddr_t val;
-} vaddrptr_t __attribute__((transparent_union));
-#endif
+typedef   int     comp_t; //  Result of comparison functions.
 
-typedef             int     comp_t; //  Result of comparison functions.
-
-typedef unsigned     char     byte; //  Uhm...
-typedef   signed     char    sbyte; //  Yeah...
+typedef  uint8_t    byte; //  Uhm...
+typedef   int8_t   sbyte; //  Yeah...
 
 // #if   !defined(__cplusplus) && defined(__BEELZEBUB_KERNEL)
 // typedef char bool;
