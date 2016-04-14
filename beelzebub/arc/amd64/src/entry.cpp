@@ -43,6 +43,7 @@
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
+#include <memory/regions.hpp>
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     #include <memory/object_allocator_smp.hpp>
@@ -501,27 +502,7 @@ Handle InitializeVirtualMemory()
 
     //  TODO: Management for ISA DMA.
 
-    uint32_t w, x, y, z;
-
-    #define PRINT_SUBFUNCTION(subfunc)              \
-    do                                              \
-    {                                               \
-          \
-                                                    \
-        msg("Subfunction %u4:%n"                    \
-            "\tA %X4 (%u4)%n"                       \
-            "\tB %X4 (%u4)%n"                       \
-            "\tC %X4 (%u4)%n"                       \
-            "\tD %X4 (%u4)%n"                       \
-            , subfunc, w, w, x, x, y, y, z, z);     \
-    } while (false)
-
-    // PRINT_SUBFUNCTION(0);
-    // PRINT_SUBFUNCTION(1);
-    // PRINT_SUBFUNCTION(2);
-
-    CpuId::Execute(0xDU, 0U, w, x, y, z);
-    //  Now Y (ECX) contains the size of the XSAVE area.
+    InitializeRegions();
 
     return HandleResult::Okay;
 }

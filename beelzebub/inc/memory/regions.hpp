@@ -39,7 +39,6 @@
 
 #pragma once
 
-#include <execution/images.hpp>
 #include <math.h>
 
 namespace Beelzebub { namespace Memory
@@ -47,7 +46,7 @@ namespace Beelzebub { namespace Memory
     /**
      *  Represents characteristics of memory regions.
      */
-    enum class RegionPermissions : char
+    enum class RegionPermissions : uint8_t
     {
         //  No flags.
         None        = 0x00,
@@ -58,25 +57,25 @@ namespace Beelzebub { namespace Memory
         Executable  = 0x02,
     };
 
-    ENUMOPS(RegionPermissions, char)
+    ENUMOPS(RegionPermissions, uint8_t)
 
     /**
      *  Represents characteristics of memory regions.
      */
-    enum class RegionType : char
+    enum class RegionType : uint8_t
     {
-        //  No flags.
+        //  No type.
         None        = 0x00,
 
         //  Process heap memory.
         Heap        = 0x01,
-        //  Executable image loaded into the process.
-        ExeImage    = 0x02,
+        //  Shared with other processes.
+        Share       = 0x02,
         //  A thread's stack.
-        ThreadStack = 0x04,
-        //  A thread's local storage.
-        ThreadStore = 0x08,
+        ThreadStack = 0x03,
     };
+
+    ENUMOPS_LITE(RegionType, uint8_t)
 
     struct MemoryRange
     {
@@ -130,7 +129,6 @@ namespace Beelzebub { namespace Memory
             : Range()
             , Permissions()
             , Type()
-            , ExeImage(nullptr)
         {
 
         }
@@ -141,11 +139,6 @@ namespace Beelzebub { namespace Memory
 
         RegionPermissions Permissions;
         RegionType Type;
-
-        union
-        {
-            Execution::Image * ExeImage;
-        };
     };
 
     struct AdjacentMemoryRegion
@@ -164,4 +157,6 @@ namespace Beelzebub { namespace Memory
         MemoryRegion Payload;
         MemoryRegion Finding;
     };
+
+    void InitializeRegions();
 }}
