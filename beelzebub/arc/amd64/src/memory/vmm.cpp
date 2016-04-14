@@ -633,7 +633,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
 
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
         {
-            if (proc->UserHeapOverflown)
+            if unlikely(proc->UserHeapOverflown)
                 return HandleResult::UnsupportedOperation;
             //  Not supported yet.
             
@@ -641,7 +641,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
             
             ret = proc->UserHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
 
-            if (ret > VmmArc::KernelHeapEnd)
+            if unlikely(ret > VmmArc::KernelHeapEnd)
             {
                 proc->UserHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
                 proc->UserHeapOverflown = true;
@@ -656,13 +656,13 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
         }
         else
         {
-            if (KernelHeapOverflown)
+            if unlikely(KernelHeapOverflown)
                 return HandleResult::UnsupportedOperation;
             //  Not supported yet.
 
             ret = KernelHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
 
-            if (ret > VmmArc::KernelHeapEnd)
+            if unlikely(ret > VmmArc::KernelHeapEnd)
             {
                 KernelHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
                 KernelHeapOverflown = true;
@@ -682,7 +682,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
 
         PageAllocator * alloc = Domain0.PhysicalAllocator;
 
-        if (CpuDataSetUp)
+        if likely(CpuDataSetUp)
             alloc = Cpu::GetData()->DomainDescriptor->PhysicalAllocator;
 
         size_t const size = count * PageSize;
@@ -696,12 +696,12 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
         {
             paddr_t const paddr = alloc->AllocatePage(desc);
             
-            if (paddr == nullpaddr) { allocSucceeded = false; break; }
+            if unlikely(paddr == nullpaddr) { allocSucceeded = false; break; }
 
             res = Vmm::MapPage(proc, ret + lowerOffset + offset, paddr
                 , flags, desc, false);
 
-            if (!res.IsOkayResult()) { allocSucceeded = false; break; }
+            if unlikely(!res.IsOkayResult()) { allocSucceeded = false; break; }
         }
 
         if likely(allocSucceeded)
@@ -759,7 +759,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
         }
         else
         {
-            if (KernelHeapOverflown)
+            if unlikely(KernelHeapOverflown)
             {
                 return HandleResult::UnsupportedOperation;
                 //  Not supported yet.
@@ -767,7 +767,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
 
             vaddr_t ret = KernelHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
 
-            if (ret > VmmArc::KernelHeapEnd)
+            if unlikely(ret > VmmArc::KernelHeapEnd)
             {
                 KernelHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
                 KernelHeapOverflown = true;
