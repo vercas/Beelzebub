@@ -115,7 +115,7 @@ TerminalWriteResult DebugTerminal::WriteUtf8(const char * c)
         } while ((c[i] & 0xC0) == 0x80 && i < 7);
         //  This copies the remainder of the bytes, up to 6.
 
-    Handle res = PerformSyscall(SyscallSelection::DebugPrint, temp, reinterpret_cast<uintptr_t>(&i), 0, 0, 0);
+    Handle res = PerformSyscall2(SyscallSelection::DebugPrint, temp, reinterpret_cast<uintptr_t>(&i));
 
     return {res, i, InvalidCoordinates};
 }
@@ -124,7 +124,7 @@ TerminalWriteResult DebugTerminal::Write(const char * const str)
 {
     uint32_t i = 0;
 
-    Handle res = PerformSyscall(SyscallSelection::DebugPrint, const_cast<char *>(str), reinterpret_cast<uintptr_t>(&i), 0, 0, 0);
+    Handle res = PerformSyscall2(SyscallSelection::DebugPrint, const_cast<char *>(str), reinterpret_cast<uintptr_t>(&i));
 
     return {res, i, InvalidCoordinates};
 }

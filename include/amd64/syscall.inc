@@ -47,7 +47,7 @@
 #define SyscallSelection enum SYSCALLS
 #endif
 
-inline Handle_t PerformSyscall(SyscallSelection selection, void * arg1
+inline Handle_t PerformSyscall5(SyscallSelection selection, void * arg1
     , uintptr_t arg2, uintptr_t arg3, uintptr_t arg4, uintptr_t arg5)
 {
     Handle_t res;
@@ -61,6 +61,77 @@ inline Handle_t PerformSyscall(SyscallSelection selection, void * arg1
                  , "+r"(r10), "+r"(r8), "+r"(r9)
                  :
                  : "rcx", "r11", "r12", "memory");
+
+    return res;
+}
+
+inline Handle_t PerformSyscall4(SyscallSelection selection, void * arg1
+    , uintptr_t arg2, uintptr_t arg3, uintptr_t arg4)
+{
+    Handle_t res;
+
+    register uintptr_t r10 asm("r10") = arg3;
+    register uintptr_t r8  asm("r8" ) = arg4;
+
+    asm volatile ( "syscall \n\t"
+                 : "=a"(res), "+D"(selection), "+S"(arg1), "+d"(arg2)
+                 , "+r"(r10), "+r"(r8)
+                 :
+                 : "rcx", "r9", "r11", "r12", "memory");
+
+    return res;
+}
+
+inline Handle_t PerformSyscall3(SyscallSelection selection, void * arg1
+    , uintptr_t arg2, uintptr_t arg3)
+{
+    Handle_t res;
+
+    register uintptr_t r10 asm("r10") = arg3;
+
+    asm volatile ( "syscall \n\t"
+                 : "=a"(res), "+D"(selection), "+S"(arg1), "+d"(arg2)
+                 , "+r"(r10)
+                 :
+                 : "rcx", "r8", "r9", "r11", "r12", "memory");
+
+    return res;
+}
+
+inline Handle_t PerformSyscall2(SyscallSelection selection, void * arg1
+    , uintptr_t arg2)
+{
+    Handle_t res;
+
+    asm volatile ( "syscall \n\t"
+                 : "=a"(res), "+D"(selection), "+S"(arg1), "+d"(arg2)
+                 :
+                 : "rcx", "r8", "r9", "r10", "r11", "r12", "memory");
+
+    return res;
+}
+
+inline Handle_t PerformSyscall1(SyscallSelection selection, void * arg1)
+{
+    Handle_t res;
+
+    asm volatile ( "syscall \n\t"
+                 : "=a"(res), "+D"(selection), "+S"(arg1)
+                 :
+                 : "rdx", "rcx", "r8", "r9", "r10", "r11", "r12", "memory");
+
+    return res;
+}
+
+inline Handle_t PerformSyscall0(SyscallSelection selection)
+{
+    Handle_t res;
+
+    asm volatile ( "syscall \n\t"
+                 : "=a"(res), "+D"(selection)
+                 :
+                 : "rsi", "rdx", "rcx", "r8", "r9", "r10", "r11", "r12"
+                 , "memory");
 
     return res;
 }
