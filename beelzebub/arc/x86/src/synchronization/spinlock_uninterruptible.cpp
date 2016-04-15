@@ -66,10 +66,10 @@ using namespace Beelzebub::Synchronization;
     /*  Operations  */
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    bool SpinlockUninterruptible<false>::TryAcquire(Cookie & cookie) volatile
+    bool SpinlockUninterruptible<false>::TryAcquire(int_cookie_t & cookie) volatile
     #else
     template<bool SMP>
-    bool SpinlockUninterruptible<SMP>::TryAcquire(Cookie & cookie) volatile
+    bool SpinlockUninterruptible<SMP>::TryAcquire(int_cookie_t & cookie) volatile
     #endif
     {
         cookie = System::Interrupts::PushDisable();
@@ -127,15 +127,15 @@ using namespace Beelzebub::Synchronization;
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    Cookie SpinlockUninterruptible<false>::Acquire() volatile
+    int_cookie_t SpinlockUninterruptible<false>::Acquire() volatile
     #else
     template<bool SMP>
-    Cookie SpinlockUninterruptible<SMP>::Acquire() volatile
+    int_cookie_t SpinlockUninterruptible<SMP>::Acquire() volatile
     #endif
     {
         uint16_t myTicket = 1;
 
-        Cookie const cookie = System::Interrupts::PushDisable();
+        int_cookie_t const cookie = System::Interrupts::PushDisable();
 
         asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
                     : [tail]"+m"(this->Value.Tail)
@@ -167,10 +167,10 @@ using namespace Beelzebub::Synchronization;
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    void SpinlockUninterruptible<false>::Release(Cookie const cookie) volatile
+    void SpinlockUninterruptible<false>::Release(int_cookie_t const cookie) volatile
     #else
     template<bool SMP>
-    void SpinlockUninterruptible<SMP>::Release(Cookie const cookie) volatile
+    void SpinlockUninterruptible<SMP>::Release(int_cookie_t const cookie) volatile
     #endif
     {
         asm volatile( "lock addw $1, %[head] \n\t"

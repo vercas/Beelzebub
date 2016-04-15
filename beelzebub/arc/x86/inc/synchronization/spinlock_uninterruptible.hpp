@@ -315,80 +315,19 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Operations  */
 
-        /**
-         *  Acquire the spinlock, if possible.
-         */
         __forceinline __must_check bool TryAcquire(Cookie & cookie) const volatile
-        {
-            cookie = System::Interrupts::PushDisable();
-
-            return true;
-        }
-
-        /**
-         *  Awaits for the spinlock to be freed.
-         *  Does not acquire the lock.
-         */
-        __forceinline void Spin() const volatile
-        {
-            //  Do nothing.
-        }
-
-        /**
-         *  Checks if the spinlock is free. If not, it awaits.
-         *  Does not acquire the lock.
-         */
-        __forceinline void Await() const volatile
-        {
-            //  Do nothing.
-        }
-
-        /**
-         *  Acquire the spinlock, waiting if necessary.
-         */
+        { cookie = System::Interrupts::PushDisable(); return true; }
+        __forceinline void Spin() const volatile { }
+        __forceinline void Await() const volatile { }
         __forceinline __must_check Cookie Acquire() const volatile
-        {
-            return System::Interrupts::PushDisable();
-        }
+        { return System::Interrupts::PushDisable(); }
+        __forceinline void SimplyAcquire() const volatile { }
 
-        /**
-         *  Acquire the spinlock, waiting if necessary.
-         */
-        __forceinline void SimplyAcquire() const volatile
-        {
-            //  Do nothing.
-        }
-
-        /**
-         *  Release the spinlock.
-         */
         __forceinline void Release(Cookie const cookie) const volatile
-        {
-            System::Interrupts::RestoreState(cookie);
-        }
-
-        /**
-         *  Release the spinlock.
-         */
-        __forceinline void SimplyRelease() const volatile
-        {
-            //  Do nothing.
-        }
-
-        /**
-         *  Checks whether the spinlock is free or not.
-         */
+        { System::Interrupts::RestoreState(cookie); }
+        __forceinline void SimplyRelease() const volatile { }
         __forceinline __must_check bool Check() const volatile
-        {
-            return true;
-        }
-
-        /*  Properties  */
-
-        __forceinline spinlock_t GetValue() const volatile
-        {
-            return { 0U };
-        }
+        { return true; }
     };
 #endif
 }}
