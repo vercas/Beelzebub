@@ -87,18 +87,6 @@ else
 	SETTINGS			+= smp
 endif
 
-#############################################
-# Lock type for fixed-size object allocator #
-ifneq (,$(findstring obja-rrspinlock,$(MAKECMDGOALS)))
-	PRECOMPILER_FLAGS	+= __BEELZEBUB_SETTINGS_OBJA_RRSPINLOCK 
-
-	SETTINGS			+= obja-rrspinlock
-else
-	PRECOMPILER_FLAGS	+= __BEELZEBUB_SETTINGS_OBJA_SPINLOCK 
-
-	SETTINGS			+= obja-spinlock
-endif
-
 #################
 # No Unit Tests #
 ifneq (,$(findstring no-unit-tests,$(MAKECMDGOALS)))
