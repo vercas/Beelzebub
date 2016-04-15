@@ -42,7 +42,13 @@
 
 using namespace Beelzebub::Synchronization;
 
+/*************************************
+    SpinlockUninterruptible struct
+*************************************/
+
 #ifdef __BEELZEBUB__DEBUG
+    /*  Destructor  */
+
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
     SpinlockUninterruptible<false>::~SpinlockUninterruptible()
     #else
@@ -54,6 +60,147 @@ using namespace Beelzebub::Synchronization;
 
         //this->Release();
     }//*/
+#endif
+
+#ifdef __BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS
+    /*  Operations  */
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    bool SpinlockUninterruptible<false>::TryAcquire(Cookie & cookie) volatile
+    #else
+    template<bool SMP>
+    bool SpinlockUninterruptible<SMP>::TryAcquire(Cookie & cookie) volatile
+    #endif
+    {
+        cookie = System::Interrupts::PushDisable();
+
+        uint16_t const oldTail = this->Value.Tail;
+        spinlock_t cmp {oldTail, oldTail};
+        spinlock_t const newVal {oldTail, (uint16_t)(oldTail + 1)};
+        spinlock_t const cmpCpy = cmp;
+
+        asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
+                    : [curVal]"+m"(this->Value), "+a"(cmp)
+                    : [newVal]"r"(newVal) );
+
+        if likely(cmp.Overall == cmpCpy.Overall)
+            return true;
+        
+        System::Interrupts::RestoreState(cookie);
+        //  If the spinlock was already locked, restore interrupt state.
+
+        return false;
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    void SpinlockUninterruptible<false>::Spin() const volatile
+    #else
+    template<bool SMP>
+    void SpinlockUninterruptible<SMP>::Spin() const volatile
+    #endif
+    {
+        spinlock_t copy;
+
+        do
+        {
+            copy = {this->Value.Overall};
+
+            asm volatile ( "pause \n\t" : : : "memory" );
+        } while (copy.Tail != copy.Head);
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    void SpinlockUninterruptible<false>::Await() const volatile
+    #else
+    template<bool SMP>
+    void SpinlockUninterruptible<SMP>::Await() const volatile
+    #endif
+    {
+        spinlock_t copy = {this->Value.Overall};
+
+        while (copy.Tail != copy.Head)
+        {
+            asm volatile ( "pause \n\t" : : : "memory" );
+
+            copy = {this->Value.Overall};
+        }
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    Cookie SpinlockUninterruptible<false>::Acquire() volatile
+    #else
+    template<bool SMP>
+    Cookie SpinlockUninterruptible<SMP>::Acquire() volatile
+    #endif
+    {
+        uint16_t myTicket = 1;
+
+        Cookie const cookie = System::Interrupts::PushDisable();
+
+        asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
+                    : [tail]"+m"(this->Value.Tail)
+                    , [ticket]"+r"(myTicket) );
+        //  It's possible to address the upper word directly.
+
+        while (this->Value.Head != myTicket)
+            asm volatile ( "pause \n\t" : : : "memory" );
+
+        return cookie;
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    void SpinlockUninterruptible<false>::SimplyAcquire() volatile
+    #else
+    template<bool SMP>
+    void SpinlockUninterruptible<SMP>::SimplyAcquire() volatile
+    #endif
+    {
+        uint16_t myTicket = 1;
+
+        asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
+                    : [tail]"+m"(this->Value.Tail)
+                    , [ticket]"+r"(myTicket) );
+        //  It's possible to address the upper word directly.
+
+        while (this->Value.Head != myTicket)
+            asm volatile ( "pause \n\t" : : : "memory" );
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    void SpinlockUninterruptible<false>::Release(Cookie const cookie) volatile
+    #else
+    template<bool SMP>
+    void SpinlockUninterruptible<SMP>::Release(Cookie const cookie) volatile
+    #endif
+    {
+        asm volatile( "lock addw $1, %[head] \n\t"
+                    : [head]"+m"(this->Value.Head) );
+
+        System::Interrupts::RestoreState(cookie);
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    void SpinlockUninterruptible<false>::SimplyRelease() volatile
+    #else
+    template<bool SMP>
+    void SpinlockUninterruptible<SMP>::SimplyRelease() volatile
+    #endif
+    {
+        asm volatile( "lock addw $1, %[head] \n\t"
+                    : [head]"+m"(this->Value.Head) );
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    bool SpinlockUninterruptible<false>::Check() const volatile
+    #else
+    template<bool SMP>
+    bool SpinlockUninterruptible<SMP>::Check() const volatile
+    #endif
+    {
+        spinlock_t copy = {this->Value.Overall};
+
+        return copy.Head == copy.Tail;
+    }
 #endif
 
 namespace Beelzebub { namespace Synchronization

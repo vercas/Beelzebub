@@ -113,6 +113,49 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Operations  */
 
+#ifdef __BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS
+        /**
+         *  Acquire the spinlock, if possible.
+         */
+        __noinline __must_check bool TryAcquire(Cookie & cookie) volatile;
+
+        /**
+         *  Awaits for the spinlock to be freed.
+         *  Does not acquire the lock.
+         */
+        __noinline void Spin() const volatile;
+
+        /**
+         *  Checks if the spinlock is free. If not, it awaits.
+         *  Does not acquire the lock.
+         */
+        __noinline void Await() const volatile;
+
+        /**
+         *  Acquire the spinlock, waiting if necessary.
+         */
+        __noinline __must_check Cookie Acquire() volatile;
+
+        /**
+         *  Acquire the spinlock, waiting if necessary.
+         */
+        __noinline void SimplyAcquire() volatile;
+
+        /**
+         *  Release the spinlock.
+         */
+        __noinline void Release(Cookie const cookie) volatile;
+
+        /**
+         *  Release the spinlock.
+         */
+        __noinline void SimplyRelease() volatile;
+
+        /**
+         *  Checks whether the spinlock is free or not.
+         */
+        __noinline __must_check bool Check() const volatile;
+#else
         /**
          *  Acquire the spinlock, if possible.
          */
@@ -235,6 +278,7 @@ namespace Beelzebub { namespace Synchronization
 
             return copy.Head == copy.Tail;
         }
+#endif
 
         /**
          *  Reset the spinlock.

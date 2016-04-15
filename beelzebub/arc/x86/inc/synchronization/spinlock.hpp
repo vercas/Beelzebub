@@ -104,6 +104,41 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Operations  */
 
+#ifdef __BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS
+        /**
+         *  Acquire the spinlock, if possible.
+         */
+        __noinline __must_check bool TryAcquire() volatile;
+
+        /**
+         *  Awaits for the spinlock to be freed.
+         *  Does not acquire the lock.
+         */
+        __noinline void Spin() const volatile;
+
+        /**
+         *  Checks if the spinlock is free. If not, it awaits.
+         *  Does not acquire the lock.
+         */
+        __noinline void Await() const volatile;
+
+        /**
+         *  Acquire the spinlock, waiting if necessary.
+         */
+        __noinline void Acquire() volatile;
+
+        /**
+         *  Release the spinlock.
+         */
+        __noinline void Release() volatile;
+
+        /**
+         *  Checks whether the spinlock is free or not.
+         */
+        __noinline __must_check bool Check() const volatile;
+
+#else
+
         /**
          *  Acquire the spinlock, if possible.
          */
@@ -170,12 +205,6 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /**
-         *  Acquire the spinlock, waiting if necessary.
-         *  Includes a pointer in the memory barrier, if supported.
-         */
-        __forceinline void SimplyAcquire() volatile { this->Acquire(); }
-
-        /**
          *  Release the spinlock.
          */
         __forceinline void Release() volatile
@@ -183,11 +212,6 @@ namespace Beelzebub { namespace Synchronization
             asm volatile( "lock addw $1, %[head] \n\t"
                         : [head]"+m"(this->Value.Head) );
         }
-
-        /**
-         *  Release the spinlock.
-         */
-        __forceinline void SimplyRelease() volatile { this->Release(); }
 
         /**
          *  Checks whether the spinlock is free or not.
@@ -198,6 +222,18 @@ namespace Beelzebub { namespace Synchronization
 
             return copy.Head == copy.Tail;
         }
+#endif
+
+        /**
+         *  Acquire the spinlock, waiting if necessary.
+         *  Includes a pointer in the memory barrier, if supported.
+         */
+        __forceinline void SimplyAcquire() volatile { this->Acquire(); }
+
+        /**
+         *  Release the spinlock.
+         */
+        __forceinline void SimplyRelease() volatile { this->Release(); }
 
         /**
          *  Reset the spinlock.

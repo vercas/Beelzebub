@@ -83,7 +83,7 @@ namespace Beelzebub { namespace System
             asm volatile ( "pushf                      \n\t"
                            "pop %%" __REG_A__ "        \n\t"
                            "bt %[bit], %%" __REG_A__ " \n\t"
-                           : [res]"=r"(res)
+                           : "=@ccc"(res)
                            : [bit]"rN"(9)
                            : __REG_A__ );
 

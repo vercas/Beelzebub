@@ -87,6 +87,18 @@ else
 	SETTINGS			+= smp
 endif
 
+##########################
+# Don't inline spinlocks #
+ifneq (,$(findstring no-inline-spinlocks,$(MAKECMDGOALS)))
+	PRECOMPILER_FLAGS	+= __BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS 
+
+	SETTINGS			+= no-inline-spinlocks
+else
+	PRECOMPILER_FLAGS	+= __BEELZEBUB_SETTINGS_INLINE_SPINLOCKS 
+
+	SETTINGS			+= inline-spinlocks
+endif
+
 #################
 # No Unit Tests #
 ifneq (,$(findstring no-unit-tests,$(MAKECMDGOALS)))
