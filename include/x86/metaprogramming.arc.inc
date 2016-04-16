@@ -138,10 +138,3 @@ enum size_consts : size_t { PageSize = 0x1000, };
 
 //  Bit 3 is reserved as 0, so the cookie will never be 8. Moreover, bit 1 is
 //  always 1, so really the flags will never be 8.
-
-#define ANNOTATE_LOCK_OPERATION \
-asm volatile goto(".pushsection .locks, \"a\", @progbits \n\t" \
-                  _GAS_DATA_POINTER " %l0 \n\t" \
-                  _GAS_DATA_POINTER " %l1 \n\t" \
-                  ".popsection \n\t" \
-                  : : : : op_start, op_end )

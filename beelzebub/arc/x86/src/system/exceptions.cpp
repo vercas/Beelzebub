@@ -69,7 +69,7 @@ using namespace Beelzebub::System;
 /**
  *  Interrupt handler for miscellaneous interrupts that do not represent an exception.
  */
-void Beelzebub::System::MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS)
+void System::MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
         , "<<MISC INT @ %Xp (%Xs) - vector %u1/%X1>>"
@@ -80,16 +80,22 @@ void Beelzebub::System::MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for division by 0.
  */
-void Beelzebub::System::DivideErrorHandler(INTERRUPT_HANDLER_ARGS)
+void System::DivideErrorHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
         , "<<DIVIDE ERROR @ %Xp>>", INSTRUCTION_POINTER);
 }
 
+void System::BreakpointHandler(INTERRUPT_HANDLER_ARGS)
+{
+    ASSERT(false
+        , "<<BREAKPOINT @ %Xp>>", INSTRUCTION_POINTER);
+}
+
 /**
  *  Interrupt handler for checked arithmetic overflows.
  */
-void Beelzebub::System::OverflowHandler(INTERRUPT_HANDLER_ARGS)
+void System::OverflowHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
         , "<<OVERFLOW @ %Xp>>", INSTRUCTION_POINTER);
@@ -98,7 +104,7 @@ void Beelzebub::System::OverflowHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for checked exceeded array bounds.
  */
-void Beelzebub::System::BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS)
+void System::BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
         , "<<BOUNDS EXCEEDED @ %Xp>>", INSTRUCTION_POINTER);
@@ -107,7 +113,7 @@ void Beelzebub::System::BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for invalid opcode exceptions.
  */
-void Beelzebub::System::InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS)
+void System::InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
         , "<<INVALID OPCODE @ %Xp>>", INSTRUCTION_POINTER);
@@ -116,7 +122,7 @@ void Beelzebub::System::InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for device not available exception.
  */
-void Beelzebub::System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
+void System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(CpuDataSetUp
         , "CPU data should be set up prior to using the FPU.");
@@ -159,7 +165,7 @@ void Beelzebub::System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for double faults.
  */
-void Beelzebub::System::DoubleFaultHandler(INTERRUPT_HANDLER_ARGS)
+void System::DoubleFaultHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
         , "<<DOUBLE FAULT @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
@@ -170,7 +176,7 @@ void Beelzebub::System::DoubleFaultHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for invalid TSS exceptions.
  */
-void Beelzebub::System::InvalidTssHandler(INTERRUPT_HANDLER_ARGS)
+void System::InvalidTssHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
         , "<<INVALID TSS @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
@@ -179,7 +185,7 @@ void Beelzebub::System::InvalidTssHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for invalid segment descriptors.
  */
-void Beelzebub::System::SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS)
+void System::SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS)
 {
     uint16_t ES = 0xFFFF, FS = 0xFFFF, GS = 0xFFFF;
     //  Used for retrieving the registers.
@@ -198,7 +204,7 @@ void Beelzebub::System::SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for invalid stack segmrnt exception.
  */
-void Beelzebub::System::StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS)
+void System::StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS)
 {
     ASSERT(false
         , "<<STACK SEGMENT FAULT @ %Xp (%Xs): SS%X2>>"
@@ -208,7 +214,7 @@ void Beelzebub::System::StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for general protection exceptions.
  */
-void Beelzebub::System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS)
+void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS)
 {
     MSG("<< GP FAULT! >>%n");
 
@@ -244,7 +250,7 @@ void Beelzebub::System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for page faults.
  */
-void Beelzebub::System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
+void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 {
     vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
 

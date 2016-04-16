@@ -78,11 +78,12 @@ bool System::TurnIntoNoOp(void * start, void * end, bool useJump)
             return false;
         //  It failed.
 
-        loc += size;
-        diff -= size;
+        memset(reinterpret_cast<void *>(loc + size), 0xCC, diff - size);
+
+        return true;
     }
 
-    //  Now even though a jump was added, the rest is filled with no-ops.
+    //  So no jump was used. Time to fill in with no-ops!
 
     for (/* nothing */; diff >= 9; diff -= 9, loc += 9)
     {

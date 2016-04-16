@@ -349,3 +349,16 @@ typedef void (* ActionFunction0)(void);
 #else
     #define onKernel if (false)
 #endif
+
+//  Lock elision helpers
+
+#define ANNOTATE_LOCK_OPERATION(opType) \
+asm volatile goto(".pushsection .locks." #opType ", \"a\", @progbits \n\t" \
+                  _GAS_DATA_POINTER " %l0 \n\t" \
+                  _GAS_DATA_POINTER " %l1 \n\t" \
+                  ".popsection \n\t" \
+                  : : : : op_start, op_end )
+
+#define ANNOTATE_LOCK_OPERATION_CHK ANNOTATE_LOCK_OPERATION(chk)
+#define ANNOTATE_LOCK_OPERATION_ACQ ANNOTATE_LOCK_OPERATION(acq)
+#define ANNOTATE_LOCK_OPERATION_REL ANNOTATE_LOCK_OPERATION(rel)

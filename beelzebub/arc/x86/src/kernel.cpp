@@ -823,6 +823,7 @@ Handle InitializeInterrupts()
 #endif
 
     InterruptHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
+    InterruptHandlers[(uint8_t)KnownExceptionVectors::Breakpoint] = &BreakpointHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;
     InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidOpcode] = &InvalidOpcodeHandler;

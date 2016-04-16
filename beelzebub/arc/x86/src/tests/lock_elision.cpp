@@ -57,11 +57,10 @@ __extern __section(data) uintptr_t testEnd1;
 
 __startup void TestFunction1()
 {
-    uint8_t tVar = 0;
+    uint8_t volatile tVar = 0;
     msg("pre ");
 
 op_start:
-    tVar = 1;
     msg("mid ");
 op_end:
 

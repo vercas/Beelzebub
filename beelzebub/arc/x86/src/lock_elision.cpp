@@ -42,6 +42,7 @@
 #include <memory/vmm.hpp>
 #include <system/cpu_instructions.hpp>
 #include <kernel.hpp>
+#include <entry.h>
 #include <math.h>
 
 #include <debug.hpp>
@@ -49,6 +50,9 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
+
+__extern long const kernel_mapping_start;
+__extern long const kernel_mapping_end;
 
 struct LockAnnotation
 {
@@ -61,81 +65,56 @@ __extern LockAnnotation const locks_section_end;
 
 Handle Beelzebub::ElideLocks()
 {
+    if (&locks_section_start == &locks_section_end)
+        return HandleResult::Okay;
+
     Handle res;
 
-    msg("LOCKS start @ %Xp, end @ %Xp%n"
-        , &locks_section_start, &locks_section_end);
+    //  Step 1 is backing up the flags of all the pages, and making them
+    //  writable, if they were not already.
+
+    size_t const kernel_size = RoundUp(reinterpret_cast<uintptr_t>(&kernel_mapping_end) - reinterpret_cast<uintptr_t>(&kernel_mapping_start), PageSize);
+    size_t const kernel_page_count = kernel_size / PageSize;
+
+    msg("Kernel start @ %Xp, end @ %Xp, size %us, page count %us."
+        , &kernel_mapping_start, &kernel_mapping_end
+        , kernel_size, kernel_page_count);
+
+    MemoryFlags flags[kernel_page_count] {};
+
+    for (size_t pageInd = 0; pageInd < kernel_page_count; ++pageInd)
+    {
+        vaddr_t const vaddr = reinterpret_cast<vaddr_t>(&kernel_mapping_start) + pageInd * PageSize;
+
+        res = Vmm::GetPageFlags(&BootstrapProcess, vaddr, flags[pageInd]);
+
+        assert_or(res.IsOkayResult()
+            , "Failed to retrieve flags of page %Xp for lock elision: %H"
+            , vaddr, res)
+        {
+            return res;
+        }
+
+        res = Vmm::SetPageFlags(&BootstrapProcess, vaddr, MemoryFlags::Writable | flags[pageInd]);
+
+        assert_or(res.IsOkayResult()
+            , "Failed to apply flags to page %Xp for lock elision: %H"
+            , vaddr, res)
+        {
+            return res;
+        }
+    }
+
+    //  Step 2 is performing the actual code patches.
+
+    size_t const cacheLineSize = BootstrapCpuid.GetClflushLineSize();
+
+    //  Finally, no-op the code.
 
     LockAnnotation const * cursor = &locks_section_start;
 
     for (/* nothing */; cursor < &locks_section_end; ++cursor)
-        msg("Lock: %Xp -> %Xp%n", cursor->Start, cursor->End);
-
-    cursor = &locks_section_start;
-
-    for (/* nothing */; cursor < &locks_section_end; ++cursor)
     {
-        Debug::DebugTerminal->WriteHexDump(cursor->Start, cursor->End - cursor->Start, 16);
-        msg("Lock: %Xp -> %Xp ", cursor->Start, cursor->End);
-
-        vaddr_t const vaddr1 = RoundDown(cursor->Start, PageSize);
-        vaddr_t const vaddr2 = RoundDown(cursor->End  , PageSize);
-
-        //  First, get the page flags.
-
-        MemoryFlags mf1 = MemoryFlags::None, mf2 = MemoryFlags::None;
-
-        res = Vmm::GetPageFlags(&BootstrapProcess, vaddr1, mf1);
-
-        assert_or(res.IsOkayResult()
-            , "Failed to retrieve flags of page %Xp for lock elision: %H"
-            , vaddr1, res)
-        {
-            return res;
-        }
-
-        if (vaddr2 != vaddr1)
-        {
-            res = Vmm::GetPageFlags(&BootstrapProcess, vaddr2, mf2);
-
-            assert_or(res.IsOkayResult()
-                , "Failed to retrieve flags of page %Xp for lock elision: %H"
-                , vaddr2, res)
-            {
-                return res;
-            }
-        }
-
-        msg("A ");
-
-        //  Then make the pages writable and executable (because they may overlap
-        //  with this code and all the functions used by it).
-
-        res = Vmm::SetPageFlags(&BootstrapProcess, vaddr1, MemoryFlags::Writable | MemoryFlags::Executable | MemoryFlags::Global);
-
-        assert_or(res.IsOkayResult()
-            , "Failed to apply flags to page %Xp for lock elision: %H"
-            , vaddr1, res)
-        {
-            return res;
-        }
-
-        if (vaddr2 != vaddr1)
-        {
-            res = Vmm::SetPageFlags(&BootstrapProcess, vaddr2, MemoryFlags::Writable | MemoryFlags::Executable | MemoryFlags::Global);
-
-            assert_or(res.IsOkayResult()
-                , "Failed to apply flags to page %Xp for lock elision: %H"
-                , vaddr2, res)
-            {
-                return res;
-            }
-        }
-
-        msg("B%n");
-
-        //  Finally, no-op the code.
-
         bool okay = TurnIntoNoOp(reinterpret_cast<void *>(cursor->Start)
             , reinterpret_cast<void *>(cursor->End), true);
 
@@ -145,38 +124,25 @@ Handle Beelzebub::ElideLocks()
             return HandleResult::Failed;
         }
 
-        Debug::DebugTerminal->WriteLine();
-        Debug::DebugTerminal->WriteHexDump(cursor->Start, cursor->End - cursor->Start, 16);
-
-        //  And close by restoring the page flags.
-
-        for (uintptr_t i = cursor->Start; i < cursor->End; i += 32)
+        for (uintptr_t i = cursor->Start; i < cursor->End; i += cacheLineSize)
             CpuInstructions::FlushCache((void *)i);
+        //  The cache ought to be flushed, just to be on the safe side.
+    }
 
-        msg("D ");
+    //  And step 3 is restoring the page flags.
 
-        res = Vmm::SetPageFlags(&BootstrapProcess, vaddr1, mf1);
+    for (size_t pageInd = 0; pageInd < kernel_page_count; ++pageInd)
+    {
+        vaddr_t const vaddr = reinterpret_cast<vaddr_t>(&kernel_mapping_start) + pageInd * PageSize;
+
+        res = Vmm::SetPageFlags(&BootstrapProcess, vaddr, flags[pageInd]);
 
         assert_or(res.IsOkayResult()
-            , "Failed to apply flags to page %Xp for lock elision: %H"
-            , vaddr1, res)
+            , "Failed to restore flags to page %Xp for lock elision: %H"
+            , vaddr, res)
         {
             return res;
         }
-
-        if (vaddr2 != vaddr1)
-        {
-            res = Vmm::SetPageFlags(&BootstrapProcess, vaddr2, mf2);
-
-            assert_or(res.IsOkayResult()
-                , "Failed to apply flags to page %Xp for lock elision: %H"
-                , vaddr2, res)
-            {
-                return res;
-            }
-        }
-
-        msg("E%n");
     }
 
     return HandleResult::Okay;

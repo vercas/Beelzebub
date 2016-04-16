@@ -3,6 +3,7 @@ ENTRY(kmain_bsp)
 SECTIONS
 {
     . = 0xFFFFFFFF80000000;
+    kernel_mapping_start = .;
 
     .text.unlikely : {
         *(.text.unlikely)
@@ -62,7 +63,9 @@ SECTIONS
 
     .locks ALIGN(8) : {
         locks_section_start = .;
-        *(.locks)
+        *(.locks.chk)
+        *(.locks.acq)
+        *(.locks.rel)
         locks_section_end = .;
     }
 
@@ -73,6 +76,7 @@ SECTIONS
     }
 
     . = ALIGN(4096);
+    kernel_mapping_end = .;
 
     /DISCARD/ : {
         *(.eh_frame)

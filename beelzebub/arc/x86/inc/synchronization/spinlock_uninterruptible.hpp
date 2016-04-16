@@ -186,7 +186,7 @@ namespace Beelzebub { namespace Synchronization
         op_end:
 
             COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION;
+            ANNOTATE_LOCK_OPERATION_ACQ;
 
             return true;
         }
@@ -211,7 +211,7 @@ namespace Beelzebub { namespace Synchronization
         op_end:
 
             COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION;
+            ANNOTATE_LOCK_OPERATION_CHK;
         }
 
         /**
@@ -234,7 +234,7 @@ namespace Beelzebub { namespace Synchronization
         op_end:
 
             COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION;
+            ANNOTATE_LOCK_OPERATION_CHK;
         }
 
         /**
@@ -260,7 +260,7 @@ namespace Beelzebub { namespace Synchronization
         op_end:
 
             COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION;
+            ANNOTATE_LOCK_OPERATION_ACQ;
 
             return cookie;
         }
@@ -286,7 +286,7 @@ namespace Beelzebub { namespace Synchronization
         op_end:
 
             COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION;
+            ANNOTATE_LOCK_OPERATION_ACQ;
         }
 
         /**
@@ -303,7 +303,7 @@ namespace Beelzebub { namespace Synchronization
         op_end:
 
             COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION;
+            ANNOTATE_LOCK_OPERATION_REL;
 
             System::Interrupts::RestoreState(cookie);
         }
@@ -322,7 +322,7 @@ namespace Beelzebub { namespace Synchronization
         op_end:
 
             COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION;
+            ANNOTATE_LOCK_OPERATION_REL;
         }
 
         /**
@@ -340,7 +340,7 @@ namespace Beelzebub { namespace Synchronization
         op_end:
 
             COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION;
+            ANNOTATE_LOCK_OPERATION_CHK;
 
             return true;
         }

@@ -75,6 +75,7 @@ namespace Beelzebub { namespace System
     void MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS);
 
     void DivideErrorHandler(INTERRUPT_HANDLER_ARGS);
+    void BreakpointHandler(INTERRUPT_HANDLER_ARGS);
     void OverflowHandler(INTERRUPT_HANDLER_ARGS);
     void BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS);
     void InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS);

@@ -40,8 +40,6 @@
 #include <system/code_patch.hpp>
 #include <metaprogramming.h>
 
-#include <debug.hpp>
-
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 
@@ -74,8 +72,6 @@ unsigned int System::EncodeJump(void * location, void * destination)
     {
         //  Means a relative 8-bit offset can be used.
 
-        msg("1-byte rel jump @ %Xp (%i1) ", loc, (int8_t)(diff - 2));
-
         *(reinterpret_cast<uint8_t *>(loc    )) = 0xEB;
         *(reinterpret_cast<int8_t *>(loc + 1)) = (int8_t)(diff - 2);
         //  The bottom byte of the difference will sign-extend to its value.
@@ -85,8 +81,6 @@ unsigned int System::EncodeJump(void * location, void * destination)
     else if (-2147483643LL <= diff && diff <= 2147483652LL)
     {
         //  Means a relative 32-bit offset needs to be used.
-
-        msg("4-byte rel jump @ %Xp (%i4) ", loc, (int32_t)(diff - 5));
 
         *(reinterpret_cast<uint8_t *>(loc    )) = 0xE9;
         *(reinterpret_cast<int32_t *>(loc + 1)) = (int32_t)(diff - 5);
