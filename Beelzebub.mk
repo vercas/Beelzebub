@@ -136,6 +136,7 @@ ifneq (,$(findstring test-all,$(MAKECMDGOALS)))
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_CMDO 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_FPU 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_BIGINT 
+	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_LOCK_ELISION 
 
 	SETTINGS			+= test-all
 else
@@ -209,6 +210,12 @@ else
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_BIGINT 
 
 		SETTINGS			+= test-bigint 
+	endif
+
+	ifneq (,$(findstring test-lock-elision,$(MAKECMDGOALS)))
+		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_LOCK_ELISION 
+
+		SETTINGS			+= test-lock-elision 
 	endif
 endif
 

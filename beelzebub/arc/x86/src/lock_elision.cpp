@@ -150,6 +150,11 @@ Handle Beelzebub::ElideLocks()
 
         //  And close by restoring the page flags.
 
+        for (uintptr_t i = cursor->Start; i < cursor->End; i += 32)
+            CpuInstructions::FlushCache((void *)i);
+
+        msg("D ");
+
         res = Vmm::SetPageFlags(&BootstrapProcess, vaddr1, mf1);
 
         assert_or(res.IsOkayResult()
@@ -170,11 +175,6 @@ Handle Beelzebub::ElideLocks()
                 return res;
             }
         }
-
-        msg("D ");
-
-        for (uintptr_t i = cursor->Start; i < cursor->End; i += 32)
-            CpuInstructions::FlushCache((void *)i);
 
         msg("E%n");
     }

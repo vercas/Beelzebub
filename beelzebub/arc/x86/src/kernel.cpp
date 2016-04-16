@@ -113,6 +113,10 @@
 #include <tests/bigint.hpp>
 #endif
 
+#ifdef __BEELZEBUB__TEST_LOCK_ELISION
+#include <tests/lock_elision.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -361,10 +365,27 @@ void Beelzebub::Main()
             CpuDataSetUp = shouldElideLocks = true;
             //  Once again...
         }
+#endif
 
+#ifdef __BEELZEBUB__TEST_LOCK_ELISION
+        if (CHECK_TEST(LOCK_ELISION))
+        {
+            MainTerminal->Write("[TEST] Testing lock elision... ");
+
+            TestLockElision();
+
+            MainTerminal->WriteLine(" Done.");
+        }
+#endif
+
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
         //  Elide lock operations on unicore systems.
         //  Mainly common.
+#ifdef __BEELZEBUB__TEST_LOCK_ELISION
+        if (shouldElideLocks && !(CHECK_TEST(LOCK_ELISION)))
+#else
         if (shouldElideLocks)
+#endif
         {
             MainTerminal->Write("[....] Eliding locks...");
             res = ElideLocks();
