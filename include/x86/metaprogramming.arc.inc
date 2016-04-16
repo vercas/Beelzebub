@@ -140,8 +140,8 @@ enum size_consts : size_t { PageSize = 0x1000, };
 //  always 1, so really the flags will never be 8.
 
 #define ANNOTATE_LOCK_OPERATION \
-asm volatile(".pushsection .locks, \"a\", @progbits \n\t" \
-            _GAS_DATA_POINTER " %l0 \n\t" \
-            _GAS_DATA_POINTER " %l1 \n\t" \
-            ".popsection \n\t" \
-            : : "i"(&&op_start), "i"(&&op_end) )
+asm volatile goto(".pushsection .locks, \"a\", @progbits \n\t" \
+                  _GAS_DATA_POINTER " %l0 \n\t" \
+                  _GAS_DATA_POINTER " %l1 \n\t" \
+                  ".popsection \n\t" \
+                  : : : : op_start, op_end )

@@ -163,6 +163,8 @@ namespace Beelzebub { namespace Synchronization
         {
             cookie = System::Interrupts::PushDisable();
 
+            COMPILER_MEMORY_BARRIER();
+
         op_start:
             uint16_t const oldTail = this->Value.Tail;
             spinlock_t cmp {oldTail, oldTail};
@@ -183,6 +185,7 @@ namespace Beelzebub { namespace Synchronization
             }
         op_end:
 
+            COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION;
 
             return true;
@@ -194,6 +197,8 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Spin() const volatile
         {
+            COMPILER_MEMORY_BARRIER();
+
         op_start:
             spinlock_t copy;
 
@@ -205,6 +210,7 @@ namespace Beelzebub { namespace Synchronization
             } while (copy.Tail != copy.Head);
         op_end:
 
+            COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION;
         }
 
@@ -214,6 +220,8 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Await() const volatile
         {
+            COMPILER_MEMORY_BARRIER();
+
         op_start:
             spinlock_t copy = {this->Value.Overall};
 
@@ -225,6 +233,7 @@ namespace Beelzebub { namespace Synchronization
             }
         op_end:
 
+            COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION;
         }
 
@@ -235,6 +244,8 @@ namespace Beelzebub { namespace Synchronization
         {
             Cookie const cookie = System::Interrupts::PushDisable();
 
+            COMPILER_MEMORY_BARRIER();
+
         op_start:
             uint16_t myTicket = 1;
 
@@ -248,6 +259,7 @@ namespace Beelzebub { namespace Synchronization
                 asm volatile ( "pause \n\t" : : : "memory" );
         op_end:
 
+            COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION;
 
             return cookie;
@@ -258,6 +270,8 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void SimplyAcquire() volatile
         {
+            COMPILER_MEMORY_BARRIER();
+
         op_start:
             uint16_t myTicket = 1;
 
@@ -271,6 +285,7 @@ namespace Beelzebub { namespace Synchronization
                 asm volatile ( "pause \n\t" : : : "memory" );
         op_end:
 
+            COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION;
         }
 
@@ -279,12 +294,15 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Release(Cookie const cookie) volatile
         {
+            COMPILER_MEMORY_BARRIER();
+
         op_start:
             asm volatile( "lock addw $1, %[head] \n\t"
                         : [head]"+m"(this->Value.Head)
                         : : "flags" );
         op_end:
 
+            COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION;
 
             System::Interrupts::RestoreState(cookie);
@@ -295,12 +313,15 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void SimplyRelease() volatile
         {
+            COMPILER_MEMORY_BARRIER();
+
         op_start:
             asm volatile( "lock addw $1, %[head] \n\t"
                         : [head]"+m"(this->Value.Head)
                         : : "flags" );
         op_end:
 
+            COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION;
         }
 
@@ -309,6 +330,8 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline __must_check bool Check() const volatile
         {
+            COMPILER_MEMORY_BARRIER();
+
         op_start:
             spinlock_t copy = {this->Value.Overall};
 
@@ -316,6 +339,7 @@ namespace Beelzebub { namespace Synchronization
                 return false;
         op_end:
 
+            COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION;
 
             return true;

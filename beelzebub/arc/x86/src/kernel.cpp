@@ -41,6 +41,7 @@
 #include <entry.h>
 #include <global_options.hpp>
 #include <utils/unit_tests.hpp>
+#include <lock_elision.hpp>
 
 #include <terminals/serial.hpp>
 #include <terminals/vbe.hpp>
@@ -326,14 +327,17 @@ void Beelzebub::Main()
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
         MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
 #else
+        bool shouldElideLocks = false;
+
         //  Initialize the other processing units in the system.
         //  Mostly common on x86, but the executed code differs by arch.
         if (CMDO_SmpEnable.ParsingResult.IsValid() && !CMDO_SmpEnable.BooleanValue)
         {
             MainTerminal->WriteLine("[SKIP] Extra processing units ignored as indicated in arguments.");
 
-            CpuDataSetUp = true;
-            //  Let the kernel know that CPU data is available for use.
+            CpuDataSetUp = shouldElideLocks = true;
+            //  Let the kernel know that CPU data is available for use, and elide
+            //  useless locks.
         }
         else if (Acpi::PresentLapicCount > 1)
         {
@@ -354,8 +358,25 @@ void Beelzebub::Main()
         {
             MainTerminal->WriteLine("[SKIP] No extra processing units available.");
 
-            CpuDataSetUp = true;
+            CpuDataSetUp = shouldElideLocks = true;
             //  Once again...
+        }
+
+        //  Elide lock operations on unicore systems.
+        //  Mainly common.
+        if (shouldElideLocks)
+        {
+            MainTerminal->Write("[....] Eliding locks...");
+            res = ElideLocks();
+
+            if (res.IsOkayResult())
+                MainTerminal->WriteLine(" Done.\r[OKAY]");
+            else
+            {
+                MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+                ASSERT(false, "Failed to elide locks: %H", res);
+            }
         }
 #endif
 

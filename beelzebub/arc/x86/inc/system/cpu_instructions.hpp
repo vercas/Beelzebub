@@ -86,6 +86,14 @@ namespace Beelzebub { namespace System
             asm volatile ( "invlpg %0 \n\t" : : "m"(*p) );
         }
 
+        static __forceinline void FlushCache(void const * const addr)
+        {
+            struct _64_bytes { uint8_t x[64]; } const * const p
+            = reinterpret_cast<_64_bytes const *>(reinterpret_cast<uintptr_t>(addr) & ~((uintptr_t)0x3F));
+
+            asm volatile ( "clflush %0 \n\t" : : "m"(*p) );
+        }
+
         /*  Profiling  */
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)

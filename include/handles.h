@@ -117,6 +117,8 @@
     ENUMINST(NotImplemented           , 0x0AU, "Not Impl.") \
     /*  An operation was attempted on an object that has been disposed. */ \
     ENUMINST(ObjectDisposed           , 0x0BU, "Obj Disp.") \
+    /*  An operation failed. */ \
+    ENUMINST(Failed                   , 0x0FU, "Failed") \
     \
     /*  An argument given to a function/method has been given an invalid template argument. */ \
     ENUMINST(ArgumentTemplateInvalid  , 0x10U, "Arg. T inv.") \
