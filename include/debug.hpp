@@ -56,40 +56,6 @@
             (*(Beelzebub::Debug::DebugTerminal)) 
 #endif
 
-#ifdef __BEELZEBUB__DEBUG
-    #define assert(cond, ...) do {                                          \
-    if unlikely(!(cond))                                                    \
-        Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
-            , __VA_ARGS__);                                                 \
-    } while (false)
-    #define assert_or(cond, ...) if unlikely(!(cond))                       \
-        Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
-            , __VA_ARGS__);                                                 \
-    else if (false)
-
-    //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
-    #define msg(...) do {                                                   \
-        if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-        {                                                                   \
-            Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
-        }                                                                   \
-    } while (false)
-
-    #ifdef __BEELZEBUB_KERNEL
-        #define msg_(...) do {                                                  \
-            if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-                withLock (Beelzebub::Debug::MsgSpinlock)                        \
-                    Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
-        } while (false)
-    #endif
-#else
-    #define assert(...) do {} while(false)
-    #define assert_or(cond, ...) if unlikely(!(cond))
-
-    #define msg(...) do {} while(false)
-    #define msg_(...) do {} while(false)
-#endif
-
 #define ASSERT_1(cond) do {                                             \
 if unlikely(!(cond))                                                    \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
@@ -210,3 +176,45 @@ if unlikely((val) == (expected))                                                
 } while (false)
 
 #define ASSERT_NEQ(arg1, ...) GET_MACRO2(__VA_ARGS__, ASSERT_NEQ_3, ASSERT_NEQ_2)(arg1, __VA_ARGS__)
+
+//  And now the debug ones!
+
+#ifdef __BEELZEBUB__DEBUG
+    #define assert(...) ASSERT(__VA_ARGS__)
+
+    #define assert_or(cond, ...) if unlikely(!(cond))                       \
+        Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
+            , __VA_ARGS__);                                                 \
+    else if (false)
+
+    //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
+    #define msg(...) do {                                                   \
+        if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+        {                                                                   \
+            Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
+        }                                                                   \
+    } while (false)
+
+    #ifdef __BEELZEBUB_KERNEL
+        #define msg_(...) do {                                                  \
+            if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+                withLock (Beelzebub::Debug::MsgSpinlock)                        \
+                    Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
+        } while (false)
+    #endif
+#else
+    #define assert(...) while(false) \
+        ASSERT(__VA_ARGS__)
+
+    #define assert_or(cond, ...) \
+        if (false) \
+            ASSERT(cond, __VA_ARGS__); \
+        else if unlikely(!(cond))
+
+    #define msg(...) while (false) \
+        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__)
+
+    #ifdef __BEELZEBUB_KERNEL
+        #define msg_(...) msg(__VA_ARGS__)
+    #endif
+#endif
