@@ -79,7 +79,8 @@ using namespace Beelzebub::Synchronization;
 
         asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
                     : [curVal]"+m"(this->Value), "+a"(cmp)
-                    : [newVal]"r"(newVal) );
+                    : [newVal]"r"(newVal)
+                    : "flags" );
 
         return cmp.Overall == cmpCpy.Overall;
     }
@@ -129,7 +130,8 @@ using namespace Beelzebub::Synchronization;
 
         asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
                     : [tail]"+m"(this->Value.Tail)
-                    , [ticket]"+r"(myTicket) );
+                    , [ticket]"+r"(myTicket)
+                    : : "flags" );
         //  It's possible to address the upper word directly.
 
         while (this->Value.Head != myTicket)
@@ -144,7 +146,8 @@ using namespace Beelzebub::Synchronization;
     #endif
     {
         asm volatile( "lock addw $1, %[head] \n\t"
-                    : [head]"+m"(this->Value.Head) );
+                    : [head]"+m"(this->Value.Head)
+                    : : "flags" );
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)

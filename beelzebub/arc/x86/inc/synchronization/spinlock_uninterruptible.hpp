@@ -163,6 +163,7 @@ namespace Beelzebub { namespace Synchronization
         {
             cookie = System::Interrupts::PushDisable();
 
+        op_start:
             uint16_t const oldTail = this->Value.Tail;
             spinlock_t cmp {oldTail, oldTail};
             spinlock_t const newVal {oldTail, (uint16_t)(oldTail + 1)};
@@ -170,15 +171,21 @@ namespace Beelzebub { namespace Synchronization
 
             asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
                         : [curVal]"+m"(this->Value), "+a"(cmp)
-                        : [newVal]"r"(newVal) );
+                        : [newVal]"r"(newVal)
+                        : "flags" );
 
             if likely(cmp.Overall == cmpCpy.Overall)
-                return true;
-            
-            System::Interrupts::RestoreState(cookie);
-            //  If the spinlock was already locked, restore interrupt state.
+            {
+                System::Interrupts::RestoreState(cookie);
+                //  If the spinlock was already locked, restore interrupt state.
 
-            return false;
+                return false;
+            }
+        op_end:
+
+            ANNOTATE_LOCK_OPERATION;
+
+            return true;
         }
 
         /**
@@ -187,6 +194,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Spin() const volatile
         {
+        op_start:
             spinlock_t copy;
 
             do
@@ -195,6 +203,9 @@ namespace Beelzebub { namespace Synchronization
 
                 asm volatile ( "pause \n\t" : : : "memory" );
             } while (copy.Tail != copy.Head);
+        op_end:
+
+            ANNOTATE_LOCK_OPERATION;
         }
 
         /**
@@ -203,6 +214,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Await() const volatile
         {
+        op_start:
             spinlock_t copy = {this->Value.Overall};
 
             while (copy.Tail != copy.Head)
@@ -211,6 +223,9 @@ namespace Beelzebub { namespace Synchronization
 
                 copy = {this->Value.Overall};
             }
+        op_end:
+
+            ANNOTATE_LOCK_OPERATION;
         }
 
         /**
@@ -218,17 +233,22 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline __must_check Cookie Acquire() volatile
         {
-            uint16_t myTicket = 1;
-
             Cookie const cookie = System::Interrupts::PushDisable();
+
+        op_start:
+            uint16_t myTicket = 1;
 
             asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
                         : [tail]"+m"(this->Value.Tail)
-                        , [ticket]"+r"(myTicket) );
+                        , [ticket]"+r"(myTicket)
+                        : : "flags" );
             //  It's possible to address the upper word directly.
 
             while (this->Value.Head != myTicket)
                 asm volatile ( "pause \n\t" : : : "memory" );
+        op_end:
+
+            ANNOTATE_LOCK_OPERATION;
 
             return cookie;
         }
@@ -238,15 +258,20 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void SimplyAcquire() volatile
         {
+        op_start:
             uint16_t myTicket = 1;
 
             asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
                         : [tail]"+m"(this->Value.Tail)
-                        , [ticket]"+r"(myTicket) );
+                        , [ticket]"+r"(myTicket)
+                        : : "flags" );
             //  It's possible to address the upper word directly.
 
             while (this->Value.Head != myTicket)
                 asm volatile ( "pause \n\t" : : : "memory" );
+        op_end:
+
+            ANNOTATE_LOCK_OPERATION;
         }
 
         /**
@@ -254,8 +279,13 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Release(Cookie const cookie) volatile
         {
+        op_start:
             asm volatile( "lock addw $1, %[head] \n\t"
-                        : [head]"+m"(this->Value.Head) );
+                        : [head]"+m"(this->Value.Head)
+                        : : "flags" );
+        op_end:
+
+            ANNOTATE_LOCK_OPERATION;
 
             System::Interrupts::RestoreState(cookie);
         }
@@ -265,8 +295,13 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void SimplyRelease() volatile
         {
+        op_start:
             asm volatile( "lock addw $1, %[head] \n\t"
-                        : [head]"+m"(this->Value.Head) );
+                        : [head]"+m"(this->Value.Head)
+                        : : "flags" );
+        op_end:
+
+            ANNOTATE_LOCK_OPERATION;
         }
 
         /**
@@ -274,9 +309,16 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline __must_check bool Check() const volatile
         {
+        op_start:
             spinlock_t copy = {this->Value.Overall};
 
-            return copy.Head == copy.Tail;
+            if (copy.Head != copy.Tail)
+                return false;
+        op_end:
+
+            ANNOTATE_LOCK_OPERATION;
+
+            return true;
         }
 #endif
 

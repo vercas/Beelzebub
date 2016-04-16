@@ -60,6 +60,12 @@ SECTIONS
         tests_code_section_end = .;
     }
 
+    .locks ALIGN(8) : {
+        locks_section_start = .;
+        *(.locks)
+        locks_section_end = .;
+    }
+
     .text.userland ALIGN(0x1000) : {
         userland_section_start = .;
         *(.text.userland)

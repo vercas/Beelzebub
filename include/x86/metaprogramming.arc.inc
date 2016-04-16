@@ -81,6 +81,8 @@ typedef  int64_t ssize_t;
 
 typedef void * int_cookie_t;
 
+#define _GAS_DATA_POINTER " .quad "
+
 #elif defined(__BEELZEBUB__ARCH_IA32)
 
 #if   defined(__BEELZEBUB__ARCH_IA32PAE)
@@ -101,6 +103,8 @@ typedef  int32_t ssize_t;
 typedef void * int_cookie_t;
 
 #define __fastcall_ia32 __attribute__((__fastcall__))
+
+#define _GAS_DATA_POINTER " .word "
 
 #endif
 
@@ -134,3 +138,10 @@ enum size_consts : size_t { PageSize = 0x1000, };
 
 //  Bit 3 is reserved as 0, so the cookie will never be 8. Moreover, bit 1 is
 //  always 1, so really the flags will never be 8.
+
+#define ANNOTATE_LOCK_OPERATION \
+asm volatile(".pushsection .locks, \"a\", @progbits \n\t" \
+            _GAS_DATA_POINTER " %l0 \n\t" \
+            _GAS_DATA_POINTER " %l1 \n\t" \
+            ".popsection \n\t" \
+            : : "i"(&&op_start), "i"(&&op_end) )
