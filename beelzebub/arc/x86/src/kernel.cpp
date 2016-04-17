@@ -117,6 +117,10 @@
 #include <tests/lock_elision.hpp>
 #endif
 
+#ifdef __BEELZEBUB__TEST_RW_SPINLOCK
+#include <tests/rw_spinlock.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -496,6 +500,15 @@ void Beelzebub::Main()
         MainTerminal->WriteLine("Initialization complete! Will enable scheduling.");
         MainTerminal->WriteLine();
 
+#if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
+        if (Cpu::Count.Load() > 1 && CHECK_TEST(RW_SPINLOCK))
+        {
+            RwSpinlockTestBarrier1.Reset();
+            RwSpinlockTestBarrier2.Reset();
+            RwSpinlockTestBarrier3.Reset();
+        }
+#endif
+
 #ifdef __BEELZEBUB__TEST_OBJA
         if (CHECK_TEST(OBJA))
         {
@@ -645,6 +658,19 @@ void Beelzebub::Main()
         //msg("%n%n");
     }
 
+#if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
+    if (Cpu::Count.Load() > 1 && CHECK_TEST(RW_SPINLOCK))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);
+        
+        TestRwSpinlock(true);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
 #ifdef __BEELZEBUB__TEST_OBJA
     if (CHECK_TEST(OBJA))
     {
@@ -706,6 +732,19 @@ void Beelzebub::Secondary()
 
         MainTerminal->WriteLine("\\Halting indefinitely now.");
     }
+
+#ifdef __BEELZEBUB__TEST_RW_SPINLOCK
+    if (CHECK_TEST(RW_SPINLOCK))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);
+        
+        TestRwSpinlock(false);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
+    }
+#endif
 
 #ifdef __BEELZEBUB__TEST_OBJA
     if (CHECK_TEST(OBJA))
@@ -966,44 +1005,44 @@ Handle InitializeApic()
         return HandleResult::Okay;
     }
     
-    uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
+    // uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
 
-    uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
-    for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
-    {
-        if (ACPI_MADT_TYPE_IO_APIC != ((acpi_subtable_header *)e)->Type)
-            continue;
+    // uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
+    // for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    // {
+    //     if (ACPI_MADT_TYPE_IO_APIC != ((acpi_subtable_header *)e)->Type)
+    //         continue;
 
-        auto ioapic = (acpi_madt_io_apic *)e;
+    //     auto ioapic = (acpi_madt_io_apic *)e;
 
-        /*MainTerminal->WriteFormat("%n%*(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))"
-            , (size_t)25, ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);//*/
-    }
+    //     MainTerminal->WriteFormat("%n%*(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))"
+    //         , (size_t)25, ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);
+    // }
 
-    e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
-    for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
-    {
-        switch (((acpi_subtable_header *)e)->Type)
-        {
-        case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
-            {
-                auto intovr = (acpi_madt_interrupt_override *)e;
+    // e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
+    // for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    // {
+    //     switch (((acpi_subtable_header *)e)->Type)
+    //     {
+    //     case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
+    //         {
+    //             auto intovr = (acpi_madt_interrupt_override *)e;
 
-                MainTerminal->WriteFormat("%n%*(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))"
-                    , (size_t)23, intovr->Bus, intovr->SourceIrq, intovr->GlobalIrq, intovr->IntiFlags);
-            }
-            break;
+    //             MainTerminal->WriteFormat("%n%*(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))"
+    //                 , (size_t)23, intovr->Bus, intovr->SourceIrq, intovr->GlobalIrq, intovr->IntiFlags);
+    //         }
+    //         break;
 
-        case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
-            {
-                auto lanmi = (acpi_madt_local_apic_nmi *)e;
+    //     case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
+    //         {
+    //             auto lanmi = (acpi_madt_local_apic_nmi *)e;
 
-                MainTerminal->WriteFormat("%n%*(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))"
-                    , (size_t)32, lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
-            }
-            break;
-        }
-    }
+    //             MainTerminal->WriteFormat("%n%*(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))"
+    //                 , (size_t)32, lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
+    //         }
+    //         break;
+    //     }
+    // }
 
     return HandleResult::Okay;
 }
@@ -1055,8 +1094,8 @@ Handle InitializeProcessingUnits()
 
     //msg("Auxiliary breakpoint pointer @ %Xp.%n", breakpointEscapedAux);
 
-    MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
-        , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
+    // MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
+    //     , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
 
     uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
     uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
@@ -1067,9 +1106,9 @@ Handle InitializeProcessingUnits()
 
         auto lapic = (acpi_madt_local_apic *)e;
 
-        MainTerminal->WriteFormat("%n%*(( MADTe: %s LAPIC LID-%u1 PID-%u1 F-%X4 ))"
-            , (size_t)30, lapic->Id == Lapic::GetId() ? "BSP" : " AP"
-            , lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
+        // MainTerminal->WriteFormat("%n%*(( MADTe: %s LAPIC LID-%u1 PID-%u1 F-%X4 ))"
+        //     , (size_t)30, lapic->Id == Lapic::GetId() ? "BSP" : " AP"
+        //     , lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
 
         if (0 != (ACPI_MADT_ENABLED & lapic->LapicFlags)
             && lapic->Id != Lapic::GetId())

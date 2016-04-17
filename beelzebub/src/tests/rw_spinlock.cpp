@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,17 +37,36 @@
     thorough explanation regarding other files.
 */
 
-DECLARE_TEST(MT);
-DECLARE_TEST(STR);
-DECLARE_TEST(OBJA);
-DECLARE_TEST(METAP);
-DECLARE_TEST(EXCP);
-DECLARE_TEST(APP);
-DECLARE_TEST(STACKINT);
-DECLARE_TEST(AVL_TREE);
-DECLARE_TEST(TERMINAL);
-DECLARE_TEST(CMDO);
-DECLARE_TEST(FPU);
-DECLARE_TEST(BIGINT);
-DECLARE_TEST(LOCK_ELISION);
-DECLARE_TEST(RW_SPINLOCK);
+#ifdef __BEELZEBUB__TEST_RW_SPINLOCK
+
+#include <tests/rw_spinlock.hpp>
+#include <synchronization/rw_spinlock.hpp>
+
+#include <debug.hpp>
+
+using namespace Beelzebub;
+using namespace Beelzebub::Synchronization;
+
+SmpBarrier RwSpinlockTestBarrier1 {};
+SmpBarrier RwSpinlockTestBarrier2 {};
+SmpBarrier RwSpinlockTestBarrier3 {};
+
+RwSpinlock tLock {};
+
+void TestRwSpinlock(bool bsp)
+{
+    RwSpinlockTestBarrier1.Reach();
+
+    if (bsp) tLock.Reset();
+
+    RwSpinlockTestBarrier2.Reach();
+    RwSpinlockTestBarrier1.Reset();
+
+    ASSERT(!tLock.HasWriter());
+    ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
+
+    RwSpinlockTestBarrier3.Reach();
+    RwSpinlockTestBarrier2.Reset();
+}
+
+#endif

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,17 +37,12 @@
     thorough explanation regarding other files.
 */
 
-DECLARE_TEST(MT);
-DECLARE_TEST(STR);
-DECLARE_TEST(OBJA);
-DECLARE_TEST(METAP);
-DECLARE_TEST(EXCP);
-DECLARE_TEST(APP);
-DECLARE_TEST(STACKINT);
-DECLARE_TEST(AVL_TREE);
-DECLARE_TEST(TERMINAL);
-DECLARE_TEST(CMDO);
-DECLARE_TEST(FPU);
-DECLARE_TEST(BIGINT);
-DECLARE_TEST(LOCK_ELISION);
-DECLARE_TEST(RW_SPINLOCK);
+#pragma once
+
+#include <synchronization/smp_barrier.hpp>
+
+extern Beelzebub::Synchronization::SmpBarrier RwSpinlockTestBarrier1;
+extern Beelzebub::Synchronization::SmpBarrier RwSpinlockTestBarrier2;
+extern Beelzebub::Synchronization::SmpBarrier RwSpinlockTestBarrier3;
+
+__startup void TestRwSpinlock(bool bsp);
