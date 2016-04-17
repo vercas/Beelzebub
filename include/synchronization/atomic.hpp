@@ -190,6 +190,87 @@ namespace Beelzebub { namespace Synchronization
             //  GCC and the C++ STL do not provide atomic binary complement. I do.
         }
 
+        /*  Special Ops  */
+
+#ifdef __BEELZEBUB__ARCH_X86
+    #ifdef __GCC_ASM_FLAG_OUTPUTS__
+        inline bool TestSet(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        {
+            bool res;
+
+            asm volatile("lock bts %[bit], %[dst] \n\t"
+                        : [dst]"+m"(this->InnerValue), "=@ccc"(res)
+                        : [bit]"Jr"(bit)
+                        : "cc" );
+
+            return res;
+        }
+
+        inline bool TestClear(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        {
+            bool res;
+
+            asm volatile("lock btr %[bit], %[dst] \n\t"
+                        : [dst]"+m"(this->InnerValue), "=@ccc"(res)
+                        : [bit]"Jr"(bit)
+                        : "cc" );
+
+            return res;
+        }
+
+        inline bool TestComplement(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        {
+            bool res;
+
+            asm volatile("lock btc %[bit], %[dst] \n\t"
+                        : [dst]"+m"(this->InnerValue), "=@ccc"(res)
+                        : [bit]"Jr"(bit)
+                        : "cc" );
+
+            return res;
+        }
+    #else
+        inline bool TestSet(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        {
+            bool res;
+
+            asm volatile("lock bts %[bit], %[dst] \n\t"
+                        "setcb %b[res] \n\t"
+                        : [dst]"+m"(this->InnerValue), [res]"=qm"(res)
+                        : [bit]"Jr"(bit)
+                        : "cc" );
+
+            return res;
+        }
+
+        inline bool TestClear(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        {
+            bool res;
+
+            asm volatile("lock btr %[bit], %[dst] \n\t"
+                        "setcb %b[res] \n\t"
+                        : [dst]"+m"(this->InnerValue), [res]"=qm"(res)
+                        : [bit]"Jr"(bit)
+                        : "cc" );
+
+            return res;
+        }
+
+        inline bool TestComplement(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        {
+            bool res;
+
+            asm volatile("lock btc %[bit], %[dst] \n\t"
+                        "setcb %b[res] \n\t"
+                        : [dst]"+m"(this->InnerValue), [res]"=qm"(res)
+                        : [bit]"Jr"(bit)
+                        : "cc" );
+
+            return res;
+        }
+    #endif
+#endif
+
         /*  Arithmetic Op-Fetches  */
 
         inline T operator +=(T const other) volatile
