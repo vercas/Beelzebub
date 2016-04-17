@@ -70,7 +70,7 @@ uint32_t Beelzebub::AddWithCarry32(uint32_t * dst, uint32_t src, uint32_t cin)
         : [src]"r"(src)
         , [cin]"rm"(cin)
         , [bit]"Nr"(0)
-        : "flags");
+        : "cc");
 
     return res;
 }
@@ -90,7 +90,7 @@ uint32_t Beelzebub::AddWithCarry32_3(uint32_t * dst, uint32_t src1, uint32_t src
         , [src2]"r"(src2)
         , [cin]"rm"(cin)
         , [bit]"Nr"(0)
-        : "flags");
+        : "cc");
 
     return res;
 }
@@ -114,7 +114,7 @@ uint32_t Beelzebub::AddWithCarry64(uint64_t * dst, uint64_t src, uint32_t cin)
         : [src]"r"(src)
         , [cin]"rm"(cin)
         , [bit]"Nr"(0)
-        : "flags");
+        : "cc");
 
     return res;
 }
@@ -140,7 +140,7 @@ uint32_t Beelzebub::AddWithCarry64(uint64_t * dst, uint64_t src, uint32_t cin)
         , [src2]"r"((uint32_t)(src >> 32))
         , [cin]"rm"(cin)
         , [bit]"Nr"(0)
-        : "flags");
+        : "cc");
 
     return res;
 }

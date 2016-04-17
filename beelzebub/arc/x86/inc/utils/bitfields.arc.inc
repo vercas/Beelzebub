@@ -53,7 +53,7 @@
         asm ( "bt %[bit], %[src] \n\t"                                         \
             : "=@ccc"(res) /* carry flag  */                                   \
             : [src]"rm"(var)                                                   \
-            , [bit]"rN"(bitInd)                                                \
+            , [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -71,7 +71,7 @@
         asm ( "bt %[bit], %[src] \n\t"                                         \
             : "=@ccc"(res) /* carry flag  */                                   \
             : [src]"rm"(var)                                                   \
-            , [bit]"rN"(bitInd)                                                \
+            , [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -81,12 +81,12 @@
         if (val)                                                               \
             asm ( "bts %[bit], %[dst] \n\t"                                    \
                 : [dst]"+rm"(var)                                              \
-                : [bit]"rN"(bitInd)                                            \
+                : [bit]"Jr"(bitInd)                                            \
                 : "cc" );                                                      \
         else                                                                   \
             asm ( "btr %[bit], %[dst] \n\t"                                    \
                 : [dst]"+rm"(var)                                              \
-                : [bit]"rN"(bitInd)                                            \
+                : [bit]"Jr"(bitInd)                                            \
                 : "cc" );                                                      \
                                                                                \
         return *this;                                                          \
@@ -97,7 +97,7 @@
                                                                                \
         asm ( "bts %[bit], %[dst] \n\t"                                        \
             : [dst]"+rm"(var), "=@ccc"(res)                                    \
-            : [bit]"rN"(bitInd)                                                \
+            : [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -108,7 +108,7 @@
                                                                                \
         asm ( "btr %[bit], %[dst] \n\t"                                        \
             : [dst]"+rm"(var), "=@ccc"(res)                                    \
-            : [bit]"rN"(bitInd)                                                \
+            : [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -119,7 +119,7 @@
                                                                                \
         asm ( "btc %[bit], %[dst] \n\t"                                        \
             : [dst]"+rm"(var), "=@ccc"(res)                                    \
-            : [bit]"rN"(bitInd)                                                \
+            : [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -138,7 +138,7 @@
             "setcb %[res]         \n\t"                                        \
             : [res]"=qm"(res) /* carry flag  */                                \
             : [src]"rm"(var)                                                   \
-            , [bit]"rN"(bitInd)                                                \
+            , [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -157,7 +157,7 @@
             "setcb %[res]         \n\t"                                        \
             : [res]"=qm"(res)                                                  \
             : [src]"rm"(var)                                                   \
-            , [bit]"rN"(bitInd)                                                \
+            , [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -167,12 +167,12 @@
         if (val)                                                               \
             asm("bts   %[bit], %[dst] \n\t"                                    \
                 : [dst]"+rm"(var)                                              \
-                : [bit]"rN"(bitInd)                                            \
+                : [bit]"Jr"(bitInd)                                            \
                 : "cc" );                                                      \
         else                                                                   \
             asm("btr   %[bit], %[dst] \n\t"                                    \
                 : [dst]"+rm"(var)                                              \
-                : [bit]"rN"(bitInd)                                            \
+                : [bit]"Jr"(bitInd)                                            \
                 : "cc" );                                                      \
                                                                                \
         return *this;                                                          \
@@ -185,7 +185,7 @@
             "setcb %[res]         \n\t"                                        \
             : [dst]"+rm"(var)                                                  \
             , [res]"=qm"(res)                                                  \
-            : [bit]"rN"(bitInd)                                                \
+            : [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -198,7 +198,7 @@
             "setcb %[res]         \n\t"                                        \
             : [dst]"+rm"(var)                                                  \
             , [res]"=qm"(res)                                                  \
-            : [bit]"rN"(bitInd)                                                \
+            : [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
@@ -211,7 +211,7 @@
             "setcb %[res]         \n\t"                                        \
             : [dst]"+rm"(var)                                                  \
             , [res]"=qm"(res)                                                  \
-            : [bit]"rN"(bitInd)                                                \
+            : [bit]"Jr"(bitInd)                                                \
             : "cc" );                                                          \
                                                                                \
         return res;                                                            \
