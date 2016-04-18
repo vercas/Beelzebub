@@ -41,11 +41,14 @@
 
 #include <tests/rw_spinlock.hpp>
 #include <synchronization/rw_spinlock.hpp>
+#include <system/cpu.hpp>
 
 #include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
+using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
 
 SmpBarrier RwSpinlockTestBarrier1 {};
 SmpBarrier RwSpinlockTestBarrier2 {};
@@ -67,6 +70,138 @@ void TestRwSpinlock(bool bsp)
 
     RwSpinlockTestBarrier3.Reach();
     RwSpinlockTestBarrier2.Reset();
+
+    if (bsp) tLock.AcquireAsWriter();
+
+    RwSpinlockTestBarrier1.Reach();
+    RwSpinlockTestBarrier3.Reset();
+
+    ASSERT(tLock.HasWriter());
+    ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
+
+    RwSpinlockTestBarrier2.Reach();
+    RwSpinlockTestBarrier1.Reset();
+
+    if (bsp)
+    {
+        DEBUG_TERM_ << "BSP is about to release..." << EndLine;
+
+        for (size_t volatile i = 0; i < 10000000; ++i) { CpuInstructions::DoNothing(); }
+
+        tLock.ReleaseAsWriter();
+
+        DEBUG_TERM << "GG";
+    }
+    else
+    {
+        DEBUG_TERM_ << "AP is about to attempt acquiring as reader..." << EndLine;
+
+        tLock.AcquireAsReader();
+
+        MSG("READER");
+    }
+
+    RwSpinlockTestBarrier3.Reach();
+    RwSpinlockTestBarrier2.Reset();
+
+    ASSERT(!tLock.HasWriter());
+    ASSERT_EQ("%us", Cpu::Count.Load() - 1UL, tLock.GetReaderCount());
+
+    RwSpinlockTestBarrier1.Reach();
+    RwSpinlockTestBarrier3.Reset();
+
+    if (Cpu::GetData()->Index == 1)
+    {
+        ASSERT(!tLock.HasWriter());
+        ASSERT(tLock.UpgradeToWriter());
+        ASSERT(tLock.HasWriter());
+    }
+    else if (!bsp)
+    {
+        tLock.ReleaseAsReader();
+        //  Allow the upgrade to occur.
+    }
+
+    RwSpinlockTestBarrier2.Reach();
+    RwSpinlockTestBarrier1.Reset();
+
+    ASSERT(tLock.HasWriter());
+    ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
+
+    RwSpinlockTestBarrier3.Reach();
+    RwSpinlockTestBarrier2.Reset();
+
+    ASSERT(!tLock.TryAcquireAsReader());
+    //  All must fail, including the writer.
+
+    RwSpinlockTestBarrier1.Reach();
+    RwSpinlockTestBarrier3.Reset();
+
+    if (Cpu::GetData()->Index == 1)
+    {
+        tLock.DowngradeToReader();
+        ASSERT_EQ("%us", 1UL, tLock.GetReaderCount());
+    }
+    else if (bsp)
+    {
+        ASSERT(!tLock.TryAcquireAsWriter());
+    }
+
+    RwSpinlockTestBarrier2.Reach();
+    RwSpinlockTestBarrier1.Reset();
+
+    ASSERT(!tLock.HasWriter());
+
+    RwSpinlockTestBarrier3.Reach();
+    RwSpinlockTestBarrier2.Reset();
+
+    if (Cpu::GetData()->Index == 1)
+    {
+        tLock.ReleaseAsReader();
+    }
+
+    RwSpinlockTestBarrier1.Reach();
+    RwSpinlockTestBarrier3.Reset();
+
+    ASSERT(!tLock.HasWriter());
+    ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
+
+    RwSpinlockTestBarrier2.Reach();
+    RwSpinlockTestBarrier1.Reset();
+
+    ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
+
+    tLock.AcquireAsWriter();
+    ASSERT(tLock.HasWriter());
+    
+    ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
+
+    MSG("WRITER");
+
+    ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
+    
+    ASSERT(tLock.HasWriter());
+    tLock.ReleaseAsWriter();
+
+    ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
+
+    RwSpinlockTestBarrier3.Reach();
+    RwSpinlockTestBarrier2.Reset();
+
+    // RwSpinlockTestBarrier1.Reach();
+    // RwSpinlockTestBarrier3.Reset();
+
+    // RwSpinlockTestBarrier2.Reach();
+    // RwSpinlockTestBarrier1.Reset();
+
+    // RwSpinlockTestBarrier3.Reach();
+    // RwSpinlockTestBarrier2.Reset();
+
+    // RwSpinlockTestBarrier1.Reach();
+    // RwSpinlockTestBarrier3.Reset();
+
+    // RwSpinlockTestBarrier2.Reach();
+    // RwSpinlockTestBarrier1.Reset();
 }
 
 #endif

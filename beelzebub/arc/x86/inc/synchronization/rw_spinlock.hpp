@@ -66,80 +66,7 @@ namespace Beelzebub { namespace Synchronization
         RwSpinlock(RwSpinlock const &) = delete;
         RwSpinlock & operator =(RwSpinlock const &) = delete;
 
-#ifdef __BEELZEBUB_SETTINGS_NO_SMP
-
-        /*  Acquisition Operations  */
-
-        /**
-         *  <summary>Acquires the lock as a reader.</summary>
-         */
-        __forceinline void AcquireAsReader() volatile
-        {
-            this->ReaderCount = 1;
-        }
-
-        /**
-         *  <summary>Acquires the lock as the writer.</summary>
-         */
-        __forceinline void AcquireAsWriter() volatile
-        {
-            //  Nuthin'.
-        }
-
-        /**
-         *  <summary>Upgrades a reader to the writer.</summary>
-         */
-        __forceinline bool UpgradeToWriter() volatile
-        {
-            this->ReaderCount = 0;
-
-            return true;
-        }
-
-        /*  Release Operations  */
-
-        /**
-         *  <summary>Releases the lock as a reader.</summary>
-         */
-        __forceinline void ReleaseAsReader() volatile
-        {
-            this->ReaderCount = 0;
-        }
-
-        /**
-         *  <summary>Releases the lock as the writer.</summary>
-         */
-        __forceinline void ReleaseAsWriter() volatile
-        {
-            //  Nuthin'.
-        }
-
-        /**
-         *  <summary>Downgrades the writer to a reader.</summary>
-         */
-        __forceinline void DowngradeToReader() volatile
-        {
-            this->ReaderCount = 1;
-        }
-
-        /*  Properties  */
-
-        /**
-         *  Gets the number of active readers.</summary>
-         *  <return>The number of active readers.</return>
-         */
-        __forceinline __must_check size_t GetReaderCount() const volatile
-        {
-            return (size_t)this->ReaderCount;
-        }
-
-        /*  Fields  */
-
-    private:
-
-        char volatile ReaderCount;
-
-#else
+#ifdef __BEELZEBUB_SETTINGS_SMP
 
         /*  Acquisition Operations  */
 
@@ -147,7 +74,7 @@ namespace Beelzebub { namespace Synchronization
          *  <summary>Attempts to acquire the lock as a reader.</summary>
          *  <return>True if the acquisition succeeded; false otherwise.</return>
          */
-        inline bool TryAcquireAsReader() volatile
+        inline __must_check bool TryAcquireAsReader() volatile
         {
             COMPILER_MEMORY_BARRIER();
 
@@ -204,7 +131,7 @@ namespace Beelzebub { namespace Synchronization
          *  <summary>Attempts to acquire the lock as a writer.</summary>
          *  <return>True if the acquisition succeeded; false otherwise.</return>
          */
-        inline bool TryAcquireAsWriter() volatile
+        inline __must_check bool TryAcquireAsWriter() volatile
         {
             COMPILER_MEMORY_BARRIER();
 
@@ -264,7 +191,7 @@ namespace Beelzebub { namespace Synchronization
          *  <summary>Attempts to upgrade a reader to the writer.</summary>
          *  <return>True if the upgrade succeeded; false otherwise.</return>
          */
-        inline bool UpgradeToWriter() volatile
+        inline __must_check bool UpgradeToWriter() volatile
         {
             COMPILER_MEMORY_BARRIER();
 
@@ -370,6 +297,51 @@ namespace Beelzebub { namespace Synchronization
         /*  Fields  */
 
         Atomic<uint32_t> Value;
+
+#else
+
+        /*  Acquisition Operations  */
+
+        __forceinline __must_check bool TryAcquireAsReader() volatile
+        { this->ReaderCount = 1; return true; }
+
+        inline void AcquireAsReader() volatile
+        { this->ReaderCount = 1; }
+
+        __forceinline __must_check bool TryAcquireAsWriter() volatile
+        { return true; }
+
+        __forceinline void AcquireAsWriter() volatile { }
+
+        __forceinline bool UpgradeToWriter() volatile
+        { this->ReaderCount = 0; return true; }
+
+        /*  Release Operations  */
+
+        __forceinline void ReleaseAsReader() volatile
+        { this->ReaderCount = 0; }
+
+        __forceinline void ReleaseAsWriter() volatile { }
+
+        __forceinline void DowngradeToReader() volatile
+        { this->ReaderCount = 1; }
+
+        __forceinline void Reset() volatile
+        { this->ReaderCount = 0; }
+
+        /*  Properties  */
+
+        __forceinline __must_check bool HasWriter() const volatile
+        { return false; }
+
+        __forceinline __must_check size_t GetReaderCount() const volatile
+        { return this->ReaderCount; }
+
+        /*  Fields  */
+
+    private:
+
+        char ReaderCount;
 #endif
     };
 }}
