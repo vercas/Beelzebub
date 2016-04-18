@@ -323,7 +323,6 @@ __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
     //  No alignment check will be performed here.
 
     bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
-    uint16_t ind;   //  Used to hold the current index.
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
@@ -372,28 +371,16 @@ __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
 
             LockGuardFlexible<Spinlock<> > heapLg {*heapLock};
 
-            Pml4 & pml4 = *pml4p;
-            ind = VmmArc::GetPml4Index(vaddr);
-
-            if unlikely(!pml4[ind].GetPresent())
+            if unlikely(!pml4p->operator[](VmmArc::GetPml4Index(vaddr)).GetPresent())
                 return HandleResult::PageUnmapped;
 
-            Pml3 & pml3 = *pml3p;
-            ind = VmmArc::GetPml3Index(vaddr);
-
-            if unlikely(!pml3[ind].GetPresent())
+            if unlikely(!pml3p->operator[](VmmArc::GetPml3Index(vaddr)).GetPresent())
                 return HandleResult::PageUnmapped;
-            
-            Pml2 & pml2 = *pml2p;
-            ind = VmmArc::GetPml2Index(vaddr);
 
-            if unlikely(!pml2[ind].GetPresent())
+            if unlikely(!pml2p->operator[](VmmArc::GetPml2Index(vaddr)).GetPresent())
                 return HandleResult::PageUnmapped;
-            
-            Pml1 & pml1 = *pml1p;
-            ind = VmmArc::GetPml1Index(vaddr);
 
-            return cbk(pml1.Entries + ind);
+            return cbk(pml1p->Entries + VmmArc::GetPml1Index(vaddr));
         }
     }
 
@@ -413,23 +400,6 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
     PageAllocator * alloc = Domain0.PhysicalAllocator;
 
     //  TODO: NUMA settings, and get the domain from CPU data.
-
-#define ALLOCATE_TABLE(N, M)                                                                    \
-    if unlikely(!MCATS(pml, M)[ind].GetPresent())                                               \
-    {                                                                                           \
-        PageDescriptor * tDsc;                                                                  \
-        paddr_t const MCATS(newPml, N) = alloc->AllocatePage(tDsc);                             \
-                                                                                                \
-        if (MCATS(newPml, N) == nullpaddr)                                                      \
-            return HandleResult::OutOfMemory;                                                   \
-                                                                                                \
-        tDsc->IncrementReferenceCount();                                                        \
-                                                                                                \
-        MCATS(pml, M)[ind] = MCATS(Pml, M, Entry)(MCATS(newPml, N), true, true, true, false);   \
-        /*  Present, writable, user-accessible, executable.  */                                 \
-                                                                                                \
-        memset(MCATS(pml, N, p), 0, PageSize);                                                  \
-    }
 
     bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
     uint16_t ind;   //  Used to hold the current index.
@@ -484,30 +454,140 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
 
             LockGuardFlexible<Spinlock<> > heapLg {*heapLock};
 
-            Pml4 & pml4 = *pml4p;
             ind = VmmArc::GetPml4Index(vaddr);
 
-            ALLOCATE_TABLE(3, 4);
+            if unlikely(!pml4p->operator[](ind).GetPresent())
+            {
+                //  So there's no PML4e. Means all PML1-3 need allocation.
 
-            Pml3 & pml3 = *pml3p;
+                PageDescriptor * tDsc;
+
+                //  First grab a PML3.
+
+                paddr_t const newPml3 = alloc->AllocatePage(tDsc);
+
+                if (newPml3 == nullpaddr)
+                    return HandleResult::OutOfMemory;
+
+                tDsc->IncrementReferenceCount();
+
+                pml4p->operator[](ind) = Pml4Entry(newPml3, true, true, true, false);
+                //  Present, writable, user-accessible, executable.
+
+                //  Then a PML2.
+
+                paddr_t const newPml2 = alloc->AllocatePage(tDsc);
+
+                if (newPml2 == nullpaddr)
+                {
+                    alloc->FreePageAtAddress(newPml3);
+                    //  Yes, clean up.
+
+                    return HandleResult::OutOfMemory;
+                }
+
+                tDsc->IncrementReferenceCount();
+
+                memset(pml3p, 0, PageSize);
+                pml3p->operator[](VmmArc::GetPml3Index(vaddr)) = Pml3Entry(newPml2, true, true, true, false);
+                //  First clean, then assign an entry.
+
+                //  Then a PML1.
+
+                paddr_t const newPml1 = alloc->AllocatePage(tDsc);
+
+                if (newPml1 == nullpaddr)
+                {
+                    alloc->FreePageAtAddress(newPml3);
+                    alloc->FreePageAtAddress(newPml2);
+
+                    return HandleResult::OutOfMemory;
+                }
+
+                tDsc->IncrementReferenceCount();
+
+                memset(pml2p, 0, PageSize);
+                pml2p->operator[](VmmArc::GetPml2Index(vaddr)) = Pml2Entry(newPml1, true, true, true, false);
+
+                //  And finish by cleaning the PML1.
+
+                memset(pml1p, 0, PageSize);
+
+                goto wrapUp;
+            }
+
             ind = VmmArc::GetPml3Index(vaddr);
 
-            ALLOCATE_TABLE(2, 3);
+            if unlikely(!pml3p->operator[](ind).GetPresent())
+            {
+                PageDescriptor * tDsc;
+
+                //  First grab a PML2.
+
+                paddr_t const newPml2 = alloc->AllocatePage(tDsc);
+
+                if (newPml2 == nullpaddr)
+                    return HandleResult::OutOfMemory;
+
+                tDsc->IncrementReferenceCount();
+
+                pml3p->operator[](ind) = Pml3Entry(newPml2, true, true, true, false);
+                //  First clean, then assign an entry.
+
+                //  Then a PML1.
+
+                paddr_t const newPml1 = alloc->AllocatePage(tDsc);
+
+                if (newPml1 == nullpaddr)
+                {
+                    alloc->FreePageAtAddress(newPml2);
+                    //  Yes, clean up.
+
+                    return HandleResult::OutOfMemory;
+                }
+
+                tDsc->IncrementReferenceCount();
+
+                memset(pml2p, 0, PageSize);
+                pml2p->operator[](VmmArc::GetPml2Index(vaddr)) = Pml2Entry(newPml1, true, true, true, false);
+
+                //  And finish by cleaning the PML1.
+
+                memset(pml1p, 0, PageSize);
+
+                goto wrapUp;
+            }
             
-            Pml2 & pml2 = *pml2p;
             ind = VmmArc::GetPml2Index(vaddr);
 
-            ALLOCATE_TABLE(1, 2);
+            if unlikely(!pml2p->operator[](ind).GetPresent())
+            {
+                PageDescriptor * tDsc;
+
+                paddr_t const newPml1 = alloc->AllocatePage(tDsc);
+
+                if (newPml1 == nullpaddr)
+                    return HandleResult::OutOfMemory;
+
+                tDsc->IncrementReferenceCount();
+
+                pml2p->operator[](ind) = Pml2Entry(newPml1, true, true, true, false);
+                //  Present, writable, user-accessible, executable.
+
+                memset(pml1p, 0, PageSize);
+
+                goto wrapUp;
+            }
             
-            Pml1 & pml1 = *pml1p;
             ind = VmmArc::GetPml1Index(vaddr);
 
-            if unlikely(pml1[ind].GetPresent())
+            if unlikely(pml1p->operator[](ind).GetPresent())
                 return HandleResult::PageMapped;
 
             //  TODO: Check page tags (reserved, allocated on demand, etc.)
 
-            pml1[ind] = Pml1Entry(paddr, true
+        wrapUp:
+            pml1p->operator[](VmmArc::GetPml1Index(vaddr)) = Pml1Entry(paddr, true
                 , 0 != (flags & MemoryFlags::Writable)
                 , 0 != (flags & MemoryFlags::Userland)
                 , 0 != (flags & MemoryFlags::Global)
