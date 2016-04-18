@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include <synchronization/spinlock_uninterruptible.hpp>
-#include <synchronization/rw_spinlock_uninterruptible.hpp>
+#include <synchronization/spinlock.hpp>
+#include <synchronization/rw_spinlock.hpp>
 #include <synchronization/atomic.hpp>
 
 #include <memory/regions.hpp>
@@ -96,14 +96,14 @@ namespace Beelzebub { namespace Execution
 
         /*  Memory  */
 
-        Synchronization::SpinlockUninterruptible<> UserHeapLock;
+        Synchronization::Spinlock<> UserHeapLock;
         Synchronization::Atomic<vaddr_t> UserHeapCursor;
         Synchronization::Atomic<bool> UserHeapOverflown;
 
-        Synchronization::SpinlockUninterruptible<> AlienPagingTablesLock;
+        Synchronization::Spinlock<> AlienPagingTablesLock;
         paddr_t PagingTable;
 
-        Synchronization::RwSpinlockUninterruptible VasLock;
+        Synchronization::RwSpinlock VasLock;
         Utils::AvlTree<Memory::MemoryRange> Vas;
 
         bool RuntimeLoaded;

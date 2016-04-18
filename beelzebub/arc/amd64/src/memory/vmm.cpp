@@ -41,6 +41,7 @@
 #include <memory/vmm.arc.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/cpu.hpp>
+#include <system/interrupts.hpp>
 #include <kernel.hpp>
 
 #include <string.h>
@@ -85,7 +86,7 @@ using namespace Beelzebub::System;
 
 Atomic<bool> KernelHeapOverflown {false};
 
-SpinlockUninterruptible<> VmmArc::KernelHeapLock;
+Spinlock<> VmmArc::KernelHeapLock;
 
 bool VmmArc::Page1GB = false;
 bool VmmArc::VmmArc::NX = false;
@@ -244,12 +245,15 @@ Handle Vmm::Initialize(Process * const proc)
     desc->IncrementReferenceCount();
     //  Do the good deed.
 
-    SpinlockUninterruptible<> * alienLock = nullptr;
+    Spinlock<> * alienLock = nullptr;
+
+    InterruptGuard<> intGuard;
+    //  Guard the rest of the scope from interrupts.
 
     if (CpuDataSetUp)
         alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
-    LockGuardFlexible<SpinlockUninterruptible<> > pml4Lg {*alienLock};
+    LockGuardFlexible<Spinlock<> > pml4Lg {*alienLock};
 
     Alienate(proc);
     //  So it can be accessible.
@@ -323,14 +327,14 @@ __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
-    SpinlockUninterruptible<> * alienLock = nullptr, * heapLock = nullptr;
+    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
 
-    {   //  Lock-guarded.
-
+    withInterrupts (false)  //  Lock-guarded, interrupt-guarded.
+    {
         if (nonLocal && CpuDataSetUp)
             alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
-        LockGuardFlexible<SpinlockUninterruptible<> > pml4Lg {*alienLock};
+        LockGuardFlexible<Spinlock<> > pml4Lg {*alienLock};
 
         if (nonLocal)
         {
@@ -366,7 +370,7 @@ __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
 
             if (lock) heapLock = (vaddr < VmmArc::LowerHalfEnd ? &(proc->UserHeapLock) : &(VmmArc::KernelHeapLock));
 
-            LockGuardFlexible<SpinlockUninterruptible<> > heapLg {*heapLock};
+            LockGuardFlexible<Spinlock<> > heapLg {*heapLock};
 
             Pml4 & pml4 = *pml4p;
             ind = VmmArc::GetPml4Index(vaddr);
@@ -392,6 +396,8 @@ __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
             return cbk(pml1.Entries + ind);
         }
     }
+
+    __unreachable_code;
 }
 
 Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const paddr
@@ -430,14 +436,14 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
-    SpinlockUninterruptible<> * alienLock = nullptr, * heapLock = nullptr;
+    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
 
-    {   //  Lock-guarded.
-
+    withInterrupts (false)  //  Lock-guarded, interrupt-guarded.
+    {
         if (nonLocal && CpuDataSetUp)
             alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
-        LockGuardFlexible<SpinlockUninterruptible<> > pml4Lg {*alienLock};
+        LockGuardFlexible<Spinlock<> > pml4Lg {*alienLock};
 
         if (nonLocal)
         {
@@ -476,7 +482,7 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
                     ? &(proc->UserHeapLock)
                     : &(VmmArc::KernelHeapLock));
 
-            LockGuardFlexible<SpinlockUninterruptible<> > heapLg {*heapLock};
+            LockGuardFlexible<Spinlock<> > heapLg {*heapLock};
 
             Pml4 & pml4 = *pml4p;
             ind = VmmArc::GetPml4Index(vaddr);
@@ -627,7 +633,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
         size_t const higherOffset = (0 != (type & MemoryAllocationOptions::GuardHigh))
             ? PageSize : 0;
 
-        SpinlockUninterruptible<> * heapLock;
+        Spinlock<> * heapLock;
 
         vaddr_t ret;
 
@@ -682,13 +688,16 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
 
         PageAllocator * alloc = Domain0.PhysicalAllocator;
 
+        InterruptGuard<> intGuard;
+        //  Guard teh rest of the scope from interrupts.
+
         if likely(CpuDataSetUp)
             alloc = Cpu::GetData()->DomainDescriptor->PhysicalAllocator;
 
         size_t const size = count * PageSize;
         bool allocSucceeded = true;
 
-        LockGuard<SpinlockUninterruptible<> > heapLg {*heapLock};
+        LockGuard<Spinlock<> > heapLg {*heapLock};
         //  Note: this ain't flexible because heapLock ain't gonna be null.
 
         size_t offset;

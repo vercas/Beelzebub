@@ -44,8 +44,7 @@
 #pragma once
 
 #include <memory/paging.hpp>
-#include <synchronization/atomic.hpp>
-#include <synchronization/spinlock_uninterruptible.hpp>
+#include <synchronization/spinlock.hpp>
 #include <handles.h>
 
 namespace Beelzebub { namespace Memory
@@ -67,7 +66,7 @@ namespace Beelzebub { namespace Memory
         static constexpr vsize_t const KernelHeapLength    = KernelHeapEnd - KernelHeapStart;
         static constexpr vsize_t const KernelHeapPageCount = KernelHeapLength >> 12;
 
-        static Synchronization::SpinlockUninterruptible<> KernelHeapLock;
+        static Synchronization::Spinlock<> KernelHeapLock;
 
         static bool Page1GB, NX;
 
