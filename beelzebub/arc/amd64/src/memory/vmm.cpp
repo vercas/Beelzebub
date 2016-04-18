@@ -313,8 +313,8 @@ bool Vmm::IsAlien(Process * const proc)
 /*  Page Management  */
 
 template<typename cbk_t>
-__hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
-             , cbk_t cbk, bool const lock)
+static __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
+    , cbk_t cbk, bool const lock)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
              || (vaddr >= VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
@@ -388,7 +388,7 @@ __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
 }
 
 Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const paddr
-             , MemoryFlags const flags, PageDescriptor * desc, bool const lock)
+    , MemoryFlags const flags, PageDescriptor * desc, bool const lock)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
              || (vaddr >= VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
@@ -596,8 +596,6 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
         }
     }
 
-#undef ALLOCATE_TABLE
-
     if likely(PageDescriptor::IsValid(desc))
     {
         if likely(desc != nullptr)
@@ -722,9 +720,9 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
             if unlikely(proc->UserHeapOverflown)
                 return HandleResult::UnsupportedOperation;
             //  Not supported yet.
-            
+
             //  TODO: Add VAS.
-            
+
             ret = proc->UserHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
 
             if unlikely(ret > VmmArc::KernelHeapEnd)
@@ -784,7 +782,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
         for (offset = 0; offset < size; offset += PageSize)
         {
             paddr_t const paddr = alloc->AllocatePage(desc);
-            
+
             if unlikely(paddr == nullpaddr) { allocSucceeded = false; break; }
 
             res = Vmm::MapPage(proc, ret + lowerOffset + offset, paddr
@@ -912,7 +910,7 @@ Handle Vmm::SetPageFlags(Process * const proc, uintptr_t const vaddr
         if likely(pE->GetPresent())
         {
             Pml1Entry e = *pE;
-    
+
             e.SetGlobal( ((MemoryFlags::Global     & flags) != 0))
             .SetUserland(((MemoryFlags::Userland   & flags) != 0))
             .SetWritable(((MemoryFlags::Writable   & flags) != 0))
