@@ -164,8 +164,12 @@
 #define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__, __optimize__("Os")))
 #define __userland         __attribute__((__section__(".text.userland"), __used__))
 
-#define __library          __extern __attribute__((__used__, __noinline__, __optimize__(2)))
-#define __shared           __extern __attribute__((__used__, __noinline__, __optimize__(3)))
+#define __shared           __extern __attribute__((__used__, __optimize__(3), __externally_visible__, __noinline__))
+#define __shared_          __extern __attribute__((__used__, __optimize__(3), __externally_visible__))
+
+#define __public           __attribute__((__externally_visible__))
+#define __protected        __attribute__((__visibility__("protected")))
+#define __internal         __attribute__((__visibility__("internal")))
 
 #else
 
@@ -206,8 +210,11 @@
 #define __startup  
 #define __userland  
 
-#define __library          __extern 
 #define __shared           __extern 
+
+#define __public  
+#define __protected  
+#define __internal  
 
 #endif
 

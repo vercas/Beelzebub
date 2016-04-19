@@ -55,7 +55,7 @@
  *  <param name="len">The size of the memory blocks, in bytes.</param>
  *  <return>True if the memory blocks contain the same values; otherwise false.</return>
  */
-__extern __used bool memeq(void const * src1, void const * src2, size_t len);
+__shared_ bool memeq(void const * src1, void const * src2, size_t len);
 
 /**
  *  <summary>Compares the given blocks of memory.</summary>
@@ -69,7 +69,7 @@ __extern __used bool memeq(void const * src1, void const * src2, size_t len);
  *  greater than the second, or 0 if the blocks are equal.
  *  </return>
  */
-__extern __used comp_t memcmp(void const * src1, void const * src2, size_t len);
+__shared_ comp_t memcmp(void const * src1, void const * src2, size_t len);
 
 /**
  *  <summary>
@@ -83,7 +83,7 @@ __extern __used comp_t memcmp(void const * src1, void const * src2, size_t len);
  *  found; otherwise <c>nullptr</c>.
  *  </return>
  */
-__extern __used void * memchr(void const * src, int val, size_t len);
+__shared_ void * memchr(void const * src, int val, size_t len);
 
 /**
  *  <summary>
@@ -99,7 +99,7 @@ __extern __used void * memchr(void const * src, int val, size_t len);
  *  <param name="len">The number of bytes to copy from the source to the destination.</param>
  *  <return><paramref name="dst"/> is returned.</return>
  */
-__extern __used void * memcpy(void * dst, void const * src, size_t len);
+__shared_ void * memcpy(void * dst, void const * src, size_t len);
 
 /**
  *  <summary>
@@ -115,7 +115,7 @@ __extern __used void * memcpy(void * dst, void const * src, size_t len);
  *  <param name="len">The number of bytes to copy from the source to the destination.</param>
  *  <return><paramref name="dst"/> is returned.</return>
  */
-__extern __used void * memmove(void * dst, void const * src, size_t len);
+__shared_ void * memmove(void * dst, void const * src, size_t len);
 
 /**
  *  <summary>
@@ -129,14 +129,14 @@ __extern __used void * memmove(void * dst, void const * src, size_t len);
  *  found; otherwise <c>nullptr</c>.
  *  </return>
  */
-__extern __used void * memset(void * dst, int const val, size_t len);
+__shared_ void * memset(void * dst, int const val, size_t len);
 
 /**
  *  <summary>Obtains the length (in characters) of a C string.</summary>
  *  <param name="str">Start of C string.</param>
  *  <return>The length of the string.</return>
  */
-__extern __used size_t strlen(char const * str);
+__shared_ size_t strlen(char const * str);
 
 /**
  *  <summary>Obtains the length (in characters) of a C string with an upper bound.</summary>
@@ -144,7 +144,7 @@ __extern __used size_t strlen(char const * str);
  *  <param name="len">Maximum number of characters to measure.</param>
  *  <return>The length of the string bound by <paramref name="len"/>.</return>
  */
-__extern __used size_t strnlen(char const * str, size_t len);
+__shared_ size_t strnlen(char const * str, size_t len);
 
 /**
  *  <summary>
@@ -158,24 +158,24 @@ __extern __used size_t strnlen(char const * str, size_t len);
  *  </param>
  *  <return>The length of the string bound by <paramref name="len"/>.</return>
  */
-__extern __used size_t strnlenex(char const * str, size_t len, bool * reached);
+__shared_ size_t strnlenex(char const * str, size_t len, bool * reached);
 
-__extern __used char * strcat(char * dst, char const * src);
-__extern __used char * strncat(char * dst, char const * src, size_t len);
+__shared_ char * strcat(char * dst, char const * src);
+__shared_ char * strncat(char * dst, char const * src, size_t len);
 
-__extern __used char * strcpy(char * dst, char const * src);
-__extern __used char * strncpy(char * dst, char const * src, size_t len);
+__shared_ char * strcpy(char * dst, char const * src);
+__shared_ char * strncpy(char * dst, char const * src, size_t len);
 
-__extern __used char * strpbrk(char const * haystack, char const * needle);
-__extern __used char * strnpbrk(char const * haystack, char const * needle, size_t len);
+__shared_ char * strpbrk(char const * haystack, char const * needle);
+__shared_ char * strnpbrk(char const * haystack, char const * needle, size_t len);
 
-__extern __used comp_t strcmp(char const * src1, char const * src2);
-__extern __used comp_t strncmp(char const * src1, char const * src2, size_t len);
+__shared_ comp_t strcmp(char const * src1, char const * src2);
+__shared_ comp_t strncmp(char const * src1, char const * src2, size_t len);
 
-__extern __used comp_t strcasecmp(char const * src1, char const * src2);
-__extern __used comp_t strcasencmp(char const * src1, char const * src2, size_t len);
+__shared_ comp_t strcasecmp(char const * src1, char const * src2);
+__shared_ comp_t strcasencmp(char const * src1, char const * src2, size_t len);
 
-__extern __used char const * strstr(char const * haystack, char const * needle);
+__shared_ char const * strstr(char const * haystack, char const * needle);
 
-__extern __used char const * strstrex(char const * haystack, char const * needle, char const * seps);
-__extern __used char const * strcasestrex(char const * haystack, char const * needle, char const * seps);
+__shared_ char const * strstrex(char const * haystack, char const * needle, char const * seps);
+__shared_ char const * strcasestrex(char const * haystack, char const * needle, char const * seps);

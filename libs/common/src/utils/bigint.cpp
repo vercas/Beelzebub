@@ -146,10 +146,10 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
     return overflow;
 }
 
-__noinline void BigIntDiv32(uint32_t       * quot, uint32_t sizeQ
-                          , uint32_t       * remn, uint32_t sizeR
-                          , uint32_t const * src1, uint32_t size1
-                          , uint32_t src2)
+static __noinline void BigIntDiv32(uint32_t       * quot, uint32_t sizeQ
+                                 , uint32_t       * remn, uint32_t sizeR
+                                 , uint32_t const * src1, uint32_t size1
+                                 , uint32_t src2)
 {
 
 }
@@ -200,8 +200,8 @@ void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
 
 /*  Logic Operations  */
 
-__noinline void BigIntAnd2(uint32_t       * dst, uint32_t sizeD
-                         , uint32_t const * src, uint32_t sizeS)
+static __noinline void BigIntAnd2(uint32_t       * dst, uint32_t sizeD
+                                , uint32_t const * src, uint32_t sizeS)
 {
     if (sizeS > sizeD)
         sizeS = sizeD;
@@ -234,8 +234,8 @@ void Beelzebub::Utils::BigIntAnd(uint32_t       * dst , uint32_t sizeD
     //  The rest becomes 0.
 }
 
-__noinline void BigIntOr2(uint32_t       * dst, uint32_t sizeD
-                         , uint32_t const * src, uint32_t sizeS)
+static __noinline void BigIntOr2(uint32_t       * dst, uint32_t sizeD
+                               , uint32_t const * src, uint32_t sizeS)
 {
     if (sizeS > sizeD)
         sizeS = sizeD;
@@ -294,8 +294,8 @@ void Beelzebub::Utils::BigIntOr (uint32_t       * dst , uint32_t sizeD
     //  The rest becomes 0.
 }
 
-__noinline void BigIntXor2(uint32_t       * dst, uint32_t sizeD
-                         , uint32_t const * src, uint32_t sizeS)
+static __noinline void BigIntXor2(uint32_t       * dst, uint32_t sizeD
+                                , uint32_t const * src, uint32_t sizeS)
 {
     if (sizeS > sizeD)
         sizeS = sizeD;

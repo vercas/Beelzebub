@@ -60,7 +60,7 @@ using namespace Beelzebub::Utils;
 
 /*  Forward declarations  */
 
-__noinline Handle HandleValue(CommandLineOptionSpecification & opt, char * input);
+static __noinline Handle HandleValue(CommandLineOptionSpecification & opt, char * input);
 //  Forward declaration.
 
 /************************************

@@ -43,7 +43,7 @@ using namespace Beelzebub;
 
 #define LT(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
 
-uint8_t const LogTable[] = {
+static uint8_t const LogTable[] = {
     0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
 
     4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

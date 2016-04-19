@@ -117,7 +117,7 @@ namespace Beelzebub { namespace Terminals
         /*  Writing  */
 
     private:
-        TerminalWriteResult InternalWrite(char const * const str);
+        __internal TerminalWriteResult InternalWrite(char const * const str);
 
     public:
         virtual TerminalWriteResult WriteUtf8(char const * const c) override;

@@ -44,11 +44,6 @@
 namespace Beelzebub { namespace Terminals
 {
     /**
-     * Forward declaration...
-     */
-    class TerminalBase;
-
-    /**
      * Known major terminal types.
      **/
     enum class TerminalType : uint8_t

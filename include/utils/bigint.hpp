@@ -43,54 +43,54 @@
 
 namespace Beelzebub { namespace Utils
 {
-    __library bool BigIntAdd(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
-    __library bool BigIntSub(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __shared bool BigIntAdd(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
+    __shared bool BigIntSub(uint32_t * dst, uint32_t const * src1, uint32_t const * src2, uint32_t size, bool cin);
 
-    __library bool BigIntMul(uint32_t       * dst , uint32_t & dstSize
-                           , uint32_t const * src1, uint32_t   size1
-                           , uint32_t const * src2, uint32_t   size2
-                           , uint32_t maxSize, bool cin);
+    __shared bool BigIntMul(uint32_t       * dst , uint32_t & dstSize
+                          , uint32_t const * src1, uint32_t   size1
+                          , uint32_t const * src2, uint32_t   size2
+                          , uint32_t maxSize, bool cin);
 
-    __library void BigIntDiv(uint32_t       * quot, uint32_t sizeQ
-                           , uint32_t       * remn, uint32_t sizeR
-                           , uint32_t const * src1, uint32_t size1
-                           , uint32_t const * src2, uint32_t size2);
+    __shared void BigIntDiv(uint32_t       * quot, uint32_t sizeQ
+                          , uint32_t       * remn, uint32_t sizeR
+                          , uint32_t const * src1, uint32_t size1
+                          , uint32_t const * src2, uint32_t size2);
 
-    __library void BigIntAnd(uint32_t       * dst , uint32_t sizeD
-                           , uint32_t const * src1, uint32_t size1
-                           , uint32_t const * src2, uint32_t size2);
+    __shared void BigIntAnd(uint32_t       * dst , uint32_t sizeD
+                          , uint32_t const * src1, uint32_t size1
+                          , uint32_t const * src2, uint32_t size2);
 
-    __library void BigIntOr (uint32_t       * dst , uint32_t sizeD
-                           , uint32_t const * src1, uint32_t size1
-                           , uint32_t const * src2, uint32_t size2);
+    __shared void BigIntOr (uint32_t       * dst , uint32_t sizeD
+                          , uint32_t const * src1, uint32_t size1
+                          , uint32_t const * src2, uint32_t size2);
 
-    __library void BigIntXor(uint32_t       * dst , uint32_t sizeD
-                           , uint32_t const * src1, uint32_t size1
-                           , uint32_t const * src2, uint32_t size2);
+    __shared void BigIntXor(uint32_t       * dst , uint32_t sizeD
+                          , uint32_t const * src1, uint32_t size1
+                          , uint32_t const * src2, uint32_t size2);
 
-    __library void BigIntNot(uint32_t       * dst , uint32_t sizeD
-                           , uint32_t const * src , uint32_t sizeS);
+    __shared void BigIntNot(uint32_t       * dst , uint32_t sizeD
+                          , uint32_t const * src , uint32_t sizeS);
 
-    __library bool BigIntShL(uint32_t       * dst , uint32_t & sizeD
-                           , uint32_t const * src , uint32_t   sizeS
-                           , uint32_t sizeM, uint64_t amnt);
+    __shared bool BigIntShL(uint32_t       * dst , uint32_t & sizeD
+                          , uint32_t const * src , uint32_t   sizeS
+                          , uint32_t sizeM, uint64_t amnt);
 
-    __library bool BigIntShR(uint32_t       * dst , uint32_t & sizeD
-                           , uint32_t const * src , uint32_t   sizeS
-                           , uint64_t amnt);
+    __shared bool BigIntShR(uint32_t       * dst , uint32_t & sizeD
+                          , uint32_t const * src , uint32_t   sizeS
+                          , uint64_t amnt);
 
-    __library int  BigIntCmp(uint32_t const * srcL, uint32_t sizeL
-                           , uint32_t const * srcR, uint32_t sizeR);
+    __shared int  BigIntCmp(uint32_t const * srcL, uint32_t sizeL
+                          , uint32_t const * srcR, uint32_t sizeR);
 
-    __library bool BigIntGetPow10(uint32_t * dst, uint32_t & sizeD
-                                , uint32_t sizeM, uint32_t exponent);
+    __shared bool BigIntGetPow10(uint32_t * dst, uint32_t & sizeD
+                               , uint32_t sizeM, uint32_t exponent);
 
     template<uint32_t MaxSize>
     struct BigUInt
     {
         /*  Operations  */
 
-        static uint32_t Balance(BigUInt & left, BigUInt & right)
+        static inline uint32_t Balance(BigUInt & left, BigUInt & right)
         {
             if (left.CurrentSize > right.CurrentSize)
             {
@@ -167,7 +167,7 @@ namespace Beelzebub { namespace Utils
             return *this;
         }
 
-        static BigUInt GetPowerOf10(uint32_t exponent)
+        static inline BigUInt GetPowerOf10(uint32_t exponent)
         {
             BigUInt res {};
 

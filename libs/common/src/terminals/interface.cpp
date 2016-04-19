@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <terminals/base.hpp>
+#include <terminals/interface.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;

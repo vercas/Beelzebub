@@ -46,7 +46,7 @@ using namespace Beelzebub::Terminals;
 
 /*  Cache terminal descriptor  */
 
-TerminalCapabilities CacheTerminalCapabilities = {
+static TerminalCapabilities CacheTerminalCapabilities = {
     true,   //  bool CanOutput;            //  Characters can be written to the terminal.
     false,  //  bool CanInput;             //  Characters can be received from the terminal.
     false,  //  bool CanRead;              //  Characters can be read back from the terminal's output.

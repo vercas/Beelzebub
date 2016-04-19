@@ -46,7 +46,7 @@ using namespace Beelzebub::Utils;
 /*  Workers  */
 
 template<typename TInt, size_t limit>
-Handle StrToUIntBase16(char const * str, TInt & val)
+static Handle StrToUIntBase16(char const * str, TInt & val)
 {
     TInt res = 0;
     size_t i = 0;
@@ -98,7 +98,7 @@ Handle StrToUIntBase16(char const * str, TInt & val)
 }
 
 template<typename TInt>
-Handle StrToUIntBase10(char const * str, TInt & val)
+static Handle StrToUIntBase10(char const * str, TInt & val)
 {
     TInt res = val = 0;
     char c;
@@ -128,7 +128,7 @@ Handle StrToUIntBase10(char const * str, TInt & val)
 }
 
 template<typename TInt, size_t limit>
-Handle StrToUIntBase8(char const * str, TInt & val)
+static Handle StrToUIntBase8(char const * str, TInt & val)
 {
     TInt res = 0;
     size_t i = 0;
@@ -154,7 +154,7 @@ Handle StrToUIntBase8(char const * str, TInt & val)
 }
 
 template<typename TInt>
-Handle StrToUIntBase2(char const * str, TInt & val)
+static Handle StrToUIntBase2(char const * str, TInt & val)
 {
     TInt res = 0;
     size_t i = 0;
