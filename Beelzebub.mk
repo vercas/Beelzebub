@@ -138,6 +138,7 @@ ifneq (,$(findstring test-all,$(MAKECMDGOALS)))
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_BIGINT 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_LOCK_ELISION 
 	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_RW_SPINLOCK 
+	PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_VAS 
 
 	SETTINGS			+= test-all
 else
@@ -223,6 +224,12 @@ else
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_RW_SPINLOCK 
 
 		SETTINGS			+= test-rw-spinlock 
+	endif
+
+	ifneq (,$(findstring test-vas,$(MAKECMDGOALS)))
+		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_VAS 
+
+		SETTINGS			+= test-vas 
 	endif
 endif
 

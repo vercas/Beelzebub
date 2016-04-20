@@ -39,44 +39,10 @@
 
 #pragma once
 
-#include <math.h>
+#include <memory/enums.hpp>
 
 namespace Beelzebub { namespace Memory
 {
-    /**
-     *  Represents characteristics of memory regions.
-     */
-    enum class RegionPermissions : uint8_t
-    {
-        //  No flags.
-        None        = 0x00,
-
-        //  Writing to the region is allowed.
-        Writable    = 0x01,
-        //  Executing code from the region is allowed.
-        Executable  = 0x02,
-    };
-
-    ENUMOPS(RegionPermissions, uint8_t)
-
-    /**
-     *  Represents characteristics of memory regions.
-     */
-    enum class RegionType : uint8_t
-    {
-        //  No type.
-        None        = 0x00,
-
-        //  Process heap memory.
-        Heap        = 0x01,
-        //  Shared with other processes.
-        Share       = 0x02,
-        //  A thread's stack.
-        ThreadStack = 0x03,
-    };
-
-    ENUMOPS_LITE(RegionType, uint8_t)
-
     struct MemoryRange
     {
         /*  Statics  */
@@ -127,8 +93,32 @@ namespace Beelzebub { namespace Memory
 
         inline MemoryRegion()
             : Range()
-            , Permissions()
+            , Flags()
             , Type()
+            , NextFree(nullptr)
+            , PrevFree(nullptr)
+        {
+
+        }
+
+        inline MemoryRegion(MemoryRange range, MemoryFlags flags
+                          , MemoryAllocationOptions type)
+            : Range( range)
+            , Flags(flags)
+            , Type(type)
+            , NextFree(nullptr)
+            , PrevFree(nullptr)
+        {
+
+        }
+
+        inline MemoryRegion(vaddr_t start, vaddr_t end, MemoryFlags flags
+                          , MemoryAllocationOptions type)
+            : Range({start, end})
+            , Flags(flags)
+            , Type(type)
+            , NextFree(nullptr)
+            , PrevFree(nullptr)
         {
 
         }
@@ -137,8 +127,10 @@ namespace Beelzebub { namespace Memory
 
         MemoryRange Range;
 
-        RegionPermissions Permissions;
-        RegionType Type;
+        MemoryFlags Flags;
+        MemoryAllocationOptions Type;
+
+        MemoryRegion * NextFree, * PrevFree;
     };
 
     struct AdjacentMemoryRegion

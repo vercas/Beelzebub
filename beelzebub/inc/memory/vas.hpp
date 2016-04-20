@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,67 +39,47 @@
 
 #pragma once
 
-#include <memory/vas.hpp>
-#include <synchronization/spinlock.hpp>
+#include <memory/regions.hpp>
+#include <memory/enums.hpp>
+#include <utils/avl_tree.hpp>
+
+#include <synchronization/rw_spinlock.hpp>
 #include <synchronization/atomic.hpp>
 
-namespace Beelzebub { namespace Execution
+namespace Beelzebub { namespace Memory
 {
     /**
-     *  A unit of isolation.
+     *  A virtual address space.
      */
-    class Process
+    class Vas
     {
     public:
 
         /*  Constructors  */
 
-        inline Process()
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(nullvaddr)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(nullpaddr)
-            , Vas()
-            , RuntimeLoaded(false)
+        inline Vas()
+            : Lock()
+            , Tree()
+            , FirstFree(nullptr)
         {
 
         }
 
-        Process(Process const &) = delete;
-        Process & operator =(Process const &) = delete;
+        Vas(vaddr_t start, vaddr_t end);
 
-        inline Process(paddr_t const pt)
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(1 << 24)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(pt)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
+        Vas(Vas const &) = delete;
+        Vas & operator =(Vas const &) = delete;
 
         /*  Operations  */
 
-        __hot Handle SwitchTo(Process * const other);
+        __hot Handle Allocate(vaddr_t & vaddr, size_t pageCnt
+            , MemoryFlags flags, MemoryAllocationOptions type);
 
-        Synchronization::Atomic<size_t> ActiveCoreCount;
+        /*  Fields  */
 
-        /*  Memory  */
+        Synchronization::RwSpinlock Lock;
+        Utils::AvlTree<MemoryRegion> Tree;
 
-        Synchronization::Spinlock<> UserHeapLock;
-        Synchronization::Atomic<vaddr_t> UserHeapCursor;
-        Synchronization::Atomic<bool> UserHeapOverflown;
-
-        Synchronization::Spinlock<> AlienPagingTablesLock;
-        paddr_t PagingTable;
-
-        Memory::Vas Vas;
-
-        bool RuntimeLoaded;
+        MemoryRegion * FirstFree;
     };
 }}

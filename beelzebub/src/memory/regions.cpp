@@ -47,7 +47,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Utils;
 
-typedef AvlTree<MemoryRange> TreeType;
+typedef AvlTree<MemoryRegion> TreeType;
 typedef TreeType::Node NodeType;
 
 static ObjectAllocatorSmp regionAllocator;
@@ -168,13 +168,13 @@ void Memory::InitializeRegions()
 namespace Beelzebub { namespace Utils
 {
     template<>
-    Handle AvlTree<MemoryRange>::AllocateNode(AvlTree<MemoryRange>::Node * & node)
+    Handle AvlTree<MemoryRegion>::AllocateNode(AvlTree<MemoryRegion>::Node * & node)
     {
         return regionAllocator.AllocateObject(node);
     }
 
     template<>
-    Handle AvlTree<MemoryRange>::RemoveNode(AvlTree<MemoryRange>::Node * const node)
+    Handle AvlTree<MemoryRegion>::RemoveNode(AvlTree<MemoryRegion>::Node * const node)
     {
         return regionAllocator.DeallocateObject(node);
     }

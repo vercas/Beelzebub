@@ -54,30 +54,6 @@ using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
-/*********************
-    VAS shenanigans
-*********************/
-
-// Handle AddVas(Process * const proc, size_t const count
-//     , MemoryAllocationOptions const type, MemoryFlags const flags, uintptr_t & vaddr)
-// {
-//     Handle res;
-
-//     if (0 != (type & MemoryAllocationOptions::VirtualUser))
-//     {
-//         AdjacentMemoryRegion region {};
-
-//         int_cookie_t const cookie = proc->VasLock.AcquireAsWriter();
-
-//         res = proc->Vas.InsertOrFind(region);
-
-//         proc->VasLock.ReleaseAsWriter(cookie);
-//     }
-
-//     return HandleResult::NotImplemented;
-//     //  Not possible yet.
-// }
-
 /****************
     Vmm class
 ****************/
@@ -102,7 +78,7 @@ inline void Alienate(Process * const proc)
 
 Atomic<vaddr_t> Vmm::KernelHeapCursor {VmmArc::KernelHeapStart};
 
-vaddr_t Vmm::UserlandStart = 1ULL << 20;    //  1 MiB
+vaddr_t Vmm::UserlandStart = 1ULL << 24;    //  16 MiB
 vaddr_t Vmm::UserlandEnd = VmmArc::LowerHalfEnd;
 vaddr_t Vmm::KernelStart = VmmArc::KernelHeapStart;
 vaddr_t Vmm::KernelEnd = VmmArc::KernelHeapEnd;
@@ -230,10 +206,6 @@ Handle Vmm::Initialize(Process * const proc)
 {
     CpuInstructions::InvalidateTlb(VmmArc::GetAlienPml4());
 
-    // msg("<[ CLONE SOURCE PML4 ]>%n");
-    // PrintToDebugTerminal(*VmmArc::GetLocalPml4());
-    // msg("%n%n");
-
     PageDescriptor * desc;
 
     paddr_t const pml4_paddr = proc->PagingTable
@@ -253,34 +225,43 @@ Handle Vmm::Initialize(Process * const proc)
     if (CpuDataSetUp)
         alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
-    LockGuardFlexible<Spinlock<> > pml4Lg {*alienLock};
+    {   //  Lock-guarded.
+        LockGuardFlexible<Spinlock<> > pml4Lg {*alienLock};
 
-    Alienate(proc);
-    //  So it can be accessible.
+        Alienate(proc);
+        //  So it can be accessible.
 
-    Pml4 & pml4Local = *(VmmArc::GetLocalPml4());
-    Pml4 & pml4Alien = *(VmmArc::GetAlienPml4());
+        Pml4 & pml4Local = *(VmmArc::GetLocalPml4());
+        Pml4 & pml4Alien = *(VmmArc::GetAlienPml4());
 
-    for (uint16_t i = 0; i < 256; ++i)
-        pml4Alien[i] = Pml4Entry();
-    //  Userland space will be empty.
+        for (uint16_t i = 0; i < 256; ++i)
+            pml4Alien[i] = Pml4Entry();
+        //  Userland space will be empty.
 
-    for (uint16_t i = 256; i < VmmArc::AlienFractalIndex; ++i)
-        pml4Alien[i] = pml4Local[i];
-    //  Kernel-specific tables.
+        for (uint16_t i = 256; i < VmmArc::AlienFractalIndex; ++i)
+            pml4Alien[i] = pml4Local[i];
+        //  Kernel-specific tables.
 
-    pml4Alien[VmmArc::LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, VmmArc::NX);
+        pml4Alien[VmmArc::LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, VmmArc::NX);
 
-    pml4Alien[511] = pml4Local[511];
-    //  Last page, where the kernel and bootloader-provided shenanigans sit
-    //  snuggly together and drink hot cocoa.
+        pml4Alien[511] = pml4Local[511];
+        //  Last page, where the kernel and bootloader-provided shenanigans sit
+        //  snuggly together and drink hot cocoa.
 
-    // msg("<[ CLONE TARGET PML4 ]>%n");
-    // PrintToDebugTerminal(*VmmArc::GetAlienPml4());
-    // msg("%n%n");
+        if (CpuDataSetUp)
+            Cpu::GetData()->LastAlienPml4 = pml4_paddr;
+    }
 
-    if (CpuDataSetUp)
-        Cpu::GetData()->LastAlienPml4 = pml4_paddr;
+    new (&(proc->Vas)) Vas(UserlandStart, UserlandEnd);
+
+    // proc->VasLock.AcquireAsWriter();
+
+    // Handle res = proc->Vas.Insert(MemoryRegion(UserlandStart, UserlandEnd
+    //     , RegionPermissions::Writable | RegionPermissions::Executable
+    //     , RegionType::Free));
+    // //  Blank memory region, for allocation.
+
+    // proc->VasLock.ReleaseAsWriter();
 
     return HandleResult::Okay;
 }
@@ -702,10 +683,16 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
     , MemoryAllocationOptions const type, MemoryFlags const flags, uintptr_t & vaddr)
 {
     if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand))
-        // return AddVas(proc, count, type, flags, vaddr);
-        return HandleResult::NotImplemented;
+    {
+        if (0 != (type & MemoryAllocationOptions::VirtualUser))
+            return proc->Vas.Allocate(vaddr, count, flags, type);
+        else
+            return HandleResult::NotImplemented;
+    }
     else if (0 != (type & MemoryAllocationOptions::Commit))
     {
+        Handle res; //  Intermediary result.
+
         size_t const  lowerOffset = (0 != (type & MemoryAllocationOptions::GuardLow))
             ? PageSize : 0;
         size_t const higherOffset = (0 != (type & MemoryAllocationOptions::GuardHigh))
@@ -717,11 +704,14 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
 
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
         {
+            res = proc->Vas.Allocate(vaddr, count, flags, type);
+
+            if unlikely(!res.IsOkayResult())
+                return res;
+
             if unlikely(proc->UserHeapOverflown)
                 return HandleResult::UnsupportedOperation;
             //  Not supported yet.
-
-            //  TODO: Add VAS.
 
             ret = proc->UserHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
 
@@ -760,9 +750,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
             heapLock = &(VmmArc::KernelHeapLock);
         }
 
-        Handle res;
-        PageDescriptor * desc;
-        //  Intermediary results.
+        PageDescriptor * desc;  //  Intermediary result as well.
 
         PageAllocator * alloc = Domain0.PhysicalAllocator;
 

@@ -136,7 +136,7 @@ void TestApplication()
 
     //  Firstly, the kernel stack page of the test thread.
 
-    uintptr_t stackVaddr;
+    uintptr_t stackVaddr = nullvaddr;
 
     res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
         , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
@@ -158,6 +158,8 @@ void TestApplication()
         BootstrapThread.IntroduceNext(&testThread);
 
     //  Secondly, the kernel stack page of the watcher thread.
+
+    stackVaddr = nullvaddr;
 
     res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
         , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap

@@ -121,6 +121,10 @@
 #include <tests/rw_spinlock.hpp>
 #endif
 
+#ifdef __BEELZEBUB__TEST_VAS
+#include <tests/vas.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -603,6 +607,17 @@ void Beelzebub::Main()
             MainTerminal->Write(">Testing AVL trees...");
 
             TestAvlTree();
+
+            MainTerminal->WriteLine(" Done.");
+        }
+#endif
+
+#ifdef __BEELZEBUB__TEST_VAS
+        if (CHECK_TEST(VAS))
+        {
+            MainTerminal->Write(">Testing VAS implementation...");
+
+            TestVas();
 
             MainTerminal->WriteLine(" Done.");
         }

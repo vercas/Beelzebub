@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,69 +37,29 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#ifdef __BEELZEBUB__TEST_VAS
 
-#include <memory/vas.hpp>
-#include <synchronization/spinlock.hpp>
-#include <synchronization/atomic.hpp>
+#include <tests/vas.hpp>
+#include <memory/vmm.hpp>
+#include <execution/thread.hpp>
+#include <execution/thread_init.hpp>
+#include <execution/ring_3.hpp>
 
-namespace Beelzebub { namespace Execution
+#include <kernel.hpp>
+#include <entry.h>
+#include <system/cpu.hpp>
+
+#include <debug.hpp>
+
+using namespace Beelzebub;
+using namespace Beelzebub::Execution;
+using namespace Beelzebub::Memory;
+using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
+
+void TestVas()
 {
-    /**
-     *  A unit of isolation.
-     */
-    class Process
-    {
-    public:
+    //
+}
 
-        /*  Constructors  */
-
-        inline Process()
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(nullvaddr)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(nullpaddr)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        Process(Process const &) = delete;
-        Process & operator =(Process const &) = delete;
-
-        inline Process(paddr_t const pt)
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(1 << 24)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(pt)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        /*  Operations  */
-
-        __hot Handle SwitchTo(Process * const other);
-
-        Synchronization::Atomic<size_t> ActiveCoreCount;
-
-        /*  Memory  */
-
-        Synchronization::Spinlock<> UserHeapLock;
-        Synchronization::Atomic<vaddr_t> UserHeapCursor;
-        Synchronization::Atomic<bool> UserHeapOverflown;
-
-        Synchronization::Spinlock<> AlienPagingTablesLock;
-        paddr_t PagingTable;
-
-        Memory::Vas Vas;
-
-        bool RuntimeLoaded;
-    };
-}}
+#endif

@@ -37,69 +37,52 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
-
 #include <memory/vas.hpp>
-#include <synchronization/spinlock.hpp>
-#include <synchronization/atomic.hpp>
 
-namespace Beelzebub { namespace Execution
+#include <debug.hpp>
+
+using namespace Beelzebub;
+using namespace Beelzebub::Memory;
+using namespace Beelzebub::Synchronization;
+using namespace Beelzebub::Utils;
+
+/****************
+    VAS class
+****************/
+
+/*  Constructors  */
+
+Vas::Vas(vaddr_t start, vaddr_t end)
 {
-    /**
-     *  A unit of isolation.
-     */
-    class Process
+
+}
+
+/*  Operations  */
+
+Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
+    , MemoryFlags flags, MemoryAllocationOptions type)
+{
+    Handle res;
+
+    size_t const  lowOffset = (0 != (type & MemoryAllocationOptions::GuardLow))
+        ? PageSize : 0;
+    size_t const highOffset = (0 != (type & MemoryAllocationOptions::GuardHigh))
+        ? PageSize : 0;
+
+    this->Lock.AcquireAsWriter();
+
+    if (vaddr == nullvaddr)
     {
-    public:
 
-        /*  Constructors  */
+    }
+    else
+    {
 
-        inline Process()
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(nullvaddr)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(nullpaddr)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
+    }
 
-        }
+    DEBUG_TERM << " <ALLOC> ";
 
-        Process(Process const &) = delete;
-        Process & operator =(Process const &) = delete;
+    this->Lock.ReleaseAsWriter();
 
-        inline Process(paddr_t const pt)
-            : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(1 << 24)
-            , UserHeapOverflown(false)
-            , AlienPagingTablesLock()
-            , PagingTable(pt)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        /*  Operations  */
-
-        __hot Handle SwitchTo(Process * const other);
-
-        Synchronization::Atomic<size_t> ActiveCoreCount;
-
-        /*  Memory  */
-
-        Synchronization::Spinlock<> UserHeapLock;
-        Synchronization::Atomic<vaddr_t> UserHeapCursor;
-        Synchronization::Atomic<bool> UserHeapOverflown;
-
-        Synchronization::Spinlock<> AlienPagingTablesLock;
-        paddr_t PagingTable;
-
-        Memory::Vas Vas;
-
-        bool RuntimeLoaded;
-    };
-}}
+    return HandleResult::Okay;
+}

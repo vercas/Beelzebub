@@ -52,7 +52,7 @@ using namespace Beelzebub::System;
 
 static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
 {
-    vaddr_t vaddr;
+    vaddr_t vaddr = nullvaddr;
 
     Handle res = Vmm::AllocatePages(
         CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
