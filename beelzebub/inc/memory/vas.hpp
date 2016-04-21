@@ -63,6 +63,7 @@ namespace Beelzebub { namespace Memory
             , Alloc()
             , Tree()
             , FirstFree(nullptr)
+            , LastSearched(nullptr)
         {
             this->Tree.Cookie = &(this->Alloc);
         }
@@ -89,6 +90,6 @@ namespace Beelzebub { namespace Memory
         ObjectAllocator Alloc;
         Utils::AvlTree<MemoryRegion> Tree;
 
-        MemoryRegion * FirstFree;
+        MemoryRegion * FirstFree, * LastSearched;
     };
 }}

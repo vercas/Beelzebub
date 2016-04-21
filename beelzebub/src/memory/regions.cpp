@@ -59,7 +59,7 @@ MemoryRange const MemoryRange::Invalid {1337, 42};
 
 /*  Operators  */
 
-MemoryRange MemoryRange::operator & (MemoryRange const & other)
+MemoryRange MemoryRange::operator & (MemoryRange const & other) const
 {
     if (this->End <= other.Start || other.End <= this->Start)
         return Invalid;
@@ -67,7 +67,7 @@ MemoryRange MemoryRange::operator & (MemoryRange const & other)
     return {Maximum(this->Start, other.Start), Minimum(this->End, other.End)};
 }
 
-MemoryRange MemoryRange::operator | (MemoryRange const & other)
+MemoryRange MemoryRange::operator | (MemoryRange const & other) const
 {
     if (this->End < other.Start || other.End < this->Start)
         return Invalid;

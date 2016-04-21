@@ -681,6 +681,8 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
+    Memory::Vas * vas = &(proc->Vas);
+
     Handle res = HandleResult::Okay;
     PageDescriptor * desc;
 
@@ -688,24 +690,31 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     paddr_t paddr;
 
     vaddr_t const vaddr_algn = RoundDown(vaddr, PageSize);
-
-    MemoryRegion * reg = proc->Vas.FindRegion(vaddr, true);
+    MemoryRegion * reg;
 
 #define RETURN(HRES) do { res = HandleResult::HRES; goto end; } while (false)
-
-    if unlikely( reg == nullptr
-             || (reg->Type & MemoryAllocationOptions::PurposeMask) == MemoryAllocationOptions::Free)
-        RETURN(ArgumentOutOfRange);
-    //  Either of these conditions means this page fault was caused by a hit on
-    //  unallocated/freed memory.
 
     if unlikely(0 != (flags & PageFaultFlags::Present))
         RETURN(Failed);
     //  Page is present. This means this is an access (write/execute) failure.
 
-    if unlikely((reg->Type & MemoryAllocationOptions::StrategyMask) != MemoryAllocationOptions::AllocateOnDemand)
-        RETURN(PageUndemandable);
-    //  Regions which aren't allocated on demand aren't covered by this handler.
+    if (vas->LastSearched != nullptr && vas->LastSearched->Contains(vaddr))
+        reg = vas->LastSearched;
+        //  No need to check whether anything can be allocated in the page or not.
+    else
+    {
+        reg = vas->FindRegion(vaddr, true);
+
+        if unlikely( reg == nullptr
+                 || (reg->Type & MemoryAllocationOptions::PurposeMask) == MemoryAllocationOptions::Free)
+            RETURN(ArgumentOutOfRange);
+        //  Either of these conditions means this page fault was caused by a hit on
+        //  unallocated/freed memory.
+
+        if unlikely((reg->Type & MemoryAllocationOptions::StrategyMask) != MemoryAllocationOptions::AllocateOnDemand)
+            RETURN(PageUndemandable);
+        //  Regions which aren't allocated on demand aren't covered by this handler.
+    }
 
     if unlikely((0 != (reg->Type & MemoryAllocationOptions::GuardLow ) && vaddr_algn <  (reg->Range.Start + PageSize))
              || (0 != (reg->Type & MemoryAllocationOptions::GuardHigh) && vaddr_algn >= (reg->Range.End   - PageSize)))
@@ -719,6 +728,11 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     //  access (in any way) a supervisor page from userland.
 
     //  Reaching this point means this page is meant to be allocated.
+
+    vas->LastSearched = reg;
+    //  Make the next operation potentially faster. This is done even if the
+    //  following allocation fails, because it doesn't affect the correctness of
+    //  the VAS.
 
     alloc = CpuDataSetUp
         ? Cpu::GetData()->DomainDescriptor->PhysicalAllocator
@@ -744,7 +758,7 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
 
 #undef RETURN
 end:
-    proc->Vas.Lock.ReleaseAsReader();
+    vas->Lock.ReleaseAsReader();
 
     return res;
 }

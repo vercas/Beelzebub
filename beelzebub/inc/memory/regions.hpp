@@ -67,35 +67,42 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        inline bool IsValid()
+        inline bool IsValid() const
         {
             return this->Start != 1337 || this->End != 42;
         }
 
-        inline vsize_t GetSize()
+        inline vsize_t GetSize() const
         {
             return this->End - this->Start;
         }
 
-        inline size_t GetPageCount()
+        inline size_t GetPageCount() const
         {
             return this->GetSize() / PageSize;
         }
 
         /*  Operators  */
 
-        MemoryRange operator & (MemoryRange const & other); //  Intersection
-        MemoryRange operator | (MemoryRange const & other); //  Union
+        MemoryRange operator & (MemoryRange const & other) const; //  Intersection
+        MemoryRange operator | (MemoryRange const & other) const; //  Union
 
-        inline bool operator == (MemoryRange const & other)
+        inline bool operator == (MemoryRange const & other) const
         {
             return this->Start == other.Start && this->End == other.End;
         }
 
-        inline bool IsIn(MemoryRange const & other)
+        /*  Queries  */
+
+        inline bool IsIn(MemoryRange const & other) const
         {
             return this->operator == (this->operator & (other));
             //  aka *this == (*this & other) but fancier.
+        }
+
+        inline bool Contains(vaddr_t vaddr) const
+        {
+            return vaddr >= this->Start && vaddr < this->End;
         }
 
         /*  Fields  */
@@ -141,19 +148,26 @@ namespace Beelzebub { namespace Memory
 
         /*  Properties  */
 
-        inline bool IsValid()
+        inline bool IsValid() const
         {
             return this->Range.IsValid();
         }
 
-        inline vsize_t GetSize()
+        inline vsize_t GetSize() const
         {
             return this->Range.GetSize();
         }
 
-        inline size_t GetPageCount()
+        inline size_t GetPageCount() const
         {
             return this->Range.GetPageCount();
+        }
+
+        /*  Queries  */
+
+        inline bool Contains(vaddr_t vaddr) const
+        {
+            return this->Range.Contains(vaddr);
         }
 
         /*  Fields  */

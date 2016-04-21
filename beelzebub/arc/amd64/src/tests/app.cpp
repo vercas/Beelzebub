@@ -236,12 +236,12 @@ void * JumpToRing3(void * arg)
     return GoToRing3_64(rtlib_base + Runtime64::Template.GetEntryPoint(), userStackTop);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 void * WatchTestThread(void *)
 {
     TestRegionLock.Spin();
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
 
     uint8_t  const * const data  = reinterpret_cast<uint8_t  const *>(0x300000000008);
     uint64_t const * const data2 = reinterpret_cast<uint64_t const *>(0x300000000000);
@@ -253,9 +253,11 @@ void * WatchTestThread(void *)
         // MSG("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
         // DEBUG_TERM  << "WATCHER (" << Hexadecimal << activeThread << Decimal
         //             << ") sees " << *data << " & " << *data2 << "!" << EndLine;
+
+        CpuInstructions::Halt();
     }
-    
-#pragma GCC diagnostic pop
 }
+
+#pragma GCC diagnostic pop
 
 #endif

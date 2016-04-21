@@ -129,8 +129,6 @@ namespace Beelzebub { namespace Memory
 
         //  Nothing, waiting to be used.
         Free                 = 0x03000000,
-        //  Reserved, unusable.
-        Reserved             = 0x04000000,
 
         PurposeMask          = 0x0F000000,
         StrategyMask         = 0xF0000000,

@@ -350,7 +350,7 @@ MemoryRegion * Vas::FindRegion(vaddr_t vaddr, bool keepLock)
 
     Comparable<MemoryRegion> * reg = this->Tree.Find<vaddr_t>(vaddr);
 
-    if (!keepLock)
+    if unlikely(!keepLock)
         this->Lock.ReleaseAsReader();
 
     if unlikely(reg == nullptr)
