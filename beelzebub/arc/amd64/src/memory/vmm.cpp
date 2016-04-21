@@ -39,6 +39,7 @@
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
+#include <memory/object_allocator_pools_heap.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/cpu.hpp>
 #include <system/interrupts.hpp>
@@ -252,7 +253,8 @@ Handle Vmm::Initialize(Process * proc)
             Cpu::GetData()->LastAlienPml4 = pml4_paddr;
     }
 
-    return proc->Vas.Initialize(UserlandStart, UserlandEnd);
+    return proc->Vas.Initialize(UserlandStart, UserlandEnd
+        , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
 }
 
 /*  Activation and Status  */

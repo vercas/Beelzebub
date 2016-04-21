@@ -74,6 +74,8 @@ void Images::Initialize()
     new (&Allocator) ObjectAllocatorSmp(sizeof(NodeType), __alignof(NodeType)
         , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap
         , PoolReleaseOptions::KeepOne, 0, Limit);
+
+    Lock.Reset();
 }
 
 /*  (Un)load  */
@@ -139,13 +141,13 @@ Image * Images::FindByName(char const * const name)
 namespace Beelzebub { namespace Utils
 {
     template<>
-    Handle AvlTree<Image>::AllocateNode(AvlTree<Image>::Node * & node)
+    Handle AvlTree<Image>::AllocateNode(AvlTree<Image>::Node * & node, void * cookie)
     {
         return Allocator.AllocateObject(node);
     }
 
     template<>
-    Handle AvlTree<Image>::RemoveNode(AvlTree<Image>::Node * const node)
+    Handle AvlTree<Image>::RemoveNode(AvlTree<Image>::Node * const node, void * cookie)
     {
         return Allocator.DeallocateObject(node);
     }
@@ -205,6 +207,20 @@ void Image::Parse()
     }
 }
 
+Handle ValidateElf64(bool allowKernelLand);
+
+Handle Image::Validate(bool allowKernelLand)
+{
+    switch (this->Type)
+    {
+        case ImageType::Elf64:
+            return ValidateElf64(allowKernelLand);
+
+        default:
+            return HandleResult::NotImplemented;
+    }
+}
+
 /*****************
     ELF format
 *****************/
@@ -223,5 +239,28 @@ bool ParseAsElf(Image * img)
     else
         return false;
 
+    if (img->Role == ImageRole::Auto)
+    {
+        switch (eh1->Type)
+        {
+            case ElfFileType::Executable:
+                img->Role = ImageRole::Executable;
+                break;
+
+            case ElfFileType::Dynamic:
+                img->Role = ImageRole::Library;
+                break;
+
+            default:
+                img->Role = ImageRole::None;
+                break;
+        }
+    }
+
     return true;
+}
+
+Handle ValidateElf64(bool allowKernelLand)
+{
+
 }

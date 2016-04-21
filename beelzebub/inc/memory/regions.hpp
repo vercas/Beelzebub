@@ -182,6 +182,4 @@ namespace Beelzebub { namespace Memory
         MemoryRegion Payload;
         MemoryRegion Finding;
     };
-
-    void InitializeRegions();
 }}

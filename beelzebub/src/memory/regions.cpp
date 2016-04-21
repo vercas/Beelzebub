@@ -40,9 +40,6 @@
 #include <memory/regions.hpp>
 #include <utils/avl_tree.hpp>
 
-#include <memory/object_allocator_smp.hpp>
-#include <memory/object_allocator_pools_heap.hpp>
-
 #include <terminals/base.hpp>
 
 using namespace Beelzebub;
@@ -51,8 +48,6 @@ using namespace Beelzebub::Utils;
 
 typedef AvlTree<MemoryRegion> TreeType;
 typedef TreeType::Node NodeType;
-
-static ObjectAllocatorSmp regionAllocator;
 
 /*************************
     MemoryRange struct
@@ -186,31 +181,6 @@ namespace Beelzebub { namespace Utils
     comp_t Comparable<MemoryRegion>::Compare<vaddr_t>(vaddr_t const && other) const
     {
         return (Comparable<MemoryRange>(this->Object.Range)).Compare(other);
-    }
-}}
-
-/*************
-    OTHERS
-*************/
-
-void Memory::InitializeRegions()
-{
-    new (&regionAllocator) ObjectAllocatorSmp(sizeof(NodeType), __alignof(NodeType)
-        , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
-}
-
-namespace Beelzebub { namespace Utils
-{
-    template<>
-    Handle AvlTree<MemoryRegion>::AllocateNode(AvlTree<MemoryRegion>::Node * & node)
-    {
-        return regionAllocator.AllocateObject(node);
-    }
-
-    template<>
-    Handle AvlTree<MemoryRegion>::RemoveNode(AvlTree<MemoryRegion>::Node * const node)
-    {
-        return regionAllocator.DeallocateObject(node);
     }
 }}
 

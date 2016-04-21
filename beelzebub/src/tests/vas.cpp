@@ -185,7 +185,7 @@ void * TestThreadCode(void *)
     vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(Cpu::GetProcess()
-        , 6, MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
+        , 6, MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser | MemoryAllocationOptions::GuardLow
         , MemoryFlags::Userland | MemoryFlags::Writable, vaddr);
 
     ASSERT(res.IsOkayResult()

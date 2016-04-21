@@ -53,8 +53,15 @@ using namespace Beelzebub::Utils;
 
 /*  Constructors  */
 
-Handle Vas::Initialize(vaddr_t start, vaddr_t end)
+Handle Vas::Initialize(vaddr_t start, vaddr_t end
+    , AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser
+    , PoolReleaseOptions const releaseOptions
+    , size_t const quota)
 {
+    new (&(this->Alloc)) ObjectAllocator(
+        sizeof(*(this->Tree.Root)), __alignof(*(this->Tree.Root)),
+        acquirer, enlarger, releaser, releaseOptions, SIZE_MAX, quota);
+
     return this->Tree.Insert(MemoryRegion(start, end
         , MemoryFlags::Writable | MemoryFlags::Executable
         , MemoryAllocationOptions::Free), this->FirstFree);
@@ -351,3 +358,22 @@ MemoryRegion * Vas::FindRegion(vaddr_t vaddr, bool keepLock)
     else
         return &(reg->Object);
 }
+
+/*************
+    OTHERS
+*************/
+
+namespace Beelzebub { namespace Utils
+{
+    template<>
+    Handle AvlTree<MemoryRegion>::AllocateNode(AvlTree<MemoryRegion>::Node * & node, void * cookie)
+    {
+        return (reinterpret_cast<ObjectAllocator *>(cookie))->AllocateObject(node);
+    }
+
+    template<>
+    Handle AvlTree<MemoryRegion>::RemoveNode(AvlTree<MemoryRegion>::Node * const node, void * cookie)
+    {
+        return (reinterpret_cast<ObjectAllocator *>(cookie))->DeallocateObject(node);
+    }
+}}

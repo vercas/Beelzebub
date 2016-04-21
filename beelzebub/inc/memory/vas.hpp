@@ -42,6 +42,7 @@
 #include <memory/regions.hpp>
 #include <memory/enums.hpp>
 #include <utils/avl_tree.hpp>
+#include <memory/object_allocator.hpp>
 
 #include <synchronization/rw_spinlock.hpp>
 #include <synchronization/atomic.hpp>
@@ -59,16 +60,20 @@ namespace Beelzebub { namespace Memory
 
         inline Vas()
             : Lock()
+            , Alloc()
             , Tree()
             , FirstFree(nullptr)
         {
-
+            this->Tree.Cookie = &(this->Alloc);
         }
 
         Vas(Vas const &) = delete;
         Vas & operator =(Vas const &) = delete;
 
-        Handle Initialize(vaddr_t start, vaddr_t end);
+        Handle Initialize(vaddr_t start, vaddr_t end
+            , AcquirePoolFunc acquirer, EnlargePoolFunc enlarger, ReleasePoolFunc releaser
+            , PoolReleaseOptions const releaseOptions = PoolReleaseOptions::ReleaseAll
+            , size_t const quota = SIZE_MAX);
 
         /*  Operations  */
 
@@ -80,6 +85,8 @@ namespace Beelzebub { namespace Memory
         /*  Fields  */
 
         Synchronization::RwSpinlock Lock;
+
+        ObjectAllocator Alloc;
         Utils::AvlTree<MemoryRegion> Tree;
 
         MemoryRegion * FirstFree;

@@ -502,8 +502,6 @@ Handle InitializeVirtualMemory()
 
     //  TODO: Management for ISA DMA.
 
-    InitializeRegions();
-
     return HandleResult::Okay;
 }
 

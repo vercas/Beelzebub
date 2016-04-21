@@ -67,8 +67,9 @@ static uintptr_t rtlib_base = 0x1000000;
 static Thread testThread;
 static Thread testWatcher;
 static Process testProcess;
-static uintptr_t const userStackBottom = 0x40000000;
-static uintptr_t const userStackTop = 0x40000000 + PageSize;
+
+static uintptr_t userStackBottom = nullvaddr, userStackTop = nullvaddr;
+static uintptr_t const userStackPageCount = 254;
 
 static Elf rtElf;
 
@@ -180,67 +181,26 @@ void TestApplication()
         testThread.IntroduceNext(&testWatcher);
 }
 
-__cold uint8_t * AllocateTestRegion()
-{
-    Handle res;
-    PageDescriptor * desc = nullptr;
-    //  Intermediate results.
-
-    vaddr_t const vaddr1 = 0x30000;
-    size_t const size = vaddr1;
-    vaddr_t const vaddr2 = Vmm::KernelHeapCursor.FetchAdd(size);
-    //  Test pages.
-
-    for (size_t offset = 0; offset < size; offset += PageSize)
-    {
-        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
-        
-        ASSERT(paddr != nullpaddr && desc != nullptr
-            , "Unable to allocate a physical page for test page of process %Xp!"
-            , &testProcess);
-
-        res = Vmm::MapPage(&testProcess, vaddr1 + offset, paddr
-            , MemoryFlags::Userland | MemoryFlags::Writable, desc);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
-            , vaddr1 + offset, paddr
-            , res);
-
-        res = Vmm::MapPage(&testProcess, vaddr2 + offset, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, desc);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
-            , vaddr2 + offset, paddr
-            , res);
-    }
-
-    TestRegionLock.Release();
-
-    return (uint8_t *)(uintptr_t)vaddr2;
-}
-
 void * JumpToRing3(void * arg)
 {
     Handle res;
-    PageDescriptor * desc = nullptr;
-    //  Intermediate results.
 
     //  First, the userland stack page.
 
-    paddr_t const stackPaddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
+    userStackBottom = nullvaddr;
 
-    ASSERT(stackPaddr != nullpaddr && desc != nullptr
-        , "Unable to allocate a physical page for test thread user stack!");
-
-    res = Vmm::MapPage(&testProcess, userStackBottom, stackPaddr
-        , MemoryFlags::Userland | MemoryFlags::Writable, desc);
+    res = Vmm::AllocatePages(&testProcess
+        , userStackPageCount
+        , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
+        | MemoryAllocationOptions::GuardLow         | MemoryAllocationOptions::GuardHigh
+        , MemoryFlags::Userland | MemoryFlags::Writable
+        , userStackBottom);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) for test thread user stack: %H."
-        , userStackBottom, stackPaddr
+        , "Failed to allocate userland stack for app test thread: %H."
         , res);
+
+    userStackTop = userStackBottom + userStackPageCount * PageSize;
 
     //  Then, deploy the runtime.
 
@@ -252,11 +212,24 @@ void * JumpToRing3(void * arg)
 
     //  Finally, a region for test incrementation.
 
-    AllocateTestRegion();
+    vaddr_t testRegVaddr = 0x300000000000;
+
+    res = Vmm::AllocatePages(&testProcess
+        , 0x30000 / PageSize
+        , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
+        , MemoryFlags::Userland | MemoryFlags::Writable
+        , testRegVaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate app test region in userland: %H.%n"
+          "Stack is between %Xp and %Xp."
+        , res, userStackBottom, userStackTop);
+
+    TestRegionLock.Release();
+
+    //  And finish by going to ring 3.
 
     DEBUG_TERM_ << "About to go to ring 3!" << EndLine;
-
-    //while (true) CpuInstructions::Halt();
 
     CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(rtlib_base + Runtime64::Template.GetEntryPoint()));
 
@@ -267,8 +240,11 @@ void * WatchTestThread(void *)
 {
     TestRegionLock.Spin();
 
-    uint8_t  const * const data  = reinterpret_cast<uint8_t  const *>(0x30008);
-    uint64_t const * const data2 = reinterpret_cast<uint64_t const *>(0x30000);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+    uint8_t  const * const data  = reinterpret_cast<uint8_t  const *>(0x300000000008);
+    uint64_t const * const data2 = reinterpret_cast<uint64_t const *>(0x300000000000);
 
     while (true)
     {
@@ -278,6 +254,8 @@ void * WatchTestThread(void *)
         // DEBUG_TERM  << "WATCHER (" << Hexadecimal << activeThread << Decimal
         //             << ") sees " << *data << " & " << *data2 << "!" << EndLine;
     }
+    
+#pragma GCC diagnostic pop
 }
 
 #endif

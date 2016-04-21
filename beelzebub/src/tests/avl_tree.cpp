@@ -431,13 +431,13 @@ void TestAvlTree()
 namespace Beelzebub { namespace Utils
 {
     template<>
-    Handle AvlTree<TestPayload>::AllocateNode(AvlTree<TestPayload>::Node * & node)
+    Handle AvlTree<TestPayload>::AllocateNode(AvlTree<TestPayload>::Node * & node, void * cookie)
     {
         return testAllocator.AllocateObject(node);
     }
 
     template<>
-    Handle AvlTree<TestPayload>::RemoveNode(AvlTree<TestPayload>::Node * const node)
+    Handle AvlTree<TestPayload>::RemoveNode(AvlTree<TestPayload>::Node * const node, void * cookie)
     {
         return testAllocator.DeallocateObject(node);
     }

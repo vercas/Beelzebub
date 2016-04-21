@@ -131,6 +131,9 @@ namespace Beelzebub { namespace Execution
         /*  Operations  */
 
         void Parse();
+        Handle Validate(bool allowKernelLand = false);
+
+        Handle Deploy(bool allowKernelLand = false);
 
         /*  Fields  */
 

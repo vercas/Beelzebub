@@ -194,12 +194,12 @@ namespace Beelzebub { namespace Utils
 
         static constexpr size_t const NodeSize = sizeof(Node);
 
-        static Handle AllocateNode(Node * & node);
-        static Handle RemoveNode(Node * node);
+        static Handle AllocateNode(Node * & node, void * cookie);
+        static Handle RemoveNode(Node * node, void * cookie);
 
-        static Handle Create(Node * & node)
+        static Handle Create(Node * & node, void * cookie)
         {
-            Handle res = AllocateNode(node);
+            Handle res = AllocateNode(node, cookie);
 
             if likely(res.IsOkayResult())
             {
@@ -210,9 +210,9 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        static Handle Create(Node * & node, TPayload & payload)
+        static Handle Create(Node * & node, TPayload & payload, void * cookie)
         {
-            Handle res = Create(node);
+            Handle res = Create(node, cookie);
 
             if likely(res.IsOkayResult())
                 node->Payload = payload;
@@ -242,12 +242,12 @@ namespace Beelzebub { namespace Utils
         }
 
         template<typename TCover>
-        static Handle InsertOrFind(TCover & cover, Node * & node)
+        static Handle InsertOrFind(TCover & cover, Node * & node, void * cookie)
         {
             //  First step is spawning a new node.
 
             if unlikely(node == nullptr)
-                return Create(node, cover.Payload);
+                return Create(node, cover.Payload, cookie);
             //  Unlikely because it's literally done once per insertion.
 
             comp_t const compRes = node->Payload.Compare(cover);
@@ -264,9 +264,9 @@ namespace Beelzebub { namespace Utils
             Handle res;
 
             if (compRes > 0)
-                res = InsertOrFind<TCover>(cover, node->Left);
+                res = InsertOrFind<TCover>(cover, node->Left, cookie);
             else
-                res = InsertOrFind<TCover>(cover, node->Right);
+                res = InsertOrFind<TCover>(cover, node->Right, cookie);
             //  "Lesser" nodes go left, "greater" nodes go right.
 
             //  Then... Balance, if needed.
@@ -277,7 +277,7 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        static Handle Insert(TPayload & payload, Node * & node, Node * & newNode)
+        static Handle Insert(TPayload & payload, Node * & node, Node * & newNode, void * cookie)
         {
             Handle res;
 
@@ -287,7 +287,7 @@ namespace Beelzebub { namespace Utils
             {
                 //  Unlikely because it's literally done once per insertion.
 
-                res = Create(node, payload);
+                res = Create(node, payload, cookie);
 
                 newNode = node;
                 return res;
@@ -301,9 +301,9 @@ namespace Beelzebub { namespace Utils
             //  Enforce uniqueness, otherwise problems occur.
 
             if (compRes > 0)
-                res = Insert(payload, node->Left, newNode);
+                res = Insert(payload, node->Left, newNode, cookie);
             else
-                res = Insert(payload, node->Right, newNode);
+                res = Insert(payload, node->Right, newNode, cookie);
             //  "Lesser" nodes go left, "greater" nodes go right.
 
             //  Then... Balance, if needed.
@@ -315,7 +315,7 @@ namespace Beelzebub { namespace Utils
         }
 
         template<typename TKey>
-        static Handle InsertBlank(TKey & key, Node * & node, TPayload * & payload)
+        static Handle InsertBlank(TKey & key, Node * & node, TPayload * & payload, void * cookie)
         {
             Handle res;
 
@@ -324,7 +324,7 @@ namespace Beelzebub { namespace Utils
             if unlikely(node == nullptr)
             {
                 //  Unlikely because it's literally done once per insertion.
-                res = Create(node);
+                res = Create(node, cookie);
 
                 payload = &(node->Payload.Object);
 
@@ -339,9 +339,9 @@ namespace Beelzebub { namespace Utils
             //  Enforce uniqueness, otherwise problems occur.
 
             if (compRes > 0)
-                res = InsertBlank<TKey>(key, node->Left, payload);
+                res = InsertBlank<TKey>(key, node->Left, payload, cookie);
             else
-                res = InsertBlank<TKey>(key, node->Right, payload);
+                res = InsertBlank<TKey>(key, node->Right, payload, cookie);
             //  "Lesser" nodes go left, "greater" nodes go right.
 
             //  Then... Balance, if needed.
@@ -549,14 +549,14 @@ namespace Beelzebub { namespace Utils
             //  Tail recursion, hopefully.
         }
 
-        static Handle Clear(Node * const node)
+        static Handle Clear(Node * const node, void * cookie)
         {
             if unlikely(node == nullptr)
                 return HandleResult::Okay;
 
-            Handle const res1 = Clear(node->Left);
-            Handle const res2 = Clear(node->Right);
-            Handle const res3 = RemoveNode(node);
+            Handle const res1 = Clear(node->Left, cookie);
+            Handle const res2 = Clear(node->Right, cookie);
+            Handle const res3 = RemoveNode(node, cookie);
 
             if likely(res1.IsOkayResult())
                 if likely(res2.IsOkayResult())
@@ -590,14 +590,14 @@ namespace Beelzebub { namespace Utils
         template<typename TCover>
         Handle InsertOrFind(TCover & cover)
         {
-            return InsertOrFind<TCover>(cover, this->Root);
+            return InsertOrFind<TCover>(cover, this->Root, this->Cookie);
         }
 
         Handle Insert(TPayload & payload)
         {
             Node * temp;
 
-            Handle res = Insert(payload, this->Root, temp);
+            Handle res = Insert(payload, this->Root, temp, this->Cookie);
 
             if likely(res.IsOkayResult())
                 ++this->NodeCount;
@@ -610,7 +610,7 @@ namespace Beelzebub { namespace Utils
             TPayload dummy = payload;
             Node * temp;
 
-            Handle res = Insert(dummy, this->Root, temp);
+            Handle res = Insert(dummy, this->Root, temp, this->Cookie);
 
             if likely(res.IsOkayResult())
                 ++this->NodeCount;
@@ -622,7 +622,7 @@ namespace Beelzebub { namespace Utils
         {
             Node * temp;
 
-            Handle res = Insert(payload, this->Root, temp);
+            Handle res = Insert(payload, this->Root, temp, this->Cookie);
 
             if likely(res.IsOkayResult())
             {
@@ -641,7 +641,7 @@ namespace Beelzebub { namespace Utils
             TPayload dummy = payload;
             Node * temp;
 
-            Handle res = Insert(dummy, this->Root, temp);
+            Handle res = Insert(dummy, this->Root, temp, this->Cookie);
 
             if likely(res.IsOkayResult())
             {
@@ -658,7 +658,7 @@ namespace Beelzebub { namespace Utils
         template<typename TKey>
         Handle InsertBlank(TKey const key, TPayload * & payload)
         {
-            Handle res = InsertBlank(key, this->Root, payload);
+            Handle res = InsertBlank(key, this->Root, payload, this->Cookie);
 
             if likely(res.IsOkayResult())
                 ++this->NodeCount;
@@ -677,7 +677,7 @@ namespace Beelzebub { namespace Utils
             {
                 --this->NodeCount;
 
-                return RemoveNode(node);
+                return RemoveNode(node, this->Cookie);
             }
         }
 
@@ -694,7 +694,7 @@ namespace Beelzebub { namespace Utils
             {
                 --this->NodeCount;
 
-                return RemoveNode(node);
+                return RemoveNode(node, this->Cookie);
             }
         }
 
@@ -712,7 +712,7 @@ namespace Beelzebub { namespace Utils
 
                 --this->NodeCount;
 
-                return RemoveNode(node);
+                return RemoveNode(node, this->Cookie);
             }
         }
 
@@ -731,7 +731,7 @@ namespace Beelzebub { namespace Utils
 
                 --this->NodeCount;
 
-                return RemoveNode(node);
+                return RemoveNode(node, this->Cookie);
             }
         }
 
@@ -770,7 +770,7 @@ namespace Beelzebub { namespace Utils
 
         Handle Clear()
         {
-            Handle res = Clear(this->Root);
+            Handle res = Clear(this->Root, this->Cookie);
 
             this->Root = nullptr;
             this->NodeCount = 0;
@@ -783,5 +783,7 @@ namespace Beelzebub { namespace Utils
 
         Node * Root;
         size_t NodeCount;
+
+        void * Cookie;
     };
 }}

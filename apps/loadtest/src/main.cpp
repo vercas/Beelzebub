@@ -11,8 +11,8 @@ int main(int argc, char * * argv)
 {
 beginning:
 
-    uintptr_t volatile someAddress = 0x30000;
-    uintptr_t volatile someEnd = someAddress + someAddress;
+    uintptr_t volatile someAddress = 0x300000000000;
+    uintptr_t volatile someEnd = someAddress + 0x30000;
     //  Yay.
 
     *reinterpret_cast<uint64_t *>(someAddress) = 0;
