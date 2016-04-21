@@ -56,9 +56,7 @@ namespace Beelzebub { namespace Execution
 
         inline Process()
             : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(nullvaddr)
-            , UserHeapOverflown(false)
+            , LocalTablesLock()
             , AlienPagingTablesLock()
             , PagingTable(nullpaddr)
             , Vas()
@@ -72,9 +70,7 @@ namespace Beelzebub { namespace Execution
 
         inline Process(paddr_t const pt)
             : ActiveCoreCount( 0)
-            , UserHeapLock()
-            , UserHeapCursor(1 << 24)
-            , UserHeapOverflown(false)
+            , LocalTablesLock()
             , AlienPagingTablesLock()
             , PagingTable(pt)
             , Vas()
@@ -91,9 +87,7 @@ namespace Beelzebub { namespace Execution
 
         /*  Memory  */
 
-        Synchronization::Spinlock<> UserHeapLock;
-        Synchronization::Atomic<vaddr_t> UserHeapCursor;
-        Synchronization::Atomic<bool> UserHeapOverflown;
+        Synchronization::Spinlock<> LocalTablesLock;
 
         Synchronization::Spinlock<> AlienPagingTablesLock;
         paddr_t PagingTable;

@@ -339,7 +339,7 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
 
         {   //  Lock-guarded.
 
-            if (lock) heapLock = (vaddr < VmmArc::LowerHalfEnd ? &(proc->UserHeapLock) : &(VmmArc::KernelHeapLock));
+            if (lock) heapLock = (vaddr < VmmArc::LowerHalfEnd ? &(proc->LocalTablesLock) : &(VmmArc::KernelHeapLock));
 
             LockGuardFlexible<Spinlock<> > heapLg {*heapLock};
 
@@ -423,7 +423,7 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
 
             if (lock)
                 heapLock = (vaddr < VmmArc::LowerHalfEnd
-                    ? &(proc->UserHeapLock)
+                    ? &(proc->LocalTablesLock)
                     : &(VmmArc::KernelHeapLock));
 
             LockGuardFlexible<Spinlock<> > heapLg {*heapLock};
@@ -718,7 +718,6 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
 
     //  Reaching this point means this page is meant to be allocated.
 
-
     alloc = CpuDataSetUp
         ? Cpu::GetData()->DomainDescriptor->PhysicalAllocator
         : Domain0.PhysicalAllocator;
@@ -783,7 +782,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
                 return res;
 
             ret = vaddr - lowerOffset;
-            heapLock = &(proc->UserHeapLock);
+            heapLock = &(proc->LocalTablesLock);
         }
         else
         {
@@ -857,61 +856,36 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
     }
     else // Means it'll just be reserveed.
     {
+        if (0 != (type & MemoryAllocationOptions::VirtualUser))
+            return proc->Vas.Allocate(vaddr, count, flags, type);
+        //  Easy-peasy.
+
         size_t const  lowerOffset = (0 != (type & MemoryAllocationOptions::GuardLow))
             ? PageSize : 0;
         size_t const higherOffset = (0 != (type & MemoryAllocationOptions::GuardHigh))
             ? PageSize : 0;
 
-        if (0 != (type & MemoryAllocationOptions::VirtualUser))
+        if unlikely(KernelHeapOverflown)
         {
-            //  TODO: Scrap this, for proper VAS.
-
-            if (proc->UserHeapOverflown)
-            {
-                return HandleResult::UnsupportedOperation;
-                //  Not supported yet.
-            }
-
-            vaddr_t ret = proc->UserHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
-
-            if (ret > VmmArc::KernelHeapEnd)
-            {
-                proc->UserHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
-                proc->UserHeapOverflown = true;
-
-                vaddr = nullvaddr;
-                return HandleResult::UnsupportedOperation;
-                //  Not supported yet.
-            }
-
-            vaddr = ret + lowerOffset;
-
-            return HandleResult::Okay;
+            return HandleResult::UnsupportedOperation;
+            //  Not supported yet.
         }
-        else
+
+        vaddr_t ret = KernelHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
+
+        if unlikely(ret > VmmArc::KernelHeapEnd)
         {
-            if unlikely(KernelHeapOverflown)
-            {
-                return HandleResult::UnsupportedOperation;
-                //  Not supported yet.
-            }
+            KernelHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
+            KernelHeapOverflown = true;
 
-            vaddr_t ret = KernelHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
-
-            if unlikely(ret > VmmArc::KernelHeapEnd)
-            {
-                KernelHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
-                KernelHeapOverflown = true;
-
-                vaddr = nullvaddr;
-                return HandleResult::UnsupportedOperation;
-                //  Not supported yet.
-            }
-
-            vaddr = ret + lowerOffset;
-
-            return HandleResult::Okay;
+            vaddr = nullvaddr;
+            return HandleResult::UnsupportedOperation;
+            //  Not supported yet.
         }
+
+        vaddr = ret + lowerOffset;
+
+        return HandleResult::Okay;
     }
 
 }
