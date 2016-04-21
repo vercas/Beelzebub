@@ -163,6 +163,9 @@ UnitTestsReport Beelzebub::Utils::RunUnitTests()
         //  The current section needs to be reset, because a failing test may
         //  have left a chain of sections.
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
         __try
         {
             last->Function();
@@ -183,9 +186,12 @@ UnitTestsReport Beelzebub::Utils::RunUnitTests()
         }
         __catch (x)
         {
+
             last->Status = UnitTestStatus::Failed;
             ++countFailed;
         }
+        
+#pragma GCC diagnostic pop
 
 #ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
         cacheTerminal.Clear();

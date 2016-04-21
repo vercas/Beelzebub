@@ -43,14 +43,14 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
 
-DEFINE_TEST("Unit Tests", "Test Case 1")
+DEFINE_TEST(Unit Tests, Test Case 1)
 {
     INFO("%s%n", "This should NOT appear.");
 
     REQUIRE(true, "This message should NOT pop up in unit test case %i4.%n", 1);
 }
 
-DEFINE_TEST("Unit Tests")
+DEFINE_TEST(Unit Tests)
 {
     INFO("%s%n", "This should appear.");
 
@@ -59,7 +59,7 @@ DEFINE_TEST("Unit Tests")
     ASSERT(false, "Ow...");
 }
 
-DEFINE_TEST("Unit Tests", "Test Case 3")
+DEFINE_TEST(Unit Tests, Test Case 3)
 {
     INFO("%s%n", "This should also appear.");
 
@@ -68,11 +68,11 @@ DEFINE_TEST("Unit Tests", "Test Case 3")
     ASSERT(false, "Ow...");
 }
 
-DEFINE_TEST("Unit Tests", "Test Case 4")
+DEFINE_TEST(Unit Tests, Test Case 4)
 {
     INFO("%s%n", "This should also appear...");
 
-    SECTION("Test Section 4")
+    SECTION(Test Section 4)
     {
         REQUIRE(false, "This message should pop up in unit test case %i4.%n", 4);
     }
@@ -80,13 +80,13 @@ DEFINE_TEST("Unit Tests", "Test Case 4")
     ASSERT(false, "Ow...");
 }
 
-DEFINE_TEST("Unit Tests", "Test Case 5")
+DEFINE_TEST(Unit Tests, Test Case 5)
 {
     INFO("%s%n", "This should also appear!");
 
-    SECTION("Test Section 5A")
+    SECTION(Test Section 5A)
     {
-        SECTION("Test Section 5B")
+        SECTION(Test Section 5B)
         {
             REQUIRE(false, "This message should pop up in unit test case %i4.%n", 5);
         }

@@ -49,7 +49,12 @@
 
     #define DEFINE_TEST_2(tSuite, tCase) \
         static __unit_test_declaration void MCATS(__test_function_, __LINE__)(); \
-        __DECLARE_TEST(MCATS(__test_declaration_, __LINE__), &(MCATS(__test_function_, __LINE__)), tSuite, tCase); \
+        __DECLARE_TEST(MCATS(__test_declaration_, __LINE__), &(MCATS(__test_function_, __LINE__)), #tSuite, #tCase); \
+        void MCATS(__test_function_, __LINE__)()
+
+    #define DEFINE_TEST_1(tSuite) \
+        static __unit_test_declaration void MCATS(__test_function_, __LINE__)(); \
+        __DECLARE_TEST(MCATS(__test_declaration_, __LINE__), &(MCATS(__test_function_, __LINE__)), #tSuite, nullptr); \
         void MCATS(__test_function_, __LINE__)()
 
     #define __unit_test_startup __startup
@@ -59,14 +64,15 @@
     #define DEFINE_TEST_2(tSuite, tCase) \
         static __unit_test_declaration void MCATS(__test_function_, __LINE__)()
 
+    #define DEFINE_TEST_1(tSuite) \
+        static __unit_test_declaration void MCATS(__test_function_, __LINE__)()
+
     #define __unit_test_startup __startup __unused
 #endif
 
-#define DEFINE_TEST_1(tSuite) DEFINE_TEST_2(tSuite, nullptr)
-
 #define DEFINE_TEST(...) GET_MACRO2(__VA_ARGS__, DEFINE_TEST_2, DEFINE_TEST_1)(__VA_ARGS__)
 
-#define SECTION(name) with (Beelzebub::Utils::UnitTestSection MCATS(__unit_test_section_, __LINE__) {name})
+#define SECTION(name) with (Beelzebub::Utils::UnitTestSection MCATS(__unit_test_section_, __LINE__) {#name})
 
 namespace Beelzebub { namespace Utils
 {
