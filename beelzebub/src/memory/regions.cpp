@@ -43,6 +43,8 @@
 #include <memory/object_allocator_smp.hpp>
 #include <memory/object_allocator_pools_heap.hpp>
 
+#include <terminals/base.hpp>
+
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Utils;
@@ -106,6 +108,27 @@ namespace Beelzebub { namespace Utils
     }
 
     template<> template<>
+    comp_t Comparable<MemoryRange>::Compare<vaddr_t>(vaddr_t const & other) const
+    {
+        if (this->Object.End <= other)
+            return -1;
+        else if (this->Object.Start > other)
+            return 1;
+        else
+            return 0;
+    }
+    template<> template<>
+    comp_t Comparable<MemoryRange>::Compare<vaddr_t>(vaddr_t const && other) const
+    {
+        if (this->Object.End <= other)
+            return -1;
+        else if (this->Object.Start > other)
+            return 1;
+        else
+            return 0;
+    }
+
+    template<> template<>
     comp_t Comparable<MemoryRegion>::Compare<AdjacentMemoryRegion>(AdjacentMemoryRegion const & other) const
     {
         if (this->Object.Range.End < other.Payload.Range.Start)
@@ -153,6 +176,17 @@ namespace Beelzebub { namespace Utils
     {
         return (Comparable<MemoryRange>(this->Object.Range)).Compare(other);
     }
+
+    template<> template<>
+    comp_t Comparable<MemoryRegion>::Compare<vaddr_t>(vaddr_t const & other) const
+    {
+        return (Comparable<MemoryRange>(this->Object.Range)).Compare(other);
+    }
+    template<> template<>
+    comp_t Comparable<MemoryRegion>::Compare<vaddr_t>(vaddr_t const && other) const
+    {
+        return (Comparable<MemoryRange>(this->Object.Range)).Compare(other);
+    }
 }}
 
 /*************
@@ -177,5 +211,19 @@ namespace Beelzebub { namespace Utils
     Handle AvlTree<MemoryRegion>::RemoveNode(AvlTree<MemoryRegion>::Node * const node)
     {
         return regionAllocator.DeallocateObject(node);
+    }
+}}
+
+/************************
+    TERMINAL PRINTING
+************************/
+
+namespace Beelzebub { namespace Terminals
+{
+    template<>
+    TerminalBase & operator << <MemoryRegion>(TerminalBase & term, MemoryRegion const value)
+    {
+        return term << "[Memory Region " << (void *)value.Range.Start
+            << "-" << (void *)value.Range.End << "]";
     }
 }}

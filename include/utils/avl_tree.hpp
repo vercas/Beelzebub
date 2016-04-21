@@ -277,13 +277,21 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        static Handle Insert(TPayload & payload, Node * & node)
+        static Handle Insert(TPayload & payload, Node * & node, Node * & newNode)
         {
+            Handle res;
+
             //  First step is spawning a new node.
 
             if unlikely(node == nullptr)
-                return Create(node, payload);
-            //  Unlikely because it's literally done once per insertion.
+            {
+                //  Unlikely because it's literally done once per insertion.
+
+                res = Create(node, payload);
+
+                newNode = node;
+                return res;
+            }
 
             comp_t const compRes = node->Payload.Compare(payload);
             //  Note the comparison order.
@@ -292,12 +300,10 @@ namespace Beelzebub { namespace Utils
                 return HandleResult::CardinalityViolation;
             //  Enforce uniqueness, otherwise problems occur.
 
-            Handle res;
-
             if (compRes > 0)
-                res = Insert(payload, node->Left);
+                res = Insert(payload, node->Left, newNode);
             else
-                res = Insert(payload, node->Right);
+                res = Insert(payload, node->Right, newNode);
             //  "Lesser" nodes go left, "greater" nodes go right.
 
             //  Then... Balance, if needed.
@@ -589,7 +595,9 @@ namespace Beelzebub { namespace Utils
 
         Handle Insert(TPayload & payload)
         {
-            Handle res = Insert(payload, this->Root);
+            Node * temp;
+
+            Handle res = Insert(payload, this->Root, temp);
 
             if likely(res.IsOkayResult())
                 ++this->NodeCount;
@@ -600,11 +608,49 @@ namespace Beelzebub { namespace Utils
         Handle Insert(TPayload const && payload)
         {
             TPayload dummy = payload;
+            Node * temp;
 
-            Handle res = Insert(dummy, this->Root);
+            Handle res = Insert(dummy, this->Root, temp);
 
             if likely(res.IsOkayResult())
                 ++this->NodeCount;
+
+            return res;
+        }
+
+        Handle Insert(TPayload & payload, TPayload * & pl)
+        {
+            Node * temp;
+
+            Handle res = Insert(payload, this->Root, temp);
+
+            if likely(res.IsOkayResult())
+            {
+                ++this->NodeCount;
+
+                pl = &(temp->Payload.Object);
+            }
+            else
+                pl = nullptr;
+
+            return res;
+        }
+
+        Handle Insert(TPayload const && payload, TPayload * & pl)
+        {
+            TPayload dummy = payload;
+            Node * temp;
+
+            Handle res = Insert(dummy, this->Root, temp);
+
+            if likely(res.IsOkayResult())
+            {
+                ++this->NodeCount;
+
+                pl = &(temp->Payload.Object);
+            }
+            else
+                pl = nullptr;
 
             return res;
         }

@@ -158,6 +158,10 @@
     ENUMINST(PageUnmapped             , 0x42U, "Pag unmp.") \
     /*  A given page is unaligned. */ \
     ENUMINST(PageUnaligned            , 0x43U, "Pag unal.") \
+    /*  The page cannot be allocated on demand. */ \
+    ENUMINST(PageUndemandable         , 0x44U, "Pag undem") \
+    /*  The page hit is a guard page. */ \
+    ENUMINST(PageGuard                , 0x45U, "Pag guard") \
     \
     /*  A thread is already linked. */ \
     ENUMINST(ThreadAlreadyLinked      , 0x50U, "Thr a. lnk.") \

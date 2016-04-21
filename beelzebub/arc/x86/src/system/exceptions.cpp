@@ -254,43 +254,38 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 {
     vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
 
-    const bool present = 0 != (state->ErrorCode & 1);
-    const bool write = 0 != (state->ErrorCode & 2);
-    const bool user = 0 != (state->ErrorCode & 4);
-    const bool reserved = 0 != (state->ErrorCode & 8);
-    const bool instruction = 0 != (state->ErrorCode & 16);
+    Handle res = Vmm::HandlePageFault(nullptr, CR2, (PageFaultFlags)(state->ErrorCode));
+
+    if likely(res.IsOkayResult())
+        return;
+    //  All's good!
+
+    bool const present = 0 != (state->ErrorCode & 1);
+    bool const write = 0 != (state->ErrorCode & 2);
+    bool const user = 0 != (state->ErrorCode & 4);
+    bool const reserved = 0 != (state->ErrorCode & 8);
+    bool const instruction = 0 != (state->ErrorCode & 16);
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-    const uint16_t ind1 = VmmArc::GetPml1Index(CR2)
+    uint16_t const ind1 = VmmArc::GetPml1Index(CR2)
                  , ind2 = VmmArc::GetPml2Index(CR2)
                  , ind3 = VmmArc::GetPml3Index(CR2)
                  , ind4 = VmmArc::GetPml4Index(CR2);
 #elif defined(__BEELZEBUB__ARCH_IA32PAE)
-    const uint16_t ind1 = VmmArc::GetPml1Index(CR2)
+    uint16_t const ind1 = VmmArc::GetPml1Index(CR2)
                  , ind2 = VmmArc::GetPml2Index(CR2)
                  , ind3 = VmmArc::GetPml3Index(CR2);
 #elif defined(__BEELZEBUB__ARCH_IA32)
-    const uint16_t ind1 = VmmArc::GetPml1Index(CR2)
+    uint16_t const ind1 = VmmArc::GetPml1Index(CR2)
                  , ind2 = VmmArc::GetPml2Index(CR2);
 #endif
 
     Pml1Entry * e = nullptr;
 
-    // msg("(( about to get entry; RIP=%Xp; CR2=%Xp ))"
-    //     , state->RIP, CR2);
-
-    Handle res;
-
-    //res = BootstrapMemoryManager.Vas->GetEntry(RoundDown(CR2, PageSize), e, true);
-
-    // msg("%n");
-
     CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
     ExceptionContext * context = (cpuData == nullptr) ? nullptr : cpuData->XContext;
 
-    Thread * activeThread = nullptr;
-    if (CpuDataSetUp)
-        activeThread = cpuData->ActiveThread;
+    Thread * activeThread = CpuDataSetUp ? Cpu::GetThread() : nullptr;
 
     if (context == nullptr)
     {
@@ -344,40 +339,40 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
         PrintToDebugTerminal(state);
 
-        uintptr_t stackPtr = state->RSP;
-        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+        // uintptr_t stackPtr = state->RSP;
+        // uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
 
-        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
-        {
-            msg("Stack pointer was not a multiple of %us! (%Xp)%n"
-                , sizeof(size_t), stackPtr);
+        // if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+        // {
+        //     msg("Stack pointer was not a multiple of %us! (%Xp)%n"
+        //         , sizeof(size_t), stackPtr);
 
-            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
-        }
+        //     stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+        // }
 
-        bool odd;
-        for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
-        {
-            msg("%X2|%Xp|%Xs|%s"
-                , (uint16_t)(stackPtr - state->RSP)
-                , stackPtr
-                , *((size_t const *)stackPtr)
-                , odd ? "\r\n" : "\t");
-        }
+        // bool odd;
+        // for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+        // {
+        //     msg("%X2|%Xp|%Xs|%s"
+        //         , (uint16_t)(stackPtr - state->RSP)
+        //         , stackPtr
+        //         , *((size_t const *)stackPtr)
+        //         , odd ? "\r\n" : "\t");
+        // }
 
-        if (odd) msg("%n");
+        // if (odd) msg("%n");
 
-        Utils::StackFrame stackFrame;
+        // Utils::StackFrame stackFrame;
 
-        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
-        {
-            do
-            {
-                msg("[Func %Xp; Stack top %Xp + %us]%n"
-                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+        // if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+        // {
+        //     do
+        //     {
+        //         msg("[Func %Xp; Stack top %Xp + %us]%n"
+        //             , stackFrame.Function, stackFrame.Top, stackFrame.Size);
 
-            } while (stackFrame.LoadNext());
-        }
+        //     } while (stackFrame.LoadNext());
+        // }
 
         Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr, nullptr);
     }

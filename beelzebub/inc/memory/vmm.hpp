@@ -78,35 +78,35 @@ namespace Beelzebub { namespace Memory
         /*  Initialization  */
 
         __startup static Handle Bootstrap(Execution::Process * const bootstrapProc);
-        static Handle Initialize(Execution::Process * const proc);
+        static Handle Initialize(Execution::Process * proc);
 
         /*  Activation and Status  */
 
         __hot static Handle Switch(Execution::Process * const oldProc
             , Execution::Process * const newProc);
 
-        __hot static bool IsActive(Execution::Process * const proc);
-        __hot static bool IsAlien(Execution::Process * const proc);
+        __hot static bool IsActive(Execution::Process * proc);
+        __hot static bool IsAlien(Execution::Process * proc);
 
         /*  Page Management  */
 
-        __hot static __noinline Handle MapPage(Execution::Process * const proc
+        __hot static __noinline Handle MapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t const paddr
             , MemoryFlags const flags, PageDescriptor * desc
             , bool const lock = true);
 
-        __hot static __forceinline Handle MapPage(Execution::Process * const proc
+        __hot static __forceinline Handle MapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t const paddr
             , MemoryFlags const flags, bool const lock = true)
         {
             return MapPage(proc, vaddr, paddr, flags, nullptr, lock);
         }
 
-        __hot static __noinline Handle UnmapPage(Execution::Process * const proc
+        __hot static __noinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr, PageDescriptor * & desc
             , bool const lock = true);
 
-        __hot static __forceinline Handle UnmapPage(Execution::Process * const proc
+        __hot static __forceinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, PageDescriptor * & desc, bool const lock = true)
         {
             paddr_t sink;
@@ -114,7 +114,7 @@ namespace Beelzebub { namespace Memory
             return UnmapPage(proc, vaddr, sink, desc, lock);
         }
 
-        __hot static __forceinline Handle UnmapPage(Execution::Process * const proc
+        __hot static __forceinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true)
         {
             PageDescriptor * sink;
@@ -122,7 +122,7 @@ namespace Beelzebub { namespace Memory
             return UnmapPage(proc, vaddr, paddr, sink, lock);
         }
 
-        __hot static __forceinline Handle UnmapPage(Execution::Process * const proc
+        __hot static __forceinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, bool const lock = true)
         {
             paddr_t sink1;
@@ -131,27 +131,30 @@ namespace Beelzebub { namespace Memory
             return UnmapPage(proc, vaddr, sink1, sink2, lock);
         }
 
-        __hot static __noinline Handle InvalidatePage(Execution::Process * const proc
+        __hot static __noinline Handle InvalidatePage(Execution::Process * proc
             , uintptr_t const vaddr, bool const broadcast = true);
 
-        __hot static __noinline Handle Translate(Execution::Process * const proc
+        __hot static __noinline Handle Translate(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true);
+
+        __hot static Handle HandlePageFault(Execution::Process * proc
+            , uintptr_t const vaddr, PageFaultFlags const flags);
 
         /*  Allocation  */
 
-        __hot static __noinline Handle AllocatePages(Execution::Process * const proc
+        __hot static __noinline Handle AllocatePages(Execution::Process * proc
             , size_t const count, MemoryAllocationOptions const type
             , MemoryFlags const flags, uintptr_t & vaddr);
 
-        __hot static __noinline Handle FreePages(Execution::Process * const proc
+        __hot static __noinline Handle FreePages(Execution::Process * proc
             , uintptr_t const vaddr, const size_t count);
 
         /*  Flags  */
 
-        __hot static __noinline Handle GetPageFlags(Execution::Process * const proc
+        __hot static __noinline Handle GetPageFlags(Execution::Process * proc
             , uintptr_t const vaddr, MemoryFlags & flags, bool const lock = true);
 
-        __hot static __noinline Handle SetPageFlags(Execution::Process * const proc
+        __hot static __noinline Handle SetPageFlags(Execution::Process * proc
             , uintptr_t const vaddr, MemoryFlags const flags, bool const lock = true);
     };
 }}

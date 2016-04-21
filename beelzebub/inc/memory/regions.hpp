@@ -77,10 +77,26 @@ namespace Beelzebub { namespace Memory
             return this->End - this->Start;
         }
 
+        inline size_t GetPageCount()
+        {
+            return this->GetSize() / PageSize;
+        }
+
         /*  Operators  */
 
         MemoryRange operator & (MemoryRange const & other); //  Intersection
         MemoryRange operator | (MemoryRange const & other); //  Union
+
+        inline bool operator == (MemoryRange const & other)
+        {
+            return this->Start == other.Start && this->End == other.End;
+        }
+
+        inline bool IsIn(MemoryRange const & other)
+        {
+            return this->operator == (this->operator & (other));
+            //  aka *this == (*this & other) but fancier.
+        }
 
         /*  Fields  */
 
@@ -121,6 +137,23 @@ namespace Beelzebub { namespace Memory
             , PrevFree(nullptr)
         {
 
+        }
+
+        /*  Properties  */
+
+        inline bool IsValid()
+        {
+            return this->Range.IsValid();
+        }
+
+        inline vsize_t GetSize()
+        {
+            return this->Range.GetSize();
+        }
+
+        inline size_t GetPageCount()
+        {
+            return this->Range.GetPageCount();
         }
 
         /*  Fields  */

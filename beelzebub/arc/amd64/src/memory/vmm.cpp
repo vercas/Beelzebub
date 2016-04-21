@@ -67,7 +67,7 @@ Spinlock<> VmmArc::KernelHeapLock;
 bool VmmArc::Page1GB = false;
 bool VmmArc::VmmArc::NX = false;
 
-inline void Alienate(Process * const proc)
+inline void Alienate(Process * proc)
 {
     Pml4 & pml4 = *(VmmArc::GetLocalPml4());
 
@@ -202,7 +202,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     return HandleResult::Okay;
 }
 
-Handle Vmm::Initialize(Process * const proc)
+Handle Vmm::Initialize(Process * proc)
 {
     CpuInstructions::InvalidateTlb(VmmArc::GetAlienPml4());
 
@@ -252,18 +252,7 @@ Handle Vmm::Initialize(Process * const proc)
             Cpu::GetData()->LastAlienPml4 = pml4_paddr;
     }
 
-    new (&(proc->Vas)) Vas(UserlandStart, UserlandEnd);
-
-    // proc->VasLock.AcquireAsWriter();
-
-    // Handle res = proc->Vas.Insert(MemoryRegion(UserlandStart, UserlandEnd
-    //     , RegionPermissions::Writable | RegionPermissions::Executable
-    //     , RegionType::Free));
-    // //  Blank memory region, for allocation.
-
-    // proc->VasLock.ReleaseAsWriter();
-
-    return HandleResult::Okay;
+    return proc->Vas.Initialize(UserlandStart, UserlandEnd);
 }
 
 /*  Activation and Status  */
@@ -277,14 +266,14 @@ Handle Vmm::Switch(Process * const oldProc, Process * const newProc)
     return HandleResult::Okay;
 }
 
-bool Vmm::IsActive(Process * const proc)
+bool Vmm::IsActive(Process * proc)
 {
     Pml4 & pml4 = *(VmmArc::GetLocalPml4());
 
     return pml4[VmmArc::LocalFractalIndex].GetAddress() == proc->PagingTable;
 }
 
-bool Vmm::IsAlien(Process * const proc)
+bool Vmm::IsAlien(Process * proc)
 {
     Pml4 & pml4 = *(VmmArc::GetLocalPml4());
 
@@ -294,7 +283,7 @@ bool Vmm::IsAlien(Process * const proc)
 /*  Page Management  */
 
 template<typename cbk_t>
-static __hot inline Handle TryTranslate(Process * const proc, uintptr_t const vaddr
+static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
     , cbk_t cbk, bool const lock)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
@@ -302,6 +291,8 @@ static __hot inline Handle TryTranslate(Process * const proc, uintptr_t const va
         return HandleResult::PageMapIllegalRange;
 
     //  No alignment check will be performed here.
+
+    if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
     bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
 
@@ -368,7 +359,7 @@ static __hot inline Handle TryTranslate(Process * const proc, uintptr_t const va
     __unreachable_code;
 }
 
-Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const paddr
+Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
     , MemoryFlags const flags, PageDescriptor * desc, bool const lock)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
@@ -377,6 +368,8 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
 
     if unlikely((vaddr & (PageSize - 1)) != 0 || (paddr & (PageSize - 1)) != 0)
         return HandleResult::PageUnaligned;
+
+    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
     PageAllocator * alloc = Domain0.PhysicalAllocator;
 
@@ -589,9 +582,11 @@ Handle Vmm::MapPage(Process * const proc, uintptr_t const vaddr, paddr_t const p
     return HandleResult::Okay;
 }
 
-Handle Vmm::UnmapPage(Process * const proc, uintptr_t const vaddr
+Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
     , paddr_t & paddr, PageDescriptor * & desc, bool const lock)
 {
+    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
     PageAllocator * alloc = Domain0.PhysicalAllocator;
 
     //  TODO: NUMA settings, and get the domain from CPU data.
@@ -639,9 +634,11 @@ Handle Vmm::UnmapPage(Process * const proc, uintptr_t const vaddr
     return HandleResult::Okay;
 }
 
-Handle Vmm::InvalidatePage(Process * const proc, uintptr_t const vaddr
+Handle Vmm::InvalidatePage(Process * proc, uintptr_t const vaddr
     , bool const broadcast)
 {
+    if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
     CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(vaddr));
 
     if (broadcast)
@@ -658,7 +655,7 @@ Handle Vmm::InvalidatePage(Process * const proc, uintptr_t const vaddr
     return HandleResult::Okay;
 }
 
-Handle Vmm::Translate(Execution::Process * const proc, uintptr_t const vaddr, paddr_t & paddr, bool const lock)
+Handle Vmm::Translate(Execution::Process * proc, uintptr_t const vaddr, paddr_t & paddr, bool const lock)
 {
     return TryTranslate(proc, vaddr, [&paddr](Pml1Entry * pE)
     {
@@ -677,11 +674,87 @@ Handle Vmm::Translate(Execution::Process * const proc, uintptr_t const vaddr, pa
     }, lock);
 }
 
+Handle Vmm::HandlePageFault(Execution::Process * proc
+    , uintptr_t const vaddr, PageFaultFlags const flags)
+{
+    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
+    Handle res = HandleResult::Okay;
+    PageDescriptor * desc;
+
+    PageAllocator * alloc;
+    paddr_t paddr;
+
+    vaddr_t const vaddr_algn = RoundDown(vaddr, PageSize);
+
+    MemoryRegion * reg = proc->Vas.FindRegion(vaddr, true);
+
+#define RETURN(HRES) do { res = HandleResult::HRES; goto end; } while (false)
+
+    if unlikely( reg == nullptr
+             || (reg->Type & MemoryAllocationOptions::PurposeMask) == MemoryAllocationOptions::Free)
+        RETURN(ArgumentOutOfRange);
+    //  Either of these conditions means this page fault was caused by a hit on
+    //  unallocated/freed memory.
+
+    if unlikely(0 != (flags & PageFaultFlags::Present))
+        RETURN(Failed);
+    //  Page is present. This means this is an access (write/execute) failure.
+
+    if unlikely((reg->Type & MemoryAllocationOptions::StrategyMask) != MemoryAllocationOptions::AllocateOnDemand)
+        RETURN(PageUndemandable);
+    //  Regions which aren't allocated on demand aren't covered by this handler.
+
+    if unlikely((0 != (reg->Type & MemoryAllocationOptions::GuardLow ) && vaddr_algn <  (reg->Range.Start + PageSize))
+             || (0 != (reg->Type & MemoryAllocationOptions::GuardHigh) && vaddr_algn >= (reg->Range.End   - PageSize)))
+        RETURN(PageGuard);
+    //  Thie hit seems to have landed on a guard page.
+
+    if unlikely((0 != (flags & PageFaultFlags::Execute ) && 0 == (reg->Flags & MemoryFlags::Executable))
+             || (0 != (flags & PageFaultFlags::Userland) && 0 == (reg->Flags & MemoryFlags::Userland  )))
+        RETURN(Failed);
+    //  So this was either an attempt to execute a non-executable page, or to
+    //  access (in any way) a supervisor page from userland.
+
+    //  Reaching this point means this page is meant to be allocated.
+
+
+    alloc = CpuDataSetUp
+        ? Cpu::GetData()->DomainDescriptor->PhysicalAllocator
+        : Domain0.PhysicalAllocator;
+
+    paddr = alloc->AllocatePage(desc);
+
+    if unlikely(paddr == nullpaddr)
+        RETURN(OutOfMemory);
+    //  Okay... Out of memory... Bad.
+    //  TODO: Handle this.
+
+    res = Vmm::MapPage(proc, vaddr_algn, paddr, reg->Flags, desc);
+
+    if unlikely(!res.IsOkayResult())
+    {
+        //  Okay, this really shouldn't fail.
+
+        if (desc->DecrementReferenceCount() == 0)
+            alloc->FreePageAtAddress(paddr);
+        //  Get rid of the physical page if mapping failed. :frown:
+    }
+
+#undef RETURN
+end:
+    proc->Vas.Lock.ReleaseAsReader();
+
+    return res;
+}
+
 /*  Allocation  */
 
-Handle Vmm::AllocatePages(Process * const proc, size_t const count
+Handle Vmm::AllocatePages(Process * proc, size_t const count
     , MemoryAllocationOptions const type, MemoryFlags const flags, uintptr_t & vaddr)
 {
+    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
     if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand))
     {
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
@@ -709,23 +782,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
             if unlikely(!res.IsOkayResult())
                 return res;
 
-            if unlikely(proc->UserHeapOverflown)
-                return HandleResult::UnsupportedOperation;
-            //  Not supported yet.
-
-            ret = proc->UserHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
-
-            if unlikely(ret > VmmArc::KernelHeapEnd)
-            {
-                proc->UserHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
-                proc->UserHeapOverflown = true;
-
-                return HandleResult::UnsupportedOperation;
-                //  Not supported yet.
-            }
-
-            vaddr = ret + lowerOffset;
-
+            ret = vaddr - lowerOffset;
             heapLock = &(proc->UserHeapLock);
         }
         else
@@ -746,7 +803,6 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
             }
 
             vaddr = ret + lowerOffset;
-
             heapLock = &(VmmArc::KernelHeapLock);
         }
 
@@ -755,7 +811,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
         PageAllocator * alloc = Domain0.PhysicalAllocator;
 
         InterruptGuard<> intGuard;
-        //  Guard teh rest of the scope from interrupts.
+        //  Guard the rest of the scope from interrupts.
 
         if likely(CpuDataSetUp)
             alloc = Cpu::GetData()->DomainDescriptor->PhysicalAllocator;
@@ -862,7 +918,7 @@ Handle Vmm::AllocatePages(Process * const proc, size_t const count
 
 /*  Flags  */
 
-Handle Vmm::GetPageFlags(Process * const proc, uintptr_t const vaddr
+Handle Vmm::GetPageFlags(Process * proc, uintptr_t const vaddr
     , MemoryFlags & flags, bool const lock)
 {
     return TryTranslate(proc, vaddr, [&flags](Pml1Entry * pE)
@@ -890,9 +946,11 @@ Handle Vmm::GetPageFlags(Process * const proc, uintptr_t const vaddr
     }, lock);
 }
 
-Handle Vmm::SetPageFlags(Process * const proc, uintptr_t const vaddr
+Handle Vmm::SetPageFlags(Process * proc, uintptr_t const vaddr
     , MemoryFlags const flags, bool const lock)
 {
+    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
     Handle res = TryTranslate(proc, vaddr, [flags](Pml1Entry * pE)
     {
         if likely(pE->GetPresent())

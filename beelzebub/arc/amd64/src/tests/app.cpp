@@ -125,7 +125,6 @@ void TestApplication()
     TestRegionLock.Acquire();
 
     new (&testProcess) Process();
-    //  Initialize a new process for thread series B.
 
     Vmm::Initialize(&testProcess);
 
@@ -139,7 +138,7 @@ void TestApplication()
     uintptr_t stackVaddr = nullvaddr;
 
     res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap | MemoryAllocationOptions::ThreadStack
         , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 
     ASSERT(res.IsOkayResult()

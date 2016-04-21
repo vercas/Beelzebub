@@ -65,15 +65,17 @@ namespace Beelzebub { namespace Memory
 
         }
 
-        Vas(vaddr_t start, vaddr_t end);
-
         Vas(Vas const &) = delete;
         Vas & operator =(Vas const &) = delete;
+
+        Handle Initialize(vaddr_t start, vaddr_t end);
 
         /*  Operations  */
 
         __hot Handle Allocate(vaddr_t & vaddr, size_t pageCnt
             , MemoryFlags flags, MemoryAllocationOptions type);
+
+        __hot MemoryRegion * FindRegion(vaddr_t vaddr, bool keepLock);
 
         /*  Fields  */
 

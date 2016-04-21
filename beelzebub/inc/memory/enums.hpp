@@ -131,7 +131,24 @@ namespace Beelzebub { namespace Memory
         Free                 = 0x03000000,
         //  Reserved, unusable.
         Reserved             = 0x04000000,
+
+        PurposeMask          = 0x0F000000,
+        StrategyMask         = 0xF0000000,
     };
 
     ENUMOPS(MemoryAllocationOptions, uint32_t)
+
+    /**
+     *  Represents the flags related to a page fault.
+     */
+    enum class PageFaultFlags : uint8_t
+    {
+        Present     = 0x01,
+        Write       = 0x02,
+        Userland    = 0x04,
+        Reserved    = 0x08,
+        Execute     = 0x10,
+    };
+
+    ENUMOPS(PageFaultFlags, uint8_t)
 }}
