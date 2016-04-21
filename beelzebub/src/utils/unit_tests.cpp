@@ -186,11 +186,10 @@ UnitTestsReport Beelzebub::Utils::RunUnitTests()
         }
         __catch (x)
         {
-
             last->Status = UnitTestStatus::Failed;
             ++countFailed;
         }
-        
+
 #pragma GCC diagnostic pop
 
 #ifndef __BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET
