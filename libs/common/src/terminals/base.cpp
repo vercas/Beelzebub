@@ -1005,9 +1005,6 @@ TerminalWriteResult TerminalBase::WriteHexTable(uintptr_t const start, size_t co
     if (!this->Capabilities->CanOutput)
         return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
-    char addrhexstr[sizeof(size_t) * 2 + 1], wordhexstr[4] = "   ";
-    addrhexstr[sizeof(size_t) * 2] = '\0';
-
     TerminalWriteResult res = {HandleResult::Okay, 0U, InvalidCoordinates};
     uint32_t cnt = 0U;
 
@@ -1040,6 +1037,21 @@ TerminalWriteResult TerminalBase::WriteHexTable(uintptr_t const start, size_t co
             return {HandleResult::ArgumentOutOfRange, 0U, InvalidCoordinates};
     }
 
+    char addrhexstr[sizeof(size_t) * 2 + 2], hexstr[actualCharsPerLine * 3 + 1]
+       , asciistr[2 + actualCharsPerLine + 4];
+
+    addrhexstr[sizeof(size_t) * 2] = ':';
+    addrhexstr[sizeof(size_t) * 2 + 1] = '\0';
+
+    hexstr[actualCharsPerLine * 3] = '\0';
+
+    asciistr[0] = ' ';
+    asciistr[1] = '|';
+    asciistr[actualCharsPerLine + 2] = '|';
+    asciistr[actualCharsPerLine + 3] = '\r';
+    asciistr[actualCharsPerLine + 4] = '\n';
+    asciistr[actualCharsPerLine + 5] = '\0';
+
     for (size_t i = 0; i < length; i += actualCharsPerLine)
     {
         uintptr_t lStart = start + i;
@@ -1052,35 +1064,33 @@ TerminalWriteResult TerminalBase::WriteHexTable(uintptr_t const start, size_t co
         }
 
         TERMTRY1(this->Write(addrhexstr), res, cnt);
-        TERMTRY1(this->WriteUtf8(":"), res, cnt);
 
         for (size_t j = 0; j < actualCharsPerLine; ++j)
         {
-            uint8_t val = *(uint8_t *)(lStart + j);
+            uint8_t const val = *(uint8_t *)(lStart + j);
 
             uint8_t nib = val & 0xF;
-            wordhexstr[2] = (nib > 9 ? '7' : '0') + nib;
+            hexstr[j * 3 + 2] = (nib > 9 ? '7' : '0') + nib;
             nib = (val >> 4) & 0xF;
-            wordhexstr[1] = (nib > 9 ? '7' : '0') + nib;
-
-            TERMTRY1(this->Write(wordhexstr), res, cnt);
+            hexstr[j * 3 + 1] = (nib > 9 ? '7' : '0') + nib;
+            hexstr[j * 3    ] = ' ';
         }
+
+        TERMTRY1(this->Write(hexstr), res, cnt);
 
         if (ascii)
         {
-            TERMTRY1(this->Write(" |"), res, cnt);
-
             for (size_t j = 0; j < actualCharsPerLine; ++j)
             {
                 uint8_t val = *(uint8_t *)(lStart + j);
 
                 if (val >= 32 && val != 127)
-                    TERMTRY1(this->WriteUtf8(reinterpret_cast<char *>(&val)), res, cnt);
+                    asciistr[2 + j] = (char)(val);
                 else
-                    TERMTRY1(this->WriteUtf8("."), res, cnt);
+                    asciistr[2 + j] = '.';
             }
 
-            TERMTRY1(this->Write("|\n\r"), res, cnt);
+            TERMTRY1(this->Write(asciistr), res, cnt);
         }
         else
             TERMTRY1(this->Write("\n\r"), res, cnt);
