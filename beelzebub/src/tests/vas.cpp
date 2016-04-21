@@ -43,7 +43,7 @@
 #include <memory/vmm.hpp>
 #include <execution/thread.hpp>
 #include <execution/thread_init.hpp>
-#include <execution/ring_3.hpp>
+#include <exceptions.hpp>
 
 #include <kernel.hpp>
 #include <entry.h>
@@ -61,7 +61,34 @@ using namespace Beelzebub::Terminals;
 static Thread testThread;
 static Process testProcess;
 
-static void * TestThreadCode(void *);
+static __startup void * TestThreadCode(void *);
+
+__startup void TestDereferenceFailure(uintptr_t volatile * const testPtr)
+{
+    DEBUG_TERM_ << " <POKING " << (void *)testPtr << ">";
+
+    __try
+    {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
+        uintptr_t thisShouldFail = *testPtr = *(reinterpret_cast<uintptr_t *>(&TestThreadCode));
+        //  This gets the first instruction of the `TestThreadCode` function and
+        //  tries to write it to the target pointer.
+
+#pragma GCC diagnostic pop
+
+        ASSERT(false, "(( Test value that should've failed: %Xp ))%n", thisShouldFail);
+    }
+    __catch (x)
+    {
+        ASSERT_EQ("%up", ExceptionType::MemoryAccessViolation, x->Type);
+        ASSERT_EQ("%Xp", testPtr, x->MemoryAccessViolation.Address);
+        ASSERT_EQ("%XP", nullpaddr, x->MemoryAccessViolation.PhysicalAddress);
+        ASSERT_EQ("%X2", MemoryLocationFlags::None, x->MemoryAccessViolation.PageFlags);
+        ASSERT_EQ("%X1", MemoryAccessType::Write, x->MemoryAccessViolation.AccessType);
+    }
+}
 
 void TestVas()
 {
@@ -94,12 +121,11 @@ void TestVas()
 
     withInterrupts (false)
         BootstrapThread.IntroduceNext(&testThread);
-
 }
 
 void * TestThreadCode(void *)
 {
-    uintptr_t vaddr = nullvaddr;
+    uintptr_t vaddr = nullvaddr, vaddr1, vaddr2;
 
     Handle res = Vmm::AllocatePages(Cpu::GetProcess()
         , 4, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
@@ -110,10 +136,21 @@ void * TestThreadCode(void *)
         , res);
 
     DEBUG_TERM_ << "Been given 4 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
+    vaddr1 = vaddr;
 
     memset((void *)vaddr, 0xCD, 4 * PageSize);
 
-    Debug::DebugTerminal->WriteHexTable(vaddr, 4 * PageSize, 16, false);
+    // Debug::DebugTerminal->WriteHexTable(vaddr, 4 * PageSize, 32, false);
+
+    withInterrupts (false)
+    {
+        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
+
+        if (vaddr + 4 * PageSize < Vmm::UserlandEnd)
+            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 4 * PageSize));
+
+        DEBUG_TERM_ << EndLine;
+    }
 
     vaddr = Vmm::UserlandStart + 1337 * PageSize;
 
@@ -126,12 +163,24 @@ void * TestThreadCode(void *)
         , res);
 
     ASSERT_EQ("%Xp", Vmm::UserlandStart + 1337 * PageSize, vaddr);
+    vaddr2 = vaddr;
 
     DEBUG_TERM_ << "Been given 5 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
 
     memset((void *)vaddr, 0xAB, 5 * PageSize);
 
-    Debug::DebugTerminal->WriteHexTable(vaddr, 5 * PageSize, 16, false);
+    // Debug::DebugTerminal->WriteHexTable(vaddr, 5 * PageSize, 32, false);
+
+    withInterrupts (false)
+    {
+        if (vaddr - sizeof(uintptr_t) < vaddr1 || vaddr - sizeof(uintptr_t) >= vaddr1 + 4 * PageSize)
+            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
+
+        if (vaddr + 5 * PageSize < Vmm::UserlandEnd && (vaddr + 5 * PageSize < vaddr1 || vaddr + PageSize >= vaddr1))
+            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
+
+        DEBUG_TERM_ << EndLine;
+    }
 
     vaddr = nullvaddr;
 
@@ -144,10 +193,25 @@ void * TestThreadCode(void *)
         , res);
 
     DEBUG_TERM_ << "Been given 6 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
+    // vaddr3 = vaddr;
 
-    memset((void *)vaddr, 0xF0, 6 * PageSize);
+    memset((void *)vaddr, 0x65, 6 * PageSize);
 
-    Debug::DebugTerminal->WriteHexTable(vaddr, 6 * PageSize, 16, false);
+    // Debug::DebugTerminal->WriteHexTable(vaddr, 6 * PageSize, 32, false);
+
+    withInterrupts (false)
+    {
+        if ((vaddr - sizeof(uintptr_t) < vaddr1 || vaddr - sizeof(uintptr_t) >= vaddr1 + 4 * PageSize)
+         && (vaddr - sizeof(uintptr_t) < vaddr2 || vaddr - sizeof(uintptr_t) >= vaddr2 + 5 * PageSize))
+            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
+
+        if (vaddr + 6 * PageSize < Vmm::UserlandEnd
+        && (vaddr + 6 * PageSize < vaddr1 || vaddr + 2 * PageSize >= vaddr1)
+        && (vaddr + 6 * PageSize < vaddr2 || vaddr +     PageSize >= vaddr2))
+            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
+
+        DEBUG_TERM_ << EndLine;
+    }
 
     while (true) CpuInstructions::Halt();
 }
