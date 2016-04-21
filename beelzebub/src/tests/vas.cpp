@@ -49,6 +49,7 @@
 #include <entry.h>
 #include <system/cpu.hpp>
 
+#include <string.h>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -57,9 +58,98 @@ using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
+static Thread testThread;
+static Process testProcess;
+
+static void * TestThreadCode(void *);
+
 void TestVas()
 {
-    //
+    new (&testProcess) Process();
+
+    Vmm::Initialize(&testProcess);
+
+    new (&testThread) Thread(&testProcess);
+
+    Handle res;
+
+    //  Firstly, the kernel stack page of the test thread.
+
+    uintptr_t stackVaddr = nullvaddr;
+
+    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
+        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap | MemoryAllocationOptions::ThreadStack
+        , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate stack for VAS test thread: %H."
+        , res);
+
+    testThread.KernelStackTop = stackVaddr + 3 * PageSize;
+    testThread.KernelStackBottom = stackVaddr;
+
+    testThread.EntryPoint = &TestThreadCode;
+
+    InitializeThreadState(&testThread);
+
+    withInterrupts (false)
+        BootstrapThread.IntroduceNext(&testThread);
+
+}
+
+void * TestThreadCode(void *)
+{
+    uintptr_t vaddr = nullvaddr;
+
+    Handle res = Vmm::AllocatePages(Cpu::GetProcess()
+        , 4, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
+        , MemoryFlags::Userland | MemoryFlags::Writable, vaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate data for VAS test thread: %H."
+        , res);
+
+    DEBUG_TERM_ << "Been given 4 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
+
+    memset((void *)vaddr, 0xCD, 4 * PageSize);
+
+    Debug::DebugTerminal->WriteHexTable(vaddr, 4 * PageSize, 16, false);
+
+    vaddr = Vmm::UserlandStart + 1337 * PageSize;
+
+    res = Vmm::AllocatePages(Cpu::GetProcess()
+        , 5, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
+        , MemoryFlags::Userland | MemoryFlags::Writable, vaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate data for VAS test thread: %H."
+        , res);
+
+    ASSERT_EQ("%Xp", Vmm::UserlandStart + 1337 * PageSize, vaddr);
+
+    DEBUG_TERM_ << "Been given 5 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
+
+    memset((void *)vaddr, 0xAB, 5 * PageSize);
+
+    Debug::DebugTerminal->WriteHexTable(vaddr, 5 * PageSize, 16, false);
+
+    vaddr = nullvaddr;
+
+    res = Vmm::AllocatePages(Cpu::GetProcess()
+        , 6, MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
+        , MemoryFlags::Userland | MemoryFlags::Writable, vaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate data for VAS test thread: %H."
+        , res);
+
+    DEBUG_TERM_ << "Been given 6 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
+
+    memset((void *)vaddr, 0xF0, 6 * PageSize);
+
+    Debug::DebugTerminal->WriteHexTable(vaddr, 6 * PageSize, 16, false);
+
+    while (true) CpuInstructions::Halt();
 }
 
 #endif
