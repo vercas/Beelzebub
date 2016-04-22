@@ -46,34 +46,34 @@ namespace Beelzebub { namespace Utils
     template<> template<> \
     comp_t Comparable<TThis>::Compare<TThis>(TThis const & other) const \
     { \
-        return static_cast<comp_t>(this->Object - other); \
+        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
     } \
     template<> template<> \
     comp_t Comparable<TThis>::Compare<TThis>(TThis const && other) const \
     { \
-        return static_cast<comp_t>(this->Object - other); \
+        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
     }
 
     #define COMP_INT_2(TThis, TOther) \
     template<> template<> \
     comp_t Comparable<TThis>::Compare<TOther>(TOther const & other) const \
     { \
-        return static_cast<comp_t>(this->Object - other); \
+        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
     } \
     template<> template<> \
     comp_t Comparable<TThis>::Compare<TOther>(TOther const && other) const \
     { \
-        return static_cast<comp_t>(this->Object - other); \
+        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
     } \
     template<> template<> \
     comp_t Comparable<TOther>::Compare<TThis>(TThis const & other) const \
     { \
-        return static_cast<comp_t>(this->Object - other); \
+        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
     } \
     template<> template<> \
     comp_t Comparable<TOther>::Compare<TThis>(TThis const && other) const \
     { \
-        return static_cast<comp_t>(this->Object - other); \
+        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
     }
 
 #define COMP_INT(...) GET_MACRO2(__VA_ARGS__, COMP_INT_2, COMP_INT_1)(__VA_ARGS__)
@@ -122,35 +122,156 @@ namespace Beelzebub { namespace Utils
     COMP_INT(unsigned short)
 
     COMP_INT(int)
-    COMP_INT(unsigned int)
+    COMP_COVER(unsigned int)
 
-    COMP_INT(long)
-    COMP_INT(unsigned long)
+    COMP_COVER(long)
+    COMP_COVER(unsigned long)
 
     COMP_COVER(long long)
     COMP_COVER(unsigned long long)
 
-    template<> template<>
-    comp_t Comparable<char *>::Compare<char *>(char * const & other) const
-    {
-        return strcmp(const_cast<char const *>(this->Object)
-                    , const_cast<char const *>(other       ));
-    }
-    template<> template<>
-    comp_t Comparable<char *>::Compare<char *>(char * const && other) const
-    {
-        return strcmp(const_cast<char const *>(this->Object)
-                    , const_cast<char const *>(other       ));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
+    COMP_INT(char, signed char)
+    COMP_INT(char, unsigned char)
+
+    COMP_INT(char, short)
+    COMP_INT(char, unsigned short)
+
+    COMP_INT(char, int)
+    COMP_COVER(char, unsigned int)
+
+    COMP_COVER(char, long)
+    COMP_COVER(char, unsigned long)
+
+    COMP_COVER(char, long long)
+    COMP_COVER(char, unsigned long long)
+
+    COMP_INT(signed char, unsigned char)
+
+    COMP_INT(signed char, short)
+    COMP_INT(signed char, unsigned short)
+
+    COMP_INT(signed char, int)
+    COMP_COVER(signed char, unsigned int)
+
+    COMP_COVER(signed char, long)
+    COMP_COVER(signed char, unsigned long)
+
+    COMP_COVER(signed char, long long)
+    COMP_COVER(signed char, unsigned long long)
+
+    COMP_INT(unsigned char, short)
+    COMP_INT(unsigned char, unsigned short)
+
+    COMP_INT(unsigned char, int)
+    COMP_COVER(unsigned char, unsigned int)
+
+    COMP_COVER(unsigned char, long)
+    COMP_COVER(unsigned char, unsigned long)
+
+    COMP_COVER(unsigned char, long long)
+    COMP_COVER(unsigned char, unsigned long long)
+
+    COMP_INT(short, unsigned short)
+
+    COMP_INT(short, int)
+    COMP_COVER(short, unsigned int)
+
+    COMP_COVER(short, long)
+    COMP_COVER(short, unsigned long)
+
+    COMP_COVER(short, long long)
+    COMP_COVER(short, unsigned long long)
+
+    COMP_INT(unsigned short, int)
+    COMP_COVER(unsigned short, unsigned int)
+
+    COMP_COVER(unsigned short, long)
+    COMP_COVER(unsigned short, unsigned long)
+
+    COMP_COVER(unsigned short, long long)
+    COMP_COVER(unsigned short, unsigned long long)
+
+    COMP_COVER(int, unsigned int)
+
+    COMP_COVER(int, long)
+    COMP_COVER(int, unsigned long)
+
+    COMP_COVER(int, long long)
+    COMP_COVER(int, unsigned long long)
+
+    COMP_COVER(unsigned int, long)
+    COMP_COVER(unsigned int, unsigned long)
+
+    COMP_COVER(unsigned int, long long)
+    COMP_COVER(unsigned int, unsigned long long)
+
+    COMP_COVER(long, unsigned long)
+
+    COMP_COVER(long, long long)
+    COMP_COVER(long, unsigned long long)
+
+    COMP_COVER(unsigned long, long long)
+    COMP_COVER(unsigned long, unsigned long long)
+
+    COMP_COVER(long long, unsigned long long)
+
+    COMP_COVER(float)
+    COMP_COVER(double)
+    COMP_COVER(long double)
+
+    COMP_COVER(float, double)
+    COMP_COVER(float, long double)
+
+    COMP_COVER(double, long double)
+
+#pragma GCC diagnostic pop
+
+    #define COMP_STR_1(TThis) \
+    template<> template<> \
+    comp_t Comparable<TThis>::Compare<TThis>(TThis const & other) const \
+    { \
+        return strcmp(const_cast<char const *>(this->Object) \
+                    , const_cast<char const *>(other       )); \
+    } \
+    template<> template<> \
+    comp_t Comparable<TThis>::Compare<TThis>(TThis const && other) const \
+    { \
+        return strcmp(const_cast<char const *>(this->Object) \
+                    , const_cast<char const *>(other       )); \
     }
 
-    template<> template<>
-    comp_t Comparable<char const *>::Compare<char const *>(char const * const & other) const
-    {
-        return strcmp(this->Object, other);
+    #define COMP_STR_2(TThis, TOther) \
+    template<> template<> \
+    comp_t Comparable<TThis>::Compare<TOther>(TOther const & other) const \
+    { \
+        return strcmp(const_cast<char const *>(this->Object) \
+                    , const_cast<char const *>(other       )); \
+    } \
+    template<> template<> \
+    comp_t Comparable<TThis>::Compare<TOther>(TOther const && other) const \
+    { \
+        return strcmp(const_cast<char const *>(this->Object) \
+                    , const_cast<char const *>(other       )); \
+    } \
+    template<> template<> \
+    comp_t Comparable<TOther>::Compare<TThis>(TThis const & other) const \
+    { \
+        return strcmp(const_cast<char const *>(this->Object) \
+                    , const_cast<char const *>(other       )); \
+    } \
+    template<> template<> \
+    comp_t Comparable<TOther>::Compare<TThis>(TThis const && other) const \
+    { \
+        return strcmp(const_cast<char const *>(this->Object) \
+                    , const_cast<char const *>(other       )); \
     }
-    template<> template<>
-    comp_t Comparable<char const *>::Compare<char const *>(char const * const && other) const
-    {
-        return strcmp(this->Object, other);
-    }
+
+    #define COMP_STR(...) GET_MACRO2(__VA_ARGS__, COMP_STR_2, COMP_STR_1)(__VA_ARGS__)
+
+    COMP_STR(char *)
+    COMP_STR(char const *)
+    COMP_STR(char *, char const *)
 }}
