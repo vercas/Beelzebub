@@ -7,6 +7,9 @@ int main(int, char * *);
 
 static __used void * const main_ptr = (void *)(&main);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 int main(int argc, char * * argv)
 {
 beginning:
@@ -27,14 +30,9 @@ beginning:
         DEBUG_TERM << "Syscall test from userland app!" << EndLine;
     }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-
     double volatile d1 = -1, d2 = 0, d3 = 1;
 
     double volatile d4 = d1 + d3;
-
-#pragma GCC diagnostic pop
 
     DEBUG_TERM  << "BLERGH" << EndLine << "BLAH" << EndLine
                 << "BLERGH" << EndLine << "BLAH" << EndLine
@@ -46,3 +44,5 @@ beginning:
 
     return 0;
 }
+
+#pragma GCC diagnostic pop
