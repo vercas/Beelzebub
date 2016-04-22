@@ -51,7 +51,7 @@
 
 #pragma once
 
-#include <utils/comparables.hpp>
+#include <utils/comparisons.hpp>
 #include <handles.h>
 #include <math.h>
 
@@ -179,7 +179,7 @@ namespace Beelzebub { namespace Utils
         AvlTreeNode * Left, * Right;
         int Height; //  Don't really care about the type.
 
-        Comparable<TPayload> Payload;
+        TPayload Payload;
     };
 
     template<typename TPayload>
@@ -221,12 +221,12 @@ namespace Beelzebub { namespace Utils
         }
 
         template<typename TKey>
-        static Comparable<TPayload> * Find(TKey const & key, Node * node)
+        static TPayload * Find(TKey const & key, Node * node)
         {
             if unlikely(node == nullptr)
                 return nullptr;
 
-            comp_t const compRes = node->Payload.Compare(key);
+            comp_t const compRes = Compare(node->Payload, key);
             //  Note the comparison order.
 
             if (compRes == 0)
@@ -250,7 +250,7 @@ namespace Beelzebub { namespace Utils
                 return Create(node, cover.Payload, cookie);
             //  Unlikely because it's literally done once per insertion.
 
-            comp_t const compRes = node->Payload.Compare(cover);
+            comp_t const compRes = Compare(node->Payload, cover);
             //  Note the comparison order.
 
             if unlikely(compRes == 0)
@@ -293,7 +293,7 @@ namespace Beelzebub { namespace Utils
                 return res;
             }
 
-            comp_t const compRes = node->Payload.Compare(payload);
+            comp_t const compRes = Compare(node->Payload, payload);
             //  Note the comparison order.
 
             if unlikely(compRes == 0)
@@ -326,12 +326,12 @@ namespace Beelzebub { namespace Utils
                 //  Unlikely because it's literally done once per insertion.
                 res = Create(node, cookie);
 
-                payload = &(node->Payload.Object);
+                payload = &(node->Payload);
 
                 return res;
             }
 
-            comp_t const compRes = node->Payload.Compare(key);
+            comp_t const compRes = Compare(node->Payload, key);
             //  Note the comparison order.
 
             if unlikely(compRes == 0)
@@ -391,7 +391,7 @@ namespace Beelzebub { namespace Utils
                 return nullptr;
             //  Not found.
 
-            comp_t const compRes = node->Payload.Compare(key);
+            comp_t const compRes = Compare(node->Payload, key);
             //  Note the comparison order.
 
             Node * res;
@@ -574,13 +574,13 @@ namespace Beelzebub { namespace Utils
         /*  Operations  */
 
         template<typename TKey>
-        Comparable<TPayload> * Find(TKey const * const key)
+        TPayload * Find(TKey const * const key)
         {
             return Find<TKey>(*key, this->Root);
         }
 
         template<typename TKey>
-        Comparable<TPayload> * Find(TKey const key)
+        TPayload * Find(TKey const key)
         {
             TKey dummy = key;
 
@@ -628,7 +628,7 @@ namespace Beelzebub { namespace Utils
             {
                 ++this->NodeCount;
 
-                pl = &(temp->Payload.Object);
+                pl = &(temp->Payload);
             }
             else
                 pl = nullptr;
@@ -647,7 +647,7 @@ namespace Beelzebub { namespace Utils
             {
                 ++this->NodeCount;
 
-                pl = &(temp->Payload.Object);
+                pl = &(temp->Payload);
             }
             else
                 pl = nullptr;
@@ -707,7 +707,7 @@ namespace Beelzebub { namespace Utils
                 return HandleResult::NotFound;
             else
             {
-                res = node->Payload.Object;
+                res = node->Payload;
                 //  Will effectively perform a copy.
 
                 --this->NodeCount;
@@ -727,7 +727,7 @@ namespace Beelzebub { namespace Utils
                 return HandleResult::NotFound;
             else
             {
-                res = node->Payload.Object;
+                res = node->Payload;
 
                 --this->NodeCount;
 

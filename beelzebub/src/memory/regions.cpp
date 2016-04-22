@@ -81,107 +81,42 @@ MemoryRange MemoryRange::operator | (MemoryRange const & other) const
 
 namespace Beelzebub { namespace Utils
 {
-    template<> template<>
-    comp_t Comparable<MemoryRange>::Compare<MemoryRange>(MemoryRange const & other) const
-    {
-        if (this->Object.End <= other.Start)
-            return -1;
-        else if (this->Object.Start >= other.End)
-            return 1;
-        else
+    #define COMP_MRNG_MRNG_IMPL(a, b) \
+        if (a.End <= b.Start) \
+            return -1; \
+        else if (a.Start >= b.End) \
+            return 1; \
+        else \
             return 0;
-    }
-    template<> template<>
-    comp_t Comparable<MemoryRange>::Compare<MemoryRange>(MemoryRange const && other) const
-    {
-        if (this->Object.End <= other.Start)
-            return -1;
-        else if (this->Object.Start >= other.End)
-            return 1;
-        else
-            return 0;
-    }
 
-    template<> template<>
-    comp_t Comparable<MemoryRange>::Compare<vaddr_t>(vaddr_t const & other) const
-    {
-        if (this->Object.End <= other)
-            return -1;
-        else if (this->Object.Start > other)
-            return 1;
-        else
+    #define COMP_MRNG_VADR_IMPL(a, b) \
+        if (a.End <= b) \
+            return -1; \
+        else if (a.Start > b) \
+            return 1; \
+        else \
             return 0;
-    }
-    template<> template<>
-    comp_t Comparable<MemoryRange>::Compare<vaddr_t>(vaddr_t const && other) const
-    {
-        if (this->Object.End <= other)
-            return -1;
-        else if (this->Object.Start > other)
-            return 1;
-        else
-            return 0;
-    }
 
-    template<> template<>
-    comp_t Comparable<MemoryRegion>::Compare<AdjacentMemoryRegion>(AdjacentMemoryRegion const & other) const
-    {
-        if (this->Object.Range.End < other.Payload.Range.Start)
-            return -1;
-        else if (this->Object.Range.Start > other.Payload.Range.End)
-            return 1;
-        else
-        {
+    #define COMP_MREG_AMRE_IMPL(a, b) \
+        if (a.Range.End < b.Payload.Range.Start) \
+            return -1; \
+        else if (a.Range.Start > b.Payload.Range.End) \
+            return 1; \
+        else \
             return 0;
-        }
-    }
-    template<> template<>
-    comp_t Comparable<MemoryRegion>::Compare<AdjacentMemoryRegion>(AdjacentMemoryRegion const && other) const
-    {
-        if (this->Object.Range.End < other.Payload.Range.Start)
-            return -1;
-        else if (this->Object.Range.Start > other.Payload.Range.End)
-            return 1;
-        else
-        {
-            return 0;
-        }
-    }
+
+    COMP_IMPL(MemoryRange ,          MemoryRange, COMP_MRNG_MRNG_IMPL)
+    COMP_IMPL(MemoryRange ,              vaddr_t, COMP_MRNG_VADR_IMPL)
+    COMP_IMPL(MemoryRegion, AdjacentMemoryRegion, COMP_MREG_AMRE_IMPL)
 
     //  The ones above assume the ranges are valid!
 
-    template<> template<>
-    comp_t Comparable<MemoryRegion>::Compare<MemoryRegion>(MemoryRegion const & other) const
-    {
-        return (Comparable<MemoryRange>(this->Object.Range)).Compare(other.Range);
-    }
-    template<> template<>
-    comp_t Comparable<MemoryRegion>::Compare<MemoryRegion>(MemoryRegion const && other) const
-    {
-        return (Comparable<MemoryRange>(this->Object.Range)).Compare(other.Range);
-    }
+    #define GET_REGION_RANGE(reg) reg.Range
 
-    template<> template<>
-    comp_t Comparable<MemoryRegion>::Compare<MemoryRange>(MemoryRange const & other) const
-    {
-        return (Comparable<MemoryRange>(this->Object.Range)).Compare(other);
-    }
-    template<> template<>
-    comp_t Comparable<MemoryRegion>::Compare<MemoryRange>(MemoryRange const && other) const
-    {
-        return (Comparable<MemoryRange>(this->Object.Range)).Compare(other);
-    }
+    COMP_FORWARD_SINGLE(MemoryRegion, MemoryRange, GET_REGION_RANGE)
 
-    template<> template<>
-    comp_t Comparable<MemoryRegion>::Compare<vaddr_t>(vaddr_t const & other) const
-    {
-        return (Comparable<MemoryRange>(this->Object.Range)).Compare(other);
-    }
-    template<> template<>
-    comp_t Comparable<MemoryRegion>::Compare<vaddr_t>(vaddr_t const && other) const
-    {
-        return (Comparable<MemoryRange>(this->Object.Range)).Compare(other);
-    }
+    COMP_FORWARD_TWO_WAY(MemoryRegion, MemoryRange, MemoryRange, MemoryRange, GET_REGION_RANGE, MCATS1)
+    COMP_FORWARD_TWO_WAY(MemoryRegion, vaddr_t, MemoryRange, vaddr_t, GET_REGION_RANGE, MCATS1)
 }}
 
 /************************

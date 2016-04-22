@@ -118,8 +118,8 @@ void PrintNode(TerminalBase * const term, NodeType * node\
         , indDat->IsRoot ? "/─" : (indDat->IsLast ? "└─" : "├─")
         , &markA
         , indDat->IsRoot ? "Ro" : (indDat->IsLast ? "ri" : "le")
-        , node->Payload.Object.Key
-        , node->Payload.Object.Value
+        , node->Payload.Key
+        , node->Payload.Value
         , &markB);
 
     size_t const indCnt = 2;
@@ -177,20 +177,20 @@ void PrintNode(TerminalBase * const term, NodeType * node\
 } while (false)
 
 #define CHECK_KEY(n, v)                         \
-    ASSERT((n)->Payload.Object.Key == (v)       \
+    ASSERT((n)->Payload.Key == (v)              \
         , "Root's key should be %i4, not %i4."  \
-        , (v), (n)->Payload.Object.Key)
+        , (v), (n)->Payload.Key)
 
 #define FIND_NODE(k, v) do {                                            \
-    Comparable<TestPayload> * pl = Tree.Find<int>((k));                 \
+    TestPayload * pl = Tree.Find<int>((k));                             \
     ASSERT(pl != nullptr, "Failed to find node with key %i4.", (k));    \
-    ASSERT(pl->Object.Value == (v)                                      \
+    ASSERT(pl->Value == (v)                                             \
         , "Found payload %Xp with value %i4, expected %i4."             \
-        , pl, pl->Object.Value, (k));                                   \
+        , pl, pl->Value, (k));                                          \
 } while (false)
 
 #define FIND_NO_NODE(k) do {                                            \
-    Comparable<TestPayload> * pl = Tree.Find<int>((k));                 \
+    TestPayload * pl = Tree.Find<int>((k));                             \
     ASSERT(pl == nullptr                                                \
         , "Should not have found node %Xp with key %i4."                \
         , pl, (k));                                                     \
@@ -325,7 +325,7 @@ void TestAvlTree()
 
     Tree.Traverse(TreeTraversalOrder::InOrder, [&arr, &min](NodeType * node)
     {
-        int val = node->Payload.Object.Key;
+        int val = node->Payload.Key;
 
         ASSERT(val > min
             , "In-order traversal of AVL tree seems to have an issue.%n"
@@ -358,7 +358,7 @@ void TestAvlTree()
 
     Tree.Traverse(TreeTraversalOrder::PreOrder, [&arr](NodeType * node)
     {
-        switch (node->Payload.Object.Key)
+        switch (node->Payload.Key)
         {
             case 10:    return arr[1] = true;
             case -20:   return arr[2] = true;
@@ -382,7 +382,7 @@ void TestAvlTree()
 
     Tree.Traverse(TreeTraversalOrder::PostOrder, [&arr](NodeType * node)
     {
-        switch (node->Payload.Object.Key)
+        switch (node->Payload.Key)
         {
             case 10:    return arr[1] = true;
             case -20:   return arr[2] = true;
@@ -406,7 +406,7 @@ void TestAvlTree()
 
     Tree.Traverse(TreeTraversalOrder::LevelOrder, [&arr](NodeType * node)
     {
-        switch (node->Payload.Object.Key)
+        switch (node->Payload.Key)
         {
             case 10:    return arr[1] = true;
             case -20:   return arr[2] = true;
@@ -442,26 +442,46 @@ namespace Beelzebub { namespace Utils
         return testAllocator.DeallocateObject(node);
     }
 
-    template<> template<>
-    comp_t Comparable<TestPayload>::Compare<TestPayload>(TestPayload const & other) const
+    template<>
+    comp_t Compare<TestPayload, TestPayload>(TestPayload const & a, TestPayload const & b)
     {
-        return (Comparable<int>(this->Object.Key)).Compare(other.Key);
+        return Compare<int, int>(a.Key, b.Key);
     }
-    template<> template<>
-    comp_t Comparable<TestPayload>::Compare<TestPayload>(TestPayload const && other) const
+    template<>
+    comp_t Compare<TestPayload, TestPayload>(TestPayload const & a, TestPayload const && b)
     {
-        return (Comparable<int>(this->Object.Key)).Compare(other.Key);
+        return Compare<int, int>(a.Key, b.Key);
+    }
+    template<>
+    comp_t Compare<TestPayload, TestPayload>(TestPayload const && a, TestPayload const & b)
+    {
+        return Compare<int, int>(a.Key, b.Key);
+    }
+    template<>
+    comp_t Compare<TestPayload, TestPayload>(TestPayload const && a, TestPayload const && b)
+    {
+        return Compare<int, int>(a.Key, b.Key);
     }
 
-    template<> template<>
-    comp_t Comparable<TestPayload>::Compare<int>(int const & other) const
+    template<>
+    comp_t Compare<TestPayload, int>(TestPayload const & a, int const & b)
     {
-        return (Comparable<int>(this->Object.Key)).Compare(other);
+        return Compare<int, int>(a.Key, b);
     }
-    template<> template<>
-    comp_t Comparable<TestPayload>::Compare<int>(int const && other) const
+    template<>
+    comp_t Compare<TestPayload, int>(TestPayload const & a, int const && b)
     {
-        return (Comparable<int>(this->Object.Key)).Compare(other);
+        return Compare<int, int>(a.Key, b);
+    }
+    template<>
+    comp_t Compare<TestPayload, int>(TestPayload const && a, int const & b)
+    {
+        return Compare<int, int>(a.Key, b);
+    }
+    template<>
+    comp_t Compare<TestPayload, int>(TestPayload const && a, int const && b)
+    {
+        return Compare<int, int>(a.Key, b);
     }
 }}
 

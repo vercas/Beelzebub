@@ -129,7 +129,7 @@ Handle Images::Unload(Image * const img)
 Image * Images::FindByName(char const * const name)
 {
     withLock (Lock)
-        return &(Repository.Find<char const *>(name)->Object);
+        return Repository.Find<char const *>(name);
 
     return nullptr;
 }
@@ -152,27 +152,12 @@ namespace Beelzebub { namespace Utils
         return Allocator.DeallocateObject(node);
     }
 
-    template<> template<>
-    comp_t Comparable<Image>::Compare<Image>(Image const & other) const
-    {
-        return (Comparable<char const *>(this->Object.Name)).Compare(other.Name);
-    }
-    template<> template<>
-    comp_t Comparable<Image>::Compare<Image>(Image const && other) const
-    {
-        return (Comparable<char const *>(this->Object.Name)).Compare(other.Name);
-    }
+    #define GET_IMAGE_NAME(img) img.Name
 
-    template<> template<>
-    comp_t Comparable<Image>::Compare<char const *>(char const * const & other) const
-    {
-        return (Comparable<char const *>(this->Object.Name)).Compare(other);
-    }
-    template<> template<>
-    comp_t Comparable<Image>::Compare<char const *>(char const * const && other) const
-    {
-        return (Comparable<char const *>(this->Object.Name)).Compare(other);
-    }
+    COMP_FORWARD_SINGLE(Image, char const *, GET_IMAGE_NAME)
+
+    COMP_FORWARD_TWO_WAY(Image, char const *, char const *, char const *, GET_IMAGE_NAME, MCATS1)
+    COMP_FORWARD_TWO_WAY(Image, char *, char const *, char *, GET_IMAGE_NAME, MCATS1)
 }}
 
 /******************

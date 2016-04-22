@@ -37,82 +37,38 @@
     thorough explanation regarding other files.
 */
 
-#include <utils/comparables.hpp>
+#include <utils/comparisons.hpp>
 #include <string.h>
 
 namespace Beelzebub { namespace Utils
 {
+    //  Comparison by integral subtraction
+
+    #define COMP_INT_IMPL(a, b) return static_cast<comp_t>(a) - static_cast<comp_t>(b);
+
     #define COMP_INT_1(TThis) \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TThis>(TThis const & other) const \
-    { \
-        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TThis>(TThis const && other) const \
-    { \
-        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
-    }
+        COMP_IMPL(TThis, TThis, COMP_INT_IMPL)
 
     #define COMP_INT_2(TThis, TOther) \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TOther>(TOther const & other) const \
-    { \
-        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TOther>(TOther const && other) const \
-    { \
-        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TOther>::Compare<TThis>(TThis const & other) const \
-    { \
-        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TOther>::Compare<TThis>(TThis const && other) const \
-    { \
-        return static_cast<comp_t>(this->Object) - static_cast<comp_t>(other); \
-    }
+        COMP_IMPL(TThis, TOther, COMP_INT_IMPL) \
+        COMP_IMPL(TOther, TThis, COMP_INT_IMPL)
 
-#define COMP_INT(...) GET_MACRO2(__VA_ARGS__, COMP_INT_2, COMP_INT_1)(__VA_ARGS__)
+    #define COMP_INT(...) GET_MACRO2(__VA_ARGS__, COMP_INT_2, COMP_INT_1)(__VA_ARGS__)
+
+    //  Comparison covered by operator implementations
+
+    #define COMP_COVER_IMPL(a, b) return (a == b) ? 0 : ((a < b) ? -1 : 1);
 
     #define COMP_COVER_1(TThis) \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TThis>(TThis const & other) const \
-    { \
-        return (this->Object == other) ? 0 : ((this->Object < other) ? -1 : 1); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TThis>(TThis const && other) const \
-    { \
-        return (this->Object == other) ? 0 : ((this->Object < other) ? -1 : 1); \
-    }
+        COMP_IMPL(TThis, TThis, COMP_COVER_IMPL)
 
     #define COMP_COVER_2(TThis, TOther) \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TOther>(TOther const & other) const \
-    { \
-        return (this->Object == other) ? 0 : ((this->Object < other) ? -1 : 1); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TOther>(TOther const && other) const \
-    { \
-        return (this->Object == other) ? 0 : ((this->Object < other) ? -1 : 1); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TOther>::Compare<TThis>(TThis const & other) const \
-    { \
-        return (this->Object == other) ? 0 : ((this->Object < other) ? -1 : 1); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TOther>::Compare<TThis>(TThis const && other) const \
-    { \
-        return (this->Object == other) ? 0 : ((this->Object < other) ? -1 : 1); \
-    }
+        COMP_IMPL(TThis, TOther, COMP_COVER_IMPL) \
+        COMP_IMPL(TOther, TThis, COMP_COVER_IMPL)
 
-#define COMP_COVER(...) GET_MACRO2(__VA_ARGS__, COMP_COVER_2, COMP_COVER_1)(__VA_ARGS__)
+    #define COMP_COVER(...) GET_MACRO2(__VA_ARGS__, COMP_COVER_2, COMP_COVER_1)(__VA_ARGS__)
+
+    //  Comparison of integral types with themselves.
 
     COMP_INT(char)
     COMP_INT(signed char)
@@ -129,6 +85,8 @@ namespace Beelzebub { namespace Utils
 
     COMP_COVER(long long)
     COMP_COVER(unsigned long long)
+
+    //  Comparison of integral types with other types.
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -218,56 +176,82 @@ namespace Beelzebub { namespace Utils
 
     COMP_COVER(long long, unsigned long long)
 
+    //  Comparison of floating point types with themselves.
+
     COMP_COVER(float)
     COMP_COVER(double)
     COMP_COVER(long double)
+
+    //  Comparison of floating point types with other types.
 
     COMP_COVER(float, double)
     COMP_COVER(float, long double)
 
     COMP_COVER(double, long double)
 
+    //  Comparisons of floating point types with integral types.
+
+    COMP_COVER(float, char)
+    COMP_COVER(float, signed char)
+    COMP_COVER(float, unsigned char)
+
+    COMP_COVER(float, short)
+    COMP_COVER(float, unsigned short)
+
+    COMP_COVER(float, int)
+    COMP_COVER(float, unsigned int)
+
+    COMP_COVER(float, long)
+    COMP_COVER(float, unsigned long)
+
+    COMP_COVER(float, long long)
+    COMP_COVER(float, unsigned long long)
+
+    COMP_COVER(double, char)
+    COMP_COVER(double, signed char)
+    COMP_COVER(double, unsigned char)
+
+    COMP_COVER(double, short)
+    COMP_COVER(double, unsigned short)
+
+    COMP_COVER(double, int)
+    COMP_COVER(double, unsigned int)
+
+    COMP_COVER(double, long)
+    COMP_COVER(double, unsigned long)
+
+    COMP_COVER(double, long long)
+    COMP_COVER(double, unsigned long long)
+
+    COMP_COVER(long double, char)
+    COMP_COVER(long double, signed char)
+    COMP_COVER(long double, unsigned char)
+
+    COMP_COVER(long double, short)
+    COMP_COVER(long double, unsigned short)
+
+    COMP_COVER(long double, int)
+    COMP_COVER(long double, unsigned int)
+
+    COMP_COVER(long double, long)
+    COMP_COVER(long double, unsigned long)
+
+    COMP_COVER(long double, long long)
+    COMP_COVER(long double, unsigned long long)
+
 #pragma GCC diagnostic pop
 
+    //  Comparison of strings.
+
+    #define COMP_STR_IMPL(a, b) return strcmp(const_cast<char const *>(a) \
+                                            , const_cast<char const *>(b));
+
     #define COMP_STR_1(TThis) \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TThis>(TThis const & other) const \
-    { \
-        return strcmp(const_cast<char const *>(this->Object) \
-                    , const_cast<char const *>(other       )); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TThis>(TThis const && other) const \
-    { \
-        return strcmp(const_cast<char const *>(this->Object) \
-                    , const_cast<char const *>(other       )); \
-    }
+        COMP_IMPL(TThis, TThis, COMP_STR_IMPL)
 
     #define COMP_STR_2(TThis, TOther) \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TOther>(TOther const & other) const \
-    { \
-        return strcmp(const_cast<char const *>(this->Object) \
-                    , const_cast<char const *>(other       )); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TThis>::Compare<TOther>(TOther const && other) const \
-    { \
-        return strcmp(const_cast<char const *>(this->Object) \
-                    , const_cast<char const *>(other       )); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TOther>::Compare<TThis>(TThis const & other) const \
-    { \
-        return strcmp(const_cast<char const *>(this->Object) \
-                    , const_cast<char const *>(other       )); \
-    } \
-    template<> template<> \
-    comp_t Comparable<TOther>::Compare<TThis>(TThis const && other) const \
-    { \
-        return strcmp(const_cast<char const *>(this->Object) \
-                    , const_cast<char const *>(other       )); \
-    }
+        COMP_IMPL(TThis, TOther, COMP_STR_IMPL) \
+        COMP_IMPL(TOther, TThis, COMP_STR_IMPL)
 
     #define COMP_STR(...) GET_MACRO2(__VA_ARGS__, COMP_STR_2, COMP_STR_1)(__VA_ARGS__)
 
