@@ -442,47 +442,11 @@ namespace Beelzebub { namespace Utils
         return testAllocator.DeallocateObject(node);
     }
 
-    template<>
-    comp_t Compare<TestPayload, TestPayload>(TestPayload const & a, TestPayload const & b)
-    {
-        return Compare<int, int>(a.Key, b.Key);
-    }
-    template<>
-    comp_t Compare<TestPayload, TestPayload>(TestPayload const & a, TestPayload const && b)
-    {
-        return Compare<int, int>(a.Key, b.Key);
-    }
-    template<>
-    comp_t Compare<TestPayload, TestPayload>(TestPayload const && a, TestPayload const & b)
-    {
-        return Compare<int, int>(a.Key, b.Key);
-    }
-    template<>
-    comp_t Compare<TestPayload, TestPayload>(TestPayload const && a, TestPayload const && b)
-    {
-        return Compare<int, int>(a.Key, b.Key);
-    }
 
-    template<>
-    comp_t Compare<TestPayload, int>(TestPayload const & a, int const & b)
-    {
-        return Compare<int, int>(a.Key, b);
-    }
-    template<>
-    comp_t Compare<TestPayload, int>(TestPayload const & a, int const && b)
-    {
-        return Compare<int, int>(a.Key, b);
-    }
-    template<>
-    comp_t Compare<TestPayload, int>(TestPayload const && a, int const & b)
-    {
-        return Compare<int, int>(a.Key, b);
-    }
-    template<>
-    comp_t Compare<TestPayload, int>(TestPayload const && a, int const && b)
-    {
-        return Compare<int, int>(a.Key, b);
-    }
+    #define GET_PAYLOAD_KEY(reg) reg.Range
+
+    COMP_FORWARD_SINGLE(TestPayload, int, GET_PAYLOAD_KEY)
+    COMP_FORWARD_TWO_WAY(TestPayload, int, int, int, GET_PAYLOAD_KEY, MCATS1)
 }}
 
 #endif
