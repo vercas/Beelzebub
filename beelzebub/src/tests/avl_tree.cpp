@@ -443,7 +443,7 @@ namespace Beelzebub { namespace Utils
     }
 
 
-    #define GET_PAYLOAD_KEY(reg) reg.Range
+    #define GET_PAYLOAD_KEY(pl) pl.Key
 
     COMP_FORWARD_SINGLE(TestPayload, int, GET_PAYLOAD_KEY)
     COMP_FORWARD_TWO_WAY(TestPayload, int, int, int, GET_PAYLOAD_KEY, MCATS1)
