@@ -37,36 +37,54 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
-
-#include <metaprogramming.h>
+#include <utils/comparables.hpp>
+#include <string.h>
 
 namespace Beelzebub { namespace Utils
 {
-    template<typename TObj>
-    struct Comparable
+    template<> template<>
+    inline comp_t Comparable<int>::Compare<int>(int const & other) const
     {
-        /*  Constructors  */
+        return static_cast<comp_t>(this->Object - other);
+    }
+    template<> template<>
+    inline comp_t Comparable<int>::Compare<int>(int const && other) const
+    {
+        return static_cast<comp_t>(this->Object - other);
+    }
 
-        inline Comparable(TObj const & obj) : Object(obj) { }
+    template<> template<>
+    inline comp_t Comparable<unsigned int>::Compare<unsigned int>(unsigned int const & other) const
+    {
+        return static_cast<comp_t>(this->Object - other);
+    }
+    template<> template<>
+    inline comp_t Comparable<unsigned int>::Compare<unsigned int>(unsigned int const && other) const
+    {
+        return static_cast<comp_t>(this->Object - other);
+    }
 
-        //  The rest (copy/move constructor/operators, destructor) are default.
+    template<> template<>
+    inline comp_t Comparable<char *>::Compare<char *>(char * const & other) const
+    {
+        return strcmp(const_cast<char const *>(this->Object)
+                    , const_cast<char const *>(other       ));
+    }
+    template<> template<>
+    inline comp_t Comparable<char *>::Compare<char *>(char * const && other) const
+    {
+        return strcmp(const_cast<char const *>(this->Object)
+                    , const_cast<char const *>(other       ));
+    }
 
-        /*  Operations  */
-
-        template<typename TOther>
-        comp_t Compare(TOther const & other) const;
-        template<typename TOther>
-        comp_t Compare(TOther const && other) const;
-        //  To be defined by instancing code.
-
-        /*  Conversions  */
-
-        inline operator TObj() const { return this->Object; }
-        //  Conversion is implicit.
-
-        /*  Fields  */
-
-        TObj Object;
-    };
+    template<> template<>
+    inline comp_t Comparable<char const *>::Compare<char const *>(char const * const & other) const
+    {
+        return strcmp(this->Object, other);
+    }
+    template<> template<>
+    inline comp_t Comparable<char const *>::Compare<char const *>(char const * const && other) const
+    {
+        return strcmp(this->Object, other);
+    }
 }}

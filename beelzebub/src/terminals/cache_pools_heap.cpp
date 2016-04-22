@@ -43,6 +43,7 @@
 #include <kernel.hpp>
 #include <entry.h>
 
+#include <string.h>
 #include <math.h>
 #include <debug.hpp>
 
