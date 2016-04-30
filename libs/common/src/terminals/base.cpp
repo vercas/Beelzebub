@@ -102,7 +102,7 @@ TerminalWriteResult TerminalBase::WriteAt(char const c, TerminalCoordinates cons
     return this->WriteUtf8At(&c, pos.X, pos.Y);
 }
 
-TerminalWriteResult TerminalBase::WriteAt(char const * const str, TerminalCoordinates const pos)
+TerminalWriteResult TerminalBase::WriteAt(char const * const str, TerminalCoordinates const pos, size_t len)
 {
     if (!this->Capabilities->CanOutput)
         return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
@@ -146,9 +146,9 @@ TerminalWriteResult TerminalBase::WriteAt(char const * const str, TerminalCoordi
     uint32_t i = 0, u = 0;
     //  Declared here so I know how many characters have been written.
 
-    for (; 0 != str[i]; ++i, ++u)
+    for (; 0 != str[i] && i < len; ++i, ++u)
     {
-        //  Stop at null, naturally.
+        //  Stop at null before the end, naturally.
 
         char c = str[i];
 
@@ -207,13 +207,13 @@ TerminalWriteResult TerminalBase::Write(char const c)
     return this->WriteUtf8(&c);
 }
 
-TerminalWriteResult TerminalBase::Write(char const * const str)
+TerminalWriteResult TerminalBase::Write(char const * const str, size_t len)
 {
     if (!(this->Capabilities->CanOutput
        && this->Capabilities->CanGetOutputPosition))
         return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
 
-    return this->WriteAt(str, this->GetCurrentPosition());
+    return this->WriteAt(str, this->GetCurrentPosition(), len);
 }
 
 TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
@@ -530,16 +530,22 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
     return res;
 }
 
-TerminalWriteResult TerminalBase::WriteLine(char const * const str)
+TerminalWriteResult TerminalBase::WriteLine(char const * const str, size_t len)
 {
-    TerminalWriteResult tmp = this->Write(str);
+    TerminalWriteResult tmp;
+    uint32_t cnt = 0;
 
-    if (!tmp.Result.IsOkayResult())
-        return tmp;
+    if likely(len > 0)
+    {
+        tmp = this->Write(str, len);
 
-    uint32_t cnt = tmp.Size;
+        if (!tmp.Result.IsOkayResult())
+            return tmp;
 
-    tmp = this->Write("\r\n");
+        cnt = tmp.Size;
+    }
+
+    tmp = this->Write("\r\n", 2);
 
     tmp.Size += cnt;
 

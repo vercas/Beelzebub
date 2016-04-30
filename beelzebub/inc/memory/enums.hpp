@@ -114,6 +114,8 @@ namespace Beelzebub { namespace Memory
         //  allocation of physical memory will be performed now or on demand.
         //  Any MemoryFlags specified are ignored.
         Reserve              = 0x00000000,
+        //  The pages are to be used by the kernel.
+        Used                 = 0x40000000,
         //  The physical pages will be allocated immediately.
         Commit               = 0x80000000,
         //  No physical pages will be allocated until actually used.
@@ -126,12 +128,15 @@ namespace Beelzebub { namespace Memory
         Share                = 0x01000000,
         //  A thread's stack.
         ThreadStack          = 0x02000000,
+        //  Part of the runtime.
+        Runtime              = 0x03000000,
 
         //  Nothing, waiting to be used.
-        Free                 = 0x03000000,
+        Free                 = 0x0F000000,
 
         PurposeMask          = 0x0F000000,
         StrategyMask         = 0xF0000000,
+        UniquenessMask       = 0x0000F000,
     };
 
     ENUMOPS(MemoryAllocationOptions, uint32_t)
@@ -149,4 +154,17 @@ namespace Beelzebub { namespace Memory
     };
 
     ENUMOPS(PageFaultFlags, uint8_t)
+
+    /**
+     *  Represents flags to check memory for.
+     */
+    enum class MemoryCheckType
+    {
+        Readable = 0x0,
+        Writable = 0x1,
+        Free     = 0x2,
+        Userland = 0x4,
+    };
+
+    ENUMOPS(MemoryCheckType)
 }}

@@ -96,33 +96,26 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
     if (0 != (phdr.Flags & ElfProgramHeaderFlags::Writable))
         pageFlags |= MemoryFlags::Writable;
 
+    Process * proc = Cpu::GetProcess();
+
+    Handle res;
+
     if (0 != (pageFlags & MemoryFlags::Writable) || phdr.VSize != phdr.PSize)
     {
-        pageFlags |= MemoryFlags::Writable;
+        if likely(0 != (pageFlags & MemoryFlags::Writable))
+            pageFlags |= MemoryFlags::Writable;
 
-        for (/* nothing */; vaddr < segVaddrEnd; vaddr += PageSize)
+        res = Vmm::AllocatePages(proc
+            , (phdr.VSize + PageSize - 1) / PageSize
+            , MemoryAllocationOptions::Commit  | MemoryAllocationOptions::VirtualUser
+            | MemoryAllocationOptions::Runtime | MemoryAllocationOptions::Permanent
+            , pageFlags, vaddr);
+
+        assert_or(res.IsOkayResult()
+            , "Failed to allocate writable ELF segment %Xp at %Xp (%us pages): %H."
+            , &phdr, vaddr, (phdr.VSize + PageSize - 1) / PageSize, res)
         {
-            PageDescriptor * desc = nullptr;
-            paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
-
-            assert_or(paddr != nullpaddr && desc != nullptr
-                , "Unable to allocate a physical page for mapping writable ELF segment %Xp!"
-                , &phdr)
-            {
-                goto rollbackMapping;
-            }
-
-            Handle res = Vmm::MapPage(Cpu::GetProcess(), vaddr, paddr, pageFlags, desc);
-
-            assert_or(res.IsOkayResult()
-                , "Failed to map page at %Xp (%XP) for mapping writable ELF segment %Xp: %H."
-                , vaddr, paddr, &phdr, res)
-            {
-                Cpu::GetData()->DomainDescriptor->PhysicalAllocator->FreePageAtAddress(paddr);
-                //  First free the page that was allocated for this vaddr. :(
-
-                goto rollbackMapping;
-            }
+            return false;
         }
 
         memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
@@ -134,13 +127,26 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
     }
     else
     {
+        res = Vmm::AllocatePages(proc
+            , (phdr.VSize + PageSize - 1) / PageSize
+            , MemoryAllocationOptions::Used    | MemoryAllocationOptions::VirtualUser
+            | MemoryAllocationOptions::Runtime | MemoryAllocationOptions::Permanent
+            , pageFlags, vaddr);
+
+        assert_or(res.IsOkayResult()
+            , "Failed to allocate non-writable ELF segment %Xp at %Xp (%us pages): %H."
+            , &phdr, vaddr, (phdr.VSize + PageSize - 1) / PageSize, res)
+        {
+            return false;
+        }
+
         vaddr_t imgVaddr = img + RoundDown(phdr.Offset, PageSize);
 
         for (/* nothing */; vaddr < segVaddrEnd; vaddr += PageSize, imgVaddr += PageSize)
         {
             paddr_t paddr;
 
-            Handle res = Vmm::Translate(Cpu::GetProcess(), imgVaddr, paddr);
+            res = Vmm::Translate(proc, imgVaddr, paddr);
 
             assert_or(res.IsOkayResult() && paddr != nullpaddr
                 , "Failed to retrieve physical address at %Xp for mapping non-writable ELF segment %Xp: %H."
@@ -149,7 +155,7 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
                 goto rollbackMapping;
             }
 
-            res = Vmm::MapPage(Cpu::GetProcess(), vaddr, paddr, pageFlags);
+            res = Vmm::MapPage(proc, vaddr, paddr, pageFlags);
 
             assert_or(res.IsOkayResult()
                 , "Failed to map page at %Xp (%XP) for mapping non-writable ELF segment %Xp: %H."
@@ -171,12 +177,14 @@ rollbackMapping:
     {
         vaddr -= PageSize;
 
-        Handle res = Vmm::UnmapPage(Cpu::GetProcess(), vaddr);
+        Handle res = Vmm::UnmapPage(proc, vaddr);
 
         ASSERT(res.IsOkayResult()
             , "Failed to unmap page at %Xp for unrolling ELF segment %Xp: %H."
             , vaddr, &phdr, res);
     } while (vaddr > segVaddr);
+
+    Vmm::FreePages(proc, segVaddr, (phdr.VSize + PageSize - 1) / PageSize);
 
     return false;
 }

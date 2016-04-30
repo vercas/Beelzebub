@@ -37,26 +37,33 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <syscalls/memory.h>
+#include <syscalls.h>
 
-#include <terminals/base.hpp>
+using namespace Beelzebub;
 
-namespace Beelzebub { namespace Terminals
+handle_t Beelzebub::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opts)
 {
-    /**
-     *  <summary>A terminal which outputs to kernel debug print.</summary>
-     */
-    class DebugTerminal : public TerminalBase
-    {
-        /*  Constructors  */
+    if unlikely(addr % PageSize != 0 || size % PageSize != 0)
+        return HandleResult::AlignmentFailure;
+    //  The kernel will also perform this check.
 
-    public:
-        DebugTerminal();
+    if unlikely((addr + size) < addr)
+        return HandleResult::ArgumentOutOfRange;
 
-        /*  Writing  */
+    return PerformSyscall3(SyscallSelection::MemoryRequest
+        , reinterpret_cast<void *>(addr), (uintptr_t)size, (uintptr_t)(int)opts);
+}
 
-    public:
-        virtual TerminalWriteResult WriteUtf8(char const * const c) override;
-        virtual TerminalWriteResult Write(char const * const str) override;
-    };
-}}
+handle_t Beelzebub::MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t opts)
+{
+    if unlikely(addr % PageSize != 0 || size % PageSize != 0)
+        return HandleResult::AlignmentFailure;
+    //  Ditto.
+
+    if unlikely((addr + size) < addr)
+        return HandleResult::ArgumentOutOfRange;
+
+    return PerformSyscall3(SyscallSelection::MemoryRelease
+        , reinterpret_cast<void *>(addr), (uintptr_t)size, (uintptr_t)(int)opts);
+}

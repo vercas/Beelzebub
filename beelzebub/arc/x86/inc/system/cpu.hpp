@@ -102,6 +102,8 @@ static __forceinline type MCATS2(Get, regu)()                        \
 
 namespace Beelzebub { namespace System
 {
+    typedef uint16_t   seg_t; //  Segment register.
+
     /**
      *  The data available to an individual CPU core.
      */
@@ -141,7 +143,9 @@ namespace Beelzebub { namespace System
     public:
         /*  Data  */
 
-        // static CpuData Data asm("%gs:0");
+#ifdef __SEG_GS_CPP
+        static constexpr CpuData __seg_gs * const Data = nullptr;
+#endif
 
         /*  Constructor(s)  */
 
@@ -194,6 +198,32 @@ namespace Beelzebub { namespace System
 
         /*  CPU-specific data  */
 
+#ifdef __SEG_GS_CPP
+        static __forceinline CpuData * GetData()
+        {
+            return Data->SelfPointer;
+        }
+
+        static __forceinline Execution::Thread * GetThread()
+        {
+            return &(Data->ActiveThread);
+        }
+
+        static __forceinline Execution::Thread * SetThread(Execution::Thread const * val)
+        {
+            return Data->ActiveThread = val;
+        }
+
+        static __forceinline Execution::Process * GetProcess()
+        {
+            return &(Data->ActiveProcess);
+        }
+
+        static __forceinline Execution::Process * SetProcess(Execution::Process const * val)
+        {
+            return Data->ActiveProcess = val;
+        }
+#else
         static __forceinline CpuData * GetData()
         {
             return reinterpret_cast<CpuData *>(CpuInstructions::GsGetPointer(
@@ -230,5 +260,6 @@ namespace Beelzebub { namespace System
                 reinterpret_cast<uintptr_t>(val)
             ));
         }
+#endif
     };
 }}

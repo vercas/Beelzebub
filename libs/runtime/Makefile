@@ -15,7 +15,7 @@ all:
 PROJ_SUBDIR	:= libs/runtime
 PREFIX2		:= ./../..
 PREFIX		:= ./../../build
-INC_COMMON	:= ./../../include
+INC_COMMON	:= ./../../sysheaders
 
 # Local directories
 SRC_DIR		:= ./src
@@ -46,9 +46,9 @@ include ../../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_DYNAMIC_LIBRARY 
-GCCFLAGS	+= -ffreestanding -Wall -fno-omit-frame-pointer 
-GCCFLAGS	+= -O3 -flto -nodefaultlibs -pipe -fPIC -lgcc -static-libgcc 
-GCCFLAGS	+= --sysroot=$(SYSROOT)
+GCCFLAGS	+= -ffreestanding -Wall 
+GCCFLAGS	+= -O3 -flto -nodefaultlibs -pipe -fPIC -static-libgcc 
+GCCFLAGS	+= --sysroot=$(SYSROOT) 
 
 # C/C++ options
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
@@ -59,10 +59,9 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 
 # Linker options, with optimization
 LOFLAGS		:= -shared -Wl,-z,max-page-size=0x1000 -fuse-linker-plugin 
-LOFLAGS		+= -ffreestanding -Wall -fno-omit-frame-pointer 
-LOFLAGS		+= -O3 -flto=jobserver -nodefaultlibs -pipe -fPIC -lgcc -static-libgcc 
+LOFLAGS		+= -ffreestanding -Wall -Wl,-Bsymbolic 
+LOFLAGS		+= -O3 -flto=jobserver -nodefaultlibs -pipe -fPIC -static-libgcc 
 LOFLAGS		+= --sysroot=$(SYSROOT) 
-LOFLAGS		+= -Wl,-Bsymbolic 
 
 # Strip options
 STRIPFLAGS	:= -s 

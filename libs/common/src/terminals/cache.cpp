@@ -108,7 +108,7 @@ CacheTerminal::CacheTerminal(AcquireCharPoolFunc const acquire
 
 /*  Writing  */
 
-TerminalWriteResult CacheTerminal::InternalWrite(char const * const str)
+TerminalWriteResult CacheTerminal::InternalWrite(char const * const str, size_t inLen)
 {
     if unlikely(this->AcquirePool == nullptr)
         return {HandleResult::ObjectDisposed, 0U, InvalidCoordinates};
@@ -116,7 +116,7 @@ TerminalWriteResult CacheTerminal::InternalWrite(char const * const str)
     if unlikely(str == nullptr)
         return {HandleResult::ArgumentNull, 0U, InvalidCoordinates};
 
-    size_t const len = strlen(str);
+    size_t const len = Minimum(strlen(str), inLen);
     size_t written = 0, left = len;
 
     if unlikely(len == 0)
@@ -220,30 +220,26 @@ copyIntoPool:
 
 TerminalWriteResult CacheTerminal::WriteUtf8(const char * c)
 {
+    size_t i = 1;
     char temp[7] = "\0\0\0\0\0\0";
     temp[0] = *c;
     //  6 bytes + null terminator in UTF-8 character.
 
     if ((*c & 0xC0) == 0xC0)
-    {
-        size_t i = 1;
-
         do
         {
             temp[i] = c[i];
 
             ++i;
         } while ((c[i] & 0xC0) == 0x80 && i < 7);
-
         //  This copies the remainder of the bytes, up to 6.
-    }
 
-    return this->InternalWrite(temp);
+    return this->InternalWrite(temp, i);
 }
 
-TerminalWriteResult CacheTerminal::Write(const char * const str)
+TerminalWriteResult CacheTerminal::Write(const char * const str, size_t len)
 {
-    return this->InternalWrite(str);
+    return this->InternalWrite(str, len);
 }
 
 /*  Flushing & Cleanup  */

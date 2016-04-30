@@ -39,6 +39,8 @@
 
 #include <syscalls.kernel.hpp>
 
+#include <syscalls/memory.h>
+
 #include <terminals/base.hpp>
 
 #include <memory/vmm.hpp>
@@ -48,42 +50,61 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::Syscalls;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * const arg1
-                              , uintptr_t const arg2, uintptr_t const arg3
-                              , uintptr_t const arg4, uintptr_t const arg5)
+Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * arg1
+                              , uintptr_t arg2, uintptr_t arg3
+                              , uintptr_t arg4, uintptr_t arg5)
 {
     switch (selector)
     {
     case SyscallSelection::DebugPrint:
-        if (arg2 == 0)
-            return Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1)).Result;
-        else if (arg2 < 0x0000800000000000ULL && (arg2 & 0x3) == 0)
         {
-            //  The 2nd argument must be in the userland memory region and 4-byte aligned.
-
-            MemoryFlags mf = MemoryFlags::None;
-            Handle hRes = Vmm::GetPageFlags(Cpu::GetProcess(), arg2, mf);
-
-            if unlikely(!hRes.IsOkayResult())
-                return hRes;
-            //  No flags retrieved.
-
-            if ((MemoryFlags::Writable | MemoryFlags::Userland) != (mf & (MemoryFlags::Writable | MemoryFlags::Userland)))
+            if (arg2 > (1 << 16))
                 return HandleResult::ArgumentOutOfRange;
-            //  The pointer must be within a writable userland page!
 
-            uint32_t * const sizePtr = reinterpret_cast<uint32_t *>(arg2);
-            
-            TerminalWriteResult twRes = Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1));
+            Handle res = Vmm::CheckMemoryRegion(nullptr
+                , reinterpret_cast<uintptr_t>(arg1), arg2
+                , MemoryCheckType::Userland | MemoryCheckType::Readable);
 
-            *sizePtr = twRes.Size;
-            return twRes.Result;
+            assert(res.IsOkayResult()
+                , "Debug print string failure: %H%n"
+                  "%Xp %up: %s%n"
+                , res, arg1, arg2, arg1);
+
+            if unlikely(!res.IsOkayResult())
+                return res;
+
+            if (arg3 == 0)
+                return Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1), arg2).Result;
+            else if (0 == (arg3 & 0x3))
+            {
+                //  The 3rd argument must be in the userland memory region and 4-byte aligned.
+
+                res = Vmm::CheckMemoryRegion(nullptr, arg3, 4
+                    , MemoryCheckType::Userland | MemoryCheckType::Writable);
+
+                if unlikely(!res.IsOkayResult())
+                    return res;
+
+                uint32_t * const sizePtr = reinterpret_cast<uint32_t *>(arg3);
+                
+                TerminalWriteResult twRes = Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1), arg2);
+
+                *sizePtr = twRes.Size;
+                return twRes.Result;
+            }
+            else
+                return HandleResult::ArgumentOutOfRange;
         }
-        else
-            return HandleResult::ArgumentOutOfRange;
+
+    case SyscallSelection::MemoryRequest:
+        return MemoryRequest(reinterpret_cast<uintptr_t>(arg1), (size_t)arg2, (mem_req_opts_t)arg3);
+
+    case SyscallSelection::MemoryRelease:
+        return MemoryRelease(reinterpret_cast<uintptr_t>(arg1), (size_t)arg2, (mem_rel_opts_t)arg3);
 
     default:
         return HandleResult::SyscallSelectionInvalid;

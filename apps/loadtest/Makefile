@@ -15,7 +15,7 @@ all:
 PROJ_SUBDIR	:= apps/loadtest
 PREFIX2		:= ./../..
 PREFIX		:= ./../../build
-INC_COMMON	:= ./../../include
+INC_COMMON	:= ./../../sysheaders
 
 # Local directories
 SRC_DIR		:= ./src
@@ -34,7 +34,7 @@ include ../../Beelzebub.mk
 BUILD_DIR			:= $(BUILD_HOST)/$(ARC)
 APP_BIN				:= loadtest.exe
 APP_PATH			:= $(BUILD_HOST)/$(APP_BIN)
-APP_INSTALL_DIR		:= $(PREFIX)/bin
+APP_INSTALL_DIR		:= $(SYSROOT)/apps
 APP_INSTALL_PATH	:= $(APP_INSTALL_DIR)/$(APP_BIN)
 
 ################################################################################

@@ -40,17 +40,10 @@
 #pragma once
 //  Just prevent multiple inclusions.
 
-#ifdef __cplusplus
-#define Handle_t Beelzebub::Handle
-#else
-#define Handle_t union Handle
-#define SyscallSelection enum SYSCALLS
-#endif
-
-inline Handle_t PerformSyscall5(SyscallSelection selection, void * arg1
+inline handle_t PerformSyscall5(syscall_selection_t selection, void * arg1
     , uintptr_t arg2, uintptr_t arg3, uintptr_t arg4, uintptr_t arg5)
 {
-    Handle_t res;
+    handle_t res;
 
     register uintptr_t r10 asm("r10") = arg3;
     register uintptr_t r8  asm("r8" ) = arg4;
@@ -65,10 +58,10 @@ inline Handle_t PerformSyscall5(SyscallSelection selection, void * arg1
     return res;
 }
 
-inline Handle_t PerformSyscall4(SyscallSelection selection, void * arg1
+inline handle_t PerformSyscall4(syscall_selection_t selection, void * arg1
     , uintptr_t arg2, uintptr_t arg3, uintptr_t arg4)
 {
-    Handle_t res;
+    handle_t res;
 
     register uintptr_t r10 asm("r10") = arg3;
     register uintptr_t r8  asm("r8" ) = arg4;
@@ -82,10 +75,10 @@ inline Handle_t PerformSyscall4(SyscallSelection selection, void * arg1
     return res;
 }
 
-inline Handle_t PerformSyscall3(SyscallSelection selection, void * arg1
+inline handle_t PerformSyscall3(syscall_selection_t selection, void * arg1
     , uintptr_t arg2, uintptr_t arg3)
 {
-    Handle_t res;
+    handle_t res;
 
     register uintptr_t r10 asm("r10") = arg3;
 
@@ -98,10 +91,10 @@ inline Handle_t PerformSyscall3(SyscallSelection selection, void * arg1
     return res;
 }
 
-inline Handle_t PerformSyscall2(SyscallSelection selection, void * arg1
+inline handle_t PerformSyscall2(syscall_selection_t selection, void * arg1
     , uintptr_t arg2)
 {
-    Handle_t res;
+    handle_t res;
 
     asm volatile ( "syscall \n\t"
                  : "=a"(res), "+D"(selection), "+S"(arg1), "+d"(arg2)
@@ -111,9 +104,9 @@ inline Handle_t PerformSyscall2(SyscallSelection selection, void * arg1
     return res;
 }
 
-inline Handle_t PerformSyscall1(SyscallSelection selection, void * arg1)
+inline handle_t PerformSyscall1(syscall_selection_t selection, void * arg1)
 {
-    Handle_t res;
+    handle_t res;
 
     asm volatile ( "syscall \n\t"
                  : "=a"(res), "+D"(selection), "+S"(arg1)
@@ -123,9 +116,9 @@ inline Handle_t PerformSyscall1(SyscallSelection selection, void * arg1)
     return res;
 }
 
-inline Handle_t PerformSyscall0(SyscallSelection selection)
+inline handle_t PerformSyscall0(syscall_selection_t selection)
 {
-    Handle_t res;
+    handle_t res;
 
     asm volatile ( "syscall \n\t"
                  : "=a"(res), "+D"(selection)
@@ -135,9 +128,3 @@ inline Handle_t PerformSyscall0(SyscallSelection selection)
 
     return res;
 }
-
-#undef Handle_t
-
-#ifndef __cplusplus
-#undef SyscallSelection
-#endif

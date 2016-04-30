@@ -99,7 +99,7 @@ union IdtGate
         return (uintptr_t)this->OffsetLow | (this->OffsetHigh & 0xFFFFFFFFFFFF0000);
     }
 
-    inline auto SetOffset(const uintptr_t val)
+    inline auto SetOffset(const uintptr_t val) -> decltype(*this)
     {
         this->OffsetLow  =  val              & 0x000000000000FFFF;
         this->OffsetHigh = (val              & 0xFFFFFFFFFFFF0000)
@@ -115,7 +115,7 @@ union IdtGate
         return this->Segment;
     }
 
-    inline auto SetSegment(const uint16_t val)
+    inline auto SetSegment(const uint16_t val) -> decltype(*this)
     {
         this->Segment = val;
 

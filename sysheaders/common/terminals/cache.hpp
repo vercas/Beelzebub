@@ -117,11 +117,11 @@ namespace Beelzebub { namespace Terminals
         /*  Writing  */
 
     private:
-        __internal TerminalWriteResult InternalWrite(char const * const str);
+        __internal TerminalWriteResult InternalWrite(char const * const str, size_t inLen);
 
     public:
         virtual TerminalWriteResult WriteUtf8(char const * const c) override;
-        virtual TerminalWriteResult Write(char const * const str) override;
+        virtual TerminalWriteResult Write(char const * const str, size_t len = SIZE_MAX) override;
 
         /*  Flushing & Cleanup  */
 

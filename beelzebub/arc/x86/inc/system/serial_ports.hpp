@@ -96,7 +96,7 @@ namespace Beelzebub { namespace System
 
         //  Writes a null-terminated string to the serial port.
         //  This method awaits.
-        size_t WriteNtString(char const * const str) const;
+        size_t WriteNtString(char const * const str, size_t len = SIZE_MAX) const;
 
         //  Writes a unicode character.
         //  This method awaits.
@@ -162,7 +162,7 @@ namespace Beelzebub { namespace System
 
         //  Writes a null-terminated string to the serial port.
         //  This method awaits.
-        size_t WriteNtString(char const * const str);
+        size_t WriteNtString(char const * const str, size_t len = SIZE_MAX);
 
         //  Writes a unicode character.
         //  This method awaits.

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,24 +37,18 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+typedef uint64_t paddr_t; //  Physical address.
+typedef uint64_t vaddr_t; //  Virtual (linear) address.
+typedef uint64_t psize_t; //  Physical size.
+typedef uint64_t vsize_t; //  Virtual (linear) address.
+typedef uint64_t pgind_t; //  Index of a memory page.
+typedef uint64_t  creg_t; //  Control register.
 
-#include <handles.h>
+typedef  int64_t ssize_t;
 
-#define ENUM_SYSCALLSELECTION(ENUMINST) \
-    /*  Will simply print a value on the debug terminal. */ \
-    ENUMINST(DebugPrint, SYSCALL_DEBUG_PRINT, 0, "Debug Print") \
+#define _GAS_DATA_POINTER " .quad "
 
-#ifdef __cplusplus
-enum class SyscallSelection
-#else
-enum SYSCALLS
-#endif
-{
-    ENUM_SYSCALLSELECTION(ENUMINST_VAL)
-};
-
-//  Yes, this is an enum class in C++ and a standard enum in C.
-//  The C++ enum is also in the global namespace.
-
-#include <syscall.inc>
+#define EXTEND_POINTER(ptr) do { \
+    if (0 != ((ptr) & 0x0000800000000000UL)) \
+        ptr |= 0xFFFF000000000000UL; \
+} while (false)

@@ -253,7 +253,9 @@ endif
 KERNEL_BIN				:= $(KERNEL_NAME).$(ARC).bin
 
 # Sysroot
-SYSROOT					:= $(PREFIX)/sysroot.$(ARC)
+ifneq (,$(ARC))
+	SYSROOT				:= $(PREFIX)/sysroot.$(ARC)
+endif
 
 # Installation
 KERNEL_INSTALL_DIR		:= $(PREFIX)/bin

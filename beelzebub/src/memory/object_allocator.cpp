@@ -46,7 +46,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 
-#define OBJA_COOK_TYPE 		int_cookie_t
+#define OBJA_COOK_TYPE 		Beelzebub::System::int_cookie_t
 
 #define OBJA_POOL_TYPE      ObjectPoolBase
 #define OBJA_ALOC_TYPE      ObjectAllocator

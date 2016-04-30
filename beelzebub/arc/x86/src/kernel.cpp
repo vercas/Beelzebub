@@ -51,6 +51,7 @@
 #include <system/fpu.hpp>
 #include <execution/thread_init.hpp>
 #include <execution/extended_states.hpp>
+#include <execution/runtime64.hpp>
 
 #include <system/exceptions.hpp>
 #include <system/interrupt_controllers/pic.hpp>
@@ -432,6 +433,36 @@ void Beelzebub::Main()
             ASSERT(false, "Failed to initialize modules: %H"
                 , res);
         }
+
+        //  Initialize the modules loaded with the kernel.
+        //  Mostly common.
+        MainTerminal->Write("[....] Initializing runtime libraries...");
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        res = Runtime64::Initialize();
+
+        if (res.IsOkayResult())
+            MainTerminal->Write(" 64-bit...");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize 64-bit runtime: %H"
+                , res);
+        }
+#endif
+        // res = Runtime32::Initialize();
+
+        // if (res.IsOkayResult())
+        //     MainTerminal->Write(" 64-bit...");
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        // else
+        // {
+        //     MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        //     ASSERT(false, "Failed to initialize 32-bit runtime: %H"
+        //         , res);
+        // }
 
         //  Initialize the extended thread states manager.
         //  Mostly common.

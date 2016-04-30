@@ -77,27 +77,25 @@ namespace Beelzebub { namespace Utils
 
         /*  Properties and Manipulation  */
 
-        int GetHeight() const
+        int GetHeight(AvlTreeNode const * const dis)
         {
-            //  Yes, `this` can be null.
-
-            if unlikely(this == nullptr)
+            if unlikely(dis == nullptr)
                 return 0;
             else
-                return this->Height;
+                return dis->Height;
         }
 
-        int GetBalance() const
+        int GetBalance(AvlTreeNode const * const dis)
         {
-            if unlikely(this == nullptr)
+            if unlikely(dis == nullptr)
                 return 0;
             else
-                return this->Right->GetHeight() - this->Left->GetHeight();
+                return GetHeight(dis->Right) - GetHeight(dis->Left);
         }
 
         int ComputeHeight()
         {
-            return this->Height = Maximum(this->Left->GetHeight(), this->Right->GetHeight()) + 1;
+            return this->Height = Maximum(GetHeight(this->Left), GetHeight(this->Right)) + 1;
         }
 
         AvlTreeNode * FindMinimum()
@@ -154,18 +152,18 @@ namespace Beelzebub { namespace Utils
         {
             this->ComputeHeight();
 
-            int const balance = this->GetBalance();
+            int const balance = GetBalance(this);
 
             if (balance > 1)
             {
-                if (this->Right->GetBalance() < 0)
+                if (GetBalance(this->Right) < 0)
                     this->Right = this->Right->RotateRight();
 
                 return this->RotateLeft();
             }
             else if (balance < -1)
             {
-                if (this->Left->GetBalance() > 0)
+                if (GetBalance(this->Left) > 0)
                     this->Left = this->Left->RotateLeft();
 
                 return this->RotateRight();
@@ -210,7 +208,7 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        static Handle Create(Node * & node, TPayload & payload, void * cookie)
+        static Handle Create(Node * & node, TPayload const & payload, void * cookie)
         {
             Handle res = Create(node, cookie);
 
@@ -277,7 +275,7 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        static Handle Insert(TPayload & payload, Node * & node, Node * & newNode, void * cookie)
+        static Handle Insert(TPayload const & payload, Node * & node, Node * & newNode, void * cookie)
         {
             Handle res;
 
@@ -315,7 +313,7 @@ namespace Beelzebub { namespace Utils
         }
 
         template<typename TKey>
-        static Handle InsertBlank(TKey & key, Node * & node, TPayload * & payload, void * cookie)
+        static Handle InsertBlank(TKey const & key, Node * & node, TPayload * & payload, void * cookie)
         {
             Handle res;
 
@@ -466,6 +464,60 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
+        template<typename TKey, typename TPredicate>
+        static bool RemoveIf(TKey const & key, TPredicate pred, Node * & node, Node * & find)
+        {
+            if unlikely(node == nullptr)
+                return false;
+            //  Not found.
+
+            comp_t const compRes = Compare(node->Payload, key);
+            //  Note the comparison order.
+
+            bool res;
+
+            if (compRes > 0)
+                res = RemoveIf<TKey, TPredicate>(key, pred, node->Left, find);
+            else if (compRes < 0)
+                res = RemoveIf<TKey, TPredicate>(key, pred, node->Right, find);
+            else if likely(res = pred(node))
+            {
+                //  This is the node, but removal will only be done if the
+                //  predicate says so.
+
+                find = node;
+
+                if (find->Left == nullptr)
+                {
+                    if (find->Right == nullptr)
+                    {
+                        node = nullptr;
+
+                        return res;
+                    }
+
+                    node = find->Right;
+                }
+                else if (find->Right == nullptr)
+                    node = find->Left;
+                else
+                {
+                    Node * temp = RemoveMinimum(find->Right);
+
+                    temp->Left = find->Left;
+                    temp->Right = find->Right;
+                    temp->Height = find->Height;
+
+                    node = temp;
+                }
+            }
+
+            if likely(res)
+                node = node->Balance();
+
+            return res;
+        }
+
         template<typename TLambda>
         static bool IteratePreOrder(Node * const node, TLambda lambda)
         {
@@ -593,7 +645,7 @@ namespace Beelzebub { namespace Utils
             return InsertOrFind<TCover>(cover, this->Root, this->Cookie);
         }
 
-        Handle Insert(TPayload & payload)
+        Handle Insert(TPayload const & payload)
         {
             Node * temp;
 
@@ -607,7 +659,7 @@ namespace Beelzebub { namespace Utils
 
         Handle Insert(TPayload const && payload)
         {
-            TPayload dummy = payload;
+            TPayload const dummy = payload;
             Node * temp;
 
             Handle res = Insert(dummy, this->Root, temp, this->Cookie);
@@ -618,7 +670,7 @@ namespace Beelzebub { namespace Utils
             return res;
         }
 
-        Handle Insert(TPayload & payload, TPayload * & pl)
+        Handle Insert(TPayload const & payload, TPayload * & pl)
         {
             Node * temp;
 
@@ -638,7 +690,7 @@ namespace Beelzebub { namespace Utils
 
         Handle Insert(TPayload const && payload, TPayload * & pl)
         {
-            TPayload dummy = payload;
+            TPayload const dummy = payload;
             Node * temp;
 
             Handle res = Insert(dummy, this->Root, temp, this->Cookie);
@@ -729,6 +781,21 @@ namespace Beelzebub { namespace Utils
             {
                 res = node->Payload;
 
+                --this->NodeCount;
+
+                return RemoveNode(node, this->Cookie);
+            }
+        }
+
+        template<typename TKey, typename TPredicate>
+        Handle RemoveIf(TKey const & key, TPredicate pred)
+        {
+            Node * node;
+
+            if unlikely(!(RemoveIf<TKey, TPredicate>(key, pred, this->Root, node)))
+                return HandleResult::NotFound;
+            else
+            {
                 --this->NodeCount;
 
                 return RemoveNode(node, this->Cookie);

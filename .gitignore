@@ -216,6 +216,7 @@ start_vmware.bat
 start_vmware.ps1
 
 /image/grub/
+/include_
 
 beelzebub/inc/Jegudiel.d
 bochsrc.old.txt

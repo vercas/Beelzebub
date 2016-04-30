@@ -50,8 +50,8 @@ namespace Beelzebub { namespace Synchronization
         uint32_t volatile Overall;
         struct
         {
-            uint16_t Head;
-            uint16_t Tail;
+            uint16_t volatile Head;
+            uint16_t volatile Tail;
         };
 
         spinlock_t() = default;
@@ -95,6 +95,8 @@ namespace Beelzebub { namespace Synchronization
         Spinlock() = default;
         Spinlock(Spinlock const &) = delete;
         Spinlock & operator =(Spinlock const &) = delete;
+        Spinlock(Spinlock &&) = delete;
+        Spinlock & operator =(Spinlock &&) = delete;
 
         /*  Destructor  */
 

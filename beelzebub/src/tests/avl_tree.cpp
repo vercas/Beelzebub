@@ -442,7 +442,6 @@ namespace Beelzebub { namespace Utils
         return testAllocator.DeallocateObject(node);
     }
 
-
     #define GET_PAYLOAD_KEY(pl) pl.Key
 
     COMP_FORWARD_SINGLE(TestPayload, int, GET_PAYLOAD_KEY)

@@ -44,11 +44,9 @@
 namespace Beelzebub
 {
     __extern __hot __fastcall_ia32 Handle SyscallCommon(SyscallSelection const selector
-                                                      , void *    const arg1
-                                                      , uintptr_t const arg2
-                                                      , uintptr_t const arg3
-                                                      , uintptr_t const arg4
-                                                      , uintptr_t const arg5);
+                                                      , void *    arg1, uintptr_t arg2
+                                                      , uintptr_t arg3, uintptr_t arg4
+                                                      , uintptr_t arg5);
     //  A selector and 5 arguments, platform-independent.
     //  Argument 1 (2nd function argument) is the one used to point to extra
     //  data, if 5 syscall arguments are not enough.

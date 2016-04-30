@@ -1,1 +1,0 @@
-This file contains common headers to be used by the kernel as well as userland libraries and applications.

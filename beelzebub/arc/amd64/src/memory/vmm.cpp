@@ -140,7 +140,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     {
         if ((vaddr_t)cur < VmmArc::HigherHalfStart && pendingLinksMapping)
         {
-            //msg("Mapping links from %XP to %Xp. ", RoundDown((paddr_t)cur, PageSize), curLoc);
+            // msg("Mapping links from %XP to %Xp. ", RoundDown((paddr_t)cur, PageSize), curLoc);
 
             res = Vmm::MapPage(bootstrapProc, curLoc, RoundDown((paddr_t)cur, PageSize)
                 , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid
@@ -227,7 +227,7 @@ Handle Vmm::Initialize(Process * proc)
         alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
     {   //  Lock-guarded.
-        LockGuardFlexible<Spinlock<> > pml4Lg {*alienLock};
+        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
 
         Alienate(proc);
         //  So it can be accessible.
@@ -307,7 +307,7 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
         if (nonLocal && CpuDataSetUp)
             alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
-        LockGuardFlexible<Spinlock<> > pml4Lg {*alienLock};
+        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
 
         if (nonLocal)
         {
@@ -341,9 +341,9 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
 
         {   //  Lock-guarded.
 
-            if (lock) heapLock = (vaddr < VmmArc::LowerHalfEnd ? &(proc->LocalTablesLock) : &(VmmArc::KernelHeapLock));
+            if (lock) heapLock = vaddr < VmmArc::LowerHalfEnd ? &proc->LocalTablesLock : &VmmArc::KernelHeapLock;
 
-            LockGuardFlexible<Spinlock<> > heapLg {*heapLock};
+            LockGuardFlexible<Spinlock<> > heapLg {heapLock};
 
             if unlikely(!pml4p->operator[](VmmArc::GetPml4Index(vaddr)).GetPresent())
                 return HandleResult::PageUnmapped;
@@ -369,7 +369,7 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
         return HandleResult::PageMapIllegalRange;
 
     if unlikely((vaddr & (PageSize - 1)) != 0 || (paddr & (PageSize - 1)) != 0)
-        return HandleResult::PageUnaligned;
+        return HandleResult::AlignmentFailure;
 
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
@@ -389,7 +389,7 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
         if (nonLocal && CpuDataSetUp)
             alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
-        LockGuardFlexible<Spinlock<> > pml4Lg {*alienLock};
+        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
 
         if (nonLocal)
         {
@@ -428,7 +428,7 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
                     ? &(proc->LocalTablesLock)
                     : &(VmmArc::KernelHeapLock));
 
-            LockGuardFlexible<Spinlock<> > heapLg {*heapLock};
+            LockGuardFlexible<Spinlock<> > heapLg {heapLock};
 
             ind = VmmArc::GetPml4Index(vaddr);
 
@@ -698,12 +698,14 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
         RETURN(Failed);
     //  Page is present. This means this is an access (write/execute) failure.
 
+    vas->Lock.AcquireAsReader();
+
     if (vas->LastSearched != nullptr && vas->LastSearched->Contains(vaddr))
         reg = vas->LastSearched;
         //  No need to check whether anything can be allocated in the page or not.
     else
     {
-        reg = vas->FindRegion(vaddr, true);
+        reg = vas->FindRegion(vaddr);
 
         if unlikely( reg == nullptr
                  || (reg->Type & MemoryAllocationOptions::PurposeMask) == MemoryAllocationOptions::Free)
@@ -870,7 +872,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
             return HandleResult::OutOfMemory;
         }
     }
-    else // Means it'll just be reserveed.
+    else // Means it's used or it'll just be reserved.
     {
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
             return proc->Vas.Allocate(vaddr, count, flags, type);
@@ -903,10 +905,92 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
 
         return HandleResult::Okay;
     }
+}
 
+Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const count)
+{
+    return HandleResult::NotImplemented;
 }
 
 /*  Flags  */
+
+Handle Vmm::CheckMemoryRegion(Execution::Process * proc
+    , uintptr_t addr, size_t size, MemoryCheckType type)
+{
+    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
+    Memory::Vas * vas = &(proc->Vas);
+
+    if (addr >= UserlandStart && addr < UserlandEnd)
+        vas = &(proc->Vas);
+    else if (addr >= KernelStart && addr < KernelEnd)
+        return HandleResult::NotImplemented;    //  TODO: Kernel VAS
+    else
+        return HandleResult::ArgumentOutOfRange;
+
+    vaddr_t const vaddr_end = addr + size;
+
+    Handle res = HandleResult::Okay;
+
+    PointerAndSize const chkrng = {addr, size};
+    MemoryFlags const mandatoryFlags = 
+        (  0 != (type & MemoryCheckType::Writable) ? MemoryFlags::Writable : MemoryFlags::None)
+        | (0 != (type & MemoryCheckType::Userland) ? MemoryFlags::Userland : MemoryFlags::None);
+
+    MemoryRegion * reg;
+
+#define RETURN(HRES) do { res = HandleResult::HRES; goto end; } while (false)
+
+    vas->Lock.AcquireAsReader();
+
+    if (vas->LastSearched != nullptr && vas->LastSearched->Contains(addr))
+        reg = vas->LastSearched;
+        //  No need to check whether anything can be allocated in the page or not.
+    else
+    {
+    find_region:
+        reg = vas->FindRegion(addr);
+
+        if unlikely(reg == nullptr)
+            RETURN(ArgumentOutOfRange);
+
+        if unlikely((0 != (type & MemoryCheckType::Free))
+                 && (MemoryAllocationOptions::Free == (reg->Type & MemoryAllocationOptions::PurposeMask)))
+            goto next_region;
+        //  So free memory was asked for, and this is a free region. Let's move on.
+
+        if unlikely((reg->Type & MemoryAllocationOptions::StrategyMask) == MemoryAllocationOptions::Reserve)
+            RETURN(PageReserved);
+        //  Regions which are reserved cannot be accessed like this.
+    }
+
+    if unlikely((0 != (reg->Type & MemoryAllocationOptions::GuardLow ) && DoRangesIntersect(chkrng, {reg->Range.Start         , PageSize}))
+             || (0 != (reg->Type & MemoryAllocationOptions::GuardHigh) && DoRangesIntersect(chkrng, {reg->Range.End - PageSize, PageSize})))
+        RETURN(PageGuard);
+    //  Thie region overlaps a guard page.
+
+    if unlikely((reg->Flags & mandatoryFlags) != mandatoryFlags)
+        RETURN(Failed);
+
+    //  Reaching this point means this page is meant to be allocated.
+
+next_region:
+    if unlikely(vaddr_end > reg->Range.End)
+    {
+        size_t const diff = reg->Range.End - addr;
+
+        addr += diff;   //  Equivalent to addr = reg->Range.End
+        size -= diff;
+
+        goto find_region;
+    }
+
+#undef RETURN
+end:
+    vas->Lock.ReleaseAsReader();
+
+    return res;
+}
 
 Handle Vmm::GetPageFlags(Process * proc, uintptr_t const vaddr
     , MemoryFlags & flags, bool const lock)

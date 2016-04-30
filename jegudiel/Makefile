@@ -15,6 +15,7 @@ all:
 PROJ_SUBDIR	:= jegudiel
 PREFIX2		:= ./..
 PREFIX		:= ./../build
+INC_COMMON	:= ./../sysheaders
 
 # Local directories
 SOURCE_DIR	:= ./src
@@ -43,8 +44,8 @@ BTL_INSTALL_PATH	:= $(BTL_INSTALL_DIR)/$(BTL_BIN)
 include ../Toolchain.mk
 
 # Toolchain options/flags
-INCFLAGS	:= -I$(INC_DIR) -I$(PREFIX)/include
-CFLAGS		:= -m64 -ffreestanding -Wall -mcmodel=large $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0 -lgcc -static-libgcc 
+INCFLAGS	:= -I$(INC_DIR) -I$(INC_COMMON)/$(ARC) 
+CFLAGS		:= -m64 -ffreestanding -Wall -mcmodel=kernel $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0 -static-libgcc 
 ASFLAGS		:= -f elf64
 LDFLAGS		:= -z max-page-size=0x1000
 
@@ -72,14 +73,13 @@ $(ARC):
 
 ###############################
 # Install to prefix directory #
-install: $(BTL_INSTALL_PATH) $(PREFIX)/include/jegudiel.h
+install: $(BTL_INSTALL_PATH)
 	@ true
 
 ###################################
 # Uninstall from prefix directory #
 uninstall:
 	@ rm $(BTL_INSTALL_PATH)
-	@ rm $(PREFIX)/include/jegudiel.h
 
 #############################
 # Clean the build directory #
@@ -104,7 +104,6 @@ build: $(OBJECTS)
 $(BTL_INSTALL_PATH): $(BTL_PATH)
 	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(@D)
-#	@ cp $< $@
 	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
 
 ##########################
@@ -112,15 +111,6 @@ $(BTL_INSTALL_PATH): $(BTL_PATH)
 $(BTL_PATH): $(LDFILE) $(OBJECTS)
 	@ echo "/LNK/UNO:" $@
 	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $@ $(OBJECTS)
-
-####################################### OTHER OUTPUT ##########
-
-##########################################
-# Install jegudiel.h to prefix directory #
-$(PREFIX)/include/jegudiel.h: $(INC_DIR)/jegudiel.h
-	@ echo "/CPY:" $< ">" $@
-	@ mkdir -p $(PREFIX)/include
-	@ cp $< $@
 
 ####################################### NORMAL FILES ##########
 

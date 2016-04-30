@@ -117,3 +117,10 @@ struct PointerAndSize Beelzebub::IntersectMemoryRanges(struct PointerAndSize a, 
     else
         return {maxStart, minEnd - maxStart};
 }
+
+bool Beelzebub::DoRangesIntersect(struct PointerAndSize a, struct PointerAndSize b)
+{
+    return a.Start < (b.Start + b.Size) && b.Start < (a.Start + a.Size);
+    //  First range begins before the second's end, and second range begins
+    //  before the first's end. This is the definition of overlap.
+}

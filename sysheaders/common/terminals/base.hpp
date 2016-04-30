@@ -139,12 +139,12 @@ namespace Beelzebub { namespace Terminals
 
         TerminalWriteResult WriteAt(char const c, int16_t const x, int16_t const y);
         TerminalWriteResult WriteAt(char const c, TerminalCoordinates const pos);
-        virtual TerminalWriteResult WriteAt(char const * const str, TerminalCoordinates const pos);
+        virtual TerminalWriteResult WriteAt(char const * const str, TerminalCoordinates const pos, size_t len = SIZE_MAX);
 
         virtual TerminalWriteResult Write(char const c);
-        virtual TerminalWriteResult Write(char const * const str);
+        virtual TerminalWriteResult Write(char const * const str, size_t len = SIZE_MAX);
         virtual TerminalWriteResult Write(char const * const fmt, va_list args);
-        virtual TerminalWriteResult WriteLine(char const * const str);
+        virtual TerminalWriteResult WriteLine(char const * const str, size_t len = SIZE_MAX);
         __noinline __noclone __min_float TerminalWriteResult WriteFormat(char const * const fmt, ...);
 
         /*  Positioning  */
@@ -199,7 +199,7 @@ namespace Beelzebub { namespace Terminals
 
         __forceinline TerminalWriteResult WriteLine()
         {
-            return this->WriteLine("");
+            return this->WriteLine("", 0);
         }
 
         /*  Fields  */

@@ -56,8 +56,8 @@ namespace Beelzebub { namespace Synchronization
         uint32_t volatile Overall;
         struct
         {
-            uint16_t Head;
-            uint16_t Tail;
+            uint16_t volatile Head;
+            uint16_t volatile Tail;
         };
 
         spinlock_t() = default;
@@ -97,13 +97,15 @@ namespace Beelzebub { namespace Synchronization
     {
     public:
 
-        typedef int_cookie_t Cookie;
+        typedef System::int_cookie_t Cookie;
 
         /*  Constructor(s)  */
 
         SpinlockUninterruptible() = default;
         SpinlockUninterruptible(SpinlockUninterruptible const &) = delete;
         SpinlockUninterruptible & operator =(SpinlockUninterruptible const &) = delete;
+        SpinlockUninterruptible(SpinlockUninterruptible &&) = delete;
+        SpinlockUninterruptible & operator =(SpinlockUninterruptible &&) = delete;
 
         /*  Destructor  */
 
@@ -371,7 +373,8 @@ namespace Beelzebub { namespace Synchronization
     {
     public:
 
-        typedef int_cookie_t Cookie;
+        typedef System::int_cookie_t Cookie;
+        static constexpr Cookie const InvalidCookie = __int_cookie_invalid;
 
         /*  Constructor(s)  */
 

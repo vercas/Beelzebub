@@ -106,15 +106,16 @@ TerminalWriteResult SerialTerminal::WriteUtf8(const char * c)
     return {HandleResult::Okay, charBytes, InvalidCoordinates};
 }
 
-TerminalWriteResult SerialTerminal::Write(const char * const str)
+TerminalWriteResult SerialTerminal::Write(const char * const str, size_t len)
 {
-    return {HandleResult::Okay, (uint32_t)this->Port->WriteNtString(str), InvalidCoordinates};
+    return {HandleResult::Okay, (uint32_t)this->Port->WriteNtString(str, len), InvalidCoordinates};
 }
 
-TerminalWriteResult SerialTerminal::WriteLine(const char * const str)
+TerminalWriteResult SerialTerminal::WriteLine(const char * const str, size_t len)
 {
-    size_t n = this->Port->WriteNtString(str);
-    n += this->Port->WriteNtString("\r\n");
+    size_t n = likely(len > 0) ? this->Port->WriteNtString(str, len) : 0;
+
+    n += this->Port->WriteNtString("\r\n", 2);
 
     return {HandleResult::Okay, (uint32_t)n, InvalidCoordinates};
 }

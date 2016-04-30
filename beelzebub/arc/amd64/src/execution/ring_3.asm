@@ -50,18 +50,6 @@ GoToRing3_64:
     mov     es, bx
     ;   Changes the data segments to 64-bit user code.
 
-    push    rbx
-    push    rsi
-    push    qword 0x202
-    push    qword 0x2B
-    push    rdi
-
-    xor     eax, eax
-    xor     ebx, ebx
-    xor     ecx, ecx
-    xor     edx, edx
-    xor     ebp, ebp
-
     xor     r8d, r8d
     xor     r9d, r9d
     xor     r10, r10
@@ -70,6 +58,25 @@ GoToRing3_64:
     xor     r13, r13
     xor     r14, r14
     xor     r15, r15
+    ;   Get rid of information in those registers.
+
+    sub     rsi, 8
+    mov     qword [rsi], r8
+    ;   Set up proper stack alignment, and push a null return address.
+
+    push    rbx
+    push    rsi
+    push    qword 0x202
+    push    qword 0x2B
+    push    rdi
+    ;   Set up the stack for IRETQ.
+
+    xor     eax, eax
+    xor     ebx, ebx
+    xor     ecx, ecx
+    xor     edx, edx
+    xor     ebp, ebp
+;   And finish the rest of the registers.
 
     ;   RDI, RSI, RSP and RIP don't matter. They don't leak any info.
 

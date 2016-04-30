@@ -76,7 +76,7 @@
                                                                                \
         return res;                                                            \
     }                                                                          \
-    decB inline auto MCATS(Set, name)(bool const val)                          \
+    decB inline auto MCATS(Set, name)(bool const val) -> decltype(*this)       \
     {                                                                          \
         if (val)                                                               \
             asm ( "bts %[bit], %[dst] \n\t"                                    \
@@ -162,7 +162,7 @@
                                                                                \
         return res;                                                            \
     }                                                                          \
-    decB inline auto MCATS(Set, name)(bool const val)                          \
+    decB inline auto MCATS(Set, name)(bool const val) -> decltype(*this)       \
     {                                                                          \
         if (val)                                                               \
             asm("bts   %[bit], %[dst] \n\t"                                    \

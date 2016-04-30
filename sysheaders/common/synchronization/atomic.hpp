@@ -492,6 +492,8 @@ namespace Beelzebub { namespace Synchronization
         T * InnerValue;
     };
 
+#define CAST(A) (reinterpret_cast<unsigned char *>(const_cast<bool *>(A)))
+
     template<>
     struct Atomic<bool>
     {
@@ -592,7 +594,7 @@ namespace Beelzebub { namespace Synchronization
 
         inline bool FetchNot(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
-            return __atomic_fetch_xor(&this->InnerValue, true, (int)mo);
+            return __atomic_fetch_xor(CAST(&this->InnerValue), true, (int)mo);
             //  If your booleans are anything but the compiler's definition of true or false,
             //  it's not my business.
         }
@@ -601,12 +603,12 @@ namespace Beelzebub { namespace Synchronization
 
         inline bool operator &=(bool const other) volatile
         {
-            return __atomic_and_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
+            return __atomic_and_fetch(CAST(&this->InnerValue), other, (int)MemoryOrder::SeqCst);
         }
 
         inline bool operator |=(bool const other) volatile
         {
-            return __atomic_or_fetch(&this->InnerValue, other, (int)MemoryOrder::SeqCst);
+            return __atomic_or_fetch(CAST(&this->InnerValue), other, (int)MemoryOrder::SeqCst);
         }
 
         inline bool operator !() const volatile
@@ -616,7 +618,7 @@ namespace Beelzebub { namespace Synchronization
 
         inline bool NotFetch(MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
-            return __atomic_xor_fetch(&this->InnerValue, true, (int)mo);
+            return __atomic_xor_fetch(CAST(&this->InnerValue), true, (int)mo);
             //  If your booleans are anything but the compiler's definition of true or false,
             //  it's not my business.
         }
@@ -625,6 +627,8 @@ namespace Beelzebub { namespace Synchronization
 
         bool InnerValue;
     };
+
+#undef CAST
 
     typedef Atomic<int8_t>     AtomicInt8;
     typedef Atomic<int16_t>    AtomicInt16;

@@ -71,7 +71,7 @@ Handle Vas::Initialize(vaddr_t start, vaddr_t end
 /*  Operations  */
 
 Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
-    , MemoryFlags flags, MemoryAllocationOptions type)
+    , MemoryFlags flags, MemoryAllocationOptions type, bool lock)
 {
     if unlikely(this->FirstFree == nullptr)
         return HandleResult::ObjectDisposed;
@@ -93,88 +93,46 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
         ++effectivePageCnt;
     }
 
-    System::InterruptGuard<> intGuard;
-    //  Guard the rest of the scope from interrupts.
+    System::int_cookie_t cookie;
+    //  When locking, the code shan't be interrupted!
 
-    this->Lock.AcquireAsWriter();
+    if likely(lock)
+    {
+        cookie = System::Interrupts::PushEnable();
 
-    DEBUG_TERM << " <ALLOC> ";
+        this->Lock.AcquireAsWriter();
+    }
+
+    // DEBUG_TERM << " <ALLOC> ";
 
     if (vaddr == nullvaddr)
     {
         //  Null vaddr means any address is accepted.
 
-        DEBUG_TERM << " <NULL VADDR> ";
+        // DEBUG_TERM << " <NULL VADDR> ";
 
         MemoryRegion * reg = this->FirstFree;
 
         do
         {
-            DEBUG_TERM << *reg;
+            // DEBUG_TERM << *reg;
 
-            size_t regPageCnt = reg->GetPageCount();
-
-            if (regPageCnt > effectivePageCnt)
+            if (reg->GetPageCount() >= effectivePageCnt)
             {
                 //  Oh yush, this region contains more than enough pages!
 
-                DEBUG_TERM << " <BIGGER> ";
+                // DEBUG_TERM << " <BIGGER> ";
 
                 //  TODO: Implement (K)ASLR here.
                 //  For now, it allocates at the end of the space, so it doesn't
                 //  slow down future allocations in any meaningful way.
 
-                MemoryRegion * newReg = nullptr;
-                vaddr_t const newRegEnd = reg->Range.End;
-
-                res = this->Tree.Insert(MemoryRegion(
-                    reg->Range.End -= effectivePageCnt * PageSize,
-                    newRegEnd, flags, type
-                ), newReg);
+                vaddr = reg->Range.End - effectivePageCnt * PageSize + lowOffset;
                 //  New region begins where the free one ends, after shrinking.
 
-                if unlikely(!res.IsOkayResult())
-                    goto end;
-                //  Disastrous allocation failure could occur. ;-;
-
-                DEBUG_TERM << *newReg;
-
-                vaddr = newReg->Range.Start + lowOffset;
-
-                newReg->PrevFree = reg;
-                newReg->NextFree = reg->NextFree;
-                //  Complete linking.
+                res = this->Allocate(vaddr, pageCnt, flags, type, false);
 
                 goto end;
-            }
-            else
-            {
-                //  This region appears to be an exact fit.
-                
-                DEBUG_TERM << " <SNUG> ";
-
-                if (reg->PrevFree == nullptr)
-                {
-                    //  This is the first region.
-
-                    this->FirstFree = reg->NextFree;
-                }
-                else
-                    reg->PrevFree->NextFree = reg->NextFree;
-
-                if (reg->NextFree != nullptr)
-                    reg->NextFree->PrevFree = reg->PrevFree;
-
-                //  Now linkage is patched, and the region can be merrily
-                //  converted!
-
-                reg->Flags = flags;
-                reg->Type = type;
-
-                vaddr = reg->Range.Start;
-
-                goto end;
-                //  Done!
             }
 
             //  Only other possibility is... This free region isn't big enough!
@@ -191,7 +149,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
         //  A non-null vaddr means a specific address is required. Guard would
         //  go before the requested address.
 
-        DEBUG_TERM << " <VADDR " << (void *)vaddr << "> ";
+        // DEBUG_TERM << " <VADDR " << (void *)vaddr << "> ";
 
         MemoryRange rang {vaddr - lowOffset, vaddr + pageCnt * PageSize + highOffset};
         //  This will be the exact range of the allocation.
@@ -200,7 +158,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
 
         do
         {
-            DEBUG_TERM << *reg;
+            // DEBUG_TERM << *reg;
 
             size_t regPageCnt = reg->GetPageCount();
 
@@ -218,7 +176,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 //  This region appears to be an exact fit. What a relief, and
                 //  coincidence!
                 
-                DEBUG_TERM << " <SNUG> ";
+                // DEBUG_TERM << " <SNUG> ";
 
                 if (reg->PrevFree == nullptr)
                 {
@@ -252,19 +210,35 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
             {
                 //  So it sits at the very start.
 
-                DEBUG_TERM << " <START> ";
+                // DEBUG_TERM << " <START> ";
 
-                MemoryRegion * newReg = nullptr;
+                reg->Range.Start = rang.End;
+                //  Free region's start is pushed forward.
+
+                MemoryRegion * newReg = this->Tree.Find<vaddr_t>(rang.Start - 1);
+
+                if unlikely(0 != (type & MemoryAllocationOptions::UniquenessMask)
+                    && newReg != nullptr && newReg->Flags == flags
+                    && newReg->Type == type)
+                {
+                    //  The region must be a perfect match and have no uniqueness
+                    //  features in order to "merge".
+
+                    newReg->Range.End = rang.End;
+                    //  Existing region's end is pushed forward to cover the
+                    //  requested region.
+
+                    goto end;
+                }
 
                 res = this->Tree.Insert(MemoryRegion(
-                    rang.Start, reg->Range.Start = rang.End, flags, type
+                    rang, flags, type
                 ), newReg);
-                //  Free region's start is pushed.
 
                 if unlikely(!res.IsOkayResult())
                     goto end;
 
-                DEBUG_TERM << *newReg;
+                // DEBUG_TERM << *newReg;
 
                 newReg->PrevFree = reg->PrevFree;
                 newReg->NextFree = reg;
@@ -275,19 +249,35 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
             {
                 //  Or at the end.
 
-                DEBUG_TERM << " <END> ";
+                // DEBUG_TERM << " <END> ";
 
-                MemoryRegion * newReg = nullptr;
+                reg->Range.End = rang.Start;
+                //  Free region's end is pulled back.
+
+                MemoryRegion * newReg = this->Tree.Find<vaddr_t>(rang.End + 1);
+
+                if unlikely(0 != (type & MemoryAllocationOptions::UniquenessMask)
+                    && newReg != nullptr && newReg->Flags == flags
+                    && newReg->Type == type)
+                {
+                    //  The region must be a perfect match and have no uniqueness
+                    //  features in order to "merge".
+
+                    newReg->Range.Start = rang.Start;
+                    //  Existing region's start is pulled back to cover the
+                    //  requested region.
+
+                    goto end;
+                }
 
                 res = this->Tree.Insert(MemoryRegion(
-                    reg->Range.End = rang.Start, rang.End, flags, type
+                    rang, flags, type
                 ), newReg);
-                //  Free region's end is pulled.
 
                 if unlikely(!res.IsOkayResult())
                     goto end;
 
-                DEBUG_TERM << *newReg;
+                // DEBUG_TERM << *newReg;
 
                 newReg->PrevFree = reg;
                 newReg->NextFree = reg->NextFree;
@@ -298,7 +288,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
             {
                 //  Well, it's in the middle.
 
-                DEBUG_TERM << " <MID> ";
+                // DEBUG_TERM << " <MID> ";
 
                 vaddr_t const oldEnd = reg->Range.End;
                 reg->Range.End = rang.Start;
@@ -320,7 +310,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 if unlikely(!res.IsOkayResult())
                     goto end;
 
-                DEBUG_TERM << *newFree << " " << *newBusy;
+                // DEBUG_TERM << *newFree << " " << *newBusy;
 
                 newFree->PrevFree = reg;
                 newFree->NextFree = reg->NextFree;
@@ -339,21 +329,19 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
     }
 
 end:
-    this->Lock.ReleaseAsWriter();
+    if likely(lock)
+    {
+        this->Lock.ReleaseAsWriter();
+
+        System::Interrupts::RestoreState(cookie);
+    }
 
     return res;
 }
 
-MemoryRegion * Vas::FindRegion(vaddr_t vaddr, bool keepLock)
+MemoryRegion * Vas::FindRegion(vaddr_t vaddr)
 {
-    this->Lock.AcquireAsReader();
-
-    MemoryRegion * reg = this->Tree.Find<vaddr_t>(vaddr);
-
-    if unlikely(!keepLock)
-        this->Lock.ReleaseAsReader();
-
-    return reg;
+    return this->Tree.Find<vaddr_t>(vaddr);
 }
 
 /*************

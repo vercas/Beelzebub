@@ -121,24 +121,39 @@ size_t SerialPort::ReadNtString(char * const buffer, size_t const size) const
     return i;
 }
 
-size_t SerialPort::WriteNtString(char const * const str) const
+size_t SerialPort::WriteNtString(char const * const str, size_t len) const
 {
-    size_t i = 0, j;
+    size_t i = 0, j, u = 0;
     uint16_t const p = this->BasePort;
 
-    while (str[i] != 0)
+    //  `u` is the number of unicode characters encountered.
+
+    while (str[i] != 0 && likely(i < len))
     {
         while (!this->CanWrite()) ;
 
-        const char * tmp = str + i;
+        size_t const left = Minimum(len - i, SerialPort::QueueSize);
+        char const * const tmp = str + i;
 
-        for (j = 0; j < SerialPort::QueueSize && tmp[j] != 0; ++j)
-            Io::Out8(p, tmp[j]);
+        char c = tmp[j = 0];
+
+        do
+        {
+            if likely((c & 0xC0) != 0x80)
+                ++u;
+            //  Upper bit is 0 means this is a one-byte character.
+            //  If upper bit is 1, the one before must be 1 as well for this to
+            //  be the start of a multibyte character.
+
+            ++j;
+        } while ((c = tmp[j]) != 0 && likely(j < left));
+
+        Io::Out8n(p, tmp, j);
 
         i += j;
     }
 
-    return i;
+    return u;
 }
 
 /*******************************
@@ -241,7 +256,7 @@ size_t ManagedSerialPort::ReadNtString(char * const buffer, size_t const size)
     return i;
 }
 
-size_t ManagedSerialPort::WriteNtString(char const * const str)
+size_t ManagedSerialPort::WriteNtString(char const * const str, size_t len)
 {
     size_t i = 0, j, u = 0;
     uint16_t const p = this->BasePort;
@@ -249,26 +264,30 @@ size_t ManagedSerialPort::WriteNtString(char const * const str)
     //  `u` is the number of unicode characters encountered.
 
     withLock (this->WriteLock)
-        while (str[i] != 0)
+        while (str[i] != 0 && likely(i < len))
         {
             while (this->OutputCount.Load() >= SerialPort::QueueSize
                 && !this->CanWrite()) ;
 
+            size_t const left = Minimum(len - i, SerialPort::QueueSize - this->OutputCount.Load());
             char const * const tmp = str + i;
 
-            for (j = 0; this->OutputCount < SerialPort::QueueSize && tmp[j] != 0; ++j, ++this->OutputCount)
+            char c = tmp[j = 0];
+
+            do
             {
-                char const c = tmp[j];
-
-                Io::Out8(p, c);
-
-                if ((c & 0x80) == 0 || (c & 0x40) != 0)
+                if likely((c & 0xC0) != 0x80)
                     ++u;
                 //  Upper bit is 0 means this is a one-byte character.
                 //  If upper bit is 1, the one before must be 1 as well for this to
                 //  be the start of a multibyte character.
-            }
 
+                ++j;
+            } while ((c = tmp[j]) != 0 && likely(j < left));
+
+            Io::Out8n(p, tmp, j);
+
+            this->OutputCount += j;
             i += j;
         }
 
@@ -294,19 +313,14 @@ size_t ManagedSerialPort::WriteUtf8Char(char const * str)
         }
         else
         {
-            while (this->OutputCount.Load() > SerialPort::QueueSize - 6
-                && !this->CanWrite()) ;
-            //  It seems that 6 is the maximum length of a UTF-8 character..?
-
             size_t i = 0;
 
-            do
-            {
-                Io::Out8(this->BasePort, str[i++]);
-            } while ((str[i] & 0xC0) == 0x80);
-            //  Condition checks for continuation bytes.
-            //  Also, note that `i` is post-incremented there. The condition
-            //  will check the byte after the one which is output.
+            while ((str[++i] & 0xC0) == 0x80) { }
+
+            while (this->OutputCount.Load() > SerialPort::QueueSize - i
+                && !this->CanWrite()) ;
+
+            Io::Out8n(this->BasePort, str, i);
 
             this->OutputCount += i;
 

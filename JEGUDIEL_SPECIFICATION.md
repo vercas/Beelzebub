@@ -1,57 +1,33 @@
-Hydrogen Specification 0.2.1b
+Jegudiel Specification 0.2.1b
 ================================================================================
 
 §0 About This Document
 --------------------------------------------------------------------------------
-This document specifies the data structures used by the Hydrogen loader, the
+This document specifies the data structures used by the Jegudiel loader, the
 system state after the loader has finished, and the system capabilities that
-the loader requires. The hydrogen.h header file in loader/inc/hydrogen.h and
-in build/hydrogen.h after the loader has been compiled is regarded as part of
-this specification.
+the loader requires. The jegudiel.h header file in jegudiel/inc/jegudiel.h and
+in build/include/jegudiel.h after the loader has been compiled is regarded as part of
+this specification.  
 
 The values and definitions in this specification are subject to change in
-further versions of Hydrogen, potentially breaking downward compatibility.
+further versions of Jegudiel, potentially breaking downward compatibility.
 This document does not guarantee correct behavior of any of the shipped or
-described software components.
+described software components.  
 
 §1 Kernel Binary
 --------------------------------------------------------------------------------
-Hydrogen searches for an ELF64 kernel binary attached as a Multiboot module with
-a cmdline string that begins with "kernel64", loads it into virtual memory and
-jumps to its entry point after the system has been set up to a defined state.
-The kernel can specify an entry point for application processors (see §6.3);
-when none is given, the APs will halt on kernel entry.
+Jegudiel searches for an ELF64 kernel binary attached as a Multiboot module with a cmdline string that begins with "kernel64", loads it into virtual memory and jumps to its entry point after the system has been set up to a defined state.
 
 The kernel binary must not be loaded to any virtual address in low memory to
 avoid interference with identity mappings in the lower half of the address space.
 
 §2 Physical Memory
 --------------------------------------------------------------------------------
-Hydrogen is loaded at 0x100000 (1MiB mark) by the Multiboot loader. The physical
-memory from that mark to 0x108000 is occupied by Hydrogen's code and data that
-can be reclaimed after the kernel has been loaded. The system and info
-structures begin on 0x108000:
+Jegudiel is loaded at 0x1000000 (16-MiB mark) by the Multiboot loader. The physical memory from that point to 0x1059000 is occupied by Jegudiel's code and data that can be reclaimed after the kernel has been loaded.
 
-0x108000-0x109000: The Interrupt Descriptor Table (256 entries, 16 bytes each).<br />
-0x109000-0x10A000: The Global Descriptor Table (256 entries, 16 bytes each).<br />
-0x10A000-0x10B000: The boot Page Model Level 4 (PML4).<br />
-0x10B000-0x10C000: The PDP for identity mapping.<br />
-0x10C000-0x14C000: The 64 PDs for identity mapping.<br />
-0x14C000-0x14D000: The root info table (hy_info_root_t).<br />
-0x14D000-0x14E000: The memory map info table (hy_info_mmap_t).<br />
-0x14E000-0x14F000: The module info table (hy_info_module_t).<br />
-0x14F000-0x150000: The IO APIC info table (hy_info_ioapic_t).<br />
-0x150000-0x151000: The string table.<br />
-0x151000-  ...   : The CPU info table (hy_info_cpu_t).<br />
+Although the placement of the info structures is static (in this version), use the offset fields in the root info table (see §5.1) to access the other tables.
 
-The size of the CPU info table depends on the number of CPUs that are installed
-into the system. Although the placement of the info structures is static (in this
-version), use the offset fields in the root info table (see §5.1) to access the
-other tables.
-
-After the info tables Hydrogen places other dynamically allocated structures, such
-as the kernel code, the data loaded from the binary and the paging structures for
-mapping the kernel and the multiboot modules.
+After the info tables Jegudiel places other dynamically allocated structures, such as the kernel code, the data loaded from the binary and the paging structures for mapping the kernel and the multiboot modules.
 
 The free_paddr field in the root info table contains the first freely usable
 address after this block of memory. The remaining physical memory (except when
@@ -60,49 +36,40 @@ data structure.
 
 §3 Virtual Memory
 ----------------------------------------------------------------------------------
-Hydrogen identity maps the first 64 GiB of physical memory using 2MB pages. The
-PDP and the 64 PDs for that mapping are located in physical memory as described
-in §2.
+Jegudiel identity-maps the first 32.5 TiB of physical memory using 1-GiB pages if available, otherwise 64 GiB using 2MB pages. The PDPT and the 64 PDs for that mapping are located in physical memory as described in §2.
+The PDs are recycled as PDPTs when 1-GiB pages are available.
 
-The kernel is mapped to the addresses given in its ELF64 binary. Additionally the
-kernel can specify locations in virtual memory to map the stacks, the info
-structures and the IDT/GDT to (see §6). All of these, the kernel binary, the stacks
-the info, and the IDT/GDT must not be explicitly mapped into low memory to avoid
-potential interference with identity mappings.
+The kernel is mapped to the addresses given in its ELF64 binary. Additionally the kernel can specify locations in virtual memory to map the stacks, the info
+structures and the IDT/GDT to (see §6). All of these, the kernel binary, the stacks the info, and the IDT/GDT must not be explicitly mapped into low memory to avoid potential interference with identity mappings.
 
 §4 CPU and System State
 ----------------------------------------------------------------------------------
 ### §4.1 Registers and Stack
-When the CPU enters the kernel (both on the BSP and AP entry point), all general
-purpose registers are cleared to zero. The stack pointer (RSP) points to the top
-of the CPU's virtual stack, if a virtual stack address is specified in the kernel
-header (see §6.1), or to the top of the CPU's physical stack otherwise. Each stack
-is 4kiB long. The CS is 0x8 (kernel code), the DS/GS/FS/SS is 0x10 (kernel data,
-see §4.3). 
+When the CPU enters the kernel, all general purpose registers are cleared to zero. The stack pointer (RSP) points to the top of the CPU's virtual stack, if a virtual stack address is specified in the kernel header (see §6.1), or to the top of the CPU's physical stack otherwise. The stack is 12 KiB long.  
+A dummy value is pushed onto the stack for alignment, according to the System V ABI, thus making the RSP at entry 8 bytes below the stack's top.
+
+The CS is 0x8 (kernel code), the DS/GS/FS/SS is 0x10 (kernel data, see §4.3). 
 
 ### §4.2 Interrupt Descriptor Table
 The Interrupt Descriptor Table is loaded when the kernel is entered with a size
-of 256 entries (4kiB). Its entries are configured as interrupt gates with a
-minimum DPL of 0x0 and a code segment of 0x8, i.e. kernel code (see §4.3). When
-a ISR entry table is specified in the kernel header (see §6.5) the ISR addresses
-for the entries are set accordingly; otherwise they are cleared to zero. When
-a virtual address for the IDT is specified (see §6.9), the IDT is mapped to and
-reloaded from that position.
+of 256 entries (4 KiB). Its entries are configured as interrupt gates with a
+minimum DPL of 0x0 and a code segment of 0x8, i.e. kernel code (see §4.3). The entries are to be filled by the kernel.
+When a virtual address for the IDT is specified (see §6.9), the IDT is mapped to and reloaded from that position.
 
 ### §4.3 Global Descriptor Table
 The global descriptor table is loaded when the kernel is entered with a size
-of 256 entries (4kiB). All entries except for the 2nd to 5th are cleared to zero.
-The 2nd to 5th entries are configured to be code/data segments with a base of
-0x0 and a limit of 0xFFFFFFFFFFFFFFFF (flat memory model) in long mode and differ
-as follows:
+of 4 KiB. All entries except for the 1st to 6th are cleared to zero.
+The 1st to 6th entries are configured to be code/data segments with a base of 0x0 and a limit of 0xFFFFFFFFFFFFFFFF (flat memory model) in long mode and differ as follows:
 
-0x08: Kernel Code (DPL 0)<br />
-0x10: Kernel Data (DPL 0)<br />
-0x18: User Code (DPL 3)<br />
-0x20: User Data (DPL 3)<br />
+ 1. 0x08: Kernel Code (DPL 0)
+ 2. 0x10: Kernel Data (DPL 0)
+ 3. 0x18: User Code, compatibility mode (DPL 3)
+ 4. 0x20: User Data, compatibility (*?*) mode (DPL 3)
+ 5. 0x28: User Code, long mode (DPL 3)
+ 6. 0x30: User Data, long (*?*) mode (DPL 3)
 
-When a virtual address for the GDT is specified (see §6.9), the GDT is mapped to
-and reloaded from that position.
+When a virtual address for the GDT is specified (see §6.9), the GDT is mapped to and reloaded from that position.  
+It is up to the kernel to manage its GDT.
 
 ### §4.4 Syscall MSRs
 The syscall related MSRs are configured as follows: The STAR register specifies
@@ -112,11 +79,11 @@ The CSTAR register is fixed to zero and the LSTAR register is set to the value
 given in the kernel header (see §6.4).
 
 ### §4.5 LAPIC State
-When Hydrogen detects that the BSP's LAPIC supports the x2APIC mode, it will
+When Jegudiel detects that the BSP's LAPIC supports the x2APIC mode, it will
 assume it is supported on all LAPICs installed into the system. When the kernel
 supports the x2APIC (see §6.8) and it is present, the LAPICs are initialized in
 x2APIC mode, otherwise they stay in xAPIC compatibility mode. When the kernel
-requires the x2APIC, but the system does not support it, Hydrogen will panic. 
+requires the x2APIC, but the system does not support it, Jegudiel will panic. 
 
 In both cases (xAPIC and x2APIC) the LAPIC of each CPU is enabled (enable bit
 set in SVR) and has a spurious interrupt vector of 0x20. The LINT0 pin is
@@ -193,9 +160,9 @@ specify offsets into this table, when they specify a string value.
 §6 Kernel Header
 ----------------------------------------------------------------------------------
 The kernel header (hy_header_root_t) is a structure that must be provided by the
-kernel binary and that is used to configure Hydrogen's startup process. The kernel
-binary must export a symbol "hydrogen_header" that points to the header structure,
-or Hydrogen refuses to load.
+kernel binary and that is used to configure Jegudiel's startup process. The kernel
+binary must export a symbol "jegudiel_header" that points to the header structure,
+or Jegudiel refuses to load.
 
 ### §6.1 Stack Mapping
 The kernel header (hy_header_root_t) can specify a virtual address for mapping
@@ -248,9 +215,9 @@ the lowest priority delivery mode for all CPUs (see §4.6 on IO APIC state).
 
 ### §6.8 x2APIC Flags
 Using the HY_HEADER_FLAG_X2APIC_ALLOW the kernel supports x2APIC mode and
-Hydrogen will enable it on all LAPICs, if it is supported by the system. If
+Jegudiel will enable it on all LAPICs, if it is supported by the system. If
 both HY_HEADER_FLAG_X2APIC_ALLOW and HY_HEADER_FLAG_X2APIC_REQUIRE are set,
-Hydrogen will panic, if x2APIC mode is not supported on the system.
+Jegudiel will panic, if x2APIC mode is not supported on the system.
 
 ### §6.9 IDT and GDT Mapping
 The kernel header can specify a virtual address for mapping the IDT/GDT into
@@ -261,7 +228,7 @@ mapping and is loaded from that address.
 
 §7 System Requirements
 ----------------------------------------------------------------------------------
-The host system must fulfill certain requirements in order to run Hydrogen:
+The host system must fulfill certain requirements in order to run Jegudiel:
 
  - One or more AMD64 compliant 64 bit CPUs
  - 2MB of RAM or more

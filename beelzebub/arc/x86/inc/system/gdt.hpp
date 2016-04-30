@@ -216,7 +216,7 @@ namespace Beelzebub { namespace System
             return reinterpret_cast<Tss *>((uint64_t)this->GetBaseLow()
                                         | ((uint64_t)this->BaseHigh << 32));
         }
-        inline auto SetBase(Tss const * const val)
+        inline auto SetBase(Tss const * const val) -> decltype(*this)
         {
             this->SetBaseLow((uint32_t) reinterpret_cast<uint64_t>(val)      );
             this->BaseHigh = (uint32_t)(reinterpret_cast<uint64_t>(val) >> 32);

@@ -39,6 +39,7 @@
 
 #include <crt0.hpp>
 // #include <syscalls.h>
+#include <syscalls/memory.h>
 #include <terminals/debug.hpp>
 #include <self.hpp>
 #include <debug.hpp>
@@ -70,6 +71,18 @@ __extern __bland __used void _start(char * args)
                 << Self.GetSymbol("_init")      << EndLine
                 << Self.GetSymbol("_fini")      << EndLine
                 << Self.GetSymbol("BLEEEERGH")  << EndLine;
+
+    Handle res = MemoryRequest(0, 0x10000, mem_req_opts_t::Writable);
+    uint64_t volatile * testPtr = (uint64_t volatile *)res.GetPage();
+
+    ASSERT(testPtr != nullptr, "Failed memory request: %H", res);
+
+    testPtr[0] = 42;
+    testPtr[1] = 1337;
+    testPtr[2] = 616;
+
+    DEBUG_TERM << "3 numbas: " << testPtr[0] << ", " << testPtr[1] << ", " << testPtr[2] << EndLine;
+    DEBUG_TERM << "@ " << (void *)testPtr << EndLine;
 
     QuitProcess(HandleResult::Okay, 0);
 }

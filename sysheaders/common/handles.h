@@ -81,18 +81,28 @@
     ENUMINST(Invalid                  , 0x00U, "INVL") \
     /*  A general result code. */ \
     ENUMINST(Result                   , 0x01U, "RES") \
+    /*  A page of memory. */ \
+    ENUMINST(Page                     , 0x02U, "PAGE") \
+    \
     /*  A unit of execution. */ \
     ENUMINST(Thread                   , 0x10U, "THRD") \
     /*  A unit of isolation. */ \
     ENUMINST(Process                  , 0x11U, "PRCS") \
     /*  A unit of management. */ \
     ENUMINST(Job                      , 0x12U, "JOB") \
+    \
     /*  A miscellaneous/anonymous object belonging to the kernel. */ \
-    ENUMINST(KernelObject             , 0x21U, "KOBJ") \
+    ENUMINST(KernelObject             , 0x20U, "KOBJ") \
     /*  A miscellaneous/anonymous object belonging to a service. */ \
-    ENUMINST(ServiceObject            , 0x22U, "SOBJ") \
+    ENUMINST(ServiceObject            , 0x21U, "SOBJ") \
     /*  A miscellaneous/anonymous object belonging to an application. */ \
-    ENUMINST(ApplicationObject        , 0x23U, "AOBJ") \
+    ENUMINST(ApplicationObject        , 0x22U, "AOBJ") \
+    \
+    /*  A file in the InitRD. */ \
+    ENUMINST(InitRdFile               , 0x30U, "idFI") \
+    /*  A directory in the InitRD. */ \
+    ENUMINST(InitRdDirectory          , 0x31U, "idDI") \
+    \
     /*  An table which associates handles with resources. */ \
     ENUMINST(HandleTable              , 0xF0U, "HTBL") \
     /*  A finite set of handles. */ \
@@ -111,6 +121,8 @@
     ENUMINST(CardinalityViolation     , 0x04U, "Card Viol") \
     /*  An operation is taking too long to complete and has timed out. */ \
     ENUMINST(Timeout                  , 0x05U, "Timeout") \
+    /*  An object is misaligned. */ \
+    ENUMINST(AlignmentFailure         , 0x08U, "Unaligned") \
     /*  The requested operation isn't supported by the object/interface. */ \
     ENUMINST(UnsupportedOperation     , 0x09U, "Unsp. Op.") \
     /*  Operation not implemented by the object/interface. */ \
@@ -126,7 +138,9 @@
     ENUMINST(ArgumentOutOfRange       , 0x11U, "Arg. OOR") \
     /*  An argument given to a function/method shouldn't be null. */ \
     ENUMINST(ArgumentNull             , 0x12U, "Arg. Null") \
-    /*  A selected syscal lis invalid. */ \
+    /*  A given handle is invalid (or of the wrong type). */ \
+    ENUMINST(HandleInvalid            , 0x1EU, "Handle inv.") \
+    /*  A selected syscall is invalid. */ \
     ENUMINST(SyscallSelectionInvalid  , 0x1FU, "Sysc S inv.") \
     \
     /*  An unknown format specifier was encountered in the format string. */ \
@@ -156,12 +170,10 @@
     ENUMINST(PageMapped               , 0x41U, "Pag mapped") \
     /*  A/The target page is (already) unmapped. */ \
     ENUMINST(PageUnmapped             , 0x42U, "Pag unmp.") \
-    /*  A given page is unaligned. */ \
-    ENUMINST(PageUnaligned            , 0x43U, "Pag unal.") \
     /*  The page cannot be allocated on demand. */ \
-    ENUMINST(PageUndemandable         , 0x44U, "Pag undem") \
+    ENUMINST(PageUndemandable         , 0x43U, "Pag undem") \
     /*  The page hit is a guard page. */ \
-    ENUMINST(PageGuard                , 0x45U, "Pag guard") \
+    ENUMINST(PageGuard                , 0x44U, "Pag guard") \
     \
     /*  A thread is already linked. */ \
     ENUMINST(ThreadAlreadyLinked      , 0x50U, "Thr a. lnk.") \
@@ -212,44 +224,44 @@ namespace Beelzebub
     {
         /*  Statics  */
 
-        static uint64_t const NullValue                 = 0x0000000000000000ULL;
-        static uint16_t const OkayResultWord            = (uint16_t)(((uint16_t)HandleResult::Okay << 8) | (uint16_t)HandleType::Result);
+        static constexpr uint64_t const NullValue                 = 0x0000000000000000ULL;
+        static constexpr uint16_t const OkayResultWord            = (uint16_t)(((uint16_t)HandleResult::Okay << 8) | (uint16_t)HandleType::Result);
 
-        static uint64_t const TypeBits                  = 0x00000000000000FFULL;
-        //static uint32_t const TypeOffset                = 56;
+        static constexpr uint64_t const TypeBits                  = 0x00000000000000FFULL;
+        //static constexpr uint32_t const TypeOffset                = 56;
 
-        static uint64_t const IndexBits                 = 0x7FFFFFFFFFFFFF00ULL;
-        static   size_t const IndexOffset               = 8;
+        static constexpr uint64_t const IndexBits                 = 0x7FFFFFFFFFFFFF00ULL;
+        static constexpr   size_t const IndexOffset               = 8;
 
-        static uint64_t const GlobalFatalBit            = 0x8000000000000000ULL;
-        static   size_t const GlobalOffset              = 63;
-        static   size_t const GlobalFatalByteIndex      = 7;
-        static   size_t const GlobalFatalByteBit        = 0x80;
+        static constexpr uint64_t const GlobalFatalBit            = 0x8000000000000000ULL;
+        static constexpr   size_t const GlobalOffset              = 63;
+        static constexpr   size_t const GlobalFatalByteIndex      = 7;
+        static constexpr   size_t const GlobalFatalByteBit        = 0x80;
 
-        static uint64_t const ResultCountBits           = 0x7000000000000000ULL;
-        static   size_t const ResultCountOffset         = 60;
-        static uint64_t const ResultCountUnit           = 0x1000000000000000ULL;
-        static   size_t const ResultCountByteIndex      = 7;
-        static   size_t const ResultCountByteBits       = 0x70;
-        static   size_t const ResultCountByteOffset     = 4;
-        static uint64_t const ResultCountByteUnit       = 0x10;
+        static constexpr uint64_t const ResultCountBits           = 0x7000000000000000ULL;
+        static constexpr   size_t const ResultCountOffset         = 60;
+        static constexpr uint64_t const ResultCountUnit           = 0x1000000000000000ULL;
+        static constexpr   size_t const ResultCountByteIndex      = 7;
+        static constexpr   size_t const ResultCountByteBits       = 0x70;
+        static constexpr   size_t const ResultCountByteOffset     = 4;
+        static constexpr uint64_t const ResultCountByteUnit       = 0x10;
 
-        static uint64_t const ResultsBits               = 0x00FFFFFFFFFFFF00ULL;
-        static uint64_t const ResultsPreshiftBits       = 0x0000FFFFFFFFFF00ULL;
-        static uint64_t const ResultsShiftOffset        = 8;
+        static constexpr uint64_t const ResultsBits               = 0x00FFFFFFFFFFFF00ULL;
+        static constexpr uint64_t const ResultsPreshiftBits       = 0x0000FFFFFFFFFF00ULL;
+        static constexpr uint64_t const ResultsShiftOffset        = 8;
 
-        static   size_t const ResultPrimaryByteIndex    = 1;
-        static   size_t const ResultPrimaryOffset       = 8;
-        static   size_t const ResultSecondaryByteIndex  = 2;
-        static   size_t const ResultSecondaryOffset     = 16;
-        static   size_t const ResultTertiaryByteIndex   = 3;
-        static   size_t const ResultTertiaryOffset      = 24;
-        static   size_t const ResultQuaternaryByteIndex = 4;
-        static   size_t const ResultQuaternaryOffset    = 32;
-        static   size_t const ResultQuinaryByteIndex    = 5;
-        static   size_t const ResultQuinaryOffset       = 40;
-        static   size_t const ResultSenaryByteIndex     = 6;
-        static   size_t const ResultSenaryOffset        = 48;
+        static constexpr   size_t const ResultPrimaryByteIndex    = 1;
+        static constexpr   size_t const ResultPrimaryOffset       = 8;
+        static constexpr   size_t const ResultSecondaryByteIndex  = 2;
+        static constexpr   size_t const ResultSecondaryOffset     = 16;
+        static constexpr   size_t const ResultTertiaryByteIndex   = 3;
+        static constexpr   size_t const ResultTertiaryOffset      = 24;
+        static constexpr   size_t const ResultQuaternaryByteIndex = 4;
+        static constexpr   size_t const ResultQuaternaryOffset    = 32;
+        static constexpr   size_t const ResultQuinaryByteIndex    = 5;
+        static constexpr   size_t const ResultQuinaryOffset       = 40;
+        static constexpr   size_t const ResultSenaryByteIndex     = 6;
+        static constexpr   size_t const ResultSenaryOffset        = 48;
 
         /*  Constructor(s)  */
 
@@ -258,10 +270,10 @@ namespace Beelzebub
 
         //  Arbitrary-type handle.
         inline constexpr Handle(HandleType const type
-                                     ,   uint64_t const index
-                                     ,       bool const global = false)
+                                , uint64_t const index
+                                ,     bool const global = false)
             : Value((uint64_t)type
-                  | ((index & IndexBits) << IndexOffset)
+                  | ((index << IndexOffset) & IndexBits)
                   | (global ? GlobalFatalBit : 0))
         {
             
@@ -285,15 +297,11 @@ namespace Beelzebub
             //  with 64-bit numbers, while the other needs only 16-bit.
         }
 
-private:
+    private:
         //  Use is discouraged, but meh.
-        inline constexpr Handle(uint64_t val)
-            : Value( val)
-        {
+        inline constexpr Handle(uint64_t val) : Value( val) { }
 
-        }
-
-public:
+    public:
         /*  Type  */
 
         inline HandleType GetType() const
@@ -331,7 +339,30 @@ public:
         {
             return (this->IsType(HandleType::Result) || this->IsType(HandleType::Invalid))
                 ? ~0ULL
-                : (this->Value & IndexBits);
+                : ((this->Value & IndexBits) >> IndexOffset);
+        }
+
+        inline uint64_t GetIndex(HandleType const type) const
+        {
+            return this->IsType(type)
+                ? ((this->Value & IndexBits) >> IndexOffset)
+                : ~0ULL;
+        }
+
+        /*  Page  */
+
+        inline void * GetPage() const
+        {
+            if (this->IsType(HandleType::Page))
+            {
+                uint64_t ptr = (this->Value & IndexBits) >> IndexOffset;
+
+                EXTEND_POINTER(ptr);
+
+                return reinterpret_cast<void *>(ptr);
+            }
+            else
+                return nullptr;
         }
 
         /*  Result  */
@@ -418,6 +449,66 @@ public:
 
     } __packed;
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.
+
+    template<typename T, HandleType HTYPE, size_t OFFSET = 0>
+    union HandlePointer
+    {
+        /*  Masks and Offsets  */
+
+        static constexpr uint64_t const PointerMask = 0x0000FFFFFFFFFFFF;
+        static constexpr uint64_t const DataMask = ((1ULL << (7UL + OFFSET)) - 1) & 0x007FFFFFFFFFFFFFU;
+        static constexpr uint64_t const DataOffset = 48UL - OFFSET;
+
+        /*  Constructors  */
+
+        HandlePointer() = default;
+
+        inline HandlePointer(Handle const h) : Value(h.GetIndex(HTYPE)) { }
+
+        inline HandlePointer(T const * const ptr, uint64_t const data)
+            : Value((((uint64_t)reinterpret_cast<uintptr_t>(ptr) & PointerMask) >> OFFSET)
+                | ((data & DataMask) << DataOffset))
+        {
+            //  Simple, eh?
+        }
+
+        inline Handle ToHandle(bool const glob = false)
+        {
+            return Handle(HTYPE, this->Value, glob);
+        }
+
+        /*  Properties  */
+
+        inline void SetPointer(T const * const ptr)
+        {
+            uint64_t const ptr64 = ((uint64_t)reinterpret_cast<uintptr_t>(ptr) & PointerMask) >> OFFSET;
+            
+            this->Value = (this->Value & (DataMask << DataOffset)) | ptr64;
+        }
+
+        inline void SetData(uint64_t const data)
+        {
+            this->Value = (this->Value & (PointerMask >> OFFSET)) | ((data & DataMask) << DataOffset);
+        }
+
+        inline T * GetPointer() const
+        {
+            uint64_t ptr64 = (this->Value & (PointerMask >> OFFSET)) << OFFSET;
+
+            EXTEND_POINTER(ptr64);
+
+            return reinterpret_cast<T *>(ptr64);
+        }
+
+        inline uint64_t GetData() const
+        {
+            return (this->Value >> DataOffset) & DataMask;
+        }
+
+        /*  Fields  */
+
+        uint64_t Value;
+    };
 }
 
 #else
@@ -442,4 +533,10 @@ public:
 
     //  Eh... Good enough?
 
+#endif
+
+#ifdef __cplusplus
+typedef Beelzebub::Handle handle_t;
+#else
+typedef union Handle handle_t;
 #endif

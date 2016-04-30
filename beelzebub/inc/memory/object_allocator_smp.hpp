@@ -53,7 +53,7 @@
     #include <synchronization/atomic.hpp>
 
     #define OBJA_LOCK_TYPE Beelzebub::Synchronization::Spinlock<>
-    #define OBJA_COOK_TYPE int_cookie_t
+    #define OBJA_COOK_TYPE Beelzebub::System::int_cookie_t
 
     namespace Beelzebub { namespace Memory
     {

@@ -39,6 +39,8 @@
 
 #include <terminals/debug.hpp>
 #include <syscalls.h>
+#include <math.h>
+#include <string.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
@@ -98,7 +100,7 @@ DebugTerminal::DebugTerminal()
 
 /*  Writing  */
 
-TerminalWriteResult DebugTerminal::WriteUtf8(const char * c)
+TerminalWriteResult DebugTerminal::WriteUtf8(char const * c)
 {
     char temp[7] = "\0\0\0\0\0\0";
     temp[0] = *c;
@@ -115,16 +117,20 @@ TerminalWriteResult DebugTerminal::WriteUtf8(const char * c)
         } while ((c[i] & 0xC0) == 0x80 && i < 7);
         //  This copies the remainder of the bytes, up to 6.
 
-    Handle res = PerformSyscall2(SyscallSelection::DebugPrint, temp, reinterpret_cast<uintptr_t>(&i));
+    Handle res = PerformSyscall3(SyscallSelection::DebugPrint
+        , temp, i, reinterpret_cast<uintptr_t>(&i));
 
     return {res, i, InvalidCoordinates};
 }
 
-TerminalWriteResult DebugTerminal::Write(const char * const str)
+TerminalWriteResult DebugTerminal::Write(char const * const str, size_t len)
 {
     uint32_t i = 0;
 
-    Handle res = PerformSyscall2(SyscallSelection::DebugPrint, const_cast<char *>(str), reinterpret_cast<uintptr_t>(&i));
+    Handle res = PerformSyscall3(SyscallSelection::DebugPrint
+        , const_cast<char *>(str)
+        , Minimum(len, strlen(str))
+        , reinterpret_cast<uintptr_t>(&i));
 
     return {res, i, InvalidCoordinates};
 }

@@ -58,8 +58,8 @@ namespace Beelzebub { namespace Terminals
         /*  Writing  */
 
         virtual TerminalWriteResult WriteUtf8(char const * const c) override;
-        virtual TerminalWriteResult Write(char const * const str) override;
-        virtual TerminalWriteResult WriteLine(char const * const str) override;
+        virtual TerminalWriteResult Write(char const * const str, size_t len) override;
+        virtual TerminalWriteResult WriteLine(char const * const str, size_t len) override;
 
     private:
 

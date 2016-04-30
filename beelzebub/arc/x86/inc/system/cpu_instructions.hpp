@@ -122,7 +122,7 @@ namespace Beelzebub { namespace System
         {
             uint8_t ret;
 
-            asm volatile ( "movb %%fs:(%1), %0 \n\t"
+            asm volatile ( "movb %%fs:%1, %0 \n\t"
                          : "=r"(ret)
                          : "m"(*(reinterpret_cast<uintptr_t *>(off))) );
 
@@ -130,7 +130,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint8_t FsSet8(uintptr_t const off, uint8_t const val)
         {
-            asm volatile ( "movb %0, %%fs:(%1) \n\t"
+            asm volatile ( "movb %0, %%fs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -142,7 +142,7 @@ namespace Beelzebub { namespace System
         {
             uint8_t ret;
 
-            asm volatile ( "movb %%gs:(%1), %0 \n\t"
+            asm volatile ( "movb %%gs:%1, %0 \n\t"
                          : "=r"(ret)
                          : "m"(*(reinterpret_cast<uintptr_t *>(off))) );
 
@@ -150,7 +150,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint8_t GsSet8(uintptr_t const off, uint8_t const val)
         {
-            asm volatile ( "movb %0, %%gs:(%1) \n\t"
+            asm volatile ( "movb %0, %%gs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -162,7 +162,7 @@ namespace Beelzebub { namespace System
         {
             uint16_t ret;
 
-            asm volatile ( "movw %%fs:(%1), %0 \n\t"
+            asm volatile ( "movw %%fs:%1, %0 \n\t"
                          : "=r"(ret)
                          : "m"(*(reinterpret_cast<uintptr_t *>(off))) );
 
@@ -170,7 +170,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint16_t FsSet16(uintptr_t const off, uint16_t const val)
         {
-            asm volatile ( "movw %0, %%fs:(%1) \n\t"
+            asm volatile ( "movw %0, %%fs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -182,7 +182,7 @@ namespace Beelzebub { namespace System
         {
             uint16_t ret;
 
-            asm volatile ( "movw %%gs:(%1), %0 \n\t"
+            asm volatile ( "movw %%gs:%1, %0 \n\t"
                          : "=r"(ret)
                          : "m"(*(reinterpret_cast<uintptr_t *>(off))) );
 
@@ -190,7 +190,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint16_t GsSet16(uintptr_t const off, uint16_t const val)
         {
-            asm volatile ( "movw %0, %%gs:(%1) \n\t"
+            asm volatile ( "movw %0, %%gs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -202,7 +202,7 @@ namespace Beelzebub { namespace System
         {
             uint32_t ret;
 
-            asm volatile ( "movl %%fs:(%1), %0 \n\t"
+            asm volatile ( "movl %%fs:%1, %0 \n\t"
                          : "=r"(ret)
                          : "m"(*(reinterpret_cast<uintptr_t *>(off))) );
 
@@ -210,7 +210,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint32_t FsSet32(uintptr_t const off, uint32_t const val)
         {
-            asm volatile ( "movl %0, %%fs:(%1) \n\t"
+            asm volatile ( "movl %0, %%fs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -222,7 +222,7 @@ namespace Beelzebub { namespace System
         {
             uint32_t ret;
 
-            asm volatile ( "movl %%gs:(%1), %0 \n\t"
+            asm volatile ( "movl %%gs:%1, %0 \n\t"
                          : "=r"(ret)
                          : "m"(*(reinterpret_cast<uintptr_t *>(off))) );
 
@@ -230,7 +230,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint32_t GsSet32(uintptr_t const off, uint32_t const val)
         {
-            asm volatile ( "movl %0, %%gs:(%1) \n\t"
+            asm volatile ( "movl %0, %%gs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -243,7 +243,7 @@ namespace Beelzebub { namespace System
         {
             uint64_t ret;
 
-            asm volatile ( "movq %%fs:(%1), %0 \n\t"
+            asm volatile ( "movq %%fs:%1, %0 \n\t"
                          : "=r"(ret)
                          : "m"(*(reinterpret_cast<uintptr_t *>(off))) );
 
@@ -251,7 +251,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint64_t FsSet64(uintptr_t const off, uint64_t const val)
         {
-            asm volatile ( "movq %0, %%fs:(%1) \n\t"
+            asm volatile ( "movq %0, %%fs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -263,7 +263,7 @@ namespace Beelzebub { namespace System
         {
             uint64_t ret;
 
-            asm volatile ( "movq %%gs:(%1), %0 \n\t"
+            asm volatile ( "movq %%gs:%1, %0 \n\t"
                          : "=r"(ret)
                          : "m"(*(reinterpret_cast<uintptr_t *>(off))) );
 
@@ -271,7 +271,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint64_t GsSet64(uintptr_t const off, uint64_t const val)
         {
-            asm volatile ( "movq %0, %%gs:(%1) \n\t"
+            asm volatile ( "movq %0, %%gs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -280,7 +280,7 @@ namespace Beelzebub { namespace System
         }
         static __forceinline uint64_t & GsXchg64(uintptr_t const off, uint64_t & val)
         {
-            asm volatile ( "xchgq %0, %%gs:(%1) \n\t"
+            asm volatile ( "xchgq %0, %%gs:%1 \n\t"
                          :
                          : "r"(val), "m"(*(reinterpret_cast<uintptr_t *>(off)))
                          : "memory" );
@@ -370,7 +370,7 @@ namespace Beelzebub { namespace System
 
             asm volatile ( "push %%fs          \n\t"
                            "mov  %1, %%fs      \n\t"
-                           "mov  %%fs:(%2), %0 \n\t"
+                           "mov  %%fs:%2, %0 \n\t"
                            "pop  %%fs          \n\t"
                            : "=r"(ret)
                            : "g"(sel), "m"(*(reinterpret_cast<uintptr_t *>(off))) );

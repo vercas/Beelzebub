@@ -38,9 +38,12 @@
 */
 
 #include <execution/runtime64.hpp>
+#include <initrd.hpp>
 #include <execution/elf_default_mapper.hpp>
 #include <memory/vmm.hpp>
 #include <kernel.hpp>
+
+#include <string.h>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -62,22 +65,57 @@ Elf Runtime64::Template;
 
 /*  Methods  */
 
-Handle Runtime64::HandleTemplate(size_t index, jg_info_module_t const * module
-                               , vaddr_t vaddr, size_t size)
+Handle Runtime64::Initialize()
 {
-    for (size_t offset = 0; offset < size; offset += PageSize)
+    if (!InitRd::Loaded)
+        return HandleResult::UnsupportedOperation;
+
+    Handle file = InitRd::FindItem("/usr/lib/libbeelzebub.amd64.so");
+
+    if unlikely(!file.IsType(HandleType::InitRdFile))
+        return file;
+
+    FileBoundaries bnd = InitRd::GetFileBoundaries(file);
+
+    if (bnd.Start == 0 || bnd.Size == 0)
+        return HandleResult::IntegrityFailure;
+
+    //  Now to finally do the mappin'.
+    
+    if (bnd.Start % PageSize == 0 && bnd.AlignedSize % PageSize == 0)
     {
-        Handle res = Vmm::SetPageFlags(&BootstrapProcess, vaddr + offset
-            , MemoryFlags::Global | MemoryFlags::Userland);
-        //  Modules are normally global-supervisor-writable. This one needs to
-        //  be global-userland-readable.
+        for (size_t offset = 0; offset < bnd.Size; offset += PageSize)
+        {
+            Handle res = Vmm::SetPageFlags(&BootstrapProcess, bnd.Start + offset
+                , MemoryFlags::Global | MemoryFlags::Userland);
+            //  Modules are normally global-supervisor-writable. This one needs to
+            //  be global-userland-readable.
+
+            ASSERT(res.IsOkayResult()
+                , "Failed to change flags of page at %Xp for 64-bit runtime module: %H."
+                , bnd.Start + offset, res);
+        }
+
+        new (&Template) Elf(reinterpret_cast<void *>(bnd.Start), bnd.Size);
+    }
+    else
+    {
+        vaddr_t vaddr;
+        size_t const size = bnd.Size;
+
+        Handle res = Vmm::AllocatePages(&BootstrapProcess
+            , (size + PageSize - 1) / PageSize
+            , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+            , MemoryFlags::Global | MemoryFlags::Userland, vaddr);
 
         ASSERT(res.IsOkayResult()
-            , "Failed to change flags of page at %Xp for 64-bit runtime module: %H."
-            , vaddr + offset, res);
-    }
+            , "Failed to allocate space for 64-bit runtime image: %H."
+            , res);
 
-    new (&Template) Elf(reinterpret_cast<void *>(vaddr), size);
+        memcpy(reinterpret_cast<void *>(vaddr), reinterpret_cast<void *>(bnd.Start), size);
+
+        new (&Template) Elf(reinterpret_cast<void *>(vaddr), size);
+    }
 
     ElfValidationResult evRes = Template.ValidateAndParse(&HeaderValidator, nullptr, nullptr);
 

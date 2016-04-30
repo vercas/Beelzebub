@@ -44,6 +44,9 @@
 
 namespace Beelzebub { namespace System
 {
+    typedef void * int_cookie_t;
+    #define __int_cookie_invalid (nullptr)
+
     /**
      *  Represents the interrupt state of the system
      */

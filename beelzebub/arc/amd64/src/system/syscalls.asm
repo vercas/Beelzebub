@@ -77,6 +77,13 @@ SyscallEntry_64:
     pop     r11
     pop     rcx
     ;   Restore return RFLAGS and RIP from kernel stack.
+
+    xor     edi, edi
+    xor     esi, esi
+    xor     edx, edx
+    xor     r8d, r8d
+    xor     r9d, r9d
+    ;   Make sure that information is not leaked!
     
     cli
     ;   Will disable interrupts until sysret.

@@ -39,33 +39,31 @@ ISO_SOURCE_ELTORITO	:= $(ISO_SOURCE_GRUB)/stage2_eltorito
 ISO_SOURCE_GRUBCONF	:= $(ISO_SOURCE_GRUB)/grub.$(ARC).cfg
 ISO_SOURCE_FONT		:= $(ISO_SOURCE_GRUB)/font.pf2
 
+# ISO_SOURCE_INITRD	:= $(BUILD_DIR)/initrd.tar
+
 ISO_TARGET_BOOT		:= boot
 ISO_TARGET_GRUB		:= $(ISO_TARGET_BOOT)/grub
 ISO_TARGET_ELTORITO	:= $(ISO_TARGET_GRUB)/stage2_eltorito
 ISO_TARGET_GRUBCONF	:= $(ISO_TARGET_GRUB)/grub.cfg
 ISO_TARGET_FONT		:= $(ISO_TARGET_GRUB)/font.pf2
-ISO_TARGET_KERNEL	:= $(ISO_TARGET_BOOT)/$(KERNEL_BIN)
+ISO_TARGET_KERNEL	:= $(ISO_TARGET_BOOT)/$(KERNEL_BIN).gz
+ISO_TARGET_INITRD	:= $(ISO_TARGET_BOOT)/initrd.tar.gz
 
-ISO_TARGET_APPS		:= apps
-ISO_TARGET_LIBS		:= libs
-
-BOOTLOADER			:= $(PREFIX)/bin/jegudiel.bin
+ifneq (,$(SYSROOT))
+	SYSROOT_FILES	:= $(shell find $(SYSROOT))
+else
+	SYSROOT_FILES	:=  
+endif
 
 ################################################################################
 #                        ARCHITECTURE-SPECIFIC SETTINGS                        #
 ################################################################################
 
-MISCELLANEOUS_FILES		:=  
-MISCELLANEOUS_TARGETS	:= $(addprefix $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT), $(notdir $(MISCELLANEOUS_FILES)))
+MISCELLANEOUS_TARGETS		:=  
 
 ifeq ($(ARC),amd64)
-	MISCELLANEOUS_FILES		+= $(PREFIX)/bin/jegudiel.bin 
-	MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin 
+	MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin.gz 
 endif
-
-MISCELLANEOUS_FILES		+= $(PREFIX)/bin/loadtest.exe $(SYSROOT)/usr/lib/libbeelzebub.$(ARC).so 
-MISCELLANEOUS_TARGETS	+= $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe \
-                           $(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)/libbeelzebub.$(ARC).so 
 
 ################################################################################
 #                                   TARGETS                                    #
@@ -81,6 +79,7 @@ iso: $(ISO_PATH)
 ###################
 # Create ISO file #
 $(ISO_PATH): $(ISO_TARGET_DIR)/$(ISO_TARGET_KERNEL) \
+			 $(ISO_TARGET_DIR)/$(ISO_TARGET_INITRD) \
 			 $(ISO_TARGET_DIR)/$(ISO_TARGET_ELTORITO) \
 			 $(ISO_TARGET_DIR)/$(ISO_TARGET_GRUBCONF) \
 			 $(ISO_TARGET_DIR)/$(ISO_TARGET_FONT) \
@@ -90,77 +89,66 @@ $(ISO_PATH): $(ISO_TARGET_DIR)/$(ISO_TARGET_KERNEL) \
 ######################################
 # The dependencies are the following:
 # - Kernel binary blob
+# - InitRD
 # - GRUB El Torito bootloader binary blob
 # - GRUB configuration file
+# - GRUB font
 
 ############
 # Clean up #
 clean:
 	@ echo "/REM:" $(BUILD_DIR)
-	@ rm -Rf $(BUILD_DIR)/*
+	@ rm -Rf $(BUILD_DIR)
+
+####################################### INITRD ##########
+
+##############################
+# Create InitRD tape archive #
+$(ISO_TARGET_DIR)/$(ISO_TARGET_INITRD): $(SYSROOT_FILES)
+	@ echo "/TAR:" $(SYSROOT) ">" $@
+	@ tar czf $@ --owner=root --group=root -C $(SYSROOT) --exclude="*.d" --exclude="libcommon.*.a" .
+
+# ################################
+# # Compress InitRD tape archive #
+# $(ISO_TARGET_DIR)/$(ISO_TARGET_INITRD): $(ISO_SOURCE_INITRD)
+# 	@ echo "/ZIP:" $< ">" $@
+# 	@ gzip -cfkn9 $< > $@ 
 
 ####################################### ISO: MANDATORY FILES AND FOLDERS ##########
 
 ###########################
 # Copy kernel binary blob #
-$(ISO_TARGET_DIR)/$(ISO_TARGET_KERNEL): $(KERNEL_INSTALL_PATH) $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)
-	@ echo "/CPY:" $< ">" $@
-	@ cp $< $@
+$(ISO_TARGET_DIR)/$(ISO_TARGET_KERNEL): $(KERNEL_INSTALL_PATH)
+	@ echo "/ZIP:" $< ">" $@
+	@ mkdir -p $(@D)
+	@ gzip -cfkn9 $< > $@
 
 #########################
 # Copy GRUB binary blob #
-$(ISO_TARGET_DIR)/$(ISO_TARGET_ELTORITO): $(ISO_SOURCE_ELTORITO) $(ISO_TARGET_DIR)/$(ISO_TARGET_GRUB)
+$(ISO_TARGET_DIR)/$(ISO_TARGET_ELTORITO): $(ISO_SOURCE_ELTORITO)
 	@ echo "/CPY:" $< ">" $@
+	@ mkdir -p $(@D)
 	@ cp $< $@
 
 #########################
 # Copy GRUB config file #
-$(ISO_TARGET_DIR)/$(ISO_TARGET_GRUBCONF): $(ISO_SOURCE_GRUBCONF) $(ISO_TARGET_DIR)/$(ISO_TARGET_GRUB)
+$(ISO_TARGET_DIR)/$(ISO_TARGET_GRUBCONF): $(ISO_SOURCE_GRUBCONF)
 	@ echo "/CPY:" $< ">" $@
+	@ mkdir -p $(@D)
 	@ cp $< $@
 
 #######################
 # Copy GRUB font file #
-$(ISO_TARGET_DIR)/$(ISO_TARGET_FONT): $(ISO_SOURCE_FONT) $(ISO_TARGET_DIR)/$(ISO_TARGET_GRUB)
+$(ISO_TARGET_DIR)/$(ISO_TARGET_FONT): $(ISO_SOURCE_FONT)
 	@ echo "/CPY:" $< ">" $@
+	@ mkdir -p $(@D)
 	@ cp $< $@
-
-#######################
-# Make GRUB directory #
-$(ISO_TARGET_DIR)/$(ISO_TARGET_GRUB):
-	@ echo "/MKD:" $@
-	@ mkdir -p $@
-
-#######################
-# Make boot directory #
-$(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT):
-	@ echo "/MKD:" $@
-	@ mkdir -p $@
-
-#######################
-# Make apps directory #
-$(ISO_TARGET_DIR)/$(ISO_TARGET_APPS):
-	@ echo "/MKD:" $@
-	@ mkdir -p $@
-
-#######################
-# Make libs directory #
-$(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS):
-	@ echo "/MKD:" $@
-	@ mkdir -p $@
 
 ####################################### ISO: OTHER FILES AND FOLDERS ##########
 
 ifeq ($(ARC),amd64)
-$(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin: $(PREFIX)/bin/jegudiel.bin
-	@ echo "/CPY:" $< ">" $@
-	@ cp $< $@
+$(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin.gz: $(PREFIX)/bin/jegudiel.bin
+	@ echo "/ZIP:" $< ">" $@
+	@ mkdir -p $(@D)
+	@ gzip -cfkn9 $< > $@
 endif
-
-$(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)/loadtest.exe: $(PREFIX)/bin/loadtest.exe $(ISO_TARGET_DIR)/$(ISO_TARGET_APPS)
-	@ echo "/CPY:" $< ">" $@
-	@ cp $< $@
-
-$(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)/libbeelzebub.$(ARC).so: $(SYSROOT)/usr/lib/libbeelzebub.$(ARC).so $(ISO_TARGET_DIR)/$(ISO_TARGET_LIBS)
-	@ echo "/CPY:" $< ">" $@
-	@ cp $< $@

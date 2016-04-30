@@ -60,7 +60,7 @@ namespace Beelzebub { namespace System
         /*  Port I/O  */
 
         static __forceinline void Out8(uint16_t const port
-                                             , uint8_t const value)
+                                     , uint8_t const value)
         {
             asm volatile ( "outb %1, %0 \n\t"
                          :
@@ -68,16 +68,16 @@ namespace Beelzebub { namespace System
         }
 
         static __forceinline void Out8n(uint16_t const port
-                                              , uint8_t const * src
-                                              , size_t const count)
+                                      , void const * src
+                                      , size_t count)
         {
             asm volatile ( "rep outsb \n\t"
-                         : "+S" (src)
+                         : "+S" (src), "+c" (count)
                          : "d" (port) );
         }
 
         static __forceinline void Out16(uint16_t const port
-                                              , uint16_t const value)
+                                      , uint16_t const value)
         {
             asm volatile ( "outw %1, %0 \n\t"
                          :
@@ -85,7 +85,7 @@ namespace Beelzebub { namespace System
         }
 
         static __forceinline void Out32(uint16_t const port
-                                              , uint32_t const value)
+                                      , uint32_t const value)
         {
             asm volatile ( "outl %1, %0 \n\t"
                          :

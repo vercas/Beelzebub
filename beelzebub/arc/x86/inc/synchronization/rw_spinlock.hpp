@@ -65,6 +65,8 @@ namespace Beelzebub { namespace Synchronization
 
         RwSpinlock(RwSpinlock const &) = delete;
         RwSpinlock & operator =(RwSpinlock const &) = delete;
+        RwSpinlock(RwSpinlock &&) = delete;
+        RwSpinlock & operator =(RwSpinlock &&) = delete;
 
 #ifdef __BEELZEBUB_SETTINGS_SMP
 

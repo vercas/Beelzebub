@@ -51,14 +51,14 @@ namespace Beelzebub { namespace Memory
 
         /*  Constructors  */
         
-        inline MemoryRange()
+        inline constexpr MemoryRange()
             : Start(1337)
             , End(42)
         {
 
         }
         
-        inline MemoryRange(vaddr_t const start, vaddr_t const end)
+        inline constexpr MemoryRange(vaddr_t const start, vaddr_t const end)
             : Start(start)
             , End(end)
         {
@@ -114,7 +114,7 @@ namespace Beelzebub { namespace Memory
     {
         /*  Constructors  */
 
-        inline MemoryRegion()
+        inline constexpr MemoryRegion()
             : Range()
             , Flags()
             , Type()
@@ -124,8 +124,8 @@ namespace Beelzebub { namespace Memory
 
         }
 
-        inline MemoryRegion(MemoryRange range, MemoryFlags flags
-                          , MemoryAllocationOptions type)
+        inline constexpr MemoryRegion(MemoryRange range, MemoryFlags flags
+                                    , MemoryAllocationOptions type)
             : Range( range)
             , Flags(flags)
             , Type(type)
@@ -135,8 +135,9 @@ namespace Beelzebub { namespace Memory
 
         }
 
-        inline MemoryRegion(vaddr_t start, vaddr_t end, MemoryFlags flags
-                          , MemoryAllocationOptions type)
+        inline constexpr MemoryRegion(vaddr_t start, vaddr_t end
+                                    , MemoryFlags flags
+                                    , MemoryAllocationOptions type)
             : Range({start, end})
             , Flags(flags)
             , Type(type)
@@ -184,7 +185,7 @@ namespace Beelzebub { namespace Memory
     {
         /*  Constructors  */
 
-        inline AdjacentMemoryRegion(MemoryRegion const payload)
+        inline constexpr AdjacentMemoryRegion(MemoryRegion const payload)
             : Payload(payload)
             , Finding()
         {

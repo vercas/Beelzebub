@@ -15,7 +15,7 @@ all:
 PROJ_SUBDIR	:= beelzebub
 PREFIX2		:= ./..
 PREFIX		:= ./../build
-INC_COMMON	:= ./../include
+INC_COMMON	:= ./../sysheaders
 
 # Local directories
 SRC_DIR		:= ./src
@@ -45,9 +45,10 @@ include ../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
-GCCFLAGS	+= -ffreestanding -Wall -mcmodel=kernel -fno-omit-frame-pointer 
-GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe -lgcc -static-libgcc 
+GCCFLAGS	+= -ffreestanding -Wall -mcmodel=kernel 
+GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe -static-libgcc 
 GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
+GCCFLAGS	+= --sysroot=$(SYSROOT) 
 
 # C/C++ options
 CFLAGS		:= $(GCCFLAGS) -std=gnu99
@@ -64,9 +65,10 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 GASFLAGS	:= $(GCCFLAGS) 
 
 # Linker options, with optimization
-LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel -fno-omit-frame-pointer -fuse-linker-plugin 
-LOFLAGS		+= -mno-red-zone -O2 -flto=jobserver -nostdlib -pipe -lgcc -static-libgcc -Wl,-z,max-page-size=0x1000 
+LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel -fuse-linker-plugin 
+LOFLAGS		+= -mno-red-zone -O2 -flto=jobserver -nostdlib -pipe -static-libgcc -Wl,-z,max-page-size=0x1000 
 LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
+LOFLAGS		+= --sysroot=$(SYSROOT) 
 
 # Linker options, without optimization
 LDFLAGS		:= -z max-page-size=0x1000 -nostdlib -nodefaultlibs 
@@ -82,6 +84,8 @@ STRIPFLAGS	:= -s -K "jegudiel_header"
 # Debug #
 ifneq (,$(findstring conf-debug,$(SETTINGS)))
 	GCCFLAGS	+= -fno-omit-frame-pointer 
+	CFLAGS		+= -fno-omit-frame-pointer 
+	CXXFLAGS	+= -fno-omit-frame-pointer 
 	LOFLAGS		+= -fno-omit-frame-pointer 
 endif
 
@@ -135,7 +139,7 @@ endif
 include ../Sources.mk
 
 # A small extra
-INCFLAGS	+= -I./../acpica/include
+INCFLAGS	+= -I./../acpica/include 
 
 # Libraries
 SLIBRARIES	:= common.$(ARC)
@@ -143,11 +147,8 @@ LIBRARIES	:= $(patsubst %,-l%,$(SLIBRARIES))
 SLIBFILES	:= $(patsubst %,$(SYSROOT)/usr/lib/lib%.a,$(SLIBRARIES)) 
 
 # Bootstrapping
-CFLAGS		+= $(INCFLAGS)
-CXXFLAGS	+= $(INCFLAGS)
-LDFLAGS		+= -L$(SYSROOT)/usr/lib 
-LOFLAGS		+= -L$(SYSROOT)/usr/lib 
-#	I don't want to set the sysroot here.
+CFLAGS		+= $(INCFLAGS) 
+CXXFLAGS	+= $(INCFLAGS) 
 
 ################################################################################
 #                                   TARGETS                                    #

@@ -40,12 +40,11 @@
 #pragma once
 
 #include <execution/elf.hpp>
-#include <jegudiel.h>
 
 namespace Beelzebub { namespace Execution
 {
     /**
-     *  Represents a processing unit of the system.
+     *  Interface to interact with the 64-bit runtime of the system.
      */
     class Runtime64
     {
@@ -65,8 +64,7 @@ namespace Beelzebub { namespace Execution
 
         /*  Methods  */
 
-        static Handle HandleTemplate(size_t index, jg_info_module_t const * module
-                                   , vaddr_t vaddr, size_t size);
+        static Handle Initialize();
 
         static Handle Deploy(uintptr_t base);
     };

@@ -37,7 +37,7 @@
 #include <cpp_support.h>
 #endif
 
-#include <metaprogramming.arc.inc>
+#include <metaprogramming.aux.inc>
 
 /*  Some macro helpers. */
 
@@ -369,3 +369,7 @@ asm volatile goto(".pushsection .locks." #opType ", \"a\", @progbits \n\t" \
 #define ANNOTATE_LOCK_OPERATION_CHK ANNOTATE_LOCK_OPERATION(chk)
 #define ANNOTATE_LOCK_OPERATION_ACQ ANNOTATE_LOCK_OPERATION(acq)
 #define ANNOTATE_LOCK_OPERATION_REL ANNOTATE_LOCK_OPERATION(rel)
+
+#ifndef EXTEND_POINTER
+#define EXTEND_POINTER(ptr) do { } while (false)
+#endif

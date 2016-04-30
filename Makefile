@@ -18,7 +18,7 @@ PREFIX		:= ./build
 include ./Beelzebub.mk
 
 # Fake targets.
-.PHONY: run qemu qemu-serial clean jegudiel image kernel apps libs $(ARC) $(SETTINGS)
+.PHONY: run qemu qemu-serial clean jegudiel image kernel apps libs sysheaders $(ARC) $(SETTINGS)
 
 # Output file
 KERNEL_DIR	:= ./$(KERNEL_NAME)
@@ -38,7 +38,8 @@ include ./Toolchain.mk
 ##############
 # 64-bit x86 #
 ifeq ($(ARC),amd64)
-kernel:: jegudiel
+image:: jegudiel
+clean:: clean-jegudiel
 endif
 
 ################################################################################
@@ -49,14 +50,19 @@ endif
 $(ARC): image
 	@ true
 
-clean:
-	@ $(MAKE) -C image/ clean
-	@ $(MAKE) -C $(KERNEL_DIR)/ clean
-	@ $(MAKE) -C jegudiel/ clean
-	@ $(MAKE) -C apps/ clean
+####################################### CLEANING ##########
+
+clean::
+	@ $(MAKE) -C sysheaders/ clean
 	@ $(MAKE) -C libs/ clean
+	@ $(MAKE) -C $(KERNEL_DIR)/ clean
+	@ $(MAKE) -C apps/ clean
+	@ $(MAKE) -C image/ clean
 	@ rm -Rf $(PREFIX)
 	@ rm -f last_settings.txt
+
+clean-jegudiel:
+	@ $(MAKE) -C jegudiel/ clean
 
 ####################################### TESTING & RUNNING ##########
 
@@ -80,22 +86,26 @@ vmware2:
 
 ####################################### COMPONENTS ##########
 
-jegudiel:
+jegudiel: sysheaders
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
-image: kernel apps libs
+image:: kernel apps libs sysheaders
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso $(MAKE_FLAGS)
 
-kernel:: libs
+kernel: libs sysheaders
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
-apps: kernel libs
+apps: kernel libs sysheaders
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C apps/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
-libs:
+libs: sysheaders
 	@ echo "/MAK:" $@
 	@ $(MAKE) -C libs/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
+
+sysheaders:
+	@ echo "/MAK:" $@
+	@ $(MAKE) -C sysheaders/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)

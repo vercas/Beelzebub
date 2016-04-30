@@ -79,9 +79,9 @@ namespace Beelzebub { namespace Memory
         /*  Operations  */
 
         __hot Handle Allocate(vaddr_t & vaddr, size_t pageCnt
-            , MemoryFlags flags, MemoryAllocationOptions type);
+            , MemoryFlags flags, MemoryAllocationOptions type, bool lock = true);
 
-        __hot MemoryRegion * FindRegion(vaddr_t vaddr, bool keepLock);
+        __hot MemoryRegion * FindRegion(vaddr_t vaddr);
 
         /*  Fields  */
 

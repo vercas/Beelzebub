@@ -15,7 +15,7 @@ all:
 PROJ_SUBDIR	:= libs/common
 PREFIX2		:= ./../..
 PREFIX		:= ./../../build
-INC_COMMON	:= ./../../include
+INC_COMMON	:= ./../../sysheaders
 
 # Local directories
 SRC_DIR		:= ./src
@@ -46,14 +46,15 @@ include ../../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_STATIC_LIBRARY 
-GCCFLAGS		+= -ffreestanding -Wall -mcmodel=large -fno-omit-frame-pointer 
-GCCFLAGS		+= -mno-red-zone -O2 -nostdlib -pipe -lgcc -static-libgcc 
+GCCFLAGS		+= -ffreestanding -Wall -mcmodel=large 
+GCCFLAGS		+= -mno-red-zone -O0 -nostdlib -pipe -lgcc -static-libgcc 
 GCCFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
+GCCFLAGS		+= --sysroot=$(SYSROOT) 
 
 # C/C++ options
-CFLAGS			:= $(GCCFLAGS) -std=gnu99 -flto
+CFLAGS			:= $(GCCFLAGS) -std=gnu99 -flto 
 CXXFLAGS_CRT	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
-CXXFLAGS		:= $(CXXFLAGS_CRT) -flto
+CXXFLAGS		:= $(CXXFLAGS_CRT) -flto 
 
 # Assembler options
 ASFLAGS			:= $(GCC_PRECOMPILER_FLAGS)
@@ -62,6 +63,19 @@ GASFLAGS		:= $(GASFLAGS_CRT) -flto
 
 # Archiver options
 ARFLAGS			:= rcs 
+
+################################################################################
+#                        CONFIGURATION-SPECIFIC SETTINGS                       #
+################################################################################
+
+#########
+# Debug #
+ifneq (,$(findstring conf-debug,$(SETTINGS)))
+	GCCFLAGS		+= -fno-omit-frame-pointer 
+	CFLAGS			+= -fno-omit-frame-pointer 
+	CXXFLAGS		+= -fno-omit-frame-pointer 
+	CXXFLAGS_CRT	+= -fno-omit-frame-pointer 
+endif
 
 ################################################################################
 #                        ARCHITECTURE-SPECIFIC SETTINGS                        #

@@ -263,6 +263,7 @@ struct PointerAndSize
 };
 
 __shared __const struct PointerAndSize IntersectMemoryRanges(struct PointerAndSize a, struct PointerAndSize b);
+__shared __const bool DoRangesIntersect(struct PointerAndSize a, struct PointerAndSize b);
 
 #ifdef __cplusplus
 }

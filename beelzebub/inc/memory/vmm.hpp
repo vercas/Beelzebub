@@ -147,9 +147,12 @@ namespace Beelzebub { namespace Memory
             , MemoryFlags const flags, uintptr_t & vaddr);
 
         __hot static __noinline Handle FreePages(Execution::Process * proc
-            , uintptr_t const vaddr, const size_t count);
+            , uintptr_t const vaddr, size_t const count);
 
         /*  Flags  */
+
+        __hot static __noinline Handle CheckMemoryRegion(Execution::Process * proc
+            , uintptr_t addr, size_t size, MemoryCheckType type);
 
         __hot static __noinline Handle GetPageFlags(Execution::Process * proc
             , uintptr_t const vaddr, MemoryFlags & flags, bool const lock = true);

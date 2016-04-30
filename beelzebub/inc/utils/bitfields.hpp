@@ -24,7 +24,7 @@ decB inline bool MCATS(Get, name)() decG                                       \
 {                                                                              \
     return 0 != (var & MCATS(name, Bit));                                      \
 }                                                                              \
-decB inline auto MCATS(Set, name)(bool const val)                              \
+decB inline auto MCATS(Set, name)(bool const val) -> decltype(*this)           \
 {                                                                              \
     if (val)                                                                   \
         var |=  MCATS(name, Bit);                                              \
@@ -78,7 +78,7 @@ decB inline valT MCATS(Get, name)() decG                                       \
 {                                                                              \
     return (valT)(var & MCATS(name, Bits));                                    \
 }                                                                              \
-decB inline auto MCATS(Set, name)(valT const val)                              \
+decB inline auto MCATS(Set, name)(valT const val) -> decltype(*this)           \
 {                                                                              \
     var = ((varT)val &  MCATS(name, Bits))                                     \
         | (      var & ~MCATS(name, Bits));                                    \
@@ -106,7 +106,7 @@ decB inline valT MCATS(Get, name)() decG                                       \
 {                                                                              \
     return (valT)((var & MCATS(name, Bits)) >> bitInd);                        \
 }                                                                              \
-decB inline auto MCATS(Set, name)(valT const val)                              \
+decB inline auto MCATS(Set, name)(valT const val) -> decltype(*this)           \
 {                                                                              \
     var = (((varT)val << bitInd) &  MCATS(name, Bits))                         \
         | (       var            & ~MCATS(name, Bits));                        \
@@ -142,7 +142,7 @@ decB inline valT MCATS(Get, name)() decG                                       \
     return (valT)(((var & MCATS(name,  LowBits)) >>         offL)              \
                 | ((var & MCATS(name, HighBits)) >> (offH - offL)));           \
 }                                                                              \
-decB inline auto MCATS(Set, name)(valT const val)                              \
+decB inline auto MCATS(Set, name)(valT const val) -> decltype(*this)           \
 {                                                                              \
     var = (((varT)val <<  offL        ) &  MCATS(name,  LowBits))              \
         | (((varT)val << (offH - lenL)) &  MCATS(name, HighBits))              \
