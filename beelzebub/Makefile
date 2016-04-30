@@ -45,7 +45,7 @@ include ../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
-GCCFLAGS	+= -ffreestanding -Wall -mcmodel=kernel 
+GCCFLAGS	+= -ffreestanding -Wall -Wsystem-headers -mcmodel=kernel 
 GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe -static-libgcc 
 GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 GCCFLAGS	+= --sysroot=$(SYSROOT) 
@@ -65,7 +65,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
 GASFLAGS	:= $(GCCFLAGS) 
 
 # Linker options, with optimization
-LOFLAGS		:= -ffreestanding -Wall -mcmodel=kernel -fuse-linker-plugin 
+LOFLAGS		:= -ffreestanding -Wall -Wsystem-headers -mcmodel=kernel -fuse-linker-plugin 
 LOFLAGS		+= -mno-red-zone -O2 -flto=jobserver -nostdlib -pipe -static-libgcc -Wl,-z,max-page-size=0x1000 
 LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 LOFLAGS		+= --sysroot=$(SYSROOT) 

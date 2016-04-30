@@ -46,7 +46,7 @@ include ../../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_STATIC_LIBRARY 
-GCCFLAGS		+= -ffreestanding -Wall -mcmodel=large 
+GCCFLAGS		+= -ffreestanding -Wall -Wsystem-headers -mcmodel=large 
 GCCFLAGS		+= -mno-red-zone -O0 -nostdlib -pipe -lgcc -static-libgcc 
 GCCFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 GCCFLAGS		+= --sysroot=$(SYSROOT) 

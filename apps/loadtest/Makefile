@@ -46,7 +46,7 @@ include ../../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_APPLICATION 
-GCCFLAGS	+= -Wall -fno-omit-frame-pointer 
+GCCFLAGS	+= -Wall -Wsystem-headers -fno-omit-frame-pointer 
 GCCFLAGS	+= -O2 -flto -pipe 
 GCCFLAGS	+= --sysroot=$(SYSROOT) 
 
@@ -59,7 +59,7 @@ ASFLAGS		:= $(GCC_PRECOMPILER_FLAGS)
 
 # Linker options, with optimization
 LOFLAGS		:= -Wl,-z,max-page-size=0x1000 -fuse-linker-plugin 
-LOFLAGS		+= -Wall -fno-omit-frame-pointer 
+LOFLAGS		+= -Wall -Wsystem-headers -fno-omit-frame-pointer 
 LOFLAGS		+= -O2 -flto=jobserver -pipe 
 LOFLAGS		+= --sysroot=$(SYSROOT) 
 

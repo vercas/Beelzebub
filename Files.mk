@@ -25,7 +25,7 @@ $(BUILD_DIR)/%.s.o: $(SRC_DIR)/%.s $(MAKEFILE_LIST)
 $(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c $(MAKEFILE_LIST)
 	@ echo "/STD/C__:" $< ">" $@
 	@ mkdir -p $(@D)
-	+@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
+	+@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MD -MP -c $< -o $@    $(POST_COMPILATION)
 # +@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -Wa,-aslh -c $< -o $@    $(POST_COMPILATION) 1> $@.s
 
 ####################
@@ -33,7 +33,7 @@ $(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c $(MAKEFILE_LIST)
 $(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp $(MAKEFILE_LIST)
 	@ echo "/STD/C++:" $< ">" $@
 	@ mkdir -p $(@D)
-	+@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
+	+@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MD -MP -c $< -o $@    $(POST_COMPILATION)
 # +@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -Wa,-aslh -c $< -o $@    $(POST_COMPILATION) 1> $@.s
 
 ####################################### ARCHITECTURE FILES ##########
@@ -57,7 +57,7 @@ $(BUILD_DIR)/%.s.arc.o: $(ARC_DIR)/$(ARC)/src/%.s $(MAKEFILE_LIST)
 $(BUILD_DIR)/%.c.arc.o: $(ARC_DIR)/$(ARC)/src/%.c $(MAKEFILE_LIST)
 	@ echo "/ARC/C__:" $< ">" $@
 	@ mkdir -p $(@D)
-	+@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
+	+@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MD -MP -c $< -o $@    $(POST_COMPILATION)
 # +@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -Wa,-aslh -c $< -o $@    $(POST_COMPILATION) 1> $@.s
 
 ####################
@@ -65,7 +65,7 @@ $(BUILD_DIR)/%.c.arc.o: $(ARC_DIR)/$(ARC)/src/%.c $(MAKEFILE_LIST)
 $(BUILD_DIR)/%.cpp.arc.o: $(ARC_DIR)/$(ARC)/src/%.cpp $(MAKEFILE_LIST)
 	@ echo "/ARC/C++:" $< ">" $@
 	@ mkdir -p $(@D)
-	+@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
+	+@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MD -MP -c $< -o $@    $(POST_COMPILATION)
 # +@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -Wa,-aslh -c $< -o $@    $(POST_COMPILATION) 1> $@.s
 
 ####################################### AUXILIARY FILES ##########
@@ -89,7 +89,7 @@ $(BUILD_DIR)/%.s.aux.o: $(AUX_DIR)/$(AUX)/src/%.s $(MAKEFILE_LIST)
 $(BUILD_DIR)/%.c.aux.o: $(AUX_DIR)/$(AUX)/src/%.c $(MAKEFILE_LIST)
 	@ echo "/AUX/C__:" $< ">" $@
 	@ mkdir -p $(@D)
-	+@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
+	+@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -MD -MP -c $< -o $@    $(POST_COMPILATION)
 # +@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -Wa,-aslh -c $< -o $@    $(POST_COMPILATION) 1> $@.s
 
 ####################
@@ -97,7 +97,7 @@ $(BUILD_DIR)/%.c.aux.o: $(AUX_DIR)/$(AUX)/src/%.c $(MAKEFILE_LIST)
 $(BUILD_DIR)/%.cpp.aux.o: $(AUX_DIR)/$(AUX)/src/%.cpp $(MAKEFILE_LIST)
 	@ echo "/AUX/C++:" $< ">" $@
 	@ mkdir -p $(@D)
-	+@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
+	+@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -MD -MP -c $< -o $@    $(POST_COMPILATION)
 # +@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS) -Wa,-aslh -c $< -o $@    $(POST_COMPILATION) 1> $@.s
 
 ####################################### DEPENDENCIES ##########

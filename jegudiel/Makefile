@@ -45,7 +45,7 @@ include ../Toolchain.mk
 
 # Toolchain options/flags
 INCFLAGS	:= -I$(INC_DIR) -I$(INC_COMMON)/$(ARC) 
-CFLAGS		:= -m64 -ffreestanding -Wall -mcmodel=kernel $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0 -static-libgcc 
+CFLAGS		:= -m64 -ffreestanding -Wall -Wsystem-headers -mcmodel=kernel $(GCC_PRECOMPILER_FLAGS) $(INCFLAGS) -O0 -static-libgcc 
 ASFLAGS		:= -f elf64
 LDFLAGS		:= -z max-page-size=0x1000
 
