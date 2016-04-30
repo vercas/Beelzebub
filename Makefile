@@ -39,7 +39,6 @@ include ./Toolchain.mk
 # 64-bit x86 #
 ifeq ($(ARC),amd64)
 image:: jegudiel
-clean:: clean-jegudiel
 endif
 
 ################################################################################
@@ -52,17 +51,28 @@ $(ARC): image
 
 ####################################### CLEANING ##########
 
-clean::
-	@ $(MAKE) -C sysheaders/ clean
-	@ $(MAKE) -C libs/ clean
-	@ $(MAKE) -C $(KERNEL_DIR)/ clean
-	@ $(MAKE) -C apps/ clean
-	@ $(MAKE) -C image/ clean
+clean:: clean-sysheaders clean-libs clean-jegudiel \
+        clean-kernel clean-apps clean-image
 	@ rm -Rf $(PREFIX)
 	@ rm -f last_settings.txt
 
+clean-sysheaders:
+	@ $(MAKE) -C sysheaders/ clean
+
+clean-libs:
+	@ $(MAKE) -C libs/ clean
+
 clean-jegudiel:
 	@ $(MAKE) -C jegudiel/ clean
+
+clean-kernel:
+	@ $(MAKE) -C $(KERNEL_DIR)/ clean
+
+clean-apps:
+	@ $(MAKE) -C apps/ clean
+
+clean-image:
+	@ $(MAKE) -C image/ clean
 
 ####################################### TESTING & RUNNING ##########
 

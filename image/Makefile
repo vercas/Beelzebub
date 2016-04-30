@@ -121,7 +121,7 @@ $(ISO_TARGET_DIR)/$(ISO_TARGET_INITRD): $(SYSROOT_FILES)
 $(ISO_TARGET_DIR)/$(ISO_TARGET_KERNEL): $(KERNEL_INSTALL_PATH)
 	@ echo "/ZIP:" $< ">" $@
 	@ mkdir -p $(@D)
-	@ gzip -cfkn9 $< > $@
+	@ gzip -9 < $< > $@
 
 #########################
 # Copy GRUB binary blob #
@@ -150,5 +150,5 @@ ifeq ($(ARC),amd64)
 $(ISO_TARGET_DIR)/$(ISO_TARGET_BOOT)/jegudiel.bin.gz: $(PREFIX)/bin/jegudiel.bin
 	@ echo "/ZIP:" $< ">" $@
 	@ mkdir -p $(@D)
-	@ gzip -cfkn9 $< > $@
+	@ gzip -9 < $< > $@
 endif
