@@ -758,6 +758,19 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
         //  Get rid of the physical page if mapping failed. :frown:
     }
 
+    vas->Lock.ReleaseAsReader();
+
+    if likely(vaddr < KernelStart)
+    {
+        //  This was a request in userland, therefore the page contents need to
+        //  be TERMINATED.
+
+        memset(reinterpret_cast<void *>(vaddr_algn), 0xCA, PageSize);
+        //  It's all CACA!
+    }
+
+    return res;
+
 #undef RETURN
 end:
     vas->Lock.ReleaseAsReader();
@@ -853,7 +866,12 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
         }
 
         if likely(allocSucceeded)
+        {
+            if likely(0 != (type & MemoryAllocationOptions::VirtualUser))
+                memset(reinterpret_cast<void *>(vaddr), 0xCA, size);
+
             return HandleResult::Okay;
+        }
         else
         {
             //  So, the allocation failed. Now all the pages that were allocated
