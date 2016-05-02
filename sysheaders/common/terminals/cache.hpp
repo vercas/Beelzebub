@@ -92,7 +92,7 @@ namespace Beelzebub { namespace Terminals
     /**
      *  <summary>A terminal which caches output in memory.</summary>
      */
-    class CacheTerminal : public TerminalBase
+    class CacheTerminal final : public TerminalBase
     {
         /*  Constructors  */
 

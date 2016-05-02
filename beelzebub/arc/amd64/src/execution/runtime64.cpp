@@ -130,7 +130,7 @@ Handle Runtime64::Initialize()
     return HandleResult::Okay;
 }
 
-Handle Runtime64::Deploy(uintptr_t base)
+Handle Runtime64::Deploy(uintptr_t base, StartupData * & data)
 {
     Elf copy = Runtime64::Template;
     //  A copy is needed; the original mustn't be modified.
@@ -163,22 +163,26 @@ Handle Runtime64::Deploy(uintptr_t base)
 
     //  Then find a "Self" symbol.
 
-    Elf::Symbol self = copy.GetSymbol("Self");
+    Elf::Symbol stdat_s = copy.GetSymbol(STARTUP_DATA_SYMBOL);
 
-    assert_or(self.Exists, "'Self' symbol doesn't exist in the runtime.");
+    assert_or(stdat_s.Exists, "'" STARTUP_DATA_SYMBOL "' symbol doesn't exist in the runtime.");
 
-    assert_or(self.Size == sizeof(Elf)
-        , "'Self' symbol size doesn't match ELF class size!")
+    assert_or(stdat_s.Size == sizeof(StartupData)
+        , "'" STARTUP_DATA_SYMBOL "' symbol size doesn't match ELF class size!")
         return HandleResult::RuntimeMismatch;
 
-    assert_or(copy.CheckRangeLoaded64(self.Value - base, self.Size, RangeLoadOptions::Writable) == RangeLoadStatus::FullyLoaded
-        , "'Self' symbol is not within a writable loaded section!")
+    assert_or(copy.CheckRangeLoaded64(stdat_s.Value - base, stdat_s.Size, RangeLoadOptions::Writable) == RangeLoadStatus::FullyLoaded
+        , "'" STARTUP_DATA_SYMBOL "' symbol is not within a writable loaded section!")
         return HandleResult::RuntimeMismatch;
 
-    Elf * copyDestination = reinterpret_cast<Elf *>(self.Value);
+    //  Finally, fill in the blanks.
 
-    *copyDestination = copy;
+    StartupData * stdat = reinterpret_cast<StartupData *>(stdat_s.Value);
+
+    stdat->RuntimeImage = copy;
     //  Aye, copy the ELF class into the userland.
+
+    data = stdat;
 
     return HandleResult::Okay;
 }

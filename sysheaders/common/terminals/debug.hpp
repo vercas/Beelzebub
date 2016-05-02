@@ -46,7 +46,7 @@ namespace Beelzebub { namespace Terminals
     /**
      *  <summary>A terminal which outputs to kernel debug print.</summary>
      */
-    class DebugTerminal : public TerminalBase
+    class DebugTerminal final: public TerminalBase
     {
         /*  Constructors  */
 

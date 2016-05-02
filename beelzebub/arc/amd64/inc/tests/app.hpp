@@ -39,17 +39,6 @@
 
 #pragma once
 
-#include <handles.h>
-#include <jegudiel.h>
+#include <metaprogramming.h>
 
-__cold __noinline void TestApplication();
-
-/**
- *  <summary>
- *  Handles the ELF load test & ring 3 execution.
- *  </summary>
- */
-__startup Beelzebub::Handle HandleLoadtest(size_t const index
-                                         , jg_info_module_t const * const module
-                                         , vaddr_t const vaddr
-                                         , size_t const size);
+__startup void TestApplication();

@@ -41,31 +41,10 @@
 
 #include <execution/startup_data.hpp>
 
-namespace Beelzebub { namespace Execution
+namespace Beelzebub
 {
-    /**
-     *  Interface to interact with the 64-bit runtime of the system.
-     */
-    class Runtime64
-    {
-    public:
-        /*  Statics  */
-
-        static Elf Template;
-
-        /*  Constructors  */
-
-    protected:
-        Runtime64() = default;
-
-    public:
-        Runtime64(Runtime64 const &) = delete;
-        Runtime64 & operator =(Runtime64 const &) = delete;
-
-        /*  Methods  */
-
-        static Handle Initialize();
-
-        static Handle Deploy(uintptr_t base, StartupData * & data);
-    };
-}}
+    __extern Execution::StartupData STARTUP_DATA;
+    //  Due to boundless ingenuity, this variable resides in the .bss section
+    //  and will be filled in by the kernel with the appropriate info, after the
+    //  runtime's ELF is actually loaded.
+}

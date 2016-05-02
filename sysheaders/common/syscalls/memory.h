@@ -46,6 +46,7 @@
 *****************************/
 
 #define ENUM_MEMREQOPTS(ENUMINST) \
+    ENUMINST(None       , MEMREQ_NONE        , 0x000, "None"        ) \
     ENUMINST(Writable   , MEMREQ_WRITABLE    , 0x001, "Writable"    ) \
     ENUMINST(Executable , MEMREQ_EXECUTABLE  , 0x002, "Executable"  ) \
     ENUMINST(GuardLow   , MEMREQ_GUARD_LOW   , 0x010, "Guard Low"   ) \
@@ -75,6 +76,7 @@ ENUMOPS(MemoryRequestOptions)
 *****************************/
 
 #define ENUM_MEMRELOPTS(ENUMINST) \
+    ENUMINST(None       , MEMREL_NONE        , 0x000, "None"        ) \
     ENUMINST(Decommit   , MEMREL_DECOMMIT    , 0x001, "Decommit"    )
 
 typedef enum

@@ -41,7 +41,7 @@
 // #include <syscalls.h>
 #include <syscalls/memory.h>
 #include <terminals/debug.hpp>
-#include <self.hpp>
+#include <kernel_data.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -65,12 +65,15 @@ __extern __bland __used void _start(char * args)
     DEBUG_TERM  << "Testing stream operator on the debug terminal inside the "
                 << "runtime's entry point!" << EndLine;
 
-    DEBUG_TERM  << Self.GetSymbol("Self")       << EndLine
-                << Self.GetSymbol("_start")     << EndLine
-                << Self.GetSymbol("__start")    << EndLine
-                << Self.GetSymbol("_init")      << EndLine
-                << Self.GetSymbol("_fini")      << EndLine
-                << Self.GetSymbol("BLEEEERGH")  << EndLine;
+    DEBUG_TERM  << STARTUP_DATA.RuntimeImage.GetSymbol(STARTUP_DATA_SYMBOL) << EndLine
+                << STARTUP_DATA.RuntimeImage.GetSymbol("_start")            << EndLine
+                << STARTUP_DATA.RuntimeImage.GetSymbol("__start")           << EndLine
+                << STARTUP_DATA.RuntimeImage.GetSymbol("_init")             << EndLine
+                << STARTUP_DATA.RuntimeImage.GetSymbol("_fini")             << EndLine
+                << STARTUP_DATA.RuntimeImage.GetSymbol("BLEEEERGH")         << EndLine;
+
+    DEBUG_TERM  << "Memory image start: " << (void *)(STARTUP_DATA.MemoryImageStart) << EndLine
+                << "Memory image end:   " << (void *)(STARTUP_DATA.MemoryImageEnd  ) << EndLine;
 
     Handle res = MemoryRequest(0, 0x10000, mem_req_opts_t::Writable);
     uint64_t volatile * testPtr = (uint64_t volatile *)res.GetPage();

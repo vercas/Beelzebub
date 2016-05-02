@@ -37,9 +37,19 @@
     thorough explanation regarding other files.
 */
 
-#include <self.hpp>
+#pragma once
 
-using namespace Beelzebub;
-using namespace Beelzebub::Execution;
+#include <execution/elf.hpp>
 
-Elf Beelzebub::Self {};
+#define STARTUP_DATA         __beel_rt_stadat
+#define STARTUP_DATA_SYMBOL "__beel_rt_stadat"
+
+namespace Beelzebub { namespace Execution
+{
+    struct StartupData
+    {
+        Elf RuntimeImage;
+        uint64_t MemoryImageStart, MemoryImageEnd;
+        Handle NonMemoryImage;
+    };
+}}

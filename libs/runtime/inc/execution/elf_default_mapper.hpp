@@ -39,33 +39,10 @@
 
 #pragma once
 
-#include <execution/startup_data.hpp>
+#include <execution/elf.hpp>
 
 namespace Beelzebub { namespace Execution
 {
-    /**
-     *  Interface to interact with the 64-bit runtime of the system.
-     */
-    class Runtime64
-    {
-    public:
-        /*  Statics  */
-
-        static Elf Template;
-
-        /*  Constructors  */
-
-    protected:
-        Runtime64() = default;
-
-    public:
-        Runtime64(Runtime64 const &) = delete;
-        Runtime64 & operator =(Runtime64 const &) = delete;
-
-        /*  Methods  */
-
-        static Handle Initialize();
-
-        static Handle Deploy(uintptr_t base, StartupData * & data);
-    };
+    bool MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data);
+    bool UnmapSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data);
 }}

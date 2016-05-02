@@ -608,10 +608,6 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
         return HandleKernelModule(index, module, vaddr, size);
     else if (memeq("initrd", JG_INFO_STRING_EX + module->name, 7))
         return InitRd::Initialize(vaddr, size);
-#ifdef __BEELZEBUB__TEST_APP
-    else if (memeq("loadtest", JG_INFO_STRING_EX + module->name, 9) && CHECK_TEST(APP))
-        return HandleLoadtest(index, module, vaddr, size);
-#endif
 
     return res;
 }

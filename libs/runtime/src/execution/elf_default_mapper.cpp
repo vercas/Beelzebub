@@ -37,35 +37,51 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <execution/elf_default_mapper.hpp>
+#include <execution/elf.hpp>
+#include <syscalls/memory.h>
 
-#include <execution/startup_data.hpp>
+#include <string.h>
+#include <math.h>
+#include <debug.hpp>
 
-namespace Beelzebub { namespace Execution
+using namespace Beelzebub;
+using namespace Beelzebub::Execution;
+
+bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
 {
-    /**
-     *  Interface to interact with the 64-bit runtime of the system.
-     */
-    class Runtime64
-    {
-    public:
-        /*  Statics  */
+    vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
+    vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
 
-        static Elf Template;
+    if (segVaddrEnd <= segVaddr)
+        return false;
+    //  So it starts before the userland or ends after the kernel... Not good.
 
-        /*  Constructors  */
+    Handle res = MemoryRequest(segVaddr, segVaddrEnd - segVaddr, MemoryRequestOptions::None);
 
-    protected:
-        Runtime64() = default;
+    if unlikely(!res.IsOkayResult())
+        return false;
 
-    public:
-        Runtime64(Runtime64 const &) = delete;
-        Runtime64 & operator =(Runtime64 const &) = delete;
+    memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
+        ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
 
-        /*  Methods  */
+    if (phdr.VSize > phdr.PSize)
+        memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
+            , 0, phdr.VSize - phdr.PSize);
 
-        static Handle Initialize();
+    return true;
+}
 
-        static Handle Deploy(uintptr_t base, StartupData * & data);
-    };
-}}
+bool Execution::UnmapSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data)
+{
+    vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
+    vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
+
+    if (segVaddrEnd <= segVaddr)
+        return false;
+    //  So it starts before the userland or ends after the kernel... Not good.
+
+    Handle res = MemoryRelease(segVaddr, segVaddrEnd - segVaddr, MemoryReleaseOptions::None);
+
+    return res.IsOkayResult();
+}

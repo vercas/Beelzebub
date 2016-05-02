@@ -40,6 +40,7 @@
 #ifdef __BEELZEBUB__TEST_APP
 
 #include <tests/app.hpp>
+#include <initrd.hpp>
 #include <execution/runtime64.hpp>
 #include <execution/thread.hpp>
 #include <execution/thread_init.hpp>
@@ -53,7 +54,6 @@
 #include <string.h>
 #include <math.h>
 #include <debug.hpp>
-#include <_print/paging.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -68,52 +68,64 @@ static Thread testThread;
 static Thread testWatcher;
 static Process testProcess;
 
-static uintptr_t userStackBottom = nullvaddr, userStackTop = nullvaddr;
+static uintptr_t loadtestStart = nullvaddr, loadtestEnd = nullvaddr;
 static uintptr_t const userStackPageCount = 254;
-
-static Elf rtElf;
 
 static __cold void * JumpToRing3(void *);
 static __cold void * WatchTestThread(void *);
 
-Handle HandleLoadtest(size_t const index
-                    , jg_info_module_t const * const module
-                    , vaddr_t const vaddr
-                    , size_t const size)
+__startup Handle HandleLoadtest(uintptr_t const vaddr, size_t const size)
 {
-    uint8_t * const addr = reinterpret_cast<uint8_t *>(vaddr);
-    // size_t const len = module->length;
+    //  First make it accessible to userland.
+    //  It doesn't matter if other parts of the initrd are affected.
+    //  TODO: Yet?
 
-    // executable = addr;
+    vaddr_t const firstPage = RoundDown(vaddr, PageSize);
+    vaddr_t const lastPage = RoundUp(vaddr + size, PageSize);
 
-    DEBUG_TERM << EndLine
-        << "############################## LOADTEST APP START ##############################"
-        << EndLine;
+    for (size_t offset = 0; firstPage + offset < lastPage; offset += PageSize)
+    {
+        Handle res = Vmm::SetPageFlags(&BootstrapProcess, firstPage + offset
+            , MemoryFlags::Global | MemoryFlags::Userland);
+        //  Modules are normally global-supervisor-writable. This one needs to
+        //  be global-userland-readable.
 
-    ElfHeader1 * eh1 = reinterpret_cast<ElfHeader1 *>(addr);
+        ASSERT(res.IsOkayResult()
+            , "Failed to change flags of page at %Xp for loadtest app: %H."
+            , firstPage + offset, res);
+    }
 
-    DEBUG_TERM << *eh1 << EndLine;
+    // DEBUG_TERM << EndLine
+    //     << "############################## LOADTEST APP START ##############################"
+    //     << EndLine;
 
-    ASSERT(eh1->Identification.Class == ElfClass::Elf64);
-    ASSERT(eh1->Identification.DataEncoding == ElfDataEncoding::LittleEndian);
+    // ElfHeader1 * eh1 = reinterpret_cast<ElfHeader1 *>(addr);
 
-    ElfHeader2_64 * eh2 = reinterpret_cast<ElfHeader2_64 *>(addr + sizeof(ElfHeader1));
+    // DEBUG_TERM << *eh1 << EndLine;
 
-    DEBUG_TERM << Hexadecimal << *eh2 << Decimal << EndLine;
+    // ASSERT(eh1->Identification.Class == ElfClass::Elf64);
+    // ASSERT(eh1->Identification.DataEncoding == ElfDataEncoding::LittleEndian);
 
-    // entryPoint = eh2->EntryPoint;
+    // ElfHeader2_64 * eh2 = reinterpret_cast<ElfHeader2_64 *>(addr + sizeof(ElfHeader1));
 
-    ElfHeader3 * eh3 = reinterpret_cast<ElfHeader3 *>(addr + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
+    // DEBUG_TERM << Hexadecimal << *eh2 << Decimal << EndLine;
 
-    DEBUG_TERM << *eh3 << EndLine;
+    // // entryPoint = eh2->EntryPoint;
 
-    ASSERT(eh3->SectionHeaderTableEntrySize == sizeof(ElfSectionHeader_64)
-        , "Unusual section header type: %us; expected %us."
-        , (size_t)(eh3->SectionHeaderTableEntrySize), sizeof(ElfSectionHeader_64));
+    // ElfHeader3 * eh3 = reinterpret_cast<ElfHeader3 *>(addr + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
 
-    DEBUG_TERM << EndLine
-        << "############################### LOADTEST APP END ###############################"
-        << EndLine;
+    // DEBUG_TERM << *eh3 << EndLine;
+
+    // ASSERT(eh3->SectionHeaderTableEntrySize == sizeof(ElfSectionHeader_64)
+    //     , "Unusual section header type: %us; expected %us."
+    //     , (size_t)(eh3->SectionHeaderTableEntrySize), sizeof(ElfSectionHeader_64));
+
+    // DEBUG_TERM << EndLine
+    //     << "############################### LOADTEST APP END ###############################"
+    //     << EndLine;
+
+    loadtestStart = vaddr;
+    loadtestEnd = vaddr + size;
 
     return HandleResult::Okay;
 }
@@ -122,6 +134,27 @@ Spinlock<> TestRegionLock;
 
 void TestApplication()
 {
+    //  First get the loadtest app's location.
+
+    ASSERT(InitRd::Loaded);
+
+    Handle file = InitRd::FindItem("/apps/loadtest.exe");
+
+    ASSERT(file.IsType(HandleType::InitRdFile)
+        , "Failed to find loadtest app in InitRD: %H.", file);
+
+    FileBoundaries bnd = InitRd::GetFileBoundaries(file);
+
+    ASSERT(bnd.Start != 0 && bnd.Size != 0);
+
+    //  Then attempt parsing it.
+
+    Handle res = HandleLoadtest(bnd.Start, bnd.Size);
+
+    ASSERT(res.IsOkayResult(), "Error in handling loadtest app: %H.", res);
+
+    //  Then prepare the necessary processes and threads.
+
     TestRegionLock.Reset();
     TestRegionLock.Acquire();
 
@@ -132,14 +165,14 @@ void TestApplication()
     new (&testThread) Thread(&testProcess);
     new (&testWatcher) Thread(&testProcess);
 
-    Handle res;
-
-    //  Firstly, the kernel stack page of the test thread.
+    //  Then the test thread.
 
     uintptr_t stackVaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap | MemoryAllocationOptions::ThreadStack
+    res = Vmm::AllocatePages(nullptr, 3
+        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
+        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
+        | MemoryAllocationOptions::ThreadStack
         , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 
     ASSERT(res.IsOkayResult()
@@ -157,12 +190,14 @@ void TestApplication()
     withInterrupts (false)
         BootstrapThread.IntroduceNext(&testThread);
 
-    //  Secondly, the kernel stack page of the watcher thread.
+    //  Then the watcher thread.
 
     stackVaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+    res = Vmm::AllocatePages(nullptr, 3
+        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
+        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
+        | MemoryAllocationOptions::ThreadStack
         , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
 
     ASSERT(res.IsOkayResult()
@@ -179,6 +214,8 @@ void TestApplication()
 
     withInterrupts (false)
         testThread.IntroduceNext(&testWatcher);
+
+    //  That's all, folks. The other threads finish the work.
 }
 
 void * JumpToRing3(void * arg)
@@ -187,7 +224,7 @@ void * JumpToRing3(void * arg)
 
     //  First, the userland stack page.
 
-    userStackBottom = nullvaddr;
+    uintptr_t userStackBottom = nullvaddr;
 
     res = Vmm::AllocatePages(&testProcess
         , userStackPageCount
@@ -200,15 +237,24 @@ void * JumpToRing3(void * arg)
         , "Failed to allocate userland stack for app test thread: %H."
         , res);
 
-    userStackTop = userStackBottom + userStackPageCount * PageSize;
+    uintptr_t userStackTop = userStackBottom + userStackPageCount * PageSize;
 
     //  Then, deploy the runtime.
 
-    res = Runtime64::Deploy(rtlib_base);
+    StartupData * stdat = nullptr;
+
+    res = Runtime64::Deploy(rtlib_base, stdat);
 
     ASSERT(res.IsOkayResult()
         , "Failed to deploy runtime64 library into test app process: %H."
         , res);
+
+    ASSERT(stdat != nullptr);
+
+    //  Then give the runtime relevant data.
+
+    stdat->MemoryImageStart = loadtestStart;
+    stdat->MemoryImageEnd = loadtestEnd;
 
     //  Finally, a region for test incrementation.
 
