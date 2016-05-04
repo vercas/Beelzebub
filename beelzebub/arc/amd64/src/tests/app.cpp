@@ -230,6 +230,7 @@ void * JumpToRing3(void * arg)
         , userStackPageCount
         , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
         | MemoryAllocationOptions::GuardLow         | MemoryAllocationOptions::GuardHigh
+        | MemoryAllocationOptions::ThreadStack
         , MemoryFlags::Userland | MemoryFlags::Writable
         , userStackBottom);
 
@@ -279,7 +280,7 @@ void * JumpToRing3(void * arg)
 
     CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(rtlib_base + Runtime64::Template.GetEntryPoint()));
 
-    return GoToRing3_64(rtlib_base + Runtime64::Template.GetEntryPoint(), userStackTop);
+    GoToRing3_64(rtlib_base + Runtime64::Template.GetEntryPoint(), userStackTop);
 }
 
 #pragma GCC diagnostic push

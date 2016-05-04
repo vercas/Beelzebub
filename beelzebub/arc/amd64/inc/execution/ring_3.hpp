@@ -43,7 +43,7 @@
 
 namespace Beelzebub { namespace Execution
 {
-    __extern __noreturn void * GoToRing3_64(uintptr_t const entryPoint
-                                          , uintptr_t const stackTop);
+    __extern __noreturn void GoToRing3_64(uintptr_t const entryPoint
+                                        , uintptr_t const stackTop);
     //  Return value's just a dummy so this function can be tail-called.
 }}
