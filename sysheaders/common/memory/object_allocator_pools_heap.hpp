@@ -37,25 +37,23 @@
     thorough explanation regarding other files.
 */
 
-#if   defined(__BEELZEBUB__TEST_OBJA)
-    #define private public
-    #define protected public
-#endif
+#pragma once
 
 #include <memory/object_allocator_pools.hpp>
 
 namespace Beelzebub { namespace Memory
 {
-    /*  First, the normal SMP-aware object allocator.  */
-    #define OBJA_ALOC_TYPE      ObjectAllocator
-    #define OBJA_UNINTERRUPTED  true
-    #include <memory/object_allocator_hbase.inc>
-    #undef OBJA_UNINTERRUPTED
-    #undef OBJA_ALOC_TYPE
-    #undef OBJA_POOL_TYPE   //  NEEDS TO BE UNDEFINED ANYWAY
-}}
+    Handle AcquirePoolInKernelHeap(size_t objectSize
+                                 , size_t headerSize
+                                 , size_t minimumObjects
+                                 , ObjectPoolBase * & result);
 
-#if   defined(__BEELZEBUB__TEST_OBJA)
-    #undef private
-    #undef protected
-#endif
+    Handle EnlargePoolInKernelHeap(size_t objectSize
+                                 , size_t headerSize
+                                 , size_t minimumExtraObjects
+                                 , ObjectPoolBase * pool);
+
+    Handle ReleasePoolFromKernelHeap(size_t objectSize
+                                   , size_t headerSize
+                                   , ObjectPoolBase * pool);
+}}

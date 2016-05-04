@@ -37,23 +37,13 @@
     thorough explanation regarding other files.
 */
 
-#include <memory/object_allocator.hpp>
-#include <system/interrupts.hpp>
+#include <memory/object_allocator_pools.hpp>
 
-#include <math.h>
-#include <debug.hpp>
-
-using namespace Beelzebub;
-using namespace Beelzebub::Memory;
-
-#define OBJA_COOK_TYPE 		Beelzebub::System::int_cookie_t
-
-#define OBJA_POOL_TYPE      ObjectPoolBase
-#define OBJA_ALOC_TYPE      ObjectAllocator
-#define OBJA_UNINTERRUPTED  true
-#include <memory/object_allocator_cbase.inc>
-#undef OBJA_UNINTERRUPTED
-#undef OBJA_ALOC_TYPE
-#undef OBJA_POOL_TYPE
-
-#undef OBJA_COOK_TYPE
+namespace Beelzebub { namespace Memory
+{
+    /*  First, the single-consumer object allocator.  */
+    #define OBJA_ALOC_TYPE      ObjectAllocator
+    #include <memory/object_allocator_hbase.inc>
+    #undef OBJA_ALOC_TYPE
+    #undef OBJA_POOL_TYPE   //  NEEDS TO BE UNDEFINED ANYWAY
+}}
