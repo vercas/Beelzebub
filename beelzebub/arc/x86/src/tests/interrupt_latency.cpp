@@ -37,19 +37,63 @@
     thorough explanation regarding other files.
 */
 
-DECLARE_TEST(MT);
-DECLARE_TEST(STR);
-DECLARE_TEST(OBJA);
-DECLARE_TEST(METAP);
-DECLARE_TEST(EXCP);
-DECLARE_TEST(APP);
-DECLARE_TEST(STACKINT);
-DECLARE_TEST(AVL_TREE);
-DECLARE_TEST(TERMINAL);
-DECLARE_TEST(CMDO);
-DECLARE_TEST(FPU);
-DECLARE_TEST(BIGINT);
-DECLARE_TEST(LOCK_ELISION);
-DECLARE_TEST(RW_SPINLOCK);
-DECLARE_TEST(VAS);
-DECLARE_TEST(INT_LAT);
+#ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
+
+#include <tests/interrupt_latency.hpp>
+
+#include <debug.hpp>
+
+static constexpr size_t const IterationCount = 200000;
+
+using namespace Beelzebub;
+using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
+
+uint64_t maxEntryDur = 0, minEntryDur = 0xFFFFFFFFFFFFFFFFUL;
+uint64_t maxExitDur = 0, minExitDur = 0xFFFFFFFFFFFFFFFFUL;
+
+uint64_t midInterruptTime;
+
+void TestInterruptLatency()
+{
+    InterruptGuard<false> ig;
+
+    uint64_t entryAcc = 0;
+    uint64_t exitAcc = 0;
+
+    for (size_t i = 0; i < IterationCount; ++i)
+    {
+        COMPILER_MEMORY_BARRIER();
+        uint64_t entryTime = CpuInstructions::Rdtsc();
+        COMPILER_MEMORY_BARRIER();
+        Interrupts::Trigger<0xD9>();
+        COMPILER_MEMORY_BARRIER();
+        uint64_t exitDur = CpuInstructions::Rdtsc() - midInterruptTime;
+        COMPILER_MEMORY_BARRIER();
+        uint64_t entryDur = midInterruptTime - entryTime;
+
+        //  Yes, lots of barriers to make sure the compiler doesn't do any
+        //  wanna-be smart reordering.
+
+        entryAcc += entryDur;
+        exitAcc += exitDur;
+
+        if (entryDur < minEntryDur) minEntryDur = entryDur;
+        if (exitDur  < minExitDur ) minExitDur  = exitDur;
+        if (entryDur > maxEntryDur) maxEntryDur = entryDur;
+        if (exitDur  > maxExitDur ) maxExitDur  = exitDur;
+    }
+
+    uint64_t avgEntryDur = entryAcc / IterationCount;
+    uint64_t avgExitDur  = exitAcc  / IterationCount;
+
+    DEBUG_TERM << "Interrupt entry latency: AVG " << avgEntryDur << "; MIN " << minEntryDur << "; MAX " << maxEntryDur << EndLine;
+    DEBUG_TERM << "Interrupt exit latency: AVG " << avgExitDur << "; MIN " << minExitDur << "; MAX " << maxExitDur << EndLine;
+}
+
+void LatencyTestInterruptHandler(INTERRUPT_HANDLER_ARGS)
+{
+    midInterruptTime = CpuInstructions::Rdtsc();
+}
+
+#endif

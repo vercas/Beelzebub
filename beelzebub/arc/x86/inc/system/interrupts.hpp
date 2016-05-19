@@ -70,7 +70,16 @@ namespace Beelzebub { namespace System
         Interrupts(Interrupts const &) = delete;
         Interrupts & operator =(Interrupts const &) = delete;
 
-        /*  Interrupts  */
+        /*  Triggering  */
+
+        template<uint8_t iVec>
+        static __forceinline void Trigger()
+        {
+            asm volatile("int %0 \n\t"
+                        : : "i"(iVec));
+        }
+
+        /*  Status  */
 
         static inline bool AreEnabled()
         {

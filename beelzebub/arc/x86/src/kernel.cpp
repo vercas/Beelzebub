@@ -126,6 +126,10 @@
 #include <tests/vas.hpp>
 #endif
 
+#ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
+#include <tests/interrupt_latency.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -676,6 +680,17 @@ void Beelzebub::Main()
         }
 #endif
 
+#ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
+        if (CHECK_TEST(INT_LAT))
+        {
+            MainTerminal->Write(">Testing interrupt latency...");
+
+            TestInterruptLatency();
+
+            MainTerminal->WriteLine(" Done.");
+        }
+#endif
+
 #ifdef __BEELZEBUB__TEST_BIGINT
         if (CHECK_TEST(BIGINT))
         {
@@ -926,6 +941,10 @@ Handle InitializeInterrupts()
     Pic::Subscribe(1, &keyboard_handler);
     Pic::Subscribe(3, &SerialPort::IrqHandler);
     Pic::Subscribe(4, &SerialPort::IrqHandler);
+
+#ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
+    InterruptHandlers[0xD9] = &LatencyTestInterruptHandler;
+#endif
 
     Interrupts::Register.Activate();
 
