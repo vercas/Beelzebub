@@ -41,6 +41,7 @@
 #include <initrd.hpp>
 #include <execution/elf_default_mapper.hpp>
 #include <memory/vmm.hpp>
+#include <system/cpu.hpp>
 #include <kernel.hpp>
 
 #include <string.h>
@@ -102,9 +103,10 @@ Handle Runtime64::Initialize()
     {
         vaddr_t vaddr;
         size_t const size = bnd.Size;
+        size_t const pageCnt = (size + PageSize - 1) / PageSize;
 
         Handle res = Vmm::AllocatePages(&BootstrapProcess
-            , (size + PageSize - 1) / PageSize
+            , pageCnt
             , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
             , MemoryFlags::Global | MemoryFlags::Userland, vaddr);
 
@@ -112,7 +114,8 @@ Handle Runtime64::Initialize()
             , "Failed to allocate space for 64-bit runtime image: %H."
             , res);
 
-        memcpy(reinterpret_cast<void *>(vaddr), reinterpret_cast<void *>(bnd.Start), size);
+        withWriteProtect (false)
+            memcpy(reinterpret_cast<void *>(vaddr), reinterpret_cast<void *>(bnd.Start), size);
 
         new (&Template) Elf(reinterpret_cast<void *>(vaddr), size);
     }

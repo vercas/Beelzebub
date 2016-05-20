@@ -196,6 +196,37 @@ namespace Beelzebub { namespace System
 
         static size_t ComputeIndex();
 
+        /*  Write protection  */
+
+        static inline bool PushDisableWriteProtect()
+        {
+            bool ret;
+
+            auto cr0 = GetCr0();
+            ret = cr0.GetWriteProtect();
+            SetCr0(cr0.SetWriteProtect(false));
+
+            return ret;
+        }
+
+        static inline bool PushEnableWriteProtect()
+        {
+            bool ret;
+
+            auto cr0 = GetCr0();
+            ret = cr0.GetWriteProtect();
+            SetCr0(cr0.SetWriteProtect(true));
+
+            return ret;
+        }
+
+        static inline bool RestoreWriteProtect(bool const val)
+        {
+            SetCr0(GetCr0().SetWriteProtect(val));
+
+            return val;
+        }
+
         /*  CPU-specific data  */
 
 #ifdef __SEG_GS_CPP
@@ -262,4 +293,66 @@ namespace Beelzebub { namespace System
         }
 #endif
     };
+
+    /***************************
+        Write-Protect Guards
+    ***************************/
+
+    /// <summary>Guards a scope from write protection.</summary>
+    template<bool en = false>
+    struct WriteProtectGuard;
+
+    /// <summary>Guards a scope by disabling write protection.</summary>
+    template<>
+    struct WriteProtectGuard<false>
+    {
+        /*  Constructor(s)  */
+
+        inline WriteProtectGuard() : Cookie(Cpu::PushDisableWriteProtect()) { }
+
+        WriteProtectGuard(WriteProtectGuard const &) = delete;
+        WriteProtectGuard(WriteProtectGuard && other) = delete;
+        WriteProtectGuard & operator =(WriteProtectGuard const &) = delete;
+        WriteProtectGuard & operator =(WriteProtectGuard &&) = delete;
+
+        /*  Destructor  */
+
+        inline ~WriteProtectGuard()
+        {
+            Cpu::RestoreWriteProtect(this->Cookie);
+        }
+
+    private:
+        /*  Field(s)  */
+
+        bool const Cookie;
+    };
+
+    /// <summary>Guards a scope by enabling write protection.</summary>
+    template<>
+    struct WriteProtectGuard<true>
+    {
+        /*  Constructor(s)  */
+
+        inline WriteProtectGuard() : Cookie(Cpu::PushEnableWriteProtect()) { }
+
+        WriteProtectGuard(WriteProtectGuard const &) = delete;
+        WriteProtectGuard(WriteProtectGuard && other) = delete;
+        WriteProtectGuard & operator =(WriteProtectGuard const &) = delete;
+        WriteProtectGuard & operator =(WriteProtectGuard &&) = delete;
+
+        /*  Destructor  */
+
+        inline ~WriteProtectGuard()
+        {
+            Cpu::RestoreWriteProtect(this->Cookie);
+        }
+
+    private:
+        /*  Field(s)  */
+
+        bool const Cookie;
+    };
+
+    #define withWriteProtect(val) with(Beelzebub::System::WriteProtectGuard<val> MCATS(_wp_guard, __LINE__))
 }}
