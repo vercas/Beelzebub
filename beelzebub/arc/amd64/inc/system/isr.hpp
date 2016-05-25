@@ -183,7 +183,7 @@ namespace Beelzebub { namespace System
         } __packed NoErrorCode;
     };
 
-    static_assert(sizeof(IsrStub) == 16);
+    static_assert(sizeof(IsrStub) == 16, "Struct size mismatch.");
 
     __extern IsrStub IsrStubsBegin, IsrStubsEnd;
 }}
