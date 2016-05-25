@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <system/isr.hpp>
 #include <utils/bitfields.hpp>
 
 namespace Beelzebub { namespace System

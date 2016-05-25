@@ -49,7 +49,6 @@ namespace Beelzebub { namespace System
      */
     struct IsrState
     {
-    public:
         /*  Field(s)  */
 
         uint64_t DS;
@@ -80,5 +79,111 @@ namespace Beelzebub { namespace System
         uint64_t SS;
     } __packed;
 
-    __extern uint8_t IsrStubsBegin, IsrStubsEnd;
+    /**
+     *  The partial state of the system before an interrupt was raised, which
+     *  is not meant to be manipulated by the ISR.
+     */
+    struct IsrStatePartial
+    {
+        /*  Field(s)  */
+
+        uint64_t DS;
+
+        uint64_t R11;
+        uint64_t R10;
+        uint64_t R9;
+        uint64_t R8;
+        uint64_t RSI;
+        uint64_t RDI;
+        uint64_t RBP;
+        uint64_t RDX;
+        uint64_t RAX;
+        
+        uint64_t RCX;
+
+        uint64_t ErrorCode;
+
+        uint64_t RIP;
+        uint64_t CS;
+        uint64_t RFLAGS;
+        uint64_t RSP;
+        uint64_t SS;
+    } __packed;
+
+    /**
+     *  The stub entered by each syscall.
+     */
+    union IsrStub
+    {
+        /*  Static(s)  */
+
+        static constexpr uint8_t PushRcxValue = 0x51;
+
+        /*  Properties  */
+
+        inline bool ProvidesErrorCode()
+        {
+            return this->Bytes[0] == PushRcxValue;
+        }
+
+        inline void * GetJumpBase()
+        {
+            if (this->ProvidesErrorCode())
+                return &(this->WithErrorCode.JumpOffset) + 1;
+            else
+                return &(this->NoErrorCode.JumpOffset) + 1;
+        }
+
+        inline void * GetJumpTarget()
+        {
+            if (this->ProvidesErrorCode())
+                return reinterpret_cast<uint8_t *>(&(this->WithErrorCode.JumpOffset) + 1) + this->WithErrorCode.JumpOffset;
+            else
+                return reinterpret_cast<uint8_t *>(&(this->NoErrorCode.JumpOffset) + 1) + this->NoErrorCode.JumpOffset;
+        }
+
+        inline IsrStub & SetJumpTarget(void const * const val)
+        {
+            if (this->ProvidesErrorCode())
+                this->WithErrorCode.JumpOffset =
+                    (int32_t)reinterpret_cast<int64_t>(
+                        reinterpret_cast<intptr_t>(val)
+                        - reinterpret_cast<intptr_t>(&(this->WithErrorCode.JumpOffset) + 1));
+            else
+                this->NoErrorCode.JumpOffset =
+                    (int32_t)reinterpret_cast<int64_t>(
+                        reinterpret_cast<intptr_t>(val)
+                        - reinterpret_cast<intptr_t>(&(this->NoErrorCode.JumpOffset) + 1));
+
+            return *this;
+        }
+
+        /*  Field(s)  */
+
+        uint8_t Bytes[16];
+
+        struct
+        {
+            uint8_t PushRcx;
+            uint8_t MovCl;
+            uint8_t Vector;
+            uint8_t Jump;
+            int32_t JumpOffset;
+        } __packed WithErrorCode;
+
+        struct
+        {
+            uint8_t PushImmediate;
+            uint8_t DummyErrorCode;
+            uint8_t PushRcx;
+            uint8_t MovCl;
+            uint8_t Vector;
+            uint8_t Jump;
+            int32_t JumpOffset;
+        } __packed NoErrorCode;
+    };
+
+    static_assert(sizeof(IsrStub) == 16);
+
+    __extern IsrStub IsrStubsBegin, IsrStubsEnd;
 }}

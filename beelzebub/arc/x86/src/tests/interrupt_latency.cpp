@@ -49,24 +49,32 @@ using namespace Beelzebub;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-uint64_t maxEntryDur = 0, minEntryDur = 0xFFFFFFFFFFFFFFFFUL;
-uint64_t maxExitDur = 0, minExitDur = 0xFFFFFFFFFFFFFFFFUL;
-
 uint64_t midInterruptTime;
 
-void TestInterruptLatency()
+void LatencyTestInterruptHandlerPartial(INTERRUPT_HANDLER_ARGS)
 {
-    InterruptGuard<false> ig;
+    midInterruptTime = CpuInstructions::Rdtsc();
+}
 
-    uint64_t entryAcc = 0;
-    uint64_t exitAcc = 0;
+void LatencyTestInterruptHandlerFull(INTERRUPT_HANDLER_ARGS_FULL)
+{
+    midInterruptTime = CpuInstructions::Rdtsc();
+}
+
+template<uint8_t vec>
+__startup void DoTest(bool const full)
+{
+    midInterruptTime = 0xFFFFFFFFFFFFFFFFUL;
+    uint64_t entryAcc = 0, exitAcc = 0;
+    uint64_t maxEntryDur = 0, minEntryDur = 0xFFFFFFFFFFFFFFFFUL;
+    uint64_t maxExitDur = 0, minExitDur = 0xFFFFFFFFFFFFFFFFUL;
 
     for (size_t i = 0; i < IterationCount; ++i)
     {
         COMPILER_MEMORY_BARRIER();
         uint64_t entryTime = CpuInstructions::Rdtsc();
         COMPILER_MEMORY_BARRIER();
-        Interrupts::Trigger<0xD9>();
+        Interrupts::Trigger<vec>();
         COMPILER_MEMORY_BARRIER();
         uint64_t exitDur = CpuInstructions::Rdtsc() - midInterruptTime;
         COMPILER_MEMORY_BARRIER();
@@ -87,13 +95,22 @@ void TestInterruptLatency()
     uint64_t avgEntryDur = entryAcc / IterationCount;
     uint64_t avgExitDur  = exitAcc  / IterationCount;
 
-    DEBUG_TERM << "Interrupt entry latency: AVG " << avgEntryDur << "; MIN " << minEntryDur << "; MAX " << maxEntryDur << EndLine;
-    DEBUG_TERM << "Interrupt exit latency: AVG " << avgExitDur << "; MIN " << minExitDur << "; MAX " << maxExitDur << EndLine;
+    DEBUG_TERM_
+        << "Interrupt (" << (full ? "FULL" : "PARTIAL") << ") entry latency: AVG "
+        << avgEntryDur << "; MIN " << minEntryDur << "; MAX " << maxEntryDur << EndLine
+        << "Interrupt (" << (full ? "FULL" : "PARTIAL") << ") exit latency: AVG "
+        << avgExitDur << "; MIN " << minExitDur << "; MAX " << maxExitDur << EndLine;
 }
 
-void LatencyTestInterruptHandler(INTERRUPT_HANDLER_ARGS)
+void TestInterruptLatency()
 {
-    midInterruptTime = CpuInstructions::Rdtsc();
+    InterruptGuard<false> ig;
+
+    Interrupts::Get(0xDF).SetHandler(&LatencyTestInterruptHandlerPartial);
+    Interrupts::Get(0xDE).SetHandler(&LatencyTestInterruptHandlerFull);
+
+    DoTest<0xDF>(false);
+    DoTest<0xDE>(true);
 }
 
 #endif

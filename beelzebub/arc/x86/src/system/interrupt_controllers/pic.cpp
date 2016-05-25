@@ -77,10 +77,10 @@ void Pic::Initialize(uint8_t const vecOff)
     //  Remove interrupt enders.
     for (size_t i = 0; i < 16; i++)
     {
-        uint8_t vec = (uint8_t)(VectorOffset + i);
+        auto vec = Interrupts::Get((uint8_t)(VectorOffset + i));
 
-        if (InterruptEnders[vec] == &(Pic::IrqEnder))
-            InterruptEnders[vec] = nullptr;
+        if (vec.GetEnder() == &(Pic::IrqEnder))
+            vec.SetEnder(nullptr);
     }
  
     //  Initialization sequence for cascade mode.
@@ -101,13 +101,13 @@ void Pic::Initialize(uint8_t const vecOff)
     //  Set interrupt enders.
     for (size_t i = 0; i < 16; i++)
     {
-        uint8_t vec = (uint8_t)(vecOff + i);
+        auto vec = Interrupts::Get((uint8_t)(vecOff + i));
 
-        assert(InterruptEnders[vec] == nullptr
+        assert(vec.GetEnder() == nullptr
             , "Interrupt vector #%u1 already had an ender?! (%Xp)%n"
-            , vec, InterruptEnders[vec]);
+            , vec, vec.GetEnder());
         
-        InterruptEnders[vec] = &(Pic::IrqEnder);
+        vec.SetEnder(&(Pic::IrqEnder));
     }
  
     //  Restore masks.
@@ -129,7 +129,7 @@ void Pic::Disable()
 
 /*  Subscription  */
 
-bool Pic::Subscribe(uint8_t const irq, InterruptHandlerFunction const handler, bool const unmask)
+static bool PicSubscribe(uint8_t const irq, void const * const handler, bool const fullHandler, bool const unmask)
 {
     assert_or(irq < 16
         , "IRQ number is out of the range of the PIC: %u1%n"
@@ -138,27 +138,41 @@ bool Pic::Subscribe(uint8_t const irq, InterruptHandlerFunction const handler, b
         return false;
     }
 
-    uint8_t vec = (uint8_t)(VectorOffset + irq);
+    auto vec = Interrupts::Get((uint8_t)(Pic::VectorOffset + irq));
 
-    assert_or(InterruptEnders[vec] == nullptr || InterruptEnders[vec] == &(Pic::IrqEnder)
+    assert_or(vec.GetEnder() == nullptr || vec.GetEnder() == &(Pic::IrqEnder)
         , "Interrupt vector #%u1 (IRQ%u1) already has an ender?! (%Xp)%n"
-        , vec, irq, InterruptEnders[vec])
+        , vec, irq, vec.GetEnder())
     {
         return false;
     }
 
-    InterruptHandlers[vec] = handler;
-    InterruptEnders[vec] = &(Pic::IrqEnder);
+    if (fullHandler)
+        vec.SetHandler(reinterpret_cast<InterruptHandlerFullFunction>(handler));
+    else
+        vec.SetHandler(reinterpret_cast<InterruptHandlerPartialFunction>(handler));
+
+    vec.SetEnder(&(Pic::IrqEnder));
 
     if (unmask)
     {
         if (irq >= 8)
-            Io::Out8( SlaveDataPort, (uint8_t)(Io::In8( SlaveDataPort) & ~(1 << (irq - 8))));
+            Io::Out8(Pic::SlaveDataPort , (uint8_t)(Io::In8(Pic::SlaveDataPort ) & ~(1 << (irq - 8))));
         else
-            Io::Out8(MasterDataPort, (uint8_t)(Io::In8(MasterDataPort) & ~(1 <<  irq     )));
+            Io::Out8(Pic::MasterDataPort, (uint8_t)(Io::In8(Pic::MasterDataPort) & ~(1 <<  irq     )));
     }
 
     return true;
+}
+
+bool Pic::Subscribe(uint8_t const irq, InterruptHandlerPartialFunction const handler, bool const unmask)
+{
+    return PicSubscribe(irq, reinterpret_cast<void const *>(handler), false, unmask);
+}
+
+bool Pic::Subscribe(uint8_t const irq, InterruptHandlerFullFunction const handler, bool const unmask)
+{
+    return PicSubscribe(irq, reinterpret_cast<void const *>(handler), true, unmask);
 }
 
 bool Pic::Unsubscribe(uint8_t const irq, bool const mask)
@@ -170,11 +184,11 @@ bool Pic::Unsubscribe(uint8_t const irq, bool const mask)
         return false;
     }
 
-    uint8_t vec = (uint8_t)(VectorOffset + irq);
+    auto vec = Interrupts::Get((uint8_t)(VectorOffset + irq));
 
-    assert_or(InterruptEnders[vec] == &(Pic::IrqEnder)
+    assert_or(vec.GetEnder() == &(Pic::IrqEnder)
         , "Interrupt vector #%u1 (IRQ%u1) already has the wrong ender! (%Xp)%n"
-        , vec, irq, InterruptEnders[vec])
+        , vec, irq, vec.GetEnder())
     {
         return false;
     }
@@ -187,8 +201,7 @@ bool Pic::Unsubscribe(uint8_t const irq, bool const mask)
             Io::Out8(MasterDataPort, (uint8_t)(Io::In8(MasterDataPort) | (1 <<  irq     )));
     }
 
-    InterruptHandlers[vec] = nullptr;
-    InterruptEnders[vec] = nullptr;
+    vec.RemoveHandler().SetEnder(nullptr);
 
     return true;
 }
@@ -202,9 +215,9 @@ bool Pic::IsSubscribed(uint8_t const irq)
         return false;
     }
 
-    uint8_t vec = (uint8_t)(VectorOffset + irq);
+    auto vec = Interrupts::Get((uint8_t)(VectorOffset + irq));
 
-    return InterruptEnders[vec] == &(Pic::IrqEnder);
+    return vec.GetEnder() == &(Pic::IrqEnder);
 }
 
 /*  Masking  */

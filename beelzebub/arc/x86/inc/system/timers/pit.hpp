@@ -159,7 +159,7 @@ namespace Beelzebub { namespace System { namespace Timers
 
         /*  IRQ Handler  */
 
-        static void IrqHandler(INTERRUPT_HANDLER_ARGS);
+        static void IrqHandler(INTERRUPT_HANDLER_ARGS_FULL);
 
         /*  Constructor(s)  */
 

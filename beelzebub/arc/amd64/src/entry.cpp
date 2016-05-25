@@ -502,6 +502,8 @@ Handle InitializeVirtualMemory()
 
     //  TODO: Management for ISA DMA.
 
+    Cpu::SetCr0(Cpu::GetCr0().SetWriteProtect(true));
+
     return HandleResult::Okay;
 }
 

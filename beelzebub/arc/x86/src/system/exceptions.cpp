@@ -339,28 +339,28 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
         PrintToDebugTerminal(state);
 
-        // uintptr_t stackPtr = state->RSP;
-        // uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+        uintptr_t stackPtr = state->RSP;
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
 
-        // if ((stackPtr & (sizeof(size_t) - 1)) != 0)
-        // {
-        //     msg("Stack pointer was not a multiple of %us! (%Xp)%n"
-        //         , sizeof(size_t), stackPtr);
+        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+        {
+            msg("Stack pointer was not a multiple of %us! (%Xp)%n"
+                , sizeof(size_t), stackPtr);
 
-        //     stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
-        // }
+            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+        }
 
-        // bool odd;
-        // for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
-        // {
-        //     msg("%X2|%Xp|%Xs|%s"
-        //         , (uint16_t)(stackPtr - state->RSP)
-        //         , stackPtr
-        //         , *((size_t const *)stackPtr)
-        //         , odd ? "\r\n" : "\t");
-        // }
+        bool odd;
+        for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+        {
+            msg("%X2|%Xp|%Xs|%s"
+                , (uint16_t)(stackPtr - state->RSP)
+                , stackPtr
+                , *((size_t const *)stackPtr)
+                , odd ? "\r\n" : "\t");
+        }
 
-        // if (odd) msg("%n");
+        if (odd) msg("%n");
 
         // Utils::StackFrame stackFrame;
 
@@ -389,16 +389,16 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
         //  Now, to prepare exception delivery!
 
-        state->RBX = context->RBX;
-        state->RCX = context->RCX;
-        state->RBP = context->RBP;
-        state->R12 = context->R12;
-        state->R13 = context->R13;
-        state->R14 = context->R14;
-        state->R15 = context->R15;
+        // state->RBX = context->RBX;
+        // state->RCX = context->RCX;
+        // state->RBP = context->RBP;
+        // state->R12 = context->R12;
+        // state->R13 = context->R13;
+        // state->R14 = context->R14;
+        // state->R15 = context->R15;
 
         state->RSP = context->StackPointer;
-        state->RIP = context->ResumePointer;
+        state->RIP = context->SwapPointer;
         //  Returns where told! Sorta like a task switch.
 
         state->RDI = reinterpret_cast<uint64_t>(context);

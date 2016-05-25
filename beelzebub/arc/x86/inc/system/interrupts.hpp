@@ -39,11 +39,41 @@
 
 #pragma once
 
-#include <system/isr.hpp>
 #include <system/idt.hpp>
 
 namespace Beelzebub { namespace System
 {
+    /************************
+        Interrupt Vectors
+    ************************/
+
+    #define INTERRUPT_ENDER_ARGS                                \
+          void const * const handler                            \
+        , uint8_t const vector
+
+    typedef void (*InterruptEnderFunction)(INTERRUPT_ENDER_ARGS);
+
+    #define INTERRUPT_HANDLER_ARGS                              \
+          Beelzebub::System::IsrStatePartial * const state      \
+        , Beelzebub::System::InterruptEnderFunction const ender \
+        , void const * const handler                            \
+        , uint8_t const vector
+    #define INTERRUPT_HANDLER_ARGS_FULL                         \
+          Beelzebub::System::IsrState * const state             \
+        , Beelzebub::System::InterruptEnderFunction const ender \
+        , void const * const handler                            \
+        , uint8_t const vector
+
+    typedef void (*InterruptHandlerPartialFunction)(INTERRUPT_HANDLER_ARGS);
+    typedef void (*InterruptHandlerFullFunction)(INTERRUPT_HANDLER_ARGS_FULL);
+
+    #define END_OF_INTERRUPT()                 \
+        do                                     \
+        {                                      \
+            if (ender != nullptr)              \
+                ender(handler, vector);        \
+        } while (false)
+
     typedef void * int_cookie_t;
     #define __int_cookie_invalid (nullptr)
 
@@ -61,6 +91,52 @@ namespace Beelzebub { namespace System
         static Idt Table;
         static IdtRegister Register;
 
+        /*  Subtypes  */
+
+        class Data
+        {
+            /*  Field(s)  */
+
+            uint8_t Vector;
+
+        public:
+            /*  Constructor(s)  */
+
+            inline constexpr Data(uint8_t const vec) : Vector(vec) { }
+
+            /*  Handler & Ender  */
+
+            void const * GetHandler() const;
+            InterruptEnderFunction GetEnder() const;
+
+            Data const & SetHandler(InterruptHandlerPartialFunction const val) const;
+            Data const & SetHandler(InterruptHandlerFullFunction const val) const;
+            Data const & RemoveHandler() const;
+
+            Data const & SetEnder(InterruptEnderFunction const val) const;
+
+            /*  Properties  */
+
+            /*  Gate & Stub  */
+
+            inline IsrStub * GetStub() const
+            {
+                return &IsrStubsBegin + this->Vector;
+            }
+
+            inline IdtGate * GetGate() const
+            {
+                return Table.Entries + this->Vector;
+            }
+
+            inline Data const & SetGate(IdtGate const val) const
+            {
+                Table.Entries[this->Vector] = val;
+
+                return *this;
+            }
+        };
+
         /*  Constructor(s)  */
 
     protected:
@@ -77,6 +153,13 @@ namespace Beelzebub { namespace System
         {
             asm volatile("int %0 \n\t"
                         : : "i"(iVec));
+        }
+
+        /*  Data  */
+
+        static Data Get(uint8_t const vec)
+        {
+            return { vec };
         }
 
         /*  Status  */
@@ -199,42 +282,6 @@ namespace Beelzebub { namespace System
             return ((uintptr_t)cookie & (uintptr_t)(1 << 9)) == 0;
         }
     };
-
-    /************************
-        Interrupt Vectors
-    ************************/
-
-    #define INTERRUPT_ENDER_ARGS                                \
-          Beelzebub::System::IsrState * const state             \
-        , void const * const handler                            \
-        , uint8_t const vector
-
-    typedef void (*InterruptEnderFunction)(INTERRUPT_ENDER_ARGS);
-
-    #define INTERRUPT_HANDLER_ARGS                              \
-          Beelzebub::System::IsrState * const state             \
-        , Beelzebub::System::InterruptEnderFunction const ender \
-        , void const * const handler                            \
-        , uint8_t const vector
-
-    typedef void (*InterruptHandlerFunction)(INTERRUPT_HANDLER_ARGS);
-
-    #define END_OF_INTERRUPT()                 \
-        do                                     \
-        {                                      \
-            if (ender != nullptr)              \
-                ender(state, handler, vector); \
-        } while (false)
-
-    /**
-     *  Array of higher-level interrupt handlers.
-     */
-    __extern InterruptHandlerFunction InterruptHandlers[Interrupts::Count];
-
-    /**
-     *  Array of higher-level interrupt handlers.
-     */
-    __extern InterruptEnderFunction InterruptEnders[Interrupts::Count];
 
     /***********************
         Interrupt Guards

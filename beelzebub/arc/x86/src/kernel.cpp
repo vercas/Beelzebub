@@ -896,44 +896,42 @@ Handle InitializeInterrupts()
 {
     size_t isrStubsSize = (size_t)(&IsrStubsEnd - &IsrStubsBegin);
 
-    assert(isrStubsSize == Interrupts::Count * Interrupts::StubSize
+    assert(isrStubsSize == Interrupts::Count
         , "ISR stubs seem to have the wrong size!");
     //  The ISR stubs must be aligned to avoid a horribly repetition.
 
     for (size_t i = 0; i < Interrupts::Count; ++i)
     {
-        Interrupts::Table.Entries[i] = IdtGate()
-        .SetOffset((uintptr_t)&IsrStubsBegin + i * Interrupts::StubSize)
-        .SetSegment(Gdt::KernelCodeSegment)
-        .SetType(IdtGateType::InterruptGate)
-        .SetPresent(true);
-        //  Then setting up the actual gate.
-
-        InterruptHandlers[i] = &MiscellaneousInterruptHandler;
-        InterruptEnders[i] = nullptr;
-
-        //  There would be absolutely no point in doing these in different loops.
+        Interrupts::Get(i)
+        .SetGate(
+            IdtGate()
+            .SetOffset(&IsrStubsBegin + i)
+            .SetSegment(Gdt::KernelCodeSegment)
+            .SetType(IdtGateType::InterruptGate)
+            .SetPresent(true))
+        .SetHandler(&MiscellaneousInterruptHandler)
+        .SetEnder(nullptr);
     }
 
     //  So now the IDT should be fresh out of the oven and ready for serving.
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-    Interrupts::Table.Entries[(uint8_t)KnownExceptionVectors::DoubleFault].SetIst(1);
-    Interrupts::Table.Entries[(uint8_t)KnownExceptionVectors::PageFault  ].SetIst(2);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::DoubleFault).GetGate()->SetIst(1);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::PageFault  ).GetGate()->SetIst(2);
 #endif
 
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::DivideError] = &DivideErrorHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::Breakpoint] = &BreakpointHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::Overflow] = &OverflowHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::BoundRangeExceeded] = &BoundRangeExceededHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidOpcode] = &InvalidOpcodeHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::NoMathCoprocessor] = &NoMathCoprocessorHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::DoubleFault] = &DoubleFaultHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::InvalidTss] = &InvalidTssHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::SegmentNotPresent] = &SegmentNotPresentHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::StackSegmentFault] = &StackSegmentFaultHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::GeneralProtectionFault] = &GeneralProtectionHandler;
-    InterruptHandlers[(uint8_t)KnownExceptionVectors::PageFault] = &PageFaultHandler;
+    Interrupts::Get((uint8_t)KnownExceptionVectors::DivideError).SetHandler(&DivideErrorHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::Breakpoint).SetHandler(&BreakpointHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::Overflow).SetHandler(&OverflowHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::BoundRangeExceeded).SetHandler(&BoundRangeExceededHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::InvalidOpcode).SetHandler(&InvalidOpcodeHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::NoMathCoprocessor).SetHandler(&NoMathCoprocessorHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::DoubleFault).SetHandler(&DoubleFaultHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::InvalidTss).SetHandler(&InvalidTssHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::SegmentNotPresent).SetHandler(&SegmentNotPresentHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::StackSegmentFault).SetHandler(&StackSegmentFaultHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::GeneralProtectionFault).SetHandler(&GeneralProtectionHandler);
+    Interrupts::Get((uint8_t)KnownExceptionVectors::PageFault).SetHandler(&PageFaultHandler);
 
     Pic::Initialize(0xE0);  //  Just below the spurious interrupt vector.
 
@@ -941,10 +939,6 @@ Handle InitializeInterrupts()
     Pic::Subscribe(1, &keyboard_handler);
     Pic::Subscribe(3, &SerialPort::IrqHandler);
     Pic::Subscribe(4, &SerialPort::IrqHandler);
-
-#ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
-    InterruptHandlers[0xD9] = &LatencyTestInterruptHandler;
-#endif
 
     Interrupts::Register.Activate();
 
@@ -1135,10 +1129,17 @@ Handle InitializeProcessingUnits()
     //  This's gonna be for AP bootstrappin' code.
 
     res = Vmm::MapPage(&BootstrapProcess, bootstrapVaddr, bootstrapPaddr
-        , MemoryFlags::Global | MemoryFlags::Executable, PageDescriptor::Invalid);
+        , MemoryFlags::Global | MemoryFlags::Executable | MemoryFlags::Writable
+        , PageDescriptor::Invalid);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for init code: %H%n"
+        , bootstrapVaddr, bootstrapPaddr, res);
+
+    res = Vmm::InvalidatePage(nullptr, bootstrapVaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to invalidate page at %Xp (%XP) for init code: %H%n"
         , bootstrapVaddr, bootstrapPaddr, res);
 
     BootstrapPml4Address = BootstrapProcess.PagingTable;

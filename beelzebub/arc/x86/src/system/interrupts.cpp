@@ -38,11 +38,18 @@
 */
 
 #include <system/interrupts.hpp>
+#include <system/cpu.hpp>
 
 #include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+
+__extern void const * InterruptHandlers[256];
+__extern InterruptEnderFunction InterruptEnders[256];
+
+__extern void IsrCommonStub(void);
+__extern void IsrFullStub(void);
 
 /***********************
     Interrupts class
@@ -52,3 +59,66 @@ using namespace Beelzebub::System;
 
 Idt Interrupts::Table;
 IdtRegister Interrupts::Register {0xFFF, &Interrupts::Table};
+
+/*****************************
+    Interrupts::Data class
+*****************************/
+
+/*  Handler & Ender  */
+
+void const * Interrupts::Data::GetHandler() const
+{
+    return InterruptHandlers[this->Vector];
+}
+
+InterruptEnderFunction Interrupts::Data::GetEnder() const
+{
+    return InterruptEnders[this->Vector];
+}
+
+Interrupts::Data const & Interrupts::Data::SetHandler(InterruptHandlerPartialFunction const val) const
+{
+    InterruptHandlers[this->Vector] = reinterpret_cast<void const *>(val);
+
+    auto stub = this->GetStub();
+
+    if (stub->GetJumpTarget() == &IsrFullStub)
+    {
+        withWriteProtect (false)
+            stub->SetJumpTarget(reinterpret_cast<void const *>(&IsrCommonStub));
+
+        CpuInstructions::FlushCache(&IsrStubsBegin + this->Vector);
+    }
+
+    return *this;
+}
+
+Interrupts::Data const & Interrupts::Data::SetHandler(InterruptHandlerFullFunction const val) const
+{
+    InterruptHandlers[this->Vector] = reinterpret_cast<void const *>(val);
+
+    auto stub = this->GetStub();
+
+    if (stub->GetJumpTarget() == &IsrCommonStub)
+    {
+        withWriteProtect (false)
+            stub->SetJumpTarget(reinterpret_cast<void const *>(&IsrFullStub));
+
+        CpuInstructions::FlushCache(&IsrStubsBegin + this->Vector);
+    }
+
+    return *this;
+}
+
+Interrupts::Data const & Interrupts::Data::RemoveHandler() const
+{
+    return this->SetHandler(reinterpret_cast<InterruptHandlerPartialFunction>((void *)(nullptr)));
+}
+
+Interrupts::Data const & Interrupts::Data::SetEnder(InterruptEnderFunction const val) const
+{
+    InterruptEnders[this->Vector] = val;
+
+    return *this;
+}
+

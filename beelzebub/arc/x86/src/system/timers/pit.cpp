@@ -60,7 +60,7 @@ Atomic<size_t> Pit::Counter {0};
 
 /*  IRQ Handler  */
 
-void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS)
+void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     ++Counter;
 

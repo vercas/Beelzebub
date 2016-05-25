@@ -77,7 +77,7 @@ void keyboard_send_command(uint8_t cmd)
     Io::Out8(0x60, cmd);
 }
 
-void keyboard_handler(INTERRUPT_HANDLER_ARGS)
+void keyboard_handler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     uint8_t code = Io::In8(0x60);
     Io::Out8(0x61, Io::In8(0x61));

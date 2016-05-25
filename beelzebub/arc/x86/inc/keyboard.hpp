@@ -75,4 +75,4 @@ __extern void keyboard_send_command(uint8_t cmd);
  *
  * @param state state of the system
  */
-__extern void keyboard_handler(INTERRUPT_HANDLER_ARGS);
+__extern void keyboard_handler(INTERRUPT_HANDLER_ARGS_FULL);

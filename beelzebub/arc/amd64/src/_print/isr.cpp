@@ -10,7 +10,7 @@ using namespace Beelzebub::Terminals;
     IsrState Struct
 **********************/
 
-TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * const val)
+TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrStatePartial const * const val)
 {
     return term->WriteFormat("ISR state %Xp:%n"
         "\tStack Segment: %X2%n"
@@ -21,6 +21,8 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         "\tFlags: %Xs%n"
         "\t----%n"
         "\tRDI: %Xs%n"
+        "\tRAX: %Xs%n"
+        "\tRDX: %Xs%n"
         "\tRBP: %Xs%n"
         "\t----%n"
         //"\tVector: %u1%n"
@@ -33,12 +35,14 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         , val->RIP
         , val->RFLAGS
         , val->RDI
+        , val->RAX
+        , val->RDX
         , val->RBP
         //, (uint8_t)val->Vector
         , val->ErrorCode);
 }
 
-TerminalWriteResult PrintToDebugTerminal(IsrState const * const val)
+TerminalWriteResult PrintToDebugTerminal(IsrStatePartial const * const val)
 {
     return PrintToTerminal(DebugTerminal, val);
 }

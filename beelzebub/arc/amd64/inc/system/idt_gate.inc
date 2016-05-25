@@ -110,6 +110,11 @@ union IdtGate
         return *this;
     }
 
+    inline auto SetOffset(const IsrStub * const val) -> decltype(*this)
+    {
+        return this->SetOffset(reinterpret_cast<uintptr_t>(val));
+    }
+
     inline uint16_t GetSegment() const
     {
         return this->Segment;

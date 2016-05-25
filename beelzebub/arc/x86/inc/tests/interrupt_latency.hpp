@@ -42,4 +42,3 @@
 #include <system/interrupts.hpp>
 
 __startup void TestInterruptLatency();
-void LatencyTestInterruptHandler(INTERRUPT_HANDLER_ARGS);

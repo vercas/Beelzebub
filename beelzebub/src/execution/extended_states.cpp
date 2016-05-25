@@ -98,6 +98,10 @@ Handle ExtendedStates::AllocateTemplate(void * & state)
 
     templateState = state;
 
+    memset(state, 0, ExtendedStatesAllocator.ObjectSize);
+    //  Clear all the bits, for the cheap (f)xsave implementations that just
+    //  leave the reserved bits/bytes/whatever unchanged.
+
     return HandleResult::Okay;
 }
 
