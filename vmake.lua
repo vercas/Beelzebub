@@ -457,10 +457,14 @@ function string.iteratesplit(s, pattern, plain, n)
     if pattern == '' then return {s} end
 
     return function()
+        if not i1 then return end
+        --  Means the end was reached.
+
         i2, i3 = s:find(pattern, i1, plain)
 
         if not i2 then
             local last = s:sub(i1)
+            i1 = nil
 
             if last ~= '' then
                 return last
@@ -2300,6 +2304,7 @@ end
 do
     local _key_cmdo_name, _key_cmdo_shnm, _key_cmdo_desc, _key_cmdo_hndr = {}, {}, {}, {}
     local _key_cmdo_cnts, _key_cmdo_many, _key_cmdo_mand, _key_cmdo_type = {}, {}, {}, {}
+    local _key_cmdo_disp = {}
 
     vmake.CreateClass("CmdOpt", "WithData", {
         __init = function(self, name)
@@ -2309,6 +2314,7 @@ do
             self[_key_cmdo_shnm] = false
             self[_key_cmdo_cnts] = 0
             self[_key_cmdo_type] = false
+            self[_key_cmdo_disp] = false
         end,
 
         __tostring = function(self)
@@ -2401,6 +2407,26 @@ do
 
                 self[_key_cmdo_shnm] = val
                 cmdlopts[val] = self
+            end,
+        },
+
+        Display = {
+            TYPE = "string",
+
+            get = function(self, errlvl)
+                return self[_key_cmdo_disp]
+            end,
+
+            set = function(self, val, errlvl)
+                if self[_key_cmdo_disp] then
+                    error("vMake error: " .. tostring(self) .. " has already defined its display value.", errlvl)
+                end
+
+                if #val < 1 then
+                    error("vMake error: Command-line option display value must be non-empty.", errlvl)
+                end
+
+                self[_key_cmdo_disp] = val
             end,
         },
     })
@@ -2940,6 +2966,8 @@ do
             envind.arch = obj
         elseif objType == "Configuration" then
             envind.conf = obj
+        elseif objType == "CmdOpt" then
+            envind.opt = obj
         else
             error("vMake internal error: Uknown object type '" .. objType .. "' (" .. tostring(obj) .. ") for environment creation.")
         end
@@ -3074,6 +3102,79 @@ function vmake.ExpandProperties()
 
         val:ExpandOutput(3)
         val:ExpandDependencies(3)
+    end
+end
+
+function vmake.CheckArguments()
+    if not arg then return end
+
+    local i, n, acceptOptions = 1, #arg, true
+
+    while i <= n do
+        local cur = arg[i]
+
+        if cur == "--" then
+            acceptOptions = false
+        elseif #cur > 0 then
+            local handled, usedNextArg = false, false
+
+            local function doOption(long, optName, val)
+                local opt = cmdlopts[optName]
+
+                if not opt then
+                    error("vMake error: Unknown command-line option \"" .. optName .. "\".")
+                end
+
+                incrementCmdoCount(opt)
+
+                if not opt.Many and opt.Count > 1 then
+                    error("vMake error: Multiple instances of command-line option \"" .. optName .. "\" found.")
+                end
+
+                if opt.Type then
+                    if not val then
+                        val = arg[i + 1]
+
+                        if not val then
+                            error("vMake error: Command-line option \"" .. optName .. "\" lacks a value.")
+                        end
+                    end
+                end
+
+                opt:ExecuteHandler(val)
+            end
+
+            if acceptOptions then
+                if cur:sub(1, 2) == "--" then
+                    --  So this is a long option name.
+
+                    local eqPos = cur:find('=', 3, true)
+
+                    local optName = eqPos and cur:sub(3, eqPos - 1) or cur:sub(3)
+
+                    if #optName < 2 then
+                        error("vMake error: Command-line argument #" .. i .. " contains a long option name, but it is too short; should be at least two characters long.")
+                    end
+
+                    doOption(true,
+                        optName,
+                        eqPos and cur:sub(eqPos + 1) or nil)
+                elseif cur:sub(1, 1) == '-' then
+                    --  So, short option name.
+
+                    for j = 2, #cur do
+                        doOption(false, cur:sub(j, j), nil)
+                    end
+                end
+            end
+
+            if not handled then
+                --  So, this ought to be a project, architecture and configuration
+                --  specification.
+            end
+        end
+
+        i = i + 1
     end
 end
 
@@ -3421,24 +3522,7 @@ function vmake.DoWork()
     return doLoad(vmake.WorkGraph)
 end
 
-function vmake__call()
-    vmake.ValidateAndDefault()
-    vmake.ExpandProperties()
-
-    if vmake.ShouldComputeGraph then
-        vmake.WorkGraph = vmake.ConstructWorkGraph()
-
-        if vmake.ShouldDoWork then
-            local res = vmake.DoWork()
-        end
-
-        if vmake.ShouldPrintGraph then
-            print(vmake.Dump())
-        end
-    end
-end
-
-function vmake.Dump()
+function vmake.PrintData()
     local function itemOrList(val)
         if typeEx(val) == "List" then
             return tostring(#val) .. " items: " .. val:Print()
@@ -3576,15 +3660,93 @@ function vmake.Dump()
     return dumpProject(defaultProj) .. "\n" .. dumpWorkLoad(vmake.WorkGraph)
 end
 
+function vmake__call()
+    vmake.ValidateAndDefault()
+    vmake.ExpandProperties()
+
+    vmake.CheckArguments()
+
+    if vmake.ShouldComputeGraph then
+        vmake.WorkGraph = vmake.ConstructWorkGraph()
+
+        if vmake.ShouldDoWork then
+            local res = vmake.DoWork()
+        end
+
+        if vmake.ShouldPrintGraph then
+            print(vmake.PrintData())
+        end
+    end
+end
+
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Command-line Options
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 CmdOpt "help" "h" {
-    Description = "Displays available command-line arguments.",
+    Description = "Displays available command-line options.",
 
     Handler = function(_)
+        local parts = {}
 
+        if arg and arg[0] then
+            parts[#parts + 1] = "Usage: "
+            parts[#parts + 1] = arg[0]
+            parts[#parts + 1] = " [options] [--] [project, architecture & configuration]\n"
+        end
+
+        for i = 1, #cmdlopts do
+            local opt = cmdlopts[i]
+
+            parts[#parts + 1] = "    --"
+            parts[#parts + 1] = opt.Name
+
+            if opt.Type then
+                parts[#parts + 1] = "=<"
+                parts[#parts + 1] = opt.Display or opt.Type
+                parts[#parts + 1] = ">"
+            end
+
+            if opt.ShortName then
+                parts[#parts + 1] = "  -"
+                parts[#parts + 1] = opt.ShortName
+
+                if opt.Type then
+                    parts[#parts + 1] = " <"
+                    parts[#parts + 1] = opt.Display or opt.Type
+                    parts[#parts + 1] = ">"
+                end
+            end
+
+            parts[#parts + 1] = "\n"
+
+            if opt.Description then
+                parts[#parts + 1] = "        "
+                parts[#parts + 1] = opt.Description
+                parts[#parts + 1] = "\n"
+            end
+        end
+
+        parts[#parts + 1] = "Powered by vMake (c) 2016 Alexandru-Mihai Maftei"
+
+        print(table.concat(parts))
+        vmake.ShouldComputeGraph = false
+    end,
+}
+
+CmdOpt "debug" "d" {
+    Description = "Enables some debugging features, making the code more strict, exposing possibly unwanted behaviour.",
+
+    Handler = function(_)
+        vmake.Debug = true
+    end,
+}
+
+CmdOpt "print" {
+    Description = "Prints all the defined data and the computed work graph (a directed dependency graph) which would otherwise be executed.",
+
+    Handler = function(_)
+        vmake.ShouldPrintGraph = true
     end,
 }
 

@@ -47,14 +47,17 @@ local MKISO = "mkisofs"
 local testOptions = List { }
 
 CmdOpt "tests" "t" {
+    Description = "Specifies which tests to include in the Beelzebub build.",
+    Display = "name-1,name 2;name_3,...",
+
     Type = "string",
     Many = true,
     Mandatory = false,
 
     Handler = function(_, val)
         for test in string.iteratesplit(val, "[,;]") do
-            if #val == 0 or string.find(val, "[^%a%d%s]") then
-                error("Test \"" .. val .. "\" contains invalid characters.")
+            if #test == 0 or string.find(test, "[^%a%d%s%-_]") then
+                error("Test \"" .. test .. "\" contains invalid characters.")
             end
 
             testOptions:Append("__BEELZEBUB__TEST_" .. string.gsub(test, "[%s%-]", "_"))
