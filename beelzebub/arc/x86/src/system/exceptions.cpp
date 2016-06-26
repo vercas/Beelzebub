@@ -362,17 +362,17 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
         if (odd) msg("%n");
 
-        // Utils::StackFrame stackFrame;
+        Utils::StackFrame stackFrame;
 
-        // if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
-        // {
-        //     do
-        //     {
-        //         msg("[Func %Xp; Stack top %Xp + %us]%n"
-        //             , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+        {
+            do
+            {
+                msg("[Func %Xp; Stack top %Xp + %us]%n"
+                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
 
-        //     } while (stackFrame.LoadNext());
-        // }
+            } while (stackFrame.LoadNext());
+        }
 
         Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr, nullptr);
     }

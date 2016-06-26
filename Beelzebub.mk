@@ -233,10 +233,10 @@ else
 		SETTINGS			+= test-vas 
 	endif
 
-	ifneq (,$(findstring test-int-lat,$(MAKECMDGOALS)))
+	ifneq (,$(findstring test-interrupt-latency,$(MAKECMDGOALS)))
 		PRECOMPILER_FLAGS	+= __BEELZEBUB__TEST_INTERRUPT_LATENCY 
 
-		SETTINGS			+= test-int-lat 
+		SETTINGS			+= test-interrupt-latency 
 	endif
 endif
 

@@ -207,6 +207,7 @@ bochsout.txt
 BochsLog.txt
 
 # vStuff
+.vmake/
 .sync/
 *~
 *.sublime-workspace
@@ -233,3 +234,4 @@ CleanBuild.bat
 
 last_settings.txt
 start_cygwin.bat
+mintty.exe.stackdump
