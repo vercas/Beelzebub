@@ -74,10 +74,10 @@ STRIPFLAGS	:= -s
 # 64-bit x86 #
 ifeq ($(ARC),amd64)
 	ASFLAGS		+= -f elf64 
-	CFLAGS		+= -m64 -mno-red-zone 
-	CXXFLAGS	+= -m64 -mno-red-zone 
+	CFLAGS		+= -m64 
+	CXXFLAGS	+= -m64 
 
-	LOFLAGS		+= -m64 -mno-red-zone 
+	LOFLAGS		+= -m64 
 
 ####################################
 # 32-bit x86 with 36-bit addresses #

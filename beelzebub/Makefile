@@ -45,8 +45,8 @@ include ../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS	:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_KERNEL
-GCCFLAGS	+= -ffreestanding -Wall -Wsystem-headers -mcmodel=kernel 
-GCCFLAGS	+= -mno-red-zone -O2 -flto -nostdlib -pipe -static-libgcc 
+GCCFLAGS	+= -ffreestanding -Wall -Wsystem-headers 
+GCCFLAGS	+= -O2 -flto -nostdlib -pipe -static-libgcc 
 GCCFLAGS	+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 GCCFLAGS	+= --sysroot=$(SYSROOT) 
 
@@ -66,7 +66,7 @@ GASFLAGS	:= $(GCCFLAGS)
 
 # Linker options, with optimization
 LOFLAGS		:= -ffreestanding -Wall -Wsystem-headers -mcmodel=kernel -fuse-linker-plugin 
-LOFLAGS		+= -mno-red-zone -O2 -flto=jobserver -nostdlib -pipe -static-libgcc -Wl,-z,max-page-size=0x1000 
+LOFLAGS		+= -O2 -flto=jobserver -nostdlib -pipe -static-libgcc -Wl,-z,max-page-size=0x1000 
 LOFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 LOFLAGS		+= --sysroot=$(SYSROOT) 
 
@@ -96,30 +96,36 @@ endif
 ##############
 # 64-bit x86 #
 ifeq ($(ARC),amd64)
-	LDFILE		:= $(ARC_DIR)/amd64/link.ld
+	LDFILE		:= $(ARC_DIR)/amd64/link.ld 
 
-	ASFLAGS		+= -f elf64
-	CFLAGS		+= -m64
-	CXXFLAGS	+= -m64
+	ASFLAGS		+= -f elf64 
+	CFLAGS		+= -m64 -mno-red-zone -mcmodel=kernel 
+	CXXFLAGS	+= -m64 -mno-red-zone -mcmodel=kernel 
+
+	LOFLAGS		+= -m64 -mno-red-zone -mcmodel=kernel 
 
 ####################################
 # 32-bit x86 with 36-bit addresses #
 else ifeq ($(ARC),ia32pae)
-	LDFILE		:= $(ARC_DIR)/ia32/link.ld
+	LDFILE		:= $(ARC_DIR)/ia32/link.ld 
 	#	There will be no specific linker file for PAE.
 
-	ASFLAGS		+= -f elf32
-	CFLAGS		+= -m32
-	CXXFLAGS	+= -m32
+	ASFLAGS		+= -f elf32 
+	CFLAGS		+= -m32 
+	CXXFLAGS	+= -m32 
+
+	LOFLAGS		+= -m32 
 
 ##############
 # 32-bit x86 #
 else ifeq ($(ARC),ia32)
-	LDFILE		:= $(ARC_DIR)/ia32/link.ld
+	LDFILE		:= $(ARC_DIR)/ia32/link.ld 
 
-	ASFLAGS		+= -f elf32
-	CFLAGS		+= -m32
-	CXXFLAGS	+= -m32
+	ASFLAGS		+= -f elf32 
+	CFLAGS		+= -m32 
+	CXXFLAGS	+= -m32 
+
+	LOFLAGS		+= -m32 
 
 endif
 
@@ -204,7 +210,7 @@ $(KERNEL_INSTALL_PATH): $(KERNEL_PATH)
 # Link the target binary with extra optimization #
 $(KERNEL_PATH): $(LDFILE) $(SLIBFILES) $(OBJECTS)
 	@ echo "/LNK/OPT:" $@ "("$(LDFILE)")"
-	+@ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS) $(LIBRARIES)
+	+ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS) $(LIBRARIES)
 
 ####################################### CODE FILES ##########
 

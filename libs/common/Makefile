@@ -46,15 +46,15 @@ include ../../Toolchain.mk
 
 # Common options for GCC
 GCCFLAGS		:= $(GCC_PRECOMPILER_FLAGS) -D __BEELZEBUB_STATIC_LIBRARY 
-GCCFLAGS		+= -ffreestanding -Wall -Wsystem-headers -mcmodel=large 
-GCCFLAGS		+= -mno-red-zone -O0 -nostdlib -pipe -lgcc -static-libgcc 
+GCCFLAGS		+= -ffreestanding -Wall -Wsystem-headers 
+GCCFLAGS		+= -mno-red-zone -nostdlib -pipe -lgcc -static-libgcc 
 GCCFLAGS		+= -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 
 GCCFLAGS		+= --sysroot=$(SYSROOT) 
 
 # C/C++ options
-CFLAGS			:= $(GCCFLAGS) -std=gnu99 -flto 
+CFLAGS			:= $(GCCFLAGS) -std=gnu99 -flto -O2 
 CXXFLAGS_CRT	:= $(GCCFLAGS) -std=gnu++14 -fno-rtti -fno-exceptions
-CXXFLAGS		:= $(CXXFLAGS_CRT) -flto 
+CXXFLAGS		:= $(CXXFLAGS_CRT) -flto -O2 
 
 # Assembler options
 ASFLAGS			:= $(GCC_PRECOMPILER_FLAGS)
@@ -85,9 +85,9 @@ endif
 # 64-bit x86 #
 ifeq ($(ARC),amd64)
 	ASFLAGS			+= -f elf64 
-	CFLAGS			+= -m64 
-	CXXFLAGS		+= -m64 
-	CXXFLAGS_CRT	+= -m64 
+	CFLAGS			+= -m64 -mno-red-zone -mcmodel=large 
+	CXXFLAGS		+= -m64 -mno-red-zone -mcmodel=large 
+	CXXFLAGS_CRT	+= -m64 -mno-red-zone -mcmodel=large 
 
 ####################################
 # 32-bit x86 with 36-bit addresses #
@@ -173,7 +173,7 @@ $(LIB_INSTALL_PATH): $(LIB_PATH)
 # Link the target binary with extra optimization #
 $(LIB_PATH): $(OBJECTS)
 	@ echo "/AR:" $@
-	@ $(AR) $(ARFLAGS) $@ $(OBJECTS)
+	 $(AR) $(ARFLAGS) $@ $(OBJECTS)
 
 ####################################### CRTS ##########
 
