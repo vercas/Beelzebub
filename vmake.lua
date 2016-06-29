@@ -31,8 +31,9 @@ require "lfs"
 local configs, archs, projects, comps, rules, cmdlopts = {}, {}, {}, {}, {}, {}
 local defaultProj, defaultArch, defaultConf, outDir = false, false, false, false
 
-function Default(name)
+function Default(name, tolerant)
     assertType("string", name, "named default", 2)
+    assertType({"nil", "boolean"}, tolerant, "tolerant", 2)
 
     local proj, arch, conf = projects[name], archs[name], configs[name]
 
@@ -411,6 +412,21 @@ function table.isarray(tab)
     end
 
     return true
+end
+
+do
+    local validTrueStrings  = { ["true"]  = true, yes = true, on  = true }
+    local validFalseStrings = { ["false"] = true, no  = true, off = true }
+
+    function toboolean(val)
+        local lVal = string.lower(val)
+
+        if validTrueStrings[lVal] then
+            return true
+        elseif validFalseStrings[lVal] then
+            return false
+        end
+    end
 end
 
 function string.split(s, pattern, plain, n)
@@ -887,6 +903,10 @@ do
         return str:match("^(.-)/[^/]+/*$")
     end
 
+    local function getFileName(str)
+        return str:match("^.-/([^/]+)/*$")
+    end
+
     local function canonizePath(str)
         local i1, res, len, frag = 1, {}, 0
 
@@ -1059,6 +1079,16 @@ do
             end
 
             return res
+        end,
+
+        GetName = function(self)
+            local val = self[_key_path_valu]
+
+            if val == "." or val == ".." or val == "/" then
+                return self
+            end
+
+            return vmake.Classes.Path(getFileName(val), "U")
         end,
 
         StartsWith = function(self, other)
@@ -1409,6 +1439,24 @@ do
             return self
         end,
 
+        AppendUnique = function(self, item)
+            if self[_key_list_seld] then
+                error("vMake error: List is sealed.", 2)
+            end
+
+            local lenS, this = #self[_key_list_cont], self[_key_list_cont]
+
+            for i = 1, lenS do
+                if this[i] == item then
+                    return false
+                end
+            end
+
+            this[lenS + 1] = item
+
+            return self
+        end,
+
         Where = function(self, pred)
             assertType("function", pred, "predicate", 2)
 
@@ -1712,6 +1760,7 @@ do
 
             if base then
                 conf[_key_conf_base] = base
+                linkDataWithOther(conf, base, errlvl + 1)
             else
                 error("vMake error: " .. tostring(conf) .. " defined with unknown base \"" .. conf[_key_conf_base] .. "\".", errlvl + 1)
             end
@@ -1788,6 +1837,7 @@ do
 
             if base then
                 arch[_key_arch_base] = base
+                linkDataWithOther(arch, base, errlvl + 1)
             else
                 error("vMake error: " .. tostring(arch) .. " defined with unknown base \"" .. arch[_key_arch_base] .. "\".", errlvl + 1)
             end
@@ -3109,14 +3159,15 @@ function vmake.CheckArguments()
     if not arg then return end
 
     local i, n, acceptOptions = 1, #arg, true
+    local selProj, selArch, selConf
 
     while i <= n do
-        local cur = arg[i]
+        local cur, usedNextArg = arg[i], false
 
         if cur == "--" then
             acceptOptions = false
         elseif #cur > 0 then
-            local handled, usedNextArg = false, false
+            local handled = false
 
             local function doOption(long, optName, val)
                 local opt = cmdlopts[optName]
@@ -3131,17 +3182,58 @@ function vmake.CheckArguments()
                     error("vMake error: Multiple instances of command-line option \"" .. optName .. "\" found.")
                 end
 
-                if opt.Type then
+                local optType = opt.Type
+
+                if optType then
                     if not val then
                         val = arg[i + 1]
 
                         if not val then
                             error("vMake error: Command-line option \"" .. optName .. "\" lacks a value.")
                         end
+
+                        usedNextArg = true
+                    end
+
+                    if optType == "boolean" then
+                        local bVal = toboolean(val)
+
+                        if bVal ~= nil then
+                            val = bVal
+                        else
+                            error("vMake error: Command-line argument value \""
+                                .. val
+                                .. "\" does not represent a valid boolean value, as required by option \""
+                                .. optName .. "\".")
+                        end
+                    elseif optType == "number" then
+                        local nVal = tonumber(val)
+
+                        if nVal then
+                            val = nVal
+                        else
+                            error("vMake error: Command-line argument value \""
+                                .. val
+                                .. "\" does not represent a valid number, as required by option \""
+                                .. optName .. "\".")
+                        end
+                    elseif optType == "integer" then
+                        local nVal = tonumber(val)
+
+                        if nVal and nVal % 1 == 0 then
+                            val = nVal
+                        else
+                            error("vMake error: Command-line argument value \""
+                                .. val
+                                .. "\" does not represent a valid integer, as required by option \""
+                                .. optName .. "\".")
+                        end
                     end
                 end
 
                 opt:ExecuteHandler(val)
+
+                handled = true
             end
 
             if acceptOptions then
@@ -3171,11 +3263,39 @@ function vmake.CheckArguments()
             if not handled then
                 --  So, this ought to be a project, architecture and configuration
                 --  specification.
+
+                local proj, arch, conf = projects[cur], archs[cur], configs[cur]
+
+                if proj then
+                    if selProj then
+                        error("vMake error: Default project is already chosen to be " .. tostring(selProj) .. "; cannot set it to " .. tostring(proj) .. ".")
+                    end
+
+                    selProj = proj
+                elseif arch then
+                    if selArch then
+                        error("vMake error: Default architecture is already chosen to be " .. tostring(selArch) .. "; cannot set it to " .. tostring(arch) .. ".")
+                    end
+
+                    selArch = arch
+                elseif conf then
+                    if selConf then
+                        error("vMake error: Default configuration is already chosen to be " .. tostring(selConf) .. "; cannot set it to " .. tostring(conf) .. ".")
+                    end
+
+                    selConf = conf
+                else
+                    error("vMake error: There is no project, architecture or configuration named \"" .. cur .. "\".")
+                end
             end
         end
 
-        i = i + 1
+        i = i + (usedNextArg and 2 or 1)
     end
+
+    if selProj then defaultProj = selProj end
+    if selArch then defaultArch = selArch end
+    if selConf then defaultConf = selConf end
 end
 
 function vmake.ConstructWorkGraph()
