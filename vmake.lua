@@ -14,12 +14,20 @@ if arg then
 end
 
 local vmake, vmake__call, getEnvironment = {
+    Version = "1.0.0",
+    VersionNumber = 1000000,
+
     Debug = false,
+    Silent = false,
+    Verbose = false,
     ShouldComputeGraph = true,
     ShouldDoWork = true,
     ShouldPrintGraph = false,
     WorkGraph = false,
 }
+
+vmake.Description = "vMake v" .. vmake.Version .. " [" .. vmake.VersionNumber
+.. "] (c) 2016 Alexandru-Mihai Maftei, running under " .. _VERSION
 
 require "lfs"
 
@@ -309,7 +317,7 @@ local function escapeForShell(s)
 
     s = s:gsub('"', "\\\"")
 
-    if s:find("[^a-zA-Z0-9-_./\"]") then
+    if s:find("[^a-zA-Z0-9-_./\"=*]") then
         return '"' .. s .. '"'
     end
 
@@ -319,6 +327,20 @@ end
 --  --  --  --  --  --
 --  Error Handling  --
 --  --  --  --  --  --
+
+function MSG(...)
+    if not vmake.Verbose then
+        return
+    end
+
+    local items = {...}
+
+    for i = 1, #items do
+        items[i] = tostring(items[i])
+    end
+
+    print(table.concat(items))
+end
 
 function assertType(tname, val, vname, errlvl)
     local valType = typeEx(val)
@@ -1960,6 +1982,8 @@ do
                     error("vMake error: Unknown dependency \"" .. item .. "\" for " .. tostring(self)
                         .. "; should be a sibling component or top-level project.", errlvl)
                 end
+
+                val = (List { val }):Seal()
             else
                 --  Otherwise, there is nothing to do.
 
@@ -2002,12 +2026,12 @@ do
                 error("vMake error: " .. tostring(self) .. " does not define its output.", errlvl)
             end
 
-            if type(val) ~= "function" then
-                return false
-            end
+            local valType = typeEx(val)
 
-            val = val(getEnvironment(self))
-            local valType = assertType({"string", "Path", "List"}, val, "output expansion", errlvl)
+            if valType == "function" then
+                val = val(getEnvironment(self))
+                valType = assertType({"string", "Path", "List"}, val, "output expansion", errlvl)
+            end
 
             if valType == "List" then
                 if val.Sealed then
@@ -2025,7 +2049,9 @@ do
 
                 val:Seal()
             elseif valType == "string" then
-                val = vmake.Classes.Path(val, 'U')
+                val = List { vmake.Classes.Path(val, 'U') }
+            elseif valType == "Path" then
+                val = List { val }
             end
 
             self[_key_proj_outp] = val
@@ -2235,8 +2261,17 @@ do
             local valType = typeEx(val)
 
             if valType == "function" then
-                return val(getEnvironment(self), dst)
-            elseif valType == "Path" then
+                val = val(getEnvironment(self), dst)
+                valType = typeEx(val)
+
+                if valType == "boolean" then
+                    return val
+                end
+
+                --  Not a boolean? Then it must be a Path or List, handled by the code below.
+            end
+
+            if valType == "Path" then
                 return dst == val
             elseif valType == "List" then
                 return val:Contains(dst)
@@ -2500,7 +2535,7 @@ do
             self[_key_wkit_rule] = rule
             self[_key_wkit_prqs] = vmake.Classes.List()
             self[_key_wkit_done] = false
-            self[_key_wkit_outd] = false
+            self[_key_wkit_outd] = true
             self[_key_wkit_srcs] = false
         end,
 
@@ -2896,15 +2931,18 @@ function shellmeta.__call(self, cmd, ...)
 
     cmd = table.concat(tab, " ")
 
-    if not self[_key_shll_slnt] then
+    local printCmd = not (self[_key_shll_slnt] or vmake.Silent)
+
+    if printCmd then
         print(cmd)
     end
 
     local okay, exitReason, code = os.execute(cmd)
 
     if not okay and not self[_key_shll_tolr] then
-        error("vMake failed to execute shell command:\n" .. cmd
-            .. "\nExit reason: " .. tostring(exitReason) .. "; status code: " .. tostring(code), 2)
+        error("vMake failed to execute shell command"
+            .. (printCmd and "; " or (":\n" .. cmd .. "\n"))
+            .. "exit reason: " .. tostring(exitReason) .. "; status code: " .. tostring(code), 2)
     end
 
     return okay or false
@@ -2961,24 +2999,8 @@ do
         --  is data, and also reference it indiscriminately.
 
         if objType == "Data" then
-            local data = obj
-
-            function envmtt.__index(self, key)
-                assertType({"string", "number"}, key, "local environment key", 2)
-
-                local res = envind[key]
-
-                if res == nil then
-                    res = data:TryGet(key)
-                end
-
-                return res
-            end
-
             obj = obj.Owner
             objType = typeEx(obj)
-        else
-            envmtt.__index = envind
         end
 
         envind.data = obj.Data
@@ -3020,6 +3042,20 @@ do
             envind.opt = obj
         else
             error("vMake internal error: Uknown object type '" .. objType .. "' (" .. tostring(obj) .. ") for environment creation.")
+        end
+
+        local data = envind.data
+
+        function envmtt.__index(self, key)
+            assertType({"string", "number"}, key, "local environment key", 2)
+
+            local res = envind[key]
+
+            if res == nil then
+                res = data:TryGet(key)
+            end
+
+            return res
         end
 
         local res = setmetatable({}, envmtt)
@@ -3104,7 +3140,7 @@ function vmake.ValidateAndDefault()
         --  TODO: Check for a chosen project to build.
 
         if #projects > 1 then
-            error("vMake error: No default project specified when there are more than one projects defined.")
+            error("vMake error: No default project specified when there is more than one project defined.")
         end
 
         defaultProj = projects[1]
@@ -3114,7 +3150,7 @@ function vmake.ValidateAndDefault()
         --  TODO: Check for a chosen architecture to build.
 
         if #archs > 1 then
-            error("vMake error: No default architecture specified when there are more than one architectures defined.")
+            error("vMake error: No default architecture specified when there is more than one architecture defined.")
         end
 
         defaultArch = archs[1]
@@ -3124,7 +3160,7 @@ function vmake.ValidateAndDefault()
         --  TODO: Check for a chosen configuration to build.
 
         if #configs > 1 then
-            error("vMake error: No default configuration specified when there are more than one configurations defined.")
+            error("vMake error: No default configuration specified when there is more than one configuration defined.")
         end
 
         defaultConf = configs[1]
@@ -3370,17 +3406,7 @@ function vmake.ConstructWorkGraph()
 
             for i = 1, #comps do
                 local comp = comps[i]
-                local outp, thisIsIt = comp.Output, false
-
-                if typeEx(outp) == "Path" then
-                    thisIsIt = (outp == path)
-
-                    -- print("FOUND", thisIsIt, "AS", outp, "OF", comp)
-                else
-                    thisIsIt = outp:Contains(path)
-
-                    -- print("FOUND", thisIsIt, "IN", outp:Print(), "OF", comp)
-                end
+                local thisIsIt = comp.Output:Contains(path)
 
                 if thisIsIt then
                     if found then
@@ -3431,7 +3457,7 @@ function vmake.ConstructWorkGraph()
         end
 
         if item then
-            local srcs = item.Rule:GetSources(path)
+            local srcs, outdated = item.Rule:GetSources(path), false
 
             if srcs then
                 -- print("SOURCES\n", table.concat(getListContainer(srcs:Select(function(src)
@@ -3444,15 +3470,6 @@ function vmake.ConstructWorkGraph()
                     -- print("SRC", src, "OF", item)
 
                     assurePathInfo(src)
-
-                    if not vmake.FullBuild then
-                        if src.ModificationTime and path.ModificationTime and src.ModificationTime <= path.ModificationTime then
-                            --  Source not modified after the destination? Cool!
-                            --  Nothing to do, carry on.
-
-                            return
-                        end
-                    end
 
                     local subItem, subPreqs, subFound = constructForFile(proj, src, assoc, stack, errlvl + 2, false, depAssoc, true)
 
@@ -3470,6 +3487,21 @@ function vmake.ConstructWorkGraph()
                         end
                     end
 
+                    if src.ModificationTime
+                        and path.ModificationTime
+                        and src.ModificationTime <= path.ModificationTime then
+                        --  Source NOT modified after the destination? Cool!
+
+                        MSG("Preq ", src, " of ", item, " is NOT outdated.")
+
+                        return
+                    end
+
+                    outdated = true
+                    --  Otherwise, this is definitely an outdated item.
+
+                    MSG("Preq ", src, " of ", item, " is outdated!")
+
                     if not subFound then
                         --  Nothing? Means this file ought to already exist.
 
@@ -3484,6 +3516,14 @@ function vmake.ConstructWorkGraph()
                         end
                     end
                 end)
+            end
+
+            setWorkItemOutdated(item, outdated)
+
+            if outdated then
+                MSG(item, " is outdated.")
+            else
+                MSG(item, " is up-to-date.")
             end
         end
 
@@ -3529,11 +3569,7 @@ function vmake.ConstructWorkGraph()
         --  An associative array is used to make sure each component is added as
         --  a prerequisite only once.
 
-        if typeEx(outp) == "Path" then outp = List { outp } end
-
-        if typeEx(deps) == "Project" then
-            deps = vmake.Classes.List(false, { deps })
-        elseif typeEx(deps) == "List" then
+        if typeEx(deps) == "List" then
             deps = deps:Copy()
         else
             deps = vmake.Classes.List()
@@ -3584,9 +3620,97 @@ function vmake.ConstructWorkGraph()
     return constructFromProject(defaultProj, assoc, stack, 2)
 end
 
+function vmake.SanitizeWorkGraph()
+    local done = {}
+
+    local function sanitizeItem(item, done)
+        if done[item] ~= nil then
+            return done[item]
+        end
+
+        local outdated = item.Outdated
+
+        if not outdated then
+            outdated = item.Prerequisites:Any(function(preq)
+                return sanitizeItem(preq, done)
+            end)
+
+            --  In other words, this otherwise up-to-date item will become
+            --  outdated if any of its prerequisites are outdated.
+
+            setWorkItemOutdated(item, outdated)
+        end
+
+        --  If it's already outdated, then there's nothing that can change that.
+
+        if not outdated then
+            setWorkItemDone(item)
+        end
+
+        if outdated then
+            MSG("Outdated   | ", item)
+        else
+            MSG("Up-to-date | ", item)
+        end
+
+        done[item] = outdated
+        return outdated
+    end
+
+    local function sanitizeLoad(load, done)
+        if done[load] ~= nil then
+            return done[load]
+        end
+
+        local outdated = load.Outdated
+
+        if not outdated then
+            outdated = load.Prerequisites:Any(function(preq)
+                return sanitizeLoad(preq, done)
+            end)
+
+            --  In other words, this otherwise up-to-date load will become
+            --  outdated if any of its prerequisites are outdated.
+
+            setWorkLoadOutdated(load, outdated)
+        end
+
+        if not outdated then
+            outdated = load.Items:Any(function(item)
+                return sanitizeItem(item, done)
+            end)
+
+            --  Still not outdated? It will be if any of its items are.
+
+            setWorkLoadOutdated(load, outdated)
+        end
+
+        --  If it's already outdated, then there's nothing that can change that.
+
+        if not outdated then
+            setWorkLoadDone(load)
+        end
+
+        if outdated then
+            MSG("Outdated   | ", load)
+        else
+            MSG("Up-to-date | ", load)
+        end
+
+        done[load] = outdated
+        return outdated
+    end
+
+    sanitizeLoad(vmake.WorkGraph, done)
+end
+
 function vmake.DoWork()
     if not vmake.WorkGraph then
         error("vMake error: Unable to do work before building the work graph.")
+    end
+
+    if vmake.WorkGraph.Done then
+        print("Nothing to do; everything is up-to-date.")
     end
 
     local function doItem(item)
@@ -3607,6 +3731,8 @@ function vmake.DoWork()
         local dst = item.Path
         local src = item.Sources
         local env = getEnvironment(item.Rule)
+
+        MSG("Executing ", item)
 
         local res1, res2 = pcall(act, env, dst, src)
 
@@ -3789,6 +3915,14 @@ function vmake__call()
     if vmake.ShouldComputeGraph then
         vmake.WorkGraph = vmake.ConstructWorkGraph()
 
+        MSG("Full build: ", vmake.FullBuild)
+
+        if not vmake.FullBuild then
+            vmake.SanitizeWorkGraph()
+
+            MSG("Finished sanitation.")
+        end
+
         if vmake.ShouldDoWork then
             local res = vmake.DoWork()
         end
@@ -3847,9 +3981,19 @@ CmdOpt "help" "h" {
             end
         end
 
-        parts[#parts + 1] = "Powered by vMake (c) 2016 Alexandru-Mihai Maftei"
+        parts[#parts + 1] = "Powered by "
+        parts[#parts + 1] = vmake.Description
 
         print(table.concat(parts))
+        vmake.ShouldComputeGraph = false
+    end,
+}
+
+CmdOpt "version" "v" {
+    Description = "Displays brief information about vMake.",
+
+    Handler = function(_)
+        print(vmake.Description)
         vmake.ShouldComputeGraph = false
     end,
 }
@@ -3870,6 +4014,38 @@ CmdOpt "print" {
     end,
 }
 
+CmdOpt "full" {
+    Description = "Indicates that work items should be executed even if they are considered up-to-date.",
+
+    Handler = function(_)
+        vmake.FullBuild = true
+    end,
+}
+
+CmdOpt "silent" {
+    Description = "Omits unsilenced shell commands from standard output.",
+
+    Handler = function(_)
+        if vmake.Verbose then
+            error("vMake error: Cannot be silent and verbose at the same time.")
+        end
+
+        vmake.Silent = true
+    end,
+}
+
+CmdOpt "verbose" {
+    Description = "Outputs more detailed information to standard output, such as the steps taken by vMake and all shell commands executed.",
+
+    Handler = function(_)
+        if vmake.Silent then
+            error("vMake error: Cannot be silent and verbose at the same time.")
+        end
+        
+        vmake.Verbose = true
+    end,
+}
+
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Wrap Up
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
@@ -3887,3 +4063,12 @@ _G.vmake = setmetatable({
 
     __call = vmake__call,
 })
+
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+--  Some common templates
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+
+function CopySingleFileAction(_, dst, src)
+    fs.MkDir(dst:GetParent())
+    fs.Copy(dst, src[1])
+end
