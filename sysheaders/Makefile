@@ -77,21 +77,21 @@ uninstall clean:
 ###############################################
 # Copy an architecture-specific C header file #
 $(HDR_INSTALL_DIR)/%.h: $(ARC_DIR)/$(ARC)/%.h
-	@ echo "/CPY/C__:" $< ">" $@
+#	@ echo "/CPY/C__:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
 #################################################
 # Copy an architecture-specific C++ header file #
 $(HDR_INSTALL_DIR)/%.hpp: $(ARC_DIR)/$(ARC)/%.hpp
-	@ echo "/CPY/C++:" $< ">" $@
+#	@ echo "/CPY/C++:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
 ###########################################
 # Copy an architecture-specific .inc file #
 $(HDR_INSTALL_DIR)/%.inc: $(ARC_DIR)/$(ARC)/%.inc
-	@ echo "/CPY/INC:" $< ">" $@
+#	@ echo "/CPY/INC:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
@@ -100,21 +100,21 @@ $(HDR_INSTALL_DIR)/%.inc: $(ARC_DIR)/$(ARC)/%.inc
 ################################################
 # Copy an architecture-auxiliary C header file #
 $(HDR_INSTALL_DIR)/%.h: $(AUX_DIR)/$(AUX)/%.h
-	@ echo "/CPY/C__:" $< ">" $@
+#	@ echo "/CPY/C__:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
 ##################################################
 # Copy an architecture-auxiliary C++ header file #
 $(HDR_INSTALL_DIR)/%.hpp: $(AUX_DIR)/$(AUX)/%.hpp
-	@ echo "/CPY/C++:" $< ">" $@
+#	@ echo "/CPY/C++:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
 ############################################
 # Copy an architecture-auxiliary .inc file #
 $(HDR_INSTALL_DIR)/%.inc: $(AUX_DIR)/$(AUX)/%.inc
-	@ echo "/CPY/INC:" $< ">" $@
+#	@ echo "/CPY/INC:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
@@ -123,20 +123,20 @@ $(HDR_INSTALL_DIR)/%.inc: $(AUX_DIR)/$(AUX)/%.inc
 #################################
 # Copy a standard C header file #
 $(HDR_INSTALL_DIR)/%.h: $(INC_DIR)/%.h
-	@ echo "/CPY/C__:" $< ">" $@
+#	@ echo "/CPY/C__:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
 ###################################
 # Copy a standard C++ header file #
 $(HDR_INSTALL_DIR)/%.hpp: $(INC_DIR)/%.hpp
-	@ echo "/CPY/C++:" $< ">" $@
+#	@ echo "/CPY/C++:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
 #############################
 # Copy a standard .inc file #
 $(HDR_INSTALL_DIR)/%.inc: $(INC_DIR)/%.inc
-	@ echo "/CPY/INC:" $< ">" $@
+#	@ echo "/CPY/INC:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@

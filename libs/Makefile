@@ -39,11 +39,11 @@ $(ARC):
 	@ true
 
 common:
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C common/ $(ARC) $(SETTINGS) $(MAKE_FLAGS)
 
 runtime: common-install
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C runtime/ $(ARC) $(SETTINGS) $(MAKE_FLAGS)
 
 ####################################### INSTALLATION ##########
@@ -52,11 +52,11 @@ install: common-install runtime-install
 	@ true
 
 common-install:
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C common/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 runtime-install: common-install
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C runtime/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 ####################################### CLEAN UP ##########
@@ -65,9 +65,9 @@ clean: common-clean runtime-clean
 	@ true
 
 common-clean:
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C common/ clean $(MAKE_FLAGS)
 
 runtime-clean:
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C runtime/ clean $(MAKE_FLAGS)

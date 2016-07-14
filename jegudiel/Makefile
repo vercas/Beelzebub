@@ -84,7 +84,7 @@ uninstall:
 #############################
 # Clean the build directory #
 clean:
-	@ echo "/REM:" $(BUILD_DIR)
+#	@ echo "/REM:" $(BUILD_DIR)
 	@ rm -Rf $(BUILD_DIR)/*
 
 ##########################
@@ -102,14 +102,14 @@ build: $(OBJECTS)
 ###########################################
 # Install binary blob to prefix directory #
 $(BTL_INSTALL_PATH): $(BTL_PATH)
-	@ echo "/STRIP:" $< ">" $@
+#	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
 
 ##########################
 # Link the target binary #
 $(BTL_PATH): $(LDFILE) $(OBJECTS)
-	@ echo "/LNK/UNO:" $@
+#	@ echo "/LNK/UNO:" $@
 	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $@ $(OBJECTS)
 
 ####################################### NORMAL FILES ##########
@@ -117,13 +117,13 @@ $(BTL_PATH): $(LDFILE) $(OBJECTS)
 ##########################
 # Build an assembly file #
 $(BUILD_DIR)/%.s.o: $(SOURCE_DIR)/%.s
-	@ echo "/ASM:" $<
+#	@ echo "/ASM:" $<
 	@ mkdir -p $(@D)
 	@ $(PRE_COMPILATION)    $(AS) $(ASFLAGS) $< -o $@    $(POST_COMPILATION)
 
 ##################
 # Build a C file #
 $(BUILD_DIR)/%.c.o: $(SOURCE_DIR)/%.c
-	@ echo "/C__" $<
+#	@ echo "/C__" $<
 	@ mkdir -p $(@D)
 	@ $(PRE_COMPILATION)    $(CC) $(CFLAGS) -c $< -o $@    $(POST_COMPILATION)

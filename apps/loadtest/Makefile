@@ -139,13 +139,13 @@ uninstall:
 ##############################
 # Cleans the build directory #
 clean:
-	@ echo "/REM:" $(BUILD_HOST)
+#	@ echo "/REM:" $(BUILD_HOST)
 	@ rm -Rf $(BUILD_HOST)
 
 ##########################
 # Link the target binary #
 linku: $(OBJECTS)
-	@ echo "/LNK/UNO:" $(APP_PATH)
+#	@ echo "/LNK/UNO:" $(APP_PATH)
 	@ $(LD) $(LDFLAGS) -o $(APP_PATH) $(OBJECTS) 
 
 ##########################
@@ -158,7 +158,7 @@ build: $(OBJECTS)
 ###########################################
 # Install binary blob to prefix directory #
 $(APP_INSTALL_PATH): $(APP_PATH)
-	@ echo "/STRIP:" $< ">" $@
+#	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(APP_INSTALL_DIR)
 #	@ cp $< $@
 	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
@@ -166,7 +166,7 @@ $(APP_INSTALL_PATH): $(APP_PATH)
 ##################################################
 # Link the target binary with extra optimization #
 $(APP_PATH): $(OBJECTS)
-	@ echo "/LNK/OPT:" $@
+#	@ echo "/LNK/OPT:" $@
 	@ mkdir -p $(@D)
 	+@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS)
 

@@ -144,7 +144,7 @@ uninstall:
 ##############################
 # Cleans the build directory #
 clean:
-	@ echo "/REM:" $(BUILD_HOST)
+#	@ echo "/REM:" $(BUILD_HOST)
 	@ rm -Rf $(BUILD_HOST)
 
 ##########################
@@ -157,7 +157,7 @@ build: $(OBJECTS)
 ###########################################
 # Install binary blob to prefix directory #
 $(LIB_INSTALL_PATH): $(LIB_PATH)
-	@ echo "/STRIP:" $< ">" $@
+#	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(LIB_INSTALL_DIR)
 #	@ cp $< $@
 	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
@@ -165,7 +165,7 @@ $(LIB_INSTALL_PATH): $(LIB_PATH)
 ##################################################
 # Link the target binary with extra optimization #
 $(LIB_PATH): $(SLIBFILES) $(OBJECTS)
-	@ echo "/LNK/OPT:" $@
+#	@ echo "/LNK/OPT:" $@
 	@ mkdir -p $(@D)
 	+@ $(LO) $(LOFLAGS) -o $@ $(OBJECTS) $(LIBRARIES)
 

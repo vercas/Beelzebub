@@ -177,13 +177,13 @@ uninstall:
 ##############################
 # Cleans the build directory #
 clean:
-	@ echo "/REM:" $(BUILD_HOST)
+#	@ echo "/REM:" $(BUILD_HOST)
 	@ rm -Rf $(BUILD_HOST)
 
 ##########################
 # Link the target binary #
 linku: $(LDFILE) $(SLIBFILES) $(OBJECTS)
-	@ echo "/LNK/UNO:" $(KERNEL_PATH) "("$(LDFILE)")"
+#	@ echo "/LNK/UNO:" $(KERNEL_PATH) "("$(LDFILE)")"
 	@ $(LD) $(LDFLAGS) -T $(LDFILE) -o $(KERNEL_PATH) $(OBJECTS) $(LIBRARIES) 
 
 ##########################
@@ -201,7 +201,7 @@ headers: $(HEADERS)
 ###########################################
 # Install binary blob to prefix directory #
 $(KERNEL_INSTALL_PATH): $(KERNEL_PATH)
-	@ echo "/STRIP:" $< ">" $@
+#	@ echo "/STRIP:" $< ">" $@
 	@ mkdir -p $(KERNEL_INSTALL_DIR)
 #	@ cp $< $@
 	@ $(STRIP) $(STRIPFLAGS) -o $@ $<
@@ -209,8 +209,8 @@ $(KERNEL_INSTALL_PATH): $(KERNEL_PATH)
 ##################################################
 # Link the target binary with extra optimization #
 $(KERNEL_PATH): $(LDFILE) $(SLIBFILES) $(OBJECTS)
-	@ echo "/LNK/OPT:" $@ "("$(LDFILE)")"
-	+ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS) $(LIBRARIES)
+#	@ echo "/LNK/OPT:" $@ "("$(LDFILE)")"
+	@+ $(LO) -T $(LDFILE) -o $@ $(LOFLAGS) $(OBJECTS) $(LIBRARIES)
 
 ####################################### CODE FILES ##########
 

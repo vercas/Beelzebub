@@ -37,15 +37,15 @@ $(ARC):
 	@ true
 
 loadtest:
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C loadtest/ $(ARC) $(SETTINGS) $(MAKE_FLAGS)
 
 loadtest-install:
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C loadtest/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 loadtest-clean:
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C loadtest/ clean $(MAKE_FLAGS)
 
 install: loadtest-install

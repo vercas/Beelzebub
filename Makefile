@@ -86,7 +86,7 @@ qemu-serial: $(ISO_PATH)
 	@ qemu-system-x86_64 -cdrom $(ISO_PATH) -smp 4 -nographic
 
 vmware:
-	@ #echo a | /cygdrive/c/Users/rada/Dropbox/Projects/Named\ Pipe\ Server/Named\ Pipe\ Server/bin/Release/Named\ Pipe\ Server
+#	@ echo a | /cygdrive/c/Users/rada/Dropbox/Projects/Named\ Pipe\ Server/Named\ Pipe\ Server/bin/Release/Named\ Pipe\ Server
 	@ vmrun start $(VMX_PATH)
 
 vmware2:
@@ -97,25 +97,25 @@ vmware2:
 ####################################### COMPONENTS ##########
 
 jegudiel: sysheaders
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C jegudiel/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 image:: kernel apps libs sysheaders
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C image/ $(ARC) $(SETTINGS) iso $(MAKE_FLAGS)
 
 kernel: libs sysheaders
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C $(KERNEL_DIR)/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 apps: kernel libs sysheaders
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C apps/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 libs: sysheaders
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C libs/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)
 
 sysheaders:
-	@ echo "/MAK:" $@
+#	@ echo "/MAK:" $@
 	@ $(MAKE) -C sysheaders/ $(ARC) $(SETTINGS) install $(MAKE_FLAGS)

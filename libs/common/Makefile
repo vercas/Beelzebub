@@ -152,7 +152,7 @@ uninstall:
 ##############################
 # Cleans the build directory #
 clean:
-	@ echo "/REM:" $(BUILD_HOST)
+#	@ echo "/REM:" $(BUILD_HOST)
 	@ rm -Rf $(BUILD_HOST)
 
 ##########################
@@ -165,32 +165,32 @@ build: $(OBJECTS)
 ###########################################
 # Install binary blob to prefix directory #
 $(LIB_INSTALL_PATH): $(LIB_PATH)
-	@ echo "/CPY:" $< ">" $@
+#	@ echo "/CPY:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ cp $< $@
 
 ##################################################
 # Link the target binary with extra optimization #
 $(LIB_PATH): $(OBJECTS)
-	@ echo "/AR:" $@
-	 $(AR) $(ARFLAGS) $@ $(OBJECTS)
+#	@ echo "/AR:" $@
+	@ $(AR) $(ARFLAGS) $@ $(OBJECTS)
 
 ####################################### CRTS ##########
 
 #	crt0.o needs to be compiled without LTO, otherwise it won't be linkable.
 
 $(SYSROOT)/usr/lib/crt0.o: $(ARC_DIR)/$(ARC)/crt/crt0.cpp
-	@ echo "/CRT/C++:" $< ">" $@
+#	@ echo "/CRT/C++:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ $(PRE_COMPILATION)    $(CXX) $(CXXFLAGS_CRT) -MMD -MP -c $< -o $@    $(POST_COMPILATION)
 
 $(SYSROOT)/usr/lib/crti.o: $(ARC_DIR)/$(ARC)/crt/crti.s
-	@ echo "/CRT/Gas:" $< ">" $@
+#	@ echo "/CRT/Gas:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ $(PRE_COMPILATION)    $(GAS) $(GASFLAGS_CRT) -c $< -o $@    $(POST_COMPILATION)
 
 $(SYSROOT)/usr/lib/crtn.o: $(ARC_DIR)/$(ARC)/crt/crtn.s
-	@ echo "/CRT/Gas:" $< ">" $@
+#	@ echo "/CRT/Gas:" $< ">" $@
 	@ mkdir -p $(@D)
 	@ $(PRE_COMPILATION)    $(GAS) $(GASFLAGS_CRT) -c $< -o $@    $(POST_COMPILATION)
 
