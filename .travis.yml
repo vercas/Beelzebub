@@ -14,7 +14,7 @@ addons:
     - libisl10
     - libcloog-isl4
     - texinfo
-    - lua
+    - lua5.2
     - parallel
 
 before_install:
@@ -26,7 +26,7 @@ before_install:
 #  - if [ $TRAVIS_OS_NAME == linux ]; then travis_retry ./configure --llvm-config llvm-config-3.4; fi
 #  - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ./configure; fi
 
-script: ./vmakefile -t all --mtune=corei7-avx --full
+script: ./vmakefile.lua -t all --mtune=corei7-avx --full
 
 after_success:
 - echo after success
