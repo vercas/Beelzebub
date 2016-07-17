@@ -246,7 +246,7 @@ local function gzipSingleFile(_, dst, src)
     local tmp = dst:TrimEnd(3)  --  3 = #".gz"
     fs.MkDir(tmp:GetParent())
     fs.Copy(tmp, src[1])
-    sh(GZIP, "-f", "-9", tmp)
+    sh.silent(GZIP, "-f", "-9", tmp)
 end
 
 local function ArchitecturalComponent(name)
@@ -258,7 +258,7 @@ local function ArchitecturalComponent(name)
 
             Action = function(_, dst, src)
                 fs.MkDir(dst:GetParent())
-                sh(CC, _.Opts_C, "-MD", "-MP", "-c", src, "-o", dst)
+                sh.silent(CC, _.Opts_C, "-MD", "-MP", "-c", src, "-o", dst)
             end,
         },
 
@@ -269,7 +269,7 @@ local function ArchitecturalComponent(name)
 
             Action = function(_, dst, src)
                 fs.MkDir(dst:GetParent())
-                sh(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src, "-o", dst)
+                sh.silent(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src, "-o", dst)
             end,
         },
 
@@ -280,7 +280,7 @@ local function ArchitecturalComponent(name)
 
             Action = function(_, dst, src)
                 fs.MkDir(dst:GetParent())
-                sh(AS, _.Opts_NASM, src, "-o", dst)
+                sh.silent(AS, _.Opts_NASM, src, "-o", dst)
             end,
         },
 
@@ -291,7 +291,7 @@ local function ArchitecturalComponent(name)
 
             Action = function(_, dst, src)
                 fs.MkDir(dst:GetParent())
-                sh(GAS, _.Opts_GAS, "-c", src, "-o", dst)
+                sh.silent(GAS, _.Opts_GAS, "-c", src, "-o", dst)
             end,
         },
     })
@@ -558,9 +558,9 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh(LD, _.Opts_LD, "-T", _.LinkerScript, "-o", _.BinaryPath, _.Objects)
+                sh.silent(LD, _.Opts_LD, "-T", _.LinkerScript, "-o", _.BinaryPath, _.Objects)
                 fs.MkDir(dst:GetParent())
-                sh(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
 
@@ -573,7 +573,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh(CC, _.Opts_C, "-c", src[1], "-o", dst)
+                sh.silent(CC, _.Opts_C, "-c", src[1], "-o", dst)
             end,
         },
 
@@ -585,7 +585,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh(AS, _.Opts_NASM, src[1], "-o", dst)
+                sh.silent(AS, _.Opts_NASM, src[1], "-o", dst)
             end,
         },
     },
@@ -635,7 +635,7 @@ Project "Beelzebub" {
 
             Action = function(_, dst, src)
                 fs.MkDir(dst:GetParent())
-                sh(AR, _.Opts_AR, dst, src)
+                sh.silent(AR, _.Opts_AR, dst, src)
             end,
         },
 
@@ -664,9 +664,9 @@ Project "Beelzebub" {
                 fs.MkDir(dst:GetParent())
 
                 if src[1]:EndsWith(".cpp") then
-                    sh(CXX, _.Opts_CXX_CRT, "-MD", "-MP", "-c", src, "-o", dst)
+                    sh.silent(CXX, _.Opts_CXX_CRT, "-MD", "-MP", "-c", src, "-o", dst)
                 else
-                    sh(GAS, _.Opts_GAS_CRT, "-c", src, "-o", dst)
+                    sh.silent(GAS, _.Opts_GAS_CRT, "-c", src, "-o", dst)
                 end
             end,
         }
@@ -714,9 +714,9 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.Objects + List { _.CommonLibraryPath } end,
 
             Action = function(_, dst, src)
-                sh(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
+                sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
                 fs.MkDir(dst:GetParent())
-                sh(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
     },
@@ -759,9 +759,9 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.Objects + List { _.RuntimeLibraryPath } end,
 
             Action = function(_, dst, src)
-                sh(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
+                sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
                 fs.MkDir(dst:GetParent())
-                sh(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
     },
@@ -819,9 +819,9 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.Objects + List { _.LinkerScript, _.CommonLibraryPath } end,
 
             Action = function(_, dst, src)
-                sh(LO, _.Opts_LO, "-T", _.LinkerScript, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
+                sh.silent(LO, _.Opts_LO, "-T", _.LinkerScript, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
                 fs.MkDir(dst:GetParent())
-                sh(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
     },
@@ -892,7 +892,7 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.IsoSources end,
 
             Action = function(_, dst, src)
-                sh(MKISO, "-R", "-b", _.IsoEltoritoPath:Skip(_.IsoDirectory), "-no-emul-boot", "-boot-load-size", 4, "-boot-info-table", "-o", _.IsoFile, _.IsoDirectory)
+                sh.silent(MKISO, "-R", "-b", _.IsoEltoritoPath:Skip(_.IsoDirectory), "-no-emul-boot", "-boot-load-size", 4, "-boot-info-table", "-o", _.IsoFile, _.IsoDirectory)
             end,
         },
 
@@ -901,7 +901,7 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.SysrootFiles end,
 
             Action = function(_, dst, src)
-                sh(TAR, "czf", dst, _.Opts_TAR, ".")
+                sh.silent(TAR, "czf", dst, _.Opts_TAR, ".")
             end,
         },
 
