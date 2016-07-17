@@ -2935,7 +2935,7 @@ else
             pth = escapeForShell(tostring(pth))
         end
 
-        local cmd = "find " .. pth  .. ' -maxdepth 0 -printf "%y\\n%T@"'
+        local cmd = "find " .. pth  .. ' -maxdepth 0 -printf "%y\\n%T@" 2>&1'
 
         local output = {}
 
