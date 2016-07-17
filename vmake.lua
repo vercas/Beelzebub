@@ -4324,6 +4324,10 @@ function vmake__call()
 
             local res = vmake.DoWork()
 
+            if not res then
+                os.exit(2)
+            end
+
             if vmake.Capturing then
                 vmake.HandleCapture()
             end
