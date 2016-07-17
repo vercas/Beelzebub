@@ -61,6 +61,7 @@ local CROSSCOMPILER_DIRECTORY = Path "/usr/local/gcc-x86_64-beelzebub/bin"
 --  Default
 
 local CROSSCOMPILERS_DIR = os.getenv("CROSSCOMPILERS_DIR")
+local MISC_TOOLS_DIR = os.getenv("MISC_TOOLS_DIR")
 
 if CROSSCOMPILERS_DIR then
     CROSSCOMPILER_DIRECTORY = Path(CROSSCOMPILERS_DIR) + "gcc-x86_64-beelzebub/bin"
@@ -78,6 +79,15 @@ local STRIP = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-strip"
 local MKISO = "mkisofs"
 local TAR   = "tar"
 local GZIP  = "gzip"
+
+if not os.execute(MKISO .. " --version > /dev/null 2> /dev/null") then
+    --  So, mkisofs may not be completely absent.
+    --  Maybe it comes from an external source?
+
+    if MISC_TOOLS_DIR then
+        MKISO = MISC_TOOLS_DIR .. "/genisoimage"
+    end
+end
 
 --  Tests
 
