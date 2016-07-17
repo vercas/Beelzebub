@@ -15,6 +15,7 @@ addons:
     - libcloog-isl4
     - texinfo
     - lua5.2
+    - lua-filesystem
     - parallel
 
 before_install:
