@@ -711,7 +711,7 @@ Project "Beelzebub" {
         Rule "Link-Optimize Binary" {
             Filter = function(_, dst) return _.RuntimeLibraryPath end,
 
-            Source = function(_, dst) return _.Objects + List { _.CommonLibraryPath } end,
+            Source = function(_, dst) return _.Objects + List { _.CommonLibraryPath } + _.CrtFiles end,
 
             Action = function(_, dst, src)
                 sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
