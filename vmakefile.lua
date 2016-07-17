@@ -332,11 +332,13 @@ local function ArchitecturalComponent(name)
                 local arcSrcDir = _.ArchitecturesDirectory + arch.Name + "src"
                 local suffix = "." .. arch.Name .. ".o"
 
-                objects:AppendMany(fs.ListDir(arcSrcDir)
-                    :Where(function(val) return val:EndsWith(".c", ".cpp", ".asm", ".s") end)
-                    :Select(function(val)
-                        return _.ObjectsDirectory + val:Skip(arcSrcDir) .. suffix
-                    end))
+                if fs.GetInfo(arcSrcDir) then
+                    objects:AppendMany(fs.ListDir(arcSrcDir)
+                        :Where(function(val) return val:EndsWith(".c", ".cpp", ".asm", ".s") end)
+                        :Select(function(val)
+                            return _.ObjectsDirectory + val:Skip(arcSrcDir) .. suffix
+                        end))
+                end
             end
 
             return objects
