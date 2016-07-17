@@ -20,11 +20,28 @@ local vmake, vmake__call, getEnvironment = {
     Debug = false,
     Silent = false,
     Verbose = false,
+    Jobs = false,
+
     ShouldComputeGraph = true,
     ShouldDoWork = true,
     ShouldPrintGraph = false,
+
     WorkGraph = false,
+    MaxLevel = false,
+
+    Capturing = false,
+    CommandLog = false,
+
+    JobsDir = false,
+    ParallelOpts = false,
+    HasGnuParallel = false,
 }
+
+local codeLoc = 0
+local LOC_DATA_EXP, LOC_RULE_SRC, LOC_RULE_FLT, LOC_RULE_ACT = 1, 2, 3, 4
+local LOC_CMDO_HAN = 5
+
+local curWorkItem = nil
 
 vmake.Description = "vMake v" .. vmake.Version .. " [" .. vmake.VersionNumber
 .. "] (c) 2016 Alexandru-Mihai Maftei, running under " .. _VERSION
@@ -70,12 +87,16 @@ function Default(name, tolerant)
     return Default
 end
 
-function OutputDirectory(val)
+function OutputDirectory(val, forbidFunc)
     if outDir then
         error("", 2)
     end
 
-    local valType = assertType({"string", "Path"}, val, 2)
+    local allowedTypes = {"string", "Path", "function"}
+
+    if forbidFunc then allowedTypes[3] = nil end
+
+    local valType = assertType(allowedTypes, val, 2)
 
     if valType == "string" then
         val = vmake.Classes.Path(val, "d")
@@ -317,7 +338,7 @@ local function escapeForShell(s)
 
     s = s:gsub('"', "\\\"")
 
-    if s:find("[^a-zA-Z0-9-_./\"=*]") then
+    if s:find("[^a-zA-Z0-9%+%-%*/=%.,_\"]") then
         return '"' .. s .. '"'
     end
 
@@ -449,6 +470,10 @@ do
             return false
         end
     end
+end
+
+function string.trim(s)
+    return s:match("^%s*(.-)%s*$")
 end
 
 function string.split(s, pattern, plain, n)
@@ -883,8 +908,8 @@ local normalizeConfigBase, normalizeArchBase
 local setProjectOwner, getProjectRules, getProjectComponents
 local setRuleOwner
 local incrementCmdoCount
-local setWorkItemDone, setWorkItemOutdated, setWorkItemSource
-local setWorkLoadDone, setWorkLoadOutdated
+local setWorkEntityDone, setWorkEntityOutdated, setWorkEntityLevel
+local setWorkItemSource
 
 --  --  --  --  --
 --  Path Class  --
@@ -1284,7 +1309,11 @@ do
             return path
         end
 
+        local oldCodeLoc = codeLoc; codeLoc = 0
+
         local type, mtime = fs.GetInfo(path)
+
+        codeLoc = oldCodeLoc
 
         if type then
             path[_key_path_type] = type
@@ -1497,7 +1526,13 @@ do
         end,
 
         Any = function(self, pred)
-            assertType("function", pred, "predicate", 2)
+            assertType({"nil", "function"}, pred, "predicate", 2)
+
+            if pred == nil then
+                --  Simple.
+
+                return #self[_key_list_cont] > 0
+            end
 
             local lenS, this = #self[_key_list_cont], self[_key_list_cont]
 
@@ -1508,6 +1543,46 @@ do
             end
 
             return false
+        end,
+
+        First = function(self, pred)
+            assertType({"nil", "function"}, pred, "predicate", 2)
+
+            if pred == nil then
+                --  Simple.
+
+                return self[_key_list_cont][1]
+            end
+
+            local lenS, this = #self[_key_list_cont], self[_key_list_cont]
+
+            for i = 1, lenS do
+                if pred(this[i]) then
+                    return this[i]
+                end
+            end
+
+            return nil
+        end,
+
+        Last = function(self, pred)
+            assertType({"nil", "function"}, pred, "predicate", 2)
+
+            local lenS, this = #self[_key_list_cont], self[_key_list_cont]
+
+            if pred == nil then
+                --  Simple.
+
+                return this[lenS]
+            end
+
+            for i = lenS, 1, -1 do
+                if pred(this[i]) then
+                    return this[i]
+                end
+            end
+
+            return nil
         end,
 
         Contains = function(self, val)
@@ -1546,16 +1621,16 @@ do
             return new
         end,
 
-        ForEach = function(self, action)
+        ForEach = function(self, action, extreme)
             assertType("function", action, "action", 2)
 
             local lenS, this = #self[_key_list_cont], self[_key_list_cont]
 
             for i = 1, lenS do
-                action(this[i])
+                extreme = action(this[i], extreme)
             end
 
-            return self
+            return self, extreme
         end,
     })
 
@@ -1614,7 +1689,11 @@ do
                 --  Functions are executed (once) to obtain the data. They better
                 --  not return nil.
 
+                local oldCodeLoc = codeLoc; codeLoc = LOC_DATA_EXP
+
                 res = res(getEnvironment(self))
+
+                codeLoc = oldCodeLoc
             end
 
             self[_key_data_comp][key] = res
@@ -1942,8 +2021,12 @@ do
             local valType = typeEx(val)
 
             if valType == "function" then
+                local oldCodeLoc = codeLoc; codeLoc = LOC_DATA_EXP
+
                 val = val(getEnvironment(self))
                 valType = assertType({"string", "List"}, val, "dependencies expansion", errlvl)
+
+                codeLoc = oldCodeLoc
             end
 
             if valType == "List" then
@@ -1984,10 +2067,12 @@ do
                 end
 
                 val = (List { val }):Seal()
+            elseif valType == "boolean" then
+                val = vmake.Classes.List(true, {})
             else
                 --  Otherwise, there is nothing to do.
 
-                return
+                error("vMake internal error: Dependencies of " .. tostring(self) .. " appear to be of type '" .. valType .. "'.")
             end
 
             self[_key_proj_deps] = val
@@ -2029,8 +2114,12 @@ do
             local valType = typeEx(val)
 
             if valType == "function" then
+                local oldCodeLoc = codeLoc; codeLoc = LOC_DATA_EXP
+
                 val = val(getEnvironment(self))
                 valType = assertType({"string", "Path", "List"}, val, "output expansion", errlvl)
+
+                codeLoc = oldCodeLoc
             end
 
             if valType == "List" then
@@ -2049,9 +2138,9 @@ do
 
                 val:Seal()
             elseif valType == "string" then
-                val = List { vmake.Classes.Path(val, 'U') }
+                val = vmake.Classes.List(true, { vmake.Classes.Path(val, 'U') })
             elseif valType == "Path" then
-                val = List { val }
+                val = vmake.Classes.List(true, { val })
             end
 
             self[_key_proj_outp] = val
@@ -2261,8 +2350,12 @@ do
             local valType = typeEx(val)
 
             if valType == "function" then
+                local oldCodeLoc = codeLoc; codeLoc = LOC_RULE_FLT
+
                 val = val(getEnvironment(self), dst)
                 valType = typeEx(val)
+
+                codeLoc = oldCodeLoc
 
                 if valType == "boolean" then
                     return val
@@ -2334,7 +2427,11 @@ do
             local valType = typeEx(val)
 
             if valType == "function" then
+                local oldCodeLoc = codeLoc; codeLoc = LOC_RULE_SRC
+
                 val = val(getEnvironment(self), dst)
+
+                codeLoc = oldCodeLoc
 
                 if not val then
                     return false
@@ -2452,15 +2549,17 @@ do
         },
 
         ExecuteHandler = function(self, val)
-            assertType({"nil", "string"}, val, "value", 2)
-
             local han = self[_key_cmdo_hndr]
 
             if not han then
                 error("vMake error: " .. tostring(self) .. " does not define a handler.", 2)
             end
+
+            local oldCodeLoc = codeLoc; codeLoc = LOC_CMDO_HAN
             
-            return han(getEnvironment(self), val)
+            local res = han(getEnvironment(self), val)
+
+            codeLoc = oldCodeLoc
         end,
 
         ShortName = {
@@ -2521,21 +2620,55 @@ do
     end
 end
 
+--  --  --  --  --  --  --
+--   WorkEntity Class   --
+--  --  --  --  --  --  --
+
+do
+    local _key_wken_prqs, _key_wken_done, _key_wken_outd, _key_wken_levl = {}, {}, {}, {}
+
+    vmake.CreateClass("WorkEntity", nil, {
+        __init = function(self)
+            self[_key_wken_prqs] = vmake.Classes.List()
+            self[_key_wken_done] = false
+            self[_key_wken_outd] = true
+            self[_key_wken_levl] = -1
+        end,
+
+        Prerequisites = { RETRIEVE = _key_wken_prqs },
+        Done          = { RETRIEVE = _key_wken_done },
+        Outdated      = { RETRIEVE = _key_wken_outd },
+        Level         = { RETRIEVE = _key_wken_levl },
+
+        Seal = function(self)
+            self[_key_wken_prqs]:Seal(true)
+        end,
+    })
+
+    function setWorkEntityDone(wken)
+        wken[_key_wken_done] = true
+    end
+
+    function setWorkEntityOutdated(wken, val)
+        wken[_key_wken_outd] = val
+    end
+
+    function setWorkEntityLevel(wken, levl)
+        wken[_key_wken_levl] = levl
+    end
+end
+
 --  --  --  --  --  --
 --  WorkItem Class  --
 --  --  --  --  --  --
 
 do
-    local _key_wkit_path, _key_wkit_rule, _key_wkit_prqs, _key_wkit_done = {}, {}, {}, {}
-    local _key_wkit_outd, _key_wkit_srcs = {}, {}
+    local _key_wkit_path, _key_wkit_rule, _key_wkit_srcs = {}, {}, {}
 
-    vmake.CreateClass("WorkItem", nil, {
+    vmake.CreateClass("WorkItem", "WorkEntity", {
         __init = function(self, path, rule)
             self[_key_wkit_path] = path
             self[_key_wkit_rule] = rule
-            self[_key_wkit_prqs] = vmake.Classes.List()
-            self[_key_wkit_done] = false
-            self[_key_wkit_outd] = true
             self[_key_wkit_srcs] = false
         end,
 
@@ -2545,23 +2678,8 @@ do
 
         Path          = { RETRIEVE = _key_wkit_path },
         Rule          = { RETRIEVE = _key_wkit_rule },
-        Prerequisites = { RETRIEVE = _key_wkit_prqs },
-        Done          = { RETRIEVE = _key_wkit_done },
-        Outdated      = { RETRIEVE = _key_wkit_outd },
         Sources       = { RETRIEVE = _key_wkit_srcs },
-
-        Seal = function(self)
-            self[_key_wkit_prqs]:Seal(true)
-        end,
     })
-
-    function setWorkItemDone(wkit)
-        wkit[_key_wkit_done] = true
-    end
-
-    function setWorkItemOutdated(wkit, val)
-        wkit[_key_wkit_outd] = val
-    end
 
     function setWorkItemSource(wkit, srcs)
         wkit[_key_wkit_srcs] = srcs
@@ -2573,16 +2691,12 @@ end
 --  --  --  --  --  --
 
 do
-    local _key_wkld_itms, _key_wkld_comp, _key_wkld_prqs, _key_wkld_done = {}, {}, {}, {}
-    local _key_wkld_outd = {}
+    local _key_wkld_itms, _key_wkld_comp = {}, {}
 
-    vmake.CreateClass("WorkLoad", nil, {
+    vmake.CreateClass("WorkLoad", "WorkEntity", {
         __init = function(self, comp)
             self[_key_wkld_itms] = vmake.Classes.List()
             self[_key_wkld_comp] = comp
-            self[_key_wkld_prqs] = vmake.Classes.List()
-            self[_key_wkld_done] = false
-            self[_key_wkld_outd] = false
         end,
 
         __tostring = function(self)
@@ -2591,23 +2705,12 @@ do
 
         Items         = { RETRIEVE = _key_wkld_itms },
         Component     = { RETRIEVE = _key_wkld_comp },
-        Prerequisites = { RETRIEVE = _key_wkld_prqs },
-        Done          = { RETRIEVE = _key_wkld_done },
-        Outdated      = { RETRIEVE = _key_wkld_outd },
 
         Seal = function(self)
             self[_key_wkld_itms]:Seal(true)
             self[_key_wkld_prqs]:Seal(true)
         end,
     })
-
-    function setWorkLoadDone(wkld)
-        wkld[_key_wkld_done] = true
-    end
-
-    function setWorkLoadOutdated(wkld, val)
-        wkld[_key_wkld_outd] = val
-    end
 end
 
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
@@ -2632,6 +2735,10 @@ if lfs then
         local dirType = assertType({"string", "Path"}, dir, "directory", 2)
 
         assertType({"nil", "number"}, rec, "recursivity", 2)
+
+        if codeLoc == LOC_RULE_ACT then
+            error("vMake error: Directories cannot be listed in rule actions.")
+        end
 
         if dirType == "Path" then
             if dir.IsFile then
@@ -2682,6 +2789,10 @@ if lfs then
     function fs.GetInfo(pth)
         local pthType = assertType({"string", "Path"}, pth, "path", 2)
 
+        if codeLoc == LOC_RULE_ACT then
+            error("vMake error: File/directory info cannot be retrieved in rule actions.")
+        end
+
         if pthType == "Path" then
             pth = tostring(pth)
         end
@@ -2703,6 +2814,22 @@ if lfs then
         local dirType = assertType({"string", "Path"}, dir, "directory", 2)
         assertType({"nil", "boolean"}, prog, "progressive", 2)
 
+        if codeLoc ~= 0 and codeLoc ~= LOC_RULE_ACT and codeLoc ~= LOC_CMDO_HAN then
+            error("vMake error: Directories can only be created from rule actions or command-line option handlers.")
+        end
+
+        if codeLoc ~= 0 and vmake.Capturing then
+            if prog ~= false then
+                return sh.silent("mkdir", "-p", dir)
+            else
+                return sh.silent("mkdir", dir)
+            end
+        end
+
+        if dirType == "Path" and dir.Exists then
+            return false
+        end
+
         local function innerMkDir(dir)
             local okay, err = lfs.mkdir(dir)
 
@@ -2715,10 +2842,6 @@ if lfs then
             end
 
             return true
-        end
-
-        if dirType == "Path" and dir.Exists then
-            return false
         end
 
         if prog ~= false then
@@ -2748,6 +2871,10 @@ else
         local dirType = assertType({"string", "Path"}, dir, "directory", 2)
 
         assertType({"nil", "number"}, rec, "recursivity", 2)
+
+        if codeLoc == LOC_RULE_ACT then
+            error("vMake error: Directories cannot be listed in rule actions.")
+        end
 
         if dirType == "string" then
             dir = escapeForShell(dir)
@@ -2798,6 +2925,10 @@ else
     function fs.GetInfo(pth)
         local pthType = assertType({"string", "Path"}, pth, "path", 2)
 
+        if codeLoc ~= 0 and codeLoc == LOC_RULE_ACT then
+            error("vMake error: File/directory info cannot be retrieved in rule actions.")
+        end
+
         if pthType == "string" then
             pth = escapeForShell(pth)
         else
@@ -2821,6 +2952,25 @@ else
         end
 
         return output[1], tonumber(output[2])
+    end
+
+    function fs.MkDir(dir, prog)
+        local dirType = assertType({"string", "Path"}, dir, "directory", 2)
+        assertType({"nil", "boolean"}, prog, "progressive", 2)
+
+        if codeLoc ~= 0 and codeLoc ~= LOC_RULE_ACT and codeLoc ~= LOC_CMDO_HAN then
+            error("vMake error: Directories can only be created from rule actions or command-line option handlers.")
+        end
+
+        if dirType == "Path" and dir.Exists then
+            return false
+        end
+
+        if prog ~= false then
+            return sh.silent("mkdir", "-p", dir)
+        else
+            return sh.silent("mkdir", dir)
+        end
     end
 end
 
@@ -2850,6 +3000,18 @@ function fs.Copy(dst, src, ovr, bufSize)
         bufSize = 65536
     elseif bufSize < 1 or bufSize % 1 ~= 0 then
         error("vMake error: Copy buffer size must be a positive integer.", 2)
+    end
+
+    if codeLoc ~= 0 and codeLoc ~= LOC_RULE_ACT and codeLoc ~= LOC_CMDO_HAN then
+        error("vMake error: Files can only be copied from rule actions or command-line option handlers.")
+    end
+
+    if codeLoc ~= 0 and vmake.Capturing then
+        if ovr then
+            return sh.silent("cp", "-f", src, dst)
+        else
+            return sh.silent("cp", src, dst)
+        end
     end
 
     if not ovr then
@@ -2903,6 +3065,10 @@ local shellmeta = {
 function shellmeta.__call(self, cmd, ...)
     local cmdType = assertType({"string", "Path"}, cmd, "command", 2)
 
+    if codeLoc ~= 0 and codeLoc ~= LOC_RULE_ACT and codeLoc ~= LOC_CMDO_HAN then
+        error("vMake error: Shell commands can only be executed from rule actions and command-line option handlers.")
+    end
+
     if cmdType == "Path" then
         cmd = tostring(cmd)
     end
@@ -2933,19 +3099,47 @@ function shellmeta.__call(self, cmd, ...)
 
     local printCmd = not (self[_key_shll_slnt] or vmake.Silent)
 
-    if printCmd then
-        print(cmd)
+    if codeLoc == LOC_RULE_ACT and vmake.Capturing then
+        local lastLog = vmake.CommandLog:Last()
+
+        if lastLog and lastLog.WorkItem == curWorkItem then
+            lastLog.Commands:Append({
+                Command = cmd,
+                Tolerant = self[_key_shll_tolr],
+                Print = printCmd,
+            })
+        else
+            vmake.CommandLog:Append({
+                WorkItem = curWorkItem,
+                Commands = List {
+                    {
+                        Command = cmd,
+                        Tolerant = self[_key_shll_tolr],
+                        Print = printCmd,
+                    }
+                },
+            })
+        end
+
+        --  If the last logged command belongs to the same work item, simply
+        --  append another command to it.
+
+        return "UNKNOWN"
+    else
+        if printCmd then
+            print(cmd)
+        end
+
+        local okay, exitReason, code = os.execute(cmd)
+
+        if not okay and not self[_key_shll_tolr] then
+            error("vMake failed to execute shell command"
+                .. (printCmd and "; " or (":\n" .. cmd .. "\n"))
+                .. "exit reason: " .. tostring(exitReason) .. "; status code: " .. tostring(code), 2)
+        end
+
+        return okay or false
     end
-
-    local okay, exitReason, code = os.execute(cmd)
-
-    if not okay and not self[_key_shll_tolr] then
-        error("vMake failed to execute shell command"
-            .. (printCmd and "; " or (":\n" .. cmd .. "\n"))
-            .. "exit reason: " .. tostring(exitReason) .. "; status code: " .. tostring(code), 2)
-    end
-
-    return okay or false
 end
 
 function shellmeta.__index(self, key)
@@ -3003,7 +3197,9 @@ do
             objType = typeEx(obj)
         end
 
-        envind.data = obj.Data
+        if type(obj) == "table" then
+            envind.data = obj.Data
+        end
 
         --  Step 2, add rule if this is one.
 
@@ -3040,7 +3236,7 @@ do
             envind.conf = obj
         elseif objType == "CmdOpt" then
             envind.opt = obj
-        else
+        elseif obj then
             error("vMake internal error: Uknown object type '" .. objType .. "' (" .. tostring(obj) .. ") for environment creation.")
         end
 
@@ -3167,12 +3363,27 @@ function vmake.ValidateAndDefault()
     end
 
     if not outDir then
-        OutputDirectory "./.vmake"
+        if #archs > 1 or #configs > 1 then
+            OutputDirectory(function(_)
+                return "./.vmake/" .. (_.selArch.Name .. "." .. _.selConf.Name)
+            end)
+        else
+            OutputDirectory "./.vmake"
+        end
     end
 end
 
 function vmake.ExpandProperties()
-    --  Step 1, projects.
+    --  Step 1, the output directory.
+
+    if type(outDir) == "function" then
+        local fnc = outDir
+        outDir = nil
+
+        OutputDirectory(fnc(getEnvironment(false)))
+    end
+
+    --  Step 2, projects.
 
     for i = #projects, 1, -1 do
         local val = projects[i]
@@ -3181,7 +3392,7 @@ function vmake.ExpandProperties()
         val:ExpandDependencies(3)
     end
 
-    --  Step 2, components.
+    --  Step 3, components.
 
     for i = #comps, 1, -1 do
         local val = comps[i]
@@ -3189,6 +3400,10 @@ function vmake.ExpandProperties()
         val:ExpandOutput(3)
         val:ExpandDependencies(3)
     end
+
+    --  Step 4, misc.
+
+    vmake.JobsDir = outDir + ".jobs"
 end
 
 function vmake.CheckArguments()
@@ -3335,7 +3550,9 @@ function vmake.CheckArguments()
 end
 
 function vmake.ConstructWorkGraph()
-    local function constructForFile(proj, path, assoc, stack, errlvl, goingUp, depAssoc, isSource)
+    local constructFromProject, constructForFile
+
+    constructForFile = function(proj, path, assoc, stack, errlvl, goingUp, depAssoc, isSource)
         errlvl = errlvl + 1
 
         if not goingUp then
@@ -3358,7 +3575,7 @@ function vmake.ConstructWorkGraph()
 
             -- print("MULTIPLICATE", path)
 
-            return assoc[path][1], assoc[path][2]
+            return assoc[path][1], assoc[path][2], assoc[path][3]
         end
 
         -- print("GOD HELP WITH", path, "FOR", proj)
@@ -3374,7 +3591,7 @@ function vmake.ConstructWorkGraph()
         --  First, this project's rules are checked.
         --  No more than one rule must match the output file.
 
-        local ruls, matches, item, preqs, found = getProjectRules(proj), {}, false, {}, false
+        local ruls, matches, item, refs, found = getProjectRules(proj), {}, false, {}, false
 
         for i = #ruls, 1, -1 do
             if (not goingUp or ruls[i].Shared) and ruls[i]:Filters(path) then
@@ -3393,7 +3610,7 @@ function vmake.ConstructWorkGraph()
 
             -- print("ITEM", item, "1 MATCH")
 
-            assoc[path] = {item, preqs}
+            assoc[path] = {item, refs, true}
             found = true
         elseif #matches == 0 then
             --  No matches... Scheiße. This means the rule can either be defined
@@ -3419,7 +3636,7 @@ function vmake.ConstructWorkGraph()
 
                     if not depAssoc[comp] then
                         depAssoc[comp] = true
-                        preqs = { comp }
+                        refs = { comp }
 
                         --  No item association is done here.
                     end
@@ -3445,7 +3662,7 @@ function vmake.ConstructWorkGraph()
                 else
                     -- print("LOOKING UP AT", ownr)
 
-                    item, preqs, found = constructForFile(ownr, path, assoc, stack, errlvl, true, depAssoc, isSource)
+                    item, refs, found = constructForFile(ownr, path, assoc, stack, errlvl, true, depAssoc, isSource)
                     --  Look up.
                 end
             end
@@ -3471,19 +3688,23 @@ function vmake.ConstructWorkGraph()
 
                     assurePathInfo(src)
 
-                    local subItem, subPreqs, subFound = constructForFile(proj, src, assoc, stack, errlvl + 2, false, depAssoc, true)
+                    local subItem, subRefs, subFound = constructForFile(proj, src, assoc, stack, errlvl + 2, false, depAssoc, true)
 
                     if subItem then
                         item.Prerequisites:Append(subItem)
                     end
 
-                    if subPreqs then
-                        if preqs then
-                            for i = #subPreqs, 1, -1 do
-                                preqs[#preqs + 1] = subPreqs[i]
-                            end
-                        else
-                            preqs = subPreqs
+                    if subRefs then
+                        -- if refs then
+                        --     for i = #subRefs, 1, -1 do
+                        --         refs[#refs + 1] = subRefs[i]
+                        --     end
+                        -- else
+                        --     refs = subRefs
+                        -- end
+
+                        for i = #subRefs, 1, -1 do
+                            item.Prerequisites:Append(constructFromProject(subRefs[i], assoc, stack, errlvl + 2))
                         end
                     end
 
@@ -3518,7 +3739,7 @@ function vmake.ConstructWorkGraph()
                 end)
             end
 
-            setWorkItemOutdated(item, outdated)
+            setWorkEntityOutdated(item, outdated)
 
             if outdated then
                 MSG(item, " is outdated.")
@@ -3533,12 +3754,12 @@ function vmake.ConstructWorkGraph()
             stack[#stack] = nil
         end
 
-        -- print("GOD HELPED FIND", item, preqs[1], preqs[2], "FOR", path)
+        -- print("GOD HELPED FIND", item, refs[1], refs[2], "FOR", path)
 
-        return item, preqs, found
+        return item, refs, found
     end
 
-    local function constructFromProject(proj, assoc, stack, errlvl)
+    constructFromProject = function(proj, assoc, stack, errlvl)
         errlvl = errlvl + 1
 
         for i = #stack, 1, -1 do
@@ -3565,15 +3786,9 @@ function vmake.ConstructWorkGraph()
         assoc[proj] = load
         --  Associate early.
 
-        local deps, outp, depAssoc = proj.Dependencies, proj.Output, {}
+        local deps, outp, depAssoc = proj.Dependencies:Copy(), proj.Output, {}
         --  An associative array is used to make sure each component is added as
         --  a prerequisite only once.
-
-        if typeEx(deps) == "List" then
-            deps = deps:Copy()
-        else
-            deps = vmake.Classes.List()
-        end
 
         -- print("COMP DEPS", proj, deps:Print())
         -- print("COMP OUTP", outp:Print())
@@ -3585,16 +3800,14 @@ function vmake.ConstructWorkGraph()
         outp:ForEach(function(path)
             assurePathInfo(path)
 
-            local val, preqs = constructForFile(proj, path, assoc, {}, errlvl + 2, false, depAssoc, false)
+            local item, iRefs = constructForFile(proj, path, assoc, {}, errlvl + 2, false, depAssoc, false)
 
-            if val then
-                load.Items:Append(val)
+            if item then
+                load.Items:Append(item)
             end
 
-            if preqs and #preqs > 0 then
-                -- print("ITEM DEP", path, preqs[1], preqs[2])
-
-                deps:AppendMany(preqs)
+            if iRefs and #iRefs > 0 then
+                deps:AppendMany(iRefs)
             end
         end)
 
@@ -3620,88 +3833,112 @@ function vmake.ConstructWorkGraph()
     return constructFromProject(defaultProj, assoc, stack, 2)
 end
 
+function vmake.ChartWorkGraph()
+    local function chartEntity(ent, done, min)
+        if done[ent] then
+            return done[ent]
+        end
+
+        local newMin = min
+
+        local function checkLevel(item, max)
+            local preqLvl = chartEntity(item, done, newMin)
+
+            if not max then
+                return preqLvl
+            elseif preqLvl > max then
+                return preqLvl
+            else
+                return max
+            end
+        end
+
+        local scratch, max = ent.Prerequisites:ForEach(checkLevel)
+
+        if typeEx(ent) == "WorkLoad" then
+            if max then
+                --  If there are any prerequisites to this workload, all its
+                --  items will have a higher level than the preqs.
+
+                newMin = max + 1
+            end
+
+            local scratch, max2 = ent.Items:ForEach(checkLevel)
+
+            if not max or (max2 and max2 > max) then
+                max = max2
+            end
+        end
+
+        if max then
+            if typeEx(ent) == "WorkLoad" then
+                done[ent] = max
+            else
+                done[ent] = max + 1
+            end
+        else
+            done[ent] = min
+        end
+
+        setWorkEntityLevel(ent, done[ent])
+
+        return done[ent]
+    end
+
+    local done = {}
+
+    vmake.MaxLevel = chartEntity(vmake.WorkGraph, done, 0)
+end
+
 function vmake.SanitizeWorkGraph()
     local done = {}
 
-    local function sanitizeItem(item, done)
-        if done[item] ~= nil then
-            return done[item]
+    local function sanitizeEntity(ent, done)
+        if done[ent] ~= nil then
+            return done[ent]
         end
 
-        local outdated = item.Outdated
+        local outdated = ent.Outdated
 
         if not outdated then
-            outdated = item.Prerequisites:Any(function(preq)
-                return sanitizeItem(preq, done)
+            outdated = ent.Prerequisites:Any(function(preq)
+                return sanitizeEntity(preq, done)
             end)
 
-            --  In other words, this otherwise up-to-date item will become
+            --  In other words, this otherwise up-to-date entity will become
             --  outdated if any of its prerequisites are outdated.
 
-            setWorkItemOutdated(item, outdated)
+            setWorkEntityOutdated(ent, outdated)
         end
 
-        --  If it's already outdated, then there's nothing that can change that.
-
-        if not outdated then
-            setWorkItemDone(item)
-        end
-
-        if outdated then
-            MSG("Outdated   | ", item)
-        else
-            MSG("Up-to-date | ", item)
-        end
-
-        done[item] = outdated
-        return outdated
-    end
-
-    local function sanitizeLoad(load, done)
-        if done[load] ~= nil then
-            return done[load]
-        end
-
-        local outdated = load.Outdated
-
-        if not outdated then
-            outdated = load.Prerequisites:Any(function(preq)
-                return sanitizeLoad(preq, done)
-            end)
-
-            --  In other words, this otherwise up-to-date load will become
-            --  outdated if any of its prerequisites are outdated.
-
-            setWorkLoadOutdated(load, outdated)
-        end
-
-        if not outdated then
+        if typeEx(ent) == "WorkLoad" and not outdated then
             outdated = load.Items:Any(function(item)
-                return sanitizeItem(item, done)
+                return sanitizeEntity(item, done)
             end)
 
-            --  Still not outdated? It will be if any of its items are.
+            --  Still not outdated? It will be if it's a load and any of its
+            --  items are outdated.
 
-            setWorkLoadOutdated(load, outdated)
+            setWorkEntityOutdated(load, outdated)
         end
 
         --  If it's already outdated, then there's nothing that can change that.
 
         if not outdated then
-            setWorkLoadDone(load)
+            setWorkEntityDone(ent)
         end
 
         if outdated then
-            MSG("Outdated   | ", load)
+            MSG("Outdated   | ", ent)
         else
-            MSG("Up-to-date | ", load)
+            MSG("Up-to-date | ", ent)
         end
 
-        done[load] = outdated
+        done[ent] = outdated
         return outdated
     end
 
-    sanitizeLoad(vmake.WorkGraph, done)
+    sanitizeEntity(vmake.WorkGraph, done)
 end
 
 function vmake.DoWork()
@@ -3713,13 +3950,19 @@ function vmake.DoWork()
         print("Nothing to do; everything is up-to-date.")
     end
 
-    local function doItem(item)
+    local doItem, doLoad
+
+    doItem = function(item)
         if item.Done then
             return true
         end
 
         local res = item.Prerequisites:Any(function(preq)
-            return not doItem(preq)
+            if typeEx(preq) == "WorkLoad" then
+                return not doLoad(preq)
+            else
+                return not doItem(preq)
+            end
         end)
         --  This will stop when the first one fails.
 
@@ -3734,19 +3977,25 @@ function vmake.DoWork()
 
         MSG("Executing ", item)
 
+        local oldCodeLoc = codeLoc; codeLoc = LOC_RULE_ACT
+        curWorkItem = item
+
         local res1, res2 = pcall(act, env, dst, src)
+
+        curWorkItem = nil
+        codeLoc = oldCodeLoc
 
         if not res1 then
             io.stderr:write("Failed to execute action of ", tostring(item.Rule)
                 , " for \"", tostring(dst), "\":\n", tostring(res2), "\n")
         end
 
-        setWorkItemDone(item)
+        setWorkEntityDone(item)
 
         return res1
     end
     
-    local function doLoad(load)
+    doLoad = function(load)
         if load.Done then
             return true
         end
@@ -3768,7 +4017,143 @@ function vmake.DoWork()
     return doLoad(vmake.WorkGraph)
 end
 
+function vmake.HandleCapture()
+    if vmake.JobsDir then
+        fs.MkDir(vmake.JobsDir)
+
+        local shFiles = {}
+
+        for lvl = 0, vmake.MaxLevel do
+            local fName = tostring(vmake.JobsDir + ("batch-" .. lvl .. ".sh"))
+
+            local fSh, errSh = io.open(fName, "w+")
+
+            if not fSh then
+                error("vMake internal error: Unable to open file \"" .. fName .. "\" to store level " .. lvl .. " shell commands: " .. errSh, 2)
+            end
+
+            shFiles[lvl] = {
+                Descriptor = fSh,
+                Path = fName,
+                LogPath = vmake.JobsDir + ("log-" .. lvl .. ".txt")
+            }
+        end
+
+        local commandAssoc = {}
+
+        vmake.CommandLog:ForEach(function(e)
+            local str, last = {}
+
+            e.Commands:ForEach(function(cmd)
+                if last then
+                    if last.Tolerant then
+                        str[#str + 1] = "; "
+                    else
+                        str[#str + 1] = " && "
+                    end
+                end
+
+                str[#str + 1] = cmd.Command
+                last = cmd
+            end)
+
+            str[#str + 1] = "\n"
+            str = table.concat(str)
+
+            e.ResultedCommand = str
+
+            shFiles[e.WorkItem.Level].Descriptor:write(str)
+
+            commandAssoc[str:trim()] = e.WorkItem
+        end)
+
+        for lvl = 0, #shFiles do
+            shFiles[lvl].Descriptor:close()
+        end
+
+        for lvl = 0, #shFiles do
+            local okay = sh.silent.tolerant("parallel", vmake.ParallelOpts
+                , "--joblog", shFiles[lvl].LogPath
+                , "-a", shFiles[lvl].Path)
+
+            if not okay then
+                local fLog, errLog = io.open(tostring(shFiles[lvl].LogPath), "r")
+
+                if not fLog then
+                    error("vMake internal error: Unable to open log file \"" .. tostring(shFiles[lvl].LogPath) .. "\" to determine which level " .. lvl .. " cmmand failed: " .. errLog, 2)
+                end
+
+                local firstLine = fLog:read("*l")
+
+                if firstLine ~= "Seq\tHost\tStarttime\tJobRuntime\tSend\tReceive\tExitval\tSignal\tCommand" then
+                    fLog:close()
+
+                    error("vMake internal error: Format of log file \"" .. tostring(shFiles[lvl].LogPath) .. "\" needed to determine which level " .. lvl .. " command failed is unknown!")
+                end
+
+                local failedJobs = {}
+
+                for line in fLog:lines() do
+                    local jobId, jobHost, jobStart, jobRuntime, jobSend, jobReceive, jobExitVal, jobSignal, jobCommand
+                        = line:match("^(%d+)%s+([^\t]*)%s+([%d%.,]+)%s+([%d%.,]+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(.*)$")
+
+                    if not jobCommand then
+                        fLog:close()
+
+                        error("vMake internal error: Uknown format encountered in log file \"" .. tostring(shFiles[lvl].LogPath) .. "\" needed to determine which level " .. lvl .. " command failed:\n"
+                            .. line .. "\n"
+                            .. table.concat({jobId, jobHost, jobStart, jobRuntime, jobSend, jobReceive, jobExitVal, jobSignal, jobCommand}, "\t"))
+                    end
+
+                    if tonumber(jobExitVal) ~= 0 then
+                        failedJobs[#failedJobs + 1] = {
+                            ID = jobId,
+                            Host = jobHost,
+                            Start = jobStart,
+                            Runtime = jobRuntime,
+                            Send = jobSend,
+                            Receive = jobReceive,
+                            ExitValue = jobExitVal,
+                            Signal = jobSignal,
+                            Command = jobCommand,
+                            WorkItem = commandAssoc[jobCommand:trim()],
+                        }
+                    end
+                end
+
+                fLog:close()
+
+                if #failedJobs == 0 then
+                    error("vMake internal error: Failed to execute level " .. lvl .. " shell commands, but unable to find relevant information in log files!")
+                end
+
+                io.stderr:write("----------------------------------------\n")
+
+                for i = 1, #failedJobs do
+                    local job = failedJobs[i]
+
+                    if job.WorkItem then
+                        io.stderr:write(" - ", tostring(job.WorkItem.Rule), " for \"", tostring(job.WorkItem.Path)
+                            , "\":\nexit code ", tostring(job.ExitValue), "\n")
+                    else
+                        io.stderr:write(" - Unknown work item or path:\nexit code ", tostring(job.ExitValue), "\n")
+                    end
+
+                    io.stderr:write(job.Command, "\n")
+                end
+
+                io.stderr:write("----------------------------------------\n")
+
+                error("vMake error: Failed to execute " .. (#failedJobs == 1 and "a" or #failedJobs) .. " level " .. lvl .. " shell command" .. (#failedJobs == 1 and "" or "s")
+                    .. ", as listed above.")
+            end
+        end
+    end
+end
+
 function vmake.PrintData()
+    local dumpWorkItem, dumpWorkLoad
+
     local function itemOrList(val)
         if typeEx(val) == "List" then
             return tostring(#val) .. " items: " .. val:Print()
@@ -3815,7 +4200,7 @@ function vmake.PrintData()
         return res
     end
 
-    local function dumpWorkItem(wkit, ind, printed)
+    dumpWorkItem = function(wkit, ind, printed)
         if not ind then ind = "" end
 
         local res = ind .. tostring(wkit) .. "\n"
@@ -3832,14 +4217,18 @@ function vmake.PrintData()
             printed = { [wkit] = true }
         end
 
-        --res = res .. ind .. "  - Component: " .. tostring(wkit.Component) .. "\n"
+        res = res .. ind .. "  - Level " .. tostring(wkit.Level) .. "\n"
 
         local newInd = ind .. "    "
 
         if #wkit.Prerequisites > 0 then
             res = res .. ind .. "  - Prerequisites: (" .. #wkit.Prerequisites .. ")\n"
-                .. table.concat(getListContainer(wkit.Prerequisites:Select(function(wkit)
-                    return dumpWorkItem(wkit, newInd, printed)
+                .. table.concat(getListContainer(wkit.Prerequisites:Select(function(preq)
+                    if typeEx(preq) == "WorkLoad" then
+                        return dumpWorkLoad(preq, newInd, printed)
+                    else
+                        return dumpWorkItem(preq, newInd, printed)
+                    end
                 end)))
         else
             res = res .. ind .. "  - Prerequisites: NONE\n"
@@ -3857,7 +4246,7 @@ function vmake.PrintData()
         return res
     end
 
-    local function dumpWorkLoad(wkld, ind, printed)
+    dumpWorkLoad = function(wkld, ind, printed)
         if not ind then ind = "" end
 
         local res = ind .. tostring(wkld) .. "\n"
@@ -3874,7 +4263,7 @@ function vmake.PrintData()
             printed = { [wkld] = true }
         end
 
-        --res = res .. ind .. "  - Component: " .. tostring(wkld.Component) .. "\n"
+        res = res .. ind .. "  - Level " .. tostring(wkld.Level) .. "\n"
 
         local newInd = ind .. "    "
 
@@ -3882,8 +4271,8 @@ function vmake.PrintData()
             res = res .. ind .. "  - Prerequisites: Oh darn\n"
         elseif #wkld.Prerequisites > 0 then
             res = res .. ind .. "  - Prerequisites: (" .. #wkld.Prerequisites .. ")\n"
-                .. table.concat(getListContainer(wkld.Prerequisites:Select(function(wkit)
-                    return dumpWorkLoad(wkit, newInd, printed)
+                .. table.concat(getListContainer(wkld.Prerequisites:Select(function(wkld)
+                    return dumpWorkLoad(wkld, newInd, printed)
                 end)))
         else
             res = res .. ind .. "  - Prerequisites: NONE\n"
@@ -3910,6 +4299,8 @@ function vmake__call()
     vmake.ValidateAndDefault()
     vmake.ExpandProperties()
 
+    vmake.ParallelOpts = vmake.Classes.List()
+
     vmake.CheckArguments()
 
     if vmake.ShouldComputeGraph then
@@ -3923,13 +4314,36 @@ function vmake__call()
             MSG("Finished sanitation.")
         end
 
+        vmake.ChartWorkGraph()
+
         if vmake.ShouldDoWork then
+            if vmake.Jobs then
+                vmake.Capturing = true
+                vmake.CommandLog = List { }
+            end
+
             local res = vmake.DoWork()
+
+            if vmake.Capturing then
+                vmake.HandleCapture()
+            end
         end
 
         if vmake.ShouldPrintGraph then
             print(vmake.PrintData())
         end
+    end
+end
+
+function vmake.CheckGnuParallel()
+    if vmake.HasGnuParallel then
+        return true
+    end
+
+    if os.execute("parallel --version > /dev/null") then
+        vmake.HasGnuParallel = true
+    else
+        error("vMake error: GNU Parallel is required (for now, in $PATH) for non-serial execution.")
     end
 end
 
@@ -4011,6 +4425,7 @@ CmdOpt "print" {
 
     Handler = function(_)
         vmake.ShouldPrintGraph = true
+        vmake.ShouldDoWork = false
     end,
 }
 
@@ -4019,6 +4434,34 @@ CmdOpt "full" {
 
     Handler = function(_)
         vmake.FullBuild = true
+    end,
+}
+
+CmdOpt "jobs" "j" {
+    Description = "Number of jobs to use for rule action execution. 0 means unlimited. Defaults to 1, meaning serial execution.",
+
+    Type = "integer",
+
+    Handler = function(_, val)
+        if val < 0 then
+            error("vMake error: Number of jobs must be 0 for unlimited or a positive integer.")
+        end
+
+        if val ~= 1 then
+            vmake.CheckGnuParallel()
+
+            vmake.Jobs = val
+        end
+    end,
+}
+
+CmdOpt "parallel-bar" {
+    Description = "Enables the display of a progress bar when using GNU Parallel.",
+
+    Handler = function(_)
+        vmake.CheckGnuParallel()
+
+        vmake.ParallelOpts:Append("--bar")
     end,
 }
 

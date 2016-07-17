@@ -317,7 +317,7 @@ local function ArchitecturalComponent(name)
 
         Libraries = List { },   --  Default to none.
 
-        ObjectsDirectory = function(_) return _.InnerDirectory + _.comp.Directory end,
+        ObjectsDirectory = function(_) return _.outDir + _.comp.Directory end,
 
         Objects = function(_)
             local comSrcDir = _.CommonDirectory + "src"
@@ -370,12 +370,11 @@ end
 
 Project "Beelzebub" {
     Data = {
-        InnerDirectory     = function(_) return _.outDir + (_.selArch.Name .. "." .. _.selConf.Name) end,
-        Sysroot            = function(_) return _.InnerDirectory + "sysroot" end,
-        JegudielPath       = function(_) return _.InnerDirectory + "jegudiel.bin" end,
+        Sysroot            = function(_) return _.outDir + "sysroot" end,
+        JegudielPath       = function(_) return _.outDir + "jegudiel.bin" end,
         CommonLibraryPath  = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
         RuntimeLibraryPath = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
-        KernelPath         = function(_) return _.InnerDirectory + "beelzebub.bin" end,
+        KernelPath         = function(_) return _.outDir + "beelzebub.bin" end,
 
         CrtFiles = function(_)
             return _.selArch.Data.CrtFiles:Select(function(val)
@@ -486,7 +485,7 @@ Project "Beelzebub" {
         Data = {
             SourceDirectory = function(_) return _.comp.Directory + "src" end,
 
-            ObjectsDirectory = function(_) return _.InnerDirectory + "jegudiel" end,
+            ObjectsDirectory = function(_) return _.outDir + "jegudiel" end,
             BinaryPath = function(_) return _.ObjectsDirectory + "jegudiel.bin" end,
 
             Objects = function(_)
@@ -527,7 +526,17 @@ Project "Beelzebub" {
 
         Dependencies = "System Headers",
 
-        Output = function(_) return _.InnerDirectory + "jegudiel.bin" end,
+        Output = function(_) return _.outDir + "jegudiel.bin" end,
+
+        Rule "Create Objects Directory" {
+            Filter = function(_, dst) return _.ObjectsDirectory end,
+
+            Source = List { },
+
+            Action = function(_, dst, src)
+                fs.MkDir(dst)
+            end,
+        },
 
         Rule "Link Binary" {
             Filter = function(_, dst) return _.comp.Output end,
@@ -547,12 +556,12 @@ Project "Beelzebub" {
             Filter = function(_, dst) return dst:EndsWith(".c.o") end,
 
             Source = function(_, dst)
-                return _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2)
+                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), _.ObjectsDirectory }
                 --  2 = #".o"
             end,
 
             Action = function(_, dst, src)
-                sh(CC, _.Opts_C, "-c", src, "-o", dst)
+                sh(CC, _.Opts_C, "-c", src[1], "-o", dst)
             end,
         },
 
@@ -560,11 +569,11 @@ Project "Beelzebub" {
             Filter = function(_, dst) return dst:EndsWith(".s.o") end,
 
             Source = function(_, dst)
-                return _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2)
+                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), _.ObjectsDirectory }
             end,
 
             Action = function(_, dst, src)
-                sh(AS, _.Opts_NASM, src, "-o", dst)
+                sh(AS, _.Opts_NASM, src[1], "-o", dst)
             end,
         },
     },
@@ -683,17 +692,17 @@ Project "Beelzebub" {
 
         Directory = "libs/runtime",
 
-        Dependencies = "Common Library",
+        Dependencies = "System Headers",
 
         Output = function(_) return _.RuntimeLibraryPath end,
 
         Rule "Link-Optimize Binary" {
             Filter = function(_, dst) return _.RuntimeLibraryPath end,
 
-            Source = function(_, dst) return _.Objects end,
+            Source = function(_, dst) return _.Objects + List { _.CommonLibraryPath } end,
 
             Action = function(_, dst, src)
-                sh(LO, _.Opts_LO, "-o", _.BinaryPath, src, _.Opts_Libraries)
+                sh(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
                 fs.MkDir(dst:GetParent())
                 sh(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
@@ -728,17 +737,17 @@ Project "Beelzebub" {
 
         Directory = "apps/loadtest",
 
-        Dependencies = "Runtime Library",
+        Dependencies = "System Headers",
 
         Output = function(_) return _.Sysroot + "apps/loadtest.exe" end,
 
         Rule "Link-optimize Binary" {
             Filter = function(_, dst) return _.comp.Output end,
 
-            Source = function(_, dst) return _.Objects end,
+            Source = function(_, dst) return _.Objects + List { _.RuntimeLibraryPath } end,
 
             Action = function(_, dst, src)
-                sh(LO, _.Opts_LO, "-o", _.BinaryPath, src, _.Opts_Libraries)
+                sh(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
                 fs.MkDir(dst:GetParent())
                 sh(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
@@ -788,14 +797,14 @@ Project "Beelzebub" {
 
         Directory = "beelzebub",
 
-        Dependencies = "Common Library",
+        Dependencies = "System Headers",
 
         Output = function(_) return _.KernelPath end,
 
         Rule "Link-Optimize Binary" {
             Filter = function(_, dst) return _.KernelPath end,
 
-            Source = function(_, dst) return _.Objects + List { _.LinkerScript } end,
+            Source = function(_, dst) return _.Objects + List { _.LinkerScript, _.CommonLibraryPath } end,
 
             Action = function(_, dst, src)
                 sh(LO, _.Opts_LO, "-T", _.LinkerScript, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
@@ -808,7 +817,11 @@ Project "Beelzebub" {
     Component "ISO Image" {
         Data = {
             SysrootFiles = function(_)
-                return fs.ListDir(_.Sysroot):Append(_.Sysroot)
+                if fs.GetInfo(_.Sysroot) then
+                    return fs.ListDir(_.Sysroot):Append(_.Sysroot)
+                else
+                    return List { }
+                end
             end,
 
             Opts_TAR = function(_)
@@ -820,7 +833,7 @@ Project "Beelzebub" {
                 }
             end,
 
-            IsoDirectory = function(_) return _.InnerDirectory + "iso" end,
+            IsoDirectory = function(_) return _.outDir + "iso" end,
             IsoBootPath = function(_) return _.IsoDirectory + "boot" end,
             IsoGrubDirectory = function(_) return _.IsoBootPath + "grub" end,
             IsoJegudielPath = function(_) return _.IsoBootPath + "jegudiel.bin.gz" end,
@@ -856,7 +869,8 @@ Project "Beelzebub" {
 
         Dependencies = List {
             "Kernel", "Runtime Library",
-            "Jegudiel", "Loadtest Application"
+            "Jegudiel", "Loadtest Application",
+            "System Headers"
         },
 
         Output = function(_) return _.IsoFile end,
