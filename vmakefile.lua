@@ -541,7 +541,7 @@ Project "Beelzebub" {
         Output = function(_) return _.outDir + "jegudiel.bin" end,
 
         Rule "Create Objects Directory" {
-            Filter = function(_, dst) return _.ObjectsDirectory end,
+            Filter = function(_, dst) return _.ObjectsDirectory + ".dummy" end,
 
             Source = List { },
 
@@ -568,7 +568,7 @@ Project "Beelzebub" {
             Filter = function(_, dst) return dst:EndsWith(".c.o") end,
 
             Source = function(_, dst)
-                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), _.ObjectsDirectory }
+                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), _.ObjectsDirectory + ".dummy" }
                 --  2 = #".o"
             end,
 
@@ -581,7 +581,7 @@ Project "Beelzebub" {
             Filter = function(_, dst) return dst:EndsWith(".s.o") end,
 
             Source = function(_, dst)
-                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), _.ObjectsDirectory }
+                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), _.ObjectsDirectory + ".dummy" }
             end,
 
             Action = function(_, dst, src)
@@ -880,8 +880,7 @@ Project "Beelzebub" {
         Directory = "image",
 
         Dependencies = List {
-            "Kernel", "Runtime Library",
-            "Jegudiel", "Loadtest Application",
+            "Loadtest Application",
             "System Headers"
         },
 

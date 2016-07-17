@@ -14,8 +14,8 @@ if arg then
 end
 
 local vmake, vmake__call, getEnvironment = {
-    Version = "1.0.0",
-    VersionNumber = 1000000,
+    Version = "1.1.0",
+    VersionNumber = 1001000,
 
     Debug = false,
     Silent = false,
@@ -26,6 +26,7 @@ local vmake, vmake__call, getEnvironment = {
     ShouldDoWork = true,
     ShouldPrintGraph = false,
 
+    FullBuild = false,
     WorkGraph = false,
     MaxLevel = false,
 
@@ -2631,7 +2632,7 @@ do
         __init = function(self)
             self[_key_wken_prqs] = vmake.Classes.List()
             self[_key_wken_done] = false
-            self[_key_wken_outd] = true
+            self[_key_wken_outd] = false
             self[_key_wken_levl] = -1
         end,
 
@@ -3555,27 +3556,29 @@ function vmake.ConstructWorkGraph()
     constructForFile = function(proj, path, assoc, stack, errlvl, goingUp, depAssoc, isSource)
         errlvl = errlvl + 1
 
+        local sPath = tostring(path)
+
         if not goingUp then
             --  If going up, this check was already performed once. No need to
             --  repeat.
 
             for i = #stack, 1, -1 do
-                if stack[i] == path then
+                if stack[i] == sPath then
                     --  Recursive dependencies are not okay. </3
 
                     error("vMake error: Detected circular dependency for "
-                        .. tostring(path) .. " of " .. tostring(proj) .. "."
+                        .. sPath .. " of " .. tostring(proj) .. "."
                         , errlvl)
                 end
             end
         end
 
-        if assoc[path] then
+        if assoc[sPath] then
             --  This is a directed graph, not a tree, so multiplicates are okay. <3
 
             -- print("MULTIPLICATE", path)
 
-            return assoc[path][1], assoc[path][2], assoc[path][3]
+            return assoc[sPath][1], assoc[sPath][2], assoc[sPath][3]
         end
 
         -- print("GOD HELP WITH", path, "FOR", proj)
@@ -3584,7 +3587,7 @@ function vmake.ConstructWorkGraph()
             --  When going up, the path is already on the stack, and won't change
             --  with further recursive calls. Thus, re-adding it is redundant.
 
-            stack[#stack + 1] = path
+            stack[#stack + 1] = sPath
         end
 
         --  So, first thing to do here is to find a matching rule.
@@ -3610,7 +3613,7 @@ function vmake.ConstructWorkGraph()
 
             -- print("ITEM", item, "1 MATCH")
 
-            assoc[path] = {item, refs, true}
+            assoc[sPath] = {item, refs, true}
             found = true
         elseif #matches == 0 then
             --  No matches... Scheiße. This means the rule can either be defined
@@ -3627,7 +3630,7 @@ function vmake.ConstructWorkGraph()
 
                 if thisIsIt then
                     if found then
-                        error("vMake error: Path \"" .. tostring(path)
+                        error("vMake error: Path \"" .. sPath
                             .. "\" found in at least two immediate child components of "
                             .. tostring(proj) .. ":\n\t"
                             .. tostring(firstFind) .. "\n\t"
@@ -3656,7 +3659,7 @@ function vmake.ConstructWorkGraph()
 
                 if not ownr then
                     if not isSource then
-                        error("vMake error: Unable to find rule for path \"" .. tostring(path)
+                        error("vMake error: Unable to find rule for path \"" .. sPath
                             .. "\" of " .. tostring(proj) .. ".", errlvl)
                     end
                 else
@@ -3669,7 +3672,7 @@ function vmake.ConstructWorkGraph()
         else
             for i = 1, #matches do matches[i] = tostring(matches[i]) end
 
-            error("vMake error: Path \"" .. tostring(path) .. "\" matches more than one target:\n\t"
+            error("vMake error: Path \"" .. sPath .. "\" matches more than one target:\n\t"
                 .. table.concat(matches, "\n\t"), errlvl)
         end
 
@@ -3834,6 +3837,10 @@ function vmake.ConstructWorkGraph()
 end
 
 function vmake.ChartWorkGraph()
+    if vmake.WorkGraph.Done then
+        return
+    end
+
     local function chartEntity(ent, done, min)
         if done[ent] then
             return done[ent]
@@ -3841,8 +3848,12 @@ function vmake.ChartWorkGraph()
 
         local newMin = min
 
-        local function checkLevel(item, max)
-            local preqLvl = chartEntity(item, done, newMin)
+        local function checkLevel(subEnt, max)
+            if subEnt.Done then
+                return max
+            end
+
+            local preqLvl = chartEntity(subEnt, done, newMin)
 
             if not max then
                 return preqLvl
@@ -3900,31 +3911,31 @@ function vmake.SanitizeWorkGraph()
 
         local outdated = ent.Outdated
 
-        if not outdated then
-            outdated = ent.Prerequisites:Any(function(preq)
-                return sanitizeEntity(preq, done)
-            end)
+        local function checkOutdated(preq)
+            if sanitizeEntity(preq, done) then
+                outdated = true
+            end
+        end
 
+        if not outdated then
             --  In other words, this otherwise up-to-date entity will become
             --  outdated if any of its prerequisites are outdated.
 
-            setWorkEntityOutdated(ent, outdated)
+            ent.Prerequisites:ForEach(checkOutdated)
         end
 
         if typeEx(ent) == "WorkLoad" and not outdated then
-            outdated = load.Items:Any(function(item)
-                return sanitizeEntity(item, done)
-            end)
-
             --  Still not outdated? It will be if it's a load and any of its
             --  items are outdated.
 
-            setWorkEntityOutdated(load, outdated)
+            ent.Items:ForEach(checkOutdated)
         end
 
         --  If it's already outdated, then there's nothing that can change that.
 
         if not outdated then
+            setWorkEntityOutdated(ent, outdated)
+
             setWorkEntityDone(ent)
         end
 
@@ -4018,6 +4029,10 @@ function vmake.DoWork()
 end
 
 function vmake.HandleCapture()
+    if vmake.WorkGraph.Done then
+        return
+    end
+
     if vmake.JobsDir then
         fs.MkDir(vmake.JobsDir)
 
