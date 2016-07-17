@@ -14,6 +14,8 @@ addons:
     - libisl10
     - libcloog-isl4
     - texinfo
+    - lua
+    - parallel
 
 before_install:
 - bash grab_xcs_linux-amd64.sh
@@ -24,7 +26,7 @@ before_install:
 #  - if [ $TRAVIS_OS_NAME == linux ]; then travis_retry ./configure --llvm-config llvm-config-3.4; fi
 #  - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ./configure; fi
 
-script: make amd64 test-all
+script: ./vmakefile -t all --mtune=corei7-avx --full
 
 after_success:
 - echo after success
@@ -55,7 +57,7 @@ notifications:
     channels:
     - "chat.freenode.net##beelzebub"
     template:
-    - "%{repository}/%{branch} (%{commit} - %{author}): %{build_url}: %{message}"
+    - "%{branch} | %{commit} | %{author} | %{build_url} | %{message}"
 
 cache:
   directories:
