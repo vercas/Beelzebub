@@ -9,4 +9,4 @@ else
 	OBJDUMP="/usr/local/gcc-x86_64-beelzebub/bin/x86_64-beelzebub-objdump"
 fi
 
-$OBJDUMP -M intel -CdlSw beelzebub/build/beelzebub.amd64.bin | less
+$OBJDUMP -M intel -CdlSw .vmake/amd64.debug/beelzebub/beelzebub.bin | less

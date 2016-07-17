@@ -27,16 +27,16 @@ before_install:
 #  - if [ $TRAVIS_OS_NAME == linux ]; then travis_retry ./configure --llvm-config llvm-config-3.4; fi
 #  - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ./configure; fi
 
-script: ./vmakefile.lua -t all --mtune=corei7-avx --full
+script: lua vmakefile.lua -t all --mtune=corei7-avx --full
 
 after_success:
 - echo after success
 
 before_deploy:
 - echo before deploy
-- sh disassemble-kernel.sh > build/beelzebub.beelzebub.amd64.x86.disassembly.txt
-- sh readelf-kernel.sh > build/beelzebub.beelzebub.amd64.x86.readelf.txt
-- pushd build
+- sh disassemble-kernel.sh > .vmake/amd64.debug/beelzebub.beelzebub.amd64.disassembly.txt
+- sh readelf-kernel.sh > .vmake/amd64.debug/beelzebub.beelzebub.amd64.readelf.txt
+- pushd .vmake/amd64.debug
 - zip -r Beelzebub.zip *
 - popd
 

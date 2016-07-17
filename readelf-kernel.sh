@@ -1,1 +1,1 @@
-readelf -ateW beelzebub/build/beelzebub.amd64.bin | less
+readelf -ateW .vmake/amd64.debug/beelzebub/beelzebub.bin | less
