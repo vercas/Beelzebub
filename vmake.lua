@@ -46,7 +46,7 @@ local curWorkItem = nil
 vmake.Description = "vMake v" .. vmake.Version .. " [" .. vmake.VersionNumber
 .. "] (c) 2016 Alexandru-Mihai Maftei, running under " .. _VERSION
 
-require "lfs"
+pcall(require, "lfs")
 
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Top-level Declarations
