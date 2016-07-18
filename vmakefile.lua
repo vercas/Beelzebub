@@ -233,13 +233,15 @@ end
 --  Templates
 
 local function sourceArchitectural(_, dst)
-    local codeFile, arch = parseObjectExtension(dst)
+    local codeFile, arch, src = parseObjectExtension(dst)
 
     if arch then
-        return _.ArchitecturesDirectory + arch.Name + "src" + Path(codeFile):Skip(_.ObjectsDirectory)
+        src = _.ArchitecturesDirectory + arch.Name + "src" + Path(codeFile):Skip(_.ObjectsDirectory)
     else
-        return _.CommonDirectory + "src" + Path(codeFile):Skip(_.ObjectsDirectory)
+        src = _.CommonDirectory + "src" + Path(codeFile):Skip(_.ObjectsDirectory)
     end
+
+    return ParseGccDependencies(dst, src, true) + List { dst:GetParent() + ".dummy" }
 end
 
 local function gzipSingleFile(_, dst, src)
@@ -257,8 +259,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitectural,
 
             Action = function(_, dst, src)
-                fs.MkDir(dst:GetParent())
-                sh.silent(CC, _.Opts_C, "-MD", "-MP", "-c", src, "-o", dst)
+                sh.silent(CC, _.Opts_C, "-MD", "-MP", "-c", src[1], "-o", dst)
             end,
         },
 
@@ -268,8 +269,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitectural,
 
             Action = function(_, dst, src)
-                fs.MkDir(dst:GetParent())
-                sh.silent(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src, "-o", dst)
+                sh.silent(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src[1], "-o", dst)
             end,
         },
 
@@ -279,8 +279,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitectural,
 
             Action = function(_, dst, src)
-                fs.MkDir(dst:GetParent())
-                sh.silent(AS, _.Opts_NASM, src, "-o", dst)
+                sh.silent(AS, _.Opts_NASM, src[1], "-o", dst)
             end,
         },
 
@@ -290,8 +289,17 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitectural,
 
             Action = function(_, dst, src)
-                fs.MkDir(dst:GetParent())
-                sh.silent(GAS, _.Opts_GAS, "-c", src, "-o", dst)
+                sh.silent(GAS, _.Opts_GAS, "-c", src[1], "-o", dst)
+            end,
+        },
+
+        ExcuseMissingFilesRule { "h", "hpp", "inc", "hh" },
+
+        Rule "Create Objects Directory" {
+            Filter = function(_, dst) return dst:GetName():Equals(".dummy") end,
+
+            Action = function(_, dst, src)
+                fs.MkDir(dst)
             end,
         },
     })
@@ -543,8 +551,6 @@ Project "Beelzebub" {
         Rule "Create Objects Directory" {
             Filter = function(_, dst) return _.ObjectsDirectory + ".dummy" end,
 
-            Source = List { },
-
             Action = function(_, dst, src)
                 fs.MkDir(dst)
             end,
@@ -588,6 +594,8 @@ Project "Beelzebub" {
                 sh.silent(AS, _.Opts_NASM, src[1], "-o", dst)
             end,
         },
+
+        ExcuseMissingFilesRule { "h", "hpp", "inc", "hh" },
     },
 
     ArchitecturalComponent "Common Library" {
@@ -669,7 +677,7 @@ Project "Beelzebub" {
                     sh.silent(GAS, _.Opts_GAS_CRT, "-c", src, "-o", dst)
                 end
             end,
-        }
+        },
     },
 
     ArchitecturalComponent "Runtime Library" {

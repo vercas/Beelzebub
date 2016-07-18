@@ -14,8 +14,8 @@ if arg then
 end
 
 local vmake, vmake__call, getEnvironment = {
-    Version = "1.1.0",
-    VersionNumber = 1001000,
+    Version = "1.2.0",
+    VersionNumber = 1002000,
 
     Debug = false,
     Silent = false,
@@ -545,7 +545,7 @@ function string.iteratesplit(s, pattern, plain, n)
             local res = s:sub(i1, i2 - 1)
             i1 = i3 + 1
 
-            return res
+            return res, s:sub(i2, i3)
         end
     end
 end
@@ -1223,6 +1223,57 @@ do
             --  The type cannot be preserved here.
         end,
 
+        RemoveExtension = function(self)
+            local new = self[_key_path_valu]:match("^(.*)%.[^%.]-$")
+
+            return new and vmake.Classes.Path(new, 'U') or nil
+        end,
+
+        ChangeExtension = function(self, ext)
+            assertType("string", ext, "extension", 2)
+
+            local new = self[_key_path_valu]:match("^(.*)%.[^%.]-$")
+
+            return new and vmake.Classes.Path(new .. "." .. ext, 'U') or nil
+        end,
+
+        GetExtension = function(self)
+            return self[_key_path_valu]:match("^.*%.([^%.]-)$")
+        end,
+
+        CheckExtension = function(self, ...)
+            local vals = {...}
+
+            if #vals < 1 then
+                error("vMake error: 'CheckExtension' should receive at least one argument, besides the path itself.", 2)
+            end
+
+            local ext = self[_key_path_valu]:match("^.*%.([^%.]-)$")
+
+            if not ext then
+                --  No extension? Meh.
+
+                return false
+            end
+
+            for i = #vals, 1, -1 do
+                local val = vals[i]
+                local valType = assertType({"string", "List"}, val, "extension #" .. i, 2)
+
+                if valType == "string" then
+                    if ext == val then
+                        return ext
+                    end
+                else
+                    if val:Any(function(val) return ext == val end) then
+                        return true
+                    end
+                end
+            end
+
+            return false
+        end,
+
         SkipDirs = function(self, cnt)
             assertType("number", cnt, "count", 2)
 
@@ -1412,7 +1463,8 @@ do
                     error("vMake error: Given numeric key to List is not an integer.", errlvl + 1)
                 end
 
-                return cont[key]
+                cont[key] = val
+                return
             end
 
             error("vMake error: Given key to a List is of invalid type '" .. keyType .. "'.", errlvl + 1)
@@ -2386,28 +2438,7 @@ do
                     error("vMake error: " .. tostring(self) .. " has already defined its sources.", errlvl)
                 end
 
-                local valType = assertType({"string", "Path", "List", "function"}, val, "sources", errlvl)
-
-                if valType == "List" then
-                    if val.Sealed then
-                        error("vMake error: The list provided to rule sources must be non-sealed.", errlvl)
-                    end
-
-                    for i = #val, 1, -1 do
-                        local item = val[i]
-                        local itemType = assertType({"string", "Path"}, item, "sources list item #" .. i, errlvl)
-
-                        if itemType == "string" then
-                            val[i] = vmake.Classes.Path(item, 'U')
-                        end
-                    end
-
-                    val:Seal()
-                elseif valType == "Path" then
-                    val = vmake.Classes.List(true, { val })
-                elseif valType == "string" then
-                    val = vmake.Classes.List(true, { vmake.Classes.Path(val, 'U') })
-                end
+                assertType({"string", "Path", "List", "function"}, val, "sources", errlvl)
 
                 self[_key_rule_sorc] = val
             end,
@@ -2421,11 +2452,12 @@ do
             end
 
             if not self[_key_rule_sorc] then
-                error("vMake error: " .. tostring(self) .. " does not define a filter.", 2)
+                -- error("vMake error: " .. tostring(self) .. " does not define a filter.", 2)
+                return false
             end
             
             local val = self[_key_rule_sorc]
-            local valType = typeEx(val)
+            local valType = assertType({"string", "Path", "List", "function"}, val, "source expansion result", 2)
 
             if valType == "function" then
                 local oldCodeLoc = codeLoc; codeLoc = LOC_RULE_SRC
@@ -2439,29 +2471,27 @@ do
                 end
 
                 valType = assertType({"string", "Path", "List"}, val, "source expansion result", 2)
+            end
 
-                if valType == "List" then
-                    if val.Sealed then
-                        error("vMake error: The list provided to rule source by expansion must be non-sealed.", 2)
-                    end
-
-                    for i = #val, 1, -1 do
-                        local item = val[i]
-                        local itemType = assertType({"string", "Path"}, item, "source expansion results list item #" .. i, 2)
-
-                        if itemType == "string" then
-                            val[i] = vmake.Classes.Path(item, 'U')
-                        end
-                    end
-
-                    return val:Seal()
-                elseif valType == "Path" then
-                    return vmake.Classes.List(true, { val })
-                else
-                    return vmake.Classes.List(true, { vmake.Classes.Path(val, 'U') })
+            if valType == "List" then
+                if val.Sealed then
+                    error("vMake error: The list provided to " .. tostring(self) .. " source must be non-sealed.", 2)
                 end
-            elseif valType == "List" then
-                return val
+
+                for i = #val, 1, -1 do
+                    local item = val[i]
+                    local itemType = assertType({"string", "Path"}, item, "source #" .. i, 2)
+
+                    if itemType == "string" then
+                        val[i] = vmake.Classes.Path(item, 'U')
+                    end
+                end
+
+                return val:Seal()
+            elseif valType == "Path" then
+                return vmake.Classes.List(true, { val })
+            else
+                return vmake.Classes.List(true, { vmake.Classes.Path(val, 'U') })
             end
 
             error("vMake error: Source of " .. tostring(self) .. " is of unknown type: " .. tostring(valType), 2)
@@ -3681,7 +3711,7 @@ function vmake.ConstructWorkGraph()
 
             if srcs then
                 -- print("SOURCES\n", table.concat(getListContainer(srcs:Select(function(src)
-                --     return tostring(src)
+                --     return typeEx(src) .. " \"" .. tostring(src) .. "\""
                 -- end)), "\n\t"), "\n\tOF", item)
 
                 setWorkItemSource(item, srcs)
@@ -3716,7 +3746,7 @@ function vmake.ConstructWorkGraph()
                         and src.ModificationTime <= path.ModificationTime then
                         --  Source NOT modified after the destination? Cool!
 
-                        MSG("Preq ", src, " of ", item, " is NOT outdated.")
+                        --MSG("Preq ", src, " of ", item, " is NOT outdated.")
 
                         return
                     end
@@ -3724,7 +3754,7 @@ function vmake.ConstructWorkGraph()
                     outdated = true
                     --  Otherwise, this is definitely an outdated item.
 
-                    MSG("Preq ", src, " of ", item, " is outdated!")
+                    --MSG("Preq ", src, " of ", item, " is outdated!")
 
                     if not subFound then
                         --  Nothing? Means this file ought to already exist.
@@ -3744,11 +3774,11 @@ function vmake.ConstructWorkGraph()
 
             setWorkEntityOutdated(item, outdated)
 
-            if outdated then
-                MSG(item, " is outdated.")
-            else
-                MSG(item, " is up-to-date.")
-            end
+            -- if outdated then
+            --     MSG(item, " is outdated.")
+            -- else
+            --     MSG(item, " is up-to-date.")
+            -- end
         end
 
         if not goingUp then
@@ -3914,19 +3944,17 @@ function vmake.SanitizeWorkGraph()
         local function checkOutdated(preq)
             if sanitizeEntity(preq, done) then
                 outdated = true
+                --  Upvalues, schmupvalues.
             end
         end
 
-        if not outdated then
-            --  In other words, this otherwise up-to-date entity will become
-            --  outdated if any of its prerequisites are outdated.
+        --  Tthis otherwise up-to-date entity will become outdated if any of its
+        --  prerequisites are outdated.
 
-            ent.Prerequisites:ForEach(checkOutdated)
-        end
+        ent.Prerequisites:ForEach(checkOutdated)
 
-        if typeEx(ent) == "WorkLoad" and not outdated then
-            --  Still not outdated? It will be if it's a load and any of its
-            --  items are outdated.
+        if typeEx(ent) == "WorkLoad" then
+            --  If this is a workload, any outdated item also makes it outdated.
 
             ent.Items:ForEach(checkOutdated)
         end
@@ -3937,12 +3965,7 @@ function vmake.SanitizeWorkGraph()
             setWorkEntityOutdated(ent, outdated)
 
             setWorkEntityDone(ent)
-        end
-
-        if outdated then
-            MSG("Outdated   | ", ent)
-        else
-            MSG("Up-to-date | ", ent)
+            --  Nothing to do for this one.
         end
 
         done[ent] = outdated
@@ -3981,24 +4004,19 @@ function vmake.DoWork()
             return false
         end
 
-        local act = item.Rule.Action
-        local dst = item.Path
-        local src = item.Sources
-        local env = getEnvironment(item.Rule)
-
         MSG("Executing ", item)
 
         local oldCodeLoc = codeLoc; codeLoc = LOC_RULE_ACT
         curWorkItem = item
 
-        local res1, res2 = pcall(act, env, dst, src)
+        local res1, res2 = pcall(item.Rule.Action, getEnvironment(item.Rule), item.Path, item.Sources)
 
         curWorkItem = nil
         codeLoc = oldCodeLoc
 
         if not res1 then
             io.stderr:write("Failed to execute action of ", tostring(item.Rule)
-                , " for \"", tostring(dst), "\":\n", tostring(res2), "\n")
+                , " for \"", tostring(item.Path), "\":\n", tostring(res2), "\n")
         end
 
         setWorkEntityDone(item)
@@ -4014,7 +4032,6 @@ function vmake.DoWork()
         local res = load.Prerequisites:Any(function(preq)
             return not doLoad(preq)
         end)
-        --  This will stop when the first one fails.
 
         if res then
             return false
@@ -4321,12 +4338,8 @@ function vmake__call()
     if vmake.ShouldComputeGraph then
         vmake.WorkGraph = vmake.ConstructWorkGraph()
 
-        MSG("Full build: ", vmake.FullBuild)
-
         if not vmake.FullBuild then
             vmake.SanitizeWorkGraph()
-
-            MSG("Finished sanitation.")
         end
 
         vmake.ChartWorkGraph()
@@ -4530,7 +4543,160 @@ _G.vmake = setmetatable({
 --  Some common templates
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
+--  Does what it says on the tin. It's a blank tin.
+function DoNothing() end
+
+--  An action which copies a single source file to the destination.
 function CopySingleFileAction(_, dst, src)
     fs.MkDir(dst:GetParent())
     fs.Copy(dst, src[1])
+end
+
+--  Creates a rule which pretends to provide missing files matching the given
+--  set of extensions.
+function ExcuseMissingFilesRule(ext)
+    local extType = assertType({"string", "List", "table", "function"}, ext, "extension", 2)
+
+    local rule = Rule "Excuse Missing Headers" {
+        Filter = function(_, dst) return dst:CheckExtension(ext) and not fs.GetInfo(dst) end,
+
+        Source = List { },
+
+        Action = DoNothing,
+    }
+
+    if extType == "function" then
+        ext = ext(getEnvironment(rule))
+        extType = assertType({"string", "List", "table"}, ext, "extension expansion", 2)
+    end
+
+    if extType == "string" then
+        ext = vmake.Classes.List(true, { ext })
+    else
+        for i = 1, #ext do
+            assertType("string", ext[i], "extension #" .. i, 2)
+        end
+
+        if extType == "table" then
+            ext = vmake.Classes.List(true, ext)
+        else
+            ext:Seal(true)
+        end
+    end
+
+    return rule
+end
+
+--  Parses the GCC-generated Make dependency file associated with the given
+--  destination file, if found and possible.
+--  Any form of failure results in an empty list being returned.
+function ParseGccDependencies(dst, src, keepSrc)
+    assertType("Path", dst, "destination file")
+    assertType({"nil", "Path"}, src, "main source file")
+    assertType({"nil", "boolean"}, keepSrc, "keep source")
+
+    if not fs.GetInfo(dst) then
+        --  Destination doesn't exist? It will be created anyway, so parsing the
+        --  (leftover) dependency files will not help in any way.
+
+        MSG("Destination for dependencies \"", dst, "\" doesn't exist.")
+
+        return keepSrc and vmake.Classes.List(false, { src }) or vmake.Classes.List()
+    end
+
+    local dep = dst:ChangeExtension("d")
+    --  '.o' -> '.d'
+
+    local fDep, errDep = io.open(tostring(dep), "r")
+
+    if not fDep then
+        --  This is not really a problem. Maybe it doesn't exist. Maybe the dog
+        --  ate it. No probz.
+
+        MSG("Failed to open dependecy file \"", dep, "\": ", errDep)
+
+        return keepSrc and vmake.Classes.List(false, { src }) or vmake.Classes.List()
+    end
+
+    local firstLine = fDep:read("*l")
+
+    if not firstLine then
+        return keepSrc and vmake.Classes.List(false, { src }) or vmake.Classes.List()
+    end
+
+    local deps, lineCnt, file, dep1 = {}, 1, firstLine:match("^(.-):(.-) \\$")
+
+    if dep1 and dep1 ~= "" then
+        deps[1] = dep1:trim()
+    end
+
+    for line in fDep:lines() do
+        local content, ending = line:match("^ (.-)( ?\\?)$")
+        lineCnt = lineCnt + 1
+
+        if ending ~= "" and ending ~= " \\" then
+            --  This is just wrong. Abandon.
+
+            MSG("Odd ending in dependency file \"", dep, "\" line ", lineCnt, ": ", ending)
+
+            return keepSrc and vmake.Classes.List(false, { src }) or vmake.Classes.List()
+        end
+
+        local lastWasEscaped = false
+
+        for comp, sep in content:iteratesplit("%s+") do
+            local backslashes = comp:match("^.-(\\*)$")
+            local thisIsEscaped = backslashes and (#backslashes % 2 == 1)
+
+            if lastWasEscaped then
+                deps[#deps] = deps[#deps] .. comp
+            else
+                deps[#deps + 1] = comp
+            end
+
+            lastWasEscaped = thisIsEscaped
+
+            if thisIsEscaped then
+                if sep then
+                    deps[#deps] = deps[#deps] .. sep
+                else
+                    MSG("An escaped dependency fragment to be at the end of a line:\n", line, "\n", comp)
+
+                    return keepSrc and vmake.Classes.List(false, { src }) or vmake.Classes.List()
+                end
+            end
+        end
+
+        if lastWasEscaped then
+            --  Should always be false at the end.
+
+            return keepSrc and vmake.Classes.List(false, { src }) or vmake.Classes.List()
+        end
+
+        if ending == "" then
+            break
+        end
+    end
+
+    fDep:close()
+
+    --  TODO: Parse escape sequences (..?) in the dependencies.
+
+    deps = vmake.Classes.List(false, deps):Where(function(val)
+        return val and not val:match("^%s*$")
+    end)
+
+    if keepSrc then
+        if not src:Equals(deps:First()) then
+            deps = vmake.Classes.List(false, { src }) + deps:Where(function(val)
+                return not src:Equals(val)
+            end)
+        end
+    else
+        deps = deps:Where(function(val)
+            return not src:Equals(val)
+        end)
+    end
+
+    return deps
 end
