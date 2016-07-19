@@ -21,8 +21,8 @@ addons:
 before_install:
 - bash grab_xcs_linux-amd64.sh
 - mkisofs --version || bash grab_genisoimage.sh
-- luarocks install luafilesystem
-- luarocks install vmake
+- luarocks --local install luafilesystem
+- luarocks --local install vmake
 
 #before_script:
 #  - travis_retry bundle
