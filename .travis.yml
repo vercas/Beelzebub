@@ -15,11 +15,14 @@ addons:
     - libcloog-isl4
     - texinfo
     - lua5.2
+    - luarocks
     - parallel
 
 before_install:
 - bash grab_xcs_linux-amd64.sh
 - mkisofs --version || bash grab_genisoimage.sh
+- luarocks install luafilesystem
+- luarocks install vmake
 
 #before_script:
 #  - travis_retry bundle
