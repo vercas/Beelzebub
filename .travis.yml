@@ -23,6 +23,7 @@ before_install:
 - mkisofs --version || bash grab_genisoimage.sh
 - luarocks --local install luafilesystem
 - luarocks --local install vmake
+- luarocks path >> ~/.bashrc
 
 before_script:
 - $(luarocks path)
@@ -61,7 +62,7 @@ notifications:
     channels:
     - "chat.freenode.net##beelzebub"
     template:
-    - "%{branch} | %{commit} | %{author} | %{build_url} | %{message}"
+    - "%{branch} - commit %{commit} by %{author} | %{build_url} | %{message}"
 
 cache:
   directories:
