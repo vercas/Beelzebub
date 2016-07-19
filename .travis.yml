@@ -25,8 +25,7 @@ before_install:
 - luarocks --local install vmake
 
 before_script:
-- luarocks show vmake
-- ls -la ~/.luarocks
+- luarocks path | bash
 #  - travis_retry bundle
 #  - if [ $TRAVIS_OS_NAME == linux ]; then travis_retry ./configure --llvm-config llvm-config-3.4; fi
 #  - if [ $TRAVIS_OS_NAME == osx ]; then travis_retry ./configure; fi
