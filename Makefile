@@ -51,13 +51,13 @@ $(ARC): image
 
 ####################################### CLEANING ##########
 
-clean:: clean-sysheaders clean-libs clean-jegudiel \
+clean:: clean-libs clean-jegudiel \
         clean-kernel clean-apps clean-image
 	@ rm -Rf $(PREFIX)
 	@ rm -f last_settings.txt
 
-clean-sysheaders:
-	@ $(MAKE) -C sysheaders/ clean
+#clean-sysheaders:
+#	@ $(MAKE) -C sysheaders/ clean
 
 clean-libs:
 	@ $(MAKE) -C libs/ clean

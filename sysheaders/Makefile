@@ -70,7 +70,7 @@ install: $(HEADERS)
 ####################################
 # Uninstalls from prefix directory #
 uninstall clean:
-	@ rm -Rf $(HDR_INSTALL_DIR)
+	@ echo "Don't do this, please."
 
 ####################################### ARCHITECTURE HEADER FILES ##########
 
