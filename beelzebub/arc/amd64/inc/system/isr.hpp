@@ -166,7 +166,7 @@ namespace Beelzebub { namespace System
         {
             uint8_t PushRcx;
             uint8_t MovCl;
-            uint8_t Vector;
+            uint32_t Vector;
             uint8_t Jump;
             int32_t JumpOffset;
         } __packed WithErrorCode;
@@ -177,7 +177,7 @@ namespace Beelzebub { namespace System
             uint8_t DummyErrorCode;
             uint8_t PushRcx;
             uint8_t MovCl;
-            uint8_t Vector;
+            uint32_t Vector;
             uint8_t Jump;
             int32_t JumpOffset;
         } __packed NoErrorCode;

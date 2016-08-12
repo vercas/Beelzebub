@@ -61,10 +61,6 @@ align 16
 
 ;   This is a stub for an ISR that needs a full system state.
 IsrFullStub:
-    ;   Upon entry, the lower byte of RCX will contain the interrupt vector.
-    ;   That value is zero-extend into the whole register.
-    movzx   rcx, cl
-
     push    rax
     push    rbx
     push    rdx
@@ -171,7 +167,7 @@ IsrFullStub:
     IsrStub%1:
         push    qword 0
         push    rcx
-        mov     cl, %1
+        mov     ecx, %1
         jmp     IsrFullStub
     align 16
 %endmacro
@@ -179,7 +175,7 @@ IsrFullStub:
 %macro ISR_ERRCODE 1
     IsrStub%1:
         push    rcx
-        mov     cl, %1
+        mov     ecx, %1
         jmp     IsrFullStub
     align 16
 %endmacro
@@ -235,10 +231,6 @@ align 16
 ;   This is a stub for an ISR that does not require the state of the whole
 ;   system.
 IsrCommonStub:
-    ;   Upon entry, the lower byte of RCX will contain the interrupt vector.
-    ;   That value is zero-extend into the whole register.
-    movzx   rcx, cl
-
     push    rax
     push    rdx
     push    rbp
