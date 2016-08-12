@@ -11,14 +11,14 @@
     [
         {
             "name": "Beelzebub - Debug - AMD64 - All Tests",
-            "cmd": "bash runmake.sh conf-debug amd64 test-all",
+            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 0 Beelzebub debug amd64",
             
             "working_dir": "$project_path",
             "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
 
             "windows":
             {
-                "path": "C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
+                "path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
             },
 
             "env":
@@ -28,14 +28,14 @@
         },
         {
             "name": "Beelzebub - Profile - AMD64 - All Tests",
-            "cmd": "bash runmake.sh conf-profile amd64 test-all",
+            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 0 Beelzebub profile amd64",
             
             "working_dir": "$project_path",
             "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
 
             "windows":
             {
-                "path": "C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
+                "path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
             },
 
             "env":
@@ -45,14 +45,14 @@
         },
         {
             "name": "Beelzebub - Release - AMD64 - All Tests",
-            "cmd": "bash runmake.sh conf-release amd64 test-all",
+            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 0 Beelzebub release amd64",
             
             "working_dir": "$project_path",
             "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
 
             "windows":
             {
-                "path": "C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
+                "path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
             },
 
             "env":
