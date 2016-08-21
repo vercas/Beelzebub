@@ -126,9 +126,20 @@ namespace Beelzebub { namespace Utils
 namespace Beelzebub { namespace Terminals
 {
     template<>
+    TerminalBase & operator << <MemoryRegion *>(TerminalBase & term, MemoryRegion * const value)
+    {
+        return term << "[Memory Region " << (void *)value << ": " << (void *)value->Range.Start
+            << "-" << (void *)value->Range.End
+            << "; next " << (void *)value->NextFree
+            << "; prev " << (void *)value->PrevFree << "]";
+    }
+
+    template<>
     TerminalBase & operator << <MemoryRegion>(TerminalBase & term, MemoryRegion const value)
     {
-        return term << "[Memory Region " << (void *)value.Range.Start
-            << "-" << (void *)value.Range.End << "]";
+        return term << "[Memory Region: " << (void *)value.Range.Start
+            << "-" << (void *)value.Range.End
+            << "; next " << (void *)value.NextFree
+            << "; prev " << (void *)value.PrevFree << "]";
     }
 }}
