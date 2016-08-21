@@ -1021,7 +1021,10 @@ namespace Beelzebub { namespace Execution
 
         inline ptrdiff_t GetLocationDifference() const
         {
-            return this->NewLocation - this->BaseAddress;
+            if (this->H1->Type == ElfFileType::Dynamic)
+                return this->NewLocation - this->BaseAddress;
+            else
+                return 0;
         }
 
         inline uintptr_t GetEntryPoint() const
