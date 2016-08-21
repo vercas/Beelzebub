@@ -42,15 +42,23 @@
 #include <syscalls/memory.h>
 #include <terminals/debug.hpp>
 #include <kernel_data.hpp>
+#include <execution/elf_default_mapper.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Execution;
 using namespace Beelzebub::Terminals;
 
 /// Global constructors.
 __extern __used void _init(void);
 
 static DebugTerminal procDbgTrm;
+static Elf ApplicationImage;
+
+static bool HeaderValidator(ElfHeader1 const * header, void * data)
+{
+    return header->Identification.Class == ElfClass::Elf64;
+}
 
 __extern __bland __used void _start(char * args)
 {
@@ -86,6 +94,32 @@ __extern __bland __used void _start(char * args)
 
     DEBUG_TERM << "3 numbas: " << testPtr[0] << ", " << testPtr[1] << ", " << testPtr[2] << EndLine;
     DEBUG_TERM << "@ " << (void *)testPtr << EndLine;
+
+    //  Now to finally parse the actual application.
+
+    new (&ApplicationImage) Elf(reinterpret_cast<void *>(STARTUP_DATA.MemoryImageStart), STARTUP_DATA.MemoryImageEnd - STARTUP_DATA.MemoryImageStart);
+
+    ElfValidationResult evRes = ApplicationImage.ValidateAndParse(&HeaderValidator, nullptr, nullptr);
+
+    if (evRes != ElfValidationResult::Success)
+    {
+        DEBUG_TERM  << "Failed to validate and parse application image: "
+                    << evRes << Terminals::EndLine;
+
+        ASSERT(false);
+    }
+
+    //  And map it.
+
+    evRes = ApplicationImage.LoadAndValidate64(&MapSegment64, &UnmapSegment64, nullptr);
+
+    if (evRes != ElfValidationResult::Success)
+    {
+        DEBUG_TERM  << "Failed to load application image: "
+                    << evRes << Terminals::EndLine;
+
+        ASSERT(false);
+    }
 
     QuitProcess(HandleResult::Okay, 0);
 }
