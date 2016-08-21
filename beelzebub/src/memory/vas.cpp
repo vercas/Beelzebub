@@ -98,7 +98,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
 
     if likely(lock)
     {
-        cookie = System::Interrupts::PushEnable();
+        cookie = System::Interrupts::PushDisable();
 
         this->Lock.AcquireAsWriter();
     }
@@ -158,7 +158,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
 
         do
         {
-            // DEBUG_TERM << *reg;
+            // DEBUG_TERM << reg;
 
             size_t regPageCnt = reg->GetPageCount();
 
@@ -310,14 +310,18 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 if unlikely(!res.IsOkayResult())
                     goto end;
 
-                // DEBUG_TERM << *newFree << " " << *newBusy;
-
                 newFree->PrevFree = reg;
                 newFree->NextFree = reg->NextFree;
-                reg->NextFree = reg;
+                reg->NextFree = newFree;
+
+                if (newFree->NextFree != nullptr)
+                    newFree->NextFree->PrevFree = newFree;
+                //  Vital.
 
                 newBusy->PrevFree = reg;
                 newBusy->NextFree = newFree;
+
+                // DEBUG_TERM << "{" << reg << newBusy << " " << newFree << "}";
 
                 goto end;
             }
