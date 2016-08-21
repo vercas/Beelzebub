@@ -79,7 +79,7 @@ inline void Alienate(Process * proc)
 
 Atomic<vaddr_t> Vmm::KernelHeapCursor {VmmArc::KernelHeapStart};
 
-vaddr_t Vmm::UserlandStart = 1ULL << 24;    //  16 MiB
+vaddr_t Vmm::UserlandStart = 1ULL << 21;    //  2 MiB
 vaddr_t Vmm::UserlandEnd = VmmArc::LowerHalfEnd;
 vaddr_t Vmm::KernelStart = VmmArc::KernelHeapStart;
 vaddr_t Vmm::KernelEnd = VmmArc::KernelHeapEnd;
