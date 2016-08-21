@@ -298,8 +298,62 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
         if (reserved)    status[3] = '0';
         if (instruction) status[4] = 'I'; else status[4] = 'd';
 
-        MSG("%n<< PAGE FAULT @ %Xp (%s|%X1); CR2: %Xp | "
-            , INSTRUCTION_POINTER, status, (uint8_t)state->ErrorCode, CR2);
+        MSG("%n<< PAGE FAULT @ %Xp ("
+            , INSTRUCTION_POINTER);
+
+        switch (state->ErrorCode)
+        {
+        case 2:
+            MSG("kernel attempted write to absent page");
+            break;
+
+        case 3:
+            MSG("kernel could not write to present page");
+            break;
+
+        case 4:
+            MSG("userland attempted to read from absent page");
+            break;
+
+        case 5:
+            MSG("userland attempted to read from kernel page");
+            break;
+
+        case 6:
+            MSG("userland attempted to write to absent page");
+            break;
+
+        case 7:
+            MSG("userland could not write to present page");
+            break;
+
+        case 8:
+            MSG("reserved bit set in paging table entry");
+            break;
+
+        case 16:
+            MSG("kernel attempted to execute from unmapped page");
+            break;
+
+        case 17:
+            MSG("kernel attempted to execute from non-executable page");
+            break;
+
+        case 20:
+            MSG("userland attempted to execute from unmapped page");
+            break;
+
+        case 21:
+            MSG("userland attempted to execute from kernel/non-executable page");
+            break;
+
+        default:
+            MSG("%s", status);
+            break;
+        }
+
+        MSG("|%X1); CR2: %Xp | "
+            , (uint8_t)state->ErrorCode, CR2);
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
         MSG("%u2:%u2:%u2:%u2 | ", ind4, ind3, ind2, ind1);
