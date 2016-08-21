@@ -53,14 +53,33 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
     vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
     vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
 
-    if (segVaddrEnd <= segVaddr)
-        return false;
-    //  So it starts before the userland or ends after the kernel... Not good.
+    // DEBUG_TERM  << "Requesting memory for segment: " << (void *)segVaddr << " - " << (void *)segVaddrEnd << Terminals::EndLine
+    //             << "loc = " << (void *)loc << Terminals::EndLine
+    //             << "img = " << (void *)img << Terminals::EndLine
+    //             << "phdr.VAddr = " << (void *)phdr.VAddr << "; RD " << (void *)RoundDown(phdr.VAddr, PageSize) << Terminals::EndLine
+    //             << "Segment start = " << (void *)(loc + RoundDown(phdr.VAddr, PageSize)) << Terminals::EndLine
+    //             << "Segment end   = " << (void *)(loc + RoundUp(phdr.VAddr + phdr.VSize, PageSize)) << Terminals::EndLine;
+
+    ASSERT(segVaddrEnd > segVaddr);
 
     Handle res = MemoryRequest(segVaddr, segVaddrEnd - segVaddr, MemoryRequestOptions::None);
+    auto resPtr = res.GetPage();
 
-    if unlikely(!res.IsOkayResult())
+    if unlikely(resPtr == nullptr)
+    {
+        DEBUG_TERM  << "Failed to allocate memory for " << phdr << ": " << res
+                    << Terminals::EndLine;
+
         return false;
+    }
+    else if unlikely((vaddr_t)resPtr != segVaddr)
+    {
+        DEBUG_TERM  << "Failed to allocate memory for " << phdr
+                    << " at the requested location; was given " << resPtr
+                    << " instead." << Terminals::EndLine;
+
+        return false;
+    }
 
     memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
         ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
