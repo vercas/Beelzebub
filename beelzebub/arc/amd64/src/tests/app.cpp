@@ -62,7 +62,7 @@ using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-static uintptr_t rtlib_base = 0x1000000;
+static uintptr_t rtlib_base = 0x100000000;
 
 static Thread testThread;
 static Thread testWatcher;
@@ -165,6 +165,8 @@ void TestApplication()
     new (&testThread) Thread(&testProcess);
     new (&testWatcher) Thread(&testProcess);
 
+    // DEBUG_TERM_ << "Created app test process and threads." << Terminals::EndLine;
+
     //  Then the test thread.
 
     uintptr_t stackVaddr = nullvaddr;
@@ -189,6 +191,8 @@ void TestApplication()
 
     withInterrupts (false)
         BootstrapThread.IntroduceNext(&testThread);
+
+    // DEBUG_TERM_ << "Initialized app test main thread." << Terminals::EndLine;
 
     //  Then the watcher thread.
 
@@ -215,6 +219,8 @@ void TestApplication()
     withInterrupts (false)
         testThread.IntroduceNext(&testWatcher);
 
+    // DEBUG_TERM_ << "Initialized app test watcher thread." << Terminals::EndLine;
+
     //  That's all, folks. The other threads finish the work.
 }
 
@@ -240,6 +246,8 @@ void * JumpToRing3(void * arg)
 
     uintptr_t userStackTop = userStackBottom + userStackPageCount * PageSize;
 
+    // DEBUG_TERM_ << "Initialized userland stack for app test main thread." << Terminals::EndLine;
+
     //  Then, deploy the runtime.
 
     StartupData * stdat = nullptr;
@@ -257,6 +265,8 @@ void * JumpToRing3(void * arg)
     stdat->MemoryImageStart = loadtestStart;
     stdat->MemoryImageEnd = loadtestEnd;
 
+    // DEBUG_TERM_ << "Deployed 64-bit runtime for app test process." << Terminals::EndLine;
+
     //  Finally, a region for test incrementation.
 
     vaddr_t testRegVaddr = 0x300000000000;
@@ -272,11 +282,13 @@ void * JumpToRing3(void * arg)
           "Stack is between %Xp and %Xp."
         , res, userStackBottom, userStackTop);
 
+    // DEBUG_TERM_ << "Created test region for app test process." << Terminals::EndLine;
+
     TestRegionLock.Release();
 
     //  And finish by going to ring 3.
 
-    DEBUG_TERM_ << "About to go to ring 3!" << EndLine;
+    // DEBUG_TERM_ << "About to go to ring 3!" << EndLine;
 
     CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(rtlib_base + Runtime64::Template.GetEntryPoint()));
 
