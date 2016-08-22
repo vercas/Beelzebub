@@ -1,1 +1,1 @@
-readelf -ateW apps/loadtest/build/loadtest.exe | less
+readelf -ateW .vmake/amd64.debug/apps/loadtest/loadtest.exe | less
