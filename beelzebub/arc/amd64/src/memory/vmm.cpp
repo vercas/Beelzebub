@@ -679,6 +679,10 @@ Handle Vmm::Translate(Execution::Process * proc, uintptr_t const vaddr, paddr_t 
 Handle Vmm::HandlePageFault(Execution::Process * proc
     , uintptr_t const vaddr, PageFaultFlags const flags)
 {
+    if unlikely(0 != (flags & PageFaultFlags::Present))
+        return HandleResult::Failed;
+    //  Page is present. This means this is an access (write/execute) failure.
+
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
     Memory::Vas * vas = &(proc->Vas);
@@ -692,13 +696,9 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     vaddr_t const vaddr_algn = RoundDown(vaddr, PageSize);
     MemoryRegion * reg;
 
-#define RETURN(HRES) do { res = HandleResult::HRES; goto end; } while (false)
-
-    if unlikely(0 != (flags & PageFaultFlags::Present))
-        RETURN(Failed);
-    //  Page is present. This means this is an access (write/execute) failure.
-
     vas->Lock.AcquireAsReader();
+
+#define RETURN(HRES) do { res = HandleResult::HRES; goto end; } while (false)
 
     if (vas->LastSearched != nullptr && vas->LastSearched->Contains(vaddr))
         reg = vas->LastSearched;
@@ -765,7 +765,8 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
         //  This was a request in userland, therefore the page contents need to
         //  be TERMINATED.
 
-        memset(reinterpret_cast<void *>(vaddr_algn), 0xCA, PageSize);
+        withWriteProtect (false)
+            memset(reinterpret_cast<void *>(vaddr_algn), 0xCA, PageSize);
         //  It's all CACA!
     }
 
@@ -868,7 +869,8 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
         if likely(allocSucceeded)
         {
             if likely(0 != (type & MemoryAllocationOptions::VirtualUser))
-                memset(reinterpret_cast<void *>(vaddr), 0xCA, size);
+                withWriteProtect (false)
+                    memset(reinterpret_cast<void *>(vaddr), 0xCA, size);
 
             return HandleResult::Okay;
         }

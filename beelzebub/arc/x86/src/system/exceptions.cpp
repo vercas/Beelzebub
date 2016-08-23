@@ -253,8 +253,11 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS)
 void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 {
     vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
+    auto pff = (PageFaultFlags)(state->ErrorCode);
 
-    Handle res = Vmm::HandlePageFault(nullptr, CR2, (PageFaultFlags)(state->ErrorCode));
+    Handle res {};
+
+    res = Vmm::HandlePageFault(nullptr, CR2, pff);
 
     if likely(res.IsOkayResult())
         return;
