@@ -321,6 +321,19 @@ namespace Beelzebub { namespace Terminals
 
         return term << "[ELF Symbol | NON-EXISTENT ]";
     }
+
+    template<>
+    TerminalBase & operator << <Elf>(TerminalBase & term, Elf const value)
+    {
+        if (value.IsElf32())
+            return term << *(value.H1) << EndLine
+                        << *(value.GetH2_32()) << EndLine
+                        << *(value.GetH3()) << EndLine;
+        else
+            return term << *(value.H1) << EndLine
+                        << *(value.GetH2_64()) << EndLine
+                        << *(value.GetH3()) << EndLine;
+    }
 }}
 
 /****************
