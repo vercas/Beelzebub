@@ -4,14 +4,14 @@
         {
             "name": "Beelzebub",
             "path": ".",
-            "folder_exclude_patterns": ["build", ".vs"],
+            "folder_exclude_patterns": ["build", ".vs", ".vmake", ".git"],
         }
     ],
     "build_systems":
     [
         {
             "name": "Beelzebub - Debug - AMD64 - All Tests",
-            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 0 Beelzebub debug amd64",
+            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 8 Beelzebub debug amd64",
             
             "working_dir": "$project_path",
             "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
@@ -28,7 +28,7 @@
         },
         {
             "name": "Beelzebub - Profile - AMD64 - All Tests",
-            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 0 Beelzebub profile amd64",
+            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 8 Beelzebub profile amd64",
             
             "working_dir": "$project_path",
             "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
@@ -45,7 +45,7 @@
         },
         {
             "name": "Beelzebub - Release - AMD64 - All Tests",
-            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 0 Beelzebub release amd64",
+            "cmd": "lua vmakefile.lua -t all --mtune=corei7-avx -j 8 Beelzebub release amd64",
             
             "working_dir": "$project_path",
             "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
