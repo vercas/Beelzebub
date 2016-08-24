@@ -59,7 +59,11 @@ __extern __bland __used void _start(char * args)
     //  At this point, all registers should have nice null values, 'xept the ones
     //  used to pass arguments.
 
-    bool legacy = BeelMainAddress == nullptr;
+    void * beelMainAddress = BeelMainAddress;
+
+    asm volatile("" : "+rm"(beelMainAddress));
+
+    bool legacy = beelMainAddress == nullptr; 
 
     int argc = -1;
     char * * argv = nullptr;
