@@ -39,13 +39,26 @@
 
 #pragma once
 
-#include <handles.h>
+#include <execution/elf.hpp>
 
-namespace Beelzebub
+namespace Beelzebub { namespace Execution
 {
-    typedef void (* EntryPointFunction)(char * args);
+    /**
+     * <summary>Contains methods for dealing with the current process image.</summary>
+     */
+    class ProcessImage
+    {
+    public:
+        /*  Initialization  */
 
-    __shared __weak __bland Handle InitializeRuntime(bool legacy, char * args, char * * & argv, int & argc);
+        static Handle Initialize();
 
-    __shared __weak __bland void QuitProcess(Handle hRes, int iRes);
-}
+        /*  Symbols  */
+
+        static Elf::Symbol ResolveSymbol(char const * name, void * lddata = nullptr);
+
+        /*  Variables  */
+
+        static Elf const * const ApplicationImage;
+    };
+}}
