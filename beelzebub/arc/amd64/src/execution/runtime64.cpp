@@ -153,7 +153,7 @@ Handle Runtime64::Deploy(uintptr_t base, StartupData * & data)
 
     //  Then map the segments...
 
-    evRes = copy.LoadAndValidate64(&MapSegment64, &UnmapSegment64, nullptr);
+    evRes = copy.LoadAndValidate64(&MapSegment64, &UnmapSegment64, nullptr, nullptr);
 
     if (evRes != ElfValidationResult::Success)
     {

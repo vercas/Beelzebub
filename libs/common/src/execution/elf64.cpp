@@ -325,7 +325,7 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
         return ElfValidationResult::Unloadable;
 }
 
-ElfValidationResult Elf::LoadAndValidate64(Elf::SegmentMapper64Func segmap, Elf::SegmentUnmapper64Func segunmap, void * lddata) const
+ElfValidationResult Elf::LoadAndValidate64(Elf::SegmentMapper64Func segmap, Elf::SegmentUnmapper64Func segunmap, Elf::SymbolResolverFunc symres, void * lddata) const
 {
     if unlikely(!this->Loadable)
         return ElfValidationResult::Unloadable;
@@ -388,7 +388,7 @@ skipRollback:
         {
             ElfRelEntry_64 const & rel = this->REL_64[i];
 
-            res = PerformRelocation64(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData());
+            res = PerformRelocation64(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData(), symres, lddata);
 
             if (res != ElfValidationResult::Success)
                 goto rollbackMapping;
@@ -399,7 +399,7 @@ skipRollback:
         {
             ElfRelaEntry_64 const & rel = this->RELA_64[i];
 
-            res = PerformRelocation64(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData());
+            res = PerformRelocation64(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData(), symres, lddata);
 
             if (res != ElfValidationResult::Success)
                 goto rollbackMapping;
@@ -412,7 +412,7 @@ skipRollback:
             {
                 ElfRelEntry_64 const & rel = this->PLT_REL_64[i];
 
-                res = PerformRelocation64(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData());
+                res = PerformRelocation64(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData(), symres, lddata);
 
                 if (res != ElfValidationResult::Success)
                     goto rollbackMapping;
@@ -422,7 +422,7 @@ skipRollback:
             {
                 ElfRelaEntry_64 const & rel = this->PLT_RELA_64[i];
 
-                res = PerformRelocation64(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData());
+                res = PerformRelocation64(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), rel.Info.GetData(), symres, lddata);
 
                 if (res != ElfValidationResult::Success)
                     goto rollbackMapping;
@@ -455,10 +455,11 @@ Elf::Symbol Elf::GetSymbol64(uint32_t index) const
         sym.Info.GetType(),
         sym.Info.GetBinding(),
         sym.Other.GetVisibility(),
-        true
+        true,
+        sym.SectionIndex != SHN_UNDEF,
     };
 
-    if (sym.SectionIndex != SHN_UNDEF && sym.SectionIndex != SHN_ABS)
+    if (ret.Defined && sym.SectionIndex != SHN_ABS)
     {
         // if (ret.Binding != ElfSymbolBinding::Weak)
             ret.Value += this->GetLocationDifference();

@@ -325,7 +325,7 @@ ElfValidationResult Elf::ValidateParseElf32(Elf::SegmentValidatorFunc segval, vo
         return ElfValidationResult::Unloadable;
 }
 
-ElfValidationResult Elf::LoadAndValidate32(Elf::SegmentMapper32Func segmap, Elf::SegmentUnmapper32Func segunmap, void * lddata) const
+ElfValidationResult Elf::LoadAndValidate32(Elf::SegmentMapper32Func segmap, Elf::SegmentUnmapper32Func segunmap, Elf::SymbolResolverFunc symres, void * lddata) const
 {
     if unlikely(!this->Loadable)
         return ElfValidationResult::Unloadable;
@@ -388,7 +388,7 @@ skipRollback:
         {
             ElfRelEntry_32 const & rel = this->REL_32[i];
 
-            res = PerformRelocation32(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), 0);
+            res = PerformRelocation32(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), 0, symres, lddata);
 
             if (res != ElfValidationResult::Success)
                 goto rollbackMapping;
@@ -399,7 +399,7 @@ skipRollback:
         {
             ElfRelaEntry_32 const & rel = this->RELA_32[i];
 
-            res = PerformRelocation32(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), 0);
+            res = PerformRelocation32(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), 0, symres, lddata);
 
             if (res != ElfValidationResult::Success)
                 goto rollbackMapping;
@@ -412,7 +412,7 @@ skipRollback:
             {
                 ElfRelEntry_32 const & rel = this->PLT_REL_32[i];
 
-                res = PerformRelocation32(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), 0);
+                res = PerformRelocation32(this, rel.Offset, 0, rel.Info.GetType(), rel.Info.GetSymbol(), 0, symres, lddata);
 
                 if (res != ElfValidationResult::Success)
                     goto rollbackMapping;
@@ -422,7 +422,7 @@ skipRollback:
             {
                 ElfRelaEntry_32 const & rel = this->PLT_RELA_32[i];
 
-                res = PerformRelocation32(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), 0);
+                res = PerformRelocation32(this, rel.Offset, rel.Append, rel.Info.GetType(), rel.Info.GetSymbol(), 0, symres, lddata);
 
                 if (res != ElfValidationResult::Success)
                     goto rollbackMapping;
@@ -455,10 +455,11 @@ Elf::Symbol Elf::GetSymbol32(uint32_t index) const
         sym.Info.GetType(),
         sym.Info.GetBinding(),
         sym.Other.GetVisibility(),
-        true
+        true,
+        sym.SectionIndex != SHN_UNDEF,
     };
 
-    if (sym.SectionIndex != SHN_UNDEF && sym.SectionIndex != SHN_ABS)
+    if (ret.Defined && sym.SectionIndex != SHN_ABS)
     {
         // if (ret.Binding != ElfSymbolBinding::Weak)
             ret.Value += this->GetLocationDifference();

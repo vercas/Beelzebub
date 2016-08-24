@@ -41,7 +41,7 @@
 
 using namespace Beelzebub::Terminals;
 
-static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset, uintptr_t A, ElfRelType rtype, uint32_t symInd, uint32_t data)
+static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset, uintptr_t A, ElfRelType rtype, uint32_t symInd, uint32_t data, Elf::SymbolResolverFunc symres, void * lddata)
 {
     ptrdiff_t const B = elf->GetLocationDifference();
 
@@ -55,8 +55,8 @@ static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset
     } const addr = {reinterpret_cast<uint64_t *>(B + offset)};
 
     Elf::Symbol sym = elf->GetSymbol(symInd);
-    uintptr_t S = sym.Value;
     size_t Z = sym.Size;
+    //  The symbol size is accurate even if the symbol is not defined.
 
     //  Now all the information for processing the relocation has been optained.
 
@@ -142,7 +142,12 @@ static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset
     //  actual relocation, the symbol must be looked up in *all* the loaded
     //  executable images...
 
-    //  TODO: Global symbol resolution!
+    if likely(symres != nullptr)
+    {
+        sym = symres(sym.Name, lddata);
+    }
+
+    uintptr_t S = sym.Value;
 
     //  Final step is performing the actual relocation.
 

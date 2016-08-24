@@ -39,7 +39,7 @@
 
 using namespace Beelzebub::Terminals;
 
-static ElfValidationResult PerformRelocation32(Elf const * elf, uintptr_t offset, uintptr_t append, ElfRelType rtype, uint32_t symInd, uint32_t data)
+static ElfValidationResult PerformRelocation32(Elf const * elf, uintptr_t offset, uintptr_t append, ElfRelType rtype, uint32_t symInd, uint32_t data, Elf::SymbolResolverFunc symres, void * lddata)
 {
 
 }

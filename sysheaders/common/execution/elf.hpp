@@ -921,8 +921,10 @@ namespace Beelzebub { namespace Execution
             ElfSymbolType Type;
             ElfSymbolBinding Binding;
             ElfSymbolVisibility Visibility;
-            bool Exists;
+            bool Exists, Defined;
         };
+
+        typedef Symbol (* SymbolResolverFunc)(char const * name, void * data);
 
         /*  Statics  */
 
@@ -952,8 +954,8 @@ namespace Beelzebub { namespace Execution
         ElfValidationResult ValidateAndParse(HeaderValidatorFunc headerval, SegmentValidatorFunc segval, void * valdata);
         ElfValidationResult Relocate(uintptr_t newAddress);
 
-        ElfValidationResult LoadAndValidate32(SegmentMapper32Func segmap, SegmentUnmapper32Func segunmap, void * lddata) const;
-        ElfValidationResult LoadAndValidate64(SegmentMapper64Func segmap, SegmentUnmapper64Func segunmap, void * lddata) const;
+        ElfValidationResult LoadAndValidate32(SegmentMapper32Func segmap, SegmentUnmapper32Func segunmap, SymbolResolverFunc symres, void * lddata) const;
+        ElfValidationResult LoadAndValidate64(SegmentMapper64Func segmap, SegmentUnmapper64Func segunmap, SymbolResolverFunc symres, void * lddata) const;
 
         Symbol GetSymbol(uint32_t index) const;
         Symbol GetSymbol(char const * name) const;
