@@ -62,7 +62,16 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
 
     ASSERT(segVaddrEnd > segVaddr);
 
-    Handle res = MemoryRequest(segVaddr, segVaddrEnd - segVaddr, MemoryRequestOptions::None);
+    MemoryRequestOptions mreqOpts = MemoryRequestOptions::Commit;
+
+    if (0 != (phdr.Flags & ElfProgramHeaderFlags::Executable))
+        mreqOpts |= MemoryRequestOptions::Executable;
+
+    //if (0 != (phdr.Flags & ElfProgramHeaderFlags::Writable))
+        mreqOpts |= MemoryRequestOptions::Writable;
+    //  TODO: Syscall to change page flags.
+
+    Handle res = MemoryRequest(segVaddr, segVaddrEnd - segVaddr, mreqOpts);
     auto resPtr = res.GetPage();
 
     if unlikely(resPtr == nullptr)
