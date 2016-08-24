@@ -112,6 +112,8 @@ namespace Beelzebub { namespace Debug
 
 #ifdef __BEELZEBUB_KERNEL
     extern Synchronization::SpinlockUninterruptible<> MsgSpinlock;
+#else
+    __shared __cold __bland Terminals::TerminalBase * GetDebugTerminal();
 #endif
 
     __cold __noinline __noreturn void CatchFire(char const * const file

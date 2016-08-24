@@ -41,109 +41,112 @@
 #include <crt0.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Debug;
 using namespace Beelzebub::Terminals;
 
-TerminalBase * Beelzebub::Debug::DebugTerminal;
+TerminalBase * Debug::DebugTerminal;
 
-namespace Beelzebub { namespace Debug
+TerminalBase * Debug::GetDebugTerminal()
 {
-    void CatchFire(char const * const file
-                 , size_t const line
-                 , char const * const cond
-                 , char const * const msg)
+    return DebugTerminal;
+}
+
+void Debug::CatchFire(char const * const file
+                    , size_t const line
+                    , char const * const cond
+                    , char const * const msg)
+{
+    if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
     {
-        if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
+        DebugTerminal->WriteLine("");
+        DebugTerminal->Write("CAUGHT FIRE at line ");
+        DebugTerminal->WriteUIntD(line);
+        DebugTerminal->Write(" of \"");
+        DebugTerminal->Write(file);
+
+        if (msg == nullptr)
+            DebugTerminal->WriteLine("\".");
+        else
         {
-            DebugTerminal->WriteLine("");
-            DebugTerminal->Write("CAUGHT FIRE at line ");
-            DebugTerminal->WriteUIntD(line);
-            DebugTerminal->Write(" of \"");
-            DebugTerminal->Write(file);
-
-            if (msg == nullptr)
-                DebugTerminal->WriteLine("\".");
-            else
-            {
-                DebugTerminal->WriteLine("\":");
-                DebugTerminal->WriteLine(msg);
-            }
-        }
-
-        QuitProcess(HandleResult::ImmediateTermination, -1);
-
-        //  Spin when things go haywire.
-        while (true) ;
-        __unreachable_code;
-    }
-
-    __cold __noinline __noreturn void CatchFire(char const * const file
-                                              , size_t const line
-                                              , char const * const cond
-                                              , char const * const fmt, va_list args)
-    {
-        if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
-        {
-            DebugTerminal->WriteLine("");
-            DebugTerminal->Write(">-- CAUGHT FIRE at line ");
-            DebugTerminal->WriteUIntD(line);
-            DebugTerminal->Write(" of \"");
-            DebugTerminal->Write(file);
             DebugTerminal->WriteLine("\":");
-
-            DebugTerminal->WriteLine(cond);
-
-            if (fmt != nullptr)
-                DebugTerminal->Write(fmt, args);
+            DebugTerminal->WriteLine(msg);
         }
-
-        QuitProcess(HandleResult::ImmediateTermination, -1);
-
-        //  Spin when things go haywire.
-        while (true) ;
-        __unreachable_code;
     }
 
-    void CatchFireFormat(char const * const file
+    QuitProcess(HandleResult::ImmediateTermination, -1);
+
+    //  Spin when things go haywire.
+    while (true) ;
+    __unreachable_code;
+}
+
+static __cold __noreturn void CatchFireVarargs(char const * const file
+                                             , size_t const line
+                                             , char const * const cond
+                                             , char const * const fmt, va_list args)
+{
+    if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
+    {
+        DebugTerminal->WriteLine("");
+        DebugTerminal->Write(">-- CAUGHT FIRE at line ");
+        DebugTerminal->WriteUIntD(line);
+        DebugTerminal->Write(" of \"");
+        DebugTerminal->Write(file);
+        DebugTerminal->WriteLine("\":");
+
+        DebugTerminal->WriteLine(cond);
+
+        if (fmt != nullptr)
+            DebugTerminal->Write(fmt, args);
+    }
+
+    QuitProcess(HandleResult::ImmediateTermination, -1);
+
+    //  Spin when things go haywire.
+    while (true) ;
+    __unreachable_code;
+}
+
+void Debug::CatchFireFormat(char const * const file
+                          , size_t const line
+                          , char const * const cond
+                          , char const * const fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+
+    CatchFireVarargs(file, line, cond, fmt, args);
+    //  That function will never return.
+
+    va_end(args);
+}
+
+void Debug::Assert(bool const condition
+                 , char const * const file
+                 , size_t const line
+                 , char const * const msg)
+{
+    if unlikely(!condition)
+        CatchFire(file, line, "", msg);
+}
+
+void Debug::AssertFormat(bool const condition
+                       , char const * const file
                        , size_t const line
-                       , char const * const cond
                        , char const * const fmt, ...)
+{
+    if unlikely(!condition)
     {
         va_list args;
 
         va_start(args, fmt);
 
-        CatchFire(file, line, cond, fmt, args);
-        //  That function will never return.
+        CatchFireVarargs(file, line, "", fmt, args);
+        //  That function will never return either.
 
         va_end(args);
     }
 
-    void Assert(bool const condition
-              , char const * const file
-              , size_t const line
-              , char const * const msg)
-    {
-        if unlikely(!condition)
-            CatchFire(file, line, "", msg);
-    }
-
-    void AssertFormat(bool const condition
-                    , char const * const file
-                    , size_t const line
-                    , char const * const fmt, ...)
-    {
-        if unlikely(!condition)
-        {
-            va_list args;
-
-            va_start(args, fmt);
-
-            CatchFire(file, line, "", fmt, args);
-            //  That function will never return either.
-
-            va_end(args);
-        }
-
-        //  No reason to mess with the varargs otherwise.
-    }
-}}
+    //  No reason to mess with the varargs otherwise.
+}

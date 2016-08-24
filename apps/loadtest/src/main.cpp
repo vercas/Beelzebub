@@ -3,6 +3,8 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
 
+Terminals::TerminalBase * Debug::DebugTerminal = Debug::GetDebugTerminal();
+
 int main(int, char * *);
 
 static __used void * const main_ptr = (void *)(&main);
@@ -13,6 +15,7 @@ static __used void * const main_ptr = (void *)(&main);
 int main(int argc, char * * argv)
 {
 beginning:
+    DEBUG_TERM << "BEGIN!" << EndLine;
 
     uintptr_t volatile someAddress = 0x300000000000;
     uintptr_t volatile someEnd = someAddress + 0x30000;
