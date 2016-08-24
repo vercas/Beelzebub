@@ -62,7 +62,7 @@ void kernel_check(void)
 
     if (ehdr->e_ident_mag != ELFMAG ||
         ehdr->e_ident_class != ELFCLASS64 ||
-        ehdr->e_type != ELF_ET_EXEC) {
+        (ehdr->e_type != ELF_ET_EXEC && ehdr->e_type != ELF_ET_DYN)) {
         SCREEN_PANIC("Kernel is not an ELF64 executable.");
     }
 }
