@@ -21,7 +21,6 @@ addons:
 before_install:
 - bash grab_xcs_linux-amd64.sh
 - mkisofs --version || bash grab_genisoimage.sh
-- luarocks-admin --local-tree make_manifest
 - luarocks --local install luafilesystem
 - luarocks --local install vmake
 - luarocks path >> ~/.bashrc
