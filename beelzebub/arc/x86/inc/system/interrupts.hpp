@@ -343,5 +343,5 @@ namespace Beelzebub { namespace System
         int_cookie_t const Cookie;
     };
 
-    #define withInterrupts(val) with(InterruptGuard<val> MCATS(_int_guard, __LINE__))
+    #define withInterrupts(val) with(Beelzebub::System::InterruptGuard<val> MCATS(_int_guard, __LINE__))
 }}
