@@ -47,7 +47,9 @@
     /*  Requests a number of pages of memory from the OS. */ \
     ENUMINST(MemoryRequest, SYSCALL_MEMORY_REQUEST, 100, "Memory Request") \
     /*  Releases a number of pages of memory to the OS. */ \
-    ENUMINST(MemoryRelease, SYSCALL_MEMORY_RELEASE, 101, "Memory Release")
+    ENUMINST(MemoryRelease, SYSCALL_MEMORY_RELEASE, 101, "Memory Release") \
+    /*  Copies a chunk of memory to the target address. */ \
+    ENUMINST(MemoryCopy   , SYSCALL_MEMORY_COPY   , 102, "Memory Copy"   )
 
 typedef
 #ifdef __cplusplus

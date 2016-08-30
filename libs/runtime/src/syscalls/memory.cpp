@@ -67,3 +67,14 @@ handle_t Beelzebub::MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t op
     return PerformSyscall3(SyscallSelection::MemoryRelease
         , reinterpret_cast<void *>(addr), (uintptr_t)size, (uintptr_t)(int)opts);
 }
+
+handle_t Beelzebub::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
+{
+    if unlikely(dst == src || len == 0)
+        return HandleResult::Okay;
+
+    //  TODO?: Attempt a normal `memmov` and catch an exception somehow?
+
+    return PerformSyscall3(SyscallSelection::MemoryCopy
+        , reinterpret_cast<void *>(dst), src, (uintptr_t)len);
+}

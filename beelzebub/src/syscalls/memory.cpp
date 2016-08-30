@@ -39,10 +39,15 @@
 
 #include <syscalls/memory.h>
 #include <memory/vmm.hpp>
+#include <system/cpu.hpp>
+#include <math.h>
+#include <string.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Syscalls;
+
+static constexpr size_t const ChunkSize = 4 * 1 << 20;  //  4 MiB.
 
 handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opts)
 {
@@ -101,4 +106,62 @@ handle_t Syscalls::MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t opt
         return HandleResult::ArgumentOutOfRange;
 
     return HandleResult::UnsupportedOperation;
+}
+
+handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
+{
+    if unlikely(dst == src || len == 0)
+        return HandleResult::Okay;
+
+    if unlikely(dst + len < dst || src + len < src
+        || dst < Vmm::UserlandStart || (dst + len) >= Vmm::UserlandEnd)
+        return HandleResult::ArgumentOutOfRange;
+    //  Overflow and boundaries check. Source need not be in userland half.
+
+    Handle res = Vmm::CheckMemoryRegion(nullptr, src, len
+        , MemoryCheckType::Userland | MemoryCheckType::Readable);
+    //  Source has to be accessible by userland, though.
+
+    assert(res.IsOkayResult()
+        , "Memory copy syscall source check failure: %H%n"
+          "dst = %Xp; src = %Xp; len = %up%n"
+        , res, dst, src, len);
+
+    if unlikely(!res.IsOkayResult())
+        return res;
+
+    res = Vmm::CheckMemoryRegion(nullptr, dst, len
+        , MemoryCheckType::Userland | MemoryCheckType::Readable);
+    //  Destination does *NOT* need to be writable! This syscall exists specifically
+    //  for userland to be able to modify its read-only pages.
+
+    assert(res.IsOkayResult()
+        , "Memory copy syscall destination check failure: %H%n"
+          "dst = %Xp; src = %Xp; len = %up%n"
+        , res, dst, src, len);
+
+    if unlikely(!res.IsOkayResult())
+        return res;
+
+    //  So everything *appears* to be okay. This will not be true for long.
+    //  TODO: Lock onto the regions or something like that. Or use kernel's exceptions
+    //  to catch a page fault if either the source or destination change.
+
+    //  Anyhow, this will perform the copy in 4-MiB chunks, between which the syscall
+    //  may actually be interrupted.
+
+    DEBUG_TERM_ << "Starting memory copy " << (void *)src << " -> " << (void *)dst << " (" << len << ")." << Terminals::EndLine;
+
+    for (size_t chunk = 0; chunk < len; chunk += ChunkSize, dst += ChunkSize, src += ChunkSize)
+    {
+        size_t curChunk = Minimum(ChunkSize, len - chunk);
+
+        DEBUG_TERM_ << "Copying chunk " << (void *)src << " -> " << (void *)dst << " (" << curChunk << ")." << Terminals::EndLine;
+
+        withInterrupts (false) withWriteProtect (false)
+            memmove(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), curChunk);
+        //  TODO: Exception handling, maybe?
+    }
+
+    return HandleResult::Okay;
 }

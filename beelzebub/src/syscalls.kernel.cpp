@@ -106,6 +106,9 @@ Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * arg1
     case SyscallSelection::MemoryRelease:
         return MemoryRelease(reinterpret_cast<uintptr_t>(arg1), (size_t)arg2, (mem_rel_opts_t)arg3);
 
+    case SyscallSelection::MemoryCopy:
+        return MemoryCopy(reinterpret_cast<uintptr_t>(arg1), arg2, (size_t)arg3);
+
     default:
         return HandleResult::SyscallSelectionInvalid;
     }
