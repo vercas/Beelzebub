@@ -80,7 +80,7 @@ Handle ProcessImage::Initialize()
 
     //  And map it.
 
-    DEBUG_TERM << _ApplicationImage << EndLine;
+    // DEBUG_TERM << _ApplicationImage << EndLine;
 
     evRes = _ApplicationImage.LoadAndValidate64(&MapSegment64, &UnmapSegment64, &ResolveSymbol, nullptr);
 
@@ -101,15 +101,10 @@ Handle ProcessImage::Initialize()
 
 Elf::Symbol ProcessImage::ResolveSymbol(char const * name, void * lddata)
 {
-    DEBUG_TERM << "Resolving symbol \"" << name << "\"." << EndLine;
-
     Elf::Symbol res = ApplicationImage->GetSymbol(name);
 
     if (res.Defined)
-    {
-        DEBUG_TERM << "In app: " << res << EndLine;
         return res;
-    }
 
     //  So it wasn't defined in the app itself... It would be if the app were relocatable.
     //  Therefore, it must be in a dependency. With the current design, the runtime library takes highest priority amongst them.
@@ -117,10 +112,7 @@ Elf::Symbol ProcessImage::ResolveSymbol(char const * name, void * lddata)
     res = STARTUP_DATA.RuntimeImage.GetSymbol(name);
 
     if likely(res.Defined)
-    {
-        DEBUG_TERM << "In runtime: " << res << EndLine;
         return res;
-    }
     //  No? Ought to be in another dependency.
 
     //  TODO: Check other (loaded) dependencies.

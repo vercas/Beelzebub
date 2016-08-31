@@ -992,7 +992,13 @@ Handle Vmm::CheckMemoryRegion(Execution::Process * proc
     if unlikely((reg->Flags & mandatoryFlags) != mandatoryFlags)
         RETURN(Failed);
 
-    //  Reaching this point means this page is meant to be allocated.
+    if unlikely((0 != (type & MemoryCheckType::Private))
+         && (MemoryAllocationOptions::Share   == (reg->Type & MemoryAllocationOptions::PurposeMask)
+          || MemoryAllocationOptions::Runtime == (reg->Type & MemoryAllocationOptions::PurposeMask)))
+        RETURN(Failed);
+    //  Private memory was asked for, and this is shared or part of the runtime.
+
+    //  Reaching this point means this region is passing the check.
 
 next_region:
     if unlikely(vaddr_end > reg->Range.End)

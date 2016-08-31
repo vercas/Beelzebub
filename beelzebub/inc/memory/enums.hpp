@@ -114,7 +114,7 @@ namespace Beelzebub { namespace Memory
         //  allocation of physical memory will be performed now or on demand.
         //  Any MemoryFlags specified are ignored.
         Reserve              = 0x00000000,
-        //  The pages are to be used by the kernel.
+        //  The pages are to be managed internally by the kernel.
         Used                 = 0x40000000,
         //  The physical pages will be allocated immediately.
         Commit               = 0x80000000,
@@ -164,6 +164,7 @@ namespace Beelzebub { namespace Memory
         Writable = 0x1,
         Free     = 0x2,
         Userland = 0x4,
+        Private  = 0x8, //  Means it's owned exclusively by the process in question.
     };
 
     ENUMOPS(MemoryCheckType)

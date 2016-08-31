@@ -67,7 +67,7 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
     if (0 != (phdr.Flags & ElfProgramHeaderFlags::Executable))
         mreqOpts |= MemoryRequestOptions::Executable;
 
-    //if (0 != (phdr.Flags & ElfProgramHeaderFlags::Writable))
+    if (0 != (phdr.Flags & ElfProgramHeaderFlags::Writable))
         mreqOpts |= MemoryRequestOptions::Writable;
     //  TODO: Syscall to change page flags.
 
@@ -90,8 +90,11 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
         return false;
     }
 
-    memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
-        ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
+    res = MemoryCopy(reinterpret_cast<uintptr_t>(loc + phdr.VAddr)
+        , reinterpret_cast<uintptr_t>(img + phdr.Offset), phdr.PSize);
+
+    if unlikely(!res.IsOkayResult())
+        return false;
 
     if (phdr.VSize > phdr.PSize)
         memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)

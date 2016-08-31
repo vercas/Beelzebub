@@ -68,7 +68,7 @@ static Thread testThread;
 static Thread testWatcher;
 static Process testProcess;
 
-static uintptr_t loadtestStart = nullvaddr, loadtestEnd = nullvaddr;
+static uintptr_t loadtestStart = nullvaddr, loadtestEnd = nullvaddr, appVaddr = nullvaddr;
 static uintptr_t const userStackPageCount = 254;
 
 static __cold void * JumpToRing3(void *);
@@ -76,54 +76,6 @@ static __cold void * WatchTestThread(void *);
 
 __startup Handle HandleLoadtest(uintptr_t const vaddr, size_t const size)
 {
-    //  First make it accessible to userland.
-    //  It doesn't matter if other parts of the initrd are affected.
-    //  TODO: Yet?
-
-    vaddr_t const firstPage = RoundDown(vaddr, PageSize);
-    vaddr_t const lastPage = RoundUp(vaddr + size, PageSize);
-
-    for (size_t offset = 0; firstPage + offset < lastPage; offset += PageSize)
-    {
-        Handle res = Vmm::SetPageFlags(&BootstrapProcess, firstPage + offset
-            , MemoryFlags::Global | MemoryFlags::Userland);
-        //  Modules are normally global-supervisor-writable. This one needs to
-        //  be global-userland-readable.
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to change flags of page at %Xp for loadtest app: %H."
-            , firstPage + offset, res);
-    }
-
-    // DEBUG_TERM << EndLine
-    //     << "############################## LOADTEST APP START ##############################"
-    //     << EndLine;
-
-    // ElfHeader1 * eh1 = reinterpret_cast<ElfHeader1 *>(addr);
-
-    // DEBUG_TERM << *eh1 << EndLine;
-
-    // ASSERT(eh1->Identification.Class == ElfClass::Elf64);
-    // ASSERT(eh1->Identification.DataEncoding == ElfDataEncoding::LittleEndian);
-
-    // ElfHeader2_64 * eh2 = reinterpret_cast<ElfHeader2_64 *>(addr + sizeof(ElfHeader1));
-
-    // DEBUG_TERM << Hexadecimal << *eh2 << Decimal << EndLine;
-
-    // // entryPoint = eh2->EntryPoint;
-
-    // ElfHeader3 * eh3 = reinterpret_cast<ElfHeader3 *>(addr + sizeof(ElfHeader1) + sizeof(ElfHeader2_64));
-
-    // DEBUG_TERM << *eh3 << EndLine;
-
-    // ASSERT(eh3->SectionHeaderTableEntrySize == sizeof(ElfSectionHeader_64)
-    //     , "Unusual section header type: %us; expected %us."
-    //     , (size_t)(eh3->SectionHeaderTableEntrySize), sizeof(ElfSectionHeader_64));
-
-    // DEBUG_TERM << EndLine
-    //     << "############################### LOADTEST APP END ###############################"
-    //     << EndLine;
-
     loadtestStart = vaddr;
     loadtestEnd = vaddr + size;
 
@@ -260,10 +212,23 @@ void * JumpToRing3(void * arg)
 
     ASSERT(stdat != nullptr);
 
-    //  Then give the runtime relevant data.
+    //  Then pass on the app image.
 
-    stdat->MemoryImageStart = loadtestStart;
-    stdat->MemoryImageEnd = loadtestEnd;
+    res = Vmm::AllocatePages(nullptr
+        , RoundUp(loadtestEnd - loadtestStart, PageSize) / PageSize
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
+        , MemoryFlags::Userland | MemoryFlags::Writable, appVaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate pages for test app image: %H."
+        , res);
+
+    memmove(reinterpret_cast<void *>(appVaddr)
+        , reinterpret_cast<void const *>(loadtestStart)
+        , loadtestEnd - loadtestStart);
+
+    stdat->MemoryImageStart = appVaddr;
+    stdat->MemoryImageEnd = loadtestEnd - loadtestStart + appVaddr;
 
     // DEBUG_TERM_ << "Deployed 64-bit runtime for app test process." << Terminals::EndLine;
 

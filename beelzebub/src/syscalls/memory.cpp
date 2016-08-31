@@ -131,9 +131,10 @@ handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
         return res;
 
     res = Vmm::CheckMemoryRegion(nullptr, dst, len
-        , MemoryCheckType::Userland | MemoryCheckType::Readable);
+        , MemoryCheckType::Userland | MemoryCheckType::Readable
+        | MemoryCheckType::Private);
     //  Destination does *NOT* need to be writable! This syscall exists specifically
-    //  for userland to be able to modify its read-only pages.
+    //  for userland to be able to modify its own read-only pages.
 
     assert(res.IsOkayResult()
         , "Memory copy syscall destination check failure: %H%n"
