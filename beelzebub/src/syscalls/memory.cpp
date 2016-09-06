@@ -146,21 +146,59 @@ handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
 
     //  So everything *appears* to be okay. This will not be true for long.
     //  TODO: Lock onto the regions or something like that. Or use kernel's exceptions
-    //  to catch a page fault if either the source or destination change.
+    //  to catch a page fault if either the source or destination changed.
 
     //  Anyhow, this will perform the copy in 4-MiB chunks, between which the syscall
     //  may actually be interrupted.
-
-    DEBUG_TERM_ << "Starting memory copy " << (void *)src << " -> " << (void *)dst << " (" << len << ")." << Terminals::EndLine;
 
     for (size_t chunk = 0; chunk < len; chunk += ChunkSize, dst += ChunkSize, src += ChunkSize)
     {
         size_t curChunk = Minimum(ChunkSize, len - chunk);
 
-        DEBUG_TERM_ << "Copying chunk " << (void *)src << " -> " << (void *)dst << " (" << curChunk << ")." << Terminals::EndLine;
-
         withInterrupts (false) withWriteProtect (false)
             memmove(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), curChunk);
+        //  TODO: Exception handling, maybe?
+    }
+
+    return HandleResult::Okay;
+}
+
+handle_t Syscalls::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
+{
+    if unlikely(len == 0)
+        return HandleResult::Okay;
+
+    if unlikely(dst + len < dst
+        || dst < Vmm::UserlandStart || (dst + len) >= Vmm::UserlandEnd)
+        return HandleResult::ArgumentOutOfRange;
+    //  Overflow and boundaries check.
+
+    Handle res = Vmm::CheckMemoryRegion(nullptr, dst, len
+        , MemoryCheckType::Userland | MemoryCheckType::Readable
+        | MemoryCheckType::Private);
+    //  Destination does *NOT* need to be writable! This syscall exists specifically
+    //  for userland to be able to modify its own read-only pages.
+
+    assert(res.IsOkayResult()
+        , "Memory fill syscall destination check failure: %H%n"
+          "dst = %Xp; val = 0x%X1; len = %up%n"
+        , res, dst, val, len);
+
+    if unlikely(!res.IsOkayResult())
+        return res;
+
+    //  TODO: Lock onto the regions or something like that. Or use kernel's exceptions
+    //  to catch a page fault if destination changed.
+
+    //  Anyhow, this will perform the filling in 4-MiB chunks, between which the syscall
+    //  may actually be interrupted.
+
+    for (size_t chunk = 0; chunk < len; chunk += ChunkSize, dst += ChunkSize)
+    {
+        size_t curChunk = Minimum(ChunkSize, len - chunk);
+
+        withInterrupts (false) withWriteProtect (false)
+            memset(reinterpret_cast<void *>(dst), val, curChunk);
         //  TODO: Exception handling, maybe?
     }
 

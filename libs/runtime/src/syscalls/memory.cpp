@@ -78,3 +78,14 @@ handle_t Beelzebub::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
     return PerformSyscall3(SyscallSelection::MemoryCopy
         , reinterpret_cast<void *>(dst), src, (uintptr_t)len);
 }
+
+handle_t Beelzebub::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
+{
+    if unlikely(len == 0)
+        return HandleResult::Okay;
+
+    //  TODO?: Attempt a normal `memset` and catch an exception somehow?
+
+    return PerformSyscall3(SyscallSelection::MemoryFill
+        , reinterpret_cast<void *>(dst), (uintptr_t)val, (uintptr_t)len);
+}

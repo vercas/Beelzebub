@@ -90,15 +90,44 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
         return false;
     }
 
-    res = MemoryCopy(reinterpret_cast<uintptr_t>(loc + phdr.VAddr)
-        , reinterpret_cast<uintptr_t>(img + phdr.Offset), phdr.PSize);
+    if (0 == (phdr.Flags & ElfProgramHeaderFlags::Writable))
+    {
+        //  Segment is read-only? We need this syscall to write to a read-only page.
 
-    if unlikely(!res.IsOkayResult())
-        return false;
+        res = MemoryCopy(reinterpret_cast<uintptr_t>(loc + phdr.VAddr)
+            , reinterpret_cast<uintptr_t>(img + phdr.Offset), phdr.PSize);
+
+        if unlikely(!res.IsOkayResult())
+            return false;
+    }
+    else
+    {
+        //  Segment is writable, normal memcpy will do.
+
+        memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
+            ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
+    }
 
     if (phdr.VSize > phdr.PSize)
-        memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
-            , 0, phdr.VSize - phdr.PSize);
+    {
+        if (0 == (phdr.Flags & ElfProgramHeaderFlags::Writable))
+        {
+            //  Segment is read-only? We need this syscall to write to a read-only page.
+
+            res = MemoryFill(reinterpret_cast<uintptr_t>(loc + phdr.VAddr + phdr.PSize)
+                , 0, phdr.VSize - phdr.PSize);
+
+            if unlikely(!res.IsOkayResult())
+                return false;
+        }
+        else
+        {
+            //  Segment is writable, normal memcpy will do.
+
+            memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
+                , 0, phdr.VSize - phdr.PSize);
+        }
+    }
 
     return true;
 }

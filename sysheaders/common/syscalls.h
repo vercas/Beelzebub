@@ -49,7 +49,9 @@
     /*  Releases a number of pages of memory to the OS. */ \
     ENUMINST(MemoryRelease, SYSCALL_MEMORY_RELEASE, 101, "Memory Release") \
     /*  Copies a chunk of memory to the target address. */ \
-    ENUMINST(MemoryCopy   , SYSCALL_MEMORY_COPY   , 102, "Memory Copy"   )
+    ENUMINST(MemoryCopy   , SYSCALL_MEMORY_COPY   , 102, "Memory Copy"   ) \
+    /*  Fills a chunk of memory with a specific byte value. */ \
+    ENUMINST(MemoryFill   , SYSCALL_MEMORY_COPY   , 103, "Memory Fill"   )
 
 typedef
 #ifdef __cplusplus

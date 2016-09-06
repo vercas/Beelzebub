@@ -110,6 +110,7 @@ namespace Beelzebub {
 __shared handle_t MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opts);
 __shared handle_t MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t opts);
 __shared handle_t MemoryCopy(uintptr_t dst, uintptr_t src, size_t len);
+__shared handle_t MemoryFill(uintptr_t dst, uint8_t val, size_t len);
 
 #ifdef __cplusplus
     #ifdef __BEELZEBUB_KERNEL
