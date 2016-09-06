@@ -44,6 +44,7 @@
 #include <system/cpu_instructions.hpp>
 #include <system/domain.hpp>
 #include <system/msrs.hpp>
+#include <beel/structs.kernel.hpp>
 
 #include <execution/thread.hpp>
 #include <exceptions.hpp>
@@ -113,6 +114,7 @@ namespace Beelzebub { namespace System
         size_t Index;
 
         uintptr_t SyscallStack;
+        SyscallRegisters64 SyscallRegisters;
 
         //  All before this comment are reserved positions.
 

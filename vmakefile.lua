@@ -383,7 +383,14 @@ local function ArchitecturalComponent(name)
             return _.IncludeDirectories:Select(function(val) return "-I" .. tostring(val) end)
         end,
 
-        Opts_Includes = function(_) return _.Opts_Includes_Base end,
+        Opts_Includes_Nasm_Base = function(_)
+            return _.Opts_Includes_Base
+                :Select(function(dir) return dir .. "/" end)
+                :Append("-I" .. tostring(_.SysheadersPath) .. "/")
+        end,
+
+        Opts_Includes      = function(_) return _.Opts_Includes_Base      end,
+        Opts_Includes_Nasm = function(_) return _.Opts_Includes_Nasm_Base end,
 
         Opts_Libraries = function(_)
             return _.Libraries:Select(function(val)
@@ -449,6 +456,7 @@ end
 Project "Beelzebub" {
     Data = {
         Sysroot            = function(_) return _.outDir + "sysroot" end,
+        SysheadersPath     = function(_) return _.Sysroot + "usr/include" end,
         JegudielPath       = function(_) return _.outDir + "jegudiel.bin" end,
         CommonLibraryPath  = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
         RuntimeLibraryPath = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
@@ -526,25 +534,23 @@ Project "Beelzebub" {
 
                 return files
             end,
-
-            SysheadersDirectory = function(_) return _.Sysroot + "usr/include" end,
         },
 
         Directory = "sysheaders",
 
         Output = function(_)
             local files = _.Headers:Select(function(val)
-                return _.SysheadersDirectory + val:SkipDirs(2)
+                return _.SysheadersPath + val:SkipDirs(2)
             end)
 
             return files
         end,
 
         Rule "Copy Header" {
-            Filter = function(_, dst) return dst:StartsWith(_.SysheadersDirectory) end,
+            Filter = function(_, dst) return dst:StartsWith(_.SysheadersPath) end,
 
             Source = function(_, dst)
-                dst = dst:Skip(_.SysheadersDirectory)
+                dst = dst:Skip(_.SysheadersPath)
 
                 for arch in _.selArch:Hierarchy() do
                     local src = _.comp.Directory + arch.Name + dst
@@ -681,7 +687,7 @@ Project "Beelzebub" {
             Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", "-O2", "-flto", } end,
             Opts_CXX_CRT = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_CXX     = function(_) return _.Opts_CXX_CRT + List { "-O2", "-flto", } end,
-            Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.selArch.Data.Opts_NASM end,
+            Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
             Opts_GAS_CRT = function(_) return _.Opts_GCC end,
             Opts_GAS     = function(_) return _.Opts_GAS_CRT + List { "-flto" } end,
 
@@ -758,7 +764,7 @@ Project "Beelzebub" {
 
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.selArch.Data.Opts_NASM end,
+            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
             Opts_GAS  = function(_) return _.Opts_GCC end,
 
             Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
@@ -805,7 +811,7 @@ Project "Beelzebub" {
 
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.selArch.Data.Opts_NASM end,
+            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
             Opts_GAS  = function(_) return _.Opts_GCC end,
 
             Opts_LO = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } + _.Opts_GCC end,
@@ -863,7 +869,7 @@ Project "Beelzebub" {
 
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.selArch.Data.Opts_NASM end,
+            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
             Opts_GAS  = function(_) return _.Opts_GCC end,
 
             Opts_LO = function(_) return _.Opts_GCC + List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } end,
