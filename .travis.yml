@@ -19,11 +19,9 @@ addons:
     - parallel
 
 before_install:
-- bash grab_xcs_linux-amd64.sh
-- mkisofs --version || bash grab_genisoimage.sh
-- luarocks --local install luafilesystem
-- luarocks --local install vmake
-- luarocks path >> ~/.bashrc
+- lua util.lua grab-cross-compiler
+- genisoimage --version || lua util.lua grab-genisoimage
+- lua util.lua setup-luarocks
 
 before_script:
 - $(luarocks path)
