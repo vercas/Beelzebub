@@ -40,7 +40,7 @@
 #pragma once
 
 #include <system/lapic_registers.hpp>
-#include <handles.h>
+#include <beel/handles.h>
 
 #define LAPICREGFUNC1(name, prettyName, type)                             \
 static __forceinline type MCATS2(Get, prettyName)()               \

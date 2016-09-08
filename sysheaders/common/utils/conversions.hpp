@@ -39,8 +39,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
-#include <handles.h>
+#include <beel/handles.h>
 
 namespace Beelzebub { namespace Utils
 {

@@ -45,7 +45,7 @@
 
 #include <memory/paging.hpp>
 #include <synchronization/spinlock.hpp>
-#include <handles.h>
+#include <beel/handles.h>
 
 namespace Beelzebub { namespace Memory
 {

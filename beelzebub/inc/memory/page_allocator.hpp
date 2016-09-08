@@ -41,8 +41,8 @@
 
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
-#include <terminals/base.hpp>
-#include <handles.h>
+// #include <terminals/base.hpp>
+#include <beel/handles.h>
 
 namespace Beelzebub { namespace Memory
 {
@@ -246,14 +246,14 @@ namespace Beelzebub { namespace Memory
             }
         }
 
-        __forceinline Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term)
-        {
-            return term->WriteFormat("|%c|D@%Xp|R-%X4|A-%X2|I-%X4|"
-                , this->GetStatusChar(), this
-                , this->ReferenceCount.Load()
-                , this->Accesses.Load()
-                , (uint32_t)this->StackIndex);
-        }
+        // __forceinline Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term)
+        // {
+        //     return term->WriteFormat("|%c|D@%Xp|R-%X4|A-%X2|I-%X4|"
+        //         , this->GetStatusChar(), this
+        //         , this->ReferenceCount.Load()
+        //         , this->Accesses.Load()
+        //         , (uint32_t)this->StackIndex);
+        // }
 #endif
 
     };
@@ -429,7 +429,7 @@ namespace Beelzebub { namespace Memory
         /*  Debug  */
 
 #ifdef __BEELZEBUB__DEBUG
-        __cold Terminals::TerminalWriteResult PrintStackToTerminal(Terminals::TerminalBase * const term, bool const details);
+        // __cold Terminals::TerminalWriteResult PrintStackToTerminal(Terminals::TerminalBase * const term, bool const details);
 #endif
 
     };// __packed;

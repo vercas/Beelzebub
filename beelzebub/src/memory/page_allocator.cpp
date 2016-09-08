@@ -353,44 +353,44 @@ Handle PageAllocationSpace::PopPage(const pgind_t ind)
 /*  Debug  */
 
 #ifdef __BEELZEBUB__DEBUG
-TerminalWriteResult PageAllocationSpace::PrintStackToTerminal(TerminalBase * const term, const bool details)
-{
-    TerminalWriteResult tret;
-    uint32_t cnt;
+// TerminalWriteResult PageAllocationSpace::PrintStackToTerminal(TerminalBase * const term, const bool details)
+// {
+//     TerminalWriteResult tret;
+//     uint32_t cnt;
 
-    if (details)
-    {
-        TERMTRY0(term->WriteFormat("--|T|M|  Stack  Index  |   Page Index   | ... PR: %Xp-%Xp; STK: %Xp--%n", this->AllocationStart, this->AllocationEnd, this->Stack), tret);
+//     if (details)
+//     {
+//         TERMTRY0(term->WriteFormat("--|T|M|  Stack  Index  |   Page Index   | ... PR: %Xp-%Xp; STK: %Xp--%n", this->AllocationStart, this->AllocationEnd, this->Stack), tret);
 
-        for (size_t i = 0; i <= this->StackFreeTop; ++i)
-        {
-            TERMTRY1(term->Write("  |F|"), tret, cnt);
-            TERMTRY1(term->Write((i == this->Stack[i]) ? ' ' : 'X'), tret, cnt);
-            TERMTRY1(term->Write('|'), tret, cnt);
-            TERMTRY1(term->WriteHex64((uint64_t)i), tret, cnt);
-            TERMTRY1(term->Write('|'), tret, cnt);
-            TERMTRY1(term->WriteHex64((uint64_t)(this->Stack[i])), tret, cnt);
-            TERMTRY1(term->WriteLine(""), tret, cnt);
-        }
-    }
-    else
-    {
-        TERMTRY0(term->WriteFormat("--|T|M|  Stack  Index  |   Page Index   | ... PR: %Xp-%Xp; STK: %Xp--%n", this->MemoryStart, this->MemoryEnd, this->Stack), tret);
+//         for (size_t i = 0; i <= this->StackFreeTop; ++i)
+//         {
+//             TERMTRY1(term->Write("  |F|"), tret, cnt);
+//             TERMTRY1(term->Write((i == this->Stack[i]) ? ' ' : 'X'), tret, cnt);
+//             TERMTRY1(term->Write('|'), tret, cnt);
+//             TERMTRY1(term->WriteHex64((uint64_t)i), tret, cnt);
+//             TERMTRY1(term->Write('|'), tret, cnt);
+//             TERMTRY1(term->WriteHex64((uint64_t)(this->Stack[i])), tret, cnt);
+//             TERMTRY1(term->WriteLine(""), tret, cnt);
+//         }
+//     }
+//     else
+//     {
+//         TERMTRY0(term->WriteFormat("--|T|M|  Stack  Index  |   Page Index   | ... PR: %Xp-%Xp; STK: %Xp--%n", this->MemoryStart, this->MemoryEnd, this->Stack), tret);
 
-        for (size_t i = 0; i <= this->StackFreeTop; ++i)
-        {
-            TERMTRY1(term->Write("  |F|"), tret, cnt);
-            TERMTRY1(term->Write((i == this->Stack[i]) ? ' ' : 'X'), tret, cnt);
-            TERMTRY1(term->Write('|'), tret, cnt);
-            TERMTRY1(term->WriteHex64((uint64_t)i), tret, cnt);
-            TERMTRY1(term->Write('|'), tret, cnt);
-            TERMTRY1(term->WriteHex64((uint64_t)(this->Stack[i])), tret, cnt);
-            TERMTRY1(term->WriteLine(""), tret, cnt);
-        }
-    }
+//         for (size_t i = 0; i <= this->StackFreeTop; ++i)
+//         {
+//             TERMTRY1(term->Write("  |F|"), tret, cnt);
+//             TERMTRY1(term->Write((i == this->Stack[i]) ? ' ' : 'X'), tret, cnt);
+//             TERMTRY1(term->Write('|'), tret, cnt);
+//             TERMTRY1(term->WriteHex64((uint64_t)i), tret, cnt);
+//             TERMTRY1(term->Write('|'), tret, cnt);
+//             TERMTRY1(term->WriteHex64((uint64_t)(this->Stack[i])), tret, cnt);
+//             TERMTRY1(term->WriteLine(""), tret, cnt);
+//         }
+//     }
 
-    return tret;
-}
+//     return tret;
+// }
 #endif
 
 /***************************

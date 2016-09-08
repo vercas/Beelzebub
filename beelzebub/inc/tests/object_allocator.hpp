@@ -40,7 +40,7 @@
 #pragma once
 
 #include <synchronization/smp_barrier.hpp>
-#include <handles.h>
+#include <beel/handles.h>
 
 extern Beelzebub::Synchronization::SmpBarrier ObjectAllocatorTestBarrier1;
 extern Beelzebub::Synchronization::SmpBarrier ObjectAllocatorTestBarrier2;

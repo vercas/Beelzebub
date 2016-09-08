@@ -43,7 +43,7 @@
 #error This file must only be included in a Beelzebub kernel module.
 #endif
 
-#include <handles.h>
+#include <beel/handles.h>
 
 #include <beel/structs.kernel.hpp>
 

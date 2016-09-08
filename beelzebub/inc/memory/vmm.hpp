@@ -47,7 +47,6 @@
 #include <memory/enums.hpp>
 #include <memory/page_allocator.hpp>
 #include <synchronization/atomic.hpp>
-#include <handles.h>
 
 namespace Beelzebub { namespace Memory
 {

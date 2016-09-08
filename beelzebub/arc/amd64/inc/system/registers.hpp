@@ -41,7 +41,7 @@
 
 #include <system/registers_x86.hpp>
 #include <memory/paging.hpp>
-#include <handles.h>
+#include <beel/handles.h>
 
 namespace Beelzebub { namespace System
 {
