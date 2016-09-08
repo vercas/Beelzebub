@@ -86,34 +86,94 @@ end
 
 --------------------------------------------------------------------------------
 
+local function escapeForShell(s)
+    if #s < 1 then
+        return "\"\""
+    end
+
+    s = s:gsub('"', "\\\"")
+
+    if s:find("[^a-zA-Z0-9%+%-%*/=%.,_\"|]") then
+        return '"' .. s .. '"'
+    end
+
+    return s
+end
+
+local function shell(cmd, ...)
+    local function appendArg(arg, tab, errlvl)
+        errlvl = errlvl + 1
+
+        if arg == nil then
+            error("util.lua error: Shell command argument cannot be nil.", errlvl)
+        end
+
+        local argType = type(arg)
+
+        if argType == "table" then
+            for i = 1, #arg do
+                appendArg(arg[i], tab, errlvl + 1)
+            end
+        else
+            tab[#tab + 1] = escapeForShell(tostring(arg), tab)
+        end
+    end
+
+    local args, tab = {...}, {cmd}
+
+    for i = 1, #args do
+        appendArg(args[i], tab, 2)
+    end
+
+    cmd = table.concat(tab, " ")
+
+    local printCmd = false --   TODO
+
+    if printCmd then
+        print(cmd)
+    end
+
+    local okay, exitReason, code = os.execute(cmd)
+
+    if not okay then
+        error("util.lua failed to execute shell command"
+            .. (printCmd and "; " or (":\n" .. cmd .. "\n"))
+            .. "exit reason: " .. tostring(exitReason) .. "; status code: " .. tostring(code), 2)
+    end
+
+    return okay or false
+end
+
+--------------------------------------------------------------------------------
+
 if FUNC == FUNC_READELF then
 
-    os.execute("readelf -ateW " .. PROJ .. " | less")
+    shell("readelf", "-ateW", PROJ, "|", "less")
 
 --------------------------------------------------------------------------------
 
 elseif FUNC == FUNC_DISASSEMBLE then
 
-    os.execute("objdump -M intel -CdlSw " .. PROJ .. " | less")
+    shell("objdump", "-M", "intel", "-CdlSw", PROJ, "|", "less")
 
 --------------------------------------------------------------------------------
 
 elseif FUNC == FUNC_GRAB_XC then
 
-    os.execute("bash scripts/grab_xcs_linux-amd64.sh")
+    shell("bash", "scripts/grab_xcs_linux-amd64.sh")
 
 --------------------------------------------------------------------------------
 
 elseif FUNC == FUNC_GRAB_GENISOIMAGE then
 
-    os.execute("bash scripts/grab_genisoimage.sh")
+    shell("bash", "scripts/grab_genisoimage.sh")
 
 --------------------------------------------------------------------------------
 
 elseif FUNC == FUNC_SETUP_LR then
 
-    os.execute("luarocks --local install luafilesystem")
-    os.execute("luarocks --local install vmake")
+    shell("luarocks", "--local", "install", "luafilesystem")
+    shell("luarocks", "--local", "install", "vmake")
 
 --------------------------------------------------------------------------------
 
