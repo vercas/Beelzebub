@@ -127,12 +127,13 @@ void System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
     ASSERT(CpuDataSetUp
         , "CPU data should be set up prior to using the FPU.");
 
-    CpuData * cpuData = Cpu::GetData();
-    Thread * activeThread = cpuData->ActiveThread;
+    Thread * activeThread = Cpu::GetThread();
 
     ASSERT(activeThread != nullptr
         , "There should be an active thread when trying to use the FPU.");
 
+    CpuData * cpuData = Cpu::GetData();
+    
     if likely(cpuData->LastExtendedStateThread != activeThread)
     {
         if likely(activeThread->ExtendedState == nullptr)

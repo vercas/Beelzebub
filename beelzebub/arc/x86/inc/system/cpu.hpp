@@ -44,7 +44,6 @@
 #include <system/cpu_instructions.hpp>
 #include <system/domain.hpp>
 #include <system/msrs.hpp>
-#include <beel/structs.kernel.hpp>
 
 #include <execution/thread.hpp>
 #include <exceptions.hpp>
@@ -108,24 +107,13 @@ namespace Beelzebub { namespace System
     /**
      *  The data available to an individual CPU core.
      */
-    struct CpuData
+    struct CpuData : public CpuDataBase
     {
-        CpuData * SelfPointer;
-        size_t Index;
-
-        uintptr_t SyscallStack;
-        SyscallRegisters64 SyscallRegisters;
-
-        //  All before this comment are reserved positions.
-
         paddr_t LastAlienPml4;
         //  Used to invalidate TLBs when dealing with alien mappings, smartly.
 
         Domain * DomainDescriptor;
         Tss EmbeddedTss;
-
-        Execution::Thread * ActiveThread;
-        Execution::Process * ActiveProcess;
 
         ExceptionContext * XContext;
         Exception X;

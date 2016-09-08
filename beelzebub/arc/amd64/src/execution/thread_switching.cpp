@@ -58,8 +58,8 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 {
     Handle res;
 
-    Process * const thisProc = this->Owner;
-    Process * const otherProc = other->Owner;
+    Process * const thisProc = this->GetOwner();
+    Process * const otherProc = other->GetOwner();
 
     //msg("++ ");
 
@@ -88,7 +88,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     auto cpuData = Cpu::GetData();
 
     cpuData->ActiveThread = other;
-    cpuData->ActiveProcess = other->Owner;
+    cpuData->ActiveProcess = otherProc;
     cpuData->EmbeddedTss.Rsp[0] = other->KernelStackTop;
     cpuData->SyscallStack = other->KernelStackTop;
 

@@ -80,6 +80,8 @@ namespace Beelzebub { namespace Memory
 
         __hot Handle Allocate(vaddr_t & vaddr, size_t pageCnt
             , MemoryFlags flags, MemoryAllocationOptions type, bool lock = true);
+        __hot Handle Modify(vaddr_t vaddr, size_t pageCnt
+            , MemoryFlags flags, bool lock = true);
 
         __hot MemoryRegion * FindRegion(vaddr_t vaddr);
 

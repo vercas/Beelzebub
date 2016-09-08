@@ -157,6 +157,7 @@ static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset
 
     case R_AMD64_64:        *(addr.u64) = S + A;    break;
 
+    //  TODO: Beat up whoever came up with copy relocations.
     case R_AMD64_COPY: memcpy(addr.u8, reinterpret_cast<void *>(S), Z); break;
 
     case R_AMD64_GLOB_DAT:

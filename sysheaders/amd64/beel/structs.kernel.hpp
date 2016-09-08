@@ -41,8 +41,42 @@
 
 #include <metaprogramming.h>
 
+#ifdef __BEELZEBUB_KERNEL
+    #define MONIKER(NAME) MCATS(NAME, Base)
+#else
+    #define MONIKER(NAME) NAME
+#endif
+
 namespace Beelzebub
 {
+    /**
+     *  A unit of isolation.
+     */
+    class MONIKER(Process)
+    {
+        //  So far, nothing.
+    };
+
+    /**
+     *  A unit of execution.
+     */
+    class MONIKER(Thread)
+    {
+    protected:
+        /*  Constructor(s)  */
+
+        inline MONIKER(Thread)(MONIKER(Process) * owner)
+            : Owner( owner)
+        {
+            //  Nothing else.
+        }
+
+    public:
+        /*  Hierarchy  */
+
+        MONIKER(Process) * const Owner;
+    };
+
     struct SyscallRegisters64
     {
         uint64_t R15;
@@ -74,4 +108,21 @@ namespace Beelzebub
         uint32_t EBX;
         uint32_t EAX;
     };
+
+    /**
+     *  The data available to an individual CPU core.
+     */
+    struct MONIKER(CpuData)
+    {
+        MONIKER(CpuData) * SelfPointer;
+        size_t Index;
+
+        uintptr_t SyscallStack;
+        SyscallRegisters64 SyscallRegisters;
+
+        MONIKER(Thread) * ActiveThread;
+        MONIKER(Process) * ActiveProcess;
+    };
 }
+
+#undef MONIKER

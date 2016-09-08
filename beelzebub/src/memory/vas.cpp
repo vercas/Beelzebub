@@ -343,6 +343,36 @@ end:
     return res;
 }
 
+Handle Vas::Modify(vaddr_t vaddr, size_t pageCnt
+    , MemoryFlags flags, bool lock)
+{
+    if unlikely(this->FirstFree == nullptr)
+        return HandleResult::ObjectDisposed;
+
+    Handle res = HandleResult::Okay;
+
+    System::int_cookie_t cookie;
+
+    if likely(lock)
+    {
+        cookie = System::Interrupts::PushDisable();
+
+        this->Lock.AcquireAsWriter();
+    }
+
+    //  So, this is gonna suck a bit. There are... Lots of options.
+
+end:
+    if likely(lock)
+    {
+        this->Lock.ReleaseAsWriter();
+
+        System::Interrupts::RestoreState(cookie);
+    }
+
+    return res;
+}
+
 MemoryRegion * Vas::FindRegion(vaddr_t vaddr)
 {
     return this->Tree.Find<vaddr_t>(vaddr);

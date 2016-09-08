@@ -175,12 +175,12 @@ namespace Beelzebub { namespace System
                 #define __REG_A__ "eax"
             #endif
 
-            asm volatile ( "pushf                      \n\t"
-                           "pop %%" __REG_A__ "        \n\t"
-                           "bt %[bit], %%" __REG_A__ " \n\t"
-                           : "=@ccc"(res)
-                           : [bit]"rN"(9)
-                           : __REG_A__ );
+            asm volatile("pushf                      \n\t"
+                         "pop %%" __REG_A__ "        \n\t"
+                         "bt %[bit], %%" __REG_A__ " \n\t"
+                        : "=@ccc"(res)
+                        : [bit]"rN"(9)
+                        : __REG_A__);
 
             #undef __REG_A__
 
@@ -188,9 +188,9 @@ namespace Beelzebub { namespace System
 #else
             size_t flags;
 
-            asm volatile ( "pushf        \n\t"
-                           "pop %[flags] \n\t"
-                           : [flags]"=r"(flags) );
+            asm volatile("pushf        \n\t"
+                         "pop %[flags] \n\t"
+                        : [flags]"=r"(flags));
             //  Push and pop don't change any flags. Yay!
 
             return (flags & (size_t)(1 << 9)) != 0;
@@ -199,13 +199,13 @@ namespace Beelzebub { namespace System
 
         static inline void Enable()
         {
-            asm volatile ( "sti \n\t" : : : "memory" );
+            asm volatile("sti \n\t" : : : "memory");
             //  This is a memory barrier to prevent the compiler from moving things around it.
         }
 
         static inline void Disable()
         {
-            asm volatile ( "cli \n\t" : : : "memory" );
+            asm volatile("cli \n\t" : : : "memory");
             //  This is a memory barrier to prevent the compiler from moving things around it.
         }
 
@@ -223,12 +223,12 @@ namespace Beelzebub { namespace System
         {
             int_cookie_t cookie;
 
-            asm volatile ( "pushf      \n\t"
-                           "pop %[dst] \n\t"
-                           "cli        \n\t"
-                         : [dst]"=r"(cookie)
-                         :
-                         : "memory");
+            asm volatile("pushf      \n\t"
+                         "pop %[dst] \n\t"
+                         "cli        \n\t"
+                        : [dst]"=r"(cookie)
+                        :
+                        : "memory");
             
             /*  A bit of wisdom from froggey: ``On second thought, the constraint for flags ["cookie"] in
                 interrupt_disable [PushDisableInterrupts] should be "=r", not "=rm". If the compiler decided
@@ -252,12 +252,12 @@ namespace Beelzebub { namespace System
         {
             int_cookie_t cookie;
 
-            asm volatile ( "pushf      \n\t"
-                           "sti        \n\t"
-                           "pop %[dst] \n\t"
-                         : [dst]"=r"(cookie)
-                         :
-                         : "memory");
+            asm volatile("pushf      \n\t"
+                         "sti        \n\t"
+                         "pop %[dst] \n\t"
+                        : [dst]"=r"(cookie)
+                        :
+                        : "memory");
             
             return cookie;
         }
@@ -270,11 +270,11 @@ namespace Beelzebub { namespace System
          */
         static inline bool RestoreState(int_cookie_t const cookie)
         {
-            asm volatile ( "push %[src] \n\t"   //  PUT THE COOKIE DOWN!
-                           "popf        \n\t"
-                         :
-                         : [src]"rm"(cookie)
-                         : "memory", "cc" );
+            asm volatile("push %[src] \n\t"   //  PUT THE COOKIE DOWN!
+                         "popf        \n\t"
+                        :
+                        : [src]"rm"(cookie)
+                        : "memory", "cc");
 
             //  Here the cookie can safely be retrieved from the stack because
             //  RSP will change after push, not before.

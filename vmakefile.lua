@@ -455,12 +455,14 @@ end
 
 Project "Beelzebub" {
     Data = {
-        Sysroot            = function(_) return _.outDir + "sysroot" end,
-        SysheadersPath     = function(_) return _.Sysroot + "usr/include" end,
-        JegudielPath       = function(_) return _.outDir + "jegudiel.bin" end,
-        CommonLibraryPath  = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
-        RuntimeLibraryPath = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
-        KernelPath         = function(_) return _.outDir + "beelzebub.bin" end,
+        Sysroot                 = function(_) return _.outDir + "sysroot" end,
+        SysheadersPath          = function(_) return _.Sysroot + "usr/include" end,
+        JegudielPath            = function(_) return _.outDir + "jegudiel.bin" end,
+        CommonLibraryPath       = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
+        RuntimeLibraryPath      = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
+        KernelModuleLibraryPath = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
+        TestKernelModulePath    = function(_) return _.Sysroot + "kmods/test.kmod" end,
+        KernelPath              = function(_) return _.outDir + "beelzebub.bin" end,
 
         CrtFiles = function(_)
             return _.selArch.Data.CrtFiles:Select(function(val)
@@ -793,6 +795,53 @@ Project "Beelzebub" {
         },
     },
 
+    ArchitecturalComponent "Kernel Module Library" {
+        Data = {
+            BinaryPath = function(_) return _.ObjectsDirectory + _.KernelModuleLibraryPath:GetName() end,
+
+            Opts_GCC = function(_)
+                return List {
+                    "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
+                    "-fPIC",
+                    "-Wall", "-Wsystem-headers",
+                    "-O2", "-flto",
+                    "-pipe",
+                    "--sysroot=" .. tostring(_.Sysroot),
+                    "-D__BEELZEBUB_DYNAMIC_LIBRARY",
+                } + _.Opts_GCC_Precompiler + _.Opts_Includes
+                + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
+                + specialOptions
+            end,
+
+            Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
+            Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
+            Opts_GAS  = function(_) return _.Opts_GCC end,
+
+            Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
+
+            Opts_STRIP = List { "-s" },
+        },
+
+        Directory = "libs/kmod",
+
+        Dependencies = "System Headers",
+
+        Output = function(_) return _.KernelModuleLibraryPath end,
+
+        Rule "Link-Optimize Binary" {
+            Filter = function(_, dst) return _.KernelModuleLibraryPath end,
+
+            Source = function(_, dst) return _.Objects end,
+
+            Action = function(_, dst, src)
+                sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
+                fs.MkDir(dst:GetParent())
+                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+            end,
+        },
+    },
+
     ArchitecturalComponent "Loadtest Application" {
         Data = {
             BinaryPath = function(_) return _.ObjectsDirectory + "loadtest.exe" end,
@@ -898,6 +947,61 @@ Project "Beelzebub" {
         },
     },
 
+    ArchitecturalComponent "Test Kernel Module" {
+        Data = {
+            BinaryPath = function(_) return _.ObjectsDirectory + _.TestKernelModulePath:GetName() end,
+
+            Opts_GCC = function(_)
+                local res = List {
+                    "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
+                    "-fPIC",
+                    "-Wall", "-Wsystem-headers",
+                    "-O2", "-flto",
+                    "-pipe",
+                    "--sysroot=" .. tostring(_.Sysroot),
+                    "-D__BEELZEBUB_KERNEL_MODULE",
+                } + _.Opts_GCC_Precompiler + _.Opts_Includes
+                + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
+                + specialOptions
+
+                if _.selArch.Name == "amd64" then
+                    res:Append("-mno-red-zone")
+                end
+
+                return res
+            end,
+
+            Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
+            Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
+            Opts_GAS  = function(_) return _.Opts_GCC end,
+
+            Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
+
+            Opts_STRIP = List { "-s" },
+
+            Libraries = function(_) return List { "beelzebub.kmod", } end,
+        },
+
+        Directory = "kmods/test",
+
+        Dependencies = "System Headers",
+
+        Output = function(_) return _.TestKernelModulePath end,
+
+        Rule "Link-Optimize Binary" {
+            Filter = function(_, dst) return _.TestKernelModulePath end,
+
+            Source = function(_, dst) return _.Objects + List { _.KernelModuleLibraryPath } + _.CrtFiles end,
+
+            Action = function(_, dst, src)
+                sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
+                fs.MkDir(dst:GetParent())
+                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+            end,
+        },
+    },
+
     Component "ISO Image" {
         Data = {
             SysrootFiles = function(_)
@@ -953,6 +1057,7 @@ Project "Beelzebub" {
 
         Dependencies = List {
             "Loadtest Application",
+            "Test Kernel Module",
             "System Headers"
         },
 

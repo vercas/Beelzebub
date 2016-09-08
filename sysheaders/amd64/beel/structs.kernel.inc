@@ -91,11 +91,12 @@ struc CpuData
 .Index:             RESQ 1
 .SyscallStack:      RESQ 1
 .SyscallRegisters:  RESB SyscallRegisters64.size
+.ActiveThread:      RESQ 1
+.ActiveProcess:     RESQ 1
+;   Here be dragons.
 .LastAlienPml4:     RESQ 1
 .DomainDescriptor:  RESQ 1
 .Tss:               RESB Tss.size
-.ActiveThread:      RESQ 1
-.ActiveProcess:     RESQ 1
 .ExceptionContext:  RESQ 1
 .size:
 endstruc

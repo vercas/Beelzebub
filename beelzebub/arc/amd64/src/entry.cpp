@@ -709,7 +709,7 @@ void InitializeCpuStacks(bool const bsp)
     //  NOTE:
     //  The first page is a guard page. Will triple-fault on overflow.
 
-    CpuData * cpuData = Cpu::GetData();
+    auto cpuData = Cpu::GetData();
 
     Handle res;
     PageDescriptor * desc = nullptr;

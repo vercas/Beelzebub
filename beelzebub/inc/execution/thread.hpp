@@ -49,14 +49,15 @@ namespace Beelzebub { namespace Execution
     /**
      *  A unit of execution.
      */
-    class Thread
+    class Thread : public ThreadBase
     {
     public:
 
         /*  Constructors  */
 
         inline Thread()
-            : KernelStackTop()
+            : ThreadBase( nullptr)
+            , KernelStackTop()
             , KernelStackBottom()
             , KernelStackPointer()
             , State()
@@ -64,7 +65,6 @@ namespace Beelzebub { namespace Execution
             , Previous(nullptr)
             , Next(nullptr)
             , EntryPoint()
-            , Owner(nullptr) 
         {
 
         }
@@ -73,7 +73,8 @@ namespace Beelzebub { namespace Execution
         Thread & operator =(Thread const &) = delete;
 
         inline Thread(Process * const owner)
-            : KernelStackTop()
+            : ThreadBase( owner)
+            , KernelStackTop()
             , KernelStackBottom()
             , KernelStackPointer()
             , State()
@@ -81,7 +82,6 @@ namespace Beelzebub { namespace Execution
             , Previous(nullptr)
             , Next(nullptr)
             , EntryPoint()
-            , Owner(owner) 
         {
 
         }
@@ -90,6 +90,10 @@ namespace Beelzebub { namespace Execution
 
         __hot Handle SwitchTo(Thread * const other, ThreadState * const dest);    //  Implemented in architecture-specific code.
         Handle SwitchToNext(ThreadState * const dest) { return this->SwitchTo(this->Next, dest); }
+
+        /*  Properties  */
+
+        __forceinline Process * GetOwner() { return reinterpret_cast<Process *>(this->Owner); }
 
         /*  Stack  */
 
@@ -115,9 +119,5 @@ namespace Beelzebub { namespace Execution
         /*  Parameters  */
 
         ThreadEntryPointFunction EntryPoint;
-
-        /*  Hierarchy  */
-
-        Process * const Owner;
     };
 }}
