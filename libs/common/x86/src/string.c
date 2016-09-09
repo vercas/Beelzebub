@@ -277,7 +277,7 @@ void * memset32(void * dst, long const val, size_t cnt)
 {
     void * ret = dst;
 
-    asm volatile ( "rep stosd \n\t"
+    asm volatile ( "rep stosl \n\t"
                  : "+D" (dst), "+c" (cnt)
                  : "a" (val)
                  : "memory" );
@@ -287,7 +287,7 @@ void * memset32(void * dst, long const val, size_t cnt)
 
 void * mempset32(void * dst, long const val, size_t cnt)
 {
-    asm volatile ( "rep stosd \n\t"
+    asm volatile ( "rep stosl \n\t"
                  : "+D" (dst), "+c" (cnt)
                  : "a" (val)
                  : "memory" );
