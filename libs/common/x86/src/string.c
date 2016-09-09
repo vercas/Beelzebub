@@ -177,6 +177,51 @@ void * memmove(void * dst, void const * src, size_t len)
     return dst; //*/
 }
 
+void * mempcpy(void * dst, void const * src, size_t len)
+{
+    if (src != dst)
+    {
+        asm volatile ( "rep movsb \n\t"
+                     : "+D"(dst), "+S"(src), "+c"(len)
+                     : : "memory" );
+    }
+
+    return dst;
+}
+
+void * mempmove(void * dst, void const * src, size_t len)
+{
+    if (src > dst)
+    {
+        //  Loop forward.
+
+        asm volatile ( "rep movsb \n\t"
+                       : "+D"(dst), "+S"(src), "+c"(len)
+                       : : "memory" );
+
+        return dst;
+    }
+    else if (src < dst)
+    {
+        //  Loop backward.
+
+        dst += len;
+        src += len;
+
+        void * ret = dst;
+
+        asm volatile ( "std       \n\t"
+                       "rep movsb \n\t"
+                       "cld       \n\t"
+                       : "+D"(dst), "+S"(src), "+c"(len)
+                       : : "memory" );
+
+        return ret;
+    }
+
+    return dst + len;
+}
+
 void * memset(void * dst, int const val, size_t len)
 {
     void * ret = dst;
@@ -194,6 +239,60 @@ void * memset(void * dst, int const val, size_t len)
         *d = v; //*/
 
     return ret;
+}
+
+void * mempset(void * dst, int const val, size_t len)
+{
+    asm volatile ( "rep stosb \n\t"
+                 : "+D" (dst), "+c" (len)
+                 : "a" (val)
+                 : "memory" );
+
+    return dst;
+}
+
+void * memset16(void * dst, int const val, size_t cnt)
+{
+    void * ret = dst;
+
+    asm volatile ( "rep stosw \n\t"
+                 : "+D" (dst), "+c" (cnt)
+                 : "a" (val)
+                 : "memory" );
+
+    return ret;
+}
+
+void * mempset16(void * dst, int const val, size_t cnt)
+{
+    asm volatile ( "rep stosw \n\t"
+                 : "+D" (dst), "+c" (cnt)
+                 : "a" (val)
+                 : "memory" );
+
+    return dst;
+}
+
+void * memset32(void * dst, long const val, size_t cnt)
+{
+    void * ret = dst;
+
+    asm volatile ( "rep stosd \n\t"
+                 : "+D" (dst), "+c" (cnt)
+                 : "a" (val)
+                 : "memory" );
+
+    return ret;
+}
+
+void * mempset32(void * dst, long const val, size_t cnt)
+{
+    asm volatile ( "rep stosd \n\t"
+                 : "+D" (dst), "+c" (cnt)
+                 : "a" (val)
+                 : "memory" );
+
+    return dst;
 }
 
 size_t strlen(char const * str)

@@ -668,6 +668,7 @@ Project "Beelzebub" {
         Data = {
             Opts_GCC = function(_)
                 local res = List {
+                    "-fvisibility=hidden",
                     "-ffreestanding", "-nostdlib", "-static-libgcc",
                     "-Wall", "-Wsystem-headers",
                     "-pipe",
@@ -752,6 +753,7 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 return List {
+                    "-fvisibility=hidden",
                     "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
                     "-fPIC",
                     "-Wall", "-Wsystem-headers",
@@ -801,6 +803,7 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 return List {
+                    "-fvisibility=hidden",
                     "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
                     "-fPIC",
                     "-Wall", "-Wsystem-headers",
@@ -848,6 +851,7 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 return List {
+                    "-fvisibility=hidden",
                     "-Wall", "-Wsystem-headers",
                     "-O2", "-flto",
                     "-pipe",
@@ -897,6 +901,7 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 local res = List {
+                    "-fvisibility=hidden",
                     "-ffreestanding", "-nostdlib", "-static-libgcc",
                     "-Wall", "-Wsystem-headers",
                     "-O2", "-flto",
@@ -953,6 +958,7 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 local res = List {
+                    "-fvisibility=hidden",
                     "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
                     "-fPIC",
                     "-Wall", "-Wsystem-headers",

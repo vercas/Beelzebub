@@ -1259,49 +1259,49 @@ namespace Beelzebub { namespace Terminals
     }
 }}
 
-TerminalBase & Beelzebub::Terminals::EndLine(TerminalBase & term)
+TerminalBase & Terminals::EndLine(TerminalBase & term)
 {
     term.WriteLine();
 
     return term;
 }
 
-TerminalBase & Beelzebub::Terminals::Decimal(TerminalBase & term)
+TerminalBase & Terminals::Decimal(TerminalBase & term)
 {
     term.FormatState.IntegerBase = TerminalIntegerBase::Decimal;
 
     return term;
 }
 
-TerminalBase & Beelzebub::Terminals::Hexadecimal(TerminalBase & term)
+TerminalBase & Terminals::Hexadecimal(TerminalBase & term)
 {
     term.FormatState.IntegerBase = TerminalIntegerBase::Hexadecimal;
 
     return term;
 }
 
-TerminalBase & Beelzebub::Terminals::ShowPlus(TerminalBase & term)
+TerminalBase & Terminals::ShowPlus(TerminalBase & term)
 {
     term.FormatState.ShowPlus = true;
 
     return term;
 }
 
-TerminalBase & Beelzebub::Terminals::HidePlus(TerminalBase & term)
+TerminalBase & Terminals::HidePlus(TerminalBase & term)
 {
     term.FormatState.ShowPlus = false;
 
     return term;
 }
 
-TerminalBase & Beelzebub::Terminals::NumericUppercase(TerminalBase & term)
+TerminalBase & Terminals::NumericUppercase(TerminalBase & term)
 {
     term.FormatState.NumericUppercase = true;
 
     return term;
 }
 
-TerminalBase & Beelzebub::Terminals::NumericLowercase(TerminalBase & term)
+TerminalBase & Terminals::NumericLowercase(TerminalBase & term)
 {
     term.FormatState.NumericUppercase = false;
 

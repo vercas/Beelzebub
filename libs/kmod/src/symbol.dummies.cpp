@@ -37,17 +37,15 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
-
 #include <beel/handles.h>
 
 #include <beel/structs.kernel.hpp>
 
 #define KRN_SYM_GLB_FNC(name, retType, ...) \
-    __extern retType name(__VA_ARGS__) { return {}; }
+    __shared retType name(__VA_ARGS__) { return {}; }
 
 #define KRN_SYM_NMS_FNC(name, retType, ...) \
-    namespace Beelzebub { __extern retType name(__VA_ARGS__) { return {}; } }
+    namespace Beelzebub { __shared retType name(__VA_ARGS__) { return {}; } }
 
 #include <beel/symbols.kernel.inc>
 

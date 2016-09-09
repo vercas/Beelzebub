@@ -85,7 +85,7 @@ namespace Beelzebub { namespace Terminals
     typedef TerminalBase & (* TerminalModifier)(TerminalBase & term);
 
     template<typename TArg>
-    TerminalBase & operator <<(TerminalBase & term, TArg const value);
+    __shared_cpp_inline TerminalBase & operator <<(TerminalBase & term, TArg const value);
 
     enum class TerminalIntegerBase : uint16_t
     {
@@ -112,7 +112,7 @@ namespace Beelzebub { namespace Terminals
         bool NumericUppercase;
     };
 
-    class TerminalBase
+    class __public TerminalBase
     {
     public:
 
@@ -216,14 +216,14 @@ namespace Beelzebub { namespace Terminals
         TerminalFormatState FormatState;
     };
 
-    TerminalBase & EndLine(TerminalBase & term);
+    __shared_cpp_inline TerminalBase & EndLine(TerminalBase & term);
 
-    TerminalBase & Decimal(TerminalBase & term);
-    TerminalBase & Hexadecimal(TerminalBase & term);
+    __shared_cpp_inline TerminalBase & Decimal(TerminalBase & term);
+    __shared_cpp_inline TerminalBase & Hexadecimal(TerminalBase & term);
 
-    TerminalBase & ShowPlus(TerminalBase & term);
-    TerminalBase & HidePlus(TerminalBase & term);
+    __shared_cpp_inline TerminalBase & ShowPlus(TerminalBase & term);
+    __shared_cpp_inline TerminalBase & HidePlus(TerminalBase & term);
 
-    TerminalBase & NumericUppercase(TerminalBase & term);
-    TerminalBase & NumericLowercase(TerminalBase & term);
+    __shared_cpp_inline TerminalBase & NumericUppercase(TerminalBase & term);
+    __shared_cpp_inline TerminalBase & NumericLowercase(TerminalBase & term);
 }}
