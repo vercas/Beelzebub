@@ -37,25 +37,5 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <modules.hpp>
 
-#include <beel/handles.h>
-
-namespace Beelzebub
-{
-    /**
-     * <summary>Represents a loaded kernel module.</summary>
-     */
-    class KernelModule
-    {
-
-    };
-
-    /**
-     * <summary>Contains utilitary methods for dealing with kernel modules.</summary>
-     */
-    class Modules
-    {
-
-    };
-}
