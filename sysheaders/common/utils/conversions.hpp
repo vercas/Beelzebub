@@ -44,5 +44,5 @@
 namespace Beelzebub { namespace Utils
 {
     template<typename T>
-    Handle FromString(char const * str, T & val);
+    __public Handle FromString(char const * str, T & val);
 }}

@@ -44,13 +44,13 @@
 namespace Beelzebub { namespace Utils
 {
     template<typename TThis, typename TOther>
-    comp_t Compare(TThis const & a, TOther const & b);
+    __public comp_t Compare(TThis const & a, TOther const & b);
     template<typename TThis, typename TOther>
-    comp_t Compare(TThis const & a, TOther const && b);
+    __public comp_t Compare(TThis const & a, TOther const && b);
     template<typename TThis, typename TOther>
-    comp_t Compare(TThis const && a, TOther const & b);
+    __public comp_t Compare(TThis const && a, TOther const & b);
     template<typename TThis, typename TOther>
-    comp_t Compare(TThis const && a, TOther const && b);
+    __public comp_t Compare(TThis const && a, TOther const && b);
 
     #define COMP_IMPL_3(TThis, TOther, impl) \
         template<> \

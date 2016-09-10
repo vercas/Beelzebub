@@ -64,6 +64,7 @@ Handle Vas::Initialize(vaddr_t start, vaddr_t end
 
     return this->Tree.Insert(MemoryRegion(start, end
         , MemoryFlags::Writable | MemoryFlags::Executable
+        , MemoryContent::Free
         , MemoryAllocationOptions::Free), this->FirstFree);
     //  Blank memory region, for allocation.
 }
@@ -71,7 +72,8 @@ Handle Vas::Initialize(vaddr_t start, vaddr_t end
 /*  Operations  */
 
 Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
-    , MemoryFlags flags, MemoryAllocationOptions type, bool lock)
+    , MemoryFlags flags, MemoryContent content
+    , MemoryAllocationOptions type, bool lock)
 {
     if unlikely(this->FirstFree == nullptr)
         return HandleResult::ObjectDisposed;
@@ -130,7 +132,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 vaddr = reg->Range.End - effectivePageCnt * PageSize + lowOffset;
                 //  New region begins where the free one ends, after shrinking.
 
-                res = this->Allocate(vaddr, pageCnt, flags, type, false);
+                res = this->Allocate(vaddr, pageCnt, flags, content, type, false);
 
                 goto end;
             }
@@ -232,7 +234,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 }
 
                 res = this->Tree.Insert(MemoryRegion(
-                    rang, flags, type
+                    rang, flags, content, type
                 ), newReg);
 
                 if unlikely(!res.IsOkayResult())
@@ -271,7 +273,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 }
 
                 res = this->Tree.Insert(MemoryRegion(
-                    rang, flags, type
+                    rang, flags, content, type
                 ), newReg);
 
                 if unlikely(!res.IsOkayResult())
@@ -297,14 +299,17 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 MemoryRegion * newFree = nullptr,  * newBusy = nullptr;
 
                 res = this->Tree.Insert(MemoryRegion(
-                    rang.End, oldEnd, flags, type
+                    rang.End, oldEnd
+                    , MemoryFlags::Writable | MemoryFlags::Executable
+                    , MemoryContent::Free
+                    , MemoryAllocationOptions::Free
                 ), newFree);
 
                 if unlikely(!res.IsOkayResult())
                     goto end;
 
                 res = this->Tree.Insert(MemoryRegion(
-                    rang.Start, rang.End, flags, type
+                    rang.Start, rang.End, flags, content, type
                 ), newBusy);
 
                 if unlikely(!res.IsOkayResult())

@@ -64,7 +64,7 @@
 #define JG_INFO_MODULE_EX          ((jg_info_module_t *) JG_INFO_OFFSET_EX(module))
 #define JG_INFO_STRING_EX          ((char             *) JG_INFO_OFFSET_EX(string))
 
-__extern __startup void kmain_bsp();
+__extern __public __startup void kmain_bsp();
 __extern __startup void kmain_ap();
 
 #ifdef __cplusplus

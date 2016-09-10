@@ -44,7 +44,7 @@
 
 __extern
 {
-    __used jg_header_root_t jegudiel_header = {
+    __used __public jg_header_root_t jegudiel_header = {
         JG_MAGIC,                               // magic
         0,                                      // flags
         0xFFFFFFFFFFFFC000,                     // stack_vaddr

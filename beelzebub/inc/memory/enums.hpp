@@ -69,6 +69,28 @@ namespace Beelzebub { namespace Memory
     ENUMOPS(MemoryFlags, uint8_t)
 
     /**
+     *  Represents possible contents of a memory range.
+     */
+    enum class MemoryContent : uint8_t
+    {
+        //  Generic contents, nothing remarkable.
+        Generic              = 0x00,
+        //  Shared with other processes.
+        Share                = 0x01,
+        //  A thread's stack.
+        ThreadStack          = 0x02,
+        //  Part of the runtime.
+        Runtime              = 0x03,
+        //  A kernel module mapped in memory.
+        KernelModule         = 0x04,
+
+        //  Nothing, waiting to be used.
+        Free                 = 0xFF,
+    };
+
+    ENUMOPS(MemoryContent, uint8_t)
+
+    /**
      *  Represents types of pages that can be allocated.
      */
     enum class MemoryAllocationOptions : uint32_t
@@ -130,6 +152,8 @@ namespace Beelzebub { namespace Memory
         ThreadStack          = 0x02000000,
         //  Part of the runtime.
         Runtime              = 0x03000000,
+        //  A kernel module mapped in memory.
+        KernelModule         = 0x04000000,
 
         //  Nothing, waiting to be used.
         Free                 = 0x0F000000,

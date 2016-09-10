@@ -57,8 +57,11 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
 
     Handle res = Vmm::AllocatePages(
         CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , pageCount, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global | MemoryFlags::Writable, vaddr);
+        , pageCount
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::Generic
+        , vaddr);
 
     address = (uintptr_t)vaddr;
 

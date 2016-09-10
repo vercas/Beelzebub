@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+time lua vmakefile.lua -t all --mtune=corei7-avx --no-make-deps -j 8 --full
+

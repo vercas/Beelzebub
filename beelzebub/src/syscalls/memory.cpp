@@ -84,7 +84,7 @@ handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opt
     if (0 != (opts & mem_req_opts_t::Executable))
         flags |= MemoryFlags::Executable;
 
-    Handle res = Vmm::AllocatePages(nullptr, size / PageSize, type, flags, addr);
+    Handle res = Vmm::AllocatePages(nullptr, size / PageSize, type, flags, MemoryContent::Generic, addr);
 
     if unlikely(!res.IsOkayResult())
         return res;

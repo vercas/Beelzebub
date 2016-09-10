@@ -158,8 +158,6 @@ Thread Beelzebub::BootstrapThread;
 
 Domain Beelzebub::Domain0;
 
-Image * Beelzebub::KernelImage;
-
 /*******************
     ENTRY POINTS
 *******************/
@@ -421,14 +419,14 @@ void Beelzebub::Main()
 
         if (res.IsOkayResult())
         {
-            if (KernelImage != nullptr)
+            // if (KernelImage != nullptr)
                 MainTerminal->WriteLine(" Done.\r[OKAY]");
-            else
-            {
-                MainTerminal->WriteFormat(" Fail! No kernel image found.\r[FAIL]%n");
+            // else
+            // {
+            //     MainTerminal->WriteFormat(" Fail! No kernel image found.\r[FAIL]%n");
 
-                ASSERT(false, "Kernel image hasn't been found!");
-            }
+            //     ASSERT(false, "Kernel image hasn't been found!");
+            // }
         }
         else
         {

@@ -56,7 +56,6 @@
 #include <system/cpu.hpp>
 #include <system/fpu.hpp>
 
-#include <execution/images.hpp>
 #include <initrd.hpp>
 
 #include <kernel.hpp>
@@ -549,26 +548,26 @@ void RemapTerminal(TerminalBase * const terminal)
     MODULES
 **************/
 
-/**
- *  <summary>
- *  Does something with the kernel's module...
- *  </summary>
- */
-__startup Handle HandleKernelModule(size_t const index
-                               , jg_info_module_t const * const module
-                               , vaddr_t const vaddr
-                               , size_t const size)
-{
-    Image * kimg;
+// /**
+//  *  <summary>
+//  *  Does something with the kernel's module...
+//  *  </summary>
+//  */
+// __startup Handle HandleKernelModule(size_t const index
+//                                , jg_info_module_t const * const module
+//                                , vaddr_t const vaddr
+//                                , size_t const size)
+// {
+//     Image * kimg;
 
-    Handle res = Images::Load("kernel", ImageRole::Kernel
-        , reinterpret_cast<uint8_t *>(vaddr), size
-        , kimg, nullptr);
+//     Handle res = Images::Load("kernel", ImageRole::Kernel
+//         , reinterpret_cast<uint8_t *>(vaddr), size
+//         , kimg, nullptr);
 
-    KernelImage = kimg;
+//     KernelImage = kimg;
 
-    return res;
-}
+//     return res;
+// }
 
 /**
  *  <summary>
@@ -606,9 +605,9 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
             , res);
     }
 
-    if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
+    /*if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
         return HandleKernelModule(index, module, vaddr, size);
-    else if (memeq("initrd", JG_INFO_STRING_EX + module->name, 7))
+    else*/ if (memeq("initrd", JG_INFO_STRING_EX + module->name, 7))
         return InitRd::Initialize(vaddr, size);
 
     return res;
@@ -622,8 +621,6 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
 Handle InitializeModules()
 {
     Handle res;
-
-    Images::Initialize();
 
     size_t const moduleCount = (size_t)JG_INFO_ROOT_EX->module_count;
 
@@ -800,8 +797,11 @@ __startup void InitializeTestThread(Thread * const t, Process * const p)
     uintptr_t stackVaddr = nullvaddr;
 
     res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , 3, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
+        , 3
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::ThreadStack
+        , stackVaddr);
 
     ASSERT(res.IsOkayResult()
         , "Failed to allocate stack for test thread: %H."

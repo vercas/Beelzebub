@@ -108,7 +108,9 @@ Handle Runtime64::Initialize()
         Handle res = Vmm::AllocatePages(&BootstrapProcess
             , pageCnt
             , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-            , MemoryFlags::Global | MemoryFlags::Userland, vaddr);
+            , MemoryFlags::Global | MemoryFlags::Userland
+            , MemoryContent::Generic
+            , vaddr);
 
         ASSERT(res.IsOkayResult()
             , "Failed to allocate space for 64-bit runtime image: %H."

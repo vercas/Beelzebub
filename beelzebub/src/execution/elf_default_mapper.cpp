@@ -108,8 +108,10 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
         res = Vmm::AllocatePages(proc
             , (phdr.VSize + PageSize - 1) / PageSize
             , MemoryAllocationOptions::Commit  | MemoryAllocationOptions::VirtualUser
-            | MemoryAllocationOptions::Runtime | MemoryAllocationOptions::Permanent
-            , pageFlags, vaddr);
+            | MemoryAllocationOptions::Permanent
+            , pageFlags
+            , MemoryContent::Runtime
+            , vaddr);
 
         assert_or(res.IsOkayResult()
             , "Failed to allocate writable ELF segment %Xp at %Xp (%us pages): %H."
@@ -130,8 +132,10 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
         res = Vmm::AllocatePages(proc
             , (phdr.VSize + PageSize - 1) / PageSize
             , MemoryAllocationOptions::Used    | MemoryAllocationOptions::VirtualUser
-            | MemoryAllocationOptions::Runtime | MemoryAllocationOptions::Permanent
-            , pageFlags, vaddr);
+            | MemoryAllocationOptions::Permanent
+            , pageFlags
+            , MemoryContent::Runtime
+            , vaddr);
 
         assert_or(res.IsOkayResult()
             , "Failed to allocate non-writable ELF segment %Xp at %Xp (%us pages): %H."

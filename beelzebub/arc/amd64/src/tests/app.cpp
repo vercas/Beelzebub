@@ -126,8 +126,9 @@ void TestApplication()
     res = Vmm::AllocatePages(nullptr, 3
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
-        | MemoryAllocationOptions::ThreadStack
-        , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::ThreadStack
+        , stackVaddr);
 
     ASSERT(res.IsOkayResult()
         , "Failed to allocate stack for test userland thread: %H."
@@ -153,8 +154,9 @@ void TestApplication()
     res = Vmm::AllocatePages(nullptr, 3
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
-        | MemoryAllocationOptions::ThreadStack
-        , MemoryFlags::Global | MemoryFlags::Writable, stackVaddr);
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::ThreadStack
+        , stackVaddr);
 
     ASSERT(res.IsOkayResult()
         , "Failed to allocate stack for test watcher thread: %H."
@@ -188,8 +190,8 @@ void * JumpToRing3(void * arg)
         , userStackPageCount
         , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
         | MemoryAllocationOptions::GuardLow         | MemoryAllocationOptions::GuardHigh
-        | MemoryAllocationOptions::ThreadStack
         , MemoryFlags::Userland | MemoryFlags::Writable
+        , MemoryContent::ThreadStack
         , userStackBottom);
 
     ASSERT(res.IsOkayResult()
@@ -217,7 +219,9 @@ void * JumpToRing3(void * arg)
     res = Vmm::AllocatePages(nullptr
         , RoundUp(loadtestEnd - loadtestStart, PageSize) / PageSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
-        , MemoryFlags::Userland | MemoryFlags::Writable, appVaddr);
+        , MemoryFlags::Userland | MemoryFlags::Writable
+        , MemoryContent::Generic
+        , appVaddr);
 
     ASSERT(res.IsOkayResult()
         , "Failed to allocate pages for test app image: %H."
@@ -240,6 +244,7 @@ void * JumpToRing3(void * arg)
         , 0x30000 / PageSize
         , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
         , MemoryFlags::Userland | MemoryFlags::Writable
+        , MemoryContent::Generic
         , testRegVaddr);
 
     ASSERT(res.IsOkayResult()

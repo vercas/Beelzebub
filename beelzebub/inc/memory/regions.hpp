@@ -118,17 +118,21 @@ namespace Beelzebub { namespace Memory
             : Range()
             , Flags()
             , Type()
+            , Content()
             , NextFree(nullptr)
             , PrevFree(nullptr)
         {
 
         }
 
-        inline constexpr MemoryRegion(MemoryRange range, MemoryFlags flags
+        inline constexpr MemoryRegion(MemoryRange range
+                                    , MemoryFlags flags
+                                    , MemoryContent content
                                     , MemoryAllocationOptions type)
             : Range( range)
             , Flags(flags)
             , Type(type)
+            , Content(content)
             , NextFree(nullptr)
             , PrevFree(nullptr)
         {
@@ -137,10 +141,12 @@ namespace Beelzebub { namespace Memory
 
         inline constexpr MemoryRegion(vaddr_t start, vaddr_t end
                                     , MemoryFlags flags
+                                    , MemoryContent content
                                     , MemoryAllocationOptions type)
             : Range({start, end})
             , Flags(flags)
             , Type(type)
+            , Content(content)
             , NextFree(nullptr)
             , PrevFree(nullptr)
         {
@@ -177,6 +183,7 @@ namespace Beelzebub { namespace Memory
 
         MemoryFlags Flags;
         MemoryAllocationOptions Type;
+        MemoryContent Content;
 
         MemoryRegion * NextFree, * PrevFree;
     };

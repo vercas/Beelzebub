@@ -782,14 +782,17 @@ end:
 /*  Allocation  */
 
 Handle Vmm::AllocatePages(Process * proc, size_t const count
-    , MemoryAllocationOptions const type, MemoryFlags const flags, uintptr_t & vaddr)
+    , MemoryAllocationOptions const type
+    , MemoryFlags const flags
+    , MemoryContent content
+    , uintptr_t & vaddr)
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
     if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand))
     {
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
-            return proc->Vas.Allocate(vaddr, count, flags, type);
+            return proc->Vas.Allocate(vaddr, count, flags, content, type);
         else
             return HandleResult::NotImplemented;
     }
@@ -808,7 +811,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
 
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
         {
-            res = proc->Vas.Allocate(vaddr, count, flags, type);
+            res = proc->Vas.Allocate(vaddr, count, flags, content, type);
 
             if unlikely(!res.IsOkayResult())
                 return res;
@@ -895,7 +898,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
     else // Means it's used or it'll just be reserved.
     {
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
-            return proc->Vas.Allocate(vaddr, count, flags, type);
+            return proc->Vas.Allocate(vaddr, count, flags, content, type);
         //  Easy-peasy.
 
         size_t const  lowerOffset = (0 != (type & MemoryAllocationOptions::GuardLow))

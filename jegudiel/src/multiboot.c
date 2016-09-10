@@ -97,7 +97,7 @@ static void multiboot_parse_mods(multiboot_mod_t *mods, size_t count)
         
         jgmod->name = ((uintptr_t)name_tbl - (uintptr_t)info_strings);
 
-        puts("\r\n    Module ");
+        puts("\r\n     Module ");
         puts(name_tbl);
 
         if (name_len > name_wlen)
