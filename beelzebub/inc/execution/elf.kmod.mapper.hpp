@@ -37,42 +37,12 @@
     thorough explanation regarding other files.
 */
 
-#ifdef __BEELZEBUB__TEST_KMOD
+#pragma once
 
-#include <tests/kmod.hpp>
-#include <memory/vmm.hpp>
-#include <initrd.hpp>
-#include <modules.hpp>
+#include <execution/elf.hpp>
 
-#include <string.h>
-#include <debug.hpp>
-
-using namespace Beelzebub;
-using namespace Beelzebub::Memory;
-using namespace Beelzebub::Terminals;
-
-void TestKmod()
+namespace Beelzebub { namespace Execution
 {
-    //  First get the loadtest app's location.
-
-    Handle file = InitRd::FindItem("/kmods/test.kmod");
-
-    ASSERT(file.IsType(HandleType::InitRdFile)
-        , "Failed to find test.kmod in InitRD: %H.", file);
-
-    FileBoundaries bnd = InitRd::GetFileBoundaries(file);
-
-    ASSERT(bnd.Start != 0 && bnd.Size != 0);
-
-    //  Then attempt parsing it.
-
-    Handle res = Modules::Load(bnd.Start, bnd.Size);
-
-    ASSERT(res.IsType(HandleType::KernelModule)
-        , "Error in loading test.kmod: %H."
-        , res);
-
-    MSG_("Loaded test kernel module with result %H.", res);
-}
-
-#endif
+    bool MapKmodSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data);
+    bool UnmapKmodSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data);
+}}

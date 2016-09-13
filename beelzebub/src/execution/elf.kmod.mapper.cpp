@@ -37,42 +37,35 @@
     thorough explanation regarding other files.
 */
 
-#ifdef __BEELZEBUB__TEST_KMOD
-
-#include <tests/kmod.hpp>
+#include <execution/elf.kmod.mapper.hpp>
 #include <memory/vmm.hpp>
-#include <initrd.hpp>
-#include <modules.hpp>
+#include <system/cpu.hpp>
 
 #include <string.h>
+#include <math.h>
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
-using namespace Beelzebub::Terminals;
+using namespace Beelzebub::System;
 
-void TestKmod()
+bool Execution::MapKmodSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
 {
-    //  First get the loadtest app's location.
+    withWriteProtect (false)
+    {
+        memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
+            ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
 
-    Handle file = InitRd::FindItem("/kmods/test.kmod");
+        if (phdr.VSize > phdr.PSize)
+            memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
+                , 0, phdr.VSize - phdr.PSize);
+    }
 
-    ASSERT(file.IsType(HandleType::InitRdFile)
-        , "Failed to find test.kmod in InitRD: %H.", file);
-
-    FileBoundaries bnd = InitRd::GetFileBoundaries(file);
-
-    ASSERT(bnd.Start != 0 && bnd.Size != 0);
-
-    //  Then attempt parsing it.
-
-    Handle res = Modules::Load(bnd.Start, bnd.Size);
-
-    ASSERT(res.IsType(HandleType::KernelModule)
-        , "Error in loading test.kmod: %H."
-        , res);
-
-    MSG_("Loaded test kernel module with result %H.", res);
+    return true;
 }
 
-#endif
+bool Execution::UnmapKmodSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data)
+{
+    return false;
+}

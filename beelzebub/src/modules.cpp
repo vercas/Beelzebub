@@ -38,9 +38,12 @@
 */
 
 #include <modules.hpp>
-#include <execution/elf.hpp>
+#include <execution/elf.kmod.mapper.hpp>
 #include <memory/object_allocator_smp.hpp>
 #include <memory/object_allocator_pools_heap.hpp>
+#include <memory/vmm.hpp>
+
+#include <math.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -90,12 +93,44 @@ Handle Modules::Load(uintptr_t start, size_t len)
     if (!res.IsOkayResult())
         return res;
 
-    kmod->Image = Elf(reinterpret_cast<void *>(start), len);
+    kmod->Image = Elf(start, len);
 
     ElfValidationResult evRes = kmod->Image.ValidateAndParse(&HeaderValidator, nullptr, nullptr);
 
     if (evRes != ElfValidationResult::Success)
         return HandleResult::Failed;
+
+    //  So, the ELF file is parsed.
+
+    size_t const pageCnt = RoundUp(kmod->Image.GetSizeInMemory(), PageSize);
+    vaddr_t base = nullvaddr;
+
+    res = Vmm::AllocatePages(nullptr
+        , pageCnt
+        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
+        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
+        , MemoryFlags::Writable | MemoryFlags::Executable | MemoryFlags::Global
+        , MemoryContent::KernelModule
+        , base);
+
+    if (!res.IsOkayResult())
+        return res;
+
+    //  Space is reserved for it.
+
+    evRes = kmod->Image.Relocate(base);
+
+    if (evRes != ElfValidationResult::Success)
+        return HandleResult::ImageRelocationFailure;
+
+    //  It's relocated...
+
+    evRes = kmod->Image.LoadAndValidate64(&MapKmodSegment64, &UnmapKmodSegment64, nullptr, nullptr);
+
+    if (evRes != ElfValidationResult::Success)
+        return HandleResult::ImageLoadingFailure;
+
+    //  And properly loaded!
 
     return KernelModuleHandle(kmod).ToHandle(true);
 }
