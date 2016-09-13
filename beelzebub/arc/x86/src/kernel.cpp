@@ -158,6 +158,416 @@ Thread Beelzebub::BootstrapThread;
 
 Domain Beelzebub::Domain0;
 
+/**********************************
+    System Initialization Steps
+**********************************/
+
+static bool MainShouldElideLocks = false;
+
+//  These are minor initialization steps performed in the order they appear here
+//  in the source code.
+
+static __startup void MainParseKernelArguments()
+{
+    //  Parsing the command-line arguments given to the kernel by the bootloader.
+    //  Again, platform-specific.
+
+    MainTerminal->Write("[....] Parsing command-line arguments...");
+    Handle res = ParseKernelArguments();
+
+    if (res.IsOkayResult())
+    {
+        MainTerminal->Write(" And tests...");
+        res = InitializeTestFlags();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize test flags (%H; \"%s\"): %H"
+                , CMDO_Tests.ParsingResult
+                , CMDO_Tests.ParsingResult.IsOkayResult()
+                    ? CMDO_Tests.StringValue
+                    : "NO VALUE"
+                , res);
+        }
+    }
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to parse kernel command-line arguments: %H"
+            , res);
+    }
+}
+
+static __startup void MainInitializeInterrupts()
+{
+    //  Setting up basic interrupt handlers 'n stuff.
+    //  Again, platform-specific.
+
+    MainTerminal->Write("[....] Initializing interrupts...");
+    Handle res = InitializeInterrupts();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize interrupts: %H"
+            , res);
+    }
+}
+
+static __startup void MainInitializePit()
+{
+    //  Preparing the PIT for basic timing.
+    //  Common on x86.
+
+    MainTerminal->Write("[....] Initializing PIT...");
+    Handle res = InitializePit();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize the PIT: %H"
+            , res);
+    }
+}
+
+static __startup void MainInitializePhysicalMemory()
+{
+    //  Initialize the memory by partition and allocation.
+    //  Differs on IA-32 and AMD64. May tweak virtual memory in the process.
+
+    MainTerminal->Write("[....] Initializing physical memory...");
+    Handle res = InitializePhysicalMemory();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize physical memory: %H"
+            , res);
+    }
+}
+
+static __startup void MainInitializeVirtualMemory()
+{
+    //  Initialize the virtual memory for use by the kernel.
+    //  Differs on IA-32 and AMD64.
+
+    MainTerminal->Write("[....] Initializing virtual memory...");
+    Handle res = InitializeVirtualMemory();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize virtual memory: %H"
+            , res);
+    }
+}
+
+#ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
+static __startup void MainRunUnitTests()
+{
+    //  Run all available unit tests, if asked.
+
+    if (CMDO_UnitTests.ParsingResult.IsValid() && CMDO_UnitTests.BooleanValue)
+    {
+        MainTerminal->Write("[....] Running unit tests... ");
+
+        UnitTestsReport report = RunUnitTests();
+
+        *MainTerminal << report.SuccessCount << "/" << report.TestCount
+            << " successful.\r[OKAY]" << EndLine;
+    }
+}
+#endif
+
+static __startup void MainInitializeAcpiTables()
+{
+    //  Initialize the ACPI tables for easier use.
+    //  Mostly common on x86.
+
+    MainTerminal->Write("[....] Initializing ACPI tables...");
+    Handle res = InitializeAcpiTables();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize the ACPI tables: %H"
+            , res);
+    }
+}
+
+static __startup void MainInitializeApic()
+{
+    //  Initialize the LAPIC for the BSP and the I/O APIC.
+    //  Mostly common on x86.
+
+    MainTerminal->Write("[....] Initializing APIC...");
+    Handle res = InitializeApic();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize the APIC: %H"
+            , res);
+    }
+}
+
+static __startup void MainBootstrapThread()
+{
+    //  Turns the current system state into a kernel process and a main thread.
+
+    MainTerminal->Write("[....] Initializing as bootstrap thread...");
+
+    Handle res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess);
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize main entry point as bootstrap thread: %H"
+            , res);
+    }
+
+    Cpu::SetThread(&BootstrapThread);
+    Cpu::SetProcess(&BootstrapProcess);
+}
+
+static __startup void MainInitializeExtraCpus()
+{
+    //  Initialize the other processing units in the system.
+    //  Mostly common on x86, but the executed code differs by arch.
+
+#if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    //  Note: If SMP is disabled by build, nothing is done, and only the BSP is
+    //  used.
+
+    MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
+#else
+    MainShouldElideLocks = false;
+
+    if (CMDO_SmpEnable.ParsingResult.IsValid() && !CMDO_SmpEnable.BooleanValue)
+    {
+        MainTerminal->WriteLine("[SKIP] Extra processing units ignored as indicated in arguments.");
+
+        CpuDataSetUp = MainShouldElideLocks = true;
+        //  Let the kernel know that CPU data is available for use, and elide
+        //  useless locks.
+    }
+    else if (Acpi::PresentLapicCount > 1)
+    {
+        MainTerminal->Write("[....] Initializing extra processing units...");
+        Handle res = InitializeProcessingUnits();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize the extra processing units: %H"
+                , res);
+        }
+    }
+    else
+    {
+        MainTerminal->WriteLine("[SKIP] No extra processing units available.");
+
+        CpuDataSetUp = MainShouldElideLocks = true;
+        //  Once again...
+    }
+#endif
+}
+
+static __startup void MainElideLocks()
+{
+#ifdef __BEELZEBUB__TEST_LOCK_ELISION
+    if (CHECK_TEST(LOCK_ELISION))
+    {
+        MainTerminal->Write("[TEST] Testing lock elision... ");
+
+        TestLockElision();
+
+        MainTerminal->WriteLine(" Done.");
+    }
+#endif
+
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    //  Elide lock operations on unicore systems.
+    //  Mainly common.
+   #ifdef __BEELZEBUB__TEST_LOCK_ELISION
+    if (MainShouldElideLocks && !(CHECK_TEST(LOCK_ELISION)))
+   #else
+    if (MainShouldElideLocks)
+   #endif
+    {
+        MainTerminal->Write("[....] Eliding locks...");
+        Handle res = ElideLocks();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to elide locks: %H", res);
+        }
+    }
+#endif
+}
+
+static __startup void MainInitializeBootModules()
+{
+    //  Initialize the modules loaded by the bootloader with the kernel.
+    //  Mostly common.
+
+    MainTerminal->Write("[....] Initializing boot modules...");
+    Handle res = InitializeModules();
+
+    if (res.IsOkayResult())
+    {
+        // if (KernelImage != nullptr)
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        // else
+        // {
+        //     MainTerminal->WriteFormat(" Fail! No kernel image found.\r[FAIL]%n");
+
+        //     ASSERT(false, "Kernel image hasn't been found!");
+        // }
+    }
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize modules: %H"
+            , res);
+    }
+}
+
+static __startup void MainInitializeRuntimeLibraries()
+{
+    //  Initialize the modules loaded with the kernel.
+    //  Mostly common.
+
+    MainTerminal->Write("[....] Initializing runtime libraries...");
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+    Handle res = Runtime64::Initialize();
+
+    if (res.IsOkayResult())
+        MainTerminal->Write(" 64-bit...");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize 64-bit runtime: %H"
+            , res);
+    }
+#endif
+    
+    //  TODO: The 32-bit subsystem should be handled by a kernel module.
+}
+
+static __startup void MainInitializeFpu()
+{
+    //  Initialize the extended thread states manager.
+    //  Mostly common.
+
+    Fpu::InitializeMain();
+    //  Meh.
+
+    if (Fpu::StateSize != 0)
+    {
+        MainTerminal->Write("[....] Initializing extended thread states...");
+        Handle res = ExtendedStates::Initialize(Fpu::StateSize, Fpu::StateAlignment);
+
+        if (res.IsOkayResult())
+        {
+            MainTerminal->Write(" Allocating template state...");
+
+            void * templateState;
+
+            res = ExtendedStates::AllocateTemplate(templateState);
+
+            if (res.IsOkayResult())
+                MainTerminal->WriteLine(" Done.\r[OKAY]");
+            else
+            {
+                MainTerminal->WriteLine("\r[FAIL]%n");
+                MainTerminal->WriteLine("       Fail! Could not allocate template state.");
+
+                ASSERT(false, "Failed to allocate template extended thread state: %H"
+                    , res);
+            }
+
+            Fpu::SaveState(templateState);
+
+            Cpu::SetCr0(Cpu::GetCr0().SetTaskSwitched(true));
+        }
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to initialize extended thread states: %H"
+                , res);
+        }
+    }
+    else
+    {
+        MainTerminal->WriteLine("[SKIP] Extended thread states not needed by present CPU features.");
+    }
+}
+
+static __startup void MainInitializeSyscalls()
+{
+        MainTerminal->Write("[....] Initializing syscalls...");
+        Syscalls::Initialize();
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+}
+
+static __startup void MainInitializeMainTerminal()
+{
+    //  Upgrade the terminal to a more capable and useful one.
+    //  Yet again, platform-specific.
+
+    MainTerminal->Write("[....] Initializing main terminal...");
+
+    TerminalBase * secondaryTerminal;
+
+    if (CMDO_Term.ParsingResult.IsValid())
+        secondaryTerminal = InitializeTerminalMain(CMDO_Term.StringValue);
+    else
+        secondaryTerminal = InitializeTerminalMain(nullptr);
+
+    MainTerminal->WriteLine(" Done.\r[OKAY]");
+
+    MainTerminal->WriteLine("Switching over.");
+    MainTerminal = secondaryTerminal;
+}
+
 /*******************
     ENTRY POINTS
 *******************/
@@ -187,351 +597,31 @@ void Beelzebub::Main()
 
         MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
 
-        //  Setting up basic interrupt handlers 'n stuff.
-        //  Again, platform-specific.
-        MainTerminal->Write("[....] Parsing command-line arguments...");
-        res = ParseKernelArguments();
-
-        if (res.IsOkayResult())
-        {
-            MainTerminal->Write(" And tests...");
-            res = InitializeTestFlags();
-
-            if (res.IsOkayResult())
-                MainTerminal->WriteLine(" Done.\r[OKAY]");
-            else
-            {
-                MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-                ASSERT(false, "Failed to initialize test flags (%H; \"%s\"): %H"
-                    , CMDO_Tests.ParsingResult
-                    , CMDO_Tests.ParsingResult.IsOkayResult()
-                        ? CMDO_Tests.StringValue
-                        : "NO VALUE"
-                    , res);
-            }
-        }
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-            ASSERT(false, "Failed to parse kernel command-line arguments: %H"
-                , res);
-        }
-
-        //  Setting up basic interrupt handlers 'n stuff.
-        //  Again, platform-specific.
-        MainTerminal->Write("[....] Initializing interrupts...");
-        res = InitializeInterrupts();
-
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-            ASSERT(false, "Failed to initialize interrupts: %H"
-                , res);
-        }
-
-        //  Preparing the PIT for basic timing.
-        //  Common on x86.
-        MainTerminal->Write("[....] Initializing PIT...");
-        res = InitializePit();
-
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-            ASSERT(false, "Failed to initialize the PIT: %H"
-                , res);
-        }
-
-        //  Initialize the memory by partition and allocation.
-        //  Differs on IA-32 and AMD64. May tweak virtual memory in the process.
-        MainTerminal->Write("[....] Initializing physical memory...");
-        res = InitializePhysicalMemory();
-
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-            ASSERT(false, "Failed to initialize physical memory: %H"
-                , res);
-        }
-
-        //  Initialize the virtual memory for use by the kernel.
-        //  Differs on IA-32 and AMD64.
-        MainTerminal->Write("[....] Initializing virtual memory...");
-        res = InitializeVirtualMemory();
-
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-            ASSERT(false, "Failed to initialize virtual memory: %H"
-                , res);
-        }
+        MainParseKernelArguments();
+        MainInitializeInterrupts();
+        MainInitializePit();
+        MainInitializePhysicalMemory();
+        MainInitializeVirtualMemory();
 
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
-        //  Run all available unit tests, if asked.
-        if (CMDO_UnitTests.ParsingResult.IsValid() && CMDO_UnitTests.BooleanValue)
-        {
-            MainTerminal->Write("[....] Running unit tests... ");
-
-            UnitTestsReport report = RunUnitTests();
-
-            *MainTerminal << report.SuccessCount << "/" << report.TestCount
-                << " successful.\r[OKAY]" << EndLine;
-        }
+        MainRunUnitTests();
 #endif
 
-        //  Initialize the ACPI tables for easier use.
-        //  Mostly common on x86.
-        MainTerminal->Write("[....] Initializing ACPI tables...");
-        res = InitializeAcpiTables();
+        MainInitializeAcpiTables();
+        MainInitializeApic();
 
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        MainBootstrapThread();
 
-            ASSERT(false, "Failed to initialize the ACPI tables: %H"
-                , res);
-        }
+        MainInitializeExtraCpus();
+        MainElideLocks();
 
-        //  Initialize the LAPIC for the BSP and the I/O APIC.
-        //  Mostly common on x86.
-        MainTerminal->Write("[....] Initializing APIC...");
-        res = InitializeApic();
+        MainInitializeBootModules();
+        MainInitializeRuntimeLibraries();
 
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        MainInitializeFpu();
+        MainInitializeSyscalls();
 
-            ASSERT(false, "Failed to initialize the APIC: %H"
-                , res);
-        }
-
-        MainTerminal->Write("[....] Initializing as bootstrap thread...");
-
-        res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess);
-
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-            ASSERT(false, "Failed to initialize main entry point as bootstrap thread: %H"
-                , res);
-        }
-
-        Cpu::SetThread(&BootstrapThread);
-        Cpu::SetProcess(&BootstrapProcess);
-
-#if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-        MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
-#else
-        bool shouldElideLocks = false;
-
-        //  Initialize the other processing units in the system.
-        //  Mostly common on x86, but the executed code differs by arch.
-        if (CMDO_SmpEnable.ParsingResult.IsValid() && !CMDO_SmpEnable.BooleanValue)
-        {
-            MainTerminal->WriteLine("[SKIP] Extra processing units ignored as indicated in arguments.");
-
-            CpuDataSetUp = shouldElideLocks = true;
-            //  Let the kernel know that CPU data is available for use, and elide
-            //  useless locks.
-        }
-        else if (Acpi::PresentLapicCount > 1)
-        {
-            MainTerminal->Write("[....] Initializing extra processing units...");
-            res = InitializeProcessingUnits();
-
-            if (res.IsOkayResult())
-                MainTerminal->WriteLine(" Done.\r[OKAY]");
-            else
-            {
-                MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-                ASSERT(false, "Failed to initialize the extra processing units: %H"
-                    , res);
-            }
-        }
-        else
-        {
-            MainTerminal->WriteLine("[SKIP] No extra processing units available.");
-
-            CpuDataSetUp = shouldElideLocks = true;
-            //  Once again...
-        }
-#endif
-
-#ifdef __BEELZEBUB__TEST_LOCK_ELISION
-        if (CHECK_TEST(LOCK_ELISION))
-        {
-            MainTerminal->Write("[TEST] Testing lock elision... ");
-
-            TestLockElision();
-
-            MainTerminal->WriteLine(" Done.");
-        }
-#endif
-
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-        //  Elide lock operations on unicore systems.
-        //  Mainly common.
-#ifdef __BEELZEBUB__TEST_LOCK_ELISION
-        if (shouldElideLocks && !(CHECK_TEST(LOCK_ELISION)))
-#else
-        if (shouldElideLocks)
-#endif
-        {
-            MainTerminal->Write("[....] Eliding locks...");
-            res = ElideLocks();
-
-            if (res.IsOkayResult())
-                MainTerminal->WriteLine(" Done.\r[OKAY]");
-            else
-            {
-                MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-                ASSERT(false, "Failed to elide locks: %H", res);
-            }
-        }
-#endif
-
-        //  Initialize the modules loaded with the kernel.
-        //  Mostly common.
-        MainTerminal->Write("[....] Initializing modules...");
-        res = InitializeModules();
-
-        if (res.IsOkayResult())
-        {
-            // if (KernelImage != nullptr)
-                MainTerminal->WriteLine(" Done.\r[OKAY]");
-            // else
-            // {
-            //     MainTerminal->WriteFormat(" Fail! No kernel image found.\r[FAIL]%n");
-
-            //     ASSERT(false, "Kernel image hasn't been found!");
-            // }
-        }
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-            ASSERT(false, "Failed to initialize modules: %H"
-                , res);
-        }
-
-        //  Initialize the modules loaded with the kernel.
-        //  Mostly common.
-        MainTerminal->Write("[....] Initializing runtime libraries...");
-
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-        res = Runtime64::Initialize();
-
-        if (res.IsOkayResult())
-            MainTerminal->Write(" 64-bit...");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-            ASSERT(false, "Failed to initialize 64-bit runtime: %H"
-                , res);
-        }
-#endif
-        // res = Runtime32::Initialize();
-
-        // if (res.IsOkayResult())
-        //     MainTerminal->Write(" 64-bit...");
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        // else
-        // {
-        //     MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        //     ASSERT(false, "Failed to initialize 32-bit runtime: %H"
-        //         , res);
-        // }
-
-        //  Initialize the extended thread states manager.
-        //  Mostly common.
-
-        Fpu::InitializeMain();
-        //  Meh.
-
-        if (Fpu::StateSize != 0)
-        {
-            MainTerminal->Write("[....] Initializing extended thread states...");
-            res = ExtendedStates::Initialize(Fpu::StateSize, Fpu::StateAlignment);
-
-            if (res.IsOkayResult())
-            {
-                MainTerminal->Write(" Allocating template state...");
-
-                void * templateState;
-
-                res = ExtendedStates::AllocateTemplate(templateState);
-
-                if (res.IsOkayResult())
-                    MainTerminal->WriteLine(" Done.\r[OKAY]");
-                else
-                {
-                    MainTerminal->WriteLine("\r[FAIL]%n");
-                    MainTerminal->WriteLine("       Fail! Could not allocate template state.");
-
-                    ASSERT(false, "Failed to allocate template extended thread state: %H"
-                        , res);
-                }
-
-                Fpu::SaveState(templateState);
-
-                Cpu::SetCr0(Cpu::GetCr0().SetTaskSwitched(true));
-            }
-            else
-            {
-                MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-                ASSERT(false, "Failed to initialize extended thread states: %H"
-                    , res);
-            }
-        }
-        else
-        {
-            MainTerminal->WriteLine("[SKIP] Extended thread states not needed by present CPU features.");
-        }
-
-        MainTerminal->Write("[....] Initializing syscalls...");
-        Syscalls::Initialize();
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-
-        //  Upgrade the terminal to a more capable and useful one.
-        //  Yet again, platform-specific.
-        MainTerminal->Write("[....] Initializing main terminal...");
-
-        TerminalBase * secondaryTerminal;
-
-        if (CMDO_Term.ParsingResult.IsValid())
-            secondaryTerminal = InitializeTerminalMain(CMDO_Term.StringValue);
-        else
-            secondaryTerminal = InitializeTerminalMain(nullptr);
-
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-
-        MainTerminal->WriteLine("Switching over.");
-        MainTerminal = secondaryTerminal;
+        MainInitializeMainTerminal();
 
         //  Permit other processors to initialize themselves.
         MainTerminal->WriteLine("Initialization complete! Will enable scheduling.");

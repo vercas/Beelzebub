@@ -65,17 +65,17 @@ namespace Beelzebub
     /**
      *  <summary>Entry point for the bootstrap processor.</summary>
      */
-    __startup __noinline void Main();
+    __startup void Main();
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     /**
      *  <summary>Entry point for application processors.</summary>
      */
-    __startup __noinline void Secondary();
+    __startup void Secondary();
 
     /**
      *  <summary>Entry point for other domains.</summary>
      */
-    __startup __noinline void Ternary();
+    __startup void Ternary();
 #endif
 }
