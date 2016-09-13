@@ -37,20 +37,20 @@
     thorough explanation regarding other files.
 */
 
-DECLARE_TEST(MT);
-DECLARE_TEST(STR);
-DECLARE_TEST(OBJA);
-DECLARE_TEST(METAP);
-DECLARE_TEST(EXCP);
-DECLARE_TEST(APP);
-DECLARE_TEST(KMOD);
-DECLARE_TEST(STACKINT);
-DECLARE_TEST(AVL_TREE);
-DECLARE_TEST(TERMINAL);
-DECLARE_TEST(CMDO);
-DECLARE_TEST(FPU);
-DECLARE_TEST(BIGINT);
-DECLARE_TEST(LOCK_ELISION);
-DECLARE_TEST(RW_SPINLOCK);
-DECLARE_TEST(VAS);
-DECLARE_TEST(INT_LAT);
+#ifdef __BEELZEBUB__TEST_KMOD
+
+#include <memory/vmm.hpp>
+
+#include <string.h>
+#include <debug.hpp>
+
+using namespace Beelzebub;
+using namespace Beelzebub::Memory;
+using namespace Beelzebub::Terminals;
+
+void TestKmod()
+{
+
+}
+
+#endif

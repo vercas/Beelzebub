@@ -137,6 +137,7 @@ local availableTests = List {
     "METAP",
     "EXCP",
     "APP",
+    "KMOD",
     "STACKINT",
     "AVL_TREE",
     "TERMINAL",

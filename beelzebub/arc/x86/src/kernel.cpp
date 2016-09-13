@@ -130,6 +130,10 @@
 #include <tests/interrupt_latency.hpp>
 #endif
 
+#ifdef __BEELZEBUB__TEST_KMOD
+#include <tests/kmod.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -741,6 +745,17 @@ void Beelzebub::Main()
             MainTerminal->Write(">Testing VAS implementation...");
 
             TestVas();
+
+            MainTerminal->WriteLine(" Done.");
+        }
+#endif
+
+#ifdef __BEELZEBUB__TEST_KMOD
+        if (CHECK_TEST(KMOD))
+        {
+            MainTerminal->Write(">Testing a kernel module...");
+
+            TestKmod();
 
             MainTerminal->WriteLine(" Done.");
         }
