@@ -44,18 +44,21 @@
 namespace Beelzebub
 {
     /**
-     * <summary>Represents a loaded kernel module.</summary>
-     */
-    class KernelModule
-    {
-
-    };
-
-    /**
      * <summary>Contains utilitary methods for dealing with kernel modules.</summary>
      */
     class Modules
     {
+    public:
+        /*  Statics  */
 
+        static bool Initialized;
+
+        /*  Initialization  */
+
+        Handle Initialize();
+
+        /*  (Un)loading  */
+
+        Handle Load(uintptr_t start, size_t len);
     };
 }

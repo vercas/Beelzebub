@@ -99,9 +99,11 @@
     ENUMINST(ApplicationObject        , 0x22U, "AOBJ") \
     \
     /*  A file in the InitRD. */ \
-    ENUMINST(InitRdFile               , 0x30U, "idFI") \
+    ENUMINST(InitRdFile               , 0x30U, "irdF") \
     /*  A directory in the InitRD. */ \
-    ENUMINST(InitRdDirectory          , 0x31U, "idDI") \
+    ENUMINST(InitRdDirectory          , 0x31U, "trdD") \
+    /*  A kernel module. */ \
+    ENUMINST(KernelModule             , 0x32U, "KMOD") \
     \
     /*  An table which associates handles with resources. */ \
     ENUMINST(HandleTable              , 0xF0U, "HTBL") \

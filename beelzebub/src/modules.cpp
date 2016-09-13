@@ -38,4 +38,64 @@
 */
 
 #include <modules.hpp>
+#include <execution/elf.hpp>
+#include <memory/object_allocator_smp.hpp>
+#include <memory/object_allocator_pools_heap.hpp>
 
+using namespace Beelzebub;
+using namespace Beelzebub::Execution;
+using namespace Beelzebub::Memory;
+
+struct KernelModule
+{
+    Elf Image;
+};
+
+typedef HandlePointer<KernelModule, HandleType::KernelModule, 0> KernelModuleHandle;
+
+ObjectAllocatorSmp ModulesAllocator;
+
+static bool HeaderValidator(ElfHeader1 const * header, void * data)
+{
+    return header->Identification.Class == ElfClass::Elf64;
+}
+
+/********************
+    Modules class
+********************/
+
+/*  Statics  */
+
+bool Modules::Initialized = false;
+
+/*  Initialization  */
+
+Handle Modules::Initialize()
+{
+    new (&ModulesAllocator) ObjectAllocatorSmp(sizeof(KernelModule), __alignof(KernelModule)
+        , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
+
+    Modules::Initialized = true;
+
+    return HandleResult::Okay;
+}
+
+/*  (Un)loading  */
+
+Handle Modules::Load(uintptr_t start, size_t len)
+{
+    KernelModule * kmod;
+    Handle res = ModulesAllocator.AllocateObject(kmod);
+
+    if (!res.IsOkayResult())
+        return res;
+
+    kmod->Image = Elf(reinterpret_cast<void *>(start), len);
+
+    ElfValidationResult evRes = kmod->Image.ValidateAndParse(&HeaderValidator, nullptr, nullptr);
+
+    if (evRes != ElfValidationResult::Success)
+        return HandleResult::Failed;
+
+    return HandleResult::Okay;
+}
