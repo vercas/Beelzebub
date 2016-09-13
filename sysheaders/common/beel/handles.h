@@ -467,7 +467,7 @@ namespace Beelzebub
 
         inline HandlePointer(Handle const h) : Value(h.GetIndex(HTYPE)) { }
 
-        inline HandlePointer(T const * const ptr, uint64_t const data)
+        inline HandlePointer(T const * const ptr, uint64_t const data = 0)
             : Value((((uint64_t)reinterpret_cast<uintptr_t>(ptr) & PointerMask) >> OFFSET)
                 | ((data & DataMask) << DataOffset))
         {

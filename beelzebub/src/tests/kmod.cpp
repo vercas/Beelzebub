@@ -39,7 +39,10 @@
 
 #ifdef __BEELZEBUB__TEST_KMOD
 
+#include <tests/kmod.hpp>
 #include <memory/vmm.hpp>
+#include <initrd.hpp>
+#include <modules.hpp>
 
 #include <string.h>
 #include <debug.hpp>
@@ -50,6 +53,25 @@ using namespace Beelzebub::Terminals;
 
 void TestKmod()
 {
+    //  First get the loadtest app's location.
+
+    Handle file = InitRd::FindItem("/kmods/test.kmod");
+
+    ASSERT(file.IsType(HandleType::InitRdFile)
+        , "Failed to find test.kmod in InitRD: %H.", file);
+
+    FileBoundaries bnd = InitRd::GetFileBoundaries(file);
+
+    ASSERT(bnd.Start != 0 && bnd.Size != 0);
+
+    //  Then attempt parsing it.
+
+    Handle res = Modules::Load(bnd.Start, bnd.Size);
+
+    ASSERT(res.IsType(HandleType::KernelModule)
+        , "Error in loading test.kmod: %H."
+        , res);
+
 
 }
 

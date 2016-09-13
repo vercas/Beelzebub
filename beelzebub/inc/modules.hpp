@@ -55,10 +55,10 @@ namespace Beelzebub
 
         /*  Initialization  */
 
-        Handle Initialize();
+        static Handle Initialize();
 
         /*  (Un)loading  */
 
-        Handle Load(uintptr_t start, size_t len);
+        static Handle Load(uintptr_t start, size_t len);
     };
 }

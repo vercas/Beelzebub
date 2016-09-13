@@ -59,6 +59,7 @@
 #include <system/interrupt_controllers/ioapic.hpp>
 #include <system/timers/pit.hpp>
 #include <system/syscalls.hpp>
+#include <modules.hpp>
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
@@ -547,9 +548,28 @@ static __startup void MainInitializeFpu()
 
 static __startup void MainInitializeSyscalls()
 {
-        MainTerminal->Write("[....] Initializing syscalls...");
-        Syscalls::Initialize();
+    MainTerminal->Write("[....] Initializing syscalls...");
+    Syscalls::Initialize();
+    MainTerminal->WriteLine(" Done.\r[OKAY]");
+}
+
+static __startup void MainInitializeKernelModules()
+{
+    //  Prepare the kernel for loading modules into itself.
+    //  Pretty much architecture-agnostic, at this point at least.
+
+    MainTerminal->Write("[....] Initializing kernel modules...");
+    Handle res = Modules::Initialize();
+
+    if (res.IsOkayResult())
         MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize kernel modules: %H"
+            , res);
+    }
 }
 
 static __startup void MainInitializeMainTerminal()
@@ -624,6 +644,7 @@ void Beelzebub::Main()
 
         MainInitializeFpu();
         MainInitializeSyscalls();
+        MainInitializeKernelModules();
 
         MainInitializeMainTerminal();
 

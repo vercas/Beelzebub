@@ -97,5 +97,5 @@ Handle Modules::Load(uintptr_t start, size_t len)
     if (evRes != ElfValidationResult::Success)
         return HandleResult::Failed;
 
-    return HandleResult::Okay;
+    return KernelModuleHandle(kmod).ToHandle(true);
 }
