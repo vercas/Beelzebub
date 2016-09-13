@@ -155,7 +155,8 @@ handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
     {
         size_t curChunk = Minimum(ChunkSize, len - chunk);
 
-        withInterrupts (false) withWriteProtect (false)
+        withInterrupts (false)
+        withWriteProtect (false)
             memmove(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), curChunk);
         //  TODO: Exception handling, maybe?
     }
@@ -197,7 +198,8 @@ handle_t Syscalls::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
     {
         size_t curChunk = Minimum(ChunkSize, len - chunk);
 
-        withInterrupts (false) withWriteProtect (false)
+        withInterrupts (false)
+        withWriteProtect (false)
             memset(reinterpret_cast<void *>(dst), val, curChunk);
         //  TODO: Exception handling, maybe?
     }
