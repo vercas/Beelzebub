@@ -121,9 +121,14 @@ local GZIP  = "gzip"
 
 if not os.execute(MKISO .. " --version > /dev/null 2> /dev/null") then
     --  So, mkisofs may not be completely absent.
-    --  Maybe it comes from an external source?
 
-    if MISC_TOOLS_DIR then
+    if os.execute("genisoimage --version > /dev/null 2> /dev/null") then
+        --  Maybe genisoimage no longer symlinks it.
+
+        MKISO = "genisoimage"
+    elseif MISC_TOOLS_DIR then
+        --  Or maybe it comes from an external source?
+
         MKISO = MISC_TOOLS_DIR .. "/genisoimage"
     end
 end
