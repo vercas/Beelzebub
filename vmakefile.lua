@@ -294,15 +294,14 @@ local function sourceArchitectural(_, dst)
     end
 
     if settMakeDeps then
-        return ParseGccDependencies(dst, src, true) + List { dst:GetParent() + ".dummy" }
+        return ParseGccDependencies(dst, src, true) + List { dst:GetParent() }
     else
-        return List { src, dst:GetParent() + ".dummy" }
+        return List { src, dst:GetParent() }
     end
 end
 
 local function gzipSingleFile(_, dst, src)
     local tmp = dst:TrimEnd(3)  --  3 = #".gz"
-    fs.MkDir(tmp:GetParent())
     fs.Copy(tmp, src[1])
     sh.silent(GZIP, "-f", "-9", tmp)
 end
@@ -358,14 +357,6 @@ local function ArchitecturalComponent(name)
         },
 
         ExcuseMissingFilesRule { "h", "hpp", "inc", "hh" },
-
-        Rule "Create Objects Directory" {
-            Filter = function(_, dst) return dst:GetName():Equals(".dummy") end,
-
-            Action = function(_, dst, src)
-                fs.MkDir(dst)
-            end,
-        },
     })
 
     local data = {
@@ -469,6 +460,7 @@ Project "Beelzebub" {
         KernelModuleLibraryPath = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
         TestKernelModulePath    = function(_) return _.Sysroot + "kmods/test.kmod" end,
         KernelPath              = function(_) return _.outDir + "beelzebub.bin" end,
+        LoadtestAppPath         = function(_) return _.Sysroot + "apps/loadtest.exe" end,
 
         CrtFiles = function(_)
             return _.selArch.Data.CrtFiles:Select(function(val)
@@ -554,10 +546,21 @@ Project "Beelzebub" {
             return files
         end,
 
+        Rule "Create Directory" {
+            Filter = function(_, dst) return dst.IsDirectory end,
+
+            Action = function(_, dst)
+                fs.MkDir(dst)
+            end,
+        },
+
         Rule "Copy Header" {
-            Filter = function(_, dst) return dst:StartsWith(_.SysheadersPath) end,
+            Filter = function(_, dst)
+                return dst:StartsWith(_.SysheadersPath) and not dst.IsDirectory
+            end,
 
             Source = function(_, dst)
+                local parent = dst:GetParent()
                 dst = dst:Skip(_.SysheadersPath)
 
                 for arch in _.selArch:Hierarchy() do
@@ -566,10 +569,12 @@ Project "Beelzebub" {
                     if fs.GetInfo(src) then return src end
                 end
 
-                return _.comp.Directory + "common" + dst
+                return List { _.comp.Directory + "common" + dst, parent }
             end,
 
-            Action = CopySingleFileAction,
+            Action = function(_, dst, src)
+                fs.Copy(dst, src[1])
+            end,
         },
     },
 
@@ -620,24 +625,26 @@ Project "Beelzebub" {
 
         Output = function(_) return _.outDir + "jegudiel.bin" end,
 
-        Rule "Create Objects Directory" {
-            Filter = function(_, dst) return _.ObjectsDirectory + ".dummy" end,
+        Rule "Link Binary" {
+            Filter = function(_, dst) return _.BinaryPath end,
+
+            Source = function(_, dst)
+                return _.Objects + List { _.LinkerScript, dst:GetParent() }
+            end,
 
             Action = function(_, dst, src)
-                fs.MkDir(dst)
+                sh.silent(LD, _.Opts_LD, "-T", _.LinkerScript, "-o", dst, _.Objects)
             end,
         },
 
-        Rule "Link Binary" {
+        Rule "Strip Binary" {
             Filter = function(_, dst) return _.comp.Output end,
 
             Source = function(_, dst)
-                return _.Objects + List { _.LinkerScript }
+                return List {_.BinaryPath, dst:GetParent() }
             end,
 
             Action = function(_, dst, src)
-                sh.silent(LD, _.Opts_LD, "-T", _.LinkerScript, "-o", _.BinaryPath, _.Objects)
-                fs.MkDir(dst:GetParent())
                 sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
@@ -646,7 +653,7 @@ Project "Beelzebub" {
             Filter = function(_, dst) return dst:EndsWith(".c.o") end,
 
             Source = function(_, dst)
-                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), _.ObjectsDirectory + ".dummy" }
+                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), dst:GetParent() }
                 --  2 = #".o"
             end,
 
@@ -659,7 +666,7 @@ Project "Beelzebub" {
             Filter = function(_, dst) return dst:EndsWith(".s.o") end,
 
             Source = function(_, dst)
-                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), _.ObjectsDirectory + ".dummy" }
+                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), dst:GetParent() }
             end,
 
             Action = function(_, dst, src)
@@ -712,11 +719,10 @@ Project "Beelzebub" {
         Rule "Archive Objects" {
             Filter = function(_, dst) return _.CommonLibraryPath end,
 
-            Source = function(_, dst) return _.Objects end,
+            Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
             Action = function(_, dst, src)
-                fs.MkDir(dst:GetParent())
-                sh.silent(AR, _.Opts_AR, dst, src)
+                sh.silent(AR, _.Opts_AR, dst, _.Objects)
             end,
         },
 
@@ -732,9 +738,9 @@ Project "Beelzebub" {
                     local cpp, gas = archCrtBase .. ".cpp", archCrtBase .. ".s"
 
                     if fs.GetInfo(cpp) then
-                        return cpp
+                        return List { cpp, dst:GetParent() }
                     elseif fs.GetInfo(gas) then
-                        return gas
+                        return List { gas, dst:GetParent() }
                     end
                 end
 
@@ -742,12 +748,10 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                fs.MkDir(dst:GetParent())
-
                 if src[1]:EndsWith(".cpp") then
-                    sh.silent(CXX, _.Opts_CXX_CRT, "-MD", "-MP", "-c", src, "-o", dst)
+                    sh.silent(CXX, _.Opts_CXX_CRT, "-MD", "-MP", "-c", src[1], "-o", dst)
                 else
-                    sh.silent(GAS, _.Opts_GAS_CRT, "-c", src, "-o", dst)
+                    sh.silent(GAS, _.Opts_GAS_CRT, "-c", src[1], "-o", dst)
                 end
             end,
         },
@@ -791,13 +795,26 @@ Project "Beelzebub" {
         Output = function(_) return _.RuntimeLibraryPath end,
 
         Rule "Link-Optimize Binary" {
-            Filter = function(_, dst) return _.RuntimeLibraryPath end,
+            Filter = function(_, dst) return _.BinaryPath end,
 
-            Source = function(_, dst) return _.Objects + List { _.CommonLibraryPath } + _.CrtFiles end,
+            Source = function(_, dst)
+                return _.Objects + _.CrtFiles
+                    + List { _.CommonLibraryPath, dst:GetParent() }
+            end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
-                fs.MkDir(dst:GetParent())
+                sh.silent(LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
+            end,
+        },
+
+        Rule "Strip Binary" {
+            Filter = function(_, dst) return _.RuntimeLibraryPath end,
+
+            Source = function(_, dst)
+                return List { _.BinaryPath, dst:GetParent() }
+            end,
+
+            Action = function(_, dst, src)
                 sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
@@ -839,13 +856,23 @@ Project "Beelzebub" {
         Output = function(_) return _.KernelModuleLibraryPath end,
 
         Rule "Link-Optimize Binary" {
-            Filter = function(_, dst) return _.KernelModuleLibraryPath end,
+            Filter = function(_, dst) return _.BinaryPath end,
 
-            Source = function(_, dst) return _.Objects end,
+            Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
-                fs.MkDir(dst:GetParent())
+                sh.silent(LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
+            end,
+        },
+
+        Rule "Strip Binary" {
+            Filter = function(_, dst) return _.KernelModuleLibraryPath end,
+
+            Source = function(_, dst)
+                return List { _.BinaryPath, dst:GetParent() }
+            end,
+
+            Action = function(_, dst, src)
                 sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
@@ -853,7 +880,7 @@ Project "Beelzebub" {
 
     ArchitecturalComponent "Loadtest Application" {
         Data = {
-            BinaryPath = function(_) return _.ObjectsDirectory + "loadtest.exe" end,
+            BinaryPath = function(_) return _.ObjectsDirectory + _.LoadtestAppPath:GetName() end,
 
             Opts_GCC = function(_)
                 return List {
@@ -882,16 +909,29 @@ Project "Beelzebub" {
 
         Dependencies = "System Headers",
 
-        Output = function(_) return _.Sysroot + "apps/loadtest.exe" end,
+        Output = function(_) return _.LoadtestAppPath end,
 
         Rule "Link-optimize Binary" {
-            Filter = function(_, dst) return _.comp.Output end,
+            Filter = function(_, dst) return _.BinaryPath end,
 
-            Source = function(_, dst) return _.Objects + List { _.RuntimeLibraryPath } end,
+            Source = function(_, dst)
+                return _.Objects
+                    + List { _.RuntimeLibraryPath, dst:GetParent() }
+            end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
-                fs.MkDir(dst:GetParent())
+                sh.silent(LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
+            end,
+        },
+
+        Rule "Strip Binary" {
+            Filter = function(_, dst) return _.LoadtestAppPath end,
+
+            Source = function(_, dst)
+                return List { _.BinaryPath, dst:GetParent() }
+            end,
+
+            Action = function(_, dst, src)
                 sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
@@ -946,13 +986,26 @@ Project "Beelzebub" {
         Output = function(_) return _.KernelPath end,
 
         Rule "Link-Optimize Binary" {
-            Filter = function(_, dst) return _.KernelPath end,
+            Filter = function(_, dst) return _.BinaryPath end,
 
-            Source = function(_, dst) return _.Objects + List { _.LinkerScript, _.CommonLibraryPath } end,
+            Source = function(_, dst)
+                return _.Objects
+                    + List { _.LinkerScript, _.CommonLibraryPath, dst:GetParent() }
+            end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-T", _.LinkerScript, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
-                fs.MkDir(dst:GetParent())
+                sh.silent(LO, _.Opts_LO, "-T", _.LinkerScript, "-o", dst, _.Objects, _.Opts_Libraries)
+            end,
+        },
+
+        Rule "Strip Binary" {
+            Filter = function(_, dst) return _.KernelPath end,
+
+            Source = function(_, dst)
+                return List { _.BinaryPath, dst:GetParent() }
+            end,
+
+            Action = function(_, dst, src)
                 sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
@@ -1002,13 +1055,26 @@ Project "Beelzebub" {
         Output = function(_) return _.TestKernelModulePath end,
 
         Rule "Link-Optimize Binary" {
-            Filter = function(_, dst) return _.TestKernelModulePath end,
+            Filter = function(_, dst) return _.BinaryPath end,
 
-            Source = function(_, dst) return _.Objects + List { _.KernelModuleLibraryPath } + _.CrtFiles end,
+            Source = function(_, dst)
+                return _.Objects + _.CrtFiles
+                    + List { _.KernelModuleLibraryPath, dst:GetParent() }
+            end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-o", _.BinaryPath, _.Objects, _.Opts_Libraries)
-                fs.MkDir(dst:GetParent())
+                sh.silent(LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
+            end,
+        },
+
+        Rule "Strip Binary" {
+            Filter = function(_, dst) return _.TestKernelModulePath end,
+
+            Source = function(_, dst)
+                return List { _.BinaryPath, dst:GetParent() }
+            end,
+
+            Action = function(_, dst, src)
                 sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
@@ -1017,11 +1083,18 @@ Project "Beelzebub" {
     Component "ISO Image" {
         Data = {
             SysrootFiles = function(_)
+                local res
+
                 if fs.GetInfo(_.Sysroot) then
-                    return fs.ListDir(_.Sysroot):Append(_.Sysroot)
+                    res = fs.ListDir(_.Sysroot):Append(_.Sysroot)
                 else
-                    return List { }
+                    res = List { }
                 end
+
+                res:AppendUnique(_.LoadtestAppPath)
+                res:AppendUnique(_.KernelModuleLibraryPath)
+
+                return res
             end,
 
             Opts_TAR = function(_)
@@ -1050,6 +1123,9 @@ Project "Beelzebub" {
                     _.IsoEltoritoPath,
                     _.IsoGrubfontPath,
                     _.IsoGrubconfPath,
+
+                    _.TestKernelModulePath,
+                    _.LoadtestAppPath,
                 }
 
                 if _.selArch.Name == "amd64" then
@@ -1068,8 +1144,6 @@ Project "Beelzebub" {
         Directory = "image",
 
         Dependencies = List {
-            "Loadtest Application",
-            "Test Kernel Module",
             "System Headers"
         },
 
@@ -1095,33 +1169,63 @@ Project "Beelzebub" {
 
         Rule "GZip Jegudiel" {
             Filter = function(_, dst) return _.IsoJegudielPath end,
-            Source = function(_, dst) return _.JegudielPath end,
+            
+            Source = function(_, dst)
+                return List { _.JegudielPath, dst:GetParent() }
+            end,
+
             Action = gzipSingleFile,
         },
 
         Rule "GZip Beelzebub" {
             Filter = function(_, dst) return _.IsoKernelPath end,
-            Source = function(_, dst) return _.KernelPath end,
+            
+            Source = function(_, dst)
+                return List { _.KernelPath, dst:GetParent() }
+            end,
+
             Action = gzipSingleFile,
         },
 
         Rule "Copy GRUB El Torito" {
             Filter = function(_, dst) return _.IsoEltoritoPath end,
-            Source = function(_, dst) return _.SourceEltorito end,
+            
+            Source = function(_, dst)
+                return List { _.SourceEltorito, dst:GetParent() }
+            end,
+
             Action = CopySingleFileAction,
         },
 
         Rule "Copy GRUB Font" {
             Filter = function(_, dst) return _.IsoGrubfontPath end,
-            Source = function(_, dst) return _.SourceGrubfont end,
+            
+            Source = function(_, dst)
+                return List { _.SourceGrubfont, dst:GetParent() }
+            end,
+
             Action = CopySingleFileAction,
         },
 
         Rule "Copy GRUB Configuration" {
             Filter = function(_, dst) return _.IsoGrubconfPath end,
-            Source = function(_, dst) return _.SourceGrubconf end,
+            
+            Source = function(_, dst)
+                return List { _.SourceGrubconf, dst:GetParent() }
+            end,
+
             Action = CopySingleFileAction,
         },
+    },
+
+    Rule "Create Directory" {
+        Shared = true,
+
+        Filter = function(_, dst) return dst == _.ObjectsDirectory or dst.IsDirectory end,
+
+        Action = function(_, dst, src)
+            fs.MkDir(dst)
+        end,
     },
 }
 

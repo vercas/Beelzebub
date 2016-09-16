@@ -235,3 +235,5 @@ CleanBuild.bat
 last_settings.txt
 start_cygwin.bat
 mintty.exe.stackdump
+
+vmake-edge.lua
