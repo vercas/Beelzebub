@@ -1092,7 +1092,7 @@ Project "Beelzebub" {
                 end
 
                 res:AppendUnique(_.LoadtestAppPath)
-                res:AppendUnique(_.KernelModuleLibraryPath)
+                res:AppendUnique(_.TestKernelModulePath)
 
                 return res
             end,
