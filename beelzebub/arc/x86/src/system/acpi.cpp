@@ -39,6 +39,7 @@
 
 #include <system/acpi.hpp>
 #include <memory/vmm.hpp>
+#include <memory/pmm.hpp>
 #include <entry.h>
 
 #include <utils/checksum.hpp>
@@ -455,7 +456,7 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
     for (/* nothing */; tabStartPage + offset1 < tabHeaderEndPage; offset1 += PageSize)
     {
         res = Vmm::MapPage(&BootstrapProcess, vaddr + offset1, tabStartPage + offset1
-            , MemoryFlags::Global, PageDescriptor::Invalid);
+            , MemoryFlags::Global, Pmm::InvalidDescriptor);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for table header: %H%n"
@@ -485,7 +486,7 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
     for (/* nothing */; tabStartPage + offset1 < tabEndPage; offset1 += PageSize)
     {
         res = Vmm::MapPage(&BootstrapProcess, vaddr + offset1, tabStartPage + offset1
-            , MemoryFlags::Global, PageDescriptor::Invalid);
+            , MemoryFlags::Global, Pmm::InvalidDescriptor);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for table body: %H%n"

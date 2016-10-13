@@ -41,7 +41,7 @@
 
 #include <tests/object_allocator.hpp>
 #include <memory/object_allocator_smp.hpp>
-#include <memory/page_allocator.hpp>
+#include <memory/pmm.hpp>
 #include <memory/vmm.hpp>
 #include <kernel.hpp>
 
@@ -81,17 +81,16 @@ bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;
 static __startup Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
 {
     Handle res;
-    PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
     vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(pageCount * PageSize);
 
     for (size_t i = 0; i < pageCount; ++i)
     {
-        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
+        paddr_t const paddr = Pmm::AllocateFrame();
         //  Test page.
 
-        assert_or(paddr != nullpaddr && desc != nullptr
+        assert_or(paddr != nullpaddr
             , "Unable to allocate physical page #%us for an object pool!"
             , i)
         {
@@ -100,7 +99,7 @@ static __startup Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & a
         }
 
         res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, desc);
+            , MemoryFlags::Global | MemoryFlags::Writable);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP; #%us) for an object pool (%us pages): %H."
@@ -242,7 +241,6 @@ __startup Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t mi
         , newPageCount, oldPageCount);
 
     Handle res;
-    PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
     vaddr_t const vaddr = oldPageCount * PageSize + (vaddr_t)pool;
@@ -270,10 +268,10 @@ __startup Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t mi
 
     for (size_t i = 0; curPageCount < newPageCount; ++i, ++curPageCount)
     {
-        paddr_t const paddr = Cpu::GetData()->DomainDescriptor->PhysicalAllocator->AllocatePage(desc);
+        paddr_t const paddr = Pmm::AllocateFrame();
         //  Test page.
 
-        assert_or(paddr != nullpaddr && desc != nullptr
+        assert_or(paddr != nullpaddr
             , "Unable to allocate physical page #%us for extending object pool "
               "%Xp (%us, %us, %us, %us, %us)!"
             , i, pool
@@ -283,7 +281,7 @@ __startup Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t mi
         }
 
         res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, desc);
+            , MemoryFlags::Global | MemoryFlags::Writable);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP; #%us) for extending object pool "
@@ -292,7 +290,7 @@ __startup Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t mi
             , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount
             , res)
         {
-            Cpu::GetData()->DomainDescriptor->PhysicalAllocator->FreePageAtAddress(paddr);
+            Pmm::FreeFrame(paddr);
             //  This should succeed.
 
             break;
@@ -356,7 +354,6 @@ __startup Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoo
     //  from the highest. The kernel heap cursor will be pulled back if possible.
 
     Handle res;
-    PageDescriptor * desc = nullptr;
 
     bool decrementedHeapCursor = true;
     //  Initial value is for simplifying the algorithm below.
@@ -372,7 +369,7 @@ __startup Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoo
     {
         /*msg("~~ UNMAPPING %Xp FROM POOL %Xp;", vaddr, pool);//*/
 
-        res = Vmm::UnmapPage(&BootstrapProcess, vaddr, desc);
+        res = Vmm::UnmapPage(&BootstrapProcess, vaddr);
 
         assert_or(res.IsOkayResult()
             , "Failed to unmap page #%us from pool %Xp.%n"
@@ -382,13 +379,6 @@ __startup Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoo
 
             //  The rest of the function will attempt to adapt.
         }
-
-        /*if (desc != nullptr)
-        {
-            msg(" PHYSPAGE ");
-            desc->PrintToTerminal(Debug::DebugTerminal);
-            msg(" ~~%n");
-        }//*/
 
         vaddr_t expectedCursor = vaddr + PageSize;
 

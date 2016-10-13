@@ -349,8 +349,10 @@ typedef void (* ActionFunction0)(void);
 
 #ifdef __BEELZEBUB__DEBUG
     #define onDebug if (true)
+    #define onRelease if (false)
 #else
     #define onDebug if (false)
+    #define onRelease if (true)
 #endif
 
 #ifdef __BEELZEBUB_KERNEL

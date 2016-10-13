@@ -66,6 +66,8 @@ void TestKmod()
 
     //  Then attempt parsing it.
 
+    MSG_("Beginning loading of kernel module.%n");
+
     Handle res = Modules::Load(bnd.Start, bnd.Size);
 
     ASSERT(res.IsType(HandleType::KernelModule)

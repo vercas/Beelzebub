@@ -49,12 +49,31 @@
 
 namespace Beelzebub
 {
+//  Yup... Goes directly in here.
+#include <beel/structs.kernel.common.hpp>
+
     /**
      *  A unit of isolation.
      */
     class MONIKER(Process)
     {
-        //  So far, nothing.
+    protected:
+        /*  Constructor(s)  */
+
+        inline MONIKER(Process)(uint16_t id)
+            : Id( id)
+        {
+            //  Nothing else.
+        }
+
+        /*  Vitals  */
+
+        uint16_t Id;
+
+    public:
+        /*  Proeprties  */
+
+        __forceinline uint16_t GetId() { return this->Id; }
     };
 
     /**

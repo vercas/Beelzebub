@@ -41,6 +41,8 @@
 #include <execution/thread_init.hpp>
 #include <terminals/vbe.hpp>
 
+#include <memory/pmm.hpp>
+#include <memory/pmm.arc.hpp>
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
 #include <memory/regions.hpp>
@@ -208,101 +210,101 @@ Handle ParseKernelArguments()
     PHYSICAL MEMORY
 **********************/
 
-bool firstRegionCreated = false;
+// bool firstRegionCreated = false;
 
-psize_t currentSpaceIndex = nullpaddr, currentSpaceLimit = nullpaddr;
+// psize_t currentSpaceIndex = nullpaddr, currentSpaceLimit = nullpaddr;
 
-PageAllocationSpace * currentAllocationSpacePtr = nullptr;
-//  This one's used to instantiate allocation spaces.
+// PageAllocationSpace * currentAllocationSpacePtr = nullptr;
+// //  This one's used to instantiate allocation spaces.
 
-PageAllocationSpace mainAllocationSpace;
-PageAllocator mainAllocator;
+// PageAllocationSpace mainAllocationSpace;
+// PageAllocator mainAllocator;
 
 //  NOTE: These variables are to be carefully reset for every domain.
 
 /** 
  *  <summary>Creates an allocation space over the given physical range.</summary>
  */
-__startup PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end, Domain * domain)
-{
-    /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
+// __startup PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end, Domain * domain)
+// {
+//     /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
 
-    if (firstRegionCreated)
-    {
-        if (currentSpaceIndex == currentSpaceLimit)
-        {
-            //  The limit of the current allocation space location has
-            //  been reached.
+//     if (firstRegionCreated)
+//     {
+//         if (currentSpaceIndex == currentSpaceLimit)
+//         {
+//             //  The limit of the current allocation space location has
+//             //  been reached.
 
-            currentSpaceIndex = 0;
-            //  Reset the index.
+//             currentSpaceIndex = 0;
+//             //  Reset the index.
 
-            currentAllocationSpacePtr = nullptr;
-            //  Nullify the location so it is recreated.
+//             currentAllocationSpacePtr = nullptr;
+//             //  Nullify the location so it is recreated.
 
-            /*msg("MAX; ");//*/
-        }
+//             /*msg("MAX; ");//*/
+//         }
 
-        if (currentAllocationSpacePtr == nullptr)
-        {
-            PageDescriptor * desc = nullptr;
-            paddr_t const paddr = domain->PhysicalAllocator->AllocatePage(PageAllocationOptions::GeneralPages, desc);
+//         if (currentAllocationSpacePtr == nullptr)
+//         {
+//             PageDescriptor * desc = nullptr;
+//             paddr_t const paddr = domain->PhysicalAllocator->AllocatePage(PageAllocationOptions::GeneralPages, desc);
 
-            ASSERT(paddr != nullpaddr && desc != nullptr
-                , "Unable to allocate a special page for creating more allocation spaces!");
+//             ASSERT(paddr != nullpaddr && desc != nullptr
+//                 , "Unable to allocate a special page for creating more allocation spaces!");
 
-            Handle res = domain->PhysicalAllocator->ReserveByteRange(paddr, PageSize, PageReservationOptions::IncludeInUse);
+//             Handle res = domain->PhysicalAllocator->ReserveByteRange(paddr, PageSize, PageReservationOptions::IncludeInUse);
 
-            ASSERT(res.IsOkayResult()
-                , "Failed to reserve special page for further allocation space creation: %H"
-                , res);
+//             ASSERT(res.IsOkayResult()
+//                 , "Failed to reserve special page for further allocation space creation: %H"
+//                 , res);
 
-            currentAllocationSpacePtr = reinterpret_cast<PageAllocationSpace *>((uintptr_t)paddr);
+//             currentAllocationSpacePtr = reinterpret_cast<PageAllocationSpace *>((uintptr_t)paddr);
 
-            /*msg("PAGE@%Xp; ", currentAllocationSpacePtr);//*/
-        }
+//             /*msg("PAGE@%Xp; ", currentAllocationSpacePtr);//*/
+//         }
 
-        /*msg("SPA@%Xp; I=%u2; "
-            , currentAllocationSpacePtr + currentSpaceIndex
-            , (uint16_t)currentSpaceIndex);//*/
+//         /*msg("SPA@%Xp; I=%u2; "
+//             , currentAllocationSpacePtr + currentSpaceIndex
+//             , (uint16_t)currentSpaceIndex);//*/
 
-        PageAllocationSpace * space = new (currentAllocationSpacePtr + currentSpaceIndex++) PageAllocationSpace(start, end, PageSize);
-        //  One of the really neat things I like about C++.
+//         PageAllocationSpace * space = new (currentAllocationSpacePtr + currentSpaceIndex++) PageAllocationSpace(start, end, PageSize);
+//         //  One of the really neat things I like about C++.
 
-        space->InitializeControlStructures();
+//         space->InitializeControlStructures();
 
-        domain->PhysicalAllocator->PreppendAllocationSpace(space);
+//         domain->PhysicalAllocator->PreppendAllocationSpace(space);
 
-        /*msg("%XP-%XP;%n"
-            , space->GetAllocationStart()
-            , space->GetAllocationEnd());//*/
+//         /*msg("%XP-%XP;%n"
+//             , space->GetAllocationStart()
+//             , space->GetAllocationEnd());//*/
 
-        return space;
-    }
-    else
-    {
-        new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
+//         return space;
+//     }
+//     else
+//     {
+//         new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
 
-        mainAllocationSpace.InitializeControlStructures();
+//         mainAllocationSpace.InitializeControlStructures();
 
-        new (domain->PhysicalAllocator = &mainAllocator) PageAllocator(&mainAllocationSpace);
+//         new (domain->PhysicalAllocator = &mainAllocator) PageAllocator(&mainAllocationSpace);
 
-        firstRegionCreated = true;
+//         firstRegionCreated = true;
 
-        currentSpaceIndex = 0;
-        currentSpaceLimit = PageSize / sizeof(PageAllocationSpace);
-        currentAllocationSpacePtr = nullptr;
+//         currentSpaceIndex = 0;
+//         currentSpaceLimit = PageSize / sizeof(PageAllocationSpace);
+//         currentAllocationSpacePtr = nullptr;
 
-        /*msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
-            , &mainAllocationSpace, &mainAllocator
-            , mainAllocationSpace.GetAllocationStart()
-            , mainAllocationSpace.GetAllocationEnd()
-            , (uint16_t)currentSpaceLimit
-            , (uint16_t)sizeof(PageAllocationSpace));//*/
+//         /*msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
+//             , &mainAllocationSpace, &mainAllocator
+//             , mainAllocationSpace.GetAllocationStart()
+//             , mainAllocationSpace.GetAllocationEnd()
+//             , (uint16_t)currentSpaceLimit
+//             , (uint16_t)sizeof(PageAllocationSpace));//*/
 
-        return &mainAllocationSpace;
-    }
-}
+//         return &mainAllocationSpace;
+//     }
+// }
 
 /**
  *  <summary>
@@ -385,9 +387,11 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
         {
             if (m->address < start && (m->address + m->length) > start)
                 //  Means this entry crosses the start of free memory.
-                CreateAllocationSpace(start, m->address + m->length, domain);
+                //CreateAllocationSpace(start, m->address + m->length, domain);
+                PmmArc::CreateAllocationSpace(start, m->address + m->length);
             else
-                CreateAllocationSpace(m->address, m->address + m->length, domain);
+                //CreateAllocationSpace(m->address, m->address + m->length, domain);
+                PmmArc::CreateAllocationSpace(m->address, m->address + m->length);
         }
 
     //  PAGE RESERVATION
@@ -395,7 +399,7 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
         if (m->available == 0)
         {
-            res = domain->PhysicalAllocator->ReserveByteRange(m->address, m->length);
+            res = Pmm::ReserveRange(m->address, m->length);
 
             assert(res.IsOkayResult() || res.IsResult(HandleResult::PagesOutOfAllocatorRange)
                 , "Failed to reserve page range %XP-%XP: %H."
@@ -444,24 +448,23 @@ __startup void RemapTerminal(TerminalBase * const terminal);
  */
 Handle InitializeVirtualMemory()
 {
-    Handle res; //  Used for intermediary results.
+    Handle res;
+    void * desc;
+    //  Used for intermediary results.
 
     //  PAGING INITIALIZATION
 
-    PageDescriptor * desc = nullptr;
-
-    paddr_t const pml4_paddr = Domain0.PhysicalAllocator->AllocatePage(
-        PageAllocationOptions::ThirtyTwoBit, desc);
+    paddr_t const pml4_paddr = Pmm::AllocateFrame(desc, AddressMagnitude::_32bit);
 
     if (pml4_paddr == nullpaddr)
         return HandleResult::OutOfMemory;
 
+    Pmm::AdjustReferenceCount(desc, 1);
+
     memset((void *)pml4_paddr, 0, PageSize);
     //  Clear it all out!
-    desc->IncrementReferenceCount();
-    //  Increment reference count...
 
-    new (&BootstrapProcess) Process(pml4_paddr);
+    new (&BootstrapProcess) Process(0, pml4_paddr);
 
     VmmArc::Page1GB = BootstrapCpuid.CheckFeature(CpuFeature::Page1GB);
     VmmArc::NX      = BootstrapCpuid.CheckFeature(CpuFeature::NX     );
@@ -491,7 +494,7 @@ Handle InitializeVirtualMemory()
         paddr_t const paddr = (paddr_t)offset;
 
         res = Vmm::MapPage(&BootstrapProcess, vaddr, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid);
+            , MemoryFlags::Global | MemoryFlags::Writable);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for ISA DMA: %H."
@@ -528,7 +531,7 @@ void RemapTerminal(TerminalBase * const terminal)
         do
         {
             res = Vmm::MapPage(&BootstrapProcess, loc + off, term->VideoMemory + off
-                , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid);
+                , MemoryFlags::Global | MemoryFlags::Writable);
 
             ASSERT(res.IsOkayResult()
                 , "Failed to map page for VBE terminal (%Xp to %Xp): %H"
@@ -596,7 +599,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
     for (vaddr_t offset = 0; offset < size; offset += PageSize)
     {
         res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, module->address + offset
-            , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid);
+            , MemoryFlags::Global | MemoryFlags::Writable);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
@@ -709,7 +712,6 @@ void InitializeCpuStacks(bool const bsp)
     auto cpuData = Cpu::GetData();
 
     Handle res;
-    PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
     //  First, the #DF stack.
@@ -718,15 +720,15 @@ void InitializeCpuStacks(bool const bsp)
 
     for (size_t offset = PageSize; offset <= DoubleFaultStackSize; offset += PageSize)
     {
-        paddr_t const paddr = mainAllocator.AllocatePage(desc);
+        paddr_t const paddr = Pmm::AllocateFrame();
         //  Stack page.
 
-        ASSERT(paddr != nullpaddr && desc != nullptr
+        ASSERT(paddr != nullpaddr
             , "Unable to allocate a physical page #%us for DF stack of CPU #%us!"
             , offset / PageSize - 1, cpuData->Index);
 
         res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, desc);
+            , MemoryFlags::Global | MemoryFlags::Writable);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for DF stack of CPU #%us: %H."
@@ -742,15 +744,15 @@ void InitializeCpuStacks(bool const bsp)
 
     for (size_t offset = PageSize; offset <= PageFaultStackSize; offset += PageSize)
     {
-        paddr_t const paddr = mainAllocator.AllocatePage(desc);
+        paddr_t const paddr = Pmm::AllocateFrame();
         //  Stack page.
 
-        ASSERT(paddr != nullpaddr && desc != nullptr
+        ASSERT(paddr != nullpaddr
             , "Unable to allocate a physical page #%us for DF stack of CPU #%us!"
             , offset / PageSize - 1, cpuData->Index);
 
         res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, desc);
+            , MemoryFlags::Global | MemoryFlags::Writable);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for DF stack of CPU #%us: %H."
@@ -819,19 +821,18 @@ __startup void InitializeTestThread(Thread * const t, Process * const p)
 __startup char * AllocateTestPage(Process * const p)
 {
     Handle res;
-    PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
     vaddr_t const vaddr1 = 0x321000;
     vaddr_t const vaddr2 = Vmm::KernelHeapCursor.FetchAdd(PageSize);
-    paddr_t const paddr = mainAllocator.AllocatePage(desc);
+    paddr_t const paddr = Pmm::AllocateFrame();
     //  Test page.
 
-    ASSERT(paddr != nullpaddr && desc != nullptr
+    ASSERT(paddr != nullpaddr
         , "Unable to allocate a physical page for test page of process %Xp!"
         , p);
 
-    res = Vmm::MapPage(p, vaddr1, paddr, MemoryFlags::Writable, desc);
+    res = Vmm::MapPage(p, vaddr1, paddr, MemoryFlags::Writable);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
@@ -839,7 +840,7 @@ __startup char * AllocateTestPage(Process * const p)
         , res);
 
     res = Vmm::MapPage(&BootstrapProcess, vaddr2, paddr
-        , MemoryFlags::Global | MemoryFlags::Writable, desc);
+        , MemoryFlags::Global | MemoryFlags::Writable);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."

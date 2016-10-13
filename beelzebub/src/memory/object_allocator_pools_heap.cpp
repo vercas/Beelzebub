@@ -56,10 +56,11 @@ static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & 
     //PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t vaddr;
+    vaddr_t vaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , pageCount, MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+    res = Vmm::AllocatePages(nullptr
+        , pageCount
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::Generic
         , vaddr);
@@ -190,75 +191,20 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
           "is wrong.%n"
         , newPageCount, oldPageCount);
 
-    Handle res;
-    PageDescriptor * desc = nullptr;
-    //  Intermediate results.
+    vaddr_t vaddr = oldPageCount * PageSize + (vaddr_t)pool;
 
-    vaddr_t const vaddr = oldPageCount * PageSize + (vaddr_t)pool;
+    Handle res = Vmm::AllocatePages(nullptr
+        , newPageCount - oldPageCount
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::Generic
+        , vaddr);
 
-    vaddr_t oldPoolEnd = vaddr;
-    vaddr_t newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
-
-    // if unlikely(newPoolEnd > MemoryManagerAmd64::KernelHeapEnd)
-    // {
-    //     newPageCount -= (newPoolEnd - MemoryManagerAmd64::KernelHeapEnd) / PageSize;
-    //     newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
-    // }
-
-    bool const swapped = Vmm::KernelHeapCursor.CmpXchgStrong(oldPoolEnd, newPoolEnd);
-
-    if (!swapped)
-        return HandleResult::PageMapped;
-    //  It is possible that something else has already reserved memory here.
-    //  TODO: Check for actual free pages.
-
-    vaddr_t curPageCount = oldPageCount;
-
-    for (size_t i = 0; curPageCount < newPageCount; ++i, ++curPageCount)
-    {
-        paddr_t const paddr =
-            (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)
-            ->PhysicalAllocator->AllocatePage(desc);
-        //  Test page.
-
-        assert_or(paddr != nullpaddr && desc != nullptr
-            , "Unable to allocate physical page #%us for extending object pool "
-              "%Xp (%us, %us, %us, %us, %us)!"
-            , i, pool
-            , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount)
-        {
-            break;
-        }
-
-        res = Vmm::MapPage(
-            CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess,
-            vaddr + i * PageSize,
-            paddr,
-            MemoryFlags::Global | MemoryFlags::Writable,
-            desc
-        );
-
-        assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP; #%us) for extending object pool "
-              "%Xp (%us, %us, %us, %us, %us): %H."
-            , vaddr + i * PageSize, paddr, i, pool
-            , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount
-            , res)
-        {
-            (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)
-                ->PhysicalAllocator->FreePageAtAddress(paddr);
-            //  This should succeed.
-
-            break;
-        }
-    }
-
-    if (curPageCount == oldPageCount)
+    if likely(!res.IsOkayResult())
         return res;
-    //  Nothing was allocated.
 
     obj_ind_t const oldObjectCount = pool->Capacity;
-    obj_ind_t const newObjectCount = ((curPageCount * PageSize) - headerSize) / objectSize;
+    obj_ind_t const newObjectCount = ((newPageCount * PageSize) - headerSize) / objectSize;
 
     uintptr_t cursor = (uintptr_t)pool + headerSize + oldObjectCount * objectSize;
     FreeObject * last = nullptr;
@@ -300,7 +246,6 @@ Handle Memory::ReleasePoolFromKernelHeap(size_t objectSize
     //  from the highest. The kernel heap cursor will be pulled back if possible.
 
     Handle res;
-    PageDescriptor * desc = nullptr;
 
     bool decrementedHeapCursor = true;
     //  Initial value is for simplifying the algorithm below.
@@ -312,11 +257,7 @@ Handle Memory::ReleasePoolFromKernelHeap(size_t objectSize
 
     for (/* nothing */; i > 0; --i, vaddr -= PageSize)
     {
-        res = Vmm::UnmapPage(
-            CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess,
-            vaddr,
-            desc
-        );
+        res = Vmm::UnmapPage(nullptr, vaddr);
 
         assert_or(res.IsOkayResult()
             , "Failed to unmap page #%us from pool %Xp.%n"

@@ -88,7 +88,7 @@ namespace Beelzebub { namespace Memory
         Free                 = 0xFF,
     };
 
-    ENUMOPS(MemoryContent, uint8_t)
+    ENUMOPS_LITE(MemoryContent, uint8_t)
 
     /**
      *  Represents types of pages that can be allocated.

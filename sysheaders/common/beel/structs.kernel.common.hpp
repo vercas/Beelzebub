@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,67 +39,7 @@
 
 #pragma once
 
-#include <execution/process.arc.hpp>
-#include <beel/structs.kernel.hpp>
-#include <memory/vas.hpp>
-#include <synchronization/spinlock.hpp>
-#include <synchronization/atomic.hpp>
+//  Meant to be included in an architecture-specific version of the same file.
+//  Therefore, there are no namespaces or includes in this file.
 
-namespace Beelzebub { namespace Execution
-{
-    /**
-     *  A unit of isolation.
-     */
-    class Process : public ProcessBase, public ProcessArchitecturalBase
-    {
-    public:
 
-        /*  Constructors  */
-
-        inline Process()
-            : ProcessBase( 0xFFFF)
-            , ProcessArchitecturalBase()
-            , ActiveCoreCount(0)
-            , LocalTablesLock()
-            , AlienPagingTablesLock()
-            , PagingTable(nullpaddr)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        Process(Process const &) = delete;
-        Process & operator =(Process const &) = delete;
-
-        inline Process(uint16_t pid, paddr_t const pt)
-            : ProcessBase( pid)
-            , ProcessArchitecturalBase()
-            , ActiveCoreCount(0)
-            , LocalTablesLock()
-            , AlienPagingTablesLock()
-            , PagingTable(pt)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        /*  Operations  */
-
-        __hot Handle SwitchTo(Process * const other);
-
-        Synchronization::Atomic<size_t> ActiveCoreCount;
-
-        /*  Memory  */
-
-        Synchronization::Spinlock<> LocalTablesLock;
-
-        Synchronization::Spinlock<> AlienPagingTablesLock;
-        paddr_t PagingTable;
-
-        Memory::Vas Vas;
-
-        bool RuntimeLoaded;
-    };
-}}

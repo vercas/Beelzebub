@@ -39,6 +39,8 @@
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
+#include <memory/pmm.hpp>
+#include <memory/pmm.arc.hpp>
 #include <memory/object_allocator_pools_heap.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/cpu.hpp>
@@ -93,7 +95,6 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     if (VmmArc::NX)
         Cpu::EnableNxBit();
 
-    PageDescriptor * desc = nullptr;
     paddr_t const pml4_paddr = bootstrapProc->PagingTable;
 
     Pml4 & newPml4 = *((Pml4 *)pml4_paddr);
@@ -111,14 +112,16 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     for (uint16_t i = 256; i < VmmArc::AlienFractalIndex; ++i)
     {
-        paddr_t pml3_paddr = Domain0.PhysicalAllocator->AllocatePage(desc);
+        void * desc;
+
+        paddr_t pml3_paddr = Pmm::AllocateFrame(desc);
 
         memset((void *)pml3_paddr, 0, PageSize);
         //  Clear again.
-        desc->IncrementReferenceCount();
-        //  Increment reference count...
 
         newPml4[i] = Pml4Entry(pml3_paddr, true, true, true, false);
+
+        Pmm::AdjustReferenceCount(desc, 1);
     }
 
     newPml4[VmmArc::LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, VmmArc::NX);
@@ -131,7 +134,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     //  Remapping PAS control structures.
 
-    PageAllocationSpace * cur = Domain0.PhysicalAllocator->FirstSpace;
+    FrameAllocationSpace * cur = PmmArc::MainAllocator->FirstSpace;
     bool pendingLinksMapping = true;
     vaddr_t curLoc = KernelHeapCursor; //  Used for serial allocation.
     Handle res; //  Temporary result.
@@ -140,10 +143,9 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     {
         if ((vaddr_t)cur < VmmArc::HigherHalfStart && pendingLinksMapping)
         {
-            // msg("Mapping links from %XP to %Xp. ", RoundDown((paddr_t)cur, PageSize), curLoc);
-
             res = Vmm::MapPage(bootstrapProc, curLoc, RoundDown((paddr_t)cur, PageSize)
-                , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid
+                , MemoryFlags::Global | MemoryFlags::Writable
+                , Pmm::InvalidDescriptor
                 , false);
             //  Global because it's shared by processes, and writable for hotplug.
 
@@ -152,7 +154,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
                 , res);
             //  Failure is fatal.
 
-            Domain0.PhysicalAllocator->RemapLinks(RoundDown((vaddr_t)cur, PageSize), curLoc);
+            PmmArc::Remap(PmmArc::MainAllocator, RoundDown((vaddr_t)cur, PageSize), curLoc);
             //  Do the actual remapping.
 
             pendingLinksMapping = false;
@@ -163,29 +165,54 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         }
 
         paddr_t const pasStart = cur->GetMemoryStart();
-        size_t const controlStructuresSize = (cur->GetAllocationStart() - pasStart);
+        size_t controlStructuresSize = RoundUp(cur->GetControlAreaSize(), PageSize);
         //  Size of control pages.
 
-        if (curLoc + controlStructuresSize > VmmArc::KernelHeapEnd)
-            break;
-        //  Well, the maximum is reached! Like this will ever happen...
+        // if (curLoc + controlStructuresSize > VmmArc::KernelHeapEnd)
+        //     break;
+        // //  Well, the maximum is reached! Like this will ever happen...
 
-        for (size_t i = 0; i < controlStructuresSize; i += PageSize)
+        for (size_t offset = 0; offset < controlStructuresSize; offset += PageSize)
         {
-            res = Vmm::MapPage(bootstrapProc, curLoc + i, pasStart + i
-                , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid
+            res = Vmm::MapPage(bootstrapProc, curLoc + offset, pasStart + offset
+                , MemoryFlags::Global | MemoryFlags::Writable
+                , Pmm::InvalidDescriptor
                 , false);
 
             ASSERT(res.IsOkayResult()
                 , "Failed to map page #%u8 (%Xp to %XP): %H"
-                , i / PageSize, curLoc + i, pasStart + i, res);
+                , offset / PageSize
+                , curLoc + offset
+                , pasStart + offset
+                , res);
             //  Failure is fatal.
         }
 
-        cur->RemapControlStructures(curLoc);
-        //  Self-documented function name.
+        withLock (cur->LargeLocker)
+            cur->Map = reinterpret_cast<LargeFrameDescriptor *>(curLoc);
 
         curLoc += controlStructuresSize;
+
+        for (size_t i = 0; i < cur->GetLargeFrameCount(); ++i, curLoc += PageSize)
+        {
+            LargeFrameDescriptor * lDesc = cur->Map + i;
+
+            res = Vmm::MapPage(bootstrapProc, curLoc
+                , reinterpret_cast<paddr_t>(lDesc->SubDescriptors)
+                , MemoryFlags::Global | MemoryFlags::Writable
+                , Pmm::InvalidDescriptor
+                , false);
+
+            ASSERT(res.IsOkayResult()
+                , "Failed to map split frame subdescriptor page #%u8 (%Xp to %XP): %H"
+                , i
+                , curLoc
+                , lDesc->SubDescriptors
+                , res);
+
+            withLock (cur->SplitLocker)
+                lDesc->SubDescriptors = reinterpret_cast<SmallFrameDescriptor *>(curLoc);
+        }
 
     } while ((cur = cur->Next) != nullptr);
 
@@ -207,15 +234,15 @@ Handle Vmm::Initialize(Process * proc)
 {
     CpuInstructions::InvalidateTlb(VmmArc::GetAlienPml4());
 
-    PageDescriptor * desc;
+    void * desc;
 
     paddr_t const pml4_paddr = proc->PagingTable
-        = Domain0.PhysicalAllocator->AllocatePage(desc);
+        = Pmm::AllocateFrame(desc, AddressMagnitude::_32bit);
 
     if (pml4_paddr == nullpaddr)
         return HandleResult::OutOfMemory;
 
-    desc->IncrementReferenceCount();
+    Pmm::AdjustReferenceCount(desc, 1);
     //  Do the good deed.
 
     Spinlock<> * alienLock = nullptr;
@@ -362,7 +389,7 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
 }
 
 Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
-    , MemoryFlags const flags, PageDescriptor * desc, bool const lock)
+    , MemoryFlags const flags, void * desc, bool const lock)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
              || (vaddr >= VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
@@ -372,10 +399,6 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
         return HandleResult::AlignmentFailure;
 
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
-
-    PageAllocator * alloc = Domain0.PhysicalAllocator;
-
-    //  TODO: NUMA settings, and get the domain from CPU data.
 
     bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
     uint16_t ind;   //  Used to hold the current index.
@@ -436,33 +459,33 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
             {
                 //  So there's no PML4e. Means all PML1-3 need allocation.
 
-                PageDescriptor * tDsc;
+                void * tDsc;
 
                 //  First grab a PML3.
 
-                paddr_t const newPml3 = alloc->AllocatePage(tDsc);
+                paddr_t const newPml3 = Pmm::AllocateFrame(tDsc);
 
                 if (newPml3 == nullpaddr)
                     return HandleResult::OutOfMemory;
 
-                tDsc->IncrementReferenceCount();
+                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 pml4p->operator[](ind) = Pml4Entry(newPml3, true, true, true, false);
                 //  Present, writable, user-accessible, executable.
 
                 //  Then a PML2.
 
-                paddr_t const newPml2 = alloc->AllocatePage(tDsc);
+                paddr_t const newPml2 = Pmm::AllocateFrame(tDsc);
 
                 if (newPml2 == nullpaddr)
                 {
-                    alloc->FreePageAtAddress(newPml3);
+                    Pmm::FreeFrame(newPml3);
                     //  Yes, clean up.
 
                     return HandleResult::OutOfMemory;
                 }
 
-                tDsc->IncrementReferenceCount();
+                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 memset(pml3p, 0, PageSize);
                 pml3p->operator[](VmmArc::GetPml3Index(vaddr)) = Pml3Entry(newPml2, true, true, true, false);
@@ -470,17 +493,17 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
 
                 //  Then a PML1.
 
-                paddr_t const newPml1 = alloc->AllocatePage(tDsc);
+                paddr_t const newPml1 = Pmm::AllocateFrame(tDsc);
 
                 if (newPml1 == nullpaddr)
                 {
-                    alloc->FreePageAtAddress(newPml3);
-                    alloc->FreePageAtAddress(newPml2);
+                    Pmm::FreeFrame(newPml3);
+                    Pmm::FreeFrame(newPml2);
 
                     return HandleResult::OutOfMemory;
                 }
 
-                tDsc->IncrementReferenceCount();
+                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 memset(pml2p, 0, PageSize);
                 pml2p->operator[](VmmArc::GetPml2Index(vaddr)) = Pml2Entry(newPml1, true, true, true, false);
@@ -496,33 +519,33 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
 
             if unlikely(!pml3p->operator[](ind).GetPresent())
             {
-                PageDescriptor * tDsc;
+                void * tDsc;
 
                 //  First grab a PML2.
 
-                paddr_t const newPml2 = alloc->AllocatePage(tDsc);
+                paddr_t const newPml2 = Pmm::AllocateFrame(tDsc);
 
                 if (newPml2 == nullpaddr)
                     return HandleResult::OutOfMemory;
 
-                tDsc->IncrementReferenceCount();
+                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 pml3p->operator[](ind) = Pml3Entry(newPml2, true, true, true, false);
                 //  First clean, then assign an entry.
 
                 //  Then a PML1.
 
-                paddr_t const newPml1 = alloc->AllocatePage(tDsc);
+                paddr_t const newPml1 = Pmm::AllocateFrame(tDsc);
 
                 if (newPml1 == nullpaddr)
                 {
-                    alloc->FreePageAtAddress(newPml2);
+                    Pmm::FreeFrame(newPml2);
                     //  Yes, clean up.
 
                     return HandleResult::OutOfMemory;
                 }
 
-                tDsc->IncrementReferenceCount();
+                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 memset(pml2p, 0, PageSize);
                 pml2p->operator[](VmmArc::GetPml2Index(vaddr)) = Pml2Entry(newPml1, true, true, true, false);
@@ -538,14 +561,14 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
 
             if unlikely(!pml2p->operator[](ind).GetPresent())
             {
-                PageDescriptor * tDsc;
+                void * tDsc;
 
-                paddr_t const newPml1 = alloc->AllocatePage(tDsc);
+                paddr_t const newPml1 = Pmm::AllocateFrame(tDsc);
 
                 if (newPml1 == nullpaddr)
                     return HandleResult::OutOfMemory;
 
-                tDsc->IncrementReferenceCount();
+                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 pml2p->operator[](ind) = Pml2Entry(newPml1, true, true, true, false);
                 //  Present, writable, user-accessible, executable.
@@ -572,26 +595,23 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
         }
     }
 
-    if likely(PageDescriptor::IsValid(desc))
+    if likely(desc != Pmm::InvalidDescriptor)
     {
         if likely(desc != nullptr)
-            desc->IncrementReferenceCount();
-        else if (alloc->TryGetPageDescriptor(paddr, desc))
-            desc->IncrementReferenceCount();
-        //  The page still may not be in an allocation space.
+            Pmm::AdjustReferenceCount(desc, 1);
+        else
+            Pmm::AdjustReferenceCount(paddr, 1);
+        //  The page still may not be in an allocation space, but that is taken
+        //  care of by the PMM.
     }
 
     return HandleResult::Okay;
 }
 
 Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
-    , paddr_t & paddr, PageDescriptor * & desc, bool const lock)
+    , paddr_t & paddr, void * & desc, bool const lock)
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
-
-    PageAllocator * alloc = Domain0.PhysicalAllocator;
-
-    //  TODO: NUMA settings, and get the domain from CPU data.
 
     Handle res = TryTranslate(proc, vaddr, [&paddr](Pml1Entry * pE)
     {
@@ -622,16 +642,7 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
 
     Vmm::InvalidatePage(proc, vaddr, true);
 
-    if likely(alloc->TryGetPageDescriptor(paddr, desc))
-    {
-        auto refcnt = desc->DecrementReferenceCount();
-
-        if (refcnt == 0)
-            alloc->FreePageAtAddress(paddr);
-    }
-
-    //  TODO: The page may be in another domain's allocator.
-    //  That needs to be handled!
+    Pmm::AdjustReferenceCount(paddr, desc, -1);
 
     return HandleResult::Okay;
 }
@@ -688,9 +699,8 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     Memory::Vas * vas = &(proc->Vas);
 
     Handle res = HandleResult::Okay;
-    PageDescriptor * desc;
+    void * desc;
 
-    PageAllocator * alloc;
     paddr_t paddr;
 
     vaddr_t const vaddr_algn = RoundDown(vaddr, PageSize);
@@ -736,11 +746,7 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     //  following allocation fails, because it doesn't affect the correctness of
     //  the VAS.
 
-    alloc = CpuDataSetUp
-        ? Cpu::GetData()->DomainDescriptor->PhysicalAllocator
-        : Domain0.PhysicalAllocator;
-
-    paddr = alloc->AllocatePage(desc);
+    paddr = Pmm::AllocateFrame();
 
     if unlikely(paddr == nullpaddr)
         RETURN(OutOfMemory);
@@ -753,8 +759,7 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     {
         //  Okay, this really shouldn't fail.
 
-        if (desc->DecrementReferenceCount() == 0)
-            alloc->FreePageAtAddress(paddr);
+        Pmm::FreeFrame(paddr);
         //  Get rid of the physical page if mapping failed. :frown:
     }
 
@@ -840,15 +845,10 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
             heapLock = &(VmmArc::KernelHeapLock);
         }
 
-        PageDescriptor * desc;  //  Intermediary result as well.
-
-        PageAllocator * alloc = Domain0.PhysicalAllocator;
+        void * desc;  //  Intermediary result as well.
 
         InterruptGuard<> intGuard;
         //  Guard the rest of the scope from interrupts.
-
-        if likely(CpuDataSetUp)
-            alloc = Cpu::GetData()->DomainDescriptor->PhysicalAllocator;
 
         size_t const size = count * PageSize;
         bool allocSucceeded = true;
@@ -859,7 +859,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
         size_t offset;
         for (offset = 0; offset < size; offset += PageSize)
         {
-            paddr_t const paddr = alloc->AllocatePage(desc);
+            paddr_t const paddr = Pmm::AllocateFrame(desc);
 
             if unlikely(paddr == nullpaddr) { allocSucceeded = false; break; }
 

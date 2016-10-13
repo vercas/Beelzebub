@@ -63,6 +63,7 @@
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
+#include <memory/pmm.hpp>
 #include <system/acpi.hpp>
 
 #include <ap_bootstrap.hpp>
@@ -1163,7 +1164,7 @@ Handle InitializeApic()
         , res);
 
     res = Vmm::MapPage(&BootstrapProcess, Lapic::VirtualAddress, lapicPaddr
-        , MemoryFlags::Global | MemoryFlags::Writable, PageDescriptor::Invalid);
+        , MemoryFlags::Global | MemoryFlags::Writable, Pmm::InvalidDescriptor);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for LAPIC: %H%n"
@@ -1254,7 +1255,7 @@ Handle InitializeProcessingUnits()
 
     res = Vmm::MapPage(&BootstrapProcess, bootstrapVaddr, bootstrapPaddr
         , MemoryFlags::Global | MemoryFlags::Executable | MemoryFlags::Writable
-        , PageDescriptor::Invalid);
+        , Pmm::InvalidDescriptor);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for init code: %H%n"
@@ -1274,15 +1275,10 @@ Handle InitializeProcessingUnits()
     memcpy((void *)bootstrapVaddr, &ApBootstrapBegin, (uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin);
     //  This makes sure the code can be executed by the AP.
 
-    //msg("AP bootstrap code @ %Xp:%us%n"
-    //    , &ApBootstrapBegin, (size_t)((uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin));
-
     KernelGdtPointer = GdtRegister::Retrieve();
 
     BREAKPOINT_SET_AUX((int volatile *)((uintptr_t)&ApBreakpointCookie - (uintptr_t)&ApBootstrapBegin + bootstrapVaddr));
     int_cookie_t const int_cookie = Interrupts::PushEnable();
-
-    //msg("Auxiliary breakpoint pointer @ %Xp.%n", breakpointEscapedAux);
 
     // MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
     //     , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
@@ -1333,8 +1329,6 @@ Handle InitializeProcessingUnits()
         , "Failed to unmap unneeded page at %Xp (%XP) for init code: %H%n"
         , bootstrapVaddr, bootstrapPaddr, res);
 
-    //msg("Got %us cores.", Cpu::Count.Load());
-
     CpuDataSetUp = true;
     //  Let the kernel know that CPU data is available for use.
 
@@ -1360,40 +1354,28 @@ Handle InitializeAp(uint32_t const lapicId
                   , size_t const apIndex)
 {
     Handle res;
-    PageDescriptor * desc = nullptr;
     //  Intermediate results.
 
-    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(CpuStackSize + PageSize);
-    //  Guard page included.
+    vaddr_t vaddr = nullvaddr;
 
-    for (size_t offset = PageSize; offset <= CpuStackSize; offset += PageSize)
+    res = Vmm::AllocatePages(nullptr
+        , CpuStackSize / PageSize
+        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
+        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::ThreadStack
+        , vaddr);
+
+    assert_or(res.IsOkayResult()
+        , "Failed to allocate stack of AP #%us"
+          " (LAPIC ID %u4, processor ID %u4): %H."
+        , apIndex, lapicId, procId
+        , res)
     {
-        paddr_t const paddr = Domain0.PhysicalAllocator->AllocatePage(desc);
-        //  Stack page.
-
-        assert_or(paddr != nullpaddr && desc != nullptr
-            , "Unable to allocate a physical page $%us for stack of AP #%us"
-              " (LAPIC ID %u4, processor ID %u4)!"
-            , offset / PageSize - 1, apIndex, lapicId, procId)
-        {
-            return HandleResult::OutOfMemory;
-        }
-
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, desc);
-
-        assert_or(res.IsOkayResult()
-            , "Failed to map page #%us at %Xp (%XP) for stack of AP #%us"
-              " (LAPIC ID %u4, processor ID %u4): %H."
-            , offset / PageSize - 1, vaddr + offset, paddr
-            , apIndex, lapicId, procId
-            , res)
-        {
-            return res;
-        }
+        return res;
     }
 
-    ApStackTopPointer = vaddr + PageSize + CpuStackSize;
+    ApStackTopPointer = vaddr + CpuStackSize;
     ApInitializationLock1 = ApInitializationLock2 = ApInitializationLock3 = 1;
 
     LapicIcr initIcr = LapicIcr(0)

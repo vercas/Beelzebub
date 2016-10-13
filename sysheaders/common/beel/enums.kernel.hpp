@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,69 +37,42 @@
     thorough explanation regarding other files.
 */
 
+/**
+ *  The implementation of the virtual memory manager is architecture-specific.
+ */
+
 #pragma once
 
-#include <execution/process.arc.hpp>
-#include <beel/structs.kernel.hpp>
-#include <memory/vas.hpp>
-#include <synchronization/spinlock.hpp>
-#include <synchronization/atomic.hpp>
+#include <metaprogramming.h>
 
-namespace Beelzebub { namespace Execution
+namespace Beelzebub
 {
     /**
-     *  A unit of isolation.
+     *  Represents possible page/frame sizes.
      */
-    class Process : public ProcessBase, public ProcessArchitecturalBase
+    enum class FrameSize : uint8_t
     {
-    public:
-
-        /*  Constructors  */
-
-        inline Process()
-            : ProcessBase( 0xFFFF)
-            , ProcessArchitecturalBase()
-            , ActiveCoreCount(0)
-            , LocalTablesLock()
-            , AlienPagingTablesLock()
-            , PagingTable(nullpaddr)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        Process(Process const &) = delete;
-        Process & operator =(Process const &) = delete;
-
-        inline Process(uint16_t pid, paddr_t const pt)
-            : ProcessBase( pid)
-            , ProcessArchitecturalBase()
-            , ActiveCoreCount(0)
-            , LocalTablesLock()
-            , AlienPagingTablesLock()
-            , PagingTable(pt)
-            , Vas()
-            , RuntimeLoaded(false)
-        {
-
-        }
-
-        /*  Operations  */
-
-        __hot Handle SwitchTo(Process * const other);
-
-        Synchronization::Atomic<size_t> ActiveCoreCount;
-
-        /*  Memory  */
-
-        Synchronization::Spinlock<> LocalTablesLock;
-
-        Synchronization::Spinlock<> AlienPagingTablesLock;
-        paddr_t PagingTable;
-
-        Memory::Vas Vas;
-
-        bool RuntimeLoaded;
+        _4KiB = 1,
+        _64KiB = 2,
+        _2MiB = 3,
+        _4MiB = 4,
+        _1GiB = 5,
     };
-}}
+
+    ENUMOPS_LITE(FrameSize, uint8_t)
+
+    /**
+     *  Represents possible magnitudes of addresses (number of significant bits in their numeric value).
+     */
+    enum class AddressMagnitude : uint8_t
+    {
+        _16bit = 1,
+        _24bit = 2,
+        _32bit = 3,
+        _48bit = 4,
+
+        Any = 0xFF,
+    };
+
+    ENUMOPS_LITE(AddressMagnitude, uint8_t)
+}

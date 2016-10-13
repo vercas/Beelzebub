@@ -61,6 +61,8 @@ using namespace Beelzebub::Terminals;
 static Thread testThread;
 static Process testProcess;
 
+static volatile bool Barrier;
+
 static __startup void * TestThreadCode(void *);
 
 __startup void TestDereferenceFailure(uintptr_t volatile * const testPtr)
@@ -92,6 +94,8 @@ __startup void TestDereferenceFailure(uintptr_t volatile * const testPtr)
 
 void TestVas()
 {
+    Barrier = true;
+
     new (&testProcess) Process();
 
     Vmm::Initialize(&testProcess);
@@ -123,6 +127,8 @@ void TestVas()
 
     withInterrupts (false)
         BootstrapThread.IntroduceNext(&testThread);
+
+    while (Barrier) CpuInstructions::DoNothing();
 }
 
 void * TestThreadCode(void *)
@@ -223,6 +229,8 @@ void * TestThreadCode(void *)
 
         DEBUG_TERM_ << EndLine;
     }
+
+    Barrier = false;
 
     while (true) CpuInstructions::Halt();
 }
