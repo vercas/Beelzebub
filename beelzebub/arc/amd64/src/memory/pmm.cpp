@@ -55,8 +55,6 @@ using namespace Beelzebub::System;
     Utilitary functions
 **************************/
 
-typedef HandlePointer<LargeFrameDescriptor, HandleType::FrameDescriptor, 3> FrameDescriptorHandle;
-
 static __hot void SplitLargeFrame(paddr_t paddr, LargeFrameDescriptor * desc, psize_t cnt = LargeFrameDescriptor::SubDescriptorsCount)
 {
     auto extra = new (desc->GetExtras()) SplitFrameExtra();
@@ -83,16 +81,6 @@ static __hot void SplitLargeFrame(paddr_t paddr, LargeFrameDescriptor * desc, ps
     desc->GetExtras()->FreeCount = cnt;
 }
 
-static __hot inline Handle EncodeDescriptor(LargeFrameDescriptor * lDesc, uint16_t sIndex)
-{
-    return FrameDescriptorHandle(lDesc, sIndex).ToHandle(true);
-}
-
-static __hot inline void DecodeDescriptor(Handle desc, LargeFrameDescriptor * & lDesc, uint16_t & sIndex)
-{
-    sIndex = (uint16_t)(FrameDescriptorHandle(desc).GetPointer(lDesc).GetData());
-}
-
 /*******************
     PmmArc class
 *******************/
@@ -108,11 +96,6 @@ FrameAllocator * PmmArc::MainAllocator = nullptr;
     Pmm class
 ****************/
 
-/*  Statics  */
-
-Handle const Pmm::InvalidDescriptor {};
-Handle const Pmm::NullDescriptor = FrameDescriptorHandle(nullptr, 0).ToHandle(true);
-
 /*  Frame operations  */
 
 paddr_t Pmm::AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn, uint32_t refCnt)
@@ -124,10 +107,9 @@ paddr_t Pmm::AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn,
 
 Handle Pmm::FreeFrame(paddr_t addr, bool ignoreRefCnt)
 {
-    Handle dummy1 {};
-    uint32_t dummy2;
+    uint32_t dummy;
 
-    return PmmArc::MainAllocator->Mingle(addr, dummy1, dummy2, 0, ignoreRefCnt);
+    return PmmArc::MainAllocator->Mingle(addr, dummy, 0, ignoreRefCnt);
 }
 
 Handle Pmm::ReserveRange(paddr_t start, size_t size, bool includeBusy)
@@ -135,26 +117,12 @@ Handle Pmm::ReserveRange(paddr_t start, size_t size, bool includeBusy)
     return PmmArc::MainAllocator->ReserveRange(start, size, includeBusy);
 }
 
-Handle Pmm::AdjustReferenceCount(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff)
+Handle Pmm::AdjustReferenceCount(paddr_t addr, uint32_t & newCnt, int32_t diff)
 {
-    if unlikely(desc == Pmm::NullDescriptor)
-        return HandleResult::PagesOutOfAllocatorRange;
-
-    if unlikely(addr == nullpaddr && !desc.IsValid())
+    if unlikely(addr == nullpaddr)
         return HandleResult::ArgumentOutOfRange;
 
-    if (desc.IsValid())
-    {
-        LargeFrameDescriptor * dummy1;
-        uint16_t sIndex;
-
-        DecodeDescriptor(desc, dummy1, sIndex);
-
-        if (sIndex > LargeFrameDescriptor::SubDescriptorsCount)
-            return HandleResult::IntegrityFailure;
-    }
-
-    return PmmArc::MainAllocator->Mingle(addr, desc, newCnt, diff, false);
+    return PmmArc::MainAllocator->Mingle(addr, newCnt, diff, false);
 }
 
 /*******************
@@ -473,7 +441,6 @@ paddr_t FrameAllocationSpace::AllocateFrame(Handle & desc, FrameSize size, uint3
 
         // MSG_("   Returning address %XP **%n", this->AllocationStart + (lIndex << 21) + (sIndex << 12));
 
-        desc = EncodeDescriptor(lDesc, sIndex);
         return this->AllocationStart + (lIndex << 21) + (sIndex << 12);
     }
 
@@ -496,7 +463,6 @@ grab_large_page:
         {
             lDesc->Use(refCnt);
 
-            desc = EncodeDescriptor(lDesc, 0);
             return paddr;
         }
     }
@@ -512,8 +478,6 @@ grab_large_page:
 
     lDesc->GetExtras()->NextFree = sDesc->NextIndex;
     lDesc->GetExtras()->FreeCount -= 1;
-
-    desc = EncodeDescriptor(lDesc, sIndex);
 
     withLock (this->SplitLocker)
     {
@@ -531,46 +495,16 @@ grab_large_page:
     return this->AllocationStart + (lIndex << 21) + (sIndex << 12);
 }
 
-Handle FrameAllocationSpace::Mingle(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt)
+Handle FrameAllocationSpace::Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt)
 {
-    uint32_t lIndex;
-    LargeFrameDescriptor * lDesc;
-    uint16_t sIndex;
-    SmallFrameDescriptor * sDesc;
+    if (addr < this->AllocationStart || addr >= this->AllocationEnd)
+        return HandleResult::PagesOutOfAllocatorRange;
+    //  Easy-peasy.
 
-    if (addr != nullpaddr)
-    {
-        if (addr < this->AllocationStart || addr >= this->AllocationEnd)
-            return HandleResult::PagesOutOfAllocatorRange;
-        //  Easy-peasy.
-
-        lIndex = (uint32_t)((addr - this->AllocationStart) >> 21UL);
-        sIndex = (uint16_t)((addr & 0x1FF000) >> 12);
-        lDesc = this->Map + lIndex;
-
-        desc = EncodeDescriptor(lDesc, sIndex);
-
-        MSG_("** Mingle %XP (%H) **%n", addr, desc);
-    }
-    else
-    {
-        DecodeDescriptor(desc, lDesc, sIndex);
-
-        if (lDesc >= this->Map + this->LargeFrameCount)
-            return HandleResult::PagesOutOfAllocatorRange;
-        //  Also easy.
-
-        lIndex = lDesc - this->Map;
-        //  Done after the condition because the index is too narrow to catch
-        //  all cases of over-/underflow.
-
-        addr = this->AllocationStart + (lIndex << 21) + (sIndex << 12);
-
-        MSG_("** Mingle %H (%XP) **%n", desc, addr);
-    }
-
-    sDesc = lDesc->SubDescriptors + sIndex;
-    //  This is pretty much common.
+    uint32_t lIndex = (uint32_t)((addr - this->AllocationStart) >> 21UL);
+    LargeFrameDescriptor * lDesc = this->Map + lIndex;
+    uint16_t sIndex = (uint16_t)((addr & 0x1FF000) >> 12);
+    SmallFrameDescriptor * sDesc = lDesc->SubDescriptors + sIndex;
 
     auto test = [&newCnt, ignoreRefCnt, diff](FrameDescriptor * desc)
     {
@@ -836,14 +770,14 @@ paddr_t FrameAllocator::AllocateFrame(Handle & desc, FrameSize size, AddressMagn
     return nullpaddr;
 }
 
-Handle FrameAllocator::Mingle(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt)
+Handle FrameAllocator::Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt)
 {
     Handle res;
     FrameAllocationSpace * space = this->FirstSpace;
 
     while (space != nullptr)
     {
-        res = space->Mingle(addr, desc, newCnt, diff, ignoreRefCnt);
+        res = space->Mingle(addr, newCnt, diff, ignoreRefCnt);
 
         if (!res.IsResult(HandleResult::PagesOutOfAllocatorRange))
             return res;

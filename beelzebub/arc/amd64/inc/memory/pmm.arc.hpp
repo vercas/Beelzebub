@@ -373,7 +373,7 @@ namespace Beelzebub { namespace Memory
 
         __hot paddr_t AllocateFrame(Handle & desc, FrameSize size, uint32_t refCnt);
 
-        __hot Handle Mingle(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
+        __hot Handle Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
         __cold Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy);
 
         inline bool ContainsRange(paddr_t start, psize_t size) const
@@ -440,7 +440,7 @@ namespace Beelzebub { namespace Memory
 
         __hot paddr_t AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn, uint32_t refCnt);
 
-        __hot Handle Mingle(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
+        __hot Handle Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
         __cold Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy);
 
         bool ContainsRange(paddr_t start, psize_t size);

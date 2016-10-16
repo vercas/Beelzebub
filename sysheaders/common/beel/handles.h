@@ -83,8 +83,6 @@
     ENUMINST(Result                   , 0x01U, "RES") \
     /*  A page of memory. */ \
     ENUMINST(Page                     , 0x02U, "PAGE") \
-    /*  A physical frame of memory. */ \
-    ENUMINST(FrameDescriptor          , 0x03U, "FRMD") \
     \
     /*  A unit of execution. */ \
     ENUMINST(Thread                   , 0x10U, "THRD") \

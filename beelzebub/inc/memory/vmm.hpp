@@ -90,43 +90,19 @@ namespace Beelzebub { namespace Memory
 
         static __hot __noinline Handle MapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t paddr
-            , MemoryFlags const flags, Handle desc
+            , MemoryFlags const flags
             , bool const lock = true);
-
-        static __hot __forceinline Handle MapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t paddr
-            , MemoryFlags const flags, bool const lock = true)
-        {
-            return MapPage(proc, vaddr, paddr, flags, {}, lock);
-        }
 
         static __hot __noinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t & paddr, Handle & desc
+            , uintptr_t const vaddr, paddr_t & paddr
             , bool const lock = true);
-
-        static __hot __forceinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, Handle & desc, bool const lock = true)
-        {
-            paddr_t dummy;
-
-            return UnmapPage(proc, vaddr, dummy, desc, lock);
-        }
-
-        static __hot __forceinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true)
-        {
-            Handle dummy {};
-
-            return UnmapPage(proc, vaddr, paddr, dummy, lock);
-        }
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, bool const lock = true)
         {
-            paddr_t dummy1;
-            Handle dummy2 {};
+            paddr_t dummy;
 
-            return UnmapPage(proc, vaddr, dummy1, dummy2, lock);
+            return UnmapPage(proc, vaddr, dummy, lock);
         }
 
         static __hot __noinline Handle InvalidatePage(Execution::Process * proc
