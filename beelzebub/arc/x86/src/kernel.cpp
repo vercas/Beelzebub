@@ -1164,7 +1164,8 @@ Handle InitializeApic()
         , res);
 
     res = Vmm::MapPage(&BootstrapProcess, Lapic::VirtualAddress, lapicPaddr
-        , MemoryFlags::Global | MemoryFlags::Writable);
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryMapOptions::NoReferenceCounting);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for LAPIC: %H%n"
@@ -1254,7 +1255,8 @@ Handle InitializeProcessingUnits()
     //  This's gonna be for AP bootstrappin' code.
 
     res = Vmm::MapPage(&BootstrapProcess, bootstrapVaddr, bootstrapPaddr
-        , MemoryFlags::Global | MemoryFlags::Executable | MemoryFlags::Writable);
+        , MemoryFlags::Global | MemoryFlags::Executable | MemoryFlags::Writable
+        , MemoryMapOptions::NoReferenceCounting);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map page at %Xp (%XP) for init code: %H%n"

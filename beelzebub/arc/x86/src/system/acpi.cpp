@@ -456,7 +456,8 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
     for (/* nothing */; tabStartPage + offset1 < tabHeaderEndPage; offset1 += PageSize)
     {
         res = Vmm::MapPage(&BootstrapProcess, vaddr + offset1, tabStartPage + offset1
-            , MemoryFlags::Global);
+            , MemoryFlags::Global
+            , MemoryMapOptions::NoReferenceCounting);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for table header: %H%n"
@@ -486,7 +487,8 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
     for (/* nothing */; tabStartPage + offset1 < tabEndPage; offset1 += PageSize)
     {
         res = Vmm::MapPage(&BootstrapProcess, vaddr + offset1, tabStartPage + offset1
-            , MemoryFlags::Global);
+            , MemoryFlags::Global
+            , MemoryMapOptions::NoReferenceCounting);
 
         assert_or(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for table body: %H%n"

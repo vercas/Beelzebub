@@ -192,4 +192,19 @@ namespace Beelzebub { namespace Memory
     };
 
     ENUMOPS(MemoryCheckType)
+
+    /**
+     *  Options for memory (un)mapping.
+     */
+    enum class MemoryMapOptions : int
+    {
+        //  No special actions.
+        None                 = 0x00,
+        //  No locking will be performed.
+        NoLocking            = 0x01,
+        //  Frame references will not be changed.
+        NoReferenceCounting  = 0x02,
+    };
+
+    ENUMOPS(MemoryMapOptions, int)
 }}

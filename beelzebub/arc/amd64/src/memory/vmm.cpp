@@ -144,7 +144,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         {
             res = Vmm::MapPage(bootstrapProc, curLoc, RoundDown((paddr_t)cur, PageSize)
                 , MemoryFlags::Global | MemoryFlags::Writable
-                , false);
+                , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
             //  Global because it's shared by processes, and writable for hotplug.
 
             ASSERT(res.IsOkayResult()
@@ -174,7 +174,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         {
             res = Vmm::MapPage(bootstrapProc, curLoc + offset, pasStart + offset
                 , MemoryFlags::Global | MemoryFlags::Writable
-                , false);
+                , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
 
             ASSERT(res.IsOkayResult()
                 , "Failed to map page #%u8 (%Xp to %XP): %H"
@@ -197,7 +197,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
             res = Vmm::MapPage(bootstrapProc, curLoc
                 , reinterpret_cast<paddr_t>(lDesc->SubDescriptors)
                 , MemoryFlags::Global | MemoryFlags::Writable
-                , false);
+                , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
 
             ASSERT(res.IsOkayResult()
                 , "Failed to map split frame subdescriptor page #%u8 (%Xp to %XP): %H"
@@ -381,7 +381,7 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
 }
 
 Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
-    , MemoryFlags const flags, bool const lock)
+    , MemoryFlags const flags, MemoryMapOptions opts)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
              || (vaddr >= VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
@@ -438,7 +438,7 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
 
         {   //  Lock-guarded.
 
-            if (lock)
+            if (0 == (opts & MemoryMapOptions::NoLocking))
                 heapLock = (vaddr < VmmArc::LowerHalfEnd
                     ? &(proc->LocalTablesLock)
                     : &(VmmArc::KernelHeapLock));
@@ -557,8 +557,6 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
             if unlikely(pml1p->operator[](ind).GetPresent())
                 return HandleResult::PageMapped;
 
-            //  TODO: Check page tags (reserved, allocated on demand, etc.)
-
         wrapUp:
             pml1p->operator[](VmmArc::GetPml1Index(vaddr)) = Pml1Entry(paddr, true
                 , 0 != (flags & MemoryFlags::Writable)
@@ -569,18 +567,23 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
         }
     }
 
-    Handle res = Pmm::AdjustReferenceCount(paddr, 1);
-    //  The page still may not be in an allocation space, but that is taken
-    //  care of by the PMM.
+    if (0 == (opts & MemoryMapOptions::NoReferenceCounting))
+    {
+        Handle res = Pmm::AdjustReferenceCount(paddr, 1);
+        //  The page still may not be in an allocation space, but that is taken
+        //  care of by the PMM.
 
-    if (res.IsResult(HandleResult::PagesOutOfAllocatorRange))
-        return HandleResult::Okay;
+        if (res.IsResult(HandleResult::PagesOutOfAllocatorRange))
+            return HandleResult::Okay;
+        else
+            return res;
+    }
     else
-        return res;
+        return HandleResult::Okay;
 }
 
 Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
-    , paddr_t & paddr, bool const lock)
+    , paddr_t & paddr, MemoryMapOptions opts)
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
@@ -600,7 +603,7 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
 
             return HandleResult::PageUnmapped;
         }
-    }, lock);
+    }, 0 == (opts & MemoryMapOptions::NoLocking));
 
     if unlikely(!res.IsOkayResult())
         return res;
@@ -609,7 +612,8 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
 
     Vmm::InvalidatePage(proc, vaddr, true);
 
-    Pmm::AdjustReferenceCount(paddr, -1);
+    if (0 == (opts & MemoryMapOptions::NoReferenceCounting))
+        Pmm::AdjustReferenceCount(paddr, -1);
 
     return HandleResult::Okay;
 }
@@ -828,7 +832,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
             if unlikely(paddr == nullpaddr) { allocSucceeded = false; break; }
 
             res = Vmm::MapPage(proc, ret + lowerOffset + offset, paddr
-                , flags, false);
+                , flags, MemoryMapOptions::NoLocking);
 
             if unlikely(!res.IsOkayResult()) { allocSucceeded = false; break; }
         }
@@ -848,7 +852,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
 
             do
             {
-                res = Vmm::UnmapPage(proc, ret + lowerOffset + offset, false);
+                res = Vmm::UnmapPage(proc, ret + lowerOffset + offset, MemoryMapOptions::NoLocking);
 
                 if unlikely(!res.IsOkayResult() && !res.IsResult(HandleResult::PageUnmapped))
                     return res;

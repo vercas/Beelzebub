@@ -491,7 +491,8 @@ Handle InitializeVirtualMemory()
         paddr_t const paddr = (paddr_t)offset;
 
         res = Vmm::MapPage(&BootstrapProcess, vaddr, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable);
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryMapOptions::NoReferenceCounting);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for ISA DMA: %H."
@@ -528,7 +529,8 @@ void RemapTerminal(TerminalBase * const terminal)
         do
         {
             res = Vmm::MapPage(&BootstrapProcess, loc + off, term->VideoMemory + off
-                , MemoryFlags::Global | MemoryFlags::Writable);
+                , MemoryFlags::Global | MemoryFlags::Writable
+                , MemoryMapOptions::NoReferenceCounting);
 
             ASSERT(res.IsOkayResult()
                 , "Failed to map page for VBE terminal (%Xp to %Xp): %H"
@@ -596,7 +598,8 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
     for (vaddr_t offset = 0; offset < size; offset += PageSize)
     {
         res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, module->address + offset
-            , MemoryFlags::Global | MemoryFlags::Writable);
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryMapOptions::NoReferenceCounting);
 
         ASSERT(res.IsOkayResult()
             , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
@@ -713,51 +716,41 @@ void InitializeCpuStacks(bool const bsp)
 
     //  First, the #DF stack.
 
-    vaddr_t vaddr = Vmm::KernelHeapCursor.FetchAdd(DoubleFaultStackSize);
+    vaddr_t vaddr = nullvaddr;
 
-    for (size_t offset = PageSize; offset <= DoubleFaultStackSize; offset += PageSize)
-    {
-        paddr_t const paddr = Pmm::AllocateFrame();
-        //  Stack page.
+    res = Vmm::AllocatePages(nullptr
+        , DoubleFaultStackSize / PageSize
+        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
+        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::ThreadStack
+        , vaddr);
 
-        ASSERT(paddr != nullpaddr
-            , "Unable to allocate a physical page #%us for DF stack of CPU #%us!"
-            , offset / PageSize - 1, cpuData->Index);
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate #DF stack of CPU #%us: %H."
+        , cpuData->Index
+        , res);
 
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for DF stack of CPU #%us: %H."
-            , vaddr + offset, paddr, cpuData->Index
-            , res);
-    }
-
-    cpuData->EmbeddedTss.Ist[0] = vaddr + PageSize + DoubleFaultStackSize;
+    cpuData->EmbeddedTss.Ist[0] = vaddr + DoubleFaultStackSize;
 
     //  Then, the #PF stack.
 
-    vaddr = Vmm::KernelHeapCursor.FetchAdd(PageFaultStackSize + PageSize);
+    vaddr = nullvaddr;
 
-    for (size_t offset = PageSize; offset <= PageFaultStackSize; offset += PageSize)
-    {
-        paddr_t const paddr = Pmm::AllocateFrame();
-        //  Stack page.
+    res = Vmm::AllocatePages(nullptr
+        , PageFaultStackSize / PageSize
+        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
+        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::ThreadStack
+        , vaddr);
 
-        ASSERT(paddr != nullpaddr
-            , "Unable to allocate a physical page #%us for DF stack of CPU #%us!"
-            , offset / PageSize - 1, cpuData->Index);
+    ASSERT(res.IsOkayResult()
+        , "Failed to allocate #DF stack of CPU #%us: %H."
+        , cpuData->Index
+        , res);
 
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for DF stack of CPU #%us: %H."
-            , vaddr + offset, paddr, cpuData->Index
-            , res);
-    }
-
-    cpuData->EmbeddedTss.Ist[1] = vaddr + PageSize + PageFaultStackSize;
+    cpuData->EmbeddedTss.Ist[1] = vaddr + PageFaultStackSize;
 }
 
 #ifdef __BEELZEBUB__TEST_MT

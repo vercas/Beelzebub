@@ -91,18 +91,18 @@ namespace Beelzebub { namespace Memory
         static __hot __noinline Handle MapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t paddr
             , MemoryFlags const flags
-            , bool const lock = true);
+            , MemoryMapOptions opts = MemoryMapOptions::None);
 
         static __hot __noinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr
-            , bool const lock = true);
+            , MemoryMapOptions opts = MemoryMapOptions::None);
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, bool const lock = true)
+            , uintptr_t const vaddr, MemoryMapOptions opts = MemoryMapOptions::None)
         {
             paddr_t dummy;
 
-            return UnmapPage(proc, vaddr, dummy, lock);
+            return UnmapPage(proc, vaddr, dummy, opts);
         }
 
         static __hot __noinline Handle InvalidatePage(Execution::Process * proc
