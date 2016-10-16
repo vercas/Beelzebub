@@ -112,16 +112,15 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     for (uint16_t i = 256; i < VmmArc::AlienFractalIndex; ++i)
     {
-        void * desc;
+        paddr_t pml3_paddr = Pmm::AllocateFrame(1);
 
-        paddr_t pml3_paddr = Pmm::AllocateFrame(desc);
+        if unlikely(pml3_paddr == nullpaddr)
+            return HandleResult::OutOfMemory;
 
         memset((void *)pml3_paddr, 0, PageSize);
         //  Clear again.
 
         newPml4[i] = Pml4Entry(pml3_paddr, true, true, true, false);
-
-        Pmm::AdjustReferenceCount(desc, 1);
     }
 
     newPml4[VmmArc::LocalFractalIndex] = Pml4Entry(pml4_paddr, true, true, false, VmmArc::NX);
@@ -145,7 +144,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         {
             res = Vmm::MapPage(bootstrapProc, curLoc, RoundDown((paddr_t)cur, PageSize)
                 , MemoryFlags::Global | MemoryFlags::Writable
-                , Pmm::InvalidDescriptor
+                , Pmm::NullDescriptor
                 , false);
             //  Global because it's shared by processes, and writable for hotplug.
 
@@ -176,7 +175,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         {
             res = Vmm::MapPage(bootstrapProc, curLoc + offset, pasStart + offset
                 , MemoryFlags::Global | MemoryFlags::Writable
-                , Pmm::InvalidDescriptor
+                , Pmm::NullDescriptor
                 , false);
 
             ASSERT(res.IsOkayResult()
@@ -200,7 +199,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
             res = Vmm::MapPage(bootstrapProc, curLoc
                 , reinterpret_cast<paddr_t>(lDesc->SubDescriptors)
                 , MemoryFlags::Global | MemoryFlags::Writable
-                , Pmm::InvalidDescriptor
+                , Pmm::NullDescriptor
                 , false);
 
             ASSERT(res.IsOkayResult()
@@ -234,15 +233,11 @@ Handle Vmm::Initialize(Process * proc)
 {
     CpuInstructions::InvalidateTlb(VmmArc::GetAlienPml4());
 
-    void * desc;
-
     paddr_t const pml4_paddr = proc->PagingTable
-        = Pmm::AllocateFrame(desc, AddressMagnitude::_32bit);
+        = Pmm::AllocateFrame(1, AddressMagnitude::_32bit);
 
     if (pml4_paddr == nullpaddr)
         return HandleResult::OutOfMemory;
-
-    Pmm::AdjustReferenceCount(desc, 1);
     //  Do the good deed.
 
     Spinlock<> * alienLock = nullptr;
@@ -388,8 +383,8 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
     __unreachable_code;
 }
 
-Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
-    , MemoryFlags const flags, void * desc, bool const lock)
+Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
+    , MemoryFlags const flags, Handle desc, bool const lock)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
              || (vaddr >= VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
@@ -459,23 +454,19 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
             {
                 //  So there's no PML4e. Means all PML1-3 need allocation.
 
-                void * tDsc;
-
                 //  First grab a PML3.
 
-                paddr_t const newPml3 = Pmm::AllocateFrame(tDsc);
+                paddr_t const newPml3 = Pmm::AllocateFrame(1);
 
                 if (newPml3 == nullpaddr)
                     return HandleResult::OutOfMemory;
-
-                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 pml4p->operator[](ind) = Pml4Entry(newPml3, true, true, true, false);
                 //  Present, writable, user-accessible, executable.
 
                 //  Then a PML2.
 
-                paddr_t const newPml2 = Pmm::AllocateFrame(tDsc);
+                paddr_t const newPml2 = Pmm::AllocateFrame(1);
 
                 if (newPml2 == nullpaddr)
                 {
@@ -485,15 +476,13 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
                     return HandleResult::OutOfMemory;
                 }
 
-                Pmm::AdjustReferenceCount(tDsc, 1);
-
                 memset(pml3p, 0, PageSize);
                 pml3p->operator[](VmmArc::GetPml3Index(vaddr)) = Pml3Entry(newPml2, true, true, true, false);
                 //  First clean, then assign an entry.
 
                 //  Then a PML1.
 
-                paddr_t const newPml1 = Pmm::AllocateFrame(tDsc);
+                paddr_t const newPml1 = Pmm::AllocateFrame(1);
 
                 if (newPml1 == nullpaddr)
                 {
@@ -502,8 +491,6 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
 
                     return HandleResult::OutOfMemory;
                 }
-
-                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 memset(pml2p, 0, PageSize);
                 pml2p->operator[](VmmArc::GetPml2Index(vaddr)) = Pml2Entry(newPml1, true, true, true, false);
@@ -519,23 +506,19 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
 
             if unlikely(!pml3p->operator[](ind).GetPresent())
             {
-                void * tDsc;
-
                 //  First grab a PML2.
 
-                paddr_t const newPml2 = Pmm::AllocateFrame(tDsc);
+                paddr_t const newPml2 = Pmm::AllocateFrame(1);
 
                 if (newPml2 == nullpaddr)
                     return HandleResult::OutOfMemory;
-
-                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 pml3p->operator[](ind) = Pml3Entry(newPml2, true, true, true, false);
                 //  First clean, then assign an entry.
 
                 //  Then a PML1.
 
-                paddr_t const newPml1 = Pmm::AllocateFrame(tDsc);
+                paddr_t const newPml1 = Pmm::AllocateFrame(1);
 
                 if (newPml1 == nullpaddr)
                 {
@@ -544,8 +527,6 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
 
                     return HandleResult::OutOfMemory;
                 }
-
-                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 memset(pml2p, 0, PageSize);
                 pml2p->operator[](VmmArc::GetPml2Index(vaddr)) = Pml2Entry(newPml1, true, true, true, false);
@@ -561,14 +542,10 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
 
             if unlikely(!pml2p->operator[](ind).GetPresent())
             {
-                void * tDsc;
-
-                paddr_t const newPml1 = Pmm::AllocateFrame(tDsc);
+                paddr_t const newPml1 = Pmm::AllocateFrame(1);
 
                 if (newPml1 == nullpaddr)
                     return HandleResult::OutOfMemory;
-
-                Pmm::AdjustReferenceCount(tDsc, 1);
 
                 pml2p->operator[](ind) = Pml2Entry(newPml1, true, true, true, false);
                 //  Present, writable, user-accessible, executable.
@@ -595,21 +572,18 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t const paddr
         }
     }
 
-    if likely(desc != Pmm::InvalidDescriptor)
-    {
-        if likely(desc != nullptr)
-            Pmm::AdjustReferenceCount(desc, 1);
-        else
-            Pmm::AdjustReferenceCount(paddr, 1);
-        //  The page still may not be in an allocation space, but that is taken
-        //  care of by the PMM.
-    }
+    Handle res = Pmm::AdjustReferenceCount(paddr, desc, 1);
+    //  The page still may not be in an allocation space, but that is taken
+    //  care of by the PMM.
 
-    return HandleResult::Okay;
+    if (res.IsResult(HandleResult::PagesOutOfAllocatorRange))
+        return HandleResult::Okay;
+    else
+        return res;
 }
 
 Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
-    , paddr_t & paddr, void * & desc, bool const lock)
+    , paddr_t & paddr, Handle & desc, bool const lock)
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
@@ -633,7 +607,7 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
 
     if unlikely(!res.IsOkayResult())
     {
-        desc = nullptr;
+        desc = Handle();
 
         return res;
     }
@@ -699,7 +673,7 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     Memory::Vas * vas = &(proc->Vas);
 
     Handle res = HandleResult::Okay;
-    void * desc;
+    Handle desc;
 
     paddr_t paddr;
 
@@ -746,7 +720,7 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     //  following allocation fails, because it doesn't affect the correctness of
     //  the VAS.
 
-    paddr = Pmm::AllocateFrame();
+    paddr = Pmm::AllocateFrame(desc);
 
     if unlikely(paddr == nullpaddr)
         RETURN(OutOfMemory);
@@ -845,7 +819,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
             heapLock = &(VmmArc::KernelHeapLock);
         }
 
-        void * desc;  //  Intermediary result as well.
+        Handle desc;  //  Intermediary result as well.
 
         InterruptGuard<> intGuard;
         //  Guard the rest of the scope from interrupts.

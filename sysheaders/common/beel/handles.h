@@ -83,6 +83,8 @@
     ENUMINST(Result                   , 0x01U, "RES") \
     /*  A page of memory. */ \
     ENUMINST(Page                     , 0x02U, "PAGE") \
+    /*  A physical frame of memory. */ \
+    ENUMINST(FrameDescriptor          , 0x03U, "FRMD") \
     \
     /*  A unit of execution. */ \
     ENUMINST(Thread                   , 0x10U, "THRD") \
@@ -430,6 +432,14 @@ namespace Beelzebub
             //  Other bits are irrelevant.
         }
 
+        /*  Operator(s)  */
+
+        inline bool operator ==(Handle const other) { return this->Value == other.Value; }
+        inline bool operator !=(Handle const other) { return this->Value != other.Value; }
+
+        inline bool operator ==(HandleResult const res) { return this->IsResult(res); }
+        inline bool operator !=(HandleResult const res) { return !this->IsResult(res); }
+
         /*  Field(s)  */
 
     private:
@@ -502,9 +512,27 @@ namespace Beelzebub
             return reinterpret_cast<T *>(ptr64);
         }
 
+        inline HandlePointer const & GetPointer(T * & val) const
+        {
+            uint64_t ptr64 = (this->Value & (PointerMask >> OFFSET)) << OFFSET;
+
+            EXTEND_POINTER(ptr64);
+
+            val = reinterpret_cast<T *>(ptr64);
+
+            return *this;
+        }
+
         inline uint64_t GetData() const
         {
             return (this->Value >> DataOffset) & DataMask;
+        }
+
+        inline HandlePointer const & GetData(uint64_t & val) const
+        {
+            val = (this->Value >> DataOffset) & DataMask;
+
+            return *this;
         }
 
         /*  Fields  */

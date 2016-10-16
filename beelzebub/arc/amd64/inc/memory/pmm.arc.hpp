@@ -40,6 +40,7 @@
 #pragma once
 
 #include <beel/enums.kernel.hpp>
+#include <beel/structs.kernel.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <math.h>
 
@@ -96,14 +97,12 @@ namespace Beelzebub { namespace Memory
 
         __forceinline uint32_t ResetReferenceCount()
         {
-            __atomic_store_n(&(this->ReferenceCount), 0, __ATOMIC_SEQ_CST);
-
-            return 0;
+            return this->ReferenceCount = 0;
         }
 
-        __forceinline uint32_t AdjustReferenceCount(uint32_t diff)
+        __forceinline uint32_t AdjustReferenceCount(int32_t diff)
         {
-            return __atomic_fetch_add(&(this->ReferenceCount), diff, __ATOMIC_SEQ_CST);
+            return this->ReferenceCount += diff;
         }
 
         /*  Status  */
@@ -115,12 +114,11 @@ namespace Beelzebub { namespace Memory
             this->ResetReferenceCount();
         }
 
-        __forceinline void Use()
+        __forceinline void Use(uint32_t const refCnt)
         {
             this->Status = FrameStatus::Used;
 
-            this->ResetReferenceCount();
-            //  Yes, it starts at zero.
+            __atomic_store_n(&(this->ReferenceCount), refCnt, __ATOMIC_SEQ_CST);
         }
 
         __forceinline void Reserve()
@@ -276,8 +274,12 @@ namespace Beelzebub { namespace Memory
 
         /*  Fields & Properties  */
 
+        uint16_t Padding1;
+
         //  Index of the next large frame in the allocation pseudo-stack.
         uint32_t NextIndex;
+
+        uint32_t Padding2;
 
         SmallFrameDescriptor * SubDescriptors;
 
@@ -317,7 +319,7 @@ namespace Beelzebub { namespace Memory
     static_assert(sizeof(SmallFrameDescriptor) == 8, "Small frame descriptor size mismatch.");
     static_assert(sizeof(SplitFrameExtra) <= sizeof(SmallFrameDescriptor), "Split frame extras should not be larger than a small frame descriptor.");
     static_assert(512 * sizeof(SmallFrameDescriptor) <= PageSize, "512 small frame descriptors should fit in a small page.");
-    static_assert(sizeof(LargeFrameDescriptor) == 10 + sizeof(void *), "Large frame descriptor size mismatch.");
+    static_assert(sizeof(LargeFrameDescriptor) == 16 + sizeof(void *), "Large frame descriptor size mismatch.");
 
     /**
      * Manages a region of memory in which frames can be allocated.
@@ -369,12 +371,10 @@ namespace Beelzebub { namespace Memory
 
         /*  Frame manipulation  */
 
-        __hot paddr_t AllocateFrame(FrameDescriptor * & desc, FrameSize size);
+        __hot paddr_t AllocateFrame(Handle & desc, FrameSize size, uint32_t refCnt);
 
-        __hot Handle FreeFrame(paddr_t addr, bool ignoreRefCnt);
+        __hot Handle Mingle(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
         __cold Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy);
-
-        __hot Handle AdjustReferenceCount(paddr_t & addr, FrameDescriptor * & desc, uint32_t & newCnt, uint32_t diff);
 
         inline bool ContainsRange(paddr_t start, psize_t size) const
         {
@@ -438,16 +438,14 @@ namespace Beelzebub { namespace Memory
 
         /*  Page Manipulation  */
 
-        __hot paddr_t AllocateFrame(FrameDescriptor * & desc, FrameSize size, AddressMagnitude magn);
+        __hot paddr_t AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn, uint32_t refCnt);
 
-        __hot Handle FreeFrame(paddr_t addr, bool ignoreRefCnt);
+        __hot Handle Mingle(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
         __cold Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy);
 
         bool ContainsRange(paddr_t start, psize_t size);
         __hot FrameAllocationSpace * GetSpace(paddr_t paddr);
         __hot LargeFrameDescriptor * GetDescriptor(paddr_t paddr);
-
-        __hot Handle AdjustReferenceCount(paddr_t & addr, FrameDescriptor * & desc, uint32_t & newCnt, uint32_t diff);
 
         /*  Synchronization  */
 

@@ -55,6 +55,8 @@ using namespace Beelzebub::System;
     Utilitary functions
 **************************/
 
+typedef HandlePointer<LargeFrameDescriptor, HandleType::FrameDescriptor, 3> FrameDescriptorHandle;
+
 static __hot void SplitLargeFrame(paddr_t paddr, LargeFrameDescriptor * desc, psize_t cnt = LargeFrameDescriptor::SubDescriptorsCount)
 {
     auto extra = new (desc->GetExtras()) SplitFrameExtra();
@@ -81,6 +83,16 @@ static __hot void SplitLargeFrame(paddr_t paddr, LargeFrameDescriptor * desc, ps
     desc->GetExtras()->FreeCount = cnt;
 }
 
+static __hot inline Handle EncodeDescriptor(LargeFrameDescriptor * lDesc, uint16_t sIndex)
+{
+    return FrameDescriptorHandle(lDesc, sIndex).ToHandle(true);
+}
+
+static __hot inline void DecodeDescriptor(Handle desc, LargeFrameDescriptor * & lDesc, uint16_t & sIndex)
+{
+    sIndex = (uint16_t)(FrameDescriptorHandle(desc).GetPointer(lDesc).GetData());
+}
+
 /*******************
     PmmArc class
 *******************/
@@ -98,24 +110,24 @@ FrameAllocator * PmmArc::MainAllocator = nullptr;
 
 /*  Statics  */
 
-void * const Pmm::InvalidDescriptor = FrameDescriptor::Invalid;
+Handle const Pmm::InvalidDescriptor {};
+Handle const Pmm::NullDescriptor = FrameDescriptorHandle(nullptr, 0).ToHandle(true);
 
 /*  Frame operations  */
 
-paddr_t Pmm::AllocateFrame(void * & desc, FrameSize size, AddressMagnitude magn)
+paddr_t Pmm::AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn, uint32_t refCnt)
 {
     //  TODO: NUMA selection of some sorts, maybe based on process?
 
-    FrameDescriptor * temp;
-    paddr_t paddr = PmmArc::MainAllocator->AllocateFrame(temp, size, magn);
-
-    desc = temp;
-    return paddr;
+    return PmmArc::MainAllocator->AllocateFrame(desc, size, magn, refCnt);
 }
 
 Handle Pmm::FreeFrame(paddr_t addr, bool ignoreRefCnt)
 {
-    return PmmArc::MainAllocator->FreeFrame(addr, ignoreRefCnt);
+    Handle dummy1 {};
+    uint32_t dummy2;
+
+    return PmmArc::MainAllocator->Mingle(addr, dummy1, dummy2, 0, ignoreRefCnt);
 }
 
 Handle Pmm::ReserveRange(paddr_t start, size_t size, bool includeBusy)
@@ -123,14 +135,26 @@ Handle Pmm::ReserveRange(paddr_t start, size_t size, bool includeBusy)
     return PmmArc::MainAllocator->ReserveRange(start, size, includeBusy);
 }
 
-Handle Pmm::AdjustReferenceCount(paddr_t & addr, void * & desc, uint32_t & newCnt, uint32_t diff)
+Handle Pmm::AdjustReferenceCount(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff)
 {
-    FrameDescriptor * fDesc = reinterpret_cast<FrameDescriptor *>(desc);
+    if unlikely(desc == Pmm::NullDescriptor)
+        return HandleResult::PagesOutOfAllocatorRange;
 
-    Handle res = PmmArc::MainAllocator->AdjustReferenceCount(addr, fDesc, newCnt, diff);
+    if unlikely(addr == nullpaddr && !desc.IsValid())
+        return HandleResult::ArgumentOutOfRange;
 
-    desc = fDesc;
-    return res;
+    if (desc.IsValid())
+    {
+        LargeFrameDescriptor * dummy1;
+        uint16_t sIndex;
+
+        DecodeDescriptor(desc, dummy1, sIndex);
+
+        if (sIndex > LargeFrameDescriptor::SubDescriptorsCount)
+            return HandleResult::IntegrityFailure;
+    }
+
+    return PmmArc::MainAllocator->Mingle(addr, desc, newCnt, diff, false);
 }
 
 /*******************
@@ -369,7 +393,7 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
 
 /*  Frame manipulation  */
 
-paddr_t FrameAllocationSpace::AllocateFrame(FrameDescriptor * & desc, FrameSize size)
+paddr_t FrameAllocationSpace::AllocateFrame(Handle & desc, FrameSize size, uint32_t refCnt)
 {
     switch (size)
     {
@@ -420,7 +444,7 @@ paddr_t FrameAllocationSpace::AllocateFrame(FrameDescriptor * & desc, FrameSize 
 
             // MSG_("   Small frame index: %u2 (-> %u2)%n", sIndex, sDesc->NextIndex);
 
-            sDesc->Use();
+            sDesc->Use(refCnt);
 
             lDesc->GetExtras()->NextFree = sDesc->NextIndex;
             lDesc->GetExtras()->FreeCount -= 1;
@@ -445,12 +469,11 @@ paddr_t FrameAllocationSpace::AllocateFrame(FrameDescriptor * & desc, FrameSize 
                     goto grab_large_page;
                 //  In release mode, this rather odd situation is tolerated.
             }
-
-            desc = sDesc;
         }
 
         // MSG_("   Returning address %XP **%n", this->AllocationStart + (lIndex << 21) + (sIndex << 12));
 
+        desc = EncodeDescriptor(lDesc, sIndex);
         return this->AllocationStart + (lIndex << 21) + (sIndex << 12);
     }
 
@@ -471,9 +494,9 @@ grab_large_page:
 
         if (size == FrameSize::_2MiB)
         {
-            lDesc->Use();
+            lDesc->Use(refCnt);
 
-            desc = lDesc;
+            desc = EncodeDescriptor(lDesc, 0);
             return paddr;
         }
     }
@@ -482,8 +505,20 @@ grab_large_page:
 
     SplitLargeFrame(paddr, lDesc);
 
+    sIndex = lDesc->GetExtras()->NextFree;
+    SmallFrameDescriptor * const sDesc = lDesc->SubDescriptors + sIndex;
+
+    sDesc->Use(refCnt);
+
+    lDesc->GetExtras()->NextFree = sDesc->NextIndex;
+    lDesc->GetExtras()->FreeCount -= 1;
+
+    desc = EncodeDescriptor(lDesc, sIndex);
+
     withLock (this->SplitLocker)
     {
+        //  Gotta put this frame on top of the stack.
+
         uint32_t next = this->SplitFree;
 
         lDesc->NextIndex = next;
@@ -491,41 +526,102 @@ grab_large_page:
 
         if likely(next != LargeFrameDescriptor::NullIndex)
             this->Map[next].GetExtras()->PrevIndex = lIndex;
-
-        //  Now this selected frame is on top of the split frame stack.
-
-        sIndex = lDesc->GetExtras()->NextFree;
-        SmallFrameDescriptor * const sDesc = lDesc->SubDescriptors + sIndex;
-
-        sDesc->Use();
-
-        lDesc->GetExtras()->NextFree = sDesc->NextIndex;
-        lDesc->GetExtras()->FreeCount -= 1;
-
-        desc = sDesc;
     }
 
     return this->AllocationStart + (lIndex << 21) + (sIndex << 12);
 }
 
-Handle FrameAllocationSpace::FreeFrame(paddr_t addr, bool ignoreRefCnt)
+Handle FrameAllocationSpace::Mingle(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt)
 {
-    if (addr < this->AllocationStart || addr >= this->AllocationEnd)
-        return HandleResult::PagesOutOfAllocatorRange;
+    uint32_t lIndex;
+    LargeFrameDescriptor * lDesc;
+    uint16_t sIndex;
+    SmallFrameDescriptor * sDesc;
 
-    uint32_t const lIndex = (uint32_t)((addr - this->AllocationStart) >> 21UL);
-    LargeFrameDescriptor * const lDesc = this->Map + lIndex;
-    //  Index & of large frame.
+    if (addr != nullpaddr)
+    {
+        if (addr < this->AllocationStart || addr >= this->AllocationEnd)
+            return HandleResult::PagesOutOfAllocatorRange;
+        //  Easy-peasy.
+
+        lIndex = (uint32_t)((addr - this->AllocationStart) >> 21UL);
+        sIndex = (uint16_t)((addr & 0x1FF000) >> 12);
+        lDesc = this->Map + lIndex;
+
+        desc = EncodeDescriptor(lDesc, sIndex);
+
+        MSG_("** Mingle %XP (%H) **%n", addr, desc);
+    }
+    else
+    {
+        DecodeDescriptor(desc, lDesc, sIndex);
+
+        if (lDesc >= this->Map + this->LargeFrameCount)
+            return HandleResult::PagesOutOfAllocatorRange;
+        //  Also easy.
+
+        lIndex = lDesc - this->Map;
+        //  Done after the condition because the index is too narrow to catch
+        //  all cases of over-/underflow.
+
+        addr = this->AllocationStart + (lIndex << 21) + (sIndex << 12);
+
+        MSG_("** Mingle %H (%XP) **%n", desc, addr);
+    }
+
+    sDesc = lDesc->SubDescriptors + sIndex;
+    //  This is pretty much common.
+
+    auto test = [&newCnt, ignoreRefCnt, diff](FrameDescriptor * desc)
+    {
+        MSG_("&& TEST %i4, %B &&%n", diff, ignoreRefCnt);
+
+        if (diff == 0)
+            return ignoreRefCnt || desc->ReferenceCount <= 1;
+        else
+            return (newCnt = desc->AdjustReferenceCount(diff)) == 0;
+    };
+
+    //  This only serves as a good starting point under conditions of low
+    //  contention over this individual page.
+
+    switch (lDesc->Status)
+    {
+    case FrameStatus::Free:
+        return HandleResult::PageFree;
+
+    case FrameStatus::Used:
+        break;
+        //  Will move onto the next phase, which is under a lock.
+
+    case FrameStatus::Split:
+    case FrameStatus::Full:
+        goto do_small_frame;
+
+    case FrameStatus::Reserved:
+        return HandleResult::PageReserved;
+
+    default:
+        assert(false, "Unknown status for large frame @%XP: %u2", addr, lDesc->Status);
+        return HandleResult::IntegrityFailure;
+    }
+
+do_large_frame:
+    //  A large frame is quite easy to deal with. They are chained in a
+    //  singly-linked list. This is done under a lock to be sure.
 
     withLock (this->LargeLocker)
     {
+        //  Yes, technically, since the previous checks, it could've changed
+        //  from used to any other status.
+
         switch (lDesc->Status)
         {
         case FrameStatus::Free:
             return HandleResult::PageFree;
 
         case FrameStatus::Used:
-            if likely(ignoreRefCnt || lDesc->ReferenceCount <= 1)
+            if likely(test(lDesc))
             {
                 //  Both 0 and 1 are valid values for the reference count.
                 lDesc->Free();
@@ -537,7 +633,7 @@ Handle FrameAllocationSpace::FreeFrame(paddr_t addr, bool ignoreRefCnt)
             }
 
             //  No? Bad.
-            return HandleResult::PageInUse;
+            return diff == 0 ? HandleResult::PageInUse : HandleResult::Okay;
 
         case FrameStatus::Split:
         case FrameStatus::Full:
@@ -553,22 +649,41 @@ Handle FrameAllocationSpace::FreeFrame(paddr_t addr, bool ignoreRefCnt)
         }
     }
 
+do_small_frame:
     //  Reaching this point means the large frame is split, therefore the given
     //  address refers to a small frame.
 
-    uint16_t const sIndex = (uint16_t)((addr & 0x1FF000) >> 12);
-
-    if unlikely(sIndex == 0)
-        return HandleResult::PageReserved;
-    //  The first index is always reserved. No exceptions.
-
-    SmallFrameDescriptor * const sDesc = lDesc->SubDescriptors + sIndex;
-
     withLock (this->SplitLocker)
     {
-        assert(lDesc->IsSplit(), "Frame @%XP suddenly ceased to be split?!", addr);
-        //  If it ceases being split between checks, it means something is wrong
-        //  with whatever is in charge of this page.
+        //  Yes, the check needs to be performed again. It COULD have changed
+        //  since the previous check.
+
+        switch (lDesc->Status)
+        {
+        case FrameStatus::Free:
+            return HandleResult::PageFree;
+
+        case FrameStatus::Used:
+            goto do_large_frame;
+
+        case FrameStatus::Split:
+        case FrameStatus::Full:
+            break;
+            //  Simply leave the switch statement and continue execution.
+
+        case FrameStatus::Reserved:
+            return HandleResult::PageReserved;
+
+        default:
+            assert(false, "Unknown status for large frame @%XP: %u2", addr, lDesc->Status);
+            return HandleResult::IntegrityFailure;
+        }
+
+        if unlikely(sIndex == 0)
+            return HandleResult::PageReserved;
+        //  The first index is always reserved. No exceptions. Also, this is
+        //  done under the lock because the large frame has to actually be split
+        //  for this failure condition.
 
         switch (sDesc->Status)
         {
@@ -576,7 +691,7 @@ Handle FrameAllocationSpace::FreeFrame(paddr_t addr, bool ignoreRefCnt)
             return HandleResult::PageFree;
 
         case FrameStatus::Used:
-            if likely(ignoreRefCnt || sDesc->ReferenceCount <= 1)
+            if likely(test(sDesc))
             {
                 sDesc->Free();
 
@@ -622,7 +737,7 @@ Handle FrameAllocationSpace::FreeFrame(paddr_t addr, bool ignoreRefCnt)
                 return HandleResult::Okay;
             }
 
-            return HandleResult::PageInUse;
+            return diff == 0 ? HandleResult::PageInUse : HandleResult::Okay;
 
         case FrameStatus::Split:
         case FrameStatus::Full:
@@ -661,21 +776,13 @@ Handle FrameAllocationSpace::ReserveRange(paddr_t start, psize_t size, bool incl
     //  TODO
 }
 
-Handle FrameAllocationSpace::AdjustReferenceCount(paddr_t & addr, FrameDescriptor * & desc, uint32_t & newCnt, uint32_t diff)
-{
-    if (addr < this->AllocationStart || addr >= this->AllocationEnd)
-        return HandleResult::PagesOutOfAllocatorRange;
-
-    //  TODO
-}
-
 /***************************
     FrameAllocator class
 ***************************/
 
 /*  Page Manipulation  */
 
-paddr_t FrameAllocator::AllocateFrame(FrameDescriptor * & desc, FrameSize size, AddressMagnitude magn)
+paddr_t FrameAllocator::AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn, uint32_t refCnt)
 {
     paddr_t ret = nullpaddr;
     FrameAllocationSpace * space;
@@ -688,7 +795,7 @@ paddr_t FrameAllocator::AllocateFrame(FrameDescriptor * & desc, FrameSize size, 
 
         while (space != nullptr)
         {
-            ret = space->AllocateFrame(desc, size);
+            ret = space->AllocateFrame(desc, size, refCnt);
 
             if (ret != nullpaddr)
                 return ret;
@@ -708,7 +815,7 @@ paddr_t FrameAllocator::AllocateFrame(FrameDescriptor * & desc, FrameSize size, 
                 //  at a 32-bit address. (all the other addresses are less,
                 //  thus have to be 32-bit if the end is)
 
-                ret = space->AllocateFrame(desc, size);
+                ret = space->AllocateFrame(desc, size, refCnt);
 
                 if (ret != nullpaddr)
                     return ret;
@@ -725,19 +832,18 @@ paddr_t FrameAllocator::AllocateFrame(FrameDescriptor * & desc, FrameSize size, 
             , (magn == AddressMagnitude::_24bit) ? "24-bit" : "16-bit");
     }
 
-    desc = nullptr;
-
+    desc = Handle();
     return nullpaddr;
 }
 
-Handle FrameAllocator::FreeFrame(paddr_t addr, bool ignoreRefCnt)
+Handle FrameAllocator::Mingle(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt)
 {
     Handle res;
     FrameAllocationSpace * space = this->FirstSpace;
 
     while (space != nullptr)
     {
-        res = space->FreeFrame(addr, ignoreRefCnt);
+        res = space->Mingle(addr, desc, newCnt, diff, ignoreRefCnt);
 
         if (!res.IsResult(HandleResult::PagesOutOfAllocatorRange))
             return res;
@@ -812,24 +918,6 @@ LargeFrameDescriptor * FrameAllocator::GetDescriptor(paddr_t paddr)
     }
 
     return nullptr;
-}
-
-Handle FrameAllocator::AdjustReferenceCount(paddr_t & addr, FrameDescriptor * & desc, uint32_t & newCnt, uint32_t diff)
-{
-    Handle res;
-    FrameAllocationSpace * space = this->FirstSpace;
-
-    while (space != nullptr)
-    {
-        res = space->AdjustReferenceCount(addr, desc, newCnt, diff);
-
-        if (!res.IsResult(HandleResult::PagesOutOfAllocatorRange))
-            return res;
-
-        space = space->Next;
-    }
-
-    return HandleResult::PagesOutOfAllocatorRange;
 }
 
 /*  Space Chaining  */

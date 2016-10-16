@@ -46,6 +46,7 @@
 
 #include <beel/handles.h>
 #include <beel/enums.kernel.hpp>
+#include <beel/structs.kernel.hpp>
 
 namespace Beelzebub { namespace Memory
 {
@@ -57,60 +58,67 @@ namespace Beelzebub { namespace Memory
     public:
         /*  Statics  */
 
-        static void * const InvalidDescriptor;
+        static Handle const InvalidDescriptor;
+        static Handle const NullDescriptor;
 
         /*  Frame operations  */
 
-        static __hot __noinline paddr_t AllocateFrame(void * & desc, FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any);
+        static __hot __noinline paddr_t AllocateFrame(Handle & desc, FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any, uint32_t refCnt = 0);
 
-        static __hot __forceinline paddr_t AllocateFrame(FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any)
+        static __hot __forceinline paddr_t AllocateFrame(FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any, uint32_t refCnt = 0)
         {
-            void * sink;
+            Handle sink {};
 
-            return AllocateFrame(sink, size, magn);
+            return AllocateFrame(sink, size, magn, refCnt);
         }
 
-        static __hot __forceinline paddr_t AllocateFrame(void * & desc, AddressMagnitude magn, FrameSize size = FrameSize::_4KiB)
-        { return AllocateFrame(desc, size, magn); }
+        static __hot __forceinline paddr_t AllocateFrame(Handle & desc, AddressMagnitude magn, FrameSize size = FrameSize::_4KiB, uint32_t refCnt = 0)
+        { return AllocateFrame(desc, size, magn, refCnt); }
 
-        static __hot __forceinline paddr_t AllocateFrame(AddressMagnitude magn, FrameSize size = FrameSize::_4KiB)
-        { return AllocateFrame(size, magn); }
+        static __hot __forceinline paddr_t AllocateFrame(AddressMagnitude magn, FrameSize size = FrameSize::_4KiB, uint32_t refCnt = 0)
+        { return AllocateFrame(size, magn, refCnt); }
+
+        static __hot __forceinline paddr_t AllocateFrame(Handle & desc, uint32_t refCnt, AddressMagnitude magn = AddressMagnitude::Any, FrameSize size = FrameSize::_4KiB)
+        { return AllocateFrame(desc, size, magn, refCnt); }
+
+        static __hot __forceinline paddr_t AllocateFrame(uint32_t refCnt, AddressMagnitude magn = AddressMagnitude::Any, FrameSize size = FrameSize::_4KiB)
+        { return AllocateFrame(size, magn, refCnt); }
 
         static __hot __noinline Handle FreeFrame(paddr_t addr, bool ignoreRefCnt = true);
         static __cold __noinline Handle ReserveRange(paddr_t start, size_t size, bool includeBusy = false);
 
-        static __hot __noinline Handle AdjustReferenceCount(paddr_t & addr, void * & desc, uint32_t & newCnt, uint32_t diff);
+        static __hot __noinline Handle AdjustReferenceCount(paddr_t & addr, Handle & desc, uint32_t & newCnt, int32_t diff);
 
-        static __forceinline __hot Handle AdjustReferenceCount(paddr_t & addr, void * & desc, uint32_t diff)
+        static __forceinline __hot Handle AdjustReferenceCount(paddr_t & addr, Handle & desc, int32_t diff)
         {
             uint32_t dummy;
 
             return AdjustReferenceCount(addr, desc, dummy, diff);
         }
 
-        static __forceinline __hot Handle AdjustReferenceCount(paddr_t addr, uint32_t & newCnt, uint32_t diff)
+        static __forceinline __hot Handle AdjustReferenceCount(paddr_t addr, uint32_t & newCnt, int32_t diff)
         {
-            void * dummy = nullptr;
+            Handle dummy {};
 
             return AdjustReferenceCount(addr, dummy, newCnt, diff);
         }
 
-        static __forceinline __hot Handle AdjustReferenceCount(void * desc, uint32_t & newCnt, uint32_t diff)
+        static __forceinline __hot Handle AdjustReferenceCount(Handle desc, uint32_t & newCnt, int32_t diff)
         {
             paddr_t dummy = nullpaddr;
 
             return AdjustReferenceCount(dummy, desc, newCnt, diff);
         }
 
-        static __forceinline __hot Handle AdjustReferenceCount(paddr_t addr, uint32_t diff)
+        static __forceinline __hot Handle AdjustReferenceCount(paddr_t addr, int32_t diff)
         {
-            void * dummy1 = nullptr;
+            Handle dummy1 {};
             uint32_t dummy2;
 
             return AdjustReferenceCount(addr, dummy1, dummy2, diff);
         }
 
-        static __forceinline __hot Handle AdjustReferenceCount(void * desc, uint32_t diff)
+        static __forceinline __hot Handle AdjustReferenceCount(Handle desc, int32_t diff)
         {
             paddr_t dummy1 = nullpaddr;
             uint32_t dummy2;

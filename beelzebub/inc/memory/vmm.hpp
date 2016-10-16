@@ -89,44 +89,44 @@ namespace Beelzebub { namespace Memory
         /*  Page Management  */
 
         static __hot __noinline Handle MapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t const paddr
-            , MemoryFlags const flags, void * desc
+            , uintptr_t const vaddr, paddr_t paddr
+            , MemoryFlags const flags, Handle desc
             , bool const lock = true);
 
         static __hot __forceinline Handle MapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t const paddr
+            , uintptr_t const vaddr, paddr_t paddr
             , MemoryFlags const flags, bool const lock = true)
         {
-            return MapPage(proc, vaddr, paddr, flags, nullptr, lock);
+            return MapPage(proc, vaddr, paddr, flags, {}, lock);
         }
 
         static __hot __noinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t & paddr, void * & desc
+            , uintptr_t const vaddr, paddr_t & paddr, Handle & desc
             , bool const lock = true);
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, void * & desc, bool const lock = true)
+            , uintptr_t const vaddr, Handle & desc, bool const lock = true)
         {
-            paddr_t sink;
+            paddr_t dummy;
 
-            return UnmapPage(proc, vaddr, sink, desc, lock);
+            return UnmapPage(proc, vaddr, dummy, desc, lock);
         }
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true)
         {
-            void * sink;
+            Handle dummy {};
 
-            return UnmapPage(proc, vaddr, paddr, sink, lock);
+            return UnmapPage(proc, vaddr, paddr, dummy, lock);
         }
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, bool const lock = true)
         {
-            paddr_t sink1;
-            void * sink2;
+            paddr_t dummy1;
+            Handle dummy2 {};
 
-            return UnmapPage(proc, vaddr, sink1, sink2, lock);
+            return UnmapPage(proc, vaddr, dummy1, dummy2, lock);
         }
 
         static __hot __noinline Handle InvalidatePage(Execution::Process * proc

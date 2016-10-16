@@ -449,17 +449,14 @@ __startup void RemapTerminal(TerminalBase * const terminal);
 Handle InitializeVirtualMemory()
 {
     Handle res;
-    void * desc;
     //  Used for intermediary results.
 
     //  PAGING INITIALIZATION
 
-    paddr_t const pml4_paddr = Pmm::AllocateFrame(desc, AddressMagnitude::_32bit);
+    paddr_t const pml4_paddr = Pmm::AllocateFrame(1, AddressMagnitude::_32bit);
 
     if (pml4_paddr == nullpaddr)
         return HandleResult::OutOfMemory;
-
-    Pmm::AdjustReferenceCount(desc, 1);
 
     memset((void *)pml4_paddr, 0, PageSize);
     //  Clear it all out!
