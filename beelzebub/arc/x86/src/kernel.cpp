@@ -493,6 +493,8 @@ static __startup void MainInitializeRuntimeLibraries()
             , res);
     }
 #endif
+
+    MainTerminal->WriteLine(" Done.\r[OKAY]");
     
     //  TODO: The 32-bit subsystem should be handled by a kernel module.
 }

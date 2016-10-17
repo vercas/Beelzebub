@@ -382,10 +382,6 @@ namespace Beelzebub { namespace Memory
                 && ((start + size) <= this->AllocationEnd);
         }
 
-        /*  Miscellaneous  */
-
-        __hot LargeFrameDescriptor * GetDescriptor(paddr_t paddr);
-
         /*  Fields  */
 
         LargeFrameDescriptor * Map;
@@ -445,7 +441,6 @@ namespace Beelzebub { namespace Memory
 
         bool ContainsRange(paddr_t start, psize_t size);
         __hot FrameAllocationSpace * GetSpace(paddr_t paddr);
-        __hot LargeFrameDescriptor * GetDescriptor(paddr_t paddr);
 
         /*  Synchronization  */
 

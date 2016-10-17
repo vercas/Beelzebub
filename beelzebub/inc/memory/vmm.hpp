@@ -45,6 +45,7 @@
 
 #include <execution/process.hpp>
 #include <memory/enums.hpp>
+#include <beel/enums.kernel.hpp>
 #include <synchronization/atomic.hpp>
 
 namespace Beelzebub { namespace Memory
@@ -90,6 +91,20 @@ namespace Beelzebub { namespace Memory
 
         static __hot __noinline Handle MapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t paddr
+            , FrameSize size
+            , MemoryFlags const flags
+            , MemoryMapOptions opts = MemoryMapOptions::None);
+
+        static __hot __forceinline Handle MapPage(Execution::Process * proc
+            , uintptr_t const vaddr, paddr_t paddr
+            , MemoryFlags const flags
+            , MemoryMapOptions opts = MemoryMapOptions::None)
+        {
+            return MapPage(proc, vaddr, paddr, FrameSize::_4KiB, flags, opts);
+        }
+
+        static __hot __noinline Handle MapRange(Execution::Process * proc
+            , uintptr_t vaddr, paddr_t paddr, size_t size
             , MemoryFlags const flags
             , MemoryMapOptions opts = MemoryMapOptions::None);
 

@@ -450,25 +450,28 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
 
     paddr_t const tabStartPage     = RoundDown(header      , PageSize);
     paddr_t const tabHeaderEndPage = RoundUp  (tabHeaderEnd, PageSize);
-    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(tabHeaderEndPage - tabStartPage);
-    paddr_t offset1 = 0;
+    vaddr_t vaddr;
 
-    for (/* nothing */; tabStartPage + offset1 < tabHeaderEndPage; offset1 += PageSize)
-    {
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset1, tabStartPage + offset1
-            , MemoryFlags::Global
-            , MemoryMapOptions::NoReferenceCounting);
+    res = Vmm::AllocatePages(&BootstrapProcess
+        , (tabHeaderEndPage - tabStartPage) / PageSize
+        , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global
+        , MemoryContent::AcpiTable
+        , vaddr);
 
-        assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for table header: %H%n"
-            , vaddr + offset1, tabStartPage + offset1
-            , res)
-        {
-            ptr = nullvaddr;
+    ASSERT(res.IsOkayResult()
+        , "Failed to reserve %Xs bytes to map ACPI table header: %H."
+        , tabHeaderEndPage - tabStartPage, res);
 
-            return res;
-        }
-    }
+    res = Vmm::MapRange(&BootstrapProcess
+        , vaddr, tabStartPage, tabHeaderEndPage - tabStartPage
+        , MemoryFlags::Global
+        , MemoryMapOptions::NoReferenceCounting);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to map range at %Xp to %XP (%Xs bytes) for ACPI table header: %H."
+        , vaddr, tabStartPage
+        , tabHeaderEndPage - tabStartPage, res);
 
     //  Then the rest of the table.
 
@@ -477,28 +480,33 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
 
     paddr_t const tabEnd = header + tabPtr->Length;
     paddr_t const tabEndPage = RoundUp(tabEnd, PageSize);
-    vaddr_t const vaddrExtra = Vmm::KernelHeapCursor.FetchAdd(tabEndPage - tabHeaderEndPage);
 
-    assert(vaddrExtra - vaddr == tabHeaderEndPage - tabStartPage
-        , "Discrepancy observed while mapping table - virtual addresses are "
-          "not contiguous: %Xp-%Xp + %Xp-...%n"
-        , vaddr, vaddr + tabHeaderEndPage - tabStartPage, vaddrExtra);
-
-    for (/* nothing */; tabStartPage + offset1 < tabEndPage; offset1 += PageSize)
+    if (tabEndPage > tabHeaderEndPage)
     {
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset1, tabStartPage + offset1
+        //  Blast! This needs remappin'.
+
+        res = Vmm::AllocatePages(&BootstrapProcess
+            , (tabEndPage - tabStartPage) / PageSize
+            , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
+            , MemoryFlags::Global
+            , MemoryContent::AcpiTable
+            , vaddr);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to reserve %Xs bytes to map ACPI table: %H."
+            , tabEndPage - tabStartPage, res);
+
+        res = Vmm::MapRange(&BootstrapProcess
+            , vaddr, tabStartPage, tabEndPage - tabStartPage
             , MemoryFlags::Global
             , MemoryMapOptions::NoReferenceCounting);
 
-        assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for table body: %H%n"
-            , vaddr + offset1, tabStartPage + offset1
-            , res)
-        {
-            ptr = nullvaddr;
+        ASSERT(res.IsOkayResult()
+            , "Failed to map range at %Xp to %XP (%Xs bytes) for ACPI table: %H."
+            , vaddr, tabStartPage
+            , tabEndPage - tabStartPage, res);
 
-            return res;
-        }
+        ptr = (vaddr_t)(vaddr + (header - tabStartPage));
     }
 
     return HandleResult::Okay;

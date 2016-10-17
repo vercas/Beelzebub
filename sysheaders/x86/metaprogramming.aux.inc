@@ -72,7 +72,8 @@ typedef int comp_t; //  Result of comparison functions.
 /*  Constants  */
 
 #ifdef __cplusplus
-namespace Beelzebub { enum size_consts : size_t { PageSize = 0x1000, }; }
+namespace Beelzebub { enum size_consts : size_t { PageSize = 0x1000, LargePageSize = 0x200000, }; }
 #else
 #define __PAGE_SIZE ((size_t)0x1000)
+#define __LARGE_PAGE_SIZE ((size_t)0x200000)
 #endif

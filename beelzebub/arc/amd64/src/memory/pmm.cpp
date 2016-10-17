@@ -191,13 +191,7 @@ void PmmArc::Remap(FrameAllocator * & alloc, vaddr_t const oldVaddr, vaddr_t con
     vaddr_t const oldVaddrEnd = oldVaddr + PageSize;
 
     if (allocAddr >= oldVaddr && allocAddr < oldVaddrEnd)
-    {
-        MSG_("// Remapping %Xp to %Xp //%n"
-            , alloc
-            , reinterpret_cast<FrameAllocator *>((allocAddr - oldVaddr) + newVaddr));
-
         alloc = reinterpret_cast<FrameAllocator *>((allocAddr - oldVaddr) + newVaddr);
-    }
 
     withLock (alloc->ChainLock)
     {
@@ -205,21 +199,9 @@ void PmmArc::Remap(FrameAllocator * & alloc, vaddr_t const oldVaddr, vaddr_t con
         vaddr_t const lastAddr    = reinterpret_cast<vaddr_t>(alloc->LastSpace);
 
         if (firstAddr != nullvaddr && firstAddr >= oldVaddr && firstAddr < oldVaddrEnd)
-        {
-            MSG_("// Remapping %Xp->FirstSpace (%Xp) to %Xp //%n"
-                , alloc, alloc->FirstSpace
-                , reinterpret_cast<FrameAllocationSpace *>((firstAddr - oldVaddr) + newVaddr));
-
             alloc->FirstSpace = reinterpret_cast<FrameAllocationSpace *>((firstAddr - oldVaddr) + newVaddr);
-        }
         if (lastAddr != nullvaddr && lastAddr >= oldVaddr && lastAddr < oldVaddrEnd)
-        {
-            MSG_("// Remapping %Xp->LastSpace (%Xp) to %Xp //%n"
-                , alloc, alloc->LastSpace
-                , reinterpret_cast<FrameAllocationSpace *>((lastAddr - oldVaddr) + newVaddr));
-
             alloc->LastSpace = reinterpret_cast<FrameAllocationSpace *>((lastAddr - oldVaddr) + newVaddr);
-        }
 
         //  Now makin' sure all the pointers are aligned.
 
@@ -231,22 +213,10 @@ void PmmArc::Remap(FrameAllocator * & alloc, vaddr_t const oldVaddr, vaddr_t con
             vaddr_t const prevAddr = reinterpret_cast<vaddr_t>(cur->Previous);
 
             if (nextAddr != nullvaddr && nextAddr >= oldVaddr && nextAddr < oldVaddrEnd)
-            {
-                MSG_("// Remapping %Xp->Next (%Xp) to %Xp //%n"
-                    , cur, cur->Next
-                    , reinterpret_cast<FrameAllocationSpace *>((nextAddr - oldVaddr) + newVaddr));
-
                 cur->Next = reinterpret_cast<FrameAllocationSpace *>((nextAddr - oldVaddr) + newVaddr);
-            }
 
             if (prevAddr != nullvaddr && prevAddr >= oldVaddr && prevAddr < oldVaddrEnd)
-            {
-                MSG_("// Remapping %Xp->Previous (%Xp) to %Xp //%n"
-                    , cur, cur->Previous
-                    , reinterpret_cast<FrameAllocationSpace *>((prevAddr - oldVaddr) + newVaddr));
-
                 cur->Previous = reinterpret_cast<FrameAllocationSpace *>((prevAddr - oldVaddr) + newVaddr);
-            }
 
             cur = cur->Previous;
         }
@@ -376,7 +346,7 @@ paddr_t FrameAllocationSpace::AllocateFrame(Handle & desc, FrameSize size, uint3
         break;
     }
 
-    MSG_("** AllocateFrame %s **%n", size == FrameSize::_4KiB ? "4 KiB" : "2 MiB");
+    // MSG_("** AllocateFrame %s **%n", size == FrameSize::_4KiB ? "4 KiB" : "2 MiB");
 
     uint32_t lIndex = LargeFrameDescriptor::NullIndex;
     uint16_t sIndex = SmallFrameDescriptor::NullIndex;
@@ -508,7 +478,7 @@ Handle FrameAllocationSpace::Mingle(paddr_t addr, uint32_t & newCnt, int32_t dif
 
     auto test = [&newCnt, ignoreRefCnt, diff](FrameDescriptor * desc)
     {
-        MSG_("&& TEST %i4, %B &&%n", diff, ignoreRefCnt);
+        // MSG_("&& TEST %i4, %B &&%n", diff, ignoreRefCnt);
 
         if (diff == 0)
             return ignoreRefCnt || desc->ReferenceCount <= 1;
@@ -829,24 +799,6 @@ FrameAllocationSpace * FrameAllocator::GetSpace(paddr_t paddr)
     {
         if (space->ContainsRange(paddr, 1))
             return space;
-
-        space = space->Next;
-    }
-
-    return nullptr;
-}
-
-LargeFrameDescriptor * FrameAllocator::GetDescriptor(paddr_t paddr)
-{
-    LargeFrameDescriptor * res = nullptr;
-    FrameAllocationSpace * space = this->FirstSpace;
-
-    while (space != nullptr)
-    {
-        res = space->GetDescriptor(paddr);
-        
-        if (res != nullptr)
-            return res;
 
         space = space->Next;
     }

@@ -84,6 +84,13 @@ namespace Beelzebub { namespace Memory
         //  A kernel module mapped in memory.
         KernelModule         = 0x04,
 
+        //  A module loaded by the bootloader.
+        BootModule           = 0x80,
+        //  The VBE framebuffer.
+        VbeFramebuffer       = 0x81,
+        //  An ACPI table.
+        AcpiTable            = 0x82,
+
         //  Nothing, waiting to be used.
         Free                 = 0xFF,
     };

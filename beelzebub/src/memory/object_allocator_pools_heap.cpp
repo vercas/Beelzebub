@@ -50,57 +50,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 
-static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
-{
-    Handle res;
-    //PageDescriptor * desc = nullptr;
-    //  Intermediate results.
-
-    vaddr_t vaddr = nullvaddr;
-
-    res = Vmm::AllocatePages(nullptr
-        , pageCount
-        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::Generic
-        , vaddr);
-
-    address = (uintptr_t)vaddr;
-
-    /*vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(pageCount * PageSize);
-
-    for (size_t i = 0; i < pageCount; ++i)
-    {
-        paddr_t const paddr = (CpuDataSetUp ? Cpu::GetData()->DomainDescriptor : &Domain0)->PhysicalAllocator->AllocatePage(desc);
-        //  Test page.
-
-        assert_or(paddr != nullpaddr && desc != nullptr
-            , "Unable to allocate physical page #%us for an object pool!"
-            , i)
-        {
-            return res;
-            //  Maybe the test is built in release mode.
-        }
-
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable, desc);
-        //  Doesn't matter which process is used when the kernel heap is accessed.
-
-        assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP; #%us) for an object pool (%us pages): %H."
-            , vaddr + i * PageSize, paddr, i, pageCount, res)
-        {
-            return res;
-            //  Again, maybe the test is built in release mode.
-        }
-    }
-
-    address = vaddr;*/
-
-    return res;
-}
-
-static __noinline void FillPool(ObjectPoolBase volatile * volatile pool
+static void FillPool(ObjectPoolBase volatile * volatile pool
                               , size_t const objectSize
                               , size_t const headerSize
                               , obj_ind_t const objectCount)
@@ -152,7 +102,12 @@ Handle Memory::AcquirePoolInKernelHeap(size_t objectSize
     size_t const pageCount = RoundUp(objectSize * minimumObjects + headerSize, PageSize) / PageSize;
     uintptr_t addr = 0;
 
-    Handle res = GetKernelHeapPages(pageCount, addr);
+    Handle res = Vmm::AllocatePages(nullptr
+        , pageCount
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::Generic
+        , addr);
 
     if (!res.IsOkayResult())
         return res;

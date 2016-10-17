@@ -485,20 +485,15 @@ Handle InitializeVirtualMemory()
 
     //  Now mapping the lower 16 MiB.
 
-    for (size_t offset = 0; offset < VmmArc::IsaDmaLength; offset += PageSize)
-    {
-        vaddr_t const vaddr = VmmArc::IsaDmaStart + offset;
-        paddr_t const paddr = (paddr_t)offset;
+    res = Vmm::MapRange(&BootstrapProcess
+        , VmmArc::IsaDmaStart, 0, VmmArc::IsaDmaLength
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryMapOptions::NoReferenceCounting);
 
-        res = Vmm::MapPage(&BootstrapProcess, vaddr, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable
-            , MemoryMapOptions::NoReferenceCounting);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for ISA DMA: %H."
-            , vaddr, paddr
-            , res);
-    }
+    ASSERT(res.IsOkayResult()
+        , "Failed to map range at %Xp (%XP) for ISA DMA: %H."
+        , VmmArc::IsaDmaStart, 0
+        , res);
 
     //  TODO: Management for ISA DMA.
 
@@ -514,7 +509,7 @@ void RemapTerminal(TerminalBase * const terminal)
     if (terminal->Capabilities->Type == TerminalType::PixelMatrix)
     {
         VbeTerminal * const term = (VbeTerminal *)terminal;
-        const size_t size = ((size_t)term->Pitch * (size_t)term->Height + PageSize - 1) & ~0xFFFULL;
+        size_t const size = RoundUp((size_t)term->Pitch * (size_t)term->Height, PageSize);
         //  Yes, the size is aligned with page boundaries.
 
         if (term->VideoMemory >= VmmArc::KernelHeapStart
@@ -522,25 +517,29 @@ void RemapTerminal(TerminalBase * const terminal)
             return;
         //  Nothing to do, folks.
         
-        uintptr_t const loc = Vmm::KernelHeapCursor.FetchAdd(size);
+        vaddr_t vaddr = nullvaddr;
 
-        size_t off = 0;
+        res = Vmm::AllocatePages(&BootstrapProcess
+            , size / PageSize
+            , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryContent::VbeFramebuffer
+            , vaddr);
 
-        do
-        {
-            res = Vmm::MapPage(&BootstrapProcess, loc + off, term->VideoMemory + off
-                , MemoryFlags::Global | MemoryFlags::Writable
-                , MemoryMapOptions::NoReferenceCounting);
+        ASSERT(res.IsOkayResult()
+            , "Failed to reserve %Xs bytes to map VBE framebuffer: %H."
+            , size, res);
 
-            ASSERT(res.IsOkayResult()
-                , "Failed to map page for VBE terminal (%Xp to %Xp): %H"
-                , loc + off, term->VideoMemory + off
-                , res);
+        res = Vmm::MapRange(&BootstrapProcess
+            , vaddr, term->VideoMemory, size
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryMapOptions::NoReferenceCounting);
 
-            off += PageSize;
-        } while (off < size);
+        ASSERT(res.IsOkayResult()
+            , "Failed to map range at %Xp to %XP (%Xs bytes) for VBE framebuffer: %H."
+            , vaddr, term->VideoMemory, size, res);
 
-        term->VideoMemory = loc;
+        term->VideoMemory = vaddr;
     }
 
     //  TODO: Make a VGA text terminal and also handle it here.
@@ -578,7 +577,7 @@ void RemapTerminal(TerminalBase * const terminal)
  */
 __startup Handle HandleModule(size_t const index, jg_info_module_t const * const module)
 {
-    Handle res = HandleResult::Okay;
+    Handle res;
 
     size_t const size = RoundUp(module->length, PageSize);
 
@@ -593,20 +592,44 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
         , module->address
         , module->length, size);//*/
 
-    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(size);
+    vaddr_t vaddr = nullvaddr;
 
-    for (vaddr_t offset = 0; offset < size; offset += PageSize)
-    {
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, module->address + offset
-            , MemoryFlags::Global | MemoryFlags::Writable
-            , MemoryMapOptions::NoReferenceCounting);
+    res = Vmm::AllocatePages(&BootstrapProcess
+        , size / PageSize
+        , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::BootModule
+        , vaddr);
 
-        ASSERT(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
-            , vaddr + offset, module->address + offset
-            , index, JG_INFO_STRING_EX + module->name
-            , res);
-    }
+    ASSERT(res.IsOkayResult()
+        , "Failed to reserve %Xs bytes of kernel heap space for module #%us (%s): %H."
+        , size
+        , index, JG_INFO_STRING_EX + module->name
+        , res);
+
+    res = Vmm::MapRange(&BootstrapProcess
+        , vaddr, module->address, size
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryMapOptions::NoReferenceCounting);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to map range at %Xp to %XP (%Xs bytes) for module #%us (%s): %H."
+        , vaddr, module->address, size
+        , index, JG_INFO_STRING_EX + module->name
+        , res);
+
+    // for (vaddr_t offset = 0; offset < size; offset += PageSize)
+    // {
+    //     res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, module->address + offset
+    //         , MemoryFlags::Global | MemoryFlags::Writable
+    //         , MemoryMapOptions::NoReferenceCounting);
+
+    //     ASSERT(res.IsOkayResult()
+    //         , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
+    //         , vaddr + offset, module->address + offset
+    //         , index, JG_INFO_STRING_EX + module->name
+    //         , res);
+    // }
 
     /*if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
         return HandleKernelModule(index, module, vaddr, size);
@@ -814,13 +837,24 @@ __startup char * AllocateTestPage(Process * const p)
     //  Intermediate results.
 
     vaddr_t const vaddr1 = 0x321000;
-    vaddr_t const vaddr2 = Vmm::KernelHeapCursor.FetchAdd(PageSize);
+    vaddr_t vaddr2;
     paddr_t const paddr = Pmm::AllocateFrame();
     //  Test page.
 
     ASSERT(paddr != nullpaddr
         , "Unable to allocate a physical page for test page of process %Xp!"
         , p);
+
+    res = Vmm::AllocatePages(&BootstrapProcess
+        , 1
+        , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::Generic
+        , vaddr2);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to reserve test page: %H."
+        , res);
 
     res = Vmm::MapPage(p, vaddr1, paddr, MemoryFlags::Writable);
 

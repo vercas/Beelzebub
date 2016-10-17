@@ -58,8 +58,6 @@
     bit = 1U << (val & 0xFFU);              \
 } while (false)
 
-using namespace Beelzebub::Terminals;
-
 namespace Beelzebub { namespace System
 {
     /**
@@ -214,6 +212,6 @@ namespace Beelzebub { namespace System
 
         /*  Debug  */
 
-        __cold TerminalWriteResult PrintToTerminal(TerminalBase * const term) const;
+        __cold Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term) const;
     };
 }}

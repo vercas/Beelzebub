@@ -58,6 +58,16 @@ using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
 /****************
+    Utilities
+****************/
+
+template<typename TInt>
+static __forceinline bool Is4KiBAligned(TInt val) { return (val & (     PageSize - 1)) == 0; }
+
+template<typename TInt>
+static __forceinline bool Is2MiBAligned(TInt val) { return (val & (LargePageSize - 1)) == 0; }
+
+/****************
     Vmm class
 ****************/
 
@@ -170,20 +180,33 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         //     break;
         // //  Well, the maximum is reached! Like this will ever happen...
 
-        for (size_t offset = 0; offset < controlStructuresSize; offset += PageSize)
-        {
-            res = Vmm::MapPage(bootstrapProc, curLoc + offset, pasStart + offset
-                , MemoryFlags::Global | MemoryFlags::Writable
-                , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
+        // for (size_t offset = 0; offset < controlStructuresSize; offset += PageSize)
+        // {
+        //     res = Vmm::MapPage(bootstrapProc, curLoc + offset, pasStart + offset
+        //         , MemoryFlags::Global | MemoryFlags::Writable
+        //         , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
 
-            ASSERT(res.IsOkayResult()
-                , "Failed to map page #%u8 (%Xp to %XP): %H"
-                , offset / PageSize
-                , curLoc + offset
-                , pasStart + offset
-                , res);
-            //  Failure is fatal.
-        }
+        //     ASSERT(res.IsOkayResult()
+        //         , "Failed to map page #%u8 (%Xp to %XP): %H"
+        //         , offset / PageSize
+        //         , curLoc + offset
+        //         , pasStart + offset
+        //         , res);
+        //     //  Failure is fatal.
+        // }
+
+        res = Vmm::MapRange(bootstrapProc
+            , curLoc, pasStart, RoundUp(controlStructuresSize, PageSize)
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
+
+        ASSERT(res.IsOkayResult()
+            , "Failed to map range %Xp to %XP (%Xs bytes): %H"
+            , curLoc
+            , pasStart
+            , controlStructuresSize
+            , res);
+        //  Failure is fatal.
 
         withLock (cur->LargeLocker)
             cur->Map = reinterpret_cast<LargeFrameDescriptor *>(curLoc);
@@ -380,196 +403,223 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
     __unreachable_code;
 }
 
-Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
-    , MemoryFlags const flags, MemoryMapOptions opts)
+static __hot Handle MapPageInternal(Process * proc
+    , uintptr_t const vaddr, paddr_t paddr
+    , FrameSize size
+    , MemoryFlags const flags
+    , bool lockHeap
+    , bool lockAlien
+    , bool nonLocal)
 {
-    if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
-             || (vaddr >= VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
-        return HandleResult::PageMapIllegalRange;
-
-    if unlikely((vaddr & (PageSize - 1)) != 0 || (paddr & (PageSize - 1)) != 0)
-        return HandleResult::AlignmentFailure;
-
-    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
-
-    bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
     uint16_t ind;   //  Used to hold the current index.
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
     Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
 
-    withInterrupts (false)  //  Lock-guarded, interrupt-guarded.
+    if (lockAlien && nonLocal && CpuDataSetUp)
+        alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
+
+    LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+
+    if (nonLocal)
     {
-        if (nonLocal && CpuDataSetUp)
-            alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
+        Alienate(proc);
 
-        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+        pml4p = VmmArc::GetAlienPml4();
+        pml3p = VmmArc::GetAlienPml3(vaddr);
+        pml2p = VmmArc::GetAlienPml2(vaddr);
+        pml1p = VmmArc::GetAlienPml1(vaddr);
 
-        if (nonLocal)
+        if (!CpuDataSetUp || proc->PagingTable != Cpu::GetData()->LastAlienPml4)
         {
-            Alienate(proc);
+            CpuInstructions::InvalidateTlb(pml4p);
+            CpuInstructions::InvalidateTlb(pml3p);
+            CpuInstructions::InvalidateTlb(pml2p);
+            CpuInstructions::InvalidateTlb(pml1p);
 
-            pml4p = VmmArc::GetAlienPml4();
-            pml3p = VmmArc::GetAlienPml3(vaddr);
-            pml2p = VmmArc::GetAlienPml2(vaddr);
-            pml1p = VmmArc::GetAlienPml1(vaddr);
+            //  Invalidate all!
 
-            if (!CpuDataSetUp || proc->PagingTable != Cpu::GetData()->LastAlienPml4)
-            {
-                CpuInstructions::InvalidateTlb(pml4p);
-                CpuInstructions::InvalidateTlb(pml3p);
-                CpuInstructions::InvalidateTlb(pml2p);
-                CpuInstructions::InvalidateTlb(pml1p);
+            if (CpuDataSetUp)
+                Cpu::GetData()->LastAlienPml4 = proc->PagingTable;
+        }
+    }
+    else
+    {
+        pml4p = VmmArc::GetLocalPml4();
+        pml3p = VmmArc::GetLocalPml3(vaddr);
+        pml2p = VmmArc::GetLocalPml2(vaddr);
+        pml1p = VmmArc::GetLocalPml1(vaddr);
+    }
 
-                //  Invalidate all!
+    if (lockHeap)
+        heapLock = (vaddr < VmmArc::LowerHalfEnd
+            ? &(proc->LocalTablesLock)
+            : &(VmmArc::KernelHeapLock));
 
-                if (CpuDataSetUp)
-                    Cpu::GetData()->LastAlienPml4 = proc->PagingTable;
-            }
+    //  REST OF THE FUNCTION IS LOCK-GUARDED
+
+    LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+
+    ind = VmmArc::GetPml4Index(vaddr);
+
+    if unlikely(!pml4p->operator[](ind).GetPresent())
+    {
+        //  So there's no PML4e. Means all PML1-3 need allocation.
+
+        //  First grab a PML3.
+
+        paddr_t const newPml3 = Pmm::AllocateFrame(1);
+
+        if (newPml3 == nullpaddr)
+            return HandleResult::OutOfMemory;
+
+        pml4p->operator[](ind) = Pml4Entry(newPml3, true, true, true, false);
+        //  Present, writable, user-accessible, executable.
+
+        //  Then a PML2.
+
+        paddr_t const newPml2 = Pmm::AllocateFrame(1);
+
+        if (newPml2 == nullpaddr)
+        {
+            Pmm::FreeFrame(newPml3);
+            //  Yes, clean up.
+
+            return HandleResult::OutOfMemory;
+        }
+
+        memset(pml3p, 0, PageSize);
+        pml3p->operator[](VmmArc::GetPml3Index(vaddr)) = Pml3Entry(newPml2, true, true, true, false);
+        //  First clean, then assign an entry.
+
+        //  And finish by moving on.
+
+        memset(pml2p, 0, PageSize);
+
+        goto do_pml2e;
+    }
+
+    ind = VmmArc::GetPml3Index(vaddr);
+
+    if unlikely(!pml3p->operator[](ind).GetPresent())
+    {
+        //  Just grab a PML2.
+
+        paddr_t const newPml2 = Pmm::AllocateFrame(1);
+
+        if (newPml2 == nullpaddr)
+            return HandleResult::OutOfMemory;
+
+        pml3p->operator[](ind) = Pml3Entry(newPml2, true, true, true, false);
+        //  First clean, then assign an entry.
+
+        memset(pml2p, 0, PageSize);
+    }
+    
+do_pml2e:
+    ind = VmmArc::GetPml2Index(vaddr);
+
+    if unlikely(!pml2p->operator[](ind).GetPresent())
+    {
+        if likely(size == FrameSize::_4KiB)
+        {
+            paddr_t const newPml1 = Pmm::AllocateFrame(1);
+
+            if (newPml1 == nullpaddr)
+                return HandleResult::OutOfMemory;
+
+            pml2p->operator[](ind) = Pml2Entry(newPml1, true, true, true, false);
+            //  Present, writable, user-accessible, executable.
+
+            memset(pml1p, 0, PageSize);
+
+            goto do_pml1e;
         }
         else
         {
-            pml4p = VmmArc::GetLocalPml4();
-            pml3p = VmmArc::GetLocalPml3(vaddr);
-            pml2p = VmmArc::GetLocalPml2(vaddr);
-            pml1p = VmmArc::GetLocalPml1(vaddr);
-        }
-
-        {   //  Lock-guarded.
-
-            if (0 == (opts & MemoryMapOptions::NoLocking))
-                heapLock = (vaddr < VmmArc::LowerHalfEnd
-                    ? &(proc->LocalTablesLock)
-                    : &(VmmArc::KernelHeapLock));
-
-            LockGuardFlexible<Spinlock<> > heapLg {heapLock};
-
-            ind = VmmArc::GetPml4Index(vaddr);
-
-            if unlikely(!pml4p->operator[](ind).GetPresent())
-            {
-                //  So there's no PML4e. Means all PML1-3 need allocation.
-
-                //  First grab a PML3.
-
-                paddr_t const newPml3 = Pmm::AllocateFrame(1);
-
-                if (newPml3 == nullpaddr)
-                    return HandleResult::OutOfMemory;
-
-                pml4p->operator[](ind) = Pml4Entry(newPml3, true, true, true, false);
-                //  Present, writable, user-accessible, executable.
-
-                //  Then a PML2.
-
-                paddr_t const newPml2 = Pmm::AllocateFrame(1);
-
-                if (newPml2 == nullpaddr)
-                {
-                    Pmm::FreeFrame(newPml3);
-                    //  Yes, clean up.
-
-                    return HandleResult::OutOfMemory;
-                }
-
-                memset(pml3p, 0, PageSize);
-                pml3p->operator[](VmmArc::GetPml3Index(vaddr)) = Pml3Entry(newPml2, true, true, true, false);
-                //  First clean, then assign an entry.
-
-                //  Then a PML1.
-
-                paddr_t const newPml1 = Pmm::AllocateFrame(1);
-
-                if (newPml1 == nullpaddr)
-                {
-                    Pmm::FreeFrame(newPml3);
-                    Pmm::FreeFrame(newPml2);
-
-                    return HandleResult::OutOfMemory;
-                }
-
-                memset(pml2p, 0, PageSize);
-                pml2p->operator[](VmmArc::GetPml2Index(vaddr)) = Pml2Entry(newPml1, true, true, true, false);
-
-                //  And finish by cleaning the PML1.
-
-                memset(pml1p, 0, PageSize);
-
-                goto wrapUp;
-            }
-
-            ind = VmmArc::GetPml3Index(vaddr);
-
-            if unlikely(!pml3p->operator[](ind).GetPresent())
-            {
-                //  First grab a PML2.
-
-                paddr_t const newPml2 = Pmm::AllocateFrame(1);
-
-                if (newPml2 == nullpaddr)
-                    return HandleResult::OutOfMemory;
-
-                pml3p->operator[](ind) = Pml3Entry(newPml2, true, true, true, false);
-                //  First clean, then assign an entry.
-
-                //  Then a PML1.
-
-                paddr_t const newPml1 = Pmm::AllocateFrame(1);
-
-                if (newPml1 == nullpaddr)
-                {
-                    Pmm::FreeFrame(newPml2);
-                    //  Yes, clean up.
-
-                    return HandleResult::OutOfMemory;
-                }
-
-                memset(pml2p, 0, PageSize);
-                pml2p->operator[](VmmArc::GetPml2Index(vaddr)) = Pml2Entry(newPml1, true, true, true, false);
-
-                //  And finish by cleaning the PML1.
-
-                memset(pml1p, 0, PageSize);
-
-                goto wrapUp;
-            }
-            
-            ind = VmmArc::GetPml2Index(vaddr);
-
-            if unlikely(!pml2p->operator[](ind).GetPresent())
-            {
-                paddr_t const newPml1 = Pmm::AllocateFrame(1);
-
-                if (newPml1 == nullpaddr)
-                    return HandleResult::OutOfMemory;
-
-                pml2p->operator[](ind) = Pml2Entry(newPml1, true, true, true, false);
-                //  Present, writable, user-accessible, executable.
-
-                memset(pml1p, 0, PageSize);
-
-                goto wrapUp;
-            }
-            
-            ind = VmmArc::GetPml1Index(vaddr);
-
-            if unlikely(pml1p->operator[](ind).GetPresent())
-                return HandleResult::PageMapped;
-
-        wrapUp:
-            pml1p->operator[](VmmArc::GetPml1Index(vaddr)) = Pml1Entry(paddr, true
+            pml2p->operator[](ind) = Pml2Entry(paddr, true
                 , 0 != (flags & MemoryFlags::Writable)
                 , 0 != (flags & MemoryFlags::Userland)
                 , 0 != (flags & MemoryFlags::Global)
                 , 0 == (flags & MemoryFlags::Executable) && VmmArc::NX);
             //  Present, writable, user-accessible, global, executable.
+
+            return HandleResult::Okay;
         }
     }
+    
+    ind = VmmArc::GetPml1Index(vaddr);
+
+    if unlikely(pml1p->operator[](ind).GetPresent())
+        return HandleResult::PageMapped;
+
+    if likely(size == FrameSize::_4KiB)
+    {
+    do_pml1e:
+        pml1p->operator[](VmmArc::GetPml1Index(vaddr)) = Pml1Entry(paddr, true
+            , 0 != (flags & MemoryFlags::Writable)
+            , 0 != (flags & MemoryFlags::Userland)
+            , 0 != (flags & MemoryFlags::Global)
+            , 0 == (flags & MemoryFlags::Executable) && VmmArc::NX);
+        //  Present, writable, user-accessible, global, executable.
+
+        return HandleResult::Okay;
+    }
+    else
+        return HandleResult::PageMapped;
+}
+
+Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
+    , FrameSize size, MemoryFlags const flags, MemoryMapOptions opts)
+{
+    if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
+             || (vaddr >= VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
+        return HandleResult::PageMapIllegalRange;
+
+    switch (size)
+    {
+    case FrameSize::_64KiB: //  TODO: Map 4-KiB pages to provide this.
+    case FrameSize::_4MiB:  //  TODO: Map 2-MiB pages to provide this.
+    case FrameSize::_1GiB:
+        ASSERT(false, "A request was made for a frame size which is not supported by this architecture.");
+        break;
+
+    case FrameSize::_4KiB:
+        if unlikely(!Is4KiBAligned(vaddr) || !Is4KiBAligned(paddr))
+            return HandleResult::AlignmentFailure;
+
+        break;
+
+    case FrameSize::_2MiB:
+        if unlikely(!Is2MiBAligned(vaddr) || !Is2MiBAligned(paddr))
+            return HandleResult::AlignmentFailure;
+
+        break;
+
+    default:
+        ASSERT(false, "Invalid value provided as frame size: %us", (size_t)size);
+        break;
+    }
+
+    Handle res;
+
+    if (proc == nullptr)
+        proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
+    bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
+
+    withInterrupts (false)
+        res = MapPageInternal(proc, vaddr, paddr, size, flags
+            , 0 == (opts & MemoryMapOptions::NoLocking)
+            , true, nonLocal);
+
+    if unlikely(res != HandleResult::Okay)
+        return res;
 
     if (0 == (opts & MemoryMapOptions::NoReferenceCounting))
     {
-        Handle res = Pmm::AdjustReferenceCount(paddr, 1);
+        res = Pmm::AdjustReferenceCount(paddr, 1);
         //  The page still may not be in an allocation space, but that is taken
         //  care of by the PMM.
 
@@ -580,6 +630,97 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
     }
     else
         return HandleResult::Okay;
+}
+
+Handle Vmm::MapRange(Process * proc
+    , uintptr_t vaddr, paddr_t paddr, size_t size
+    , MemoryFlags const flags
+    , MemoryMapOptions opts)
+{
+    if unlikely((vaddr + size > VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
+             || (vaddr + size > VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
+        return HandleResult::PageMapIllegalRange;
+
+    if unlikely((vaddr & (PageSize - 1)) != 0
+             || (paddr & (PageSize - 1)) != 0
+             || (size  & (PageSize - 1)) != 0)
+        return HandleResult::AlignmentFailure;
+
+    ASSERT(0 != (opts & MemoryMapOptions::NoReferenceCounting)
+        , "Reference counting must be explicitly disabled when mapping a memory range!");
+
+    vaddr_t const end = vaddr + size;
+
+    Handle res;
+
+    if (proc == nullptr)
+        proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
+    bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
+
+    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
+
+    if (nonLocal && CpuDataSetUp)
+        alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
+
+    if (0 == (opts & MemoryMapOptions::NoLocking))
+        heapLock = (vaddr < VmmArc::LowerHalfEnd
+            ? &(proc->LocalTablesLock)
+            : &(VmmArc::KernelHeapLock));
+
+    withInterrupts (false)
+    {
+        //  THE SCOPE IS OPTIONALLY LOCK-GUARDED AS WELL!
+
+        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+        LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+
+        if ((vaddr & (LargePageSize - 1)) == (paddr & (LargePageSize - 1)))
+        {
+            //  Wow, so the alignment matches. This means 2-MiB mappings can be used!
+            //  First, map the small pages until a 2-MiB aligned address is reached.
+
+            for (/* nothing */; vaddr < end && !Is2MiBAligned(vaddr); vaddr += PageSize, paddr += PageSize)
+            {
+                res = MapPageInternal(proc, vaddr, paddr
+                    , FrameSize::_4KiB, flags
+                    , false, false, nonLocal);
+
+                if unlikely(res != HandleResult::Okay)
+                    return res;
+            }
+
+            //  Now map as many 2-MiB pages as possible.
+
+            vaddr_t const endRD = RoundDown(end, LargePageSize);
+            //  endRD = end rounded down to 2-MiB
+
+            for (/* nothing */; vaddr < endRD; vaddr += LargePageSize, paddr += LargePageSize)
+            {
+                res = MapPageInternal(proc, vaddr, paddr
+                    , FrameSize::_2MiB, flags
+                    , false, false, nonLocal);
+
+                if unlikely(res != HandleResult::Okay)
+                    return res;
+            }
+        }
+
+        //  If alignment does not match, or if there's anything left after mapping
+        //  as many 2-MiB pages as possible, this last loop will take care of it.
+
+        for (/* nothing */; vaddr < end; vaddr += PageSize, paddr += PageSize)
+        {
+            res = MapPageInternal(proc, vaddr, paddr
+                , FrameSize::_4KiB, flags
+                , false, false, nonLocal);
+
+            if unlikely(res != HandleResult::Okay)
+                return res;
+        }
+    }
+
+    return HandleResult::Okay;
 }
 
 Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
