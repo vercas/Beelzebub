@@ -109,15 +109,32 @@ namespace Beelzebub { namespace Memory
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
         static __hot __noinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t & paddr
+            , uintptr_t const vaddr, paddr_t & paddr, FrameSize & size
             , MemoryMapOptions opts = MemoryMapOptions::None);
+
+        static __hot __forceinline Handle UnmapPage(Execution::Process * proc
+            , uintptr_t const vaddr, paddr_t & paddr, MemoryMapOptions opts = MemoryMapOptions::None)
+        {
+            FrameSize dummy;
+
+            return UnmapPage(proc, vaddr, paddr, dummy, opts);
+        }
+
+        static __hot __forceinline Handle UnmapPage(Execution::Process * proc
+            , uintptr_t const vaddr, FrameSize & size, MemoryMapOptions opts = MemoryMapOptions::None)
+        {
+            paddr_t dummy;
+
+            return UnmapPage(proc, vaddr, dummy, size, opts);
+        }
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, MemoryMapOptions opts = MemoryMapOptions::None)
         {
-            paddr_t dummy;
+            paddr_t dummy1;
+            FrameSize dummy2;
 
-            return UnmapPage(proc, vaddr, dummy, opts);
+            return UnmapPage(proc, vaddr, dummy1, dummy2, opts);
         }
 
         static __hot __noinline Handle InvalidatePage(Execution::Process * proc

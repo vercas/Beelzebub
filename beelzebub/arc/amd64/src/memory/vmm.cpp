@@ -393,10 +393,20 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
             if unlikely(!pml3p->operator[](VmmArc::GetPml3Index(vaddr)).GetPresent())
                 return HandleResult::PageUnmapped;
 
-            if unlikely(!pml2p->operator[](VmmArc::GetPml2Index(vaddr)).GetPresent())
+            Pml2Entry & pml2e = pml2p->operator[](VmmArc::GetPml2Index(vaddr));
+
+            if unlikely(!pml2e.GetPresent())
                 return HandleResult::PageUnmapped;
 
-            return cbk(pml1p->Entries + VmmArc::GetPml1Index(vaddr));
+            if (pml2e.GetPageSize())
+                return cbk(reinterpret_cast<PmlCommonEntry *>(&pml2e), 2);
+
+            Pml1Entry & pml1e = pml1p->operator[](VmmArc::GetPml1Index(vaddr));
+
+            if unlikely(!pml1e.GetPresent())
+                return HandleResult::PageUnmapped;
+
+            return cbk(reinterpret_cast<PmlCommonEntry *>(&pml1e), 1);
         }
     }
 
@@ -724,26 +734,19 @@ Handle Vmm::MapRange(Process * proc
 }
 
 Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
-    , paddr_t & paddr, MemoryMapOptions opts)
+    , paddr_t & paddr, FrameSize & size, MemoryMapOptions opts)
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
-    Handle res = TryTranslate(proc, vaddr, [&paddr](Pml1Entry * pE)
+    Handle res = TryTranslate(proc, vaddr, [&paddr, &size](PmlCommonEntry * pE, int level)
     {
-        if likely(pE->GetPresent())
-        {
-            paddr = pE->GetAddress();
-            *pE = Pml1Entry();
-            //  Null.
+        paddr = pE->GetAddress();
+        size = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
 
-            return HandleResult::Okay;
-        }
-        else
-        {
-            paddr = 0;
+        *pE = PmlCommonEntry();
+        //  Null.
 
-            return HandleResult::PageUnmapped;
-        }
+        return HandleResult::Okay;
     }, 0 == (opts & MemoryMapOptions::NoLocking));
 
     if unlikely(!res.IsOkayResult())
@@ -782,20 +785,11 @@ Handle Vmm::InvalidatePage(Process * proc, uintptr_t const vaddr
 
 Handle Vmm::Translate(Execution::Process * proc, uintptr_t const vaddr, paddr_t & paddr, bool const lock)
 {
-    return TryTranslate(proc, vaddr, [&paddr](Pml1Entry * pE)
+    return TryTranslate(proc, vaddr, [&paddr](PmlCommonEntry * pE, int level)
     {
-        if likely(pE->GetPresent())
-        {
-            paddr = pE->GetAddress();
+        paddr = pE->GetAddress();
 
-            return HandleResult::Okay;
-        }
-        else
-        {
-            paddr = nullpaddr;
-
-            return HandleResult::PageUnmapped;
-        }
+        return HandleResult::Okay;
     }, lock);
 }
 
@@ -1133,28 +1127,19 @@ end:
 Handle Vmm::GetPageFlags(Process * proc, uintptr_t const vaddr
     , MemoryFlags & flags, bool const lock)
 {
-    return TryTranslate(proc, vaddr, [&flags](Pml1Entry * pE)
+    return TryTranslate(proc, vaddr, [&flags](PmlCommonEntry * pE, int level)
     {
-        if likely(pE->GetPresent())
-        {
-            Pml1Entry const e = *pE;
-            MemoryFlags f = MemoryFlags::None;
+        PmlCommonEntry const e = *pE;
+        MemoryFlags f = MemoryFlags::None;
 
-            if (  e.GetGlobal())            f |= MemoryFlags::Global;
-            if (  e.GetUserland())          f |= MemoryFlags::Userland;
-            if (  e.GetWritable())          f |= MemoryFlags::Writable;
-            if (!(e.GetXd() && VmmArc::NX)) f |= MemoryFlags::Executable;
+        if (  e.GetGlobal())            f |= MemoryFlags::Global;
+        if (  e.GetUserland())          f |= MemoryFlags::Userland;
+        if (  e.GetWritable())          f |= MemoryFlags::Writable;
+        if (!(e.GetXd() && VmmArc::NX)) f |= MemoryFlags::Executable;
 
-            flags = f;
+        flags = f;
 
-            return HandleResult::Okay;
-        }
-        else
-        {
-            flags = MemoryFlags::None;
-
-            return HandleResult::PageUnmapped;
-        }
+        return HandleResult::Okay;
     }, lock);
 }
 
@@ -1163,23 +1148,18 @@ Handle Vmm::SetPageFlags(Process * proc, uintptr_t const vaddr
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
-    Handle res = TryTranslate(proc, vaddr, [flags](Pml1Entry * pE)
+    Handle res = TryTranslate(proc, vaddr, [flags](PmlCommonEntry * pE, int level)
     {
-        if likely(pE->GetPresent())
-        {
-            Pml1Entry e = *pE;
+        PmlCommonEntry e = *pE;
 
-            e.SetGlobal( ((MemoryFlags::Global     & flags) != 0))
-            .SetUserland(((MemoryFlags::Userland   & flags) != 0))
-            .SetWritable(((MemoryFlags::Writable   & flags) != 0))
-            .SetXd( VmmArc::NX & ((MemoryFlags::Executable & flags) == 0));
+        e.SetGlobal( ((MemoryFlags::Global     & flags) != 0))
+        .SetUserland(((MemoryFlags::Userland   & flags) != 0))
+        .SetWritable(((MemoryFlags::Writable   & flags) != 0))
+        .SetXd( VmmArc::NX & ((MemoryFlags::Executable & flags) == 0));
 
-            *pE = e;
+        *pE = e;
 
-            return HandleResult::Okay;
-        }
-        else
-            return HandleResult::PageUnmapped;
+        return HandleResult::Okay;
     }, lock);
 
     if (!res.IsOkayResult())
