@@ -327,8 +327,84 @@ bool Vmm::IsAlien(Process * proc)
 /*  Page Management  */
 
 template<typename cbk_t>
-static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
-    , cbk_t cbk, bool const lock)
+static __hot inline Handle TranslateInternal(Process * proc
+    , uintptr_t const vaddr
+    , cbk_t cbk
+    , bool const lockHeap
+    , bool const lockAlien
+    , bool const nonLocal)
+{
+    Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
+
+    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
+
+    if (lockAlien && nonLocal && CpuDataSetUp)
+        alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
+
+    LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+
+    if (nonLocal)
+    {
+        Alienate(proc);
+
+        pml4p = VmmArc::GetAlienPml4();
+        pml3p = VmmArc::GetAlienPml3(vaddr);
+        pml2p = VmmArc::GetAlienPml2(vaddr);
+        pml1p = VmmArc::GetAlienPml1(vaddr);
+
+        if (!CpuDataSetUp || proc->PagingTable != Cpu::GetData()->LastAlienPml4)
+        {
+            CpuInstructions::InvalidateTlb(pml4p);
+            CpuInstructions::InvalidateTlb(pml3p);
+            CpuInstructions::InvalidateTlb(pml2p);
+            CpuInstructions::InvalidateTlb(pml1p);
+
+            //  Invalidate all!
+
+            if (CpuDataSetUp)
+                Cpu::GetData()->LastAlienPml4 = proc->PagingTable;
+        }
+    }
+    else
+    {
+        pml4p = VmmArc::GetLocalPml4();
+        pml3p = VmmArc::GetLocalPml3(vaddr);
+        pml2p = VmmArc::GetLocalPml2(vaddr);
+        pml1p = VmmArc::GetLocalPml1(vaddr);
+    }
+
+    if (lockHeap)
+        heapLock = vaddr < VmmArc::LowerHalfEnd ? &proc->LocalTablesLock : &VmmArc::KernelHeapLock;
+
+    LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+
+    if unlikely(!pml4p->operator[](VmmArc::GetPml4Index(vaddr)).GetPresent())
+        return HandleResult::PageUnmapped;
+
+    if unlikely(!pml3p->operator[](VmmArc::GetPml3Index(vaddr)).GetPresent())
+        return HandleResult::PageUnmapped;
+
+    Pml2Entry & pml2e = pml2p->operator[](VmmArc::GetPml2Index(vaddr));
+
+    if unlikely(!pml2e.GetPresent())
+        return HandleResult::PageUnmapped;
+
+    if (pml2e.GetPageSize())
+        return cbk(reinterpret_cast<PmlCommonEntry *>(&pml2e), 2);
+
+    Pml1Entry & pml1e = pml1p->operator[](VmmArc::GetPml1Index(vaddr));
+
+    if unlikely(!pml1e.GetPresent())
+        return HandleResult::PageUnmapped;
+
+    return cbk(reinterpret_cast<PmlCommonEntry *>(&pml1e), 1);
+}
+
+template<typename cbk_t>
+static __hot inline Handle TryTranslate(Process * proc
+    , uintptr_t const vaddr
+    , cbk_t cbk
+    , bool const lockHeap)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
              || (vaddr >= VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
@@ -340,86 +416,19 @@ static __hot inline Handle TryTranslate(Process * proc, uintptr_t const vaddr
 
     bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
 
-    Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
-
-    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
-
-    withInterrupts (false)  //  Lock-guarded, interrupt-guarded.
-    {
-        if (nonLocal && CpuDataSetUp)
-            alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
-
-        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
-
-        if (nonLocal)
-        {
-            Alienate(proc);
-
-            pml4p = VmmArc::GetAlienPml4();
-            pml3p = VmmArc::GetAlienPml3(vaddr);
-            pml2p = VmmArc::GetAlienPml2(vaddr);
-            pml1p = VmmArc::GetAlienPml1(vaddr);
-
-            if (!CpuDataSetUp || proc->PagingTable != Cpu::GetData()->LastAlienPml4)
-            {
-                CpuInstructions::InvalidateTlb(pml4p);
-                CpuInstructions::InvalidateTlb(pml3p);
-                CpuInstructions::InvalidateTlb(pml2p);
-                CpuInstructions::InvalidateTlb(pml1p);
-
-                //  Invalidate all!
-
-                if (CpuDataSetUp)
-                    Cpu::GetData()->LastAlienPml4 = proc->PagingTable;
-            }
-        }
-        else
-        {
-            pml4p = VmmArc::GetLocalPml4();
-            pml3p = VmmArc::GetLocalPml3(vaddr);
-            pml2p = VmmArc::GetLocalPml2(vaddr);
-            pml1p = VmmArc::GetLocalPml1(vaddr);
-        }
-
-        {   //  Lock-guarded.
-
-            if (lock) heapLock = vaddr < VmmArc::LowerHalfEnd ? &proc->LocalTablesLock : &VmmArc::KernelHeapLock;
-
-            LockGuardFlexible<Spinlock<> > heapLg {heapLock};
-
-            if unlikely(!pml4p->operator[](VmmArc::GetPml4Index(vaddr)).GetPresent())
-                return HandleResult::PageUnmapped;
-
-            if unlikely(!pml3p->operator[](VmmArc::GetPml3Index(vaddr)).GetPresent())
-                return HandleResult::PageUnmapped;
-
-            Pml2Entry & pml2e = pml2p->operator[](VmmArc::GetPml2Index(vaddr));
-
-            if unlikely(!pml2e.GetPresent())
-                return HandleResult::PageUnmapped;
-
-            if (pml2e.GetPageSize())
-                return cbk(reinterpret_cast<PmlCommonEntry *>(&pml2e), 2);
-
-            Pml1Entry & pml1e = pml1p->operator[](VmmArc::GetPml1Index(vaddr));
-
-            if unlikely(!pml1e.GetPresent())
-                return HandleResult::PageUnmapped;
-
-            return cbk(reinterpret_cast<PmlCommonEntry *>(&pml1e), 1);
-        }
-    }
+    withInterrupts (false)  //  Interrupt-guarded.
+        return TranslateInternal(proc, vaddr, cbk, lockHeap, true, nonLocal);
 
     __unreachable_code;
 }
 
-static __hot Handle MapPageInternal(Process * proc
+static __hot Handle MapPageInternal(Process * const proc
     , uintptr_t const vaddr, paddr_t paddr
-    , FrameSize size
+    , FrameSize const size
     , MemoryFlags const flags
-    , bool lockHeap
-    , bool lockAlien
-    , bool nonLocal)
+    , bool const lockHeap
+    , bool const lockAlien
+    , bool const nonLocal)
 {
     uint16_t ind;   //  Used to hold the current index.
 
@@ -466,8 +475,6 @@ static __hot Handle MapPageInternal(Process * proc
         heapLock = (vaddr < VmmArc::LowerHalfEnd
             ? &(proc->LocalTablesLock)
             : &(VmmArc::KernelHeapLock));
-
-    //  REST OF THE FUNCTION IS LOCK-GUARDED
 
     LockGuardFlexible<Spinlock<> > heapLg {heapLock};
 
@@ -651,9 +658,7 @@ Handle Vmm::MapRange(Process * proc
              || (vaddr + size > VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
         return HandleResult::PageMapIllegalRange;
 
-    if unlikely((vaddr & (PageSize - 1)) != 0
-             || (paddr & (PageSize - 1)) != 0
-             || (size  & (PageSize - 1)) != 0)
+    if unlikely(!Is4KiBAligned(vaddr) || !Is4KiBAligned(paddr) || !Is4KiBAligned(size))
         return HandleResult::AlignmentFailure;
 
     ASSERT(0 != (opts & MemoryMapOptions::NoReferenceCounting)
@@ -758,6 +763,78 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
 
     if (0 == (opts & MemoryMapOptions::NoReferenceCounting))
         Pmm::AdjustReferenceCount(paddr, -1);
+
+    return HandleResult::Okay;
+}
+
+Handle Vmm::UnmapRange(Process * proc
+    , uintptr_t vaddr, size_t size
+    , MemoryMapOptions opts)
+{
+    if unlikely((vaddr + size > VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
+             || (vaddr + size > VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
+        return HandleResult::PageMapIllegalRange;
+
+    if unlikely(!Is4KiBAligned(vaddr) || !Is4KiBAligned(size))
+        return HandleResult::AlignmentFailure;
+
+    ASSERT(0 != (opts & MemoryMapOptions::NoReferenceCounting)
+        , "Reference counting must be explicitly disabled when unmapping a memory range!");
+    //  TODO: Implement this recursively or something, so this can be done.
+    //  It's vital.
+
+    ASSERT(0 == (opts & MemoryMapOptions::PreciseUnmapping)
+        , "Precise unmapping is not supported yet.");
+
+    vaddr_t const end = vaddr + size;
+
+    if (proc == nullptr)
+        proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
+    bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
+
+    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
+
+    if (nonLocal && CpuDataSetUp)
+        alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
+
+    if (0 == (opts & MemoryMapOptions::NoLocking))
+        heapLock = (vaddr < VmmArc::LowerHalfEnd
+            ? &(proc->LocalTablesLock)
+            : &(VmmArc::KernelHeapLock));
+
+    withInterrupts (false)
+    {
+        //  THE SCOPE IS OPTIONALLY LOCK-GUARDED AS WELL!
+
+        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+        LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+
+        while (vaddr < end)
+        {
+            paddr_t paddr;
+            FrameSize fSize;
+
+            Handle res = TranslateInternal(proc, vaddr, [&paddr, &fSize](PmlCommonEntry * pE, int level)
+            {
+                paddr = pE->GetAddress();
+                fSize = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
+
+                *pE = PmlCommonEntry();
+                //  Null.
+
+                return HandleResult::Okay;
+            }, false, false, nonLocal);
+
+            if unlikely(res != HandleResult::Okay)
+                return res;
+
+            if (fSize == FrameSize::_4KiB)
+                vaddr += PageSize;
+            else
+                vaddr = RoundUp(vaddr + 1, LargePageSize);
+        }
+    }
 
     return HandleResult::Okay;
 }

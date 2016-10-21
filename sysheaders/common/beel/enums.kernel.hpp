@@ -75,4 +75,85 @@ namespace Beelzebub
     };
 
     ENUMOPS_LITE(AddressMagnitude, uint8_t)
+
+    /**
+     *  Options for memory (un)mapping.
+     */
+    enum class MemoryMapOptions : int
+    {
+        //  No special actions.
+        None                 = 0x00,
+        //  No locking will be performed.
+        NoLocking            = 0x01,
+        //  Frame references will not be changed.
+        NoReferenceCounting  = 0x02,
+        //  Unmapping is done with precision - large pages are split if necessary.
+        PreciseUnmapping     = 0x04,
+    };
+
+    ENUMOPS(MemoryMapOptions, int)
+
+    /**
+     *  Represents flags to check memory for.
+     */
+    enum class MemoryCheckType
+    {
+        Readable = 0x0,
+        Writable = 0x1,
+        Free     = 0x2,
+        Userland = 0x4,
+        Private  = 0x8, //  Means it's owned exclusively by the process in question.
+    };
+
+    ENUMOPS(MemoryCheckType)
+
+    /**
+     *  Represents characteristics of pages that can be mapped.
+     */
+    enum class MemoryFlags : uint8_t
+    {
+        //  No flags.
+        None       = 0x0,
+
+        //  Shared by all processes.
+        Global     = 0x01,
+        //  Accessible by user code.
+        Userland   = 0x02,
+
+        //  Writing to the page is allowed.
+        Writable   = 0x04,
+        //  Executing code from the page is allowed.
+        Executable = 0x08,
+    };
+
+    ENUMOPS(MemoryFlags, uint8_t)
+
+    /**
+     *  Represents possible contents of a memory range.
+     */
+    enum class MemoryContent : uint8_t
+    {
+        //  Generic contents, nothing remarkable.
+        Generic              = 0x00,
+        //  Shared with other processes.
+        Share                = 0x01,
+        //  A thread's stack.
+        ThreadStack          = 0x02,
+        //  Part of the runtime.
+        Runtime              = 0x03,
+        //  A kernel module mapped in memory.
+        KernelModule         = 0x04,
+
+        //  A module loaded by the bootloader.
+        BootModule           = 0x80,
+        //  The VBE framebuffer.
+        VbeFramebuffer       = 0x81,
+        //  An ACPI table.
+        AcpiTable            = 0x82,
+
+        //  Nothing, waiting to be used.
+        Free                 = 0xFF,
+    };
+
+    ENUMOPS_LITE(MemoryContent, uint8_t)
 }

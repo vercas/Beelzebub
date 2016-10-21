@@ -137,6 +137,10 @@ namespace Beelzebub { namespace Memory
             return UnmapPage(proc, vaddr, dummy1, dummy2, opts);
         }
 
+        static __hot __noinline Handle UnmapRange(Execution::Process * proc
+            , uintptr_t vaddr, size_t size
+            , MemoryMapOptions opts = MemoryMapOptions::None);
+
         static __hot __noinline Handle InvalidatePage(Execution::Process * proc
             , uintptr_t const vaddr, bool const broadcast = true);
 
