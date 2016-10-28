@@ -47,6 +47,7 @@
 #include <terminals/vbe.hpp>
 #include <multiboot.h>
 
+#include <system/rtc.hpp>
 #include <system/cpu.hpp>
 #include <system/fpu.hpp>
 #include <execution/thread_init.hpp>
@@ -623,6 +624,10 @@ void Beelzebub::Main()
         MainTerminal = InitializeTerminalProto();
 
         MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
+
+        Rtc::Read();
+        DEBUG_TERM << "Boot time: " << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
+        << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds << EndLine;
 
         MainParseKernelArguments();
         MainInitializeInterrupts();
