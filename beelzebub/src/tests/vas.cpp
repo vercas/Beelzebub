@@ -146,7 +146,7 @@ void * TestThreadCode(void *)
         , "Failed to allocate data for VAS test thread: %H."
         , res);
 
-    DEBUG_TERM_ << "Been given 4 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
+    // DEBUG_TERM_ << "Been given 4 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
     vaddr1 = vaddr;
 
     memset((void *)vaddr, 0xCD, 4 * PageSize);
@@ -160,7 +160,7 @@ void * TestThreadCode(void *)
         if (vaddr + 4 * PageSize < Vmm::UserlandEnd)
             TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 4 * PageSize));
 
-        DEBUG_TERM_ << EndLine;
+        // DEBUG_TERM_ << EndLine;
     }
 
     vaddr = Vmm::UserlandStart + 1337 * PageSize;
@@ -179,7 +179,7 @@ void * TestThreadCode(void *)
     ASSERT_EQ("%Xp", Vmm::UserlandStart + 1337 * PageSize, vaddr);
     vaddr2 = vaddr;
 
-    DEBUG_TERM_ << "Been given 5 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
+    // DEBUG_TERM_ << "Been given 5 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
 
     memset((void *)vaddr, 0xAB, 5 * PageSize);
 
@@ -193,7 +193,7 @@ void * TestThreadCode(void *)
         if (vaddr + 5 * PageSize < Vmm::UserlandEnd && (vaddr + 5 * PageSize < vaddr1 || vaddr + PageSize >= vaddr1))
             TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
 
-        DEBUG_TERM_ << EndLine;
+        // DEBUG_TERM_ << EndLine;
     }
 
     vaddr = nullvaddr;
@@ -209,7 +209,7 @@ void * TestThreadCode(void *)
         , "Failed to allocate data for VAS test thread: %H."
         , res);
 
-    DEBUG_TERM_ << "Been given 6 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
+    // DEBUG_TERM_ << "Been given 6 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
     // vaddr3 = vaddr;
 
     memset((void *)vaddr, 0x65, 6 * PageSize);
@@ -227,7 +227,7 @@ void * TestThreadCode(void *)
         && (vaddr + 6 * PageSize < vaddr2 || vaddr +     PageSize >= vaddr2))
             TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
 
-        DEBUG_TERM_ << EndLine;
+        // DEBUG_TERM_ << EndLine;
     }
 
     Barrier = false;
