@@ -39,45 +39,44 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <system/interrupt_controllers/lapic.hpp>
 
-namespace Beelzebub { namespace System
+namespace Beelzebub { namespace System { namespace Timers
 {
     /**
-     *  Represents the system Real Time Clock.
+     *  <summary>Contains methods for interacting with the APIC timer.</summary>
      */
-    class Rtc
+    class ApicTimer
     {
     public:
-        /*  Static  */
+        /*  Statics  */
 
-        static uint8_t Seconds;
-        static uint8_t Minutes;
-        static uint8_t Hours;
-        static uint8_t Day;
-        static uint8_t Month;
-        static uint32_t Year;
-
-    private:
-        static uint8_t CenturyRegister;
-
-        static uint8_t RawSeconds;
-        static uint8_t RawMinutes;
-        static uint8_t RawHours;
-        static uint8_t RawDay;
-        static uint8_t RawMonth;
-        static uint8_t RawYear;
-        static uint8_t RawCentury;
+        static uint64_t Frequency;
+        static size_t TicksPerMicrosecond;
 
     protected:
-        Rtc() = default;
+        /*  Constructor(s)  */
+
+        ApicTimer() = default;
 
     public:
-        Rtc(Rtc const &) = delete;
-        Rtc & operator =(Rtc const &) = delete;
+        ApicTimer(ApicTimer const &) = delete;
+        ApicTimer & operator =(ApicTimer const &) = delete;
 
-        /*  Reading  */
+        /*  Initialization  */
 
-        static void Read();
+        static __cold void Initialize();
+
+        /*  Operation  */
+
+        static inline void OneShot(uint32_t microseconds, uint8_t interrupt, bool mask = true)
+        {
+            return SetInternal(microseconds * TicksPerMicrosecond, interrupt, false, mask);
+        }
+
+        static void Stop();
+
+    private:
+        static void SetInternal(uint32_t count, uint8_t interrupt, bool periodic, bool mask = true);
     };
-}}
+}}}

@@ -49,11 +49,11 @@ using namespace Beelzebub::Utils;
 
 void Utils::Wait(uint64_t const microseconds)
 {
-    size_t difference = RoundUp(microseconds, 1000) / 1000;
+    size_t difference = RoundUp(microseconds, Pit::Period) / Pit::Period;
     //  Round up to the length of a timer tick in microseconds, then get the
     //  number of ticks.
 
-    size_t volatile counterStart = Pit::Counter;
+    size_t counterStart = Pit::Counter.Load();
 
     withInterrupts (true)
         do
@@ -69,11 +69,11 @@ bool Utils::Wait(uint64_t const microseconds, PredicateFunction0 const pred)
         return true;
     //  Eh, just checkin'?
 
-    size_t difference = RoundUp(microseconds, 1000) / 1000;
+    size_t difference = RoundUp(microseconds, Pit::Period) / Pit::Period;
     //  Round up to the length of a timer tick in microseconds, then get the
     //  number of ticks.
 
-    size_t volatile counterStart = Pit::Counter;
+    size_t counterStart = Pit::Counter.Load();
 
     withInterrupts (true)
         do

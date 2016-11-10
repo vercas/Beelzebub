@@ -77,7 +77,6 @@ namespace Beelzebub
 __extern __startup Handle ParseKernelArguments();
 
 __extern __startup Handle InitializeInterrupts();
-__extern __startup Handle InitializePit();
 
 // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
 __extern __startup Handle InitializePhysicalAllocator(jg_info_mmap_t * map

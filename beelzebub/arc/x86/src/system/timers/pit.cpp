@@ -38,17 +38,54 @@
 */
 
 #include <system/timers/pit.hpp>
+#include <system/interrupt_controllers/pic.hpp>
 #include <system/io_ports.hpp>
 #include <system/cpu.hpp>   //  Only used for task switching right now...
 #include <kernel.hpp>
+    
 #include <debug.hpp>
 #include <_print/isr.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
+using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
+
+/****************
+    Utilities
+****************/
+
+/**
+ *  <summary>Contains methods for interacting with the PIT.</summary>
+ */
+struct DividerFrequency
+{
+    uint16_t Divider;
+    uint32_t Frequency;
+};
+
+static inline DividerFrequency GetRealFrequency(uint32_t freq)
+{
+    uint32_t ret;
+
+    asm ( "xorl %%edx, %%edx \n\t"  //  Set D to 0
+          "movl %%ecx, %%eax \n\t"  //  Set A to base frequency
+          "divl %%ebx        \n\t"  //  Divide base frequency by freq
+          "movl %%eax, %%ebx \n\t"  //  Set B to result (divider)
+          "xorl %%edx, %%edx \n\t"  //  Set D to 0
+          "movl %%ecx, %%eax \n\t"  //  Set A to base frequency
+          "divl %%ebx        \n\t"  //  Divide base frequency by divider
+        : "=a"(ret), "+b"(freq)
+        : "c"(Pit::BaseFrequency)
+        : "edx");
+    //  My choice of registers here is due to the fact that I cannot
+    //  trust the compiler not to do funny allocations.
+
+    //  Yes, `freq` becomes the divider after the previous block.
+    return {(uint16_t)freq, ret};
+}
 
 /****************
     Pit class
@@ -57,6 +94,8 @@ using namespace Beelzebub::System::Timers;
 /*  Statics  */
 
 Atomic<size_t> Pit::Counter {0};
+uint32_t Pit::Period {0};
+uint32_t Pit::Frequency {0};
 
 /*  IRQ Handler  */
 
@@ -96,16 +135,27 @@ void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 
 /*  Initialization  */
 
-void Pit::SetFrequency(uint32_t & freq)
+void Pit::SetFrequency(uint32_t freq)
 {
     if (freq < MinimumFrequency)
         freq = MinimumFrequency;
 
     DividerFrequency divfreq = GetRealFrequency(freq);
-    freq = divfreq.Frequency;
+    Frequency = freq = divfreq.Frequency;
+
+    Period = 1000000 / freq;
+    //  Microseconds.
 
     Io::Out8(0x40, (uint8_t)(divfreq.Divider     ));  //  Low byte
     Io::Out8(0x40, (uint8_t)(divfreq.Divider >> 8));  //  High byte
+}
+
+void Pit::SetHandler(InterruptHandlerFullFunction han)
+{
+    if (han == nullptr)
+        Pic::Subscribe(IrqNumber, IrqHandler);
+    else
+        Pic::Subscribe(IrqNumber, han);
 }
 
 void Pit::SendCommand(PitCommand const cmd)

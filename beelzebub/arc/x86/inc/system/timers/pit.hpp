@@ -138,15 +138,6 @@ namespace Beelzebub { namespace System { namespace Timers
     /**
      *  <summary>Contains methods for interacting with the PIT.</summary>
      */
-    struct DividerFrequency
-    {
-        uint16_t Divider;
-        uint32_t Frequency;
-    };
-
-    /**
-     *  <summary>Contains methods for interacting with the PIT.</summary>
-     */
     class Pit
     {
     public:
@@ -157,7 +148,11 @@ namespace Beelzebub { namespace System { namespace Timers
 
         static Synchronization::Atomic<size_t> Counter;
 
+        static uint32_t Period, Frequency; //  In microseconds.
+
         /*  IRQ Handler  */
+
+        static uint8_t const IrqNumber = 0;
 
         static void IrqHandler(INTERRUPT_HANDLER_ARGS_FULL);
 
@@ -172,31 +167,9 @@ namespace Beelzebub { namespace System { namespace Timers
 
         /*  Initialization  */
 
-        static __cold void SetFrequency(uint32_t & freq);
+        static __cold void SetFrequency(uint32_t freq);
+        static __cold void SetHandler(InterruptHandlerFullFunction han = nullptr);
 
         static __cold void SendCommand(PitCommand const cmd);
-
-        /*  Utilities  */
-
-        static inline DividerFrequency GetRealFrequency(uint32_t freq)
-        {
-            uint32_t ret;
-
-            asm ( "xorl %%edx, %%edx \n\t"  //  Set D to 0
-                  "movl %%ecx, %%eax \n\t"  //  Set A to base frequency
-                  "divl %%ebx        \n\t"  //  Divide base frequency by freq
-                  "movl %%eax, %%ebx \n\t"  //  Set B to result (divider)
-                  "xorl %%edx, %%edx \n\t"  //  Set D to 0
-                  "movl %%ecx, %%eax \n\t"  //  Set A to base frequency
-                  "divl %%ebx        \n\t"  //  Divide base frequency by divider
-                : "=a"(ret), "+b"(freq)
-                : "c"(BaseFrequency)
-                : "edx");
-            //  My choice of registers here is due to the fact that I cannot
-            //  trust the compiler not to do funny allocations.
-
-            //  Yes, `freq` becomes the divider after the previous block.
-            return {(uint16_t)freq, ret};
-        }
     };
 }}}

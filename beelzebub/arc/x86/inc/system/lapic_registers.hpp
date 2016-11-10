@@ -46,15 +46,14 @@ namespace Beelzebub { namespace System
     /**
      *  <summary>Known LAPIC.</summary>
      */
-    enum class LapicRegister
-        : uint16_t
+    enum class LapicRegister : uint16_t
     {
         LapicId                      = 0x0002,
         SpuriousInterruptVector      = 0x000F,
         EndOfInterrupt               = 0x000B,
         InterruptCommandRegisterLow  = 0x0030,
         InterruptCommandRegisterHigh = 0x0031,
-        Timer                        = 0x0032,
+        TimerLvt                     = 0x0032,
         TimerInitialCount            = 0x0038,
         TimerCurrentCount            = 0x0039,
         TimerDivisor                 = 0x003E,
@@ -105,8 +104,7 @@ namespace Beelzebub { namespace System
     /**
      *  <summary>APIC interrupt delivery modes.</summary>
      */
-    enum class InterruptDeliveryModes
-        : uint8_t
+    enum class InterruptDeliveryModes : unsigned
     {
         Fixed     = 0,
         Reserved1 = 1,
@@ -123,8 +121,7 @@ namespace Beelzebub { namespace System
      *  Known values for the destination shorthand field of the ICR.
      *  </summary>
      */
-    enum class IcrDestinationShorthand
-        : uint8_t
+    enum class IcrDestinationShorthand : unsigned
     {
         None             = 0,
         Self             = 1,
@@ -200,5 +197,57 @@ namespace Beelzebub { namespace System
                 uint32_t High;
             };
         };
+    };
+
+    /**
+     * <summary>Represents possible APIC timer modes.</summary>
+     */
+    enum class ApicTimerMode : unsigned
+    {
+        OneShot     = 0x00,
+        Periodic    = 0x01,
+        TscDeadline = 0x02,
+    };
+
+    /**
+     *  <summary>
+     *  Represents the contents of the APIC timer LVT register.
+     *  </summary>
+     */
+    struct ApicTimerLvt
+    {
+        /*  Bit structure:
+         *       0 -   7 : Vector
+         *       8 -  11 : Reserved (must be 0)
+         *      12       : NO IDEA
+         *      13 -  15 : Reserved (must be 0)
+         *      16       : Mask
+         *      17 -  18 : Timer Mode
+         *      19 -  31 : Reserved (must be 0)
+         */
+
+        /*  Properties  */
+
+        BITFIELD_DEFAULT_1WEx( 8, NoIdea                   , 32)
+        BITFIELD_DEFAULT_1WEx(16, Mask                     , 32)
+
+        BITFIELD_DEFAULT_2WEx( 0,  8, uint8_t      , Vector, 32)
+        BITFIELD_DEFAULT_4WEx(17,  2, ApicTimerMode, Mode  , 32)
+
+        /*  Constructor  */
+
+        /**
+         *  Creates a new APIC Timer LVT structure from the given raw value.
+         */
+        inline explicit ApicTimerLvt(uint32_t const val)
+        {
+            this->Value = val;
+        }
+
+        /*  Field(s)  */
+
+    //private:
+
+        uint32_t Value;
     };
 }}

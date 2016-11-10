@@ -122,3 +122,9 @@ Interrupts::Data const & Interrupts::Data::SetEnder(InterruptEnderFunction const
     return *this;
 }
 
+/*  Properties  */
+
+bool Interrupts::Data::IsFull() const
+{
+    return this->GetStub()->GetJumpTarget() == &IsrFullStub;
+}

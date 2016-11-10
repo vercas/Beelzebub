@@ -37,12 +37,55 @@
     thorough explanation regarding other files.
 */
 
+/*
+    Interrupt vectors assignment in Beelzebub on x86:
+      0 -  31 : CPU exceptions
+     32 - 239 : I/O
+    240 - 255 : Internal Use
+        254       : APIC Timer
+        255       : IPI
+ */
+
 #pragma once
 
 #include <system/idt.hpp>
 
 namespace Beelzebub { namespace System
 {
+    /**
+     *  A few known exception vectors
+     */
+    enum class KnownExceptionVectors : uint8_t
+    {
+        //  Integer division by 0.
+        DivideError                 = 0,
+        //  No idea.
+        Debug                       = 1,
+        NmiInterrupt                = 2,
+        Breakpoint                  = 3,
+        Overflow                    = 4,
+        BoundRangeExceeded          = 5,
+        InvalidOpcode               = 6,
+        NoMathCoprocessor           = 7,
+        DoubleFault                 = 8,
+        CoprocessorSegmentOverrun   = 9,
+        InvalidTss                  = 10,
+        SegmentNotPresent           = 11,
+        StackSegmentFault           = 12,
+        GeneralProtectionFault      = 13,
+        PageFault                   = 14,
+        Reserved1                   = 15,
+        FloatingPointError          = 16,
+        AlignmentCheck              = 17,
+        MachineCheck                = 18,
+        SimdFloatingPointException  = 19,
+
+        ApicTimer                   = 0xFE,
+        Ipi                         = 0xFF,
+    };
+
+    ENUMOPS_LITE(KnownExceptionVectors)
+
     /************************
         Interrupt Vectors
     ************************/
@@ -117,6 +160,18 @@ namespace Beelzebub { namespace System
 
             /*  Properties  */
 
+            inline uint8_t GetVector() const
+            {
+                return this->Vector;
+            }
+
+            bool IsFull() const;
+
+            inline bool IsPartial() const
+            {
+                return !this->IsFull();
+            }
+
             /*  Gate & Stub  */
 
             inline IsrStub * GetStub() const
@@ -160,6 +215,11 @@ namespace Beelzebub { namespace System
         static Data Get(uint8_t const vec)
         {
             return { vec };
+        }
+
+        static Data Get(KnownExceptionVectors const vec)
+        {
+            return Get((uint8_t)vec);
         }
 
         /*  Status  */

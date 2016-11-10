@@ -59,6 +59,7 @@
 #include <system/interrupt_controllers/lapic.hpp>
 #include <system/interrupt_controllers/ioapic.hpp>
 #include <system/timers/pit.hpp>
+#include <system/timers/apic.timer.hpp>
 #include <system/syscalls.hpp>
 #include <modules.hpp>
 
@@ -171,6 +172,8 @@ Domain Beelzebub::Domain0;
 
 static bool MainShouldElideLocks = false;
 
+static __startup Handle InitializeTimers();
+
 //  These are minor initialization steps performed in the order they appear here
 //  in the source code.
 
@@ -229,13 +232,13 @@ static __startup void MainInitializeInterrupts()
     }
 }
 
-static __startup void MainInitializePit()
+static __startup void MainInitializeTimers()
 {
-    //  Preparing the PIT for basic timing.
+    //  Preparing the timers for basic timing.
     //  Common on x86.
 
-    MainTerminal->Write("[....] Initializing PIT...");
-    Handle res = InitializePit();
+    MainTerminal->Write("[....] Initializing timers...");
+    Handle res = InitializeTimers();
 
     if (res.IsOkayResult())
         MainTerminal->WriteLine(" Done.\r[OKAY]");
@@ -243,7 +246,7 @@ static __startup void MainInitializePit()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize the PIT: %H"
+        ASSERT(false, "Failed to initialize the timers: %H"
             , res);
     }
 }
@@ -631,7 +634,6 @@ void Beelzebub::Main()
 
         MainParseKernelArguments();
         MainInitializeInterrupts();
-        MainInitializePit();
         MainInitializePhysicalMemory();
         MainInitializeVirtualMemory();
 
@@ -641,6 +643,7 @@ void Beelzebub::Main()
 
         MainInitializeAcpiTables();
         MainInitializeApic();
+        MainInitializeTimers();
 
         MainBootstrapThread();
 
@@ -896,6 +899,9 @@ void Beelzebub::Secondary()
     Lapic::Initialize();
     //  Quickly get the local APIC initialized.
 
+    // ApicTimer::Initialize();
+    // //  And the APIC timer.
+
     Syscalls::Initialize();
     //  And syscalls.
 
@@ -1048,26 +1054,27 @@ Handle InitializeInterrupts()
     //  So now the IDT should be fresh out of the oven and ready for serving.
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-    Interrupts::Get((uint8_t)KnownExceptionVectors::DoubleFault).GetGate()->SetIst(1);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::PageFault  ).GetGate()->SetIst(2);
+    Interrupts::Get(KnownExceptionVectors::DoubleFault).GetGate()->SetIst(1);
+    Interrupts::Get(KnownExceptionVectors::PageFault  ).GetGate()->SetIst(2);
 #endif
 
-    Interrupts::Get((uint8_t)KnownExceptionVectors::DivideError).SetHandler(&DivideErrorHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::Breakpoint).SetHandler(&BreakpointHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::Overflow).SetHandler(&OverflowHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::BoundRangeExceeded).SetHandler(&BoundRangeExceededHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::InvalidOpcode).SetHandler(&InvalidOpcodeHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::NoMathCoprocessor).SetHandler(&NoMathCoprocessorHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::DoubleFault).SetHandler(&DoubleFaultHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::InvalidTss).SetHandler(&InvalidTssHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::SegmentNotPresent).SetHandler(&SegmentNotPresentHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::StackSegmentFault).SetHandler(&StackSegmentFaultHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::GeneralProtectionFault).SetHandler(&GeneralProtectionHandler);
-    Interrupts::Get((uint8_t)KnownExceptionVectors::PageFault).SetHandler(&PageFaultHandler);
+    Interrupts::Get(KnownExceptionVectors::DivideError).SetHandler(&DivideErrorHandler);
+    Interrupts::Get(KnownExceptionVectors::Breakpoint).SetHandler(&BreakpointHandler);
+    Interrupts::Get(KnownExceptionVectors::Overflow).SetHandler(&OverflowHandler);
+    Interrupts::Get(KnownExceptionVectors::BoundRangeExceeded).SetHandler(&BoundRangeExceededHandler);
+    Interrupts::Get(KnownExceptionVectors::InvalidOpcode).SetHandler(&InvalidOpcodeHandler);
+    Interrupts::Get(KnownExceptionVectors::NoMathCoprocessor).SetHandler(&NoMathCoprocessorHandler);
+    Interrupts::Get(KnownExceptionVectors::DoubleFault).SetHandler(&DoubleFaultHandler);
+    Interrupts::Get(KnownExceptionVectors::InvalidTss).SetHandler(&InvalidTssHandler);
+    Interrupts::Get(KnownExceptionVectors::SegmentNotPresent).SetHandler(&SegmentNotPresentHandler);
+    Interrupts::Get(KnownExceptionVectors::StackSegmentFault).SetHandler(&StackSegmentFaultHandler);
+    Interrupts::Get(KnownExceptionVectors::GeneralProtectionFault).SetHandler(&GeneralProtectionHandler);
+    Interrupts::Get(KnownExceptionVectors::PageFault).SetHandler(&PageFaultHandler);
 
-    Pic::Initialize(0xE0);  //  Just below the spurious interrupt vector.
+    Interrupts::Get(KnownExceptionVectors::ApicTimer).RemoveHandler();
 
-    Pic::Subscribe(0, &Pit::IrqHandler);
+    Pic::Initialize(0x20);  //  Just below the spurious interrupt vector.
+
     Pic::Subscribe(1, &keyboard_handler);
     Pic::Subscribe(3, &SerialPort::IrqHandler);
     Pic::Subscribe(4, &SerialPort::IrqHandler);
@@ -1081,20 +1088,25 @@ Handle InitializeInterrupts()
     PIT
 **********/
 
-Handle InitializePit()
+Handle InitializeTimers()
 {
     PitCommand pitCmd {};
     pitCmd.SetAccessMode(PitAccessMode::LowHigh);
     pitCmd.SetOperatingMode(PitOperatingMode::SquareWaveGenerator);
 
     Pit::SendCommand(pitCmd);
-    
-    uint32_t pitFreq = 1000;
-    Pit::SetFrequency(pitFreq);
+
+    ApicTimer::Initialize();
+
+    MainTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
+
+    Pit::SetHandler();
+
+    Pit::SetFrequency(1000);
     //  This frequency really shouldn't stress the BSP that much, considering
     //  that the IRQ would get 2-3 million clock cycles on modern chips.
 
-    MainTerminal->WriteFormat(" @ %u4 Hz...", pitFreq);
+    MainTerminal->WriteFormat(" PIT @ %u4 Hz...", Pit::Frequency);
 
     return HandleResult::Okay;
 }
