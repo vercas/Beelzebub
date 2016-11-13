@@ -158,6 +158,14 @@ void Pit::SetHandler(InterruptHandlerFullFunction han)
         Pic::Subscribe(IrqNumber, han);
 }
 
+void Pit::SetHandler(InterruptHandlerPartialFunction han)
+{
+    if (han == nullptr)
+        Pic::Subscribe(IrqNumber, IrqHandler);
+    else
+        Pic::Subscribe(IrqNumber, han);
+}
+
 void Pit::SendCommand(PitCommand const cmd)
 {
     Io::Out8(0x43, cmd.Value);

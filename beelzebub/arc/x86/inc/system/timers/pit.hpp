@@ -169,6 +169,7 @@ namespace Beelzebub { namespace System { namespace Timers
 
         static __cold void SetFrequency(uint32_t freq);
         static __cold void SetHandler(InterruptHandlerFullFunction han = nullptr);
+        static __cold void SetHandler(InterruptHandlerPartialFunction han);
 
         static __cold void SendCommand(PitCommand const cmd);
     };
