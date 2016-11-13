@@ -62,6 +62,7 @@
 #include <system/timers/apic.timer.hpp>
 #include <system/syscalls.hpp>
 #include <modules.hpp>
+#include <timer.hpp>
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
@@ -899,11 +900,10 @@ void Beelzebub::Secondary()
     Lapic::Initialize();
     //  Quickly get the local APIC initialized.
 
-    // ApicTimer::Initialize();
-    // //  And the APIC timer.
-
     Syscalls::Initialize();
     //  And syscalls.
+
+    Timer::Initialize();
 
     InitializationLock.Spin();
     //  Wait for the system to initialize.
@@ -1107,6 +1107,8 @@ Handle InitializeTimers()
     //  that the IRQ would get 2-3 million clock cycles on modern chips.
 
     MainTerminal->WriteFormat(" PIT @ %u4 Hz...", Pit::Frequency);
+
+    Timer::Initialize();
 
     return HandleResult::Okay;
 }

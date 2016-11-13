@@ -47,6 +47,7 @@
 
 #include <execution/thread.hpp>
 #include <exceptions.hpp>
+#include <timer.hpp>
 
 #include <synchronization/atomic.hpp>
 
@@ -123,6 +124,9 @@ namespace Beelzebub { namespace System
         bool X2ApicMode;
 
         Execution::Thread * LastExtendedStateThread;
+
+        TimerEntry Timers[Timer::Count];
+        uint_fast16_t TimersCount;
     };
 
     /**
