@@ -101,7 +101,7 @@ Handle Runtime64::Initialize()
     }
     else
     {
-        vaddr_t vaddr;
+        vaddr_t vaddr = nullvaddr;
         size_t const size = bnd.Size;
         size_t const pageCnt = (size + PageSize - 1) / PageSize;
 

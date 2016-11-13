@@ -450,7 +450,7 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
 
     paddr_t const tabStartPage     = RoundDown(header      , PageSize);
     paddr_t const tabHeaderEndPage = RoundUp  (tabHeaderEnd, PageSize);
-    vaddr_t vaddr;
+    vaddr_t vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(&BootstrapProcess
         , (tabHeaderEndPage - tabStartPage) / PageSize
@@ -484,6 +484,8 @@ Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
     if (tabEndPage > tabHeaderEndPage)
     {
         //  Blast! This needs remappin'.
+
+        vaddr = nullvaddr;
 
         res = Vmm::AllocatePages(&BootstrapProcess
             , (tabEndPage - tabStartPage) / PageSize

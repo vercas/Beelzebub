@@ -995,6 +995,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
         Spinlock<> * heapLock;
 
         vaddr_t ret;
+        size_t const size = count * PageSize;
 
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
         {
@@ -1012,7 +1013,16 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
                 return HandleResult::UnsupportedOperation;
             //  Not supported yet.
 
-            ret = KernelHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
+            if (vaddr == nullvaddr)
+                ret = KernelHeapCursor.FetchAdd(size + lowerOffset + higherOffset);
+            else
+            {
+                ret = vaddr;
+                vaddr_t newCursor = vaddr + size + lowerOffset + higherOffset;
+
+                if likely(!KernelHeapCursor.CmpXchgStrong(ret, newCursor))
+                    return HandleResult::Failed;
+            }
 
             if unlikely(ret > VmmArc::KernelHeapEnd)
             {
@@ -1030,7 +1040,6 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
         InterruptGuard<> intGuard;
         //  Guard the rest of the scope from interrupts.
 
-        size_t const size = count * PageSize;
         bool allocSucceeded = true;
 
         LockGuard<Spinlock<> > heapLg {*heapLock};

@@ -147,6 +147,7 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
         , newPageCount, oldPageCount);
 
     vaddr_t vaddr = oldPageCount * PageSize + (vaddr_t)pool;
+    vaddr_t const oldEnd = vaddr;
 
     Handle res = Vmm::AllocatePages(nullptr
         , newPageCount - oldPageCount
@@ -157,6 +158,8 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
 
     if likely(!res.IsOkayResult())
         return res;
+
+    assert(vaddr == oldEnd);
 
     obj_ind_t const oldObjectCount = pool->Capacity;
     obj_ind_t const newObjectCount = ((newPageCount * PageSize) - headerSize) / objectSize;

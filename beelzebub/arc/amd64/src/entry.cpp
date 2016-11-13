@@ -837,7 +837,7 @@ __startup char * AllocateTestPage(Process * const p)
     //  Intermediate results.
 
     vaddr_t const vaddr1 = 0x321000;
-    vaddr_t vaddr2;
+    vaddr_t vaddr2 = nullvaddr;
     paddr_t const paddr = Pmm::AllocateFrame();
     //  Test page.
 
