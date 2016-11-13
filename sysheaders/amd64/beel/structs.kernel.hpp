@@ -141,7 +141,7 @@ namespace Beelzebub
 
         MONIKER(Thread) * ActiveThread;
         MONIKER(Process) * ActiveProcess;
-    };
+    } __aligned(128);
 }
 
 #undef MONIKER
