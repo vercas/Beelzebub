@@ -46,6 +46,9 @@ typedef uint64_t  creg_t; //  Control register.
 
 typedef  int64_t ssize_t;
 
+typedef  __int128_t  int128_t;
+typedef __uint128_t uint128_t;
+
 #define _GAS_DATA_POINTER " .quad "
 
 #define EXTEND_POINTER(ptr) do { \
