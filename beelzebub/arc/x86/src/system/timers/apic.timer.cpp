@@ -90,7 +90,7 @@ static __cold void PitTickIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
     END_OF_INTERRUPT();
 }
 
-static __cold void CalibratorIrqHandler(INTERRUPT_HANDLER_ARGS)
+static __cold void CalibratorIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     //  If calibration already succeeded, no reason to force failure upon it.
     CalibrationStatus st = Ongoing;
@@ -148,13 +148,16 @@ void ApicTimer::Initialize()
 
     //  Then, the PIT.
 
+    Pit::SetHandler(&PitTickIrqHandler);
+    //  Use the PIT for calibration.
+
     Pit::SetFrequency(PitFrequency);
     //  This should equate to a divisor of 82, and a period of ~68.724 microseconds.
 
     //  Then, calibrate.
 
-    unsigned int divisor;
     bool sufficient = false;
+    unsigned int divisor;
     size_t freq, absFreq;
 
     for (divisor = 1; !sufficient && divisor <= 128; divisor <<= 1)
@@ -166,16 +169,13 @@ void ApicTimer::Initialize()
         Stage = 0;
         Status = Ongoing;
 
-        //  Use the PIT for calibration.
-        Pit::SetHandler(&PitTickIrqHandler);
-
-        //  Now, wait for the counter to change.
         withInterrupts (true)
             while (Status == Ongoing) { }
+        //  Now, wait for the counter to change.
 
-        //  Upon failure, the divisor needs to be increased.
         if (Status == Failed)
             continue;
+        //  Upon failure, the divisor needs to be increased.
 
         if (AverageCounter < Pit::Period)
             break;
@@ -190,16 +190,28 @@ void ApicTimer::Initialize()
         //  register, this divisor is sufficient.
     }
 
+    Pit::SetHandler();
+
     Stop();
     //  No more timing.
 
     ASSERT(sufficient);
 
     Frequency = absFreq;
-    TicksPerMicrosecond = (absFreq + 400000) / 1000000;
+    TicksPerMicrosecond = (freq + (400000 / divisor)) / 1000000;
 }
 
 /*  Operation  */
+
+void ApicTimer::SetCount(uint32_t count)
+{
+    Lapic::WriteRegister(LapicRegister::TimerInitialCount, count);
+}
+
+uint32_t ApicTimer::GetCount()
+{
+    return Lapic::ReadRegister(LapicRegister::TimerCurrentCount);
+}
 
 void ApicTimer::Stop()
 {

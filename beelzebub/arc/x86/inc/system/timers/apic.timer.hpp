@@ -73,6 +73,9 @@ namespace Beelzebub { namespace System { namespace Timers
         {
             return SetInternal(microseconds * TicksPerMicrosecond, interrupt, false, mask);
         }
+        
+        static void SetCount(uint32_t count);
+        static uint32_t GetCount();
 
         static void Stop();
 
