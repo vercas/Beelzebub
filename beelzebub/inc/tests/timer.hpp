@@ -41,46 +41,4 @@
 
 #include <metaprogramming.h>
 
-namespace Beelzebub { namespace System { namespace Timers
-{
-    /**
-     *  <summary>Contains methods for interacting with the APIC timer.</summary>
-     */
-    class ApicTimer
-    {
-    public:
-        /*  Statics  */
-
-        static uint64_t Frequency;
-        static size_t TicksPerMicrosecond;
-        static uint32_t Divisor;
-
-    protected:
-        /*  Constructor(s)  */
-
-        ApicTimer() = default;
-
-    public:
-        ApicTimer(ApicTimer const &) = delete;
-        ApicTimer & operator =(ApicTimer const &) = delete;
-
-        /*  Initialization  */
-
-        static __cold void Initialize(bool bsp);
-
-        /*  Operation  */
-
-        static inline void OneShot(uint32_t ticks, uint8_t interrupt, bool mask = true)
-        {
-            return SetInternal(ticks, interrupt, false, mask);
-        }
-        
-        static void SetCount(uint32_t count);
-        static uint32_t GetCount();
-
-        static void Stop();
-
-    private:
-        static void SetInternal(uint32_t count, uint8_t interrupt, bool periodic, bool mask = true);
-    };
-}}}
+__startup void TestTimer();

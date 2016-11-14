@@ -37,50 +37,60 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#ifdef __BEELZEBUB__TEST_TIMER
 
-#include <metaprogramming.h>
+#include <tests/timer.hpp>
+#include <timer.hpp>
+#include <synchronization/atomic.hpp>
+#include <system/timers/apic.timer.hpp>
+#include <system/rtc.hpp>
 
-namespace Beelzebub { namespace System { namespace Timers
+#include <debug.hpp>
+
+using namespace Beelzebub;
+using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
+
+static Synchronization::Atomic<int> Counter {6};
+
+static __startup void Test1(System::IsrState * const state, void * cookie)
 {
-    /**
-     *  <summary>Contains methods for interacting with the APIC timer.</summary>
-     */
-    class ApicTimer
+    Rtc::Read();
+    DEBUG_TERM_ << "Timer hit: " << (size_t)cookie << ": "
+                << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
+                << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds
+                << EndLine;
+
+    --Counter;
+}
+
+void TestTimer()
+{
+    System::InterruptGuard<true> intGuard;
+
+    Rtc::Read();
+    auto seconds = Rtc::Seconds;
+
+    do
     {
-    public:
-        /*  Statics  */
+        Rtc::Read();
+    } while (Rtc::Seconds != seconds);
 
-        static uint64_t Frequency;
-        static size_t TicksPerMicrosecond;
-        static uint32_t Divisor;
+    DEBUG_TERM_ << "Starting 6 timers at "
+                << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
+                << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds
+                << EndLine;
 
-    protected:
-        /*  Constructor(s)  */
+    ASSERT(Timer::Enqueue(3secs_l        , &Test1, reinterpret_cast<void *>(3)));
+    ASSERT(Timer::Enqueue(5secs_l        , &Test1, reinterpret_cast<void *>(5)));
+    ASSERT(Timer::Enqueue(2secs_l        , &Test1, reinterpret_cast<void *>(2)));
+    ASSERT(Timer::Enqueue(TimeSpanLite(1), &Test1, reinterpret_cast<void *>(0)));
+    ASSERT(Timer::Enqueue(4secs_l        , &Test1, reinterpret_cast<void *>(4)));
+    ASSERT(Timer::Enqueue(1secs_l        , &Test1, reinterpret_cast<void *>(1)));
 
-        ApicTimer() = default;
+    ASSERT(System::Interrupts::AreEnabled());
 
-    public:
-        ApicTimer(ApicTimer const &) = delete;
-        ApicTimer & operator =(ApicTimer const &) = delete;
+    while (Counter > 0) { }
+}
 
-        /*  Initialization  */
-
-        static __cold void Initialize(bool bsp);
-
-        /*  Operation  */
-
-        static inline void OneShot(uint32_t ticks, uint8_t interrupt, bool mask = true)
-        {
-            return SetInternal(ticks, interrupt, false, mask);
-        }
-        
-        static void SetCount(uint32_t count);
-        static uint32_t GetCount();
-
-        static void Stop();
-
-    private:
-        static void SetInternal(uint32_t count, uint8_t interrupt, bool periodic, bool mask = true);
-    };
-}}}
+#endif

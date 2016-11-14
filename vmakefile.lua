@@ -143,6 +143,7 @@ local availableTests = List {
     "EXCP",
     "APP",
     "KMOD",
+    "TIMER",
     "STACKINT",
     "AVL_TREE",
     "TERMINAL",

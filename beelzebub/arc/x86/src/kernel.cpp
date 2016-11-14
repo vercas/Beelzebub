@@ -139,6 +139,10 @@
 #include <tests/kmod.hpp>
 #endif
 
+#ifdef __BEELZEBUB__TEST_TIMER
+#include <tests/timer.hpp>
+#endif
+
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
@@ -794,6 +798,17 @@ void Beelzebub::Main()
         }
 #endif
 
+#ifdef __BEELZEBUB__TEST_TIMER
+        if (CHECK_TEST(TIMER))
+        {
+            MainTerminal->Write(">Testing generic timer...");
+
+            TestTimer();
+
+            MainTerminal->WriteLine(" Done.");
+        }
+#endif
+
 #ifdef __BEELZEBUB__TEST_MT
         if (CHECK_TEST(MT))
         {
@@ -903,7 +918,9 @@ void Beelzebub::Secondary()
     Syscalls::Initialize();
     //  And syscalls.
 
+    ApicTimer::Initialize(false);
     Timer::Initialize();
+    //  And timers.
 
     InitializationLock.Spin();
     //  Wait for the system to initialize.
@@ -1096,7 +1113,7 @@ Handle InitializeTimers()
 
     Pit::SendCommand(pitCmd);
 
-    ApicTimer::Initialize();
+    ApicTimer::Initialize(true);
 
     MainTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
 

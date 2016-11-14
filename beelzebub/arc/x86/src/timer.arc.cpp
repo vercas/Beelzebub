@@ -39,13 +39,11 @@
 
 #include <timer.hpp>
 #include <system/timers/apic.timer.hpp>
+#include <system/interrupt_controllers/lapic.hpp>
 #include <system/cpu.hpp>
-#include <synchronization/atomic.hpp>
 #include <synchronization/spinlock.hpp>
 #include <kernel.hpp>
 #include <string.h>
-
-#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
@@ -59,32 +57,27 @@ using namespace Beelzebub::System::Timers;
 
 static __cold void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
-    if likely(CpuDataSetUp)
+    CpuData * const data = Cpu::GetData();
+
+    auto timersCount = data->TimersCount;
+
+    if (timersCount > 0)
     {
-        CpuData * const data = Cpu::GetData();
+        TimerEntry const entry = data->Timers[0];
 
-        DEBUG_TERM << "TIMER on core " << data->Index << Terminals::EndLine;
-
-        auto timersCount = data->TimersCount;
+        data->TimersCount = --timersCount;
+        //  First timer is popped.
 
         if (timersCount > 0)
         {
-            TimerEntry const entry = data->Timers[0];
+            memmove(&(data->Timers[0]), &(data->Timers[1]), timersCount * sizeof(TimerEntry));
+            //  Shifts the remaining items.
 
-            data->TimersCount = --timersCount;
-            //  First timer is popped.
-
-            if (timersCount > 0)
-            {
-                memmove(&(data->Timers[0]), &(data->Timers[1]), timersCount * sizeof(TimerEntry));
-                //  Shifts the remaining items.
-
-                ApicTimer::SetCount(data->Timers[0].Time);
-            }
-
-            if (entry.Function != nullptr)
-                entry.Function(state, entry.Cookie);
+            ApicTimer::SetCount(data->Timers[0].Time);
         }
+
+        if (entry.Function != nullptr)
+            entry.Function(state, entry.Cookie);
     }
 
     END_OF_INTERRUPT();
@@ -108,7 +101,7 @@ void Timer::Initialize()
 
     data->TimersCount = 0;
     
-    ApicTimer::OneShot(0, vec.GetVector());
+    ApicTimer::OneShot(0, vec.GetVector(), false);
 
     //  A lock is used here because this code must only be executed once, and
     //  other cores should wait for it to finish.
@@ -119,6 +112,7 @@ void Timer::Initialize()
             return;
 
         vec.SetHandler(&TimerIrqHandler);
+        vec.SetEnder(&Lapic::IrqEnder);
 
         Initialized = true;
     }
@@ -128,40 +122,46 @@ void Timer::Initialize()
 
 bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
 {
-    InterruptGuard<> intGuard;
-
-    CpuData * const data = Cpu::GetData();
-    uint_fast16_t timersCount = data->TimersCount;
-
-    if unlikely(data->TimersCount == Timer::Count)
-        return false;
-
     uint64_t ticks = delay.Value * ApicTimer::TicksPerMicrosecond;
 
     if unlikely(ticks > 0xFFFFFFFFULL)
         return false;
 
-    uint32_t lastTicks = 0;
-    unsigned int i;
+    InterruptGuard<> intGuard;
 
-    for (i = 0; i < timersCount && data->Timers[i].Time <= ticks; ++i)
-        lastTicks = data->Timers[i].Time;
+    CpuData * const data = Cpu::GetData();
+    uint_fast16_t timersCount = data->TimersCount;
+
+    if unlikely(timersCount == Timer::Count)
+        return false;
+
+    if (timersCount > 0)
+        ticks += data->Timers[0].Time - ApicTimer::GetCount();
+    //  Add the already-elapsed time to the target time.
+
+    uint64_t lastTicks = 0;
+    unsigned int i = 0;
+
+    for (uint64_t acc = 0; i < timersCount && (acc += data->Timers[i].Time) <= ticks; ++i)
+        lastTicks = acc;
 
     uint32_t diff = (uint32_t)(ticks - lastTicks);
 
     if (i < timersCount)
+    {
         memmove(&(data->Timers[i + 1]), &(data->Timers[i]), (timersCount - i) * sizeof(TimerEntry));
-    //  Shift forward the elements after the insertion point.
+        //  Shift forward the elements after the insertion point.
 
-    data->Timers[i].Time = diff;
-    data->Timers[i].Function = func;
-    data->Timers[i].Cookie = cookie;
+        data->Timers[i + 1].Time -= diff;
+        //  Adjust timer after insertion point.
+    }
 
     if (i == 0)
         ApicTimer::SetCount(diff);
 
-    for (++i; i <= timersCount; ++i)
-        data->Timers[i].Time -= diff;
+    data->Timers[i].Time = diff;
+    data->Timers[i].Function = func;
+    data->Timers[i].Cookie = cookie;
 
     ++data->TimersCount;
 

@@ -39,6 +39,7 @@
 
 #include <system/timers/apic.timer.hpp>
 #include <system/timers/pit.hpp>
+#include <system/interrupt_controllers/lapic.hpp>
 #include <system/cpu.hpp>
 #include <synchronization/atomic.hpp>
 
@@ -128,11 +129,19 @@ static uint32_t TranslateDivisor(unsigned int val)
 
 uint64_t ApicTimer::Frequency;
 size_t ApicTimer::TicksPerMicrosecond;
+uint32_t ApicTimer::Divisor;
 
 /*  Initialization  */
 
-void ApicTimer::Initialize()
+void ApicTimer::Initialize(bool bsp)
 {
+    if likely(!bsp)
+    {
+        Lapic::WriteRegister(LapicRegister::TimerDivisor, TranslateDivisor(Divisor));
+        
+        return;
+    }
+
     //  First, set up the vector.
 
     auto vec = Interrupts::Get(KnownExceptionVectors::ApicTimer);
@@ -145,6 +154,8 @@ void ApicTimer::Initialize()
         ASSERT(handler == &CalibratorIrqHandler
             , "Wrong APIC timer calibration interrupt handler: %Xp"
             , handler);
+
+    vec.SetEnder(&Lapic::IrqEnder);
 
     //  Then, the PIT.
 
@@ -199,6 +210,7 @@ void ApicTimer::Initialize()
 
     Frequency = absFreq;
     TicksPerMicrosecond = (freq + (400000 / divisor)) / 1000000;
+    Divisor = divisor;
 }
 
 /*  Operation  */

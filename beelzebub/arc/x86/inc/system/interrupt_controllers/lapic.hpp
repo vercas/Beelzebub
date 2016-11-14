@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <system/interrupts.hpp>
 #include <system/lapic_registers.hpp>
 #include <beel/handles.h>
 
@@ -65,6 +66,10 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         static paddr_t PhysicalAddress;
         static vaddr_t const volatile VirtualAddress;
         //  Very last page - why not?
+
+        /*  Ender  */
+
+        static __hot void IrqEnder(INTERRUPT_ENDER_ARGS);
 
         /*  Constructor(s)  */
 

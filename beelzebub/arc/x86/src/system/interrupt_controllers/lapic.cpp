@@ -72,6 +72,13 @@ vaddr_t const volatile Lapic::VirtualAddress = 0xFFFFFFFFFFFFF000;
 paddr_t Lapic::PhysicalAddress = nullpaddr;
 //vaddr_t Lapic::VirtualAddress = nullvaddr;
 
+/*  Ender  */
+
+void Lapic::IrqEnder(INTERRUPT_ENDER_ARGS)
+{
+    EndOfInterrupt();
+}
+
 /*  Initialization  */
 
 Handle Lapic::Initialize()
