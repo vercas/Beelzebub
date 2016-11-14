@@ -74,7 +74,7 @@ void TestKmod()
         , "Error in loading test.kmod: %H."
         , res);
 
-    MSG_("Loaded test kernel module with result %H.", res);
+    MSG_("Loaded test kernel module with result %H.%n", res);
 }
 
 #endif
