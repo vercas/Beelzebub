@@ -143,8 +143,8 @@ void * memmove(void * dst, void const * src, size_t len)
     {
         //  Loop backward.
 
-        dst += len;
-        src += len;
+        dst += len - 1;
+        src += len - 1;
 
         asm volatile ( "std       \n\t"
                        "rep movsb \n\t"
@@ -205,10 +205,10 @@ void * mempmove(void * dst, void const * src, size_t len)
     {
         //  Loop backward.
 
-        dst += len;
-        src += len;
+        dst += len - 1;
+        src += len - 1;
 
-        void * ret = dst;
+        void * const ret = dst + 1;
 
         asm volatile ( "std       \n\t"
                        "rep movsb \n\t"
