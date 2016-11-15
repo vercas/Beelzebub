@@ -125,8 +125,8 @@ namespace Beelzebub { namespace System
 
         Execution::Thread * LastExtendedStateThread;
 
-        TimerEntry Timers[Timer::Count];
         uint_fast16_t TimersCount;
+        TimerEntry Timers[Timer::Count];
     };
 
     /**

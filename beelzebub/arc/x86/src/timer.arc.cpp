@@ -61,7 +61,7 @@ static __cold void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 
     auto timersCount = data->TimersCount;
 
-    if (timersCount > 0)
+    if likely(timersCount > 0)
     {
         TimerEntry const entry = data->Timers[0];
 
@@ -73,14 +73,25 @@ static __cold void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
             memmove(&(data->Timers[0]), &(data->Timers[1]), timersCount * sizeof(TimerEntry));
             //  Shifts the remaining items.
 
-            ApicTimer::SetCount(data->Timers[0].Time);
+            uint32_t next = data->Timers[0].Time;
+
+            if unlikely(next == 0)
+                next = 1;
+            
+            ApicTimer::SetCount(next);
+
+            //  It is VITAL that the timer is used again to guarantee that the
+            //  function runs on the same core again, because the function could
+            //  enable interrupts and get pre-empted or something, and end up
+            //  finishing the interrupt on another core.
         }
 
-        if (entry.Function != nullptr)
-            entry.Function(state, entry.Cookie);
-    }
+        END_OF_INTERRUPT();
 
-    END_OF_INTERRUPT();
+        return entry.Function(state, entry.Cookie);
+    }
+    else
+        END_OF_INTERRUPT();
 }
 
 static Spinlock<> InitLock {};
@@ -126,6 +137,8 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
 
     if unlikely(ticks > 0xFFFFFFFFULL)
         return false;
+    else if unlikely(ticks == 0)
+        ticks = 1;
 
     InterruptGuard<> intGuard;
 
@@ -135,35 +148,52 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
     if unlikely(timersCount == Timer::Count)
         return false;
 
-    if (timersCount > 0)
-        ticks += data->Timers[0].Time - ApicTimer::GetCount();
-    //  Add the already-elapsed time to the target time.
-
-    uint64_t lastTicks = 0;
-    unsigned int i = 0;
-
-    for (uint64_t acc = 0; i < timersCount && (acc += data->Timers[i].Time) <= ticks; ++i)
-        lastTicks = acc;
-
-    uint32_t diff = (uint32_t)(ticks - lastTicks);
-
-    if (i < timersCount)
+    if likely(timersCount > 0)
     {
-        memmove(&(data->Timers[i + 1]), &(data->Timers[i]), (timersCount - i) * sizeof(TimerEntry));
-        //  Shift forward the elements after the insertion point.
+        //  If there are some timers already queued, the full algorithm needs to
+        //  be employed.
 
-        data->Timers[i + 1].Time -= diff;
-        //  Adjust timer after insertion point.
+        ticks += data->Timers[0].Time - ApicTimer::GetCount();
+        //  Add the already-elapsed time to the target time.
+
+        uint64_t lastTicks = 0;
+        unsigned int i = 0;
+
+        for (uint64_t acc = 0; i < timersCount && (acc += data->Timers[i].Time) <= ticks; ++i)
+            lastTicks = acc;
+
+        uint32_t diff = (uint32_t)(ticks - lastTicks);
+
+        if (i < timersCount)
+        {
+            memmove(&(data->Timers[i + 1]), &(data->Timers[i]), (timersCount - i) * sizeof(TimerEntry));
+            //  Shift forward the elements after the insertion point.
+
+            data->Timers[i + 1].Time -= diff;
+            //  Adjust timer after insertion point.
+        }
+
+        if (i == 0)
+            ApicTimer::SetCount(diff);
+
+        data->Timers[i].Time = diff;
+        data->Timers[i].Function = func;
+        data->Timers[i].Cookie = cookie;
+
+        ++data->TimersCount;
     }
+    else
+    {
+        //  No timers means a simple insertion at the first position.
+        
+        ApicTimer::SetCount((uint32_t)ticks);
 
-    if (i == 0)
-        ApicTimer::SetCount(diff);
+        data->Timers[0].Time = (uint32_t)ticks;
+        data->Timers[0].Function = func;
+        data->Timers[0].Cookie = cookie;
 
-    data->Timers[i].Time = diff;
-    data->Timers[i].Function = func;
-    data->Timers[i].Cookie = cookie;
-
-    ++data->TimersCount;
+        data->TimersCount = 1;
+    }
 
     return true;
 }

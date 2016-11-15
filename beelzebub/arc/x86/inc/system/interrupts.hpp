@@ -90,21 +90,21 @@ namespace Beelzebub { namespace System
         Interrupt Vectors
     ************************/
 
-    #define INTERRUPT_ENDER_ARGS                                \
-          void const * const handler                            \
+    #define INTERRUPT_ENDER_ARGS                           \
+          void const * const handler                       \
         , uint8_t const vector
 
     typedef void (*InterruptEnderFunction)(INTERRUPT_ENDER_ARGS);
 
-    #define INTERRUPT_HANDLER_ARGS                              \
-          Beelzebub::System::IsrStatePartial * const state      \
-        , Beelzebub::System::InterruptEnderFunction const ender \
-        , void const * const handler                            \
+    #define INTERRUPT_HANDLER_ARGS                         \
+          Beelzebub::System::IsrStatePartial * const state \
+        , Beelzebub::System::InterruptEnderFunction ender  \
+        , void const * const handler                       \
         , uint8_t const vector
-    #define INTERRUPT_HANDLER_ARGS_FULL                         \
-          Beelzebub::System::IsrState * const state             \
-        , Beelzebub::System::InterruptEnderFunction const ender \
-        , void const * const handler                            \
+    #define INTERRUPT_HANDLER_ARGS_FULL                    \
+          Beelzebub::System::IsrState * const state        \
+        , Beelzebub::System::InterruptEnderFunction ender  \
+        , void const * const handler                       \
         , uint8_t const vector
 
     typedef void (*InterruptHandlerPartialFunction)(INTERRUPT_HANDLER_ARGS);
@@ -113,8 +113,11 @@ namespace Beelzebub { namespace System
     #define END_OF_INTERRUPT()                 \
         do                                     \
         {                                      \
-            if (ender != nullptr)              \
+            if unlikely(ender != nullptr)      \
+            {                                  \
                 ender(handler, vector);        \
+                ender = nullptr;               \
+            }                                  \
         } while (false)
 
     typedef void * int_cookie_t;
