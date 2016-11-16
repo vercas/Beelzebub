@@ -83,7 +83,11 @@ void Lapic::IrqEnder(INTERRUPT_ENDER_ARGS)
 
 Handle Lapic::Initialize()
 {
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)
     bool const x2ApicSupported = supportsX2APIC();
+#endif
+
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
     Cpu::GetData()->X2ApicMode = x2ApicSupported;
     //  This is just a CPU-specific boolean value. Doesn't actually enable
     //  x2APIC mode, or disable it for that matter.
@@ -99,6 +103,15 @@ Handle Lapic::Initialize()
         Msrs::SetApicBase(apicBase);
         //  Now the LAPIC/x2APIC should be usable.
     }
+#elif defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)
+    ASSERT(x2ApicSupported);
+
+    auto apicBase = Msrs::GetApicBase();
+
+    apicBase.SetX2ApicEnabled(true);
+
+    Msrs::SetApicBase(apicBase);
+#endif
 
     auto svr = GetSvr();
 
@@ -113,50 +126,63 @@ Handle Lapic::Initialize()
 
 uint32_t Lapic::ReadRegister(LapicRegister const reg)
 {
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
     if (Cpu::GetData()->X2ApicMode)
     {
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)
         uint32_t a, d;
-        Msr msr = (Msr)((uint32_t)Msr::IA32_X2APIC_BASE + (uint32_t)(uint16_t)reg);
+        Msr const msr = (Msr)((uint32_t)Msr::IA32_X2APIC_BASE + (uint32_t)(uint16_t)reg);
 
         Msrs::Read(msr, a, d);
 
         COMPILER_MEMORY_BARRIER();
 
         return a;
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
     }
-    else
-    {
-        COMPILER_MEMORY_BARRIER();
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_LEGACY)
+    COMPILER_MEMORY_BARRIER();
 
-        return *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress));
-    }
+    return *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress));
+#endif
 }
 
 void Lapic::WriteRegister(LapicRegister const reg, uint32_t const value)
 {
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
     if (Cpu::GetData()->X2ApicMode)
     {
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)
         uint32_t d = 0;
         Msr msr = (Msr)((uint32_t)Msr::IA32_X2APIC_BASE + (uint32_t)(uint16_t)reg);
 
-        Msrs::Write(msr, value, d);
+        return Msrs::Write(msr, value, d);
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
     }
-    else
-    {
-        COMPILER_MEMORY_BARRIER();
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_LEGACY)
+    COMPILER_MEMORY_BARRIER();
 
-        *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress)) = value;
+    *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress)) = value;
 
-        COMPILER_MEMORY_BARRIER();
-    }
+    COMPILER_MEMORY_BARRIER();
+#endif
 }
 
 /*  Shortcuts  */
 
 void Lapic::SendIpi(LapicIcr icr)
 {
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
     if (Cpu::GetData()->X2ApicMode)
     {
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)
         //  x2APIC mode does not require any checking prior to sending.
 
         Msr msr = (Msr)((uint32_t)Msr::IA32_X2APIC_BASE
@@ -164,35 +190,38 @@ void Lapic::SendIpi(LapicIcr icr)
 
         //breakpoint();
 
-        Msrs::Write(msr, icr.Low, icr.High);
+        return Msrs::Write(msr, icr.Low, icr.High);
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
     }
-    else
+#endif
+#if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_LEGACY)
+
+    //  The destination field is funky in LAPIC/xAPIC mode. It's the upper
+    //  byte...
+
+    icr.SetDestination(icr.GetDestination() << 24);
+
+    //  In xAPIC/LAPIC mode, the delivery status needs to be checked.
+
+    uint32_t volatile low = 0xFFFFFFFFU;
+
+    do
     {
-        //  The destination field is funky in LAPIC/xAPIC mode. It's the upper
-        //  byte...
-
-        icr.SetDestination(icr.GetDestination() << 24);
-
-        //  In xAPIC/LAPIC mode, the delivery status needs to be checked.
-
-        uint32_t volatile low = 0xFFFFFFFFU;
-
-        do
-        {
-            COMPILER_MEMORY_BARRIER();
-
-            //breakpoint();
-            low = *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress));
-        } while (0 != (low & LapicIcr::DeliveryStatusBit));
-
         COMPILER_MEMORY_BARRIER();
 
-        *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterHigh << 4) + VirtualAddress)) = icr.High;
+        //breakpoint();
+        low = *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress));
+    } while (0 != (low & LapicIcr::DeliveryStatusBit));
 
-        COMPILER_MEMORY_BARRIER();
+    COMPILER_MEMORY_BARRIER();
 
-        *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress)) = icr.Low ;
+    *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterHigh << 4) + VirtualAddress)) = icr.High;
 
-        COMPILER_MEMORY_BARRIER();
-    }
+    COMPILER_MEMORY_BARRIER();
+
+    *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress)) = icr.Low;
+
+    COMPILER_MEMORY_BARRIER();
+#endif
 }

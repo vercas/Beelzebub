@@ -156,11 +156,17 @@ local availableTests = List {
     "INTERRUPT_LATENCY",
 }
 
+local availableApicModes = List {
+    "legacy", "x2apic", "flexible"
+}
+
 for i = 1, #availableTests do availableTests[availableTests[i]] = true end
+for i = 1, #availableApicModes do availableApicModes[availableApicModes[i]] = true end
 --  Makes lookup easier.
 
 local testOptions, specialOptions = List { }, List { }
 local settSmp, settInlineSpinlocks, settUnitTests = true, true, true
+local settApicMode = "FLEXIBLE"
 local settMakeDeps = true
 
 CmdOpt "tests" "t" {
@@ -228,6 +234,22 @@ CmdOpt "unit-tests" {
         else
             settUnitTests = bVal
         end
+    end,
+}
+
+CmdOpt "apic-mode" {
+    Description = "Specifies the APIC mode(s) supported by the kernel. Defaults to flexible.",
+
+    Type = "string",
+    Display = availableApicModes:Print("|"),
+
+    Handler = function(_, val)
+        if not availableApicModes[string.lower(val)] then
+            error("Invalid value given to \"apic-mode\" command-line option: \""
+                .. val .. "\".")
+        end
+
+        settApicMode = string.upper(val)
     end,
 }
 
@@ -505,6 +527,8 @@ Project "Beelzebub" {
             if settUnitTests == "quiet" then
                 res:Append("-D__BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET")
             end
+
+            res:Append("-D__BEELZEBUB_SETTINGS_APIC_MODE_" .. settApicMode)
 
             return res
         end,
