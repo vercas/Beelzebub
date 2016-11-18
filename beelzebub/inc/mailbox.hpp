@@ -95,7 +95,7 @@ namespace Beelzebub
         MailboxEntryLink Dests[0];
     };
 
-    static_assert(sizeof(MailboxEntryBase) == (2 * sizeof(void *) + 2 * sizeof(unsigned int)));
+    static_assert(sizeof(MailboxEntryBase) == (2 * sizeof(void *) + 2 * sizeof(unsigned int)), "Struct size mismatch.");
 
     template<unsigned int N>
     struct MailboxEntry : public MailboxEntryBase
