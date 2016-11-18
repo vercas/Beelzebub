@@ -81,7 +81,7 @@ namespace Beelzebub { namespace System
         SimdFloatingPointException  = 19,
 
         ApicTimer                   = 0xFE,
-        Ipi                         = 0xFF,
+        Mailbox                     = 0xFF,
     };
 
     ENUMOPS_LITE(KnownExceptionVectors)

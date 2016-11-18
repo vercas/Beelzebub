@@ -63,6 +63,7 @@
 #include <system/syscalls.hpp>
 #include <modules.hpp>
 #include <timer.hpp>
+#include <cores.hpp>
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
@@ -275,6 +276,25 @@ static __startup void MainInitializePhysicalMemory()
     }
 }
 
+static __startup void MainInitializeAcpiTables()
+{
+    //  Initialize the ACPI tables for easier use.
+    //  Mostly common on x86.
+
+    MainTerminal->Write("[....] Crawling ACPI tables...");
+    Handle res = InitializeAcpiTables();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize the ACPI tables: %H"
+            , res);
+    }
+}
+
 static __startup void MainInitializeVirtualMemory()
 {
     //  Initialize the virtual memory for use by the kernel.
@@ -307,6 +327,29 @@ static __startup void MainInitializeVirtualMemory()
     }
 }
 
+static __startup void MainInitializeCores()
+{
+    //  Initialize the manager of processing cores.
+    //  Conceptually common on x86, but implemented differently.
+
+    MainTerminal->Write("[....] Initializing processing cores manager...");
+    Handle res = Cores::Initialize(Acpi::PresentLapicCount);
+
+    if (res.IsOkayResult())
+    {
+        Cores::Register();
+        
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    }
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        ASSERT(false, "Failed to initialize processing cores manager: %H"
+            , res);
+    }
+}
+
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
 static __startup void MainRunUnitTests()
 {
@@ -323,25 +366,6 @@ static __startup void MainRunUnitTests()
     }
 }
 #endif
-
-static __startup void MainInitializeAcpiTables()
-{
-    //  Initialize the ACPI tables for easier use.
-    //  Mostly common on x86.
-
-    MainTerminal->Write("[....] Crawling ACPI tables...");
-    Handle res = InitializeAcpiTables();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        ASSERT(false, "Failed to initialize the ACPI tables: %H"
-            , res);
-    }
-}
 
 static __startup void MainInitializeApic()
 {
@@ -655,6 +679,7 @@ void Beelzebub::Main()
         MainInitializePhysicalMemory();
         MainInitializeAcpiTables();
         MainInitializeVirtualMemory();
+        MainInitializeCores();
 
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
         MainRunUnitTests();

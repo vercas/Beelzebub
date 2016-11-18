@@ -143,6 +143,8 @@ namespace Beelzebub
         Runtime              = 0x03,
         //  A kernel module mapped in memory.
         KernelModule         = 0x04,
+        //  The specific data structures of CPUs.
+        CpuDatas             = 0x05,
 
         //  A module loaded by the bootloader.
         BootModule           = 0x80,

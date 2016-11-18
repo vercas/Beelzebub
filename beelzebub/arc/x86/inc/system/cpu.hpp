@@ -47,9 +47,12 @@
 
 #include <execution/thread.hpp>
 #include <exceptions.hpp>
+
 #include <timer.hpp>
+#include <mailbox.hpp>
 
 #include <synchronization/atomic.hpp>
+#include <synchronization/spinlock.hpp>
 
 #define REGFUNC1(regl, regu, type)                                   \
 static __forceinline type MCATS2(Get, regu)()                        \
@@ -103,6 +106,14 @@ static __forceinline type MCATS2(Get, regu)()                        \
 
 namespace Beelzebub { namespace System
 {
+    //  A bit of configuration:
+    enum StackSizes : size_t
+    {
+          PageFaultStackSize = 1 * PageSize,
+        DoubleFaultStackSize = 1 * PageSize,
+                CpuStackSize = 3 * PageSize,
+    };
+
     typedef uint16_t   seg_t; //  Segment register.
 
     /**
@@ -127,6 +138,11 @@ namespace Beelzebub { namespace System
 
         uint_fast16_t TimersCount;
         TimerEntry Timers[Timer::Count];
+
+#if defined(__BEELZEBUB_SETTINGS_SMP)
+        MailboxEntryBase * MailHead, * MailTail;
+        Synchronization::Spinlock<> MailLock;
+#endif
     };
 
     /**
@@ -153,7 +169,7 @@ namespace Beelzebub { namespace System
         /*  Properties  */
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-        static size_t const Count = 1;
+        static constexpr size_t const Count = 1;
 #else
         static Synchronization::Atomic<size_t> Count;
 #endif

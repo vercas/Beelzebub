@@ -63,6 +63,7 @@
 #include <kernel.hpp>
 #include <entry.h>
 #include <global_options.hpp>
+#include <cores.hpp>
 
 #include <synchronization/atomic.hpp>
 #include <math.h>
@@ -86,23 +87,6 @@ using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
 CpuId Beelzebub::BootstrapCpuid;
-
-/*********************
-    CPU DATA STUBS
-*********************/
-
-//  No fancy allocation is needed on non-SMP systems.
-
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    ObjectAllocatorSmp CpuDataAllocator;
-    Atomic<size_t> CpuIndexCounter {(size_t)0};
-    Atomic<uint16_t> TssSegmentCounter {(uint16_t)(8 * 8)};
-#else
-    CpuData BspCpuData;
-#endif
-
-__startup void InitializeCpuData(bool const bsp);
-__startup void InitializeCpuStacks(bool const bsp);
 
 /*******************
     ENTRY POINTS
@@ -129,7 +113,7 @@ void kmain_ap()
 
     ++BootstrapProcess.ActiveCoreCount;
 
-    InitializeCpuData(false);
+    Cores::Register();
 
     Beelzebub::Secondary();
 }
@@ -209,102 +193,6 @@ Handle ParseKernelArguments()
 /**********************
     PHYSICAL MEMORY
 **********************/
-
-// bool firstRegionCreated = false;
-
-// psize_t currentSpaceIndex = nullpaddr, currentSpaceLimit = nullpaddr;
-
-// PageAllocationSpace * currentAllocationSpacePtr = nullptr;
-// //  This one's used to instantiate allocation spaces.
-
-// PageAllocationSpace mainAllocationSpace;
-// PageAllocator mainAllocator;
-
-//  NOTE: These variables are to be carefully reset for every domain.
-
-/** 
- *  <summary>Creates an allocation space over the given physical range.</summary>
- */
-// __startup PageAllocationSpace * CreateAllocationSpace(paddr_t start, paddr_t end, Domain * domain)
-// {
-//     /*msg("ALLOC SPACE: %XP-%XP; ", start, end);//*/
-
-//     if (firstRegionCreated)
-//     {
-//         if (currentSpaceIndex == currentSpaceLimit)
-//         {
-//             //  The limit of the current allocation space location has
-//             //  been reached.
-
-//             currentSpaceIndex = 0;
-//             //  Reset the index.
-
-//             currentAllocationSpacePtr = nullptr;
-//             //  Nullify the location so it is recreated.
-
-//             /*msg("MAX; ");//*/
-//         }
-
-//         if (currentAllocationSpacePtr == nullptr)
-//         {
-//             PageDescriptor * desc = nullptr;
-//             paddr_t const paddr = domain->PhysicalAllocator->AllocatePage(PageAllocationOptions::GeneralPages, desc);
-
-//             ASSERT(paddr != nullpaddr && desc != nullptr
-//                 , "Unable to allocate a special page for creating more allocation spaces!");
-
-//             Handle res = domain->PhysicalAllocator->ReserveByteRange(paddr, PageSize, PageReservationOptions::IncludeInUse);
-
-//             ASSERT(res.IsOkayResult()
-//                 , "Failed to reserve special page for further allocation space creation: %H"
-//                 , res);
-
-//             currentAllocationSpacePtr = reinterpret_cast<PageAllocationSpace *>((uintptr_t)paddr);
-
-//             /*msg("PAGE@%Xp; ", currentAllocationSpacePtr);//*/
-//         }
-
-//         /*msg("SPA@%Xp; I=%u2; "
-//             , currentAllocationSpacePtr + currentSpaceIndex
-//             , (uint16_t)currentSpaceIndex);//*/
-
-//         PageAllocationSpace * space = new (currentAllocationSpacePtr + currentSpaceIndex++) PageAllocationSpace(start, end, PageSize);
-//         //  One of the really neat things I like about C++.
-
-//         space->InitializeControlStructures();
-
-//         domain->PhysicalAllocator->PreppendAllocationSpace(space);
-
-//         /*msg("%XP-%XP;%n"
-//             , space->GetAllocationStart()
-//             , space->GetAllocationEnd());//*/
-
-//         return space;
-//     }
-//     else
-//     {
-//         new (&mainAllocationSpace) PageAllocationSpace(start, end, PageSize);
-
-//         mainAllocationSpace.InitializeControlStructures();
-
-//         new (domain->PhysicalAllocator = &mainAllocator) PageAllocator(&mainAllocationSpace);
-
-//         firstRegionCreated = true;
-
-//         currentSpaceIndex = 0;
-//         currentSpaceLimit = PageSize / sizeof(PageAllocationSpace);
-//         currentAllocationSpacePtr = nullptr;
-
-//         /*msg("FIRST; SPA@%Xp; ALC@%Xp; %XP-%XP; M=%u2,S=%u2%n"
-//             , &mainAllocationSpace, &mainAllocator
-//             , mainAllocationSpace.GetAllocationStart()
-//             , mainAllocationSpace.GetAllocationEnd()
-//             , (uint16_t)currentSpaceLimit
-//             , (uint16_t)sizeof(PageAllocationSpace));//*/
-
-//         return &mainAllocationSpace;
-//     }
-// }
 
 /**
  *  <summary>
@@ -474,15 +362,6 @@ Handle InitializeVirtualMemory()
     if (MainTerminal != Debug::DebugTerminal)
         RemapTerminal(Debug::DebugTerminal);
 
-    //  CPU DATA
-
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    new (&CpuDataAllocator) ObjectAllocatorSmp(sizeof(CpuData), __alignof(CpuData)
-        , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
-#endif
-
-    InitializeCpuData(true);
-
     //  Now mapping the lower 16 MiB.
 
     res = Vmm::MapRange(&BootstrapProcess
@@ -618,19 +497,6 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
         , index, JG_INFO_STRING_EX + module->name
         , res);
 
-    // for (vaddr_t offset = 0; offset < size; offset += PageSize)
-    // {
-    //     res = Vmm::MapPage(&BootstrapProcess, vaddr + offset, module->address + offset
-    //         , MemoryFlags::Global | MemoryFlags::Writable
-    //         , MemoryMapOptions::NoReferenceCounting);
-
-    //     ASSERT(res.IsOkayResult()
-    //         , "Failed to map page at %Xp (%XP) for module #%us (%s): %H."
-    //         , vaddr + offset, module->address + offset
-    //         , index, JG_INFO_STRING_EX + module->name
-    //         , res);
-    // }
-
     /*if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
         return HandleKernelModule(index, module, vaddr, size);
     else*/ if (memeq("initrd", JG_INFO_STRING_EX + module->name, 7))
@@ -663,118 +529,6 @@ Handle InitializeModules()
 /***************
     CPU DATA
 ***************/
-
-void InitializeCpuData(bool const bsp)
-{
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    CpuData * data = nullptr;
-
-    Handle res = CpuDataAllocator.AllocateObject(data);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to allocate CPU data structure! (%H)"
-        , res);
-
-    data->Index = CpuIndexCounter++;
-    data->TssSegment = TssSegmentCounter.FetchAdd(sizeof(GdtTss64Entry));
-
-    if (bsp)
-        assert(data->Index == 0
-            , "The BSP should have CPU index 0, not %us!"
-            , data->Index);
-#else
-    CpuData * data = &BspCpuData;
-    data->Index = 0;
-    data->TssSegment = 8 * 8;
-#endif
-
-    data->SelfPointer = data;
-    //  Hue.
-
-    Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)(uintptr_t)data);
-
-    data->XContext = nullptr;
-    //  TODO: Perhaps set up a default exception context, which would set fire
-    //  to the whole system?
-
-    data->DomainDescriptor = &Domain0;
-    data->X2ApicMode = false;
-
-    withLock (data->DomainDescriptor->GdtLock)
-        data->DomainDescriptor->Gdt.Size = TssSegmentCounter.Load() - 1;
-    //  This will eventually set the size to the highest value.
-
-    data->DomainDescriptor->Gdt.Activate();
-    //  Doesn't matter if a core lags behind here. It only needs its own TSS to
-    //  be included.
-
-    Gdt * gdt = data->DomainDescriptor->Gdt.Pointer;
-    //  Pointer to the merry GDT.
-
-    GdtTss64Entry & tssEntry = gdt->GetTss64(data->TssSegment);
-    tssEntry = GdtTss64Entry()
-    .SetSystemDescriptorType(GdtSystemEntryType::TssAvailable)
-    .SetPresent(true)
-    .SetBase(&(data->EmbeddedTss))
-    .SetLimit((uint32_t)sizeof(struct Tss));
-
-    CpuInstructions::Ltr(data->TssSegment);
-
-    data->LastExtendedStateThread = nullptr;
-
-    InitializeCpuStacks(bsp);
-
-    //msg("-- Core #%us @ %Xp. --%n", ind, data);
-}
-
-void InitializeCpuStacks(bool const bsp)
-{
-    //  NOTE:
-    //  The first page is a guard page. Will triple-fault on overflow.
-
-    auto cpuData = Cpu::GetData();
-
-    Handle res;
-    //  Intermediate results.
-
-    //  First, the #DF stack.
-
-    vaddr_t vaddr = nullvaddr;
-
-    res = Vmm::AllocatePages(nullptr
-        , DoubleFaultStackSize / PageSize
-        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
-        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::ThreadStack
-        , vaddr);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to allocate #DF stack of CPU #%us: %H."
-        , cpuData->Index
-        , res);
-
-    cpuData->EmbeddedTss.Ist[0] = vaddr + DoubleFaultStackSize;
-
-    //  Then, the #PF stack.
-
-    vaddr = nullvaddr;
-
-    res = Vmm::AllocatePages(nullptr
-        , PageFaultStackSize / PageSize
-        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
-        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::ThreadStack
-        , vaddr);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to allocate #DF stack of CPU #%us: %H."
-        , cpuData->Index
-        , res);
-
-    cpuData->EmbeddedTss.Ist[1] = vaddr + PageFaultStackSize;
-}
 
 #ifdef __BEELZEBUB__TEST_MT
 

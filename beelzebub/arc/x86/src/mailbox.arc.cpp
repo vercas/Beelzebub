@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,37 +37,77 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <mailbox.hpp>
+#include <system/interrupt_controllers/lapic.hpp>
+#include <system/cpu.hpp>
+#include <synchronization/spinlock.hpp>
+#include <memory/object_allocator_smp.hpp>
+#include <memory/object_allocator_pools_heap.hpp>
+#include <kernel.hpp>
+#include <string.h>
 
-#include <system/domain.hpp>    //  Platform-specific.
-#include <execution/thread.hpp>
-#include <terminals/base.hpp>
+using namespace Beelzebub;
+using namespace Beelzebub::Memory;
+using namespace Beelzebub::Synchronization;
+using namespace Beelzebub::System;
+using namespace Beelzebub::System::InterruptControllers;
 
-namespace Beelzebub
+/****************
+    Internals
+****************/
+
+struct QueueItem
 {
-    extern Terminals::TerminalBase * MainTerminal;
-    extern bool Scheduling;
-    extern bool CpuDataSetUp;
+    MailboxEntryBase * Entry;
+};
 
-    extern Execution::Process BootstrapProcess;
-    extern Execution::Thread BootstrapThread;
+static __cold void MailboxIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
+{
+    CpuData * const data = Cpu::GetData();
 
-    extern System::Domain Domain0;
+    
+    END_OF_INTERRUPT();
+}
 
-    /**
-     *  <summary>Entry point for the bootstrap processor.</summary>
-     */
-    __startup void Main();
+static Spinlock<> InitLock {};
+static bool Initialized = false;
 
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    /**
-     *  <summary>Entry point for application processors.</summary>
-     */
-    __startup void Secondary();
+ObjectAllocatorSmp SharedQueue;
 
-    /**
-     *  <summary>Entry point for other domains.</summary>
-     */
-    __startup void Ternary();
-#endif
+/********************
+    Mailbox class
+********************/
+
+/*  Initialization  */
+
+void Mailbox::Initialize()
+{
+    auto const vec = Interrupts::Get(KnownExceptionVectors::Mailbox);
+    //  Unique.
+
+    CpuData * const data = Cpu::GetData();
+
+    //  A lock is used here because this code must only be executed once, and
+    //  other cores should wait for it to finish.
+
+    withLock (InitLock)
+    {
+        if (Initialized)
+            return;
+
+        vec.SetHandler(&MailboxIsrHandler);
+        vec.SetEnder(&Lapic::IrqEnder);
+
+        new (&SharedQueue) ObjectAllocatorSmp(sizeof(MailboxEntry<8>), __alignof(MailboxEntry<8>)
+            , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
+
+        Initialized = true;
+    }
+}
+
+/*  Operation  */
+
+void Mailbox::PostInternal(MailboxEntryBase * entry, unsigned int N, bool poll)
+{
+
 }

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,35 +39,46 @@
 
 #pragma once
 
-#include <system/domain.hpp>    //  Platform-specific.
-#include <execution/thread.hpp>
-#include <terminals/base.hpp>
+#include <system/cpu.hpp>
+#include <beel/handles.h>
 
 namespace Beelzebub
 {
-    extern Terminals::TerminalBase * MainTerminal;
-    extern bool Scheduling;
-    extern bool CpuDataSetUp;
-
-    extern Execution::Process BootstrapProcess;
-    extern Execution::Thread BootstrapThread;
-
-    extern System::Domain Domain0;
-
     /**
-     *  <summary>Entry point for the bootstrap processor.</summary>
+     *  <summary>Represents an abstraction of the system's cores.</summary>
      */
-    __startup void Main();
+    class Cores
+    {
+        /*  Statics  */
 
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    /**
-     *  <summary>Entry point for application processors.</summary>
-     */
-    __startup void Secondary();
-
-    /**
-     *  <summary>Entry point for other domains.</summary>
-     */
-    __startup void Ternary();
+#if defined(__BEELZEBUB_SETTINGS_SMP)
+        static size_t Count;
 #endif
+
+    protected:
+        /*  Constructor(s)  */
+
+        Cores() = default;
+
+    public:
+        Cores(Cores const &) = delete;
+        Cores & operator =(Cores const &) = delete;
+
+        /*  Initialization  */
+
+        static __startup Handle Initialize(size_t const count);
+
+        static __startup void Register();
+
+        /*  Properties  */
+
+        static __hot size_t GetCount()
+        {
+#if defined(__BEELZEBUB_SETTINGS_SMP)
+            return Count;
+#else
+            return 1;
+#endif
+        }
+    };
 }
