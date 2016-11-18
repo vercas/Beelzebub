@@ -78,7 +78,7 @@ namespace Beelzebub
 
         /*  Initialization  */
 
-        static __cold void Initialize();
+        static __startup void Initialize();
 
         /*  Operation  */
 
