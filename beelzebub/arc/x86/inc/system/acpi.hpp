@@ -96,6 +96,9 @@ namespace Beelzebub { namespace System
     public:
         /*  Statics  */
 
+        static constexpr uintptr_t const RsdpStart = 0x0E0000;
+        static constexpr uintptr_t const RsdpEnd = 0x100000;
+
         static RsdpPtr           RsdpPointer;
         static acpi_table_rsdt * RsdtPointer;
         static acpi_table_xsdt * XsdtPointer;
@@ -109,6 +112,10 @@ namespace Beelzebub { namespace System
         
         static size_t IoapicCount;
 
+    private:
+        static uintptr_t RangeBottom, RangeTop;
+        static uintptr_t VirtualBase;
+
         /*  Constructor(s)  */
 
     protected:
@@ -120,26 +127,38 @@ namespace Beelzebub { namespace System
 
         /*  Initialization  */
 
-        static __cold Handle FindRsdp(uintptr_t const start
-                                            , uintptr_t const end);
+        static __startup Handle Crawl();
 
-        static __cold Handle FindRsdtXsdt();
-
-        static __cold Handle FindSystemDescriptorTables();
+        static __startup Handle Remap();
 
     private:
         /*  Specific table handling  */
 
-        static __cold Handle HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTableSource const src);
+        static __startup Handle FindRsdp();
+        static __startup Handle FindRsdtXsdt();
+        static __startup Handle FindSystemDescriptorTables();
 
-        static __cold Handle HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src);
-        static __cold Handle HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src);
+        static __startup Handle HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTableSource const src);
+
+        static __startup Handle HandleMadt(paddr_t const paddr, SystemDescriptorTableSource const src);
+        static __startup Handle HandleSrat(paddr_t const paddr, SystemDescriptorTableSource const src);
 
         /*  Utilities  */
 
-        static __cold Handle MapTable(paddr_t const header, vaddr_t & ptr);
+        static void ConsiderAddress(uintptr_t const addr)
+        {
+            if unlikely(RangeTop == 0)
+                RangeTop = RangeBottom = addr;
+            else if (addr < RangeBottom)
+                RangeBottom = addr;
+            else if (addr > RangeTop)
+                RangeTop = addr;
+        }
+
+        static void ConsiderAddress(void * const addr)
+        { return ConsiderAddress(reinterpret_cast<uintptr_t>(addr)); }
 
     public:
-        static __cold Handle FindLapicPaddr(paddr_t & paddr);
+        static __startup Handle FindLapicPaddr(paddr_t & paddr);
     };
 }}

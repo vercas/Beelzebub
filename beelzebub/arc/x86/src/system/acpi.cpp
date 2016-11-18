@@ -39,14 +39,13 @@
 
 #include <system/acpi.hpp>
 #include <memory/vmm.hpp>
-#include <memory/pmm.hpp>
+#include <memory/vmm.arc.hpp>
 #include <entry.h>
 
 #include <utils/checksum.hpp>
 #include <string.h>
 #include <math.h>
 
-#include <kernel.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -78,13 +77,112 @@ size_t Acpi::LapicCount = 0;
 size_t Acpi::PresentLapicCount = 0;
 size_t Acpi::IoapicCount = 0;
 
+uintptr_t Acpi::RangeBottom = 0;
+uintptr_t Acpi::RangeTop = 0;
+uintptr_t Acpi::VirtualBase = 0;
+
 /*  Initialization  */
 
-Handle Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
+Handle Acpi::Crawl()
+{
+    Handle res;
+
+    res = FindRsdp();
+
+    assert_or(res.IsOkayResult()
+        , "Unable to find RSDP! %H%n"
+        , res)
+    {
+        return res;
+    }
+
+    res = FindRsdtXsdt();
+
+    assert_or(res.IsOkayResult() && (Acpi::RsdtPointer != nullptr || Acpi::XsdtPointer != nullptr)
+        , "Unable to find a valid RSDT or XSDT!%n"
+          "RSDT @ %Xp; XSDT @ %X;%n"
+          "Result = %H"
+        , Acpi::RsdtPointer, Acpi::XsdtPointer, res)
+    {
+        return res;
+    }
+
+    res = FindSystemDescriptorTables();
+
+    assert_or(res.IsOkayResult()
+        , "Failure finding system descriptor tables!%n"
+          "Result = %H"
+        , res)
+    {
+        return res;
+    }
+
+    return res;
+}
+
+Handle Acpi::Remap()
+{
+    if unlikely(VirtualBase != 0)
+        return HandleResult::CardinalityViolation;
+
+    RangeBottom = RoundDown(RangeBottom, PageSize);
+    RangeTop = RoundUp(RangeTop, PageSize);
+
+    size_t const size = RangeTop - RangeBottom;
+
+    Handle res = Vmm::AllocatePages(nullptr
+        , size / PageSize
+        , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global
+        , MemoryContent::AcpiTable
+        , VirtualBase);
+
+    assert_or(res.IsOkayResult()
+        , "Failed to reserve %Xs bytes of kernel heap space for ACPI tables: %H."
+        , size, res)
+    {
+        VirtualBase = 0;
+
+        return res;
+    }
+
+    res = Vmm::MapRange(nullptr
+        , VirtualBase, RangeBottom, size
+        , MemoryFlags::Global
+        , MemoryMapOptions::NoReferenceCounting);
+
+    assert_or(res.IsOkayResult()
+        , "Failed to map range at %Xp to %XP (%Xs bytes) for ACPI tables: %H."
+        , VirtualBase, RangeBottom, size
+        , res)
+    {
+        VirtualBase = 0;
+
+        return res;
+    }
+
+    RsdpPointer = RsdpPtr(reinterpret_cast<acpi_table_rsdp *>(reinterpret_cast<uintptr_t>(RsdpPointer.GetInvariantValue()) + VmmArc::IsaDmaStart));
+
+    #define REMAP(ptr) \
+    ptr = reinterpret_cast<decltype(ptr)>(reinterpret_cast<uintptr_t>(ptr) - RangeBottom + VirtualBase);
+
+    REMAP(RsdtPointer)
+    REMAP(XsdtPointer)
+    REMAP(MadtPointer)
+    REMAP(SratPointer)
+
+    #undef REMAP
+
+    return HandleResult::Okay;
+}
+
+/*  Specific table handling  */
+
+Handle Acpi::FindRsdp()
 {
     RsdpPtr ptr {};
 
-    for (uintptr_t location = RoundDown(start, 16); location < end; location += 16)
+    for (uintptr_t location = RoundDown(RsdpStart, 16); location < RsdpEnd; location += 16)
     {
         if (!memeq((void *)location, ACPI_SIG_RSDP, 8))
             continue;
@@ -130,7 +228,7 @@ Handle Acpi::FindRsdp(uintptr_t const start, uintptr_t const end)
 Handle Acpi::FindRsdtXsdt()
 {
     Handle res;
-    auto rsdp = RsdpPointer;
+    auto const rsdp = RsdpPointer;
 
     //  So, first it attempts to find and parse the XSDT, if any.
     //  If that fails or there is no XSDT, it tries the RSDT.
@@ -140,17 +238,7 @@ Handle Acpi::FindRsdtXsdt()
         //  Why likely? So GCC doesn't attempt to initialize the locals beyond
         //  this if statement prior to executing it.
 
-        vaddr_t xsdtVaddr = nullvaddr;
-        res = Acpi::MapTable((paddr_t)rsdp.GetVersion2()->XsdtPhysicalAddress, xsdtVaddr);
-
-        assert_or(res.IsOkayResult()
-            , "Failed to map XSDT: %H%n"
-            , res)
-        {
-            return res;
-        }
-
-        XsdtPointer = (acpi_table_xsdt *)xsdtVaddr;
+        XsdtPointer = (acpi_table_xsdt *)rsdp.GetVersion2()->XsdtPhysicalAddress;
 
         assert_or(memeq(XsdtPointer->Header.Signature, ACPI_SIG_XSDT, ACPI_NAME_SIZE)
             , "XSDT signature doesn't appear to be valid..? (\"%S\")%n"
@@ -165,42 +253,33 @@ Handle Acpi::FindRsdtXsdt()
             //  attempting to access a null pointer.
         }
 
-        uint8_t sumXsdt = Checksum8(XsdtPointer, XsdtPointer->Header.Length);
+        uint8_t const sumXsdt = Checksum8(XsdtPointer, XsdtPointer->Header.Length);
 
         assert_or(0 == sumXsdt
             , "XSDT checksum failed: %u1%n"
             , sumXsdt)
         {
             XsdtPointer = nullptr;
+
+            goto find_rsdt;
         }
 
         //  If the checksum fails in release mode... Maybe try the RSDT?
         //  Nulling the XSDT pointer indicates that it's either absent or
         //  invalid. Both cases would be rather weird, but adaptation means
         //  survival.
+
+        ConsiderAddress(XsdtPointer);
+        ConsiderAddress((uintptr_t)XsdtPointer + XsdtPointer->Header.Length);
+
+        //  Yes, this falls through and finds the RSDT even if an XSDT was found.
     }
 
 find_rsdt:
 
-    paddr_t const rsdtHeaderStart = (paddr_t)((acpi_rsdp_common *)rsdp.GetInvariantValue())->RsdtPhysicalAddress;
+    RsdtPointer = (acpi_table_rsdt *)(uintptr_t)(((acpi_rsdp_common *)rsdp.GetInvariantValue())->RsdtPhysicalAddress);
 
-    ASSERT(rsdtHeaderStart != nullpaddr
-        , "RSDT physical address seems to be null!");
-    //  Cawme awn!
-
-    vaddr_t rsdtVaddr = nullvaddr;
-    res = Acpi::MapTable(rsdtHeaderStart, rsdtVaddr);
-
-    assert_or(res.IsOkayResult()
-        , "Failed to map RSDT: %H%n"
-        , res)
-    {
-        return res;
-    }
-
-    RsdtPointer = (acpi_table_rsdt *)rsdtVaddr;
-
-    if (rsdtVaddr == nullvaddr)
+    if (RsdtPointer == nullptr)
         return HandleResult::NotFound;
 
     assert_or(memeq(RsdtPointer->Header.Signature, ACPI_SIG_RSDT, ACPI_NAME_SIZE)
@@ -215,7 +294,7 @@ find_rsdt:
         //  Signature invalid? Try to return with a valid XSDT at least.
     }
 
-    uint8_t sumRsdt = Checksum8(RsdtPointer, RsdtPointer->Header.Length);
+    uint8_t const sumRsdt = Checksum8(RsdtPointer, RsdtPointer->Header.Length);
 
     assert_or(0 == sumRsdt
         , "RSDT checksum failed: %u1%n"
@@ -229,6 +308,9 @@ find_rsdt:
         //  Okay, so maybe this checksum fails, but all is not lost if the XSDT
         //  is valid.
     }
+
+    ConsiderAddress(RsdtPointer);
+    ConsiderAddress((uintptr_t)RsdtPointer + RsdtPointer->Header.Length);
     
     return HandleResult::Okay;
 }
@@ -306,23 +388,9 @@ Handle Acpi::FindSystemDescriptorTables()
     //  Well, no tables were found? :C
 }
 
-/*  Specific table handling  */
-
 Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTableSource const src)
 {
-    Handle res;
-
-    vaddr_t vaddr = nullvaddr;
-    res = Acpi::MapTable(paddr, vaddr);
-
-    assert_or(res.IsOkayResult()
-        , "Failed to map a system descriptor table: %H%n"
-        , res)
-    {
-        return res;
-    }
-
-    auto headerPtr = (acpi_table_header *)vaddr;
+    auto headerPtr = (acpi_table_header *)paddr;
 
     uint8_t sumXsdt = Checksum8(headerPtr, headerPtr->Length);
 
@@ -339,15 +407,18 @@ Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTa
         , ACPI_NAME_SIZE, headerPtr->Signature, vaddr, paddr
         , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT);//*/
 
+    ConsiderAddress(paddr);
+    ConsiderAddress(paddr + headerPtr->Length);
+
     if (memeq(headerPtr->Signature, ACPI_SIG_MADT, ACPI_NAME_SIZE))
-        return Acpi::HandleMadt(vaddr, paddr, src);
+        return Acpi::HandleMadt(paddr, src);
     else if (memeq(headerPtr->Signature, ACPI_SIG_SRAT, ACPI_NAME_SIZE))
-        return Acpi::HandleSrat(vaddr, paddr, src);
+        return Acpi::HandleSrat(paddr, src);
 
     return HandleResult::Okay;
 }
 
-Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src)
+Handle Acpi::HandleMadt(paddr_t const paddr, SystemDescriptorTableSource const src)
 {
     if (MadtPaddr == paddr || (MadtSrc != src && MadtSrc != SystemDescriptorTableSource::None))
         return HandleResult::Okay;
@@ -356,19 +427,19 @@ Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
     assert_or(MadtPointer == nullptr
         , "Duplicate (different) MADTs found under the same table (%s)?!%n"
           "First @ %Xp (%XP);%n"
-          "Second @ %Xp (%XP)."
+          "Second @ %XP."
         , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT
-        , MadtPointer, MadtPaddr, vaddr, paddr)
+        , MadtPointer, MadtPaddr, paddr)
     {
         return HandleResult::CardinalityViolation;
     }
 
-    MadtPointer = (acpi_table_madt *)(uintptr_t)vaddr;
+    MadtPointer = (acpi_table_madt *)(uintptr_t)paddr;
     MadtPaddr = paddr;
     MadtSrc = src;
 
-    uintptr_t madtEnd = vaddr + Acpi::MadtPointer->Header.Length;
-    uintptr_t e = vaddr + sizeof(*Acpi::MadtPointer);
+    uintptr_t madtEnd = paddr + Acpi::MadtPointer->Header.Length;
+    uintptr_t e = paddr + sizeof(*Acpi::MadtPointer);
     for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
     {
         switch (((acpi_subtable_header *)e)->Type)
@@ -397,7 +468,7 @@ Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
             break;
 
         default:
-            MainTerminal->WriteFormat("%n%*(( MADTe: T%u1 L%u1 ))"
+            MSG("%n%*(( MADTe: T%u1 L%u1 ))"
                 , 50
                 , ((acpi_subtable_header *)e)->Type
                 , ((acpi_subtable_header *)e)->Length);
@@ -408,7 +479,7 @@ Handle Acpi::HandleMadt(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
     return HandleResult::Okay;
 }
 
-Handle Acpi::HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescriptorTableSource const src)
+Handle Acpi::HandleSrat(paddr_t const paddr, SystemDescriptorTableSource const src)
 {
     if (SratPaddr == paddr || (SratSrc != src && SratSrc != SystemDescriptorTableSource::None))
         return HandleResult::Okay;
@@ -417,14 +488,14 @@ Handle Acpi::HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
     assert_or(SratPointer == nullptr
         , "Duplicate (different) SRATs found under the same table (%s)?!%n"
           "First @ %Xp (%XP);%n"
-          "Second @ %Xp (%XP)."
+          "Second @ %XP."
         , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT
-        , SratPointer, SratPaddr, vaddr, paddr)
+        , SratPointer, SratPaddr, paddr)
     {
         return HandleResult::CardinalityViolation;
     }
 
-    SratPointer = (acpi_table_srat *)(uintptr_t)vaddr;
+    SratPointer = (acpi_table_srat *)(uintptr_t)paddr;
     SratPaddr = paddr;
     SratSrc = src;
 
@@ -432,87 +503,6 @@ Handle Acpi::HandleSrat(vaddr_t const vaddr, paddr_t const paddr, SystemDescript
 }
 
 /*  Utilities  */
-
-Handle Acpi::MapTable(paddr_t const header, vaddr_t & ptr)
-{
-    if unlikely(header == nullpaddr)
-    {
-        ptr = nullvaddr;
-
-        return HandleResult::ArgumentNull;
-    }
-
-    Handle res;
-
-    //  First the table headers and the fields that are sure to be found.
-
-    paddr_t const tabHeaderEnd = header + sizeof(acpi_table_header);
-
-    paddr_t const tabStartPage     = RoundDown(header      , PageSize);
-    paddr_t const tabHeaderEndPage = RoundUp  (tabHeaderEnd, PageSize);
-    vaddr_t vaddr = nullvaddr;
-
-    res = Vmm::AllocatePages(&BootstrapProcess
-        , (tabHeaderEndPage - tabStartPage) / PageSize
-        , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global
-        , MemoryContent::AcpiTable
-        , vaddr);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to reserve %Xs bytes to map ACPI table header: %H."
-        , tabHeaderEndPage - tabStartPage, res);
-
-    res = Vmm::MapRange(&BootstrapProcess
-        , vaddr, tabStartPage, tabHeaderEndPage - tabStartPage
-        , MemoryFlags::Global
-        , MemoryMapOptions::NoReferenceCounting);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to map range at %Xp to %XP (%Xs bytes) for ACPI table header: %H."
-        , vaddr, tabStartPage
-        , tabHeaderEndPage - tabStartPage, res);
-
-    //  Then the rest of the table.
-
-    ptr = (vaddr_t)(vaddr + (header - tabStartPage));
-    auto const tabPtr = (acpi_table_header *)(uintptr_t)ptr;
-
-    paddr_t const tabEnd = header + tabPtr->Length;
-    paddr_t const tabEndPage = RoundUp(tabEnd, PageSize);
-
-    if (tabEndPage > tabHeaderEndPage)
-    {
-        //  Blast! This needs remappin'.
-
-        vaddr = nullvaddr;
-
-        res = Vmm::AllocatePages(&BootstrapProcess
-            , (tabEndPage - tabStartPage) / PageSize
-            , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
-            , MemoryFlags::Global
-            , MemoryContent::AcpiTable
-            , vaddr);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to reserve %Xs bytes to map ACPI table: %H."
-            , tabEndPage - tabStartPage, res);
-
-        res = Vmm::MapRange(&BootstrapProcess
-            , vaddr, tabStartPage, tabEndPage - tabStartPage
-            , MemoryFlags::Global
-            , MemoryMapOptions::NoReferenceCounting);
-
-        ASSERT(res.IsOkayResult()
-            , "Failed to map range at %Xp to %XP (%Xs bytes) for ACPI table: %H."
-            , vaddr, tabStartPage
-            , tabEndPage - tabStartPage, res);
-
-        ptr = (vaddr_t)(vaddr + (header - tabStartPage));
-    }
-
-    return HandleResult::Okay;
-}
 
 Handle Acpi::FindLapicPaddr(paddr_t & paddr)
 {

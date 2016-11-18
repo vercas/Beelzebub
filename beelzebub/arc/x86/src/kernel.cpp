@@ -278,13 +278,26 @@ static __startup void MainInitializePhysicalMemory()
 static __startup void MainInitializeVirtualMemory()
 {
     //  Initialize the virtual memory for use by the kernel.
-    //  Differs on IA-32 and AMD64.
+    //  Differs on IA-32 and AMD64, but both need the APIC remapped.
 
     MainTerminal->Write("[....] Initializing virtual memory...");
     Handle res = InitializeVirtualMemory();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    {
+        MainTerminal->Write(" remapping APIC tables... ");
+        res = Acpi::Remap();
+
+        if (res.IsOkayResult())
+            MainTerminal->WriteLine(" Done.\r[OKAY]");
+        else
+        {
+            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+            ASSERT(false, "Failed to remap APIC tables: %H"
+                , res);
+        }
+    }
     else
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
@@ -316,7 +329,7 @@ static __startup void MainInitializeAcpiTables()
     //  Initialize the ACPI tables for easier use.
     //  Mostly common on x86.
 
-    MainTerminal->Write("[....] Initializing ACPI tables...");
+    MainTerminal->Write("[....] Crawling ACPI tables...");
     Handle res = InitializeAcpiTables();
 
     if (res.IsOkayResult())
@@ -640,13 +653,13 @@ void Beelzebub::Main()
         MainParseKernelArguments();
         MainInitializeInterrupts();
         MainInitializePhysicalMemory();
+        MainInitializeAcpiTables();
         MainInitializeVirtualMemory();
 
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
         MainRunUnitTests();
 #endif
 
-        MainInitializeAcpiTables();
         MainInitializeApic();
         MainInitializeTimers();
 
@@ -1101,35 +1114,6 @@ Handle InitializeInterrupts()
     return HandleResult::Okay;
 }
 
-/**********
-    PIT
-**********/
-
-Handle InitializeTimers()
-{
-    PitCommand pitCmd {};
-    pitCmd.SetAccessMode(PitAccessMode::LowHigh);
-    pitCmd.SetOperatingMode(PitOperatingMode::SquareWaveGenerator);
-
-    Pit::SendCommand(pitCmd);
-
-    ApicTimer::Initialize(true);
-
-    MainTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
-
-    Pit::SetHandler();
-
-    Pit::SetFrequency(1000);
-    //  This frequency really shouldn't stress the BSP that much, considering
-    //  that the IRQ would get 2-3 million clock cycles on modern chips.
-
-    MainTerminal->WriteFormat(" PIT @ %u4 Hz...", Pit::Frequency);
-
-    Timer::Initialize();
-
-    return HandleResult::Okay;
-}
-
 /***********
     ACPI
 ***********/
@@ -1143,44 +1127,18 @@ Handle InitializeAcpiTables()
 {
     Handle res;
 
-    res = Acpi::FindRsdp(VmmArc::IsaDmaStart + 0x0E0000
-                       , VmmArc::IsaDmaStart + 0x100000);
+    res = Acpi::Crawl();
 
-    ASSERT(res.IsOkayResult()
-        , "Unable to find RSDP! %H%n"
-        , res);
-
-    /*if (Acpi::RsdpPointer.GetVersion() == AcpiVersion::v1)
-        msg("<[ RSDP @ %Xp, v1 ]>%n", Acpi::RsdpPointer.GetVersion1());
-    else
-        msg("<[ RSDP @ %Xp, v2 ]>%n", Acpi::RsdpPointer.GetVersion2());//*/
-
-    res = Acpi::FindRsdtXsdt();
-
-    ASSERT(res.IsOkayResult() && (Acpi::RsdtPointer != nullptr || Acpi::XsdtPointer != nullptr)
-        , "Unable to find a valid RSDT or XSDT!%n"
-          "RSDT @ %Xp; XSDT @ %X;%n"
-          "Result = %H"
-        , Acpi::RsdtPointer, Acpi::XsdtPointer, res);
-
-    //msg("<[ XSDT @ %Xp ]>%n", Acpi::XsdtPointer);
-    //msg("<[ RSDT @ %Xp ]>%n", Acpi::RsdtPointer);
-
-    res = Acpi::FindSystemDescriptorTables();
-
-    ASSERT(res.IsOkayResult()
-        , "Failure finding system descriptor tables!%n"
-          "Result = %H"
-        , res);
+    if unlikely(!res.IsOkayResult())
+        return res;
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
-    MainTerminal->WriteFormat(" %us LAPIC%s, %us I/O APIC%s..."
-        , Acpi::PresentLapicCount, Acpi::PresentLapicCount != 1 ? "s" : ""
-        , Acpi::IoapicCount, Acpi::IoapicCount != 1 ? "s" : "");
-#else
+    MainTerminal->WriteFormat(" %us LAPIC%s,"
+        , Acpi::PresentLapicCount, Acpi::PresentLapicCount != 1 ? "s" : "");
+#endif
+
     MainTerminal->WriteFormat(" %us I/O APIC%s..."
         , Acpi::IoapicCount, Acpi::IoapicCount != 1 ? "s" : "");
-#endif
 
     return HandleResult::Okay;
 }
@@ -1266,6 +1224,35 @@ Handle InitializeApic()
     //         break;
     //     }
     // }
+
+    return HandleResult::Okay;
+}
+
+/*************
+    TIMERS
+*************/
+
+Handle InitializeTimers()
+{
+    PitCommand pitCmd {};
+    pitCmd.SetAccessMode(PitAccessMode::LowHigh);
+    pitCmd.SetOperatingMode(PitOperatingMode::SquareWaveGenerator);
+
+    Pit::SendCommand(pitCmd);
+
+    ApicTimer::Initialize(true);
+
+    MainTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
+
+    Pit::SetHandler();
+
+    Pit::SetFrequency(1000);
+    //  This frequency really shouldn't stress the BSP that much, considering
+    //  that the IRQ would get 2-3 million clock cycles on modern chips.
+
+    MainTerminal->WriteFormat(" PIT @ %u4 Hz...", Pit::Frequency);
+
+    Timer::Initialize();
 
     return HandleResult::Okay;
 }
