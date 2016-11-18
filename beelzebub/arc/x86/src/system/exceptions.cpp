@@ -71,8 +71,7 @@ using namespace Beelzebub::System;
  */
 void System::MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<MISC INT @ %Xp (%Xs) - vector %u1/%X1>>"
+    FAIL("<<MISC INT @ %Xp (%Xs) - vector %u1/%X1>>"
         , INSTRUCTION_POINTER, state->ErrorCode
         , vector, vector);
 }
@@ -82,14 +81,12 @@ void System::MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::DivideErrorHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<DIVIDE ERROR @ %Xp>>", INSTRUCTION_POINTER);
+    FAIL("<<DIVIDE ERROR @ %Xp>>", INSTRUCTION_POINTER);
 }
 
 void System::BreakpointHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<BREAKPOINT @ %Xp>>", INSTRUCTION_POINTER);
+    FAIL("<<BREAKPOINT @ %Xp>>", INSTRUCTION_POINTER);
 }
 
 /**
@@ -97,8 +94,7 @@ void System::BreakpointHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::OverflowHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<OVERFLOW @ %Xp>>", INSTRUCTION_POINTER);
+    FAIL("<<OVERFLOW @ %Xp>>", INSTRUCTION_POINTER);
 }
 
 /**
@@ -106,8 +102,7 @@ void System::OverflowHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<BOUNDS EXCEEDED @ %Xp>>", INSTRUCTION_POINTER);
+    FAIL("<<BOUNDS EXCEEDED @ %Xp>>", INSTRUCTION_POINTER);
 }
 
 /**
@@ -115,8 +110,7 @@ void System::BoundRangeExceededHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<INVALID OPCODE @ %Xp>>", INSTRUCTION_POINTER);
+    FAIL("<<INVALID OPCODE @ %Xp>>", INSTRUCTION_POINTER);
 }
 
 /**
@@ -168,8 +162,7 @@ void System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::DoubleFaultHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<DOUBLE FAULT @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
+    FAIL("<<DOUBLE FAULT @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
     asm volatile ("cli \n\t");
     while (true) { asm volatile ("hlt \n\t"); }
 }
@@ -179,8 +172,7 @@ void System::DoubleFaultHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::InvalidTssHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<INVALID TSS @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
+    FAIL("<<INVALID TSS @ %Xp (%Xs)>>", INSTRUCTION_POINTER, state->ErrorCode);
 }
 
 /**
@@ -196,8 +188,7 @@ void System::SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS)
                    "mov %%gs, %2 \n\t"
                  : "=r"(ES), "=r"(FS), "=r"(GS));
 
-    ASSERT(false
-        , "<<SEGMENT NOT PRESENT @ %Xp (%Xs): CS%X2 DS%X2 SS%X2 ES%X2 FS%X2 GS%X2>>"
+    FAIL("<<SEGMENT NOT PRESENT @ %Xp (%Xs): CS%X2 DS%X2 SS%X2 ES%X2 FS%X2 GS%X2>>"
         , INSTRUCTION_POINTER, state->ErrorCode
         , (uint16_t)state->CS, (uint16_t)state->DS, (uint16_t)state->SS, ES, FS, GS);
 }
@@ -207,8 +198,7 @@ void System::SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(false
-        , "<<STACK SEGMENT FAULT @ %Xp (%Xs): SS%X2>>"
+    FAIL("<<STACK SEGMENT FAULT @ %Xp (%Xs): SS%X2>>"
         , INSTRUCTION_POINTER, state->ErrorCode, (uint16_t)state->SS);
 }
 
@@ -243,8 +233,7 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS)
 
     if (odd) msg("%n");
 
-    ASSERT(false
-        , "%n<<GENERAL PROTECTION FAULT @ %Xp (%Xs)>>"
+    FAIL("%n<<GENERAL PROTECTION FAULT @ %Xp (%Xs)>>"
         , INSTRUCTION_POINTER, state->ErrorCode);
 }
 

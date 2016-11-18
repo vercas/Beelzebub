@@ -69,13 +69,13 @@ Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * arg1
                 , reinterpret_cast<uintptr_t>(arg1), arg2
                 , MemoryCheckType::Userland | MemoryCheckType::Readable);
 
-            assert(res.IsOkayResult()
+            assert_or(res.IsOkayResult()
                 , "Debug print string failure: %H%n"
                   "%Xp %up: %s%n"
-                , res, arg1, arg2, arg1);
-
-            if unlikely(!res.IsOkayResult())
+                , res, arg1, arg2, arg1)
+            {
                 return res;
+            }
 
             if (arg3 == 0)
                 return Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1), arg2).Result;

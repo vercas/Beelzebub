@@ -202,7 +202,7 @@ static __startup void MainParseKernelArguments()
         {
             MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-            ASSERT(false, "Failed to initialize test flags (%H; \"%s\"): %H"
+            FAIL("Failed to initialize test flags (%H; \"%s\"): %H"
                 , CMDO_Tests.ParsingResult
                 , CMDO_Tests.ParsingResult.IsOkayResult()
                     ? CMDO_Tests.StringValue
@@ -214,8 +214,7 @@ static __startup void MainParseKernelArguments()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to parse kernel command-line arguments: %H"
-            , res);
+        FAIL("Failed to parse kernel command-line arguments: %H", res);
     }
 }
 
@@ -233,8 +232,7 @@ static __startup void MainInitializeInterrupts()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize interrupts: %H"
-            , res);
+        FAIL("Failed to initialize interrupts: %H", res);
     }
 }
 
@@ -252,8 +250,7 @@ static __startup void MainInitializeTimers()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize the timers: %H"
-            , res);
+        FAIL("Failed to initialize the timers: %H", res);
     }
 }
 
@@ -271,8 +268,7 @@ static __startup void MainInitializePhysicalMemory()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize physical memory: %H"
-            , res);
+        FAIL("Failed to initialize physical memory: %H", res);
     }
 }
 
@@ -290,8 +286,7 @@ static __startup void MainInitializeAcpiTables()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize the ACPI tables: %H"
-            , res);
+        FAIL("Failed to initialize the ACPI tables: %H", res);
     }
 }
 
@@ -314,16 +309,14 @@ static __startup void MainInitializeVirtualMemory()
         {
             MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-            ASSERT(false, "Failed to remap APIC tables: %H"
-                , res);
+            FAIL("Failed to remap APIC tables: %H", res);
         }
     }
     else
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize virtual memory: %H"
-            , res);
+        FAIL("Failed to initialize virtual memory: %H", res);
     }
 }
 
@@ -338,15 +331,14 @@ static __startup void MainInitializeCores()
     if (res.IsOkayResult())
     {
         Cores::Register();
-        
+
         MainTerminal->WriteLine(" Done.\r[OKAY]");
     }
     else
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize processing cores manager: %H"
-            , res);
+        FAIL("Failed to initialize processing cores manager: %H", res);
     }
 }
 
@@ -381,8 +373,7 @@ static __startup void MainInitializeApic()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize the APIC: %H"
-            , res);
+        FAIL("Failed to initialize the APIC: %H", res);
     }
 }
 
@@ -400,8 +391,7 @@ static __startup void MainBootstrapThread()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize main entry point as bootstrap thread: %H"
-            , res);
+        FAIL("Failed to initialize main entry point as bootstrap thread: %H", res);
     }
 
     Cpu::SetThread(&BootstrapThread);
@@ -440,8 +430,7 @@ static __startup void MainInitializeExtraCpus()
         {
             MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-            ASSERT(false, "Failed to initialize the extra processing units: %H"
-                , res);
+            FAIL("Failed to initialize the extra processing units: %H", res);
         }
     }
     else
@@ -485,7 +474,7 @@ static __startup void MainElideLocks()
         {
             MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-            ASSERT(false, "Failed to elide locks: %H", res);
+            FAIL("Failed to elide locks: %H", res);
         }
     }
 #endif
@@ -507,15 +496,14 @@ static __startup void MainInitializeBootModules()
         // {
         //     MainTerminal->WriteFormat(" Fail! No kernel image found.\r[FAIL]%n");
 
-        //     ASSERT(false, "Kernel image hasn't been found!");
+        //     FAIL("Kernel image hasn't been found!");
         // }
     }
     else
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize modules: %H"
-            , res);
+        FAIL("Failed to initialize modules: %H", res);
     }
 }
 
@@ -535,8 +523,7 @@ static __startup void MainInitializeRuntimeLibraries()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize 64-bit runtime: %H"
-            , res);
+        FAIL("Failed to initialize 64-bit runtime: %H", res);
     }
 #endif
 
@@ -573,8 +560,7 @@ static __startup void MainInitializeFpu()
                 MainTerminal->WriteLine("\r[FAIL]%n");
                 MainTerminal->WriteLine("       Fail! Could not allocate template state.");
 
-                ASSERT(false, "Failed to allocate template extended thread state: %H"
-                    , res);
+                FAIL("Failed to allocate template extended thread state: %H", res);
             }
 
             Fpu::SaveState(templateState);
@@ -585,8 +571,7 @@ static __startup void MainInitializeFpu()
         {
             MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-            ASSERT(false, "Failed to initialize extended thread states: %H"
-                , res);
+            FAIL("Failed to initialize extended thread states: %H", res);
         }
     }
     else
@@ -616,8 +601,7 @@ static __startup void MainInitializeKernelModules()
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
-        ASSERT(false, "Failed to initialize kernel modules: %H"
-            , res);
+        FAIL("Failed to initialize kernel modules: %H", res);
     }
 }
 
@@ -707,7 +691,7 @@ void Beelzebub::Main()
         MainTerminal->WriteLine();
 
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
-        if (Cpu::Count.Load() > 1 && CHECK_TEST(RW_SPINLOCK))
+        if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
         {
             RwSpinlockTestBarrier1.Reset();
             RwSpinlockTestBarrier2.Reset();
@@ -745,7 +729,7 @@ void Beelzebub::Main()
         {
             MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
 
-            ASSERT(false, "Enabling interrupts failed!");
+            FAIL("Enabling interrupts failed!");
         }
 
 #ifdef __BEELZEBUB__TEST_METAP
@@ -909,7 +893,7 @@ void Beelzebub::Main()
     }
 
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
-    if (Cpu::Count.Load() > 1 && CHECK_TEST(RW_SPINLOCK))
+    if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
     {
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);

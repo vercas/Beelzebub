@@ -122,13 +122,13 @@ handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
         , MemoryCheckType::Userland | MemoryCheckType::Readable);
     //  Source has to be accessible by userland, though.
 
-    assert(res.IsOkayResult()
+    assert_or(res.IsOkayResult()
         , "Memory copy syscall source check failure: %H%n"
           "dst = %Xp; src = %Xp; len = %up%n"
-        , res, dst, src, len);
-
-    if unlikely(!res.IsOkayResult())
+        , res, dst, src, len)
+    {
         return res;
+    }
 
     res = Vmm::CheckMemoryRegion(nullptr, dst, len
         , MemoryCheckType::Userland | MemoryCheckType::Readable
@@ -136,13 +136,13 @@ handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
     //  Destination does *NOT* need to be writable! This syscall exists specifically
     //  for userland to be able to modify its own read-only pages.
 
-    assert(res.IsOkayResult()
+    assert_or(res.IsOkayResult()
         , "Memory copy syscall destination check failure: %H%n"
           "dst = %Xp; src = %Xp; len = %up%n"
-        , res, dst, src, len);
-
-    if unlikely(!res.IsOkayResult())
+        , res, dst, src, len)
+    {
         return res;
+    }
 
     //  So everything *appears* to be okay. This will not be true for long.
     //  TODO: Lock onto the regions or something like that. Or use kernel's exceptions
@@ -180,13 +180,13 @@ handle_t Syscalls::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
     //  Destination does *NOT* need to be writable! This syscall exists specifically
     //  for userland to be able to modify its own read-only pages.
 
-    assert(res.IsOkayResult()
+    assert_or(res.IsOkayResult()
         , "Memory fill syscall destination check failure: %H%n"
           "dst = %Xp; val = 0x%X1; len = %up%n"
-        , res, dst, val, len);
-
-    if unlikely(!res.IsOkayResult())
+        , res, dst, val, len)
+    {
         return res;
+    }
 
     //  TODO: Lock onto the regions or something like that. Or use kernel's exceptions
     //  to catch a page fault if destination changed.

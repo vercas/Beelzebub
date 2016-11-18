@@ -56,6 +56,38 @@
             (*(Beelzebub::Debug::DebugTerminal)) 
 #endif
 
+#define FAIL_0() do {                                                   \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr       \
+        , nullptr);                                                     \
+} while (false);
+
+#define FAIL_N(...) do {                                                \
+    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr       \
+        , __VA_ARGS__);                                                 \
+} while (false);
+
+#define FAIL(...) GET_MACRO100(DUMMEH, ##__VA_ARGS__, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
+FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_0)(__VA_ARGS__)
+
 #define ASSERT_1(cond) do {                                             \
 if unlikely(!(cond))                                                    \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
@@ -92,9 +124,7 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
 
 #define MSG(...) do {                                                   \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-    {                                                                   \
         Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
-    }                                                                   \
 } while (false)
 
 #ifdef __BEELZEBUB_KERNEL

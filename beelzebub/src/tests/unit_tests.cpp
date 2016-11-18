@@ -56,7 +56,7 @@ DEFINE_TEST(Unit Tests)
 
     REQUIRE(false, "This message should pop up in unit test case %i4.%n", 2);
 
-    ASSERT(false, "Ow...");
+    FAIL("Ow...");
 }
 
 DEFINE_TEST(Unit Tests, Test Case 3)
@@ -65,7 +65,7 @@ DEFINE_TEST(Unit Tests, Test Case 3)
 
     REQUIRE(false, "This message should pop up in unit test case %i4.%n", 3);
 
-    ASSERT(false, "Ow...");
+    FAIL("Ow...");
 }
 
 DEFINE_TEST(Unit Tests, Test Case 4)
@@ -77,7 +77,7 @@ DEFINE_TEST(Unit Tests, Test Case 4)
         REQUIRE(false, "This message should pop up in unit test case %i4.%n", 4);
     }
 
-    ASSERT(false, "Ow...");
+    FAIL("Ow...");
 }
 
 DEFINE_TEST(Unit Tests, Test Case 5)
@@ -92,5 +92,5 @@ DEFINE_TEST(Unit Tests, Test Case 5)
         }
     }
 
-    ASSERT(false, "Ow...");
+    FAIL("Ow...");
 }

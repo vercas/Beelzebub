@@ -80,7 +80,7 @@ __startup void TestDereferenceFailure(uintptr_t volatile * const testPtr)
 
 #pragma GCC diagnostic pop
 
-        ASSERT(false, "(( Test value that should've failed: %Xp ))%n", thisShouldFail);
+        FAIL("(( Test value that should've failed: %Xp ))%n", thisShouldFail);
     }
     __catch (x)
     {

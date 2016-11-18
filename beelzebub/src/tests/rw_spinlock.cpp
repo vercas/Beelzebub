@@ -41,7 +41,7 @@
 
 #include <tests/rw_spinlock.hpp>
 #include <synchronization/rw_spinlock.hpp>
-#include <system/cpu.hpp>
+#include <cores.hpp>
 
 #include <debug.hpp>
 
@@ -105,7 +105,7 @@ void TestRwSpinlock(bool bsp)
     RwSpinlockTestBarrier2.Reset();
 
     ASSERT(!tLock.HasWriter());
-    ASSERT_EQ("%us", Cpu::Count.Load() - 1UL, tLock.GetReaderCount());
+    ASSERT_EQ("%us", Cores::GetCount() - 1UL, tLock.GetReaderCount());
 
     RwSpinlockTestBarrier1.Reach();
     RwSpinlockTestBarrier3.Reset();

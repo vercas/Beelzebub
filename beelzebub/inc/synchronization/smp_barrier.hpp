@@ -40,7 +40,7 @@
 #pragma once
 
 #include <synchronization/atomic.hpp>
-#include <system/cpu.hpp>
+#include <cores.hpp>
 #include <system/cpu_instructions.hpp>
 
 namespace Beelzebub { namespace Synchronization
@@ -108,7 +108,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline void Reset() volatile
         {
-            this->Value.Store(System::Cpu::Count);
+            this->Value.Store(Cores::GetCount());
         }
 
         /**

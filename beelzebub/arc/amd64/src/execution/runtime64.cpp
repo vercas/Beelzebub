@@ -129,7 +129,7 @@ Handle Runtime64::Initialize()
         DEBUG_TERM_ << "Failed to validate and parse 64-bit runtime library: "
                     << evRes << Terminals::EndLine;
 
-        ASSERT(false);
+        FAIL();
     }
 
     return HandleResult::Okay;

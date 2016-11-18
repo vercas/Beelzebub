@@ -56,8 +56,7 @@ __startup void TestNullDereference(uintptr_t volatile * const testPtr)
     {
         uintptr_t thisShouldFail = *testNullPtr;
 
-        ASSERT(false,
-            "(( Test value that should've failed: %Xp ))%n",
+        FAIL("(( Test value that should've failed: %Xp ))%n",
             thisShouldFail);
     }
     __catch (x)
@@ -78,7 +77,7 @@ __startup void TestManualThrow()
 
     ThrowException();
 
-    ASSERT(false, "This part of the code should not execute!");
+    FAIL("This part of the code should not execute!");
 }
 
 void TestExceptions()
@@ -90,8 +89,7 @@ void TestExceptions()
         {
             uintptr_t thisShouldFail = *testPtr;
 
-            ASSERT(false,
-                "(( Test value that should've failed: %Xp ))%n",
+            FAIL("(( Test value that should've failed: %Xp ))%n",
                 thisShouldFail);
         }
         __catch (x)
@@ -123,7 +121,7 @@ void TestExceptions()
     {
         TestManualThrow();
 
-        ASSERT(false, "This part of the code should not execute!");
+        FAIL("This part of the code should not execute!");
     }
     __catch (x)
     {

@@ -94,7 +94,8 @@ static __cold __noreturn void CatchFireVarargs(char const * const file
         DebugTerminal->Write(file);
         DebugTerminal->WriteLine("\":");
 
-        DebugTerminal->WriteLine(cond);
+        if (cond != nullptr)
+            DebugTerminal->WriteLine(cond);
 
         if (fmt != nullptr)
             DebugTerminal->Write(fmt, args);

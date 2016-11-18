@@ -75,7 +75,7 @@ Handle ProcessImage::Initialize()
         DEBUG_TERM  << "Failed to validate and parse application image: "
                     << evRes;
 
-        ASSERT(false);
+        FAIL();
     }
 
     //  And map it.
@@ -89,7 +89,7 @@ Handle ProcessImage::Initialize()
         DEBUG_TERM  << "Failed to load application image: "
                     << evRes << Terminals::EndLine;
 
-        ASSERT(false);
+        FAIL();
     }
 
     //  TODO: Load dependencies, will need a filesystem and all those shenanigans. :(
@@ -117,5 +117,5 @@ Elf::Symbol ProcessImage::ResolveSymbol(char const * name, void * lddata)
 
     //  TODO: Check other (loaded) dependencies.
 
-    ASSERT(false, "Could not find symbol \"%s\" in the whole process.", name);
+    FAIL("Could not find symbol \"%s\" in the whole process.", name);
 }

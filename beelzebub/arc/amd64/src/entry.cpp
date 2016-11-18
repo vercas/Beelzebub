@@ -94,28 +94,25 @@ CpuId Beelzebub::BootstrapCpuid;
 
 void kmain_bsp()
 {
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    Cpu::Count = 1;
-#endif
-
-    Beelzebub::Main();
+    return Beelzebub::Main();
 }
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
 void kmain_ap()
 {
     Interrupts::Register.Activate();
-
-    ++Cpu::Count;
+    //  Very important for detecting errors ASAP.
 
     Vmm::Switch(nullptr, &BootstrapProcess);
     //  Perfectly valid solution. Just to make sure.
 
     ++BootstrapProcess.ActiveCoreCount;
+    //  Leave the process in a valid state.
 
     Cores::Register();
+    //  Register the core with the core manager.
 
-    Beelzebub::Secondary();
+    return Beelzebub::Secondary();
 }
 #endif
 

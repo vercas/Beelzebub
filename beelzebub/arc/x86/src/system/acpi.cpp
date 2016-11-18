@@ -414,6 +414,8 @@ Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTa
         return Acpi::HandleMadt(paddr, src);
     else if (memeq(headerPtr->Signature, ACPI_SIG_SRAT, ACPI_NAME_SIZE))
         return Acpi::HandleSrat(paddr, src);
+    // else
+    //     MSG("$ Found unknown ACPI table: %S%n", ACPI_NAME_SIZE, headerPtr->Signature);
 
     return HandleResult::Okay;
 }

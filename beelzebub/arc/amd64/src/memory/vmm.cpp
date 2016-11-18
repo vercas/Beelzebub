@@ -599,7 +599,7 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
     case FrameSize::_64KiB: //  TODO: Map 4-KiB pages to provide this.
     case FrameSize::_4MiB:  //  TODO: Map 2-MiB pages to provide this.
     case FrameSize::_1GiB:
-        ASSERT(false, "A request was made for a frame size which is not supported by this architecture.");
+        FAIL("A request was made for a frame size which is not supported by this architecture.");
         break;
 
     case FrameSize::_4KiB:
@@ -615,7 +615,7 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
         break;
 
     default:
-        ASSERT(false, "Invalid value provided as frame size: %us", (size_t)size);
+        FAIL("Invalid value provided as frame size: %us", (size_t)size);
         break;
     }
 

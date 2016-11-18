@@ -338,7 +338,7 @@ paddr_t FrameAllocationSpace::AllocateFrame(Handle & desc, FrameSize size, uint3
     case FrameSize::_64KiB: //  TODO: Use 4-KiB frames to provide this.
     case FrameSize::_4MiB:  //  TODO: Use 2-MiB frames to provide this.
     case FrameSize::_1GiB:
-        ASSERT(false, "A request was made for a frame size which is not supported by this architecture.");
+        FAIL("A request was made for a frame size which is not supported by this architecture.");
 
         return nullpaddr;
 
@@ -506,8 +506,12 @@ Handle FrameAllocationSpace::Mingle(paddr_t addr, uint32_t & newCnt, int32_t dif
         return HandleResult::PageReserved;
 
     default:
-        assert(false, "Unknown status for large frame @%XP: %u2", addr, lDesc->Status);
-        return HandleResult::IntegrityFailure;
+        assert_or(false
+            , "Unknown status for large frame @%XP: %u2"
+            , addr, lDesc->Status)
+        {
+            return HandleResult::IntegrityFailure;
+        }
     }
 
 do_large_frame:
@@ -548,8 +552,12 @@ do_large_frame:
             return HandleResult::PageReserved;
 
         default:
-            assert(false, "Unknown status for large frame @%XP: %u2", addr, lDesc->Status);
-            return HandleResult::IntegrityFailure;
+            assert_or(false
+                , "Unknown status for large frame @%XP: %u2"
+                , addr, lDesc->Status)
+            {
+                return HandleResult::IntegrityFailure;
+            }
         }
     }
 
@@ -579,8 +587,12 @@ do_small_frame:
             return HandleResult::PageReserved;
 
         default:
-            assert(false, "Unknown status for large frame @%XP: %u2", addr, lDesc->Status);
-            return HandleResult::IntegrityFailure;
+            assert_or(false
+                , "Unknown status for large frame @%XP: %u2"
+                , addr, lDesc->Status)
+            {
+                return HandleResult::IntegrityFailure;
+            }
         }
 
         if unlikely(sIndex == 0)
@@ -645,15 +657,23 @@ do_small_frame:
 
         case FrameStatus::Split:
         case FrameStatus::Full:
-            assert(false, "Invalid status for small frame @%XP: %u2.", addr, sDesc->Status);
-            break;
+            assert_or(false
+                , "Invalid status for small frame @%XP: %u2."
+                , addr, sDesc->Status)
+            {
+                break;
+            }
 
         case FrameStatus::Reserved:
             return HandleResult::PageReserved;
 
         default:
-            assert(false, "Unknown status for small frame @%XP: %u2", addr, lDesc->Status);
-            return HandleResult::IntegrityFailure;
+            assert_or(false
+                , "Unknown status for small frame @%XP: %u2"
+                , addr, lDesc->Status)
+            {
+                return HandleResult::IntegrityFailure;
+            }
         }
     }
 
@@ -732,7 +752,7 @@ paddr_t FrameAllocator::AllocateFrame(Handle & desc, FrameSize size, AddressMagn
     {
         //  TODO: 24-bit and 16-bit addresses, maybeh?
 
-        ASSERT(false, "Unable to serve frames of address magnitude %s."
+        FAIL("Unable to serve frames of address magnitude %s."
             , (magn == AddressMagnitude::_24bit) ? "24-bit" : "16-bit");
     }
 

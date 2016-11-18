@@ -251,7 +251,6 @@ void Beelzebub::Utils::FailUnitTest(char const * const fileName, int const line)
     //  Reaching this point means there is no exception context to catch this
     //  exception.
 
-    ASSERT(false
-        , "Unit test failure in:%n%s:%i4%nThere was no exception context available."
+    FAIL("Unit test failure in:%n%s:%i4%nThere was no exception context available."
         , fileName, line);
 }
