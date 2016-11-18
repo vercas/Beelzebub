@@ -135,6 +135,8 @@ namespace Beelzebub
     {
         MONIKER(CpuData) * SelfPointer;
         size_t Index;
+        uint32_t LapicId;
+        uint32_t Padding1;
 
         uintptr_t SyscallStack;
         SyscallRegisters64 SyscallRegisters;

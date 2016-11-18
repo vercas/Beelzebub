@@ -89,6 +89,8 @@ endstruc
 struc CpuData 
 .SelfPointer:       RESQ 1
 .Index:             RESQ 1
+.LapicId:           RESD 1
+.Padding1:          RESD 1
 .SyscallStack:      RESQ 1
 .SyscallRegisters:  RESB SyscallRegisters64.size
 .ActiveThread:      RESQ 1
