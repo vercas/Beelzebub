@@ -80,5 +80,7 @@ namespace Beelzebub
             return 1;
 #endif
         }
+
+        static __hot System::CpuData * Get(size_t index);
     };
 }

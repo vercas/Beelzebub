@@ -158,6 +158,17 @@ void Cores::Register()
     //msg("-- Core #%us @ %Xp. --%n", ind, data);
 }
 
+CpuData * Cores::Get(size_t const index)
+{
+    assert(index < Count);
+    
+    return reinterpret_cast<CpuData *>(DatasBase + index * DataSize);
+}
+
+/****************
+    Internals
+****************/
+
 void CreateStacks(CpuData * const data)
 {
     //  NOTE:
