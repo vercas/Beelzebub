@@ -91,7 +91,7 @@ decoded_codepoint_t Utils::GetUtf8Codepoint(char const * chr)
             return res;
         }
         else /* 0b0xxx_xxxx */
-            goto fail;
+            goto failure;
     }
 
     do
@@ -99,7 +99,7 @@ decoded_codepoint_t Utils::GetUtf8Codepoint(char const * chr)
         char c = *(++chr);
 
         if unlikely((c & 0xC0) != 0x80)
-            goto fail;
+            goto failure;
 
         res.Char = (res.Char << 6) | (c & 0x3F);
     }
@@ -107,7 +107,7 @@ decoded_codepoint_t Utils::GetUtf8Codepoint(char const * chr)
 
     return res;
 
-fail:
+failure:
     res.Next = nullptr;
     res.Char = __WCHAR_MAX__;
 

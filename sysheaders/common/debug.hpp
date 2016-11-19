@@ -91,7 +91,7 @@ FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_0)(__VA_ARGS__)
 #define ASSERT_1(cond) do {                                             \
 if unlikely(!(cond))                                                    \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
-        , "ASSERTION FAILURE");                                         \
+        , nullptr);                                                     \
 } while (false)
 
 #define ASSERT_N(cond, ...) do {                                        \
@@ -212,6 +212,8 @@ if unlikely((val) == (expected))                                                
 //  And now the debug ones!
 
 #ifdef __BEELZEBUB__DEBUG
+    #define fail(...) FAIL(__VA_ARGS__)
+
     #define assert(...) ASSERT(__VA_ARGS__)
 
     #define assert_or(cond, ...) if unlikely(!(cond))                       \
@@ -222,9 +224,7 @@ if unlikely((val) == (expected))                                                
     //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
     #define msg(...) do {                                                   \
         if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
-        {                                                                   \
             Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
-        }                                                                   \
     } while (false)
 
     #ifdef __BEELZEBUB_KERNEL
@@ -235,13 +235,14 @@ if unlikely((val) == (expected))                                                
         } while (false)
     #endif
 #else
-    #define assert(...) while(false) \
-        ASSERT(__VA_ARGS__)
+    #define fail(...) __unreachable_code
+
+    #define assert(cond, ...) do { if (!(cond)) { __unreachable_code; } } while (false)
+    //  `unlikely` is not use here to make the compiler understand this more easily.
+    //  Tests show that it gets the clue.
 
     #define assert_or(cond, ...) \
-        if (false) \
-            ASSERT(cond, __VA_ARGS__); \
-        else if unlikely(!(cond))
+        if unlikely(!(cond))
 
     #define msg(...) while (false) \
         Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__)

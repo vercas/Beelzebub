@@ -101,7 +101,7 @@
     /*  A file in the InitRD. */ \
     ENUMINST(InitRdFile               , 0x30U, "irdF") \
     /*  A directory in the InitRD. */ \
-    ENUMINST(InitRdDirectory          , 0x31U, "trdD") \
+    ENUMINST(InitRdDirectory          , 0x31U, "irdD") \
     /*  A kernel module. */ \
     ENUMINST(KernelModule             , 0x32U, "KMOD") \
     \
