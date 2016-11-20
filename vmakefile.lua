@@ -354,7 +354,7 @@ local function ArchitecturalComponent(name)
                 if settMakeDeps then
                     sh.silent(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src[1], "-o", dst)
                 else
-                    sh.silent(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src[1], "-o", dst)
+                    sh.silent(CXX, _.Opts_CXX, "-c", src[1], "-o", dst)
                 end
             end,
         },
