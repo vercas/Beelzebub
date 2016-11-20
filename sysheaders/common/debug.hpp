@@ -244,37 +244,30 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
 ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
 ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
 
-#define ASSERT_EQ_2(expected, val) do {                                         \
-if unlikely((val) != (expected))                                                \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " == " #expected \
-        , "Given value is not equal to the expected one.");                     \
-} while (false)
+#define ASSERT_EQ_2(expec, given) \
+    if unlikely((expec) != (given)) \
+        with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
+            while (MCATS(_assh_, __LINE__).RealityCheck()) \
+                MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #expec " == " #given, nullptr) \
+                .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha
 
-#define ASSERT_EQ_3(fmt, expected, val) do {                                    \
-if unlikely((val) != (expected))                                                \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " == " #expected \
-        , "Expected " fmt ", got " fmt ".", expected, val);                     \
-} while (false)
+#define ASSERT_EQ_3(fmt, expec, given) \
+    ASSERT((expec) == (given), "Expected " fmt ", given " fmt ".", (expec), (given))
 
-#define ASSERT_EQ_4(fmtE, fmtV, expected, val) do {                             \
-if unlikely((val) != (expected))                                                \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " == " #expected \
-        , "Expected " fmtE ", got " fmtV ".", expected, val);                   \
-} while (false)
+#define ASSERT_EQ_4(fmtE, fmtG, expec, given) \
+    ASSERT((expec) == (given), "Expected " fmtE ", given " fmtG ".", (expec), (given))
 
 #define ASSERT_EQ(arg1, ...) GET_MACRO3(__VA_ARGS__, ASSERT_EQ_4, ASSERT_EQ_3, ASSERT_EQ_2)(arg1, __VA_ARGS__)
 
-#define ASSERT_NEQ_2(expected, val) do {                                        \
-if unlikely((val) == (expected))                                                \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " != " #expected \
-        , "Expected anything but the given value.", expected);                  \
-} while (false)
+#define ASSERT_NEQ_2(expec, given) \
+    if unlikely((expec) == (given)) \
+        with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
+            while (MCATS(_assh_, __LINE__).RealityCheck()) \
+                MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #expec " != " #given, nullptr) \
+                .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha
 
-#define ASSERT_NEQ_3(fmt, expected, val) do {                                   \
-if unlikely((val) == (expected))                                                \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #val " != " #expected \
-        , "Expected anything but " fmt ".", expected);                          \
-} while (false)
+#define ASSERT_NEQ_3(fmt, expec, given) \
+    ASSERT((expec) != (given), "Expected anything but " fmt ".", (expec))
 
 #define ASSERT_NEQ(arg1, ...) GET_MACRO2(__VA_ARGS__, ASSERT_NEQ_3, ASSERT_NEQ_2)(arg1, __VA_ARGS__)
 
