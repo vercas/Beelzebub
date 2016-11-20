@@ -656,7 +656,7 @@ void Beelzebub::Main()
 
         Rtc::Read();
         DEBUG_TERM << "Boot time: " << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
-        << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds << EndLine;
+            << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds << EndLine;
 
         MainParseKernelArguments();
         MainInitializeInterrupts();
@@ -1165,23 +1165,22 @@ Handle InitializeApic()
     res = Acpi::FindLapicPaddr(lapicPaddr);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to obtain LAPIC physical address! %H%n"
-        , res);
+        , "Failed to obtain LAPIC physical address.")
+        (res);
 
     res = Vmm::MapPage(&BootstrapProcess, Lapic::VirtualAddress, lapicPaddr
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryMapOptions::NoReferenceCounting);
 
-    ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) for LAPIC: %H%n"
-        , Lapic::VirtualAddress, lapicPaddr, res);
+    ASSERT(res.IsOkayResult(), "Failed to map page for LAPIC.")
+        (Lapic::VirtualAddress)(lapicPaddr)(res);
 
     res = Lapic::Initialize();
     //  This initializes the LAPIC for the BSP.
 
     ASSERT(res.IsOkayResult()
-        , "Failed to initialize the LAPIC?! %H%n"
-        , res);
+        , "Failed to initialize the LAPIC.")
+        (res);
 
     if (Cpu::GetData()->X2ApicMode)
         MainTerminal->Write(" Local x2APIC...");
@@ -1293,14 +1292,14 @@ Handle InitializeProcessingUnits()
         , MemoryMapOptions::NoReferenceCounting);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) for init code: %H%n"
-        , bootstrapVaddr, bootstrapPaddr, res);
+        , "Failed to map page for AP bootstrap code.")
+        (bootstrapVaddr)(bootstrapPaddr)(res);
 
     res = Vmm::InvalidatePage(nullptr, bootstrapVaddr);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to invalidate page at %Xp (%XP) for init code: %H%n"
-        , bootstrapVaddr, bootstrapPaddr, res);
+        , "Failed to invalidate page for AP bootstrap code.")
+        (bootstrapVaddr)(bootstrapPaddr)(res);
 
     BootstrapPml4Address = BootstrapProcess.PagingTable;
 
@@ -1361,8 +1360,8 @@ Handle InitializeProcessingUnits()
     res = Vmm::UnmapPage(&BootstrapProcess, bootstrapVaddr);
 
     ASSERT(res.IsOkayResult()
-        , "Failed to unmap unneeded page at %Xp (%XP) for init code: %H%n"
-        , bootstrapVaddr, bootstrapPaddr, res);
+        , "Failed to unmap page containing AP boostrap code.")
+        (bootstrapVaddr)(bootstrapPaddr)(res);
 
     CpuDataSetUp = true;
     //  Let the kernel know that CPU data is available for use.

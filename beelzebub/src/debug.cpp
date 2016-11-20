@@ -42,128 +42,91 @@
 #include <system/interrupts.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Debug;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
-SpinlockUninterruptible<> Beelzebub::Debug::MsgSpinlock;
-TerminalBase * Beelzebub::Debug::DebugTerminal;
+SpinlockUninterruptible<> Debug::MsgSpinlock;
 
-namespace Beelzebub { namespace Debug
-{
-    //  Although the 'CatchFire' functions will brick the CPU,
-    //  I still feel obliged to make them... Efficient...
+//  Although the 'CatchFire' functions will brick the CPU,
+//  I still feel obliged to make them... Efficient...
 
-    void CatchFire(const char * const file
-                 , const size_t line
-                 , char const * const cond
-                 , const char * const msg)
-    {
-        if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
-            withLock (MsgSpinlock)
-            {
-                DebugTerminal->WriteLine("");
-                DebugTerminal->Write("CAUGHT FIRE at line ");
-                DebugTerminal->WriteUIntD(line);
-                DebugTerminal->Write(" of \"");
-                DebugTerminal->Write(file);
-
-                if (msg == nullptr)
-                    DebugTerminal->WriteLine("\".");
-                else
-                {
-                    DebugTerminal->WriteLine("\":");
-                    DebugTerminal->WriteLine(msg);
-                }
-            }
-
-        Interrupts::Disable();
-
-        //  Allow the CPU to rest.
-        while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
-
-        __unreachable_code;
-    }
-
-    __cold __noinline __noreturn void CatchFire(const char * const file
-                                              , const size_t line
-                                              , char const * const cond
-                                              , const char * const fmt, va_list args)
-    {
-        if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
-            withLock (MsgSpinlock)
-            {
-                DebugTerminal->WriteLine("");
-                DebugTerminal->Write(">-- CAUGHT FIRE at line ");
-                DebugTerminal->WriteUIntD(line);
-                DebugTerminal->Write(" of \"");
-                DebugTerminal->Write(file);
-                DebugTerminal->WriteLine("\":");
-
-                DebugTerminal->WriteLine(cond);
-
-                if (fmt != nullptr)
-                    DebugTerminal->Write(fmt, args);
-            }
-
-        Interrupts::Disable();
-
-        //  Allow the CPU to rest... IN PEACE! :OOOOooOO00OOoO
-        while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
-
-        __unreachable_code;
-    }
-
-    void CatchFireFormat(const char * const file
-                       , const size_t line
-                       , char const * const cond
-                       , const char * const fmt, ...)
-    {
-        va_list args;
-
-        va_start(args, fmt);
-
-        CatchFire(file, line, cond, fmt, args);
-        //  That function will never return.
-
-        va_end(args);
-    }
-
-    void Assert(const bool condition
-              , const char * const file
-              , const size_t line
-              , const char * const msg)
-    {
-        if unlikely(!condition)
-            CatchFire(file, line, "", msg);
-    }
-
-    void Assert(const bool condition
-               , const char * const file
-               , const size_t line
-               , const char * const msg, va_list args)
-    {
-        if unlikely(!condition)
-            CatchFire(file, line, "", msg, args);
-    }
-
-    void AssertFormat(const bool condition
-                    , const char * const file
+void Debug::CatchFire(const char * const file
                     , const size_t line
-                    , const char * const fmt, ...)
-    {
-        if unlikely(!condition)
+                    , const char * const cond
+                    , const char * const msg)
+{
+    if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
+        withLock (MsgSpinlock)
         {
-            va_list args;
+            DebugTerminal->WriteLine("");
+            DebugTerminal->Write("CAUGHT FIRE at line ");
+            DebugTerminal->WriteUIntD(line);
+            DebugTerminal->Write(" of \"");
+            DebugTerminal->Write(file);
 
-            va_start(args, fmt);
-
-            CatchFire(file, line, "", fmt, args);
-            //  That function will never return either.
-
-            va_end(args);
+            if (msg == nullptr)
+                DebugTerminal->WriteLine("\".");
+            else
+            {
+                DebugTerminal->WriteLine("\":");
+                DebugTerminal->WriteLine(msg);
+            }
         }
 
-        //  No reason to mess with the varargs otherwise.
-    }
-}}
+    Interrupts::Disable();
+
+    //  Allow the CPU to rest.
+    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+
+    __unreachable_code;
+}
+
+void Debug::CatchFire(const char * const file
+                    , const size_t line
+                    , const char * const cond
+                    , const char * const fmt, va_list args)
+{
+    if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
+        withLock (MsgSpinlock)
+        {
+            DebugTerminal->WriteLine("");
+            DebugTerminal->Write(">-- CAUGHT FIRE at line ");
+            DebugTerminal->WriteUIntD(line);
+            DebugTerminal->Write(" of \"");
+            DebugTerminal->Write(file);
+            DebugTerminal->WriteLine("\":");
+
+            DebugTerminal->WriteLine(cond);
+
+            if (fmt != nullptr)
+                DebugTerminal->Write(fmt, args);
+        }
+
+    Interrupts::Disable();
+
+    //  Allow the CPU to rest... IN PEACE! :OOOOooOO00OOoO
+    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+
+    __unreachable_code;
+}
+
+/*************************
+    AssertHelper class
+*************************/
+
+/*  State  */
+
+bool AssertHelper::RealityCheck()
+{
+    if (this->State++ == 0)
+        return true;
+
+    Interrupts::Disable();
+
+    //  Allow the CPU to rest.
+    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+
+    return false;
+}

@@ -711,9 +711,11 @@ __startup Handle ThreePoolTest()
             size_t newPoolCount = testAllocator.PoolCount.Load();
 
             if (poolCount == newPoolCount)
+            {
                 ASSERT(0 == (tOx->Qwords[0] & 1)
                     , "Recently-deallocated object %Xp has busy bit set!%n"
                     , tOx);
+            }
             else
             {
                 //  The pool containing the previous object was removed and,

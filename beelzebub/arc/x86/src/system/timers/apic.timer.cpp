@@ -151,9 +151,11 @@ void ApicTimer::Initialize(bool bsp)
     if (handler == nullptr)
         vec.SetHandler(&CalibratorIrqHandler);
     else
+    {
         ASSERT(handler == &CalibratorIrqHandler
-            , "Wrong APIC timer calibration interrupt handler: %Xp"
-            , handler);
+            , "Wrong APIC timer calibration interrupt handler.")
+            (handler);
+    }
 
     vec.SetEnder(&Lapic::IrqEnder);
 

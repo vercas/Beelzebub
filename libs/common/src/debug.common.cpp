@@ -38,90 +38,99 @@
 */
 
 #include <debug.hpp>
-#include <crt0.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;
 using namespace Beelzebub::Terminals;
 
-TerminalBase * Debug::GetDebugTerminal()
+TerminalBase * Debug::DebugTerminal;
+
+void Debug::CatchFireFormat(const char * const file
+                          , const size_t line
+                          , char const * const cond
+                          , const char * const fmt
+                          , ...)
 {
-    return DebugTerminal;
+    va_list args;
+
+    va_start(args, fmt);
+
+    CatchFire(file, line, cond, fmt, args);
+    //  That function will never return.
+
+    va_end(args);
 }
 
-void Debug::CatchFire(char const * const file
-                    , size_t const line
-                    , char const * const cond
-                    , char const * const msg)
+void Debug::Assert(const bool condition
+                 , const char * const file
+                 , const size_t line
+                 , const char * const msg)
 {
-    if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
-    {
-        DebugTerminal->WriteLine("");
-        DebugTerminal->Write("CAUGHT FIRE at line ");
-        DebugTerminal->WriteUIntD(line);
-        DebugTerminal->Write(" of \"");
-        DebugTerminal->Write(file);
-
-        if (msg == nullptr)
-            DebugTerminal->WriteLine("\".");
-        else
-        {
-            DebugTerminal->WriteLine("\":");
-            DebugTerminal->WriteLine(msg);
-        }
-    }
-
-    QuitProcess(HandleResult::ImmediateTermination, -1);
-
-    //  Spin when things go haywire.
-    while (true) ;
-    __unreachable_code;
+    if unlikely(!condition)
+        CatchFire(file, line, "", msg);
 }
 
-void Debug::CatchFire(char const * const file
-                    , size_t const line
-                    , char const * const cond
-                    , char const * const fmt
-                    , va_list args)
+void Debug::Assert(const bool condition
+                  , const char * const file
+                  , const size_t line
+                  , const char * const msg
+                  , va_list args)
 {
-    if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
+    if unlikely(!condition)
+        CatchFire(file, line, "", msg, args);
+}
+
+void Debug::AssertFormat(const bool condition
+                       , const char * const file
+                       , const size_t line
+                       , const char * const fmt
+                       , ...)
+{
+    if unlikely(!condition)
     {
-        DebugTerminal->WriteLine("");
-        DebugTerminal->Write(">-- CAUGHT FIRE at line ");
-        DebugTerminal->WriteUIntD(line);
-        DebugTerminal->Write(" of \"");
-        DebugTerminal->Write(file);
-        DebugTerminal->WriteLine("\":");
+        va_list args;
 
-        if (cond != nullptr)
-            DebugTerminal->WriteLine(cond);
+        va_start(args, fmt);
 
-        if (fmt != nullptr)
-            DebugTerminal->Write(fmt, args);
+        CatchFire(file, line, "", fmt, args);
+        //  That function will never return either.
+
+        va_end(args);
     }
 
-    QuitProcess(HandleResult::ImmediateTermination, -1);
-
-    //  Spin when things go haywire.
-    while (true) ;
-    __unreachable_code;
+    //  No reason to mess with the varargs otherwise.
 }
 
 /*************************
     AssertHelper class
 *************************/
 
-/*  State  */
+/*  Prints  */
 
-bool AssertHelper::RealityCheck()
+AssertHelper & AssertHelper::DumpContext(char const * file, size_t line
+                                       , char const * cond
+                                       , char const * fmt, ...)
 {
-    if (this->State++ == 0)
-        return true;
+    va_list args;
 
-    QuitProcess(HandleResult::ImmediateTermination, -1);
+    va_start(args, fmt);
 
-    //  Spin when things go haywire.
-    while (true) ;
-    
-    return false;
+    this->Term << "Assertion failure at:" << Terminals::EndLine
+        << '\t' << file << ": " << line << Terminals::EndLine
+        << "Expression:" << Terminals::EndLine
+        << '\t' << cond << Terminals::EndLine;
+
+    if (fmt != nullptr)
+    {
+        this->Term << "Message:" << Terminals::EndLine
+            << '\t';
+
+        this->Term.Write(fmt, args);
+
+        this->Term.WriteLine();
+    }
+
+    va_end(args);
+
+    return *this;
 }

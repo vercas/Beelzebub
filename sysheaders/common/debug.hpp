@@ -88,40 +88,6 @@ FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
 FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
 FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_0)(__VA_ARGS__)
 
-#define ASSERT_1(cond) do {                                             \
-if unlikely(!(cond))                                                    \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
-        , nullptr);                                                     \
-} while (false)
-
-#define ASSERT_N(cond, ...) do {                                        \
-if unlikely(!(cond))                                                    \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, #cond         \
-        , __VA_ARGS__);                                                 \
-} while (false)
-
-#define ASSERT(...) GET_MACRO100(__VA_ARGS__, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
-ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
-
 #define MSG(...) do {                                                   \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
         Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
@@ -151,20 +117,84 @@ namespace Beelzebub { namespace Debug
                                               , char const * const cond
                                               , char const * const msg);
 
+    __cold __noinline __noreturn void CatchFire(char const * const file
+                                              , size_t const line
+                                              , char const * const cond
+                                              , char const * const fmt
+                                              , va_list args);
+
     __cold __noinline __noreturn void CatchFireFormat(char const * const file
                                                     , size_t const line
                                                     , char const * const cond
-                                                    , char const * const fmt, ...);
+                                                    , char const * const fmt
+                                                    , ...);
 
     __noinline void Assert(bool const condition
                          , char const * const file
                          , size_t const line
                          , char const * const msg);
 
+    __noinline void Assert(const bool condition
+                         , const char * const file
+                         , const size_t line
+                         , const char * const msg
+                         , va_list args);
+
     __noinline void AssertFormat(bool const condition
                                , char const * const file
                                , size_t const line
-                               , char const * const fmt, ...);
+                               , char const * const fmt
+                               , ...);
+
+    /* Inspired by http://www.drdobbs.com/cpp/enhancing-assertions/184403745 */
+    class AssertHelper
+    {
+    public:
+        /*  Constructor(s)  */
+
+        inline AssertHelper(Terminals::TerminalBase * term)
+            : Term(*term)
+            , AssertHelperAlpha(*this)
+            , AssertHelperBeta(*this)
+            , State(0)
+            , WroteParameters(false)
+        {
+
+        }
+
+        /*  State  */
+
+        bool RealityCheck();
+
+        /*  Prints  */
+
+        AssertHelper & DumpContext(char const * file, size_t line
+                                 , char const * cond
+                                 , char const * fmt, ...);
+
+        template<typename T>
+        inline AssertHelper & DumpParameter(char const * name, T const val)
+        {
+            if unlikely(!this->WroteParameters)
+            {
+                this->Term << "Parameters:" << Terminals::EndLine;
+
+                this->WroteParameters = true;
+            }
+
+            this->Term << '\t' << name << ": " << val << Terminals::EndLine;
+
+            return *this;
+        }
+
+        /*  Fields  */
+
+        Terminals::TerminalBase & Term;
+        AssertHelper & AssertHelperAlpha, & AssertHelperBeta;
+
+        int State;
+        bool WroteParameters;
+    };
 }}
 
 #ifdef __BEELZEBUB_KERNEL
@@ -174,6 +204,45 @@ namespace Beelzebub { namespace Debug
     #define breakpoint(...) do {} while (false)
     #endif
 #endif
+
+#define AssertHelperAlpha(x) AssertHelperOmega(Beta, x)
+#define AssertHelperBeta(x) AssertHelperOmega(Alpha, x)
+#define AssertHelperOmega(next, x) \
+    AssertHelperAlpha.DumpParameter(#x, (x)).AssertHelper##next
+
+#define ASSERT_1(cond) \
+    if unlikely(!(cond)) \
+        with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
+            while (MCATS(_assh_, __LINE__).RealityCheck()) \
+                MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #cond, nullptr).AssertHelperAlpha
+
+#define ASSERT_N(cond, ...) \
+    if unlikely(!(cond)) \
+        with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
+            while (MCATS(_assh_, __LINE__).RealityCheck()) \
+                MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #cond, __VA_ARGS__).AssertHelperAlpha
+
+#define ASSERT(...) GET_MACRO100(__VA_ARGS__, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
+ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
 
 #define ASSERT_EQ_2(expected, val) do {                                         \
 if unlikely((val) != (expected))                                                \
@@ -237,9 +306,14 @@ if unlikely((val) == (expected))                                                
 #else
     #define fail(...) __unreachable_code
 
-    #define assert(cond, ...) do { if (!(cond)) { __unreachable_code; } } while (false)
-    //  `unlikely` is not use here to make the compiler understand this more easily.
-    //  Tests show that it gets the clue.
+    // #define assert(cond, ...) do { if (!(cond)) { __unreachable_code; } } while (false)
+    // //  `unlikely` is not use here to make the compiler understand this more easily.
+    // //  Tests show that it gets the clue.
+
+    #define assert(cond, ...) \
+        if unlikely(!(cond)) __unreachable_code; \
+        if (false) \
+            Beelzebub::Debug::AssertHelper(Beelzebub::Debug::DebugTerminal).AssertHelperAlpha
 
     #define assert_or(cond, ...) \
         if unlikely(!(cond))
