@@ -253,6 +253,20 @@ CmdOpt "apic-mode" {
     end,
 }
 
+CmdOpt "march" {
+    Description = "Specifies an `-march=` option to pass on to GCC on compilation.",
+
+    Type = "string",
+
+    Handler = function(_, val)
+        if val == "" then
+            error("Value given to \"march\" command-line option must be non-empty.")
+        end
+
+        specialOptions:Append("-march=" .. val)
+    end,
+}
+
 CmdOpt "mtune" {
     Description = "Specifies an `-mtune=` option to pass on to GCC on compilation.",
 
