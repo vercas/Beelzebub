@@ -111,10 +111,14 @@ void Cores::Register()
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     CpuData * const data = reinterpret_cast<CpuData *>(DatasBase + index * DataSize);
+    new (data) CpuData();
+
     data->Index = index;
     data->TssSegment = TssSegmentCounter.FetchAdd(sizeof(GdtTss64Entry));
 #else
     CpuData * const data = &BspCpuData;
+    new (data) CpuData();
+    
     data->Index = 0;
     data->TssSegment = 8 * 8;
 #endif
@@ -160,8 +164,8 @@ void Cores::Register()
 
 CpuData * Cores::Get(size_t const index)
 {
-    assert(index < Count);
-    
+    assert(index < Count)(index)(Count);
+
     return reinterpret_cast<CpuData *>(DatasBase + index * DataSize);
 }
 

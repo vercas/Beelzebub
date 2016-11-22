@@ -110,7 +110,7 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
 
     MemoryFlags mf1 = MemoryFlags::None, mf2 = MemoryFlags::None;
 
-    Handle res = Vmm::GetPageFlags(&BootstrapProcess, vaddr1, mf1);
+    Handle res = Vmm::GetPageFlags(nullptr, vaddr1, mf1);
 
     ASSERT(res.IsOkayResult()
         , "Failed to retrieve flags of page %Xp for lock elision: %H"
@@ -118,7 +118,7 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
 
     if (vaddr2 != vaddr1)
     {
-        res = Vmm::GetPageFlags(&BootstrapProcess, vaddr2, mf2);
+        res = Vmm::GetPageFlags(nullptr, vaddr2, mf2);
 
         ASSERT(res.IsOkayResult()
             , "Failed to retrieve flags of page %Xp for lock elision: %H"
@@ -130,7 +130,7 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
     //  Then make the pages writable and executable (because they may overlap
     //  with this code and all the functions used by it).
 
-    res = Vmm::SetPageFlags(&BootstrapProcess, vaddr1, MemoryFlags::Writable | MemoryFlags::Executable | MemoryFlags::Global);
+    res = Vmm::SetPageFlags(nullptr, vaddr1, MemoryFlags::Writable | MemoryFlags::Executable | MemoryFlags::Global);
 
     ASSERT(res.IsOkayResult()
         , "Failed to apply flags to page %Xp for lock elision: %H"
@@ -138,7 +138,7 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
 
     if (vaddr2 != vaddr1)
     {
-        res = Vmm::SetPageFlags(&BootstrapProcess, vaddr2, MemoryFlags::Writable | MemoryFlags::Executable | MemoryFlags::Global);
+        res = Vmm::SetPageFlags(nullptr, vaddr2, MemoryFlags::Writable | MemoryFlags::Executable | MemoryFlags::Global);
 
         ASSERT(res.IsOkayResult()
             , "Failed to apply flags to page %Xp for lock elision: %H"
@@ -165,7 +165,7 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
 
     msg("D ");
 
-    res = Vmm::SetPageFlags(&BootstrapProcess, vaddr1, mf1);
+    res = Vmm::SetPageFlags(nullptr, vaddr1, mf1);
 
     ASSERT(res.IsOkayResult()
         , "Failed to apply flags to page %Xp for lock elision: %H"
@@ -173,7 +173,7 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
 
     if (vaddr2 != vaddr1)
     {
-        res = Vmm::SetPageFlags(&BootstrapProcess, vaddr2, mf2);
+        res = Vmm::SetPageFlags(nullptr, vaddr2, mf2);
 
         ASSERT(res.IsOkayResult()
             , "Failed to apply flags to page %Xp for lock elision: %H"
