@@ -115,22 +115,22 @@ void Fpu::InitializeMain()
     Fpu::InitializeSecondary();
 }
 
-void Fpu::InitializeSecondary()
-{
-    Cpu::SetCr4(Cpu::GetCr4().SetOsfxsr(Fpu::Sse).SetOsxsave(Fpu::Xsave));
-
-    if (Fpu::Xsave)
+    void Fpu::InitializeSecondary()
     {
-        Fpu::Xcr0 = Fpu::Xcr0.SetX87(Fpu::Available).SetSse(Fpu::Sse).SetAvx(Fpu::Avx);
+        Cpu::SetCr4(Cpu::GetCr4().SetOsfxsr(Fpu::Sse).SetOsxsave(Fpu::Xsave));
 
-        Xcrs::Write(0, Fpu::Xcr0.Low, Fpu::Xcr0.High);
-    }
+        if (Fpu::Xsave)
+        {
+            Fpu::Xcr0 = Fpu::Xcr0.SetX87(Fpu::Available).SetSse(Fpu::Sse).SetAvx(Fpu::Avx);
 
-    if (Fpu::Available)
-    {
-        asm volatile ("fninit");
+            Xcrs::Write(0, Fpu::Xcr0.Low, Fpu::Xcr0.High);
+        }
+
+        if (Fpu::Available)
+        {
+            asm volatile ("fninit");
+        }
     }
-}
 
 /*  Operations  */
 

@@ -205,9 +205,14 @@ void System::StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for general protection exceptions.
  */
-void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS)
+void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
-    MSG("<< GP FAULT! >>%n");
+    CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
+
+    if (cpuData != nullptr)
+        MSG("<< GP FAULT! core %us >>%n", cpuData->Index);
+    else
+        MSG("<< GP FAULT! >>%n");
 
     PrintToDebugTerminal(state);
 

@@ -55,6 +55,6 @@ namespace Beelzebub { namespace System
     void InvalidTssHandler(INTERRUPT_HANDLER_ARGS);
     void SegmentNotPresentHandler(INTERRUPT_HANDLER_ARGS);
     void StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS);
-    void GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS);
+    void GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL);
     __hot void PageFaultHandler(INTERRUPT_HANDLER_ARGS);
 }}

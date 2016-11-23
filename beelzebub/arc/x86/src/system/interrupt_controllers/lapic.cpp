@@ -125,6 +125,8 @@ Handle Lapic::Initialize()
     svr.SetSpuriousVector(0xF0);
     SetSvr(svr);
 
+    Cpu::GetData()->LapicId = GetId();
+
     return HandleResult::Okay;
 }
 

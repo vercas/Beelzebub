@@ -144,6 +144,7 @@ local availableTests = List {
     "APP",
     "KMOD",
     "TIMER",
+    "MAILBOX",
     "STACKINT",
     "AVL_TREE",
     "TERMINAL",

@@ -40,7 +40,6 @@
 #pragma once
 
 #include <beel/timing.hpp>
-#include <system/interrupts.hpp>
 #include <synchronization/atomic.hpp>
 #include <beel/handles.h>
 
@@ -86,13 +85,17 @@ namespace Beelzebub
 
         }
 
+        /*  Operations  */
+
+        void Post(bool poll = true);
+
         /*  Fields  */
 
         MailFunction Function;
         void * Cookie;
         unsigned int DestinationCount; 
         Synchronization::Atomic<unsigned int> DestinationsLeft; 
-        MailboxEntryLink Dests[0];
+        MailboxEntryLink Links[0];
     };
 
     static_assert(sizeof(MailboxEntryBase) == (2 * sizeof(void *) + 2 * sizeof(unsigned int)), "Struct size mismatch.");
@@ -121,9 +124,7 @@ namespace Beelzebub
     public:
         /*  Statics  */
 
-        static constexpr size_t const LocalCount = 16;
-
-        static constexpr size_t const Broadcast = SIZE_MAX;
+        static constexpr uint32_t const Broadcast = UINT32_MAX;
 
     protected:
         /*  Constructor(s)  */
@@ -140,13 +141,23 @@ namespace Beelzebub
 
         /*  Operation  */
 
-        template<unsigned int N>
-        static void Post(MailboxEntry<N> * entry, bool poll = true)
-        {
-            return PostInternal(static_cast<MailboxEntryBase *>(entry), N, poll);
-        }
+        static void Post(MailboxEntryBase * entry, bool poll = true);
 
     private:
-        static void PostInternal(MailboxEntryBase * entry, unsigned int N, bool poll);
+        static void PostInternal(MailboxEntryBase * entry, bool poll, bool broadcast);
     };
+
+#define ALLOCATE_MAIL_4(name, dstcnt, func, cookie) \
+    uint8_t MCATS(__, name, _buff)[sizeof(Beelzebub::MailboxEntryBase) + (dstcnt) * sizeof(Beelzebub::MailboxEntryLink)]; \
+    Beelzebub::MailboxEntryBase & name = *(new (reinterpret_cast<Beelzebub::MailboxEntryBase *>(&(MCATS(__, name, _buff)[0]))) Beelzebub::MailboxEntryBase((dstcnt), (func), (cookie)));
+#define ALLOCATE_MAIL_3(name, dstcnt, func) ALLOCATE_MAIL_4(name, dstcnt, func, nullptr)
+#define ALLOCATE_MAIL_2(name, dstcnt) ALLOCATE_MAIL_3(name, dstcnt, nullptr)
+#define ALLOCATE_MAIL(name, ...) GET_MACRO3(__VA_ARGS__, ALLOCATE_MAIL_4, ALLOCATE_MAIL_3, ALLOCATE_MAIL_2)(name, __VA_ARGS__)
+
+#define ALLOCATE_MAIL_BROADCAST_3(name, func, cookie) \
+    ALLOCATE_MAIL_4(name, 1, func, cookie) \
+    name.Links[0] = Beelzebub::MailboxEntryLink(Beelzebub::Mailbox::Broadcast);
+#define ALLOCATE_MAIL_BROADCAST_2(name, func) ALLOCATE_MAIL_BROADCAST_3(name, func, nullptr)
+#define ALLOCATE_MAIL_BROADCAST_1(name) ALLOCATE_MAIL_BROADCAST_2(name, nullptr)
+#define ALLOCATE_MAIL_BROADCAST(...) GET_MACRO3(__VA_ARGS__, ALLOCATE_MAIL_BROADCAST_3, ALLOCATE_MAIL_BROADCAST_2, ALLOCATE_MAIL_BROADCAST_1)(__VA_ARGS__)
 }

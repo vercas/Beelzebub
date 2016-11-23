@@ -22,6 +22,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrStatePartial c
         "\t----%n"
         "\tRDI: %Xs%n"
         "\tRAX: %Xs%n"
+        "\tRCX: %Xs%n"
         "\tRDX: %Xs%n"
         "\tRBP: %Xs%n"
         "\t----%n"
@@ -36,6 +37,7 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrStatePartial c
         , val->RFLAGS
         , val->RDI
         , val->RAX
+        , val->RCX
         , val->RDX
         , val->RBP
         //, (uint8_t)val->Vector
@@ -63,6 +65,8 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         "\t----%n"
         "\tRDI: %Xs%n"
         "\tRAX: %Xs%n"
+        "\tRBX: %Xs%n"
+        "\tRCX: %Xs%n"
         "\tRDX: %Xs%n"
         "\tRBP: %Xs%n"
         "\t----%n"
@@ -77,6 +81,8 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         , val->RFLAGS
         , val->RDI
         , val->RAX
+        , val->RBX
+        , val->RCX
         , val->RDX
         , val->RBP
         //, (uint8_t)val->Vector

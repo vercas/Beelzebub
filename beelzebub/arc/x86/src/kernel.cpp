@@ -64,6 +64,7 @@
 #include <modules.hpp>
 #include <timer.hpp>
 #include <cores.hpp>
+#include <mailbox.hpp>
 
 #include <memory/vmm.hpp>
 #include <memory/vmm.arc.hpp>
@@ -142,6 +143,10 @@
 
 #ifdef __BEELZEBUB__TEST_TIMER
 #include <tests/timer.hpp>
+#endif
+
+#ifdef __BEELZEBUB__TEST_MAILBOX
+#include <tests/mailbox.hpp>
 #endif
 
 using namespace Beelzebub;
@@ -233,24 +238,6 @@ static __startup void MainInitializeInterrupts()
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize interrupts: %H", res);
-    }
-}
-
-static __startup void MainInitializeTimers()
-{
-    //  Preparing the timers for basic timing.
-    //  Common on x86.
-
-    MainTerminal->Write("[....] Initializing timers...");
-    Handle res = InitializeTimers();
-
-    if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        FAIL("Failed to initialize the timers: %H", res);
     }
 }
 
@@ -377,6 +364,36 @@ static __startup void MainInitializeApic()
     }
 }
 
+static __startup void MainInitializeTimers()
+{
+    //  Preparing the timers for basic timing.
+    //  Common on x86.
+
+    MainTerminal->Write("[....] Initializing timers...");
+    Handle res = InitializeTimers();
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        FAIL("Failed to initialize the timers: %H", res);
+    }
+}
+
+static __startup void MainInitializeMailbox()
+{
+    //  Preparing the mailbox.
+    //  Common on x86.
+
+    MainTerminal->Write("[....] Initializing mailbox...");
+    
+    Mailbox::Initialize();
+
+    MainTerminal->WriteLine(" Done.\r[OKAY]");
+}
+
 static __startup void MainBootstrapThread()
 {
     //  Turns the current system state into a kernel process and a main thread.
@@ -448,7 +465,7 @@ static __startup void MainElideLocks()
 #ifdef __BEELZEBUB__TEST_LOCK_ELISION
     if (CHECK_TEST(LOCK_ELISION))
     {
-        MainTerminal->Write("[TEST] Testing lock elision... ");
+        MainTerminal->WriteLine("[TEST] Testing lock elision... ");
 
         TestLockElision();
 
@@ -671,6 +688,7 @@ void Beelzebub::Main()
 
         MainInitializeApic();
         MainInitializeTimers();
+        MainInitializeMailbox();
 
         MainBootstrapThread();
 
@@ -687,8 +705,7 @@ void Beelzebub::Main()
         MainInitializeMainTerminal();
 
         //  Permit other processors to initialize themselves.
-        MainTerminal->WriteLine("Initialization complete! Will enable scheduling.");
-        MainTerminal->WriteLine();
+        MainTerminal->WriteLine("--  Initialization complete! --");
 
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
         if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
@@ -711,186 +728,157 @@ void Beelzebub::Main()
 
     Scheduling = true;
 
-    withLock (TerminalMessageLock)
-    {
-        //  Now every core will print.
-        MainTerminal->Write("+-- Core #");
-        MainTerminal->WriteUIntD(Cpu::GetData()->Index);
-        MainTerminal->WriteLine();
-
-        //  Enable interrupts so they can run.
-        MainTerminal->Write("|[....] Enabling interrupts...");
-        Interrupts::Enable();
-
-        if (Interrupts::AreEnabled())
-            MainTerminal->WriteLine(" Done.\r|[OKAY]");
-            //  Can never bee too sure.
-        else
-        {
-            MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
-
-            FAIL("Enabling interrupts failed!");
-        }
+    Interrupts::Enable();
 
 #ifdef __BEELZEBUB__TEST_METAP
-        if (CHECK_TEST(METAP))
-        {
-            MainTerminal->Write(">Testing metaprgoramming facilities...");
+    if (CHECK_TEST(METAP))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Metaprgoramming facilities...");
 
-            TestMetaprogramming();
-
-            MainTerminal->WriteLine(" Done.");
-        }
+        TestMetaprogramming();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_EXCP
-        if (CHECK_TEST(EXCP))
-        {
-            MainTerminal->Write(">Testing exceptions...");
+    if (CHECK_TEST(EXCP))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Exceptions...");
 
-            TestExceptions();
-
-            MainTerminal->WriteLine(" Done.");
-        }
+        TestExceptions();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_STR
-        if (CHECK_TEST(STR))
-        {
-            MainTerminal->Write(">Testing string.h implementation...");
+    if (CHECK_TEST(STR))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] string.h implementation...");
 
-            TestStringLibrary();
-
-            MainTerminal->WriteLine(" Done.");
-        }
+        TestStringLibrary();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_CMDO
-        if (CHECK_TEST(CMDO))
-        {
-            MainTerminal->Write(">Testing command-line options parsing...");
+    if (CHECK_TEST(CMDO))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Command-line options parsing...");
 
-            TestCmdo();
-
-            MainTerminal->WriteLine(" Done.");
-        }
-#endif
-
-#ifdef __BEELZEBUB__TEST_TERMINAL
-        if (CHECK_TEST(TERMINAL))
-        {
-            MainTerminal->Write(">Testing terminal implementation(s)...");
-
-            TestTerminal();
-
-            MainTerminal->WriteLine(" Done.");
-        }
-#endif
-
-#ifdef __BEELZEBUB__TEST_AVL_TREE
-        if (CHECK_TEST(AVL_TREE))
-        {
-            MainTerminal->Write(">Testing AVL trees...");
-
-            TestAvlTree();
-
-            MainTerminal->WriteLine(" Done.");
-        }
-#endif
-
-#ifdef __BEELZEBUB__TEST_VAS
-        if (CHECK_TEST(VAS))
-        {
-            MainTerminal->Write(">Testing VAS implementation...");
-
-            TestVas();
-
-            MainTerminal->WriteLine(" Done.");
-        }
-#endif
-
-#ifdef __BEELZEBUB__TEST_KMOD
-        if (CHECK_TEST(KMOD))
-        {
-            MainTerminal->Write(">Testing a kernel module...");
-
-            TestKmod();
-
-            MainTerminal->WriteLine(" Done.");
-        }
+        TestCmdo();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_TIMER
-        if (CHECK_TEST(TIMER))
-        {
-            MainTerminal->Write(">Testing generic timer...");
+    if (CHECK_TEST(TIMER))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Generic timer...");
 
-            TestTimer();
+        TestTimer();
+    }
+#endif
 
-            MainTerminal->WriteLine(" Done.");
-        }
+#ifdef __BEELZEBUB__TEST_MAILBOX
+    if (CHECK_TEST(MAILBOX))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Mailbox...");
+
+        TestMailbox();
+    }
+#endif
+
+#ifdef __BEELZEBUB__TEST_AVL_TREE
+    if (CHECK_TEST(AVL_TREE))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] AVL trees...");
+
+        TestAvlTree();
+    }
+#endif
+
+#ifdef __BEELZEBUB__TEST_VAS
+    if (CHECK_TEST(VAS))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] VAS implementation...");
+
+        TestVas();
+    }
+#endif
+
+#ifdef __BEELZEBUB__TEST_KMOD
+    if (CHECK_TEST(KMOD))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] A kernel module...");
+
+        TestKmod();
+    }
+#endif
+
+#ifdef __BEELZEBUB__TEST_TERMINAL
+    if (CHECK_TEST(TERMINAL))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Terminal implementation(s)...");
+
+        TestTerminal();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_MT
-        if (CHECK_TEST(MT))
-        {
-            MainTerminal->Write(">Starting multitasking test...");
+    if (CHECK_TEST(MT))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Starting multitasking test...");
 
-            StartMultitaskingTest();
-
-            MainTerminal->WriteLine(" Done.");
-        }
+        StartMultitaskingTest();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_STACKINT
-        if (CHECK_TEST(STACKINT))
-        {
-            MainTerminal->Write(">Testing stack integrity...");
+    if (CHECK_TEST(STACKINT))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Stack integrity...");
 
-            TestStackIntegrity();
-
-            MainTerminal->WriteLine(" Done.");
-        }
+        TestStackIntegrity();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
-        if (CHECK_TEST(INT_LAT))
-        {
-            MainTerminal->Write(">Testing interrupt latency...");
+    if (CHECK_TEST(INT_LAT))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Interrupt latency...");
 
-            TestInterruptLatency();
-
-            MainTerminal->WriteLine(" Done.");
-        }
+        TestInterruptLatency();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_BIGINT
-        if (CHECK_TEST(BIGINT))
-        {
-            MainTerminal->Write(">Testing big integer implementation...");
+    if (CHECK_TEST(BIGINT))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] Big integer implementation...");
 
-            TestBigInt();
-
-            MainTerminal->WriteLine(" Done.");
-        }
+        TestBigInt();
+    }
 #endif
 
 #ifdef __BEELZEBUB__TEST_FPU
-        if (CHECK_TEST(FPU))
-        {
-            MainTerminal->Write(">Testing FPU and SSE...");
+    if (CHECK_TEST(FPU))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteLine("[TEST] FPU and SSE...");
 
-            TestFpu();
-
-            MainTerminal->WriteLine(" Done.");
-        }
-#endif
-
-        MainTerminal->WriteLine("\\Halting indefinitely now.");
-
-        //PrintToDebugTerminal(Domain0.Gdt);
-        //msg("%n%n");
+        TestFpu();
     }
+#endif
 
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
     if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
@@ -919,14 +907,7 @@ void Beelzebub::Main()
 #endif
 
     //  Allow the CPU to rest.
-    while (true)
-    {
-        if (CpuInstructions::CanHalt) CpuInstructions::Halt();
-
-        //TerminalMessageLock.Acquire();
-        //MainTerminal->WriteLine(">>-- Rehalting! --<<");
-        //TerminalMessageLock.Release();
-    }
+    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 }
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
@@ -944,32 +925,17 @@ void Beelzebub::Secondary()
     Timer::Initialize();
     //  And timers.
 
+    Mailbox::Initialize();
+    //  And the mailbox.
+
     InitializationLock.Spin();
     //  Wait for the system to initialize.
 
     Fpu::InitializeSecondary();
     //  Meh...
 
-    //  Now every core will print.
-
-    withLock (TerminalMessageLock)
-    {
-        MainTerminal->Write("+-- Core #");
-        MainTerminal->WriteUIntD(Cpu::GetData()->Index);
-        MainTerminal->WriteLine();
-
-        //  Enable interrupts so they can run.
-        MainTerminal->Write("|[....] Enabling interrupts...");
-        Interrupts::Enable();
-
-        if (Interrupts::AreEnabled())
-            MainTerminal->WriteLine(" Done.\r|[OKAY]");
-        else
-            MainTerminal->WriteLine(" Fail..?\r|[FAIL]");
-        //  Can never bee too sure.
-
-        MainTerminal->WriteLine("\\Halting indefinitely now.");
-    }
+    Interrupts::Enable();
+    //  Enable interrupts, this core is ready.
 
 #ifdef __BEELZEBUB__TEST_RW_SPINLOCK
     if (CHECK_TEST(RW_SPINLOCK))

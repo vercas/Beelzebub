@@ -55,7 +55,7 @@ using namespace Beelzebub::System::Timers;
     Internals
 ****************/
 
-static __cold void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
+static __hot void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     CpuData * const data = Cpu::GetData();
 
@@ -185,7 +185,7 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
     else
     {
         //  No timers means a simple insertion at the first position.
-        
+
         ApicTimer::SetCount((uint32_t)ticks);
 
         data->Timers[0].Time = (uint32_t)ticks;
