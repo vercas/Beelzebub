@@ -142,7 +142,7 @@ namespace Beelzebub { namespace Memory
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
         static __hot __noinline Handle InvalidatePage(Execution::Process * proc
-            , uintptr_t const vaddr, bool const broadcast = true);
+            , uintptr_t const vaddr, bool broadcast = true);
 
         static __hot __noinline Handle Translate(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true);

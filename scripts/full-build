@@ -1,3 +1,2 @@
 #!/usr/bin/env bash
 time lua vmakefile.lua -t all --march=native --mtune=native --no-make-deps -j 8 --full
-

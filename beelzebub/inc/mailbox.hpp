@@ -67,6 +67,9 @@ namespace Beelzebub
         union
         {
             uint32_t Core;
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
+            size_t Generation;
+#endif
 
             uintptr_t Padding;
         };
@@ -139,12 +142,17 @@ namespace Beelzebub
 
         static __startup void Initialize();
 
+        static __hot bool IsReady();
+
         /*  Operation  */
 
         static void Post(MailboxEntryBase * entry, bool poll = true);
 
     private:
         static void PostInternal(MailboxEntryBase * entry, bool poll, bool broadcast);
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
+        static void PostGlobal(MailboxEntryBase * entry, bool poll);
+#endif
     };
 
 #define ALLOCATE_MAIL_4(name, dstcnt, func, cookie) \

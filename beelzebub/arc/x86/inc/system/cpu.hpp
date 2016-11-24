@@ -124,24 +124,25 @@ namespace Beelzebub { namespace System
         paddr_t LastAlienPml4;
         //  Used to invalidate TLBs when dealing with alien mappings, smartly.
 
-        Domain * DomainDescriptor;
+        Domain * DomainDescriptor = nullptr;
         Tss EmbeddedTss;
 
-        ExceptionContext * XContext;
+        ExceptionContext * XContext = nullptr;
         Exception X;
 
         uint16_t GdtLength;
         uint16_t TssSegment;
-        bool X2ApicMode;
+        bool X2ApicMode = false;
 
-        Execution::Thread * LastExtendedStateThread;
+        Execution::Thread * LastExtendedStateThread = nullptr;
 
-        uint_fast16_t TimersCount;
+        uint_fast16_t TimersCount = 0;
         TimerEntry Timers[Timer::Count];
 
 #if defined(__BEELZEBUB_SETTINGS_SMP)
-        MailboxEntryBase * MailHead, * MailTail;
-        Synchronization::Spinlock<> MailLock;
+        MailboxEntryBase * MailHead = nullptr, * MailTail = nullptr;
+        Synchronization::Spinlock<> MailLock {};
+        uint64_t MailGeneration = 0;
 #endif
     };
 

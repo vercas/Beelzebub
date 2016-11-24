@@ -45,6 +45,7 @@
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/cpu.hpp>
 #include <system/interrupts.hpp>
+#include <mailbox.hpp>
 #include <kernel.hpp>
 
 #include <string.h>
@@ -78,7 +79,8 @@ Atomic<bool> KernelHeapOverflown {false};
 Spinlock<> VmmArc::KernelHeapLock;
 
 bool VmmArc::Page1GB = false;
-bool VmmArc::VmmArc::NX = false;
+bool VmmArc::NX = false;
+bool VmmArc::PCID = false;
 
 inline void Alienate(Process * proc)
 {
@@ -839,22 +841,38 @@ Handle Vmm::UnmapRange(Process * proc
     return HandleResult::Okay;
 }
 
+struct InvalidationInfo
+{
+    Process * const Proc;
+    void const * const Address;
+};
+
+static __hot void Invalidator(void * cookie)
+{
+    InvalidationInfo const * const inf = (InvalidationInfo const *)cookie;
+
+    CpuInstructions::InvalidateTlb(inf->Address);
+}
+
 Handle Vmm::InvalidatePage(Process * proc, uintptr_t const vaddr
-    , bool const broadcast)
+    , bool broadcast)
 {
     if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
     CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(vaddr));
 
+    if (broadcast && ((vaddr >= UserlandStart && vaddr < UserlandEnd && proc->ActiveCoreCount == 1 && !VmmArc::PCID) || unlikely(!Mailbox::IsReady())))
+        broadcast = false;
+
     if (broadcast)
     {
-        //  TODO: Broadcast!
+        InvalidationInfo info { proc, reinterpret_cast<void const *>(vaddr) };
 
-        //  If PCID is enabled, all invalidations should be broadcast so INVPID
-        //  or whatever can be used. Without PCID, the broadcast should only be
-        //  performed with kernel data (later changeable if the kernel proves
-        //  stable enough) or when there's more than one core where the current
-        //  process is active on.
+        ALLOCATE_MAIL_BROADCAST(mail, &Invalidator, &info);
+        mail.Post();
+
+        //  There is NO need to wait for the invalidations to occur because they
+        //  are guaranteed under an uninterruptible context.
     }
 
     return HandleResult::Okay;

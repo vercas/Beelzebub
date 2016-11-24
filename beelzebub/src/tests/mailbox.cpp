@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#ifdef __BEELZEBUB__TEST_MAILBOX
+#if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
 
 #include <tests/mailbox.hpp>
 #include <mailbox.hpp>

@@ -37,17 +37,16 @@
     thorough explanation regarding other files.
 */
 
+#ifdef __BEELZEBUB_SETTINGS_SMP
+
 #include <mailbox.hpp>
 #include <cores.hpp>
 #include <system/interrupt_controllers/lapic.hpp>
 #include <synchronization/spinlock.hpp>
-#include <memory/object_allocator_smp.hpp>
-#include <memory/object_allocator_pools_heap.hpp>
 #include <kernel.hpp>
 #include <string.h>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::InterruptControllers;
@@ -55,6 +54,13 @@ using namespace Beelzebub::System::InterruptControllers;
 /****************
     Internals
 ****************/
+
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
+static Spinlock<> GlobalLock {};
+static MailboxEntryBase * volatile GlobalHead = nullptr;
+static MailboxEntryBase * GlobalTail = nullptr;
+static size_t GlobalGeneration = 0;
+#endif
 
 static __hot bool ExecuteHead()
 {
@@ -68,7 +74,11 @@ static __hot bool ExecuteHead()
         auto head = data->MailHead;
 
         if unlikely(head == nullptr)
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
+            goto check_global;
+#else
             return false;
+#endif
 
         func = head->Function;
         cookie = head->Cookie;
@@ -93,6 +103,41 @@ static __hot bool ExecuteHead()
             data->MailTail = nullptr;
     }
 
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
+    goto execute;
+
+check_global:
+    withLock (GlobalLock)
+    {
+        MailboxEntryBase * entry = GlobalHead;
+
+        while (entry != nullptr)
+        {
+            if (entry->Links[0].Generation > data->MailGeneration)
+            {
+                //  Found one!
+
+                data->MailGeneration = entry->Links[0].Generation;
+                //  This becomes the last generation.
+
+                func = entry->Function;
+                cookie = entry->Cookie;
+
+                --entry->DestinationsLeft;
+
+                break;
+            }
+
+            entry = entry->Links[0].Next;
+        }
+
+        if (entry == nullptr)
+            return false;
+    }
+
+execute:
+#endif
+
     func(cookie);
 
     return true;
@@ -107,19 +152,8 @@ static __hot void MailboxIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
 
 static Spinlock<> InitLock {};
 static bool Initialized = false;
-
-ObjectAllocatorSmp SharedQueue;
-
-/******************************
-    MailboxEntryBase struct
-******************************/
-
-/*  Operations  */
-
-void MailboxEntryBase::Post(bool poll)
-{
-    return Mailbox::Post(this, poll);
-}
+static Atomic<size_t> InitializedCount {0};
+static bool FullyInitialized = false;
 
 /********************
     Mailbox class
@@ -134,20 +168,25 @@ void Mailbox::Initialize()
 
     withLock (InitLock)
     {
-        if (Initialized)
-            return;
+        if likely(!Initialized)
+        {
+            auto const vec = Interrupts::Get(KnownExceptionVectors::Mailbox);
+            //  Unique.
 
-        auto const vec = Interrupts::Get(KnownExceptionVectors::Mailbox);
-        //  Unique.
+            vec.SetHandler(&MailboxIsrHandler);
+            vec.SetEnder(&Lapic::IrqEnder);
 
-        vec.SetHandler(&MailboxIsrHandler);
-        vec.SetEnder(&Lapic::IrqEnder);
-
-        new (&SharedQueue) ObjectAllocatorSmp(sizeof(MailboxEntry<8>), __alignof(MailboxEntry<8>)
-            , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap);
-
-        Initialized = true;
+            Initialized = true;
+        }
     }
+
+    if (++InitializedCount == Cores::GetCount())
+        FullyInitialized = true;
+}
+
+bool Mailbox::IsReady()
+{
+    return FullyInitialized;
 }
 
 /*  Operation  */
@@ -162,15 +201,29 @@ void Mailbox::Post(MailboxEntryBase * entry, bool poll)
     if (entry->DestinationCount == 1 && entry->Links[0].Core == Broadcast)
     {
         auto tgCnt = Cores::GetCount() - 1;     //  Target count.
-        auto thisCore = Cpu::GetData()->Index;  //  Index of this core.
 
-        ALLOCATE_MAIL_4(newEntry, tgCnt, entry->Function, entry->Cookie);
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
+        if likely(tgCnt < 64)
+        {
+#endif
+            auto thisCore = Cpu::GetData()->Index;  //  Index of this core.
 
-        for (unsigned int link = 0; link < tgCnt; ++link)
-            newEntry.Links[link] = MailboxEntryLink((link < thisCore) ? link : (link + 1));
-        //  Set up all the links properly.
+            ALLOCATE_MAIL(newEntry, tgCnt, entry->Function, entry->Cookie);
 
-        return PostInternal(&newEntry, poll, true);
+            for (unsigned int link = 0; link < tgCnt; ++link)
+                newEntry.Links[link] = MailboxEntryLink((link < thisCore) ? link : (link + 1));
+            //  Set up all the links properly.
+
+            return PostInternal(&newEntry, poll, true);
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
+        }
+        else
+        {
+            entry->DestinationsLeft = tgCnt;
+
+            return PostGlobal(entry, poll);
+        }
+#endif
     }
     else
         return PostInternal(entry, poll, false);
@@ -229,3 +282,62 @@ void Mailbox::PostInternal(MailboxEntryBase * entry, bool poll, bool broadcast)
         if (!(poll && ExecuteHead()))
             CpuInstructions::DoNothing();
 }
+
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
+void Mailbox::PostGlobal(MailboxEntryBase * entry, bool poll)
+{
+    withLock (GlobalLock)
+    {
+        auto gen = ++GlobalGeneration;
+        //  This be the generation of the mail entry.
+
+        entry->Links[0].Generation = gen;
+
+        if (GlobalTail == nullptr)
+            GlobalHead = GlobalTail = entry;
+        else
+        {
+            GlobalTail->Links[0].Next = entry;
+
+            assert(GlobalTail->Links[0].Generation < gen)
+                (GlobalTail->Links[0].Generation)(gen);
+
+            GlobalTail = entry;
+        }
+    }
+
+    Lapic::SendIpi(LapicIcr(0)
+        .SetDeliveryMode(InterruptDeliveryModes::Fixed)
+        .SetDestinationShorthand(IcrDestinationShorthand::AllExcludingSelf)
+        .SetAssert(true)
+        .SetVector(Interrupts::Get(KnownExceptionVectors::Mailbox).GetVector()));
+
+    while (entry->DestinationsLeft > 0)
+        if (!(poll && ExecuteHead()))
+            CpuInstructions::DoNothing();
+
+    //  So, the mail had been handled by all destinations.
+    //  Now it needs to become the head of the queue to be removed from it.
+
+    while (entry != GlobalHead)
+        if (!(poll && ExecuteHead()))
+            CpuInstructions::DoNothing();
+
+    //  Now it should be the head of the queue.
+
+    withLock (GlobalLock)
+    {
+        assert(entry == GlobalHead)((void *)entry)((void *)GlobalHead);
+        //  If another core dequeued it, it's a huge problem.
+
+        entry = entry->Links[0].Next;
+
+        if (entry == nullptr)
+            GlobalHead = GlobalTail = nullptr;
+        else
+            GlobalHead = entry;
+    }
+}
+#endif
+
+#endif

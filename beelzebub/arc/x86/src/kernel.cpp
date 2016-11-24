@@ -145,7 +145,7 @@
 #include <tests/timer.hpp>
 #endif
 
-#ifdef __BEELZEBUB__TEST_MAILBOX
+#if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
 #include <tests/mailbox.hpp>
 #endif
 
@@ -382,6 +382,7 @@ static __startup void MainInitializeTimers()
     }
 }
 
+#ifdef __BEELZEBUB_SETTINGS_SMP
 static __startup void MainInitializeMailbox()
 {
     //  Preparing the mailbox.
@@ -393,6 +394,7 @@ static __startup void MainInitializeMailbox()
 
     MainTerminal->WriteLine(" Done.\r[OKAY]");
 }
+#endif
 
 static __startup void MainBootstrapThread()
 {
@@ -688,7 +690,10 @@ void Beelzebub::Main()
 
         MainInitializeApic();
         MainInitializeTimers();
+
+#ifdef __BEELZEBUB_SETTINGS_SMP
         MainInitializeMailbox();
+#endif
 
         MainBootstrapThread();
 
@@ -780,7 +785,7 @@ void Beelzebub::Main()
     }
 #endif
 
-#ifdef __BEELZEBUB__TEST_MAILBOX
+#if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
     if (CHECK_TEST(MAILBOX))
     {
         withLock (TerminalMessageLock)
@@ -925,9 +930,6 @@ void Beelzebub::Secondary()
     Timer::Initialize();
     //  And timers.
 
-    Mailbox::Initialize();
-    //  And the mailbox.
-
     InitializationLock.Spin();
     //  Wait for the system to initialize.
 
@@ -935,7 +937,10 @@ void Beelzebub::Secondary()
     //  Meh...
 
     Interrupts::Enable();
-    //  Enable interrupts, this core is ready.
+    //  Enable interrupts, this core is almost ready.
+
+    Mailbox::Initialize();
+    //  And the mailbox. This one needs interrupts enabled.
 
 #ifdef __BEELZEBUB__TEST_RW_SPINLOCK
     if (CHECK_TEST(RW_SPINLOCK))
