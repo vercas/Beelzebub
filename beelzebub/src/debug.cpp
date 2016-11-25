@@ -38,7 +38,7 @@
 */
 
 #include <debug.hpp>
-#include <system/cpu_instructions.hpp>
+#include <system/cpu.hpp>
 #include <system/interrupts.hpp>
 
 using namespace Beelzebub;
@@ -46,6 +46,27 @@ using namespace Beelzebub::Debug;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
+
+static __cold void Killer(void * cookie)
+{
+    DEBUG_TERM_ << "Core " << Cpu::GetData()->Index << " was ordered to catch fire." << EndLine;
+
+    //  Allow the CPU to rest. Interrupts are already disabled.
+    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+}
+
+static __cold __noreturn void Die()
+{
+    Interrupts::Disable();
+
+    DEBUG_TERM_ << "Core " << Cpu::GetData()->Index << " is setting the system on fire." << EndLine;
+
+    ALLOCATE_MAIL_BROADCAST(mail, &Killer);
+    mail.Post(false);
+
+    //  Allow the CPU to rest.
+    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+}
 
 SpinlockUninterruptible<> Debug::MsgSpinlock;
 
@@ -75,12 +96,7 @@ void Debug::CatchFire(const char * const file
             }
         }
 
-    Interrupts::Disable();
-
-    //  Allow the CPU to rest.
-    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
-
-    __unreachable_code;
+    Die();
 }
 
 void Debug::CatchFire(const char * const file
@@ -104,12 +120,7 @@ void Debug::CatchFire(const char * const file
                 DebugTerminal->Write(fmt, args);
         }
 
-    Interrupts::Disable();
-
-    //  Allow the CPU to rest... IN PEACE! :OOOOooOO00OOoO
-    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
-
-    __unreachable_code;
+    Die();
 }
 
 /*************************
@@ -123,10 +134,7 @@ bool AssertHelper::RealityCheck()
     if (this->State++ == 0)
         return true;
 
-    Interrupts::Disable();
-
-    //  Allow the CPU to rest.
-    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+    Die();
 
     return false;
 }
