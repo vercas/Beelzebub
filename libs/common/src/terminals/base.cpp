@@ -226,7 +226,7 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
 
     bool inFormat = false;
     char c;
-    char const * fmts = fmt;
+    char const * fmts = fmt, * nakedStart = nullptr;
 
     while ((c = *fmts++) != 0)
     {
@@ -506,26 +506,23 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
             inFormat = false;
         }
         else if (c == '%')
-            inFormat = true;
-        else
         {
-            cnt = res.Size;
+            inFormat = true;
 
-            res = this->WriteUtf8(fmts - 1);
-            //  `fmts - 1` = &c
-
-            if (res.Result.IsOkayResult())
+            if (nakedStart != nullptr)
             {
-                fmts += res.Size - 1;
-                //  Skip continuation bytes of this UTF-8 character.
+                TERMTRY1(this->Write(nakedStart, fmts - 1 - nakedStart), res, cnt);
 
-                res.Size = cnt + 1;
-                //  Only one character was added.
+                nakedStart = nullptr;
             }
-            else
-                return res;
         }
+        else if unlikely(nakedStart == nullptr)
+            nakedStart = fmts - 1;
+            //  `fmts - 1` = &c
     }
+
+    if (nakedStart != nullptr)
+        TERMTRY1(this->Write(nakedStart), res, cnt);
 
     return res;
 }
