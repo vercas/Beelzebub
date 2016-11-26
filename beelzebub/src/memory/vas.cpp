@@ -256,7 +256,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 reg->Range.End = rang.Start;
                 //  Free region's end is pulled back.
 
-                MemoryRegion * newReg = this->Tree.Find<vaddr_t>(rang.End + 1);
+                MemoryRegion * newReg = this->Tree.Find<vaddr_t>(rang.End);
 
                 if unlikely(0 != (type & MemoryAllocationOptions::UniquenessMask)
                     && newReg != nullptr && newReg->Flags == flags
@@ -392,12 +392,12 @@ namespace Beelzebub { namespace Utils
     template<>
     Handle AvlTree<MemoryRegion>::AllocateNode(AvlTree<MemoryRegion>::Node * & node, void * cookie)
     {
-        return (reinterpret_cast<ObjectAllocator *>(cookie))->AllocateObject(node);
+        return (reinterpret_cast<Vas *>(cookie))->Alloc.AllocateObject(node);
     }
 
     template<>
     Handle AvlTree<MemoryRegion>::RemoveNode(AvlTree<MemoryRegion>::Node * const node, void * cookie)
     {
-        return (reinterpret_cast<ObjectAllocator *>(cookie))->DeallocateObject(node);
+        return (reinterpret_cast<Vas *>(cookie))->Alloc.DeallocateObject(node);
     }
 }}

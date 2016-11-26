@@ -834,6 +834,8 @@ Handle TestObjectAllocator(bool const bsp)
         pool that needs enlarging is allocated.
      */
 
+    InterruptGuard<false> ig;
+
     if likely(!bsp)
     {
         res = ObjectAllocatorSpamTest();
@@ -859,8 +861,6 @@ Handle TestObjectAllocator(bool const bsp)
             , testAllocator.Capacity.Load()
             , testAllocator.FreeCount.Load()
             , testAllocator.PoolCount.Load());//*/
-
-        InterruptGuard<false> ig;
 
         TESTALLOC3(TestStructure, 1)
 

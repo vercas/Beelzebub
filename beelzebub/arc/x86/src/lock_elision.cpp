@@ -68,6 +68,8 @@ Handle Beelzebub::ElideLocks()
     if (&locks_section_start == &locks_section_end)
         return HandleResult::Okay;
 
+    InterruptGuard<false> intGuard;
+
     Handle res;
 
     //  Step 1 is backing up the flags of all the pages, and making them
@@ -124,7 +126,7 @@ Handle Beelzebub::ElideLocks()
             return HandleResult::Failed;
         }
 
-        for (uintptr_t i = cursor->Start; i < cursor->End; i += cacheLineSize)
+        for (uintptr_t i = RoundDown(cursor->Start, cacheLineSize); i < cursor->End; i += cacheLineSize)
             CpuInstructions::FlushCache((void *)i);
         //  The cache ought to be flushed, just to be on the safe side.
     }

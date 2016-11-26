@@ -56,15 +56,15 @@
             (*(Beelzebub::Debug::DebugTerminal)) 
 #endif
 
-#define FAIL_0() do {                                                   \
+#define FAIL_0() ({                                                     \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr       \
         , nullptr);                                                     \
-} while (false);
+})
 
-#define FAIL_N(...) do {                                                \
+#define FAIL_N(...) ({                                                  \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr       \
         , __VA_ARGS__);                                                 \
-} while (false);
+})
 
 #define FAIL(...) GET_MACRO100(DUMMEH, ##__VA_ARGS__, \
 FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
@@ -88,17 +88,17 @@ FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
 FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
 FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_0)(__VA_ARGS__)
 
-#define MSG(...) do {                                                   \
+#define MSG(...) ({                                                     \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
         Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
-} while (false)
+})
 
 #ifdef __BEELZEBUB_KERNEL
-    #define MSG_(...) do {                                                  \
+    #define MSG_(...) ({                                                    \
         if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
             withLock (Beelzebub::Debug::MsgSpinlock)                        \
                 Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
-    } while (false)
+    })
 #endif
 //  Thse three are available for all configurations!
 
@@ -205,10 +205,17 @@ namespace Beelzebub { namespace Debug
     #endif
 #endif
 
-#define AssertHelperAlpha(x) AssertHelperOmega(Beta, x)
-#define AssertHelperBeta(x) AssertHelperOmega(Alpha, x)
-#define AssertHelperOmega(next, x) \
-    AssertHelperAlpha.DumpParameter(#x, (x)).AssertHelper##next
+#define AssertHelperAlpha_1(x) AssertHelperAlpha_2(#x, x)
+#define AssertHelperBeta_1(x) AssertHelperBeta_2(#x, x)
+
+#define AssertHelperAlpha_2(name, x) AssertHelperOmega(Beta, name, x)
+#define AssertHelperBeta_2(name, x) AssertHelperOmega(Alpha, name, x)
+
+#define AssertHelperAlpha(...) GET_MACRO2(__VA_ARGS__, AssertHelperAlpha_2, AssertHelperAlpha_1)(__VA_ARGS__)
+#define AssertHelperBeta(...)  GET_MACRO2(__VA_ARGS__, AssertHelperBeta_2 , AssertHelperBeta_1 )(__VA_ARGS__)
+
+#define AssertHelperOmega(next, name, x) \
+    AssertHelperAlpha.DumpParameter(name, (x)).AssertHelper##next
 
 #define ASSERT_1(cond) \
     if unlikely(!(cond)) \
@@ -284,17 +291,17 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
     else if (false)
 
     //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
-    #define msg(...) do {                                                   \
+    #define msg(...) ({                                                     \
         if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
             Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
-    } while (false)
+    })
 
     #ifdef __BEELZEBUB_KERNEL
-        #define msg_(...) do {                                                  \
+        #define msg_(...) ({                                                    \
             if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
                 withLock (Beelzebub::Debug::MsgSpinlock)                        \
                     Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
-        } while (false)
+        })
     #endif
 #else
     #define fail(...) __unreachable_code
@@ -311,8 +318,10 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
     #define assert_or(cond, ...) \
         if unlikely(!(cond))
 
-    #define msg(...) while (false) \
-        Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__)
+    #define msg(...) ({                                                \
+        if (false)                                                     \
+            Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__); \
+    })
 
     #ifdef __BEELZEBUB_KERNEL
         #define msg_(...) msg(__VA_ARGS__)

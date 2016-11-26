@@ -65,7 +65,7 @@ namespace Beelzebub { namespace Memory
             , FirstFree(nullptr)
             , LastSearched(nullptr)
         {
-            this->Tree.Cookie = &(this->Alloc);
+            this->Tree.Cookie = this;
         }
 
         Vas(Vas const &) = delete;
