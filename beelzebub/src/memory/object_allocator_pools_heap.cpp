@@ -50,10 +50,10 @@ using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 
-static void FillPool(ObjectPoolBase volatile * volatile pool
-                              , size_t const objectSize
-                              , size_t const headerSize
-                              , obj_ind_t const objectCount)
+void Memory::FillPool(ObjectPoolBase volatile * volatile pool
+                    , size_t const objectSize
+                    , size_t const headerSize
+                    , obj_ind_t const objectCount)
 {
     pool->Capacity = objectCount;
     pool->FreeCount = objectCount;
@@ -95,9 +95,9 @@ Handle Memory::AcquirePoolInKernelHeap(size_t objectSize
                                      , ObjectPoolBase * & result)
 {
     assert(headerSize >= sizeof(ObjectPoolBase)
-        , "The given header size (%us) apprats to be lower than the size of an "
-          "actual pool struct (%us)..?%n"
-        , headerSize, sizeof(ObjectPoolBase));
+        , "The given header size apprats to be lower than the size of an "
+          "actual pool struct..?")
+        (headerSize)(sizeof(ObjectPoolBase));
 
     size_t const pageCount = RoundUp(objectSize * minimumObjects + headerSize, PageSize) / PageSize;
     uintptr_t addr = 0;
@@ -141,10 +141,10 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
     size_t newPageCount = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize) / PageSize;
 
     ASSERT(newPageCount > oldPageCount
-        , "New page count (%us) should be larger than the old page count (%us) "
+        , "New page count should be larger than the old page count "
           "of a pool that needs enlarging!%nIt appears that the previous capacity"
-          "is wrong.%n"
-        , newPageCount, oldPageCount);
+          "is wrong.")
+        (newPageCount)(oldPageCount);
 
     vaddr_t vaddr = oldPageCount * PageSize + (vaddr_t)pool;
     vaddr_t const oldEnd = vaddr;
@@ -200,42 +200,14 @@ Handle Memory::ReleasePoolFromKernelHeap(size_t objectSize
                                        , size_t headerSize
                                        , ObjectPoolBase * pool)
 {
-    //  A nice procedure here is to unmap the pool's pages one-by-one, starting
-    //  from the highest. The kernel heap cursor will be pulled back if possible.
+    Handle res = Vmm::FreePages(nullptr
+        , reinterpret_cast<uintptr_t>(pool)
+        , RoundUp(objectSize * pool->Capacity + headerSize, PageSize));
 
-    Handle res;
+    assert(res.IsOkayResult(), "Failed to unmap object pool.")
+        ("pool", (void *)pool)
+        ("size", RoundUp(objectSize * pool->Capacity + headerSize, PageSize))
+        (res);
 
-    bool decrementedHeapCursor = true;
-    //  Initial value is for simplifying the algorithm below.
-
-    size_t const pageCount = RoundUp(objectSize * pool->Capacity + headerSize, PageSize) / PageSize;
-
-    vaddr_t vaddr = (vaddr_t)pool + (pageCount - 1) * PageSize;
-    size_t i = pageCount;
-
-    for (/* nothing */; i > 0; --i, vaddr -= PageSize)
-    {
-        res = Vmm::UnmapPage(nullptr, vaddr);
-
-        assert_or(res.IsOkayResult()
-            , "Failed to unmap page #%us from pool %Xp.%n"
-            , i, pool)
-        {
-            break;
-
-            //  The rest of the function will attempt to adapt.
-        }
-
-        vaddr_t expectedCursor = vaddr + PageSize;
-
-        if (decrementedHeapCursor)
-            decrementedHeapCursor = Vmm::KernelHeapCursor.CmpXchgStrong(expectedCursor, vaddr);
-    }
-
-    //  TODO: Salvage pool when it failed to remove all pages.
-    //if (i > 0 && i < pageCount)
-
-    return i < pageCount
-        ? HandleResult::Okay // At least one page was freed so the pool needs removal...
-        : HandleResult::UnsupportedOperation;
+    return res;
 }

@@ -43,6 +43,11 @@
 
 namespace Beelzebub { namespace Memory
 {
+    void FillPool(ObjectPoolBase volatile * volatile pool
+                , size_t const objectSize
+                , size_t const headerSize
+                , obj_ind_t const objectCount);
+
     Handle AcquirePoolInKernelHeap(size_t objectSize
                                  , size_t headerSize
                                  , size_t minimumObjects

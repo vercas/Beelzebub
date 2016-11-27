@@ -55,6 +55,8 @@ namespace Beelzebub
         static size_t Count;
 #endif
 
+        static bool Ready;
+
     protected:
         /*  Constructor(s)  */
 
@@ -72,13 +74,18 @@ namespace Beelzebub
 
         /*  Properties  */
 
-        static __hot size_t GetCount()
+        static __hot __forceinline size_t GetCount()
         {
 #if defined(__BEELZEBUB_SETTINGS_SMP)
             return Count;
 #else
             return 1;
 #endif
+        }
+
+        static __hot __forceinline bool IsReady()
+        {
+            return Ready;
         }
 
         static __hot System::CpuData * Get(size_t index);

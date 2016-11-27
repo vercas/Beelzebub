@@ -120,8 +120,8 @@ namespace Beelzebub { namespace Memory
             , Flags()
             , Type()
             , Content()
-            , NextFree(nullptr)
-            , PrevFree(nullptr)
+            , Next(nullptr)
+            , Prev(nullptr)
         {
 
         }
@@ -134,8 +134,8 @@ namespace Beelzebub { namespace Memory
             , Flags(flags)
             , Type(type)
             , Content(content)
-            , NextFree(nullptr)
-            , PrevFree(nullptr)
+            , Next(nullptr)
+            , Prev(nullptr)
         {
 
         }
@@ -148,8 +148,8 @@ namespace Beelzebub { namespace Memory
             , Flags(flags)
             , Type(type)
             , Content(content)
-            , NextFree(nullptr)
-            , PrevFree(nullptr)
+            , Next(nullptr)
+            , Prev(nullptr)
         {
 
         }
@@ -186,7 +186,7 @@ namespace Beelzebub { namespace Memory
         MemoryAllocationOptions Type;
         MemoryContent Content;
 
-        MemoryRegion * NextFree, * PrevFree;
+        MemoryRegion * Next, * Prev;
     };
 
     struct AdjacentMemoryRegion

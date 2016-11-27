@@ -55,14 +55,13 @@ namespace Beelzebub { namespace Memory
     class Vas
     {
     public:
-
         /*  Constructors  */
 
         inline Vas()
             : Lock()
             , Alloc()
             , Tree()
-            , FirstFree(nullptr)
+            , First(nullptr)
             , LastSearched(nullptr)
         {
             this->Tree.Cookie = this;
@@ -81,11 +80,30 @@ namespace Beelzebub { namespace Memory
         __hot Handle Allocate(vaddr_t & vaddr, size_t pageCnt
             , MemoryFlags flags, MemoryContent content
             , MemoryAllocationOptions type, bool lock = true);
+
+        __hot Handle Free(vaddr_t vaddr, size_t size
+            , bool sparse = false, bool tolerant = false, bool lock = true);
         
         __hot Handle Modify(vaddr_t vaddr, size_t pageCnt
             , MemoryFlags flags, bool lock = true);
 
         __hot MemoryRegion * FindRegion(vaddr_t vaddr);
+
+        /*  Support  */
+
+        __hot Handle AllocateNode(Utils::AvlTree<MemoryRegion>::Node * & node);
+        __hot Handle RemoveNode(Utils::AvlTree<MemoryRegion>::Node * const node);
+
+        virtual __hot bool PreCheck(bool & lock, bool alloc);
+        virtual __hot Handle PostCheck();
+
+        __hot __forceinline bool ImplementsPreCheck()
+        {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpmf-conversions"
+            return reinterpret_cast<void *>(this->*(&Vas::PreCheck)) != reinterpret_cast<void *>(&Vas::PreCheck);
+#pragma GCC diagnostic pop
+        }
 
         /*  Fields  */
 
@@ -94,6 +112,6 @@ namespace Beelzebub { namespace Memory
         ObjectAllocator Alloc;
         Utils::AvlTree<MemoryRegion> Tree;
 
-        MemoryRegion * FirstFree, * LastSearched;
+        MemoryRegion * First, * LastSearched;
     };
 }}

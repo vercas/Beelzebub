@@ -44,9 +44,9 @@
 #pragma once
 
 #include <execution/process.hpp>
+#include <memory/kernel.vas.hpp>
 #include <memory/enums.hpp>
 #include <beel/enums.kernel.hpp>
-#include <synchronization/atomic.hpp>
 
 namespace Beelzebub { namespace Memory
 {
@@ -58,12 +58,24 @@ namespace Beelzebub { namespace Memory
     public:
         /*  Statics  */
 
-        static Synchronization::Atomic<vaddr_t> KernelHeapCursor;
+        static Synchronization::Spinlock<> KernelHeapLock;
+
+        static KernelVas KVas;
 
         static vaddr_t UserlandStart;
         static vaddr_t UserlandEnd;
         static vaddr_t KernelStart;
         static vaddr_t KernelEnd;
+
+        /*  Utils  */
+
+        static Handle AcquirePoolForVas(size_t objectSize, size_t headerSize
+                                      , size_t minimumObjects
+                                      , ObjectPoolBase * & result);
+
+        static Handle EnlargePoolForVas(size_t objectSize, size_t headerSize
+                                      , size_t minimumExtraObjects
+                                      , ObjectPoolBase * pool);
 
         /*  Constructor(s)  */
 
@@ -157,7 +169,7 @@ namespace Beelzebub { namespace Memory
             , MemoryFlags const flags, MemoryContent content, uintptr_t & vaddr);
 
         static __hot __noinline Handle FreePages(Execution::Process * proc
-            , uintptr_t const vaddr, size_t const count);
+            , uintptr_t const vaddr, size_t const size);
 
         /*  Flags  */
 

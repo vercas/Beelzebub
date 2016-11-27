@@ -145,6 +145,8 @@ namespace Beelzebub
         KernelModule         = 0x04,
         //  The specific data structures of CPUs.
         CpuDatas             = 0x05,
+        //  Descriptors of a VAS.
+        VasDescriptors       = 0x06,
 
         //  A module loaded by the bootloader.
         BootModule           = 0x80,
@@ -152,6 +154,9 @@ namespace Beelzebub
         VbeFramebuffer       = 0x81,
         //  An ACPI table.
         AcpiTable            = 0x82,
+
+        //  VMM bootstrapping data.
+        VmmBootstrap         = 0xFE,
 
         //  Nothing, waiting to be used.
         Free                 = 0xFF,

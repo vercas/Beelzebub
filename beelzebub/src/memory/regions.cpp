@@ -130,8 +130,8 @@ namespace Beelzebub { namespace Terminals
     {
         return term << "[Memory Region " << (void *)value << ": " << (void *)value->Range.Start
             << "-" << (void *)value->Range.End
-            << "; next " << (void *)value->NextFree
-            << "; prev " << (void *)value->PrevFree << "]";
+            << "; next " << (void *)value->Next
+            << "; prev " << (void *)value->Prev << "]";
     }
 
     template<>
@@ -139,7 +139,7 @@ namespace Beelzebub { namespace Terminals
     {
         return term << "[Memory Region: " << (void *)value.Range.Start
             << "-" << (void *)value.Range.End
-            << "; next " << (void *)value.NextFree
-            << "; prev " << (void *)value.PrevFree << "]";
+            << "; next " << (void *)value.Next
+            << "; prev " << (void *)value.Prev << "]";
     }
 }}

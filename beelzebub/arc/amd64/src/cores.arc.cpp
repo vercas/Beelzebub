@@ -73,8 +73,10 @@ static __startup void CreateStacks(CpuData * const data);
 /*  Static  */
 
 #if defined(__BEELZEBUB_SETTINGS_SMP)
-size_t Cores::Count;
+size_t Cores::Count = 0;
 #endif
+
+bool Cores::Ready = false;
 
 /*  Initialization  */
 
@@ -107,7 +109,11 @@ void Cores::Register()
     size_t index = RegistrationCounter++;
 
     ASSERT(index < Count
-        , "Too many CPU cores attempted to register with the cores manager!");
+        , "Too many CPU cores attempted to register with the cores manager!")
+        (index)(Count);
+
+    if (index == Count - 1)
+        Ready = true;
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     CpuData * const data = reinterpret_cast<CpuData *>(DatasBase + index * DataSize);

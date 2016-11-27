@@ -834,7 +834,8 @@ Handle TestObjectAllocator(bool const bsp)
         pool that needs enlarging is allocated.
      */
 
-    InterruptGuard<false> ig;
+    // InterruptGuard<false> ig;
+    ASSERT(Interrupts::AreEnabled());
 
     if likely(!bsp)
     {

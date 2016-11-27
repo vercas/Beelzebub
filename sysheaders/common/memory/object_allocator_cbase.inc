@@ -625,6 +625,80 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
     //  pools.
 }
 
+Handle OBJA_ALOC_TYPE::ForceExpand(size_t estimate)
+{
+    if (this->BusyCount >= this->GetQuota())
+    {
+        return HandleResult::ObjaMaximumCapacity;
+
+        //  Forceful expansion is meaningless if the allocator is not allowed to
+        //  accomodate more objects.
+    }
+
+    Handle res;
+
+    ObjectPoolBase * justAllocated = nullptr;
+
+    //  First, let's make sure there is a first pool.
+
+#ifdef OBJA_UNINTERRUPTED
+    System::InterruptGuard<> intGuard;
+#endif
+
+#ifdef OBJA_MULTICONSUMER
+    this->LinkageLock.Acquire();
+#endif
+
+    if (this->AcquirePool == nullptr)
+    {
+#ifdef OBJA_MULTICONSUMER
+        this->LinkageLock.Release();
+#endif
+
+        return HandleResult::ObjectDisposed;
+    }
+
+    res = this->AcquirePool(this->ObjectSize, this->HeaderSize, Minimum(estimate, 1), justAllocated);
+    //  A minimum of two is given here so the current allocation can happen
+    //  and the next crawler can attempt to enlarge the pool if needed.
+
+    if (!res.IsOkayResult())
+    {
+        //  Failed to acquire. Oh, well...
+
+#ifdef OBJA_MULTICONSUMER
+        this->LinkageLock.Release();
+#endif
+
+        return res;
+    }
+
+    assert(justAllocated != nullptr
+        , "Object allocator %Xp apparently successfully acquired a pool (%H), which appears to be null!"
+        , this, res);
+
+    COMPILER_MEMORY_BARRIER();
+
+#ifdef OBJA_MULTICONSUMER
+    reinterpret_cast<OBJA_POOL_TYPE *>(justAllocated)->PropertiesLock.Reset();
+#endif
+
+    ++this->PoolCount;
+    this->Capacity += justAllocated->Capacity;
+    this->FreeCount += justAllocated->FreeCount;
+    //  There's a new pool!
+
+    justAllocated->Next = this->FirstPool;
+    this->FirstPool = reinterpret_cast<OBJA_POOL_TYPE *>(justAllocated);
+    //  Preppend this pool to the allocator.
+
+#ifdef OBJA_MULTICONSUMER
+    this->LinkageLock.Release();
+#endif
+
+    return res;
+}
+
 void OBJA_ALOC_TYPE::Dispose()
 {
 #ifdef OBJA_UNINTERRUPTED

@@ -138,7 +138,7 @@ end
 local availableTests = List {
     "MT",
     "STR",
-    "OBJA",
+    --"OBJA",
     "METAP",
     "EXCP",
     "APP",

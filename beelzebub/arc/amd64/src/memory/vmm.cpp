@@ -74,13 +74,12 @@ static __forceinline bool Is2MiBAligned(TInt val) { return (val & (LargePageSize
 
 /*  State Machine and Configuration  */
 
-Atomic<bool> KernelHeapOverflown {false};
-
-Spinlock<> VmmArc::KernelHeapLock;
-
 bool VmmArc::Page1GB = false;
 bool VmmArc::NX = false;
 bool VmmArc::PCID = false;
+
+static uintptr_t BootstrapKVasAddr;
+static size_t const BootstrapKVasPageCount = 3;
 
 inline void Alienate(Process * proc)
 {
@@ -90,8 +89,6 @@ inline void Alienate(Process * proc)
 }
 
 /*  Statics  */
-
-Atomic<vaddr_t> Vmm::KernelHeapCursor {VmmArc::KernelHeapStart};
 
 vaddr_t Vmm::UserlandStart = 1ULL << 21;    //  2 MiB
 vaddr_t Vmm::UserlandEnd = VmmArc::LowerHalfEnd;
@@ -147,7 +144,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     FrameAllocationSpace * cur = PmmArc::MainAllocator->FirstSpace;
     bool pendingLinksMapping = true;
-    vaddr_t curLoc = KernelHeapCursor; //  Used for serial allocation.
+    vaddr_t curLoc = VmmArc::KernelHeapStart; //  Used for serial allocation.
     Handle res; //  Temporary result.
 
     do
@@ -237,8 +234,6 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     } while ((cur = cur->Next) != nullptr);
 
-    KernelHeapCursor = curLoc;
-
     Pml4 & pml4 = *(VmmArc::GetLocalPml4());
 
     for (uint16_t i = 0; i < 256; ++i)
@@ -248,7 +243,53 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     Vmm::Switch(nullptr, bootstrapProc);
     //  Re-activate, to flush the identity maps.
 
-    return HandleResult::Okay;
+    BootstrapKVasAddr = curLoc;
+
+    for (size_t i = 0; i < BootstrapKVasPageCount; ++i)
+    {
+        paddr_t const paddr = Pmm::AllocateFrame();
+
+        ASSERT(paddr != nullpaddr);
+
+        res = Vmm::MapPage(bootstrapProc
+            , BootstrapKVasAddr + i * PageSize, paddr
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryMapOptions::NoLocking);
+
+        ASSERT(res.IsOkayResult(), "Failed to map page for bootstrap KVAS descriptor pool.")
+            (res)("page number", i + 1);
+    }
+
+    MSG("Instancing KVAS.%n");
+
+    new (&KVas) KernelVas();
+    //  Just making sure.
+
+    MSG("Initializing KVAS.%n");
+
+    res = KVas.Initialize(VmmArc::KernelHeapStart, VmmArc::KernelHeapEnd
+        , &AcquirePoolForVas, &EnlargePoolForVas, &ReleasePoolFromKernelHeap
+        , PoolReleaseOptions::KeepOne);
+    //  Prepare the VAS for usage.
+
+    ASSERT(res.IsOkayResult(), "Failed to initialize the kernel VAS.")(res);
+
+    MSG("Allocating VMM bootstrap region in KVAS.%n");
+
+    vaddr_t khs = VmmArc::KernelHeapStart;
+
+    res = KVas.Allocate(khs
+        , (curLoc - khs) / PageSize
+        , MemoryFlags::Global | MemoryFlags:: Writable
+        , MemoryContent::VmmBootstrap
+        , MemoryAllocationOptions::Permanent);
+
+    ASSERT(res.IsOkayResult(), "Failed to allocate VMM bootstrap area descriptor in kernel VAS.")(res);
+
+    KVas.Bootstrapping = false;
+    //  Should be ready!
+
+    return res;
 }
 
 Handle Vmm::Initialize(Process * proc)
@@ -376,7 +417,7 @@ static __hot inline Handle TranslateInternal(Process * proc
     }
 
     if (lockHeap)
-        heapLock = vaddr < VmmArc::LowerHalfEnd ? &proc->LocalTablesLock : &VmmArc::KernelHeapLock;
+        heapLock = vaddr < VmmArc::LowerHalfEnd ? &proc->LocalTablesLock : &Vmm::KernelHeapLock;
 
     LockGuardFlexible<Spinlock<> > heapLg {heapLock};
 
@@ -476,7 +517,7 @@ static __hot Handle MapPageInternal(Process * const proc
     if (lockHeap)
         heapLock = (vaddr < VmmArc::LowerHalfEnd
             ? &(proc->LocalTablesLock)
-            : &(VmmArc::KernelHeapLock));
+            : &(Vmm::KernelHeapLock));
 
     LockGuardFlexible<Spinlock<> > heapLg {heapLock};
 
@@ -683,7 +724,7 @@ Handle Vmm::MapRange(Process * proc
     if (0 == (opts & MemoryMapOptions::NoLocking))
         heapLock = (vaddr < VmmArc::LowerHalfEnd
             ? &(proc->LocalTablesLock)
-            : &(VmmArc::KernelHeapLock));
+            : &(Vmm::KernelHeapLock));
 
     withInterrupts (false)
     {
@@ -769,6 +810,66 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
     return HandleResult::Okay;
 }
 
+struct RecursiveUnmapState
+{
+    Process * const proc;
+    vaddr_t const vaddr, endAddr;
+    Spinlock<> * const alienLock;
+    Spinlock<> * const heapLock;
+    System::int_cookie_t const int_cookie;
+    bool const nonLocal;
+};
+
+static __hot Handle UnmapRecursively(RecursiveUnmapState * state)
+{
+    vaddr_t next;
+    paddr_t paddr;
+    FrameSize fSize;
+
+    Handle res = TranslateInternal(state->proc, state->vaddr, [&paddr, &fSize](PmlCommonEntry * pE, int level)
+    {
+        paddr = pE->GetAddress();
+        fSize = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
+
+        *pE = PmlCommonEntry();
+        //  Null.
+
+        return HandleResult::Okay;
+    }, false, false, state->nonLocal);
+
+    if unlikely(res != HandleResult::Okay)
+        goto bail;
+
+    if (fSize == FrameSize::_4KiB)
+        next = state->vaddr + PageSize;
+    else
+        next = RoundUp(state->vaddr + 1, LargePageSize);
+
+    if (next >= state->endAddr)
+        goto bail;
+    //  This means enough has been mapped!
+
+    res = UnmapRecursively(state);
+
+    goto end;
+
+bail:
+    if (state->alienLock != nullptr)
+        state->alienLock->Release();
+    if (state->heapLock != nullptr)
+        state->heapLock->Release();
+
+    System::Interrupts::RestoreState(state->int_cookie);
+
+end:
+    if unlikely(res != HandleResult::Okay)
+        return res;
+
+    assert(paddr != nullpaddr);
+
+    return Pmm::AdjustReferenceCount(paddr, -1);
+}
+
 Handle Vmm::UnmapRange(Process * proc
     , uintptr_t vaddr, size_t size
     , MemoryMapOptions opts)
@@ -777,22 +878,19 @@ Handle Vmm::UnmapRange(Process * proc
              || (vaddr + size > VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
         return HandleResult::PageMapIllegalRange;
 
+    if unlikely(size == 0)
+        return HandleResult::ArgumentOutOfRange;
+
     if unlikely(!Is4KiBAligned(vaddr) || !Is4KiBAligned(size))
         return HandleResult::AlignmentFailure;
-
-    ASSERT(0 != (opts & MemoryMapOptions::NoReferenceCounting)
-        , "Reference counting must be explicitly disabled when unmapping a memory range!");
-    //  TODO: Implement this recursively or something, so this can be done.
-    //  It's vital.
 
     ASSERT(0 == (opts & MemoryMapOptions::PreciseUnmapping)
         , "Precise unmapping is not supported yet.");
 
-    vaddr_t const end = vaddr + size;
-
     if (proc == nullptr)
         proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
+    vaddr_t const endAddr = vaddr + size;
     bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
 
     Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
@@ -803,40 +901,52 @@ Handle Vmm::UnmapRange(Process * proc
     if (0 == (opts & MemoryMapOptions::NoLocking))
         heapLock = (vaddr < VmmArc::LowerHalfEnd
             ? &(proc->LocalTablesLock)
-            : &(VmmArc::KernelHeapLock));
+            : &(Vmm::KernelHeapLock));
 
-    withInterrupts (false)
+    if likely(0 == (opts & MemoryMapOptions::NoReferenceCounting))
     {
-        //  THE SCOPE IS OPTIONALLY LOCK-GUARDED AS WELL!
+        System::int_cookie_t int_cookie = System::Interrupts::PushDisable();
 
-        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
-        LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+        if (alienLock != nullptr)
+            alienLock->Acquire();
+        if (heapLock != nullptr)
+            heapLock->Acquire();
 
-        while (vaddr < end)
-        {
-            paddr_t paddr;
-            FrameSize fSize;
+        RecursiveUnmapState state = {proc, vaddr, endAddr, alienLock, heapLock, int_cookie, nonLocal};
 
-            Handle res = TranslateInternal(proc, vaddr, [&paddr, &fSize](PmlCommonEntry * pE, int level)
-            {
-                paddr = pE->GetAddress();
-                fSize = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
-
-                *pE = PmlCommonEntry();
-                //  Null.
-
-                return HandleResult::Okay;
-            }, false, false, nonLocal);
-
-            if unlikely(res != HandleResult::Okay)
-                return res;
-
-            if (fSize == FrameSize::_4KiB)
-                vaddr += PageSize;
-            else
-                vaddr = RoundUp(vaddr + 1, LargePageSize);
-        }
+        return UnmapRecursively(&state);
     }
+    else
+        withInterrupts (false)
+        {
+            //  THE SCOPE IS OPTIONALLY LOCK-GUARDED AS WELL!
+
+            LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+            LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+
+            while (vaddr < endAddr)
+            {
+                FrameSize fSize;
+
+                Handle res = TranslateInternal(proc, vaddr, [&fSize](PmlCommonEntry * pE, int level)
+                {
+                    fSize = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
+
+                    *pE = PmlCommonEntry();
+                    //  Null.
+
+                    return HandleResult::Okay;
+                }, false, false, nonLocal);
+
+                if unlikely(res != HandleResult::Okay)
+                    return res;
+
+                if (fSize == FrameSize::_4KiB)
+                    vaddr += PageSize;
+                else
+                    vaddr = RoundUp(vaddr + 1, LargePageSize);
+            }
+        }
 
     return HandleResult::Okay;
 }
@@ -888,345 +998,7 @@ Handle Vmm::Translate(Execution::Process * proc, uintptr_t const vaddr, paddr_t 
     }, lock);
 }
 
-Handle Vmm::HandlePageFault(Execution::Process * proc
-    , uintptr_t const vaddr, PageFaultFlags const flags)
-{
-    if unlikely(0 != (flags & PageFaultFlags::Present))
-        return HandleResult::Failed;
-    //  Page is present. This means this is an access (write/execute) failure.
-
-    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
-
-    Memory::Vas * vas = &(proc->Vas);
-
-    Handle res = HandleResult::Okay;
-
-    paddr_t paddr;
-
-    vaddr_t const vaddr_algn = RoundDown(vaddr, PageSize);
-    MemoryRegion * reg;
-
-    vas->Lock.AcquireAsReader();
-
-#define RETURN(HRES) do { res = HandleResult::HRES; goto end; } while (false)
-
-    if (vas->LastSearched != nullptr && vas->LastSearched->Contains(vaddr))
-        reg = vas->LastSearched;
-        //  No need to check whether anything can be allocated in the page or not.
-    else
-    {
-        reg = vas->FindRegion(vaddr);
-
-        if unlikely( reg == nullptr
-                 || (reg->Type & MemoryAllocationOptions::PurposeMask) == MemoryAllocationOptions::Free)
-            RETURN(ArgumentOutOfRange);
-        //  Either of these conditions means this page fault was caused by a hit on
-        //  unallocated/freed memory.
-
-        if unlikely((reg->Type & MemoryAllocationOptions::StrategyMask) != MemoryAllocationOptions::AllocateOnDemand)
-            RETURN(PageUndemandable);
-        //  Regions which aren't allocated on demand aren't covered by this handler.
-    }
-
-    if unlikely((0 != (reg->Type & MemoryAllocationOptions::GuardLow ) && vaddr_algn <  (reg->Range.Start + PageSize))
-             || (0 != (reg->Type & MemoryAllocationOptions::GuardHigh) && vaddr_algn >= (reg->Range.End   - PageSize)))
-        RETURN(PageGuard);
-    //  Thie hit seems to have landed on a guard page.
-
-    if unlikely((0 != (flags & PageFaultFlags::Execute ) && 0 == (reg->Flags & MemoryFlags::Executable))
-             || (0 != (flags & PageFaultFlags::Userland) && 0 == (reg->Flags & MemoryFlags::Userland  )))
-        RETURN(Failed);
-    //  So this was either an attempt to execute a non-executable page, or to
-    //  access (in any way) a supervisor page from userland.
-
-    //  Reaching this point means this page is meant to be allocated.
-
-    vas->LastSearched = reg;
-    //  Make the next operation potentially faster. This is done even if the
-    //  following allocation fails, because it doesn't affect the correctness of
-    //  the VAS.
-
-    paddr = Pmm::AllocateFrame();
-
-    if unlikely(paddr == nullpaddr)
-        RETURN(OutOfMemory);
-    //  Okay... Out of memory... Bad.
-    //  TODO: Handle this.
-
-    res = Vmm::MapPage(proc, vaddr_algn, paddr, reg->Flags);
-
-    if unlikely(!res.IsOkayResult())
-    {
-        //  Okay, this really shouldn't fail.
-
-        Pmm::FreeFrame(paddr);
-        //  Get rid of the physical page if mapping failed. :frown:
-    }
-
-    vas->Lock.ReleaseAsReader();
-
-    if likely(vaddr < KernelStart)
-    {
-        //  This was a request in userland, therefore the page contents need to
-        //  be TERMINATED.
-
-        withWriteProtect (false)
-            memset(reinterpret_cast<void *>(vaddr_algn), 0xCA, PageSize);
-        //  It's all CACA!
-    }
-
-    return res;
-
-#undef RETURN
-end:
-    vas->Lock.ReleaseAsReader();
-
-    return res;
-}
-
-/*  Allocation  */
-
-Handle Vmm::AllocatePages(Process * proc, size_t const count
-    , MemoryAllocationOptions const type
-    , MemoryFlags const flags
-    , MemoryContent content
-    , uintptr_t & vaddr)
-{
-    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
-
-    if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand))
-    {
-        if (0 != (type & MemoryAllocationOptions::VirtualUser))
-            return proc->Vas.Allocate(vaddr, count, flags, content, type);
-        else
-            return HandleResult::NotImplemented;
-    }
-    else if (0 != (type & MemoryAllocationOptions::Commit))
-    {
-        Handle res; //  Intermediary result.
-
-        size_t const  lowerOffset = (0 != (type & MemoryAllocationOptions::GuardLow))
-            ? PageSize : 0;
-        size_t const higherOffset = (0 != (type & MemoryAllocationOptions::GuardHigh))
-            ? PageSize : 0;
-
-        Spinlock<> * heapLock;
-
-        vaddr_t ret;
-        size_t const size = count * PageSize;
-
-        if (0 != (type & MemoryAllocationOptions::VirtualUser))
-        {
-            res = proc->Vas.Allocate(vaddr, count, flags, content, type);
-
-            if unlikely(!res.IsOkayResult())
-                return res;
-
-            ret = vaddr - lowerOffset;
-            heapLock = &(proc->LocalTablesLock);
-        }
-        else
-        {
-            if unlikely(KernelHeapOverflown)
-                return HandleResult::UnsupportedOperation;
-            //  Not supported yet.
-
-            if (vaddr == nullvaddr)
-                ret = KernelHeapCursor.FetchAdd(size + lowerOffset + higherOffset);
-            else
-            {
-                ret = vaddr;
-                vaddr_t newCursor = vaddr + size + lowerOffset + higherOffset;
-
-                if likely(!KernelHeapCursor.CmpXchgStrong(ret, newCursor))
-                    return HandleResult::Failed;
-            }
-
-            if unlikely(ret > VmmArc::KernelHeapEnd)
-            {
-                KernelHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
-                KernelHeapOverflown = true;
-
-                return HandleResult::UnsupportedOperation;
-                //  Not supported yet.
-            }
-
-            vaddr = ret + lowerOffset;
-            heapLock = &(VmmArc::KernelHeapLock);
-        }
-
-        InterruptGuard<> intGuard;
-        //  Guard the rest of the scope from interrupts.
-
-        bool allocSucceeded = true;
-
-        LockGuard<Spinlock<> > heapLg {*heapLock};
-        //  Note: this ain't flexible because heapLock ain't gonna be null.
-
-        size_t offset;
-        for (offset = 0; offset < size; offset += PageSize)
-        {
-            paddr_t const paddr = Pmm::AllocateFrame();
-
-            if unlikely(paddr == nullpaddr) { allocSucceeded = false; break; }
-
-            res = Vmm::MapPage(proc, ret + lowerOffset + offset, paddr
-                , flags, MemoryMapOptions::NoLocking);
-
-            if unlikely(!res.IsOkayResult()) { allocSucceeded = false; break; }
-        }
-
-        if likely(allocSucceeded)
-        {
-            if likely(0 != (type & MemoryAllocationOptions::VirtualUser))
-                withWriteProtect (false)
-                    memset(reinterpret_cast<void *>(vaddr), 0xCA, size);
-
-            return HandleResult::Okay;
-        }
-        else
-        {
-            //  So, the allocation failed. Now all the pages that were allocated
-            //  need to be unmapped.
-
-            do
-            {
-                res = Vmm::UnmapPage(proc, ret + lowerOffset + offset, MemoryMapOptions::NoLocking);
-
-                if unlikely(!res.IsOkayResult() && !res.IsResult(HandleResult::PageUnmapped))
-                    return res;
-
-                offset -= PageSize;
-            } while (offset > 0);
-
-            return HandleResult::OutOfMemory;
-        }
-    }
-    else // Means it's used or it'll just be reserved.
-    {
-        if (0 != (type & MemoryAllocationOptions::VirtualUser))
-            return proc->Vas.Allocate(vaddr, count, flags, content, type);
-        //  Easy-peasy.
-
-        size_t const  lowerOffset = (0 != (type & MemoryAllocationOptions::GuardLow))
-            ? PageSize : 0;
-        size_t const higherOffset = (0 != (type & MemoryAllocationOptions::GuardHigh))
-            ? PageSize : 0;
-
-        if unlikely(KernelHeapOverflown)
-        {
-            return HandleResult::UnsupportedOperation;
-            //  Not supported yet.
-        }
-
-        vaddr_t ret = KernelHeapCursor.FetchAdd(count * PageSize + lowerOffset + higherOffset);
-
-        if unlikely(ret > VmmArc::KernelHeapEnd)
-        {
-            KernelHeapCursor.CmpXchgStrong(ret, ret - VmmArc::KernelHeapLength);
-            KernelHeapOverflown = true;
-
-            vaddr = nullvaddr;
-            return HandleResult::UnsupportedOperation;
-            //  Not supported yet.
-        }
-
-        vaddr = ret + lowerOffset;
-
-        return HandleResult::Okay;
-    }
-}
-
-Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const count)
-{
-    return HandleResult::NotImplemented;
-}
-
 /*  Flags  */
-
-Handle Vmm::CheckMemoryRegion(Execution::Process * proc
-    , uintptr_t addr, size_t size, MemoryCheckType type)
-{
-    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
-
-    Memory::Vas * vas = &(proc->Vas);
-
-    if (addr >= UserlandStart && addr < UserlandEnd)
-        vas = &(proc->Vas);
-    else if (addr >= KernelStart && addr < KernelEnd)
-        return HandleResult::NotImplemented;    //  TODO: Kernel VAS
-    else
-        return HandleResult::ArgumentOutOfRange;
-
-    vaddr_t const vaddr_end = addr + size;
-
-    Handle res = HandleResult::Okay;
-
-    PointerAndSize const chkrng = {addr, size};
-    MemoryFlags const mandatoryFlags = 
-        (  0 != (type & MemoryCheckType::Writable) ? MemoryFlags::Writable : MemoryFlags::None)
-        | (0 != (type & MemoryCheckType::Userland) ? MemoryFlags::Userland : MemoryFlags::None);
-
-    MemoryRegion * reg;
-
-#define RETURN(HRES) do { res = HandleResult::HRES; goto end; } while (false)
-
-    vas->Lock.AcquireAsReader();
-
-    if (vas->LastSearched != nullptr && vas->LastSearched->Contains(addr))
-        reg = vas->LastSearched;
-        //  No need to check whether anything can be allocated in the page or not.
-    else
-    {
-    find_region:
-        reg = vas->FindRegion(addr);
-
-        if unlikely(reg == nullptr)
-            RETURN(ArgumentOutOfRange);
-
-        if unlikely((0 != (type & MemoryCheckType::Free))
-                 && (MemoryAllocationOptions::Free == (reg->Type & MemoryAllocationOptions::PurposeMask)))
-            goto next_region;
-        //  So free memory was asked for, and this is a free region. Let's move on.
-
-        if unlikely((reg->Type & MemoryAllocationOptions::StrategyMask) == MemoryAllocationOptions::Reserve)
-            RETURN(PageReserved);
-        //  Regions which are reserved cannot be accessed like this.
-    }
-
-    if unlikely((0 != (reg->Type & MemoryAllocationOptions::GuardLow ) && DoRangesIntersect(chkrng, {reg->Range.Start         , PageSize}))
-             || (0 != (reg->Type & MemoryAllocationOptions::GuardHigh) && DoRangesIntersect(chkrng, {reg->Range.End - PageSize, PageSize})))
-        RETURN(PageGuard);
-    //  Thie region overlaps a guard page.
-
-    if unlikely((reg->Flags & mandatoryFlags) != mandatoryFlags)
-        RETURN(Failed);
-
-    if unlikely((0 != (type & MemoryCheckType::Private))
-         && (MemoryAllocationOptions::Share   == (reg->Type & MemoryAllocationOptions::PurposeMask)
-          || MemoryAllocationOptions::Runtime == (reg->Type & MemoryAllocationOptions::PurposeMask)))
-        RETURN(Failed);
-    //  Private memory was asked for, and this is shared or part of the runtime.
-
-    //  Reaching this point means this region is passing the check.
-
-next_region:
-    if unlikely(vaddr_end > reg->Range.End)
-    {
-        size_t const diff = reg->Range.End - addr;
-
-        addr += diff;   //  Equivalent to addr = reg->Range.End
-        size -= diff;
-
-        goto find_region;
-    }
-
-#undef RETURN
-end:
-    vas->Lock.ReleaseAsReader();
-
-    return res;
-}
 
 Handle Vmm::GetPageFlags(Process * proc, uintptr_t const vaddr
     , MemoryFlags & flags, bool const lock)
@@ -1270,4 +1042,120 @@ Handle Vmm::SetPageFlags(Process * proc, uintptr_t const vaddr
         return res;
 
     return Vmm::InvalidatePage(proc, vaddr, true);
+}
+
+/*  Utils  */
+
+Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
+                                    , size_t minimumObjects, ObjectPoolBase * & result)
+{
+    uintptr_t addr;
+    size_t pageCount;
+
+    if likely(!KVas.Bootstrapping)
+    {
+        assert(headerSize >= sizeof(ObjectPoolBase)
+            , "The given header size apprats to be lower than the size of an "
+              "actual pool struct..?")
+            (headerSize)(sizeof(ObjectPoolBase));
+
+        pageCount = RoundUp(objectSize * minimumObjects + headerSize, PageSize) / PageSize;
+        addr = 0;
+
+        Handle res = Vmm::AllocatePages(nullptr
+            , pageCount
+            , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryContent::VasDescriptors
+            , addr);
+
+        if (!res.IsOkayResult())
+            return res;
+    }
+    else
+    {
+        addr = BootstrapKVasAddr;
+        pageCount = BootstrapKVasPageCount;
+    }
+
+    ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)(uintptr_t)addr;
+    //  I use a local variable here so `result` isn't dereferenced every time.
+
+    new (const_cast<ObjectPoolBase *>(pool)) ObjectPoolBase();
+    //  Construct in place to initialize the fields.
+
+    size_t const objectCount = ((pageCount * PageSize) - headerSize) / objectSize;
+    //  TODO: Get rid of this division and make the loop below stop when the
+    //  cursor reaches the end of the page(s).
+
+    FillPool(pool, objectSize, headerSize, (obj_ind_t)objectCount);
+
+    //  The pool was constructed in place, so the rest of the fields should
+    //  be in a good state.
+
+    result = const_cast<ObjectPoolBase *>(pool);
+
+    return HandleResult::Okay;
+}
+
+Handle Vmm::EnlargePoolForVas(size_t objectSize, size_t headerSize
+                            , size_t minimumExtraObjects, ObjectPoolBase * pool)
+{
+    size_t const oldPageCount = RoundUp(objectSize * pool->Capacity + headerSize, PageSize) / PageSize;
+    size_t newPageCount = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize) / PageSize;
+
+    ASSERT(newPageCount > oldPageCount
+        , "New page count should be larger than the old page count "
+          "of a pool that needs enlarging!%nIt appears that the previous capacity"
+          "is wrong.")
+        (newPageCount)(oldPageCount);
+
+    vaddr_t vaddr = oldPageCount * PageSize + (vaddr_t)pool;
+    vaddr_t const oldEnd = vaddr;
+
+    Handle res = Vmm::AllocatePages(nullptr
+        , newPageCount - oldPageCount
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::VasDescriptors
+        , vaddr);
+
+    if likely(!res.IsOkayResult())
+        return res;
+
+    assert(vaddr == oldEnd);
+
+    obj_ind_t const oldObjectCount = pool->Capacity;
+    obj_ind_t const newObjectCount = ((newPageCount * PageSize) - headerSize) / objectSize;
+
+    uintptr_t cursor = (uintptr_t)pool + headerSize + oldObjectCount * objectSize;
+    FreeObject * last = nullptr;
+
+    if (pool->FreeCount > 0)
+        last = pool->GetLastFreeObject(objectSize, headerSize);
+
+    for (obj_ind_t i = oldObjectCount; i < newObjectCount; ++i, cursor += objectSize)
+    {
+        FreeObject * const obj = (FreeObject *)cursor;
+
+        if unlikely(last == nullptr)
+            pool->FirstFreeObject = i;
+        else
+            last->Next = i;
+
+        last = obj;
+    }
+
+    //  After the loop is finished, `last` will point to the very last object
+    //  in the pool. `newObjectCount - 1` will be the index of the last object.
+
+    pool->LastFreeObject = (obj_ind_t)newObjectCount - 1;
+    last->Next = obj_ind_invalid;
+
+    pool->Capacity = newObjectCount;
+    pool->FreeCount += newObjectCount - oldObjectCount;
+    //  This is incremented because they could've been free objects prior to
+    //  enlarging the pool.
+
+    return HandleResult::Okay;
 }

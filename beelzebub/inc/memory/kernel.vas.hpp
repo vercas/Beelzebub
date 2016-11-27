@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,21 +39,44 @@
 
 #pragma once
 
-#include <memory/object_allocator_pools.hpp>
+#include <memory/vas.hpp>
+#include <synchronization/atomic.hpp>
 
 namespace Beelzebub { namespace Memory
 {
-    Handle AcquirePoolInKernelHeap(size_t objectSize
-                                 , size_t headerSize
-                                 , size_t minimumObjects
-                                 , ObjectPoolBase * & result);
+    /**
+     *  The kernel's virtual address space.
+     */
+    class KernelVas : public Vas
+    {
+        /*  Statics  */
 
-    Handle EnlargePoolInKernelHeap(size_t objectSize
-                                 , size_t headerSize
-                                 , size_t minimumExtraObjects
-                                 , ObjectPoolBase * pool);
+        static constexpr uint32_t const SpecialLockFree = 0xFFFFFFFFU;
 
-    Handle ReleasePoolFromKernelHeap(size_t objectSize
-                                   , size_t headerSize
-                                   , ObjectPoolBase * pool);
+        static constexpr size_t const FreeDescriptorsThreshold = 4;
+
+    public:
+        /*  Constructors  */
+
+        inline KernelVas()
+            : Vas()
+            , SpecialAllocationLocker(SpecialLockFree)
+            , Bootstrapping(true)
+        {
+
+        }
+
+        KernelVas(KernelVas const &) = delete;
+        KernelVas & operator =(KernelVas const &) = delete;
+
+        /*  Support  */
+
+        virtual __hot bool PreCheck(bool & lock, bool alloc) override;
+        virtual __hot Handle PostCheck() override;
+
+        /*  Fields  */
+
+        Synchronization::Atomic<uint32_t> SpecialAllocationLocker;
+        bool Bootstrapping;
+    };
 }}

@@ -66,8 +66,6 @@ namespace Beelzebub { namespace Memory
         static constexpr vsize_t const KernelHeapLength    = KernelHeapEnd - KernelHeapStart;
         static constexpr vsize_t const KernelHeapPageCount = KernelHeapLength >> 12;
 
-        static Synchronization::Spinlock<> KernelHeapLock;
-
         static bool Page1GB, NX, PCID;
 
         //  End of the lower half address range.

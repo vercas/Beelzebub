@@ -125,6 +125,8 @@ public:
     __hot __noinline Handle DeallocateObject(void * const object);
     //  These are complex methods and GCC will not be intimidated.
 
+    __noinline Handle ForceExpand(size_t estimate = 1);
+
     /// <summary>Performs total and utter destruction of the allocator.</summary>
     __cold __noinline void Dispose();
 

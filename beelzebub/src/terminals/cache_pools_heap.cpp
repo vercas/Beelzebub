@@ -135,42 +135,11 @@ Handle Terminals::EnlargeCharPoolInKernelHeap(size_t minSize
 Handle Terminals::ReleaseCharPoolFromKernelHeap(size_t headerSize
                                               , CharPool * pool)
 {
-    //  A nice procedure here is to unmap the pool's pages one-by-one, starting
-    //  from the highest. The kernel heap cursor will be pulled back if possible.
+    Handle res = Vmm::FreePages(nullptr
+        , reinterpret_cast<uintptr_t>(pool)
+        , RoundUp(pool->Capacity + 1 + headerSize, PageSize));
 
-    Handle res;
+    assert(res.IsOkayResult(), "Failed to unmap object pool.")("pool", (void *)pool)(res);
 
-    bool decrementedHeapCursor = true;
-    //  Initial value is for simplifying the algorithm below.
-
-    size_t const pageCount = RoundUp(pool->Capacity + 1 + headerSize, PageSize) / PageSize;
-
-    vaddr_t vaddr = (vaddr_t)reinterpret_cast<uintptr_t>(pool) + (pageCount - 1) * PageSize;
-    size_t i = pageCount;
-
-    for (/* nothing */; i > 0; --i, vaddr -= PageSize)
-    {
-        res = Vmm::UnmapPage(nullptr, vaddr);
-
-        assert_or(res.IsOkayResult()
-            , "Failed to unmap page #%us from pool %Xp.%n"
-            , i, pool)
-        {
-            break;
-
-            //  The rest of the function will attempt to adapt.
-        }
-
-        vaddr_t expectedCursor = vaddr + PageSize;
-
-        if (decrementedHeapCursor)
-            decrementedHeapCursor = Vmm::KernelHeapCursor.CmpXchgStrong(expectedCursor, vaddr);
-    }
-
-    //  TODO: Salvage pool when it failed to remove all pages.
-    //if (i > 0 && i < pageCount)
-
-    return i < pageCount
-        ? HandleResult::Okay // At least one page was freed so the pool needs removal...
-        : HandleResult::UnsupportedOperation;
+    return res;
 }
