@@ -1364,7 +1364,7 @@ Handle InitializeAp(uint32_t const lapicId
     vaddr_t vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
-        , CpuStackSize / PageSize
+        , CpuStackSize
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable

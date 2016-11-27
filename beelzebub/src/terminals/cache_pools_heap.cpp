@@ -47,22 +47,6 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 
-static __noinline Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
-{
-    vaddr_t vaddr = nullvaddr;
-
-    Handle res = Vmm::AllocatePages(nullptr
-        , pageCount
-        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::Generic
-        , vaddr);
-
-    address = (uintptr_t)vaddr;
-
-    return res;
-}
-
 Handle Terminals::AcquireCharPoolInKernelHeap(size_t minSize
                                             , size_t headerSize
                                             , CharPool * & result)
@@ -72,10 +56,15 @@ Handle Terminals::AcquireCharPoolInKernelHeap(size_t minSize
           "actual pool struct (%us)..?%n"
         , headerSize, sizeof(CharPool));
 
-    size_t const pageCount = RoundUp(minSize + 1 + headerSize, PageSize) / PageSize;
+    size_t const size = RoundUp(minSize + 1 + headerSize, PageSize);
     uintptr_t addr = 0;
 
-    Handle res = GetKernelHeapPages(pageCount, addr);
+    Handle res = Vmm::AllocatePages(nullptr
+        , size
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::Generic
+        , addr);
 
     if (!res.IsOkayResult())
         return res;
@@ -83,7 +72,7 @@ Handle Terminals::AcquireCharPoolInKernelHeap(size_t minSize
     CharPool * pool = reinterpret_cast<CharPool *>(addr);
     //  I use a local variable here so `result` isn't dereferenced every time.
 
-    size_t const capacity = (pageCount * PageSize) - headerSize - 1;
+    size_t const capacity = size - headerSize - 1;
     //  That -1 is for a null terminator!
 
     new (pool) CharPool((uint32_t)capacity);
@@ -102,19 +91,18 @@ Handle Terminals::EnlargeCharPoolInKernelHeap(size_t minSize
                                             , size_t headerSize
                                             , CharPool * pool)
 {
-    size_t const oldPageCount = RoundUp(pool->Capacity + 1 + headerSize, PageSize) / PageSize;
-    size_t newPageCount = RoundUp(pool->Capacity + 1 + minSize + headerSize, PageSize) / PageSize;
+    size_t const oldSize = RoundUp(pool->Capacity + 1 + headerSize, PageSize);
+    size_t const newSize = RoundUp(pool->Capacity + 1 + minSize + headerSize, PageSize);
 
-    assert(newPageCount > oldPageCount
-        , "New page count (%us) should be larger than the old page count (%us) "
-          "of a pool that needs enlarging!%nIt appears that the previous capacity"
-          "is wrong.%n"
-        , newPageCount, oldPageCount);
+    assert(newSize > oldSize
+        , "New size should be larger than the old size of a pool that needs enlarging!%n"
+          "It appears that the previous capacity is wrong.%n")
+        (newSize)(oldSize);
 
-    vaddr_t vaddr = oldPageCount * PageSize + (vaddr_t)pool;
+    vaddr_t vaddr = oldSize + (vaddr_t)pool;
 
     Handle res = Vmm::AllocatePages(nullptr
-        , newPageCount - oldPageCount
+        , newSize - oldSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::Generic
@@ -123,10 +111,10 @@ Handle Terminals::EnlargeCharPoolInKernelHeap(size_t minSize
     if likely(!res.IsOkayResult())
         return res;
 
-    uint32_t const oldSize = pool->Capacity;
-    pool->Capacity = (newPageCount * PageSize) - headerSize - 1;
+    uint32_t const oldCap = pool->Capacity;
+    pool->Capacity = newSize - headerSize - 1;
 
-    memset(const_cast<char *>(pool->GetString()) + oldSize, 0, pool->Capacity - oldSize);
+    memset(const_cast<char *>(pool->GetString()) + oldCap, 0, pool->Capacity - oldCap);
     //  Now anything appended will still yield a valid string.
 
     return HandleResult::Okay;

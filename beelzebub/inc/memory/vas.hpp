@@ -77,7 +77,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Operations  */
 
-        __hot Handle Allocate(vaddr_t & vaddr, size_t pageCnt
+        __hot Handle Allocate(vaddr_t & vaddr, size_t size
             , MemoryFlags flags, MemoryContent content
             , MemoryAllocationOptions type, bool lock = true);
 

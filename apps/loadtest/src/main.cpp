@@ -30,7 +30,7 @@ beginning:
         for (uint8_t * ptr = reinterpret_cast<uint8_t *>(someAddress + 8); (uintptr_t)ptr < someEnd; ++ptr)
             ++(*ptr);
 
-        DEBUG_TERM << "Syscall test from userland app!" << EndLine;
+        // DEBUG_TERM << "Syscall test from userland app!" << EndLine;
     }
 
     double volatile d1 = -1, d2 = 0, d3 = 1;

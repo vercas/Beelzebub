@@ -123,7 +123,7 @@ void TestApplication()
 
     uintptr_t stackVaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(nullptr, 3
+    res = Vmm::AllocatePages(nullptr, 3 * PageSize
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable
@@ -151,7 +151,7 @@ void TestApplication()
 
     stackVaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(nullptr, 3
+    res = Vmm::AllocatePages(nullptr, 3 * PageSize
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable
@@ -187,7 +187,7 @@ void * JumpToRing3(void * arg)
     uintptr_t userStackBottom = nullvaddr;
 
     res = Vmm::AllocatePages(&testProcess
-        , userStackPageCount
+        , userStackPageCount * PageSize
         , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
         | MemoryAllocationOptions::GuardLow         | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Userland | MemoryFlags::Writable
@@ -217,7 +217,7 @@ void * JumpToRing3(void * arg)
     //  Then pass on the app image.
 
     res = Vmm::AllocatePages(nullptr
-        , RoundUp(loadtestEnd - loadtestStart, PageSize) / PageSize
+        , RoundUp(loadtestEnd - loadtestStart, PageSize)
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
         , MemoryFlags::Userland | MemoryFlags::Writable
         , MemoryContent::Generic
@@ -241,7 +241,7 @@ void * JumpToRing3(void * arg)
     vaddr_t testRegVaddr = 0x300000000000;
 
     res = Vmm::AllocatePages(&testProcess
-        , 0x30000 / PageSize
+        , 0x30000
         , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser
         , MemoryFlags::Userland | MemoryFlags::Writable
         , MemoryContent::Generic

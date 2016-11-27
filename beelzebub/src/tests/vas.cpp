@@ -109,7 +109,7 @@ void TestVas()
     uintptr_t stackVaddr = nullvaddr;
 
     res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , 3
+        , 3 * PageSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap | MemoryAllocationOptions::ThreadStack
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::Generic, stackVaddr);
@@ -136,7 +136,7 @@ void * TestThreadCode(void *)
     uintptr_t vaddr = nullvaddr, vaddr1, vaddr2;
 
     Handle res = Vmm::AllocatePages(Cpu::GetProcess()
-        , 4
+        , 4 * PageSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
         , MemoryFlags::Userland | MemoryFlags::Writable
         , MemoryContent::Generic
@@ -166,7 +166,7 @@ void * TestThreadCode(void *)
     vaddr = Vmm::UserlandStart + 1337 * PageSize;
 
     res = Vmm::AllocatePages(Cpu::GetProcess()
-        , 5
+        , 5 * PageSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
         , MemoryFlags::Userland | MemoryFlags::Writable
         , MemoryContent::Generic
@@ -199,7 +199,7 @@ void * TestThreadCode(void *)
     vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(Cpu::GetProcess()
-        , 6
+        , 6 * PageSize
         , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser | MemoryAllocationOptions::GuardLow
         , MemoryFlags::Userland | MemoryFlags::Writable
         , MemoryContent::Generic

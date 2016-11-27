@@ -85,7 +85,7 @@ Handle Cores::Initialize(size_t const count)
     size_t const size = RoundUp(count * DataSize, PageSize);
 
     Handle res = Vmm::AllocatePages(nullptr
-        , size / PageSize
+        , size
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable
@@ -192,7 +192,7 @@ void CreateStacks(CpuData * const data)
     vaddr_t vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
-        , DoubleFaultStackSize / PageSize
+        , DoubleFaultStackSize
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable
@@ -211,7 +211,7 @@ void CreateStacks(CpuData * const data)
     vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
-        , PageFaultStackSize / PageSize
+        , PageFaultStackSize
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable

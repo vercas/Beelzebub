@@ -165,7 +165,7 @@ namespace Beelzebub { namespace Memory
         /*  Allocation  */
 
         static __hot __noinline Handle AllocatePages(Execution::Process * proc
-            , size_t const count, MemoryAllocationOptions const type
+            , size_t const size, MemoryAllocationOptions const type
             , MemoryFlags const flags, MemoryContent content, uintptr_t & vaddr);
 
         static __hot __noinline Handle FreePages(Execution::Process * proc

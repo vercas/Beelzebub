@@ -131,7 +131,7 @@ Handle Acpi::Remap()
     size_t const size = RangeTop - RangeBottom;
 
     Handle res = Vmm::AllocatePages(nullptr
-        , size / PageSize
+        , size
         , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global
         , MemoryContent::AcpiTable

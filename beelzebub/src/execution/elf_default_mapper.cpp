@@ -106,7 +106,7 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
             pageFlags |= MemoryFlags::Writable;
 
         res = Vmm::AllocatePages(proc
-            , (phdr.VSize + PageSize - 1) / PageSize
+            , RoundUp(phdr.VSize, PageSize)
             , MemoryAllocationOptions::Commit  | MemoryAllocationOptions::VirtualUser
             | MemoryAllocationOptions::Permanent
             , pageFlags
@@ -130,7 +130,7 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
     else
     {
         res = Vmm::AllocatePages(proc
-            , (phdr.VSize + PageSize - 1) / PageSize
+            , RoundUp(phdr.VSize, PageSize)
             , MemoryAllocationOptions::Used    | MemoryAllocationOptions::VirtualUser
             | MemoryAllocationOptions::Permanent
             , pageFlags

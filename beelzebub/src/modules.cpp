@@ -102,11 +102,11 @@ Handle Modules::Load(uintptr_t start, size_t len)
 
     //  So, the ELF file is parsed.
 
-    size_t const pageCnt = RoundUp(kmod->Image.GetSizeInMemory(), PageSize) / PageSize;
+    size_t const size = RoundUp(kmod->Image.GetSizeInMemory(), PageSize);
     vaddr_t base = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
-        , pageCnt
+        , size
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Writable | MemoryFlags::Executable | MemoryFlags::Global

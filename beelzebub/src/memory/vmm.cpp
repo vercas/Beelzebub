@@ -260,7 +260,7 @@ end:
 
 /*  Allocation  */
 
-Handle Vmm::AllocatePages(Process * proc, size_t const count
+Handle Vmm::AllocatePages(Process * proc, size_t const size
     , MemoryAllocationOptions const type
     , MemoryFlags const flags
     , MemoryContent content
@@ -268,12 +268,15 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
-    if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand))
+    if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand)
+        || 0 == (type & MemoryAllocationOptions::Commit))
     {
+        //  No AoD and no commit means it's just reserved.
+
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
-            return proc->Vas.Allocate(vaddr, count, flags, content, type);
+            return proc->Vas.Allocate(vaddr, size, flags, content, type);
         else
-            return KVas.Allocate(vaddr, count, flags, content, type);
+            return KVas.Allocate(vaddr, size, flags, content, type);
     }
     else if (0 != (type & MemoryAllocationOptions::Commit))
     {
@@ -282,17 +285,16 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
         Spinlock<> * heapLock;
 
         vaddr_t ret;    //  Just a quicker way...
-        size_t const size = count * PageSize;
 
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
         {
-            res = proc->Vas.Allocate(vaddr, count, flags, content, type);
+            res = proc->Vas.Allocate(vaddr, size, flags, content, type);
 
             heapLock = &(proc->LocalTablesLock);
         }
         else
         {
-            res = KVas.Allocate(vaddr, count, flags, content, type);
+            res = KVas.Allocate(vaddr, size, flags, content, type);
 
             heapLock = &(Vmm::KernelHeapLock);
         }
@@ -348,13 +350,6 @@ Handle Vmm::AllocatePages(Process * proc, size_t const count
 
             return HandleResult::OutOfMemory;
         }
-    }
-    else // Means it's used or it'll just be reserved.
-    {
-        if (0 != (type & MemoryAllocationOptions::VirtualUser))
-            return proc->Vas.Allocate(vaddr, count, flags, content, type);
-        else
-            return KVas.Allocate(vaddr, count, flags, content, type);
     }
 }
 

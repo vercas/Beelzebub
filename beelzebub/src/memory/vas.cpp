@@ -71,7 +71,7 @@ Handle Vas::Initialize(vaddr_t start, vaddr_t end
 
 /*  Operations  */
 
-Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
+Handle Vas::Allocate(vaddr_t & vaddr, size_t size
     , MemoryFlags flags, MemoryContent content
     , MemoryAllocationOptions type, bool lock)
 {
@@ -81,19 +81,13 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
     Handle res = HandleResult::Okay;
 
     size_t lowOffset = 0, highOffset = 0;
-    size_t effectivePageCnt = pageCnt;
+    size_t effectiveSize = size;
 
     if (0 != (type & MemoryAllocationOptions::GuardLow))
-    {
-        lowOffset = PageSize;
-        ++effectivePageCnt;
-    }
+        effectiveSize += lowOffset = PageSize;
 
     if (0 != (type & MemoryAllocationOptions::GuardHigh))
-    {
-        highOffset = PageSize;
-        ++effectivePageCnt;
-    }
+        effectiveSize += highOffset = PageSize;
 
     System::int_cookie_t cookie;
     //  When locking, the code shan't be interrupted!
@@ -118,6 +112,8 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
             goto end;
     }
 
+    this->LastSearched = nullptr;
+
     // DEBUG_TERM << " <ALLOC> ";
 
     if (vaddr == nullvaddr)
@@ -132,7 +128,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
         {
             // DEBUG_TERM << *reg;
 
-            if (reg->Content == MemoryContent::Free && reg->GetPageCount() >= effectivePageCnt)
+            if (reg->Content == MemoryContent::Free && reg->GetSize() >= effectiveSize)
             {
                 //  Oh yush, this region contains more than enough pages!
 
@@ -142,10 +138,10 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
                 //  For now, it allocates at the end of the space, so it doesn't
                 //  slow down future allocations in any meaningful way.
 
-                vaddr = reg->Range.End - effectivePageCnt * PageSize + lowOffset;
+                vaddr = reg->Range.End - effectiveSize + lowOffset;
                 //  New region begins where the free one ends, after shrinking.
 
-                res = this->Allocate(vaddr, pageCnt, flags, content, type, false);
+                res = this->Allocate(vaddr, size, flags, content, type, false);
 
                 goto end;
             }
@@ -167,7 +163,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
 
         // DEBUG_TERM << " <VADDR " << (void *)vaddr << "> ";
 
-        MemoryRange rang {vaddr - lowOffset, vaddr + pageCnt * PageSize + highOffset};
+        MemoryRange rang {vaddr - lowOffset, vaddr + size + highOffset};
         //  This will be the exact range of the allocation.
 
         MemoryRegion * reg = this->First;
@@ -176,9 +172,9 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
         {
             // DEBUG_TERM << reg;
 
-            size_t regPageCnt = reg->GetPageCount();
+            size_t regSize = reg->GetSize();
 
-            if (reg->Content != MemoryContent::Free || !rang.IsIn(reg->Range) || effectivePageCnt > regPageCnt)
+            if (reg->Content != MemoryContent::Free || !rang.IsIn(reg->Range) || effectiveSize > regSize)
             {
                 reg = reg->Next;
 
@@ -187,7 +183,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t pageCnt
 
             //  So it fits!
 
-            if (regPageCnt == effectivePageCnt)
+            if (regSize == effectiveSize)
             {
                 //  This region appears to be an exact fit. What a relief, and
                 //  coincidence!
@@ -414,6 +410,9 @@ Handle Vas::Free(vaddr_t vaddr, size_t size, bool sparse, bool tolerant, bool lo
 
     reg = this->Tree.Find<vaddr_t>(vaddr);
 
+    if (this->LastSearched == reg)
+        this->LastSearched = nullptr;
+
     if (endAddr > reg->Range.End)
     {
         if (sparse)
@@ -475,9 +474,6 @@ Handle Vas::Free(vaddr_t vaddr, size_t size, bool sparse, bool tolerant, bool lo
                         next = reg->Next->Next;
                         reg = reg->Prev;    //  Variable is repurposed.
 
-                        res = this->Tree.Remove<vaddr_t>(vaddr);
-                        if unlikely(!res.IsOkayResult()) goto end;
-
                         res = this->Tree.Remove<vaddr_t>(newEnd - 1);
                         if unlikely(!res.IsOkayResult()) goto end;
                     }
@@ -490,10 +486,10 @@ Handle Vas::Free(vaddr_t vaddr, size_t size, bool sparse, bool tolerant, bool lo
                         newEnd = reg->Range.End;
                         next = reg->Next;
                         reg = reg->Prev;    //  Variable is repurposed.
-
-                        res = this->Tree.Remove<vaddr_t>(vaddr);
-                        if unlikely(!res.IsOkayResult()) goto end;
                     }
+
+                    res = this->Tree.Remove<vaddr_t>(vaddr);
+                    if unlikely(!res.IsOkayResult()) goto end;
 
                     //  Now there's room to expand the previous descriptor, which is in `reg`.
 

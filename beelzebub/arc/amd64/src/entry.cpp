@@ -396,7 +396,7 @@ void RemapTerminal(TerminalBase * const terminal)
         vaddr_t vaddr = nullvaddr;
 
         res = Vmm::AllocatePages(&BootstrapProcess
-            , size / PageSize
+            , size
             , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryContent::VbeFramebuffer
@@ -471,7 +471,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
     vaddr_t vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(&BootstrapProcess
-        , size / PageSize
+        , size
         , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::BootModule
@@ -563,7 +563,7 @@ __startup void InitializeTestThread(Thread * const t, Process * const p)
     uintptr_t stackVaddr = nullvaddr;
 
     res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , 3
+        , 3 * PageSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::ThreadStack
@@ -597,7 +597,7 @@ __startup char * AllocateTestPage(Process * const p)
         , p);
 
     res = Vmm::AllocatePages(&BootstrapProcess
-        , 1
+        , 1 * PageSize
         , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::Generic

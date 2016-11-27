@@ -103,10 +103,9 @@ Handle Runtime64::Initialize()
     {
         vaddr_t vaddr = nullvaddr;
         size_t const size = bnd.Size;
-        size_t const pageCnt = (size + PageSize - 1) / PageSize;
 
         Handle res = Vmm::AllocatePages(&BootstrapProcess
-            , pageCnt
+            , RoundUp(size, PageSize)
             , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
             , MemoryFlags::Global | MemoryFlags::Userland
             , MemoryContent::Generic

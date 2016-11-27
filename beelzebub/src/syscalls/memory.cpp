@@ -84,7 +84,7 @@ handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opt
     if (0 != (opts & mem_req_opts_t::Executable))
         flags |= MemoryFlags::Executable;
 
-    Handle res = Vmm::AllocatePages(nullptr, size / PageSize, type, flags, MemoryContent::Generic, addr);
+    Handle res = Vmm::AllocatePages(nullptr, size, type, flags, MemoryContent::Generic, addr);
 
     if unlikely(!res.IsOkayResult())
         return res;
@@ -105,7 +105,7 @@ handle_t Syscalls::MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t opt
     if unlikely(end < addr || end > Vmm::UserlandEnd)
         return HandleResult::ArgumentOutOfRange;
 
-    return HandleResult::UnsupportedOperation;
+    return Vmm::FreePages(nullptr, addr, size);
 }
 
 handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)

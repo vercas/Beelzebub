@@ -279,7 +279,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     vaddr_t khs = VmmArc::KernelHeapStart;
 
     res = KVas.Allocate(khs
-        , (curLoc - khs) / PageSize
+        , curLoc - khs
         , MemoryFlags::Global | MemoryFlags:: Writable
         , MemoryContent::VmmBootstrap
         , MemoryAllocationOptions::Permanent);
@@ -1050,7 +1050,7 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
                                     , size_t minimumObjects, ObjectPoolBase * & result)
 {
     uintptr_t addr;
-    size_t pageCount;
+    size_t size;
 
     if likely(!KVas.Bootstrapping)
     {
@@ -1059,11 +1059,11 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
               "actual pool struct..?")
             (headerSize)(sizeof(ObjectPoolBase));
 
-        pageCount = RoundUp(objectSize * minimumObjects + headerSize, PageSize) / PageSize;
         addr = 0;
+        size = RoundUp(objectSize * minimumObjects + headerSize, PageSize);
 
         Handle res = Vmm::AllocatePages(nullptr
-            , pageCount
+            , size
             , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryContent::VasDescriptors
@@ -1075,7 +1075,7 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
     else
     {
         addr = BootstrapKVasAddr;
-        pageCount = BootstrapKVasPageCount;
+        size = BootstrapKVasPageCount * PageSize;
     }
 
     ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)(uintptr_t)addr;
@@ -1084,7 +1084,7 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
     new (const_cast<ObjectPoolBase *>(pool)) ObjectPoolBase();
     //  Construct in place to initialize the fields.
 
-    size_t const objectCount = ((pageCount * PageSize) - headerSize) / objectSize;
+    size_t const objectCount = (size - headerSize) / objectSize;
     //  TODO: Get rid of this division and make the loop below stop when the
     //  cursor reaches the end of the page(s).
 
@@ -1101,20 +1101,19 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
 Handle Vmm::EnlargePoolForVas(size_t objectSize, size_t headerSize
                             , size_t minimumExtraObjects, ObjectPoolBase * pool)
 {
-    size_t const oldPageCount = RoundUp(objectSize * pool->Capacity + headerSize, PageSize) / PageSize;
-    size_t newPageCount = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize) / PageSize;
+    size_t const oldSize = RoundUp(objectSize * pool->Capacity + headerSize, PageSize);
+    size_t const newSize = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize);
 
-    ASSERT(newPageCount > oldPageCount
-        , "New page count should be larger than the old page count "
-          "of a pool that needs enlarging!%nIt appears that the previous capacity"
-          "is wrong.")
-        (newPageCount)(oldPageCount);
+    ASSERT(newSize > oldSize
+        , "New size should be larger than the old size of a pool that needs enlarging!%n"
+          "It appears that the previous capacity is wrong.")
+        (newSize)(oldSize);
 
-    vaddr_t vaddr = oldPageCount * PageSize + (vaddr_t)pool;
+    vaddr_t vaddr = oldSize + (vaddr_t)pool;
     vaddr_t const oldEnd = vaddr;
 
     Handle res = Vmm::AllocatePages(nullptr
-        , newPageCount - oldPageCount
+        , newSize - oldSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::VasDescriptors
@@ -1126,7 +1125,7 @@ Handle Vmm::EnlargePoolForVas(size_t objectSize, size_t headerSize
     assert(vaddr == oldEnd);
 
     obj_ind_t const oldObjectCount = pool->Capacity;
-    obj_ind_t const newObjectCount = ((newPageCount * PageSize) - headerSize) / objectSize;
+    obj_ind_t const newObjectCount = (newSize - headerSize) / objectSize;
 
     uintptr_t cursor = (uintptr_t)pool + headerSize + oldObjectCount * objectSize;
     FreeObject * last = nullptr;
