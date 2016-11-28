@@ -797,7 +797,7 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
         return HandleResult::Okay;
     }, 0 == (opts & MemoryMapOptions::NoLocking));
 
-    if unlikely(!res.IsOkayResult())
+    if unlikely(res != HandleResult::Okay)
         return res;
 
     //  The rest is done outside of the lambda because locks are unnecessary.
@@ -1038,7 +1038,7 @@ Handle Vmm::SetPageFlags(Process * proc, uintptr_t const vaddr
         return HandleResult::Okay;
     }, lock);
 
-    if (!res.IsOkayResult())
+    if (res != HandleResult::Okay)
         return res;
 
     return Vmm::InvalidatePage(proc, vaddr, true);
@@ -1047,7 +1047,7 @@ Handle Vmm::SetPageFlags(Process * proc, uintptr_t const vaddr
 /*  Utils  */
 
 Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
-                                    , size_t minimumObjects, ObjectPoolBase * & result)
+                            , size_t minimumObjects, ObjectPoolBase * & result)
 {
     uintptr_t addr;
     size_t size;
@@ -1069,7 +1069,7 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
             , MemoryContent::VasDescriptors
             , addr);
 
-        if (!res.IsOkayResult())
+        if (res != HandleResult::Okay)
             return res;
     }
     else
@@ -1119,7 +1119,7 @@ Handle Vmm::EnlargePoolForVas(size_t objectSize, size_t headerSize
         , MemoryContent::VasDescriptors
         , vaddr);
 
-    if likely(!res.IsOkayResult())
+    if likely(res != HandleResult::Okay)
         return res;
 
     assert(vaddr == oldEnd);

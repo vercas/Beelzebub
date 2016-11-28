@@ -79,15 +79,21 @@ KernelVas Vmm::KVas;
 Handle Vmm::HandlePageFault(Execution::Process * proc
     , uintptr_t const vaddr, PageFaultFlags const flags)
 {
+    //  Assumes interrupts are disabled upon call.
+
     if unlikely(0 != (flags & PageFaultFlags::Present))
         return HandleResult::Failed;
     //  Page is present. This means this is an access (write/execute) failure.
 
+    if unlikely(!((vaddr >= Vmm::UserlandStart && vaddr <= Vmm::UserlandEnd)
+               || (vaddr >= Vmm::KernelStart   && vaddr <= Vmm::KernelEnd  )))
+        return HandleResult::Failed;
+    //  The hit memory ought to be in either userland or the kernel heap.
+
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
-    Memory::Vas * vas = &(proc->Vas);
-
     Handle res = HandleResult::Okay;
+    Memory::Vas * const vas = (vaddr < Vmm::UserlandEnd) ? &(proc->Vas) : &KVas;
 
     paddr_t paddr;
 
@@ -143,7 +149,7 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
 
     res = Vmm::MapPage(proc, vaddr_algn, paddr, reg->Flags);
 
-    if unlikely(!res.IsOkayResult())
+    if unlikely(res != HandleResult::Okay)
     {
         //  Okay, this really shouldn't fail.
 
@@ -272,6 +278,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
         || 0 == (type & MemoryAllocationOptions::Commit))
     {
         //  No AoD and no commit means it's just reserved.
+        //  AoD and reserved are both very simple to handle.
 
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
             return proc->Vas.Allocate(vaddr, size, flags, content, type);
@@ -280,34 +287,30 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
     }
     else if (0 != (type & MemoryAllocationOptions::Commit))
     {
-        Handle res; //  Intermediary result.
-
+        Handle res;             //  Intermediary result.
+        vaddr_t ret = vaddr;    //  Just a quicker way...
         Spinlock<> * heapLock;
-
-        vaddr_t ret;    //  Just a quicker way...
 
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
         {
-            res = proc->Vas.Allocate(vaddr, size, flags, content, type);
+            res = proc->Vas.Allocate(ret, size, flags, content, type);
 
             heapLock = &(proc->LocalTablesLock);
         }
         else
         {
-            res = KVas.Allocate(vaddr, size, flags, content, type);
+            res = KVas.Allocate(ret, size, flags, content, type);
 
             heapLock = &(Vmm::KernelHeapLock);
         }
 
-        ret = vaddr;
+        vaddr = ret;
 
-        if unlikely(!res.IsOkayResult())
+        if unlikely(res != HandleResult::Okay)
             return res;
 
         InterruptGuard<> intGuard;
         //  Guard the rest of the scope from interrupts.
-
-        bool allocSucceeded = true;
 
         LockGuard<Spinlock<> > heapLg {*heapLock};
         //  Note: this ain't flexible because heapLock ain't gonna be null.
@@ -317,40 +320,35 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
         {
             paddr_t const paddr = Pmm::AllocateFrame();
 
-            if unlikely(paddr == nullpaddr) { allocSucceeded = false; break; }
+            if unlikely(paddr == nullpaddr)
+                goto backtrack;
 
             res = Vmm::MapPage(proc, ret + offset, paddr
                 , flags, MemoryMapOptions::NoLocking);
 
-            if unlikely(!res.IsOkayResult()) { allocSucceeded = false; break; }
+            if unlikely(res != HandleResult::Okay)
+                goto backtrack;
         }
 
-        if likely(allocSucceeded)
-        {
-            if likely(0 != (type & MemoryAllocationOptions::VirtualUser))
-                withWriteProtect (false)
-                    memset(reinterpret_cast<void *>(vaddr), 0xCA, size);
+        if likely(0 != (type & MemoryAllocationOptions::VirtualUser))
+            withWriteProtect (false)
+                memset(reinterpret_cast<void *>(ret), 0xCA, size);
 
-            return HandleResult::Okay;
-        }
-        else
-        {
-            //  So, the allocation failed. Now all the pages that were allocated
-            //  need to be unmapped.
+        return HandleResult::Okay;
 
-            do
-            {
-                res = Vmm::UnmapPage(proc, ret + offset, MemoryMapOptions::NoLocking);
+    backtrack:
+        //  So, the allocation failed. Now all the pages that were allocated
+        //  need to be unmapped.
 
-                if unlikely(!res.IsOkayResult() && !res.IsResult(HandleResult::PageUnmapped))
-                    return res;
+        res = Vmm::UnmapRange(proc, ret, offset, MemoryMapOptions::NoLocking);
 
-                offset -= PageSize;
-            } while (offset > 0);
+        if unlikely(res != HandleResult::Okay && res != HandleResult::PageUnmapped)
+            return res;
 
-            return HandleResult::OutOfMemory;
-        }
+        return HandleResult::OutOfMemory;
     }
+
+    FAIL("Odd memory allocation options given: %Xs", (size_t)type);
 }
 
 Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
@@ -374,7 +372,7 @@ Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
     else
         res = KVas.Free(vaddr, size);
 
-    if unlikely(!res.IsOkayResult())
+    if unlikely(res != HandleResult::Okay)
         return res;
     
     return UnmapRange(proc, vaddr, size);
