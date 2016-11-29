@@ -52,72 +52,38 @@ namespace Beelzebub { namespace Memory
      */
     enum class MemoryAllocationOptions : uint32_t
     {
-        //  The physical page selected will be suitable for general use
-        //  in the kernel heap and applications. Highest preferred.
-        PhysicalGeneral      = 0x00000000,
-        //  The physical page selected will have a 64-bit address,
-        //  suitable for certain devices.
-        Physical64bit        = 0x00000000,
-        //  The physical page selected will have a 32-bit address,
-        //  suitable for certain devices.
-        Physical32bit        = 0x00000010,
-        //  The physical page selected will have a 24-bit address,
-        //  suitable for certain devices.
-        Physical24bit        = 0x00000020,
-        //  The physical page selected will have a 16-bit address,
-        //  suitable for certain devices.
-        Physical16bit        = 0x00000030,
+        //  Nothing special
+        None                 = 0x00000000,
 
-        //  When multiple pages are allocated, they will be physically
-        //  contiguous. Implies commitement (immediate allocation) when used on
-        //  the kernel heap.
-        PhysicallyContiguous = 0x00008000,
+        //  The pages involved will not be freed.
+        Permanent            = 0x00000001,
 
         //  Guards the lowest page against underflow/underrun.
-        GuardLow             = 0x00004000,
+        GuardLow             = 0x00000004,
         //  Guard the highest page against overflow/overrun.
-        GuardHigh            = 0x00002000,
+        GuardHigh            = 0x00000002,
+
+        //  Both lowest and highest pages are guarded against under- and overflows/overruns.
+        GuardFull            = 0x00000006,
 
         //  The virtual page will be located in areas specific to the kernel heap.
         VirtualKernelHeap    = 0x00000000,
         //  The virtual page will be located in userland-specific areas.
-        VirtualUser          = 0x00080000,
-        //  The virtual page will be located in 32-bit memory locations,
-        //  suitable for 32-bit applications and kernel modules.
-        Virtual32bit         = 0x00100000,
-        //  The virtual page will be located in 16-bit memory locations,
-        //  suitable for 16-bit applications and kernel modules.
-        Virtual16bit         = 0x00300000,
+        VirtualUser          = 0x80000000,
 
         //  Virtual addresses will be reserved for later manual mapping; no automatic
         //  allocation of physical memory will be performed now or on demand.
         //  Any MemoryFlags specified are ignored.
         Reserve              = 0x00000000,
         //  The pages are to be managed internally by the kernel.
-        Used                 = 0x40000000,
+        Used                 = 0x00000040,
         //  The physical pages will be allocated immediately.
-        Commit               = 0x80000000,
+        Commit               = 0x00000080,
         //  No physical pages will be allocated until actually used.
-        AllocateOnDemand     = 0xC0000000,
+        AllocateOnDemand     = 0x000000C0,
 
-        //  The pages involved will not be freed.
-        Permanent            = 0x20000000,
-
-        //  Shared with other processes.
-        Share                = 0x01000000,
-        //  A thread's stack.
-        ThreadStack          = 0x02000000,
-        //  Part of the runtime.
-        Runtime              = 0x03000000,
-        //  A kernel module mapped in memory.
-        KernelModule         = 0x04000000,
-
-        //  Nothing, waiting to be used.
-        Free                 = 0x0F000000,
-
-        PurposeMask          = 0x0F000000,
-        StrategyMask         = 0xF0000000,
-        UniquenessMask       = 0x0000F000,
+        StrategyMask         = 0x000000F0,
+        UniquenessMask       = 0x0000000F,
     };
 
     ENUMOPS(MemoryAllocationOptions, uint32_t)

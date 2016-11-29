@@ -112,7 +112,7 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
         reg = vas->FindRegion(vaddr);
 
         if unlikely( reg == nullptr
-                 || (reg->Type & MemoryAllocationOptions::PurposeMask) == MemoryAllocationOptions::Free)
+                 || reg->Content == MemoryContent::Free)
             RETURN(ArgumentOutOfRange);
         //  Either of these conditions means this page fault was caused by a hit on
         //  unallocated/freed memory.
@@ -221,7 +221,7 @@ Handle Vmm::CheckMemoryRegion(Execution::Process * proc
             RETURN(ArgumentOutOfRange);
 
         if unlikely((0 != (type & MemoryCheckType::Free))
-                 && (MemoryAllocationOptions::Free == (reg->Type & MemoryAllocationOptions::PurposeMask)))
+                 && reg->Content == MemoryContent::Free)
             goto next_region;
         //  So free memory was asked for, and this is a free region. Let's move on.
 
@@ -239,8 +239,8 @@ Handle Vmm::CheckMemoryRegion(Execution::Process * proc
         RETURN(Failed);
 
     if unlikely((0 != (type & MemoryCheckType::Private))
-         && (MemoryAllocationOptions::Share   == (reg->Type & MemoryAllocationOptions::PurposeMask)
-          || MemoryAllocationOptions::Runtime == (reg->Type & MemoryAllocationOptions::PurposeMask)))
+         && (reg->Content == MemoryContent::Share
+          || reg->Content == MemoryContent::Runtime))
         RETURN(Failed);
     //  Private memory was asked for, and this is shared or part of the runtime.
 

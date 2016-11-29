@@ -33,7 +33,11 @@
 #include "stdbool.h"
 #endif
 
-#if   defined(__BEELZEBUB_KERNEL) || defined(__BEELZEBUB_STATIC_LIBRARY) || defined(__BEELZEBUB_DYNAMIC_LIBRARY)
+#if defined(__BEELZEBUB_KERNEL) || defined(__BEELZEBUB_KERNEL_MODULE)
+    #define __BEELZEBUB__IN_KERNEL
+#endif
+
+#if   defined(__BEELZEBUB__IN_KERNEL) || defined(__BEELZEBUB_STATIC_LIBRARY) || defined(__BEELZEBUB_DYNAMIC_LIBRARY)
 #include <cpp_support.h>
 #endif
 

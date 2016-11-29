@@ -260,6 +260,8 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
             (res)("page number", i + 1);
     }
 
+    curLoc += BootstrapKVasPageCount * PageSize;
+
     MSG("Instancing KVAS.%n");
 
     new (&KVas) KernelVas();
@@ -288,6 +290,8 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     KVas.Bootstrapping = false;
     //  Should be ready!
+
+    MSG("Finished VMM init!%n");
 
     return res;
 }

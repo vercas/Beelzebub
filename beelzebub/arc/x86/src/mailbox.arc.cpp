@@ -37,6 +37,12 @@
     thorough explanation regarding other files.
 */
 
+/*
+Gotta give credit to `geist` over at #osdev@Freenode for sharing his ideas and
+experience related to the mailbox. I don't think I could've come up with such a
+lean & mean implementation without his aid.
+ */
+
 #ifdef __BEELZEBUB_SETTINGS_SMP
 
 #include <mailbox.hpp>

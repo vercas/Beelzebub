@@ -63,6 +63,7 @@ handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opt
         return HandleResult::ArgumentOutOfRange;
 
     MemoryAllocationOptions type = MemoryAllocationOptions::VirtualUser;
+    MemoryContent content = MemoryContent::Generic;
 
     if (0 != (opts & mem_req_opts_t::Commit))
         type |= MemoryAllocationOptions::Commit;
@@ -70,7 +71,7 @@ handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opt
         type |= MemoryAllocationOptions::AllocateOnDemand;
 
     if (0 != (opts & mem_req_opts_t::ThreadStack))
-        type |= MemoryAllocationOptions::ThreadStack;
+        content = MemoryContent::ThreadStack;
 
     if (0 != (opts & mem_req_opts_t::GuardLow))
         type |= MemoryAllocationOptions::GuardLow;
@@ -84,7 +85,7 @@ handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opt
     if (0 != (opts & mem_req_opts_t::Executable))
         flags |= MemoryFlags::Executable;
 
-    Handle res = Vmm::AllocatePages(nullptr, size, type, flags, MemoryContent::Generic, addr);
+    Handle res = Vmm::AllocatePages(nullptr, size, type, flags, content, addr);
 
     if unlikely(!res.IsOkayResult())
         return res;

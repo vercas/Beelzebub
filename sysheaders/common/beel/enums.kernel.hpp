@@ -128,39 +128,31 @@ namespace Beelzebub
 
     ENUMOPS(MemoryFlags, uint8_t)
 
+    #define ENUM_MEMORYCONTENT(ENUMINST) \
+        ENUMINST(Generic       , 0x00) /*  Generic contents, nothing remarkable.  */ \
+        ENUMINST(Share         , 0x01) /*  Shared with other processes.  */ \
+        ENUMINST(ThreadStack   , 0x02) /*  A thread's stack.  */ \
+        ENUMINST(Runtime       , 0x03) /*  Part of the runtime.  */ \
+        ENUMINST(KernelModule  , 0x04) /*  A kernel module mapped in memory.  */ \
+        ENUMINST(CpuDatas      , 0x05) /*  The specific data structures of CPUs.  */ \
+        ENUMINST(VasDescriptors, 0x06) /*  Descriptors of a VAS.  */ \
+        ENUMINST(BootModule    , 0x80) /*  A module loaded by the bootloader.  */ \
+        ENUMINST(VbeFramebuffer, 0x81) /*  The VBE framebuffer.  */ \
+        ENUMINST(AcpiTable     , 0x82) /*  An ACPI table.  */ \
+        ENUMINST(VmmBootstrap  , 0xFE) /*  VMM bootstrapping data.  */ \
+        ENUMINST(Free          , 0xFF) /*  Nothing, waiting to be used.  */ \
+
     /**
      *  Represents possible contents of a memory range.
      */
     enum class MemoryContent : uint8_t
     {
-        //  Generic contents, nothing remarkable.
-        Generic              = 0x00,
-        //  Shared with other processes.
-        Share                = 0x01,
-        //  A thread's stack.
-        ThreadStack          = 0x02,
-        //  Part of the runtime.
-        Runtime              = 0x03,
-        //  A kernel module mapped in memory.
-        KernelModule         = 0x04,
-        //  The specific data structures of CPUs.
-        CpuDatas             = 0x05,
-        //  Descriptors of a VAS.
-        VasDescriptors       = 0x06,
-
-        //  A module loaded by the bootloader.
-        BootModule           = 0x80,
-        //  The VBE framebuffer.
-        VbeFramebuffer       = 0x81,
-        //  An ACPI table.
-        AcpiTable            = 0x82,
-
-        //  VMM bootstrapping data.
-        VmmBootstrap         = 0xFE,
-
-        //  Nothing, waiting to be used.
-        Free                 = 0xFF,
+        ENUM_MEMORYCONTENT(ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(MemoryContent, uint8_t)
+    ENUMOPS_LITE(MemoryContent)
+
+#ifdef __BEELZEBUB_KERNEL
+    ENUM_TO_STRING_DECL(MemoryContent, ENUM_MEMORYCONTENT);
+#endif
 }

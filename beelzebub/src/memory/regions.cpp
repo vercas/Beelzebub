@@ -126,20 +126,35 @@ namespace Beelzebub { namespace Utils
 namespace Beelzebub { namespace Terminals
 {
     template<>
-    TerminalBase & operator << <MemoryRegion *>(TerminalBase & term, MemoryRegion * const value)
+    TerminalBase & operator << <MemoryRegion const *>(TerminalBase & term, MemoryRegion const * const reg)
     {
-        return term << "[Memory Region " << (void *)value << ": " << (void *)value->Range.Start
-            << "-" << (void *)value->Range.End
-            << "; next " << (void *)value->Next
-            << "; prev " << (void *)value->Prev << "]";
+        term.WriteFormat("%X8 %X8 %X8 %c%c%c%c %c%c%c %s%n"
+            //  Start         , End           , Size
+            , reg->Range.Start, reg->Range.End, reg->GetSize()
+            //  Writable, Executable, Global, Userland (flgs)
+            , 0 != (reg->Flags & MemoryFlags::Writable  ) ? 'W' : ' '
+            , 0 != (reg->Flags & MemoryFlags::Executable) ? 'X' : ' '
+            , 0 != (reg->Flags & MemoryFlags::Global    ) ? 'G' : ' '
+            , 0 != (reg->Flags & MemoryFlags::Userland  ) ? 'U' : ' '
+            //  Permanent, High guard, Low guard (prt)
+            , 0 != (reg->Type & MemoryAllocationOptions::Permanent) ? 'P' : ' '
+            , 0 != (reg->Type & MemoryAllocationOptions::GuardHigh) ? 'H' : ' '
+            , 0 != (reg->Type & MemoryAllocationOptions::GuardLow ) ? 'L' : ' '
+            //  Content
+            , EnumToString(reg->Content));
+
+        return term;
+    }
+
+    template<>
+    TerminalBase & operator << <MemoryRegion *>(TerminalBase & term, MemoryRegion * const reg)
+    {
+        return term << const_cast<MemoryRegion const *>(reg);
     }
 
     template<>
     TerminalBase & operator << <MemoryRegion>(TerminalBase & term, MemoryRegion const value)
     {
-        return term << "[Memory Region: " << (void *)value.Range.Start
-            << "-" << (void *)value.Range.End
-            << "; next " << (void *)value.Next
-            << "; prev " << (void *)value.Prev << "]";
+        return term << &value;
     }
 }}

@@ -110,9 +110,9 @@ void TestVas()
 
     res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
         , 3 * PageSize
-        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap | MemoryAllocationOptions::ThreadStack
+        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::Generic, stackVaddr);
+        , MemoryContent::ThreadStack, stackVaddr);
 
     ASSERT(res.IsOkayResult()
         , "Failed to allocate stack for VAS test thread: %H."
