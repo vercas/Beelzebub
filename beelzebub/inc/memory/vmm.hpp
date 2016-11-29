@@ -50,6 +50,15 @@
 
 namespace Beelzebub { namespace Memory
 {
+    struct PageNode
+    {
+        inline PageNode(vaddr_t addr) : Address( addr), Next(nullptr) { }
+        inline PageNode(vaddr_t addr, PageNode const * next) : Address( addr), Next(next) { }
+
+        vaddr_t const Address;
+        PageNode const * Next;
+    };
+
     /**
      *  The virtual memory manager.
      */
@@ -153,8 +162,20 @@ namespace Beelzebub { namespace Memory
             , uintptr_t vaddr, size_t size
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
+        static __hot __noinline Handle InvalidateChain(Execution::Process * proc
+            , PageNode const * node, bool broadcast = true);
+
+        static __hot __noinline Handle InvalidateChain(Execution::Process * proc
+            , PageNode const node, bool broadcast = true)
+        {
+            return InvalidateChain(proc, &node, broadcast);
+        }
+
         static __hot __noinline Handle InvalidatePage(Execution::Process * proc
-            , uintptr_t const vaddr, bool broadcast = true);
+            , uintptr_t const vaddr, bool broadcast = true)
+        {
+            return InvalidateChain(proc, {vaddr}, broadcast);
+        }
 
         static __hot __noinline Handle Translate(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true);

@@ -817,14 +817,15 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
 struct RecursiveUnmapState
 {
     Process * const proc;
-    vaddr_t const vaddr, endAddr;
+    vaddr_t vaddr;
+    vaddr_t const endAddr;
     Spinlock<> * const alienLock;
     Spinlock<> * const heapLock;
     System::int_cookie_t const int_cookie;
-    bool const nonLocal;
+    bool const nonLocal, invalidate, broadcast;
 };
 
-static __hot Handle UnmapRecursively(RecursiveUnmapState * state)
+static __hot Handle UnmapRecursively(RecursiveUnmapState * state, PageNode const * node)
 {
     vaddr_t next;
     paddr_t paddr;
@@ -841,8 +842,13 @@ static __hot Handle UnmapRecursively(RecursiveUnmapState * state)
         return HandleResult::Okay;
     }, false, false, state->nonLocal);
 
+    PageNode const newNode {state->vaddr, node};
+
     if unlikely(res != HandleResult::Okay)
         goto bail;
+
+    node = &newNode;
+    //  Yep, re-using a variable, evilishly.
 
     if (fSize == FrameSize::_4KiB)
         next = state->vaddr + PageSize;
@@ -853,7 +859,10 @@ static __hot Handle UnmapRecursively(RecursiveUnmapState * state)
         goto bail;
     //  This means enough has been mapped!
 
-    res = UnmapRecursively(state);
+    state->vaddr = next;
+
+    res = UnmapRecursively(state, node);
+    //  Note: `node` = &newNode;
 
     goto end;
 
@@ -864,6 +873,10 @@ bail:
         state->heapLock->Release();
 
     System::Interrupts::RestoreState(state->int_cookie);
+
+    if (state->invalidate)
+        Vmm::InvalidateChain(state->proc, node, state->broadcast);
+    //  Easy..?
 
 end:
     if unlikely(res != HandleResult::Okay)
@@ -896,6 +909,8 @@ Handle Vmm::UnmapRange(Process * proc
 
     vaddr_t const endAddr = vaddr + size;
     bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
+    bool const invalidate = 0 == (opts & MemoryMapOptions::NoInvalidation);
+    bool const broadcast = 0 == (opts & MemoryMapOptions::NoBroadcasting);
 
     Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
 
@@ -907,6 +922,10 @@ Handle Vmm::UnmapRange(Process * proc
             ? &(proc->LocalTablesLock)
             : &(Vmm::KernelHeapLock));
 
+    //  TODO: Do it all recursively, maybe in batches? The state should be reusable...
+    //  Recursion is needed when not doing any refcounting too because of the invalidation
+    //  chain. :c
+
     if likely(0 == (opts & MemoryMapOptions::NoReferenceCounting))
     {
         System::int_cookie_t int_cookie = System::Interrupts::PushDisable();
@@ -916,9 +935,9 @@ Handle Vmm::UnmapRange(Process * proc
         if (heapLock != nullptr)
             heapLock->Acquire();
 
-        RecursiveUnmapState state = {proc, vaddr, endAddr, alienLock, heapLock, int_cookie, nonLocal};
+        RecursiveUnmapState state = {proc, vaddr, endAddr, alienLock, heapLock, int_cookie, nonLocal, invalidate, broadcast};
 
-        return UnmapRecursively(&state);
+        return UnmapRecursively(&state, nullptr);
     }
     else
         withInterrupts (false)
@@ -958,35 +977,45 @@ Handle Vmm::UnmapRange(Process * proc
 struct InvalidationInfo
 {
     Process * const Proc;
-    void const * const Address;
+    PageNode const * const Node;
 };
 
 static __hot void Invalidator(void * cookie)
 {
     InvalidationInfo const * const inf = (InvalidationInfo const *)cookie;
 
-    CpuInstructions::InvalidateTlb(inf->Address);
+    PageNode const * tmp = inf->Node;
+
+    do
+    {
+        CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(tmp->Address));
+    } while ((tmp = tmp->Next) != nullptr);
 }
 
-Handle Vmm::InvalidatePage(Process * proc, uintptr_t const vaddr
-    , bool broadcast)
+Handle Vmm::InvalidateChain(Process * proc, PageNode const * node, bool broadcast)
 {
     if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
-    CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(vaddr));
-
-    if (broadcast && ((vaddr >= UserlandStart && vaddr < UserlandEnd && proc->ActiveCoreCount == 1 && !VmmArc::PCID) || unlikely(!Mailbox::IsReady())))
+    if (broadcast && ((node->Address >= UserlandStart && node->Address < UserlandEnd && proc->ActiveCoreCount == 1 && !VmmArc::PCID) || unlikely(!Mailbox::IsReady())))
         broadcast = false;
 
     if (broadcast)
     {
-        InvalidationInfo info { proc, reinterpret_cast<void const *>(vaddr) };
+        InvalidationInfo info { proc, node };
 
         ALLOCATE_MAIL_BROADCAST(mail, &Invalidator, &info);
-        mail.Post();
+        mail.SetAwait(true).Post(&Invalidator, &info);
 
-        //  There is NO need to wait for the invalidations to occur because they
-        //  are guaranteed under an uninterruptible context.
+        //  Quite simple.
+    }
+    else
+    {
+        PageNode const * tmp = node;
+
+        do
+        {
+            CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(tmp->Address));
+        } while ((tmp = tmp->Next) != nullptr);
     }
 
     return HandleResult::Okay;

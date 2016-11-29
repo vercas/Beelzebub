@@ -89,6 +89,10 @@ namespace Beelzebub
         NoReferenceCounting  = 0x02,
         //  Unmapping is done with precision - large pages are split if necessary.
         PreciseUnmapping     = 0x04,
+        //  Unmapping does not cause TLB invalidation.
+        NoInvalidation       = 0x08,
+        //  If TLB invalidation is enabled, it is not broadcast.
+        NoBroadcasting       = 0x10,
     };
 
     ENUMOPS(MemoryMapOptions, int)
