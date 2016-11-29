@@ -42,10 +42,12 @@
 #include <beel/timing.hpp>
 #include <synchronization/atomic.hpp>
 #include <beel/handles.h>
+#include <utils/bitfields.hpp>
 
 namespace Beelzebub
 {
     typedef void (* MailFunction)(void * cookie);
+    typedef void (* TimeWaster)(void * cookie);
 
     struct MailboxEntryBase;
 
@@ -84,24 +86,35 @@ namespace Beelzebub
             , Cookie(cookie)
             , DestinationCount(destCnt)
             , DestinationsLeft({destCnt})
+            , Flags(0)
         {
 
         }
 
         /*  Operations  */
 
-        void Post(bool poll = true);
+        void Post(TimeWaster waster = nullptr, void * cookie = nullptr, bool poll = true);
+
+        inline void Post(bool poll, TimeWaster waster = nullptr, void * cookie = nullptr)
+        {
+            return this->Post(waster, cookie, poll);
+        }
+
+        /*  Properties  */
+
+        BITFIELD_FLAG_RW(0, Await, size_t, this->Flags, , const, static)
 
         /*  Fields  */
 
         MailFunction Function;
         void * Cookie;
         unsigned int DestinationCount; 
-        Synchronization::Atomic<unsigned int> DestinationsLeft; 
+        Synchronization::Atomic<unsigned int> DestinationsLeft;
+        size_t Flags;
         MailboxEntryLink Links[0];
     };
 
-    static_assert(sizeof(MailboxEntryBase) == (2 * sizeof(void *) + 2 * sizeof(unsigned int)), "Struct size mismatch.");
+    static_assert(sizeof(MailboxEntryBase) == (2 * sizeof(void *) + 2 * sizeof(unsigned int) + sizeof(size_t)), "Struct size mismatch.");
 
     template<unsigned int N>
     struct MailboxEntry : public MailboxEntryBase
@@ -146,12 +159,17 @@ namespace Beelzebub
 
         /*  Operation  */
 
-        static void Post(MailboxEntryBase * entry, bool poll = true);
+        static void Post(MailboxEntryBase * entry, TimeWaster waster = nullptr, void * cookie = nullptr, bool poll = true);
+
+        static inline void Post(MailboxEntryBase * entry, bool poll, TimeWaster waster = nullptr, void * cookie = nullptr)
+        {
+            return Post(entry, waster, cookie, poll);
+        }
 
     private:
-        static void PostInternal(MailboxEntryBase * entry, bool poll, bool broadcast);
+        static void PostInternal(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll, bool broadcast);
 #ifdef __BEELZEBUB_SETTINGS_MANYCORE
-        static void PostGlobal(MailboxEntryBase * entry, bool poll);
+        static void PostGlobal(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll);
 #endif
     };
 

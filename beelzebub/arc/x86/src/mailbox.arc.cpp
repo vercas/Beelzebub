@@ -74,6 +74,7 @@ static __hot bool ExecuteHead()
 
     MailFunction func = nullptr;
     void * cookie = nullptr;
+    Synchronization::Atomic<unsigned int> * dstCtr = nullptr;
 
     withLock (data->MailLock)
     {
@@ -98,8 +99,13 @@ static __hot bool ExecuteHead()
                 data->MailHead = link.Next;
                 //  This dequeues the mail entry.
 
-                --head->DestinationsLeft;
-                //  This core no longer needs anything from that mail entry.
+                if (head->GetAwait())
+                    dstCtr = &(head->DestinationsLeft);
+                else
+                {
+                    --head->DestinationsLeft;
+                    //  This core no longer needs anything from that mail entry.
+                }
 
                 break;
             }
@@ -145,6 +151,9 @@ execute:
 #endif
 
     func(cookie);
+
+    if unlikely(dstCtr != nullptr)
+        dstCtr->operator --();
 
     return true;
 }
@@ -197,7 +206,7 @@ bool Mailbox::IsReady()
 
 /*  Operation  */
 
-void Mailbox::Post(MailboxEntryBase * entry, bool poll)
+void Mailbox::Post(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll)
 {
     assert(entry != nullptr);
 
@@ -220,22 +229,22 @@ void Mailbox::Post(MailboxEntryBase * entry, bool poll)
                 newEntry.Links[link] = MailboxEntryLink((link < thisCore) ? link : (link + 1));
             //  Set up all the links properly.
 
-            return PostInternal(&newEntry, poll, true);
+            return PostInternal(&newEntry, waster, cookie, poll, true);
 #ifdef __BEELZEBUB_SETTINGS_MANYCORE
         }
         else
         {
             entry->DestinationsLeft = tgCnt;
 
-            return PostGlobal(entry, poll);
+            return PostGlobal(entry, waster, cookie, poll);
         }
 #endif
     }
     else
-        return PostInternal(entry, poll, false);
+        return PostInternal(entry, waster, cookie, poll, false);
 }
 
-void Mailbox::PostInternal(MailboxEntryBase * entry, bool poll, bool broadcast)
+void Mailbox::PostInternal(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll, bool broadcast)
 {
     for (unsigned int i = 0; i < entry->DestinationCount; ++i)
     {
@@ -284,13 +293,16 @@ void Mailbox::PostInternal(MailboxEntryBase * entry, bool poll, bool broadcast)
             .SetAssert(true)
             .SetVector(Interrupts::Get(KnownExceptionVectors::Mailbox).GetVector()));
 
+    if (waster != nullptr)
+        waster(cookie);
+
     while (entry->DestinationsLeft > 0)
         if (!(poll && ExecuteHead()))
             CpuInstructions::DoNothing();
 }
 
 #ifdef __BEELZEBUB_SETTINGS_MANYCORE
-void Mailbox::PostGlobal(MailboxEntryBase * entry, bool poll)
+void Mailbox::PostGlobal(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll)
 {
     withLock (GlobalLock)
     {
@@ -317,6 +329,9 @@ void Mailbox::PostGlobal(MailboxEntryBase * entry, bool poll)
         .SetDestinationShorthand(IcrDestinationShorthand::AllExcludingSelf)
         .SetAssert(true)
         .SetVector(Interrupts::Get(KnownExceptionVectors::Mailbox).GetVector()));
+
+    if (waster != nullptr)
+        waster(cookie);
 
     while (entry->DestinationsLeft > 0)
         if (!(poll && ExecuteHead()))

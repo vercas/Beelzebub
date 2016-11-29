@@ -49,9 +49,9 @@ using namespace Beelzebub;
 
 /*  Operations  */
 
-void MailboxEntryBase::Post(bool poll)
+void MailboxEntryBase::Post(TimeWaster waster, void * cookie, bool poll)
 {
-    return Mailbox::Post(this, poll);
+    return Mailbox::Post(this, waster, cookie, poll);
 }
 
 #endif
