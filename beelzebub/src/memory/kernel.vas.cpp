@@ -38,7 +38,7 @@
 */
 
 #include <memory/kernel.vas.hpp>
-#include <system/interrupts.hpp>
+#include <beel/interrupt.state.hpp>
 #include <cores.hpp>
 
 #include <debug.hpp>

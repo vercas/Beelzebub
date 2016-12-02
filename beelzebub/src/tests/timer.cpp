@@ -66,7 +66,7 @@ static __startup void Test1(System::IsrState * const state, void * cookie)
 
 void TestTimer()
 {
-    System::InterruptGuard<true> intGuard;
+    InterruptGuard<true> intGuard;
 
     Rtc::Read();
     auto seconds = Rtc::Seconds;

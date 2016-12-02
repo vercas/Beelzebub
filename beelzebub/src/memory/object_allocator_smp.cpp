@@ -42,7 +42,7 @@
 //  support.
 
     #include <memory/object_allocator_smp.hpp>
-    #include <system/interrupts.hpp>
+    #include <beel/interrupt.state.hpp>
 
     #include <math.h>
     #include <debug.hpp>
@@ -51,7 +51,7 @@
     using namespace Beelzebub::Memory;
 
     #define OBJA_LOCK_TYPE Beelzebub::Synchronization::SpinlockUninterruptible<>
-    #define OBJA_COOK_TYPE Beelzebub::System::int_cookie_t
+    #define OBJA_COOK_TYPE Beelzebub::InterruptState
 
     #define OBJA_POOL_TYPE      ObjectPoolSmp
     #define OBJA_ALOC_TYPE      ObjectAllocatorSmp

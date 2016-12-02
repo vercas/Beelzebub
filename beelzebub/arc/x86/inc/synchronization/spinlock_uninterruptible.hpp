@@ -45,7 +45,7 @@
 #pragma once
 
 #include <synchronization/lock_guard.hpp>
-#include <system/interrupts.hpp>
+#include <beel/interrupt.state.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
@@ -97,7 +97,7 @@ namespace Beelzebub { namespace Synchronization
     {
     public:
 
-        typedef System::int_cookie_t Cookie;
+        typedef InterruptState Cookie;
 
         /*  Constructor(s)  */
 
@@ -163,7 +163,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline __must_check bool TryAcquire(Cookie & cookie) volatile
         {
-            cookie = System::Interrupts::PushDisable();
+            cookie = InterruptState::Disable();
 
             COMPILER_MEMORY_BARRIER();
 
@@ -180,7 +180,7 @@ namespace Beelzebub { namespace Synchronization
 
             if likely(cmp.Overall == cmpCpy.Overall)
             {
-                System::Interrupts::RestoreState(cookie);
+                cookie.Restore();
                 //  If the spinlock was already locked, restore interrupt state.
 
                 return false;
@@ -244,7 +244,7 @@ namespace Beelzebub { namespace Synchronization
          */
         __forceinline __must_check Cookie Acquire() volatile
         {
-            Cookie const cookie = System::Interrupts::PushDisable();
+            Cookie const cookie = InterruptState::Disable();
 
             COMPILER_MEMORY_BARRIER();
 
@@ -307,7 +307,7 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION_REL;
 
-            System::Interrupts::RestoreState(cookie);
+            cookie.Restore();
         }
 
         /**
@@ -373,7 +373,7 @@ namespace Beelzebub { namespace Synchronization
     {
     public:
 
-        typedef System::int_cookie_t Cookie;
+        typedef InterruptState Cookie;
         static constexpr Cookie const InvalidCookie = __int_cookie_invalid;
 
         /*  Constructor(s)  */
@@ -385,15 +385,15 @@ namespace Beelzebub { namespace Synchronization
         /*  Operations  */
 
         __forceinline __must_check bool TryAcquire(Cookie & cookie) const volatile
-        { cookie = System::Interrupts::PushDisable(); return true; }
+        { cookie = InterruptState::Disable(); return true; }
         __forceinline void Spin() const volatile { }
         __forceinline void Await() const volatile { }
         __forceinline __must_check Cookie Acquire() const volatile
-        { return System::Interrupts::PushDisable(); }
+        { return InterruptState::Disable(); }
         __forceinline void SimplyAcquire() const volatile { }
 
         __forceinline void Release(Cookie const cookie) const volatile
-        { System::Interrupts::RestoreState(cookie); }
+        { cookie.Restore(); }
         __forceinline void SimplyRelease() const volatile { }
         __forceinline __must_check bool Check() const volatile
         { return true; }

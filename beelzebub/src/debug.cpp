@@ -39,7 +39,7 @@
 
 #include <debug.hpp>
 #include <system/cpu.hpp>
-#include <system/interrupts.hpp>
+#include <beel/interrupt.state.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;

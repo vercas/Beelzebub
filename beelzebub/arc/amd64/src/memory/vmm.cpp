@@ -44,7 +44,7 @@
 #include <memory/object_allocator_pools_heap.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/cpu.hpp>
-#include <system/interrupts.hpp>
+#include <beel/interrupt.state.hpp>
 #include <mailbox.hpp>
 #include <kernel.hpp>
 
@@ -821,7 +821,7 @@ struct RecursiveUnmapState
     vaddr_t const endAddr;
     Spinlock<> * const alienLock;
     Spinlock<> * const heapLock;
-    System::int_cookie_t const int_cookie;
+    InterruptState const int_cookie;
     bool const nonLocal, invalidate, broadcast;
 };
 
@@ -872,7 +872,7 @@ bail:
     if (state->heapLock != nullptr)
         state->heapLock->Release();
 
-    System::Interrupts::RestoreState(state->int_cookie);
+    state->int_cookie.Restore();
 
     if (state->invalidate)
         Vmm::InvalidateChain(state->proc, node, state->broadcast);
@@ -928,7 +928,7 @@ Handle Vmm::UnmapRange(Process * proc
 
     if likely(0 == (opts & MemoryMapOptions::NoReferenceCounting))
     {
-        System::int_cookie_t int_cookie = System::Interrupts::PushDisable();
+        InterruptState int_cookie = InterruptState::Disable();
 
         if (alienLock != nullptr)
             alienLock->Acquire();

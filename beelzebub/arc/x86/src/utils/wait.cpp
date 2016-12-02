@@ -40,6 +40,7 @@
 #include <utils/wait.hpp>
 #include <system/timers/pit.hpp>
 #include <system/cpu_instructions.hpp>
+#include <beel/interrupt.state.hpp>
 #include <math.h>
 
 using namespace Beelzebub;

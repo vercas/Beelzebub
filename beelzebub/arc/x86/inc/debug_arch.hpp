@@ -41,14 +41,14 @@
 
 #include <keyboard.hpp>
 
-#include <system/interrupts.hpp>
+#include <beel/interrupt.state.hpp>
 #include <system/cpu_instructions.hpp>
 
 #define BREAKPOINT(...)                              \
 do                                                   \
 {                                                    \
     breakpointEscaped = 1;                           \
-    if (Beelzebub::System::Interrupts::AreEnabled()) \
+    if (Beelzebub::InterruptState::IsEnabled())      \
         do                                           \
         {                                            \
             CpuInstructions::Halt();                 \

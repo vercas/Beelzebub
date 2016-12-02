@@ -40,7 +40,7 @@
 #include <memory/vmm.hpp>
 #include <memory/pmm.hpp>
 #include <memory/object_allocator_pools_heap.hpp>
-#include <system/interrupts.hpp>
+#include <beel/interrupt.state.hpp>
 #include <system/cpu.hpp>
 #include <kernel.hpp>
 

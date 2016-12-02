@@ -66,13 +66,13 @@ using namespace Beelzebub::Synchronization;
     /*  Operations  */
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    bool SpinlockUninterruptible<false>::TryAcquire(int_cookie_t & cookie) volatile
+    bool SpinlockUninterruptible<false>::TryAcquire(InterruptState & cookie) volatile
     #else
     template<bool SMP>
-    bool SpinlockUninterruptible<SMP>::TryAcquire(int_cookie_t & cookie) volatile
+    bool SpinlockUninterruptible<SMP>::TryAcquire(InterruptState & cookie) volatile
     #endif
     {
-        cookie = System::Interrupts::PushDisable();
+        cookie = InterruptState::Disable();
 
         uint16_t const oldTail = this->Value.Tail;
         spinlock_t cmp {oldTail, oldTail};
@@ -87,7 +87,7 @@ using namespace Beelzebub::Synchronization;
         if likely(cmp.Overall == cmpCpy.Overall)
             return true;
         
-        System::Interrupts::RestoreState(cookie);
+        cookie.Restore();
         //  If the spinlock was already locked, restore interrupt state.
 
         return false;
@@ -128,15 +128,15 @@ using namespace Beelzebub::Synchronization;
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    int_cookie_t SpinlockUninterruptible<false>::Acquire() volatile
+    InterruptState SpinlockUninterruptible<false>::Acquire() volatile
     #else
     template<bool SMP>
-    int_cookie_t SpinlockUninterruptible<SMP>::Acquire() volatile
+    InterruptState SpinlockUninterruptible<SMP>::Acquire() volatile
     #endif
     {
         uint16_t myTicket = 1;
 
-        int_cookie_t const cookie = System::Interrupts::PushDisable();
+        InterruptState const cookie = InterruptState::Disable();
 
         asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
                     : [tail]"+m"(this->Value.Tail)
@@ -170,17 +170,17 @@ using namespace Beelzebub::Synchronization;
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    void SpinlockUninterruptible<false>::Release(int_cookie_t const cookie) volatile
+    void SpinlockUninterruptible<false>::Release(InterruptState const cookie) volatile
     #else
     template<bool SMP>
-    void SpinlockUninterruptible<SMP>::Release(int_cookie_t const cookie) volatile
+    void SpinlockUninterruptible<SMP>::Release(InterruptState const cookie) volatile
     #endif
     {
         asm volatile( "lock addw $1, %[head] \n\t"
                     : [head]"+m"(this->Value.Head)
                     : : "cc" );
 
-        System::Interrupts::RestoreState(cookie);
+        cookie.Restore();
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)

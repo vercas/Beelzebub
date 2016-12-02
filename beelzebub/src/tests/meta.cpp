@@ -42,12 +42,12 @@
 #include <tests/meta.hpp>
 #include <synchronization/spinlock.hpp>
 #include <synchronization/spinlock_uninterruptible.hpp>
-#include <system/interrupts.hpp>
+#include <beel/interrupt.state.hpp>
 
 #include <debug.hpp>
 
 #define __uninterrupted                     \
-    int_cookie_t _int_cookie;               \
+    void const * _int_cookie;               \
     asm volatile ( "pushf      \n\t"        \
                    "pop %[dst] \n\t"        \
                    "cli        \n\t"        \
@@ -93,11 +93,11 @@ Spinlock<false> TestLock2;
 
 __cold __noinline void TestMetaprogramming1()
 {
-    int_cookie_t const cookie = Interrupts::PushDisable();
+    InterruptState const cookie = InterruptState::Disable();
 
     bool volatile rada = true;
 
-    Interrupts::RestoreState(cookie);
+    cookie.Restore();
 }
 
 __cold __noinline void TestMetaprogramming2()
