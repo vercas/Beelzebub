@@ -38,7 +38,7 @@
 */
 
 #include <memory/vas.hpp>
-#include <system/interrupts.hpp>
+#include <beel/interrupt.state.hpp>
 
 #include <debug.hpp>
 
@@ -120,7 +120,7 @@ struct OperationParameters
         vaddr_t continuation;
         DescriptorCheckResults dcr;
 
-        System::int_cookie_t cookie;
+        InterruptState cookie;
 
         bool runPostCheck = false;
 
@@ -129,7 +129,7 @@ struct OperationParameters
 
         if likely(lock)
         {
-            cookie = System::Interrupts::PushDisable();
+            cookie = InterruptState::Disable();
 
             vas->Lock.AcquireAsWriter();
         }
@@ -414,7 +414,7 @@ struct OperationParameters
 
                     reg->Range.End = vaddr;
 
-                    MemoryRegion * newMidReg = nullptr,  * newEndReg = nullptr;
+                    MemoryRegion * newMidReg = nullptr, * newEndReg = nullptr;
 
                     res = this->Spawn(vaddr, endAddr, newMidReg);
 
@@ -459,7 +459,7 @@ struct OperationParameters
         {
             vas->Lock.ReleaseAsWriter();
 
-            System::Interrupts::RestoreState(cookie);
+            cookie.Restore();
 
             DEBUG_TERM_ << vas;
         }
@@ -594,272 +594,6 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t size
     vaddr = manip.Address + lowOffset;
 
     return res;
-
-//     System::int_cookie_t cookie;
-//     //  When locking, the code shan't be interrupted!
-
-//     bool runPostCheck = false;
-
-//     if (this->ImplementsPreCheck())
-//         runPostCheck = this->PreCheck(lock, true);
-
-//     if likely(lock)
-//     {
-//         cookie = System::Interrupts::PushDisable();
-
-//         this->Lock.AcquireAsWriter();
-//     }
-
-//     if (runPostCheck)
-//     {
-//         res = this->PostCheck();
-
-//         if unlikely(!res.IsOkayResult())
-//             goto end;
-//     }
-
-//     this->LastSearched = nullptr;
-
-//     // DEBUG_TERM << " <ALLOC> ";
-
-//     if (vaddr == nullvaddr)
-//     {
-//         //  Null vaddr means any address is accepted.
-
-//         // DEBUG_TERM << " <NULL VADDR> ";
-
-//         MemoryRegion * reg = this->First;
-
-//         do
-//         {
-//             // DEBUG_TERM << *reg;
-
-//             if (reg->Content == MemoryContent::Free && reg->GetSize() >= effectiveSize)
-//             {
-//                 //  Oh yush, this region contains more than enough pages!
-
-//                 // DEBUG_TERM << " <BIGGER> ";
-
-//                 //  TODO: Implement (K)ASLR here.
-//                 //  For now, it allocates at the end of the space, so it doesn't
-//                 //  slow down future allocations in any meaningful way.
-
-//                 vaddr = reg->Range.End - effectiveSize + lowOffset;
-//                 //  New region begins where the free one ends, after shrinking.
-
-//                 res = this->Allocate(vaddr, size, flags, content, type, false);
-
-//                 goto end;
-//             }
-
-//             //  Only other possibility is... This free region is either busy or
-//             //  not big enough!
-
-//             reg = reg->Next;
-//         } while (reg != nullptr);
-
-//         //  Reaching this point means there is no space to spare!
-
-//         res = HandleResult::OutOfMemory;
-//     }
-//     else
-//     {
-//         //  A non-null vaddr means a specific address is required. Guard would
-//         //  go before the requested address.
-
-//         // DEBUG_TERM << " <VADDR " << (void *)vaddr << "> ";
-
-//         MemoryRange rang {vaddr - lowOffset, vaddr + size + highOffset};
-//         //  This will be the exact range of the allocation.
-
-//         MemoryRegion * reg = this->First;
-
-//         do
-//         {
-//             // DEBUG_TERM << reg;
-
-//             size_t regSize = reg->GetSize();
-
-//             if (reg->Content != MemoryContent::Free || !rang.IsIn(reg->Range) || effectiveSize > regSize)
-//             {
-//                 reg = reg->Next;
-
-//                 continue;
-//             }
-
-//             //  So it fits!
-
-//             if (regSize == effectiveSize)
-//             {
-//                 //  This region appears to be an exact fit. What a relief, and
-//                 //  coincidence!
-                
-//                 // DEBUG_TERM << " <SNUG> ";
-
-//                 if (reg->Prev == nullptr)
-//                 {
-//                     //  This is the first region.
-
-//                     this->First = reg->Next;
-//                 }
-//                 else
-//                     reg->Prev->Next = reg->Next;
-
-//                 if (reg->Next != nullptr)
-//                     reg->Next->Prev = reg->Prev;
-
-//                 //  Now linkage is patched, and the region can be merrily
-//                 //  converted!
-
-//                 reg->Flags = flags;
-//                 reg->Type = type;
-
-//                 vaddr = reg->Range.Start;
-
-//                 goto end;
-//                 //  Done!
-//             }
-
-//             //  Okay, so it's not a perfect fit... Meh. Split.
-//             //  There are 3 possibilities: the desired range is at the start of
-//             //  the region, at the end, or in the middle...
-
-//             if (rang.Start == reg->Range.Start)
-//             {
-//                 //  So it sits at the very start.
-
-//                 // DEBUG_TERM << " <START> ";
-
-//                 reg->Range.Start = rang.End;
-//                 //  Free region's start is pushed forward.
-
-//                 MemoryRegion * newReg = this->Tree.Find<vaddr_t>(rang.Start - 1);
-
-//                 if unlikely(0 != (type & MemoryAllocationOptions::UniquenessMask)
-//                     && newReg != nullptr && newReg->Flags == flags
-//                     && newReg->Type == type && newReg->Content == content)
-//                 {
-//                     //  The region must be a perfect match and have no uniqueness
-//                     //  features in order to "merge".
-
-//                     newReg->Range.End = rang.End;
-//                     //  Existing region's end is pushed forward to cover the
-//                     //  requested region.
-
-//                     goto end;
-//                 }
-
-//                 res = this->Tree.Insert(MemoryRegion(
-//                     rang, flags, content, type
-//                 ), newReg);
-
-//                 if unlikely(!res.IsOkayResult()) goto end;
-
-//                 // DEBUG_TERM << *newReg;
-
-//                 newReg->Prev = reg->Prev;
-//                 newReg->Next = reg;
-
-//                 goto end;
-//             }
-//             else if (rang.End == reg->Range.End)
-//             {
-//                 //  Or at the end.
-
-//                 // DEBUG_TERM << " <END> ";
-
-//                 reg->Range.End = rang.Start;
-//                 //  Free region's end is pulled back.
-
-//                 MemoryRegion * newReg = this->Tree.Find<vaddr_t>(rang.End);
-
-//                 if unlikely(0 != (type & MemoryAllocationOptions::UniquenessMask)
-//                     && newReg != nullptr && newReg->Flags == flags
-//                     && newReg->Type == type && newReg->Content == content)
-//                 {
-//                     //  The region must be a perfect match and have no uniqueness
-//                     //  features in order to "merge".
-
-//                     newReg->Range.Start = rang.Start;
-//                     //  Existing region's start is pulled back to cover the
-//                     //  requested region.
-
-//                     goto end;
-//                 }
-
-//                 res = this->Tree.Insert(MemoryRegion(
-//                     rang, flags, content, type
-//                 ), newReg);
-
-//                 if unlikely(!res.IsOkayResult()) goto end;
-
-//                 // DEBUG_TERM << *newReg;
-
-//                 newReg->Prev = reg;
-//                 newReg->Next = reg->Next;
-
-//                 goto end;
-//             }
-//             else
-//             {
-//                 //  Well, it's in the middle.
-
-//                 // DEBUG_TERM << " <MID> ";
-
-//                 vaddr_t const oldEnd = reg->Range.End;
-//                 reg->Range.End = rang.Start;
-//                 //  Pulls the end of the free region to become the left free region.
-
-//                 MemoryRegion * newFree = nullptr,  * newBusy = nullptr;
-
-//                 res = this->Tree.Insert(MemoryRegion(
-//                     rang.End, oldEnd
-//                     , MemoryFlags::Writable | MemoryFlags::Executable
-//                     , MemoryContent::Free
-//                     , MemoryAllocationOptions::Free
-//                 ), newFree);
-
-//                 if unlikely(!res.IsOkayResult()) goto end;
-
-//                 res = this->Tree.Insert(MemoryRegion(
-//                     rang.Start, rang.End, flags, content, type
-//                 ), newBusy);
-
-//                 if unlikely(!res.IsOkayResult()) goto end;
-
-//                 newFree->Prev = reg;
-//                 newFree->Next = reg->Next;
-//                 reg->Next = newFree;
-
-//                 if (newFree->Next != nullptr)
-//                     newFree->Next->Prev = newFree;
-//                 //  Vital.
-
-//                 newBusy->Prev = reg;
-//                 newBusy->Next = newFree;
-
-//                 // DEBUG_TERM << "{" << reg << newBusy << " " << newFree << "}";
-
-//                 goto end;
-//             }
-//         } while (reg != nullptr);
-
-//         //  Reaching this point means the requested region is taken!
-
-//         res = HandleResult::OutOfMemory;
-//     }
-
-// end:
-//     if likely(lock)
-//     {
-//         this->Lock.ReleaseAsWriter();
-
-//         System::Interrupts::RestoreState(cookie);
-//     }
-
-//     DEBUG_TERM_ << vas;
-
-//     return res;
 }
 
 Handle Vas::Free(vaddr_t vaddr, size_t size, bool sparse, bool tolerant, bool lock)
@@ -927,11 +661,11 @@ Handle Vas::Modify(vaddr_t vaddr, size_t pageCnt
 
     Handle res = HandleResult::Okay;
 
-    System::int_cookie_t cookie;
+    InterruptState cookie;
 
     if likely(lock)
     {
-        cookie = System::Interrupts::PushDisable();
+        cookie = InterruptState::Disable();
 
         this->Lock.AcquireAsWriter();
     }
@@ -943,7 +677,7 @@ end:
     {
         this->Lock.ReleaseAsWriter();
 
-        System::Interrupts::RestoreState(cookie);
+        cookie.Restore();
     }
 
     return res;
