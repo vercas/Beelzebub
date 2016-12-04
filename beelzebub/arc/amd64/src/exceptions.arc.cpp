@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <exceptions.hpp>
+#include <beel/exceptions.hpp>
 
 using namespace Beelzebub;
 

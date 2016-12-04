@@ -45,7 +45,7 @@ global EnterExceptionContext
 ;   Performs the transition into an exception context.
 ;   Arguments:
 ;       RDI: Address of context to enter;
-;   When re-entered through the swap or resume pointers, those two should remain
+;   When re-entered through the swap or resume pointers, arguments should remain
 ;   valid!
 EnterExceptionContext:
     push    rbp

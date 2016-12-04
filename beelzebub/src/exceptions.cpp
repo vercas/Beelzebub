@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <exceptions.hpp>
+#include <beel/exceptions.hpp>
 #include <system/cpu.hpp>
 
 using namespace Beelzebub;
@@ -45,18 +45,18 @@ using namespace Beelzebub::System;
 
 ExceptionContext * * Beelzebub::GetExceptionContext()
 {
-    return &(Cpu::GetData()->XContext);
+    return &(Cpu::GetThread()->ExceptionContext);
 }
 
 void Beelzebub::LeaveExceptionContext()
 {
-    ExceptionContext * context = Cpu::GetData()->XContext;
+    ExceptionContext * * const context = &(Cpu::GetThread()->ExceptionContext);
 
-    if (context != nullptr)
-        Cpu::GetData()->XContext = context->Previous;
+    if (*context != nullptr)
+        *context = (*context)->Previous;
 }
 
 Exception * Beelzebub::GetException()
 {
-    return &(Cpu::GetData()->X);
+    return &(Cpu::GetThread()->Exception);
 }

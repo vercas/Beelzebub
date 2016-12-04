@@ -46,7 +46,6 @@
 #include <system/msrs.hpp>
 
 #include <execution/thread.hpp>
-#include <exceptions.hpp>
 
 #include <timer.hpp>
 #include <mailbox.hpp>
@@ -126,9 +125,6 @@ namespace Beelzebub { namespace System
 
         Domain * DomainDescriptor = nullptr;
         Tss EmbeddedTss;
-
-        ExceptionContext * XContext = nullptr;
-        Exception X;
 
         uint16_t GdtLength;
         uint16_t TssSegment;

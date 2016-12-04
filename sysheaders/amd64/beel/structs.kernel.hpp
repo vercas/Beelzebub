@@ -39,18 +39,30 @@
 
 #pragma once
 
-#include <metaprogramming.h>
-
 #ifdef __BEELZEBUB_KERNEL
     #define MONIKER(NAME) MCATS(NAME, Base)
 #else
     #define MONIKER(NAME) NAME
 #endif
 
+#include <beel/structs.kernel.common.hpp>
+
 namespace Beelzebub
 {
-//  Yup... Goes directly in here.
-#include <beel/structs.kernel.common.hpp>
+    struct ExceptionContext
+    {
+        uint64_t RBX, RCX, RBP;
+        uint64_t R12, R13, R14, R15;
+
+        uintptr_t StackPointer, ResumePointer, SwapPointer;
+        //  The `ResumePointer` is used to resume 
+
+        uintptr_t ReturnAddress;
+
+        Exception const * Payload;
+        ExceptionContext * Previous;
+        bool Ready;
+    } __packed;
 
     /**
      *  A unit of isolation.
@@ -86,6 +98,8 @@ namespace Beelzebub
 
         inline MONIKER(Thread)(MONIKER(Process) * owner)
             : Owner( owner)
+            , ExceptionContext(nullptr)
+            , Exception()
         {
             //  Nothing else.
         }
@@ -94,6 +108,9 @@ namespace Beelzebub
         /*  Hierarchy  */
 
         MONIKER(Process) * const Owner;
+
+        Beelzebub::ExceptionContext * ExceptionContext;
+        Beelzebub::Exception Exception;
     };
 
     struct SyscallRegisters64

@@ -134,10 +134,6 @@ void Cores::Register()
 
     Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)(uintptr_t)data);
 
-    data->XContext = nullptr;
-    //  TODO: Perhaps set up a default exception context, which would set fire
-    //  to the whole system?
-
     data->DomainDescriptor = &Domain0;
     data->X2ApicMode = false;
 

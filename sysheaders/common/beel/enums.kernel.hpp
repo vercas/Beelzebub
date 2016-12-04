@@ -159,4 +159,60 @@ namespace Beelzebub
 #ifdef __BEELZEBUB_KERNEL
     ENUM_TO_STRING_DECL(MemoryContent, ENUM_MEMORYCONTENT);
 #endif
+
+    enum class ExceptionType : uintptr_t
+    {
+        //  This one indicates that there is no exception.
+        None                    = 0,
+        //  Null pointer dereference.
+        NullReference           = 1,
+        //  Illegal memory access.
+        MemoryAccessViolation   = 2,
+        //  Integral division by zero.
+        DivideByZero            = 3,
+        //  Checked arithmeetic overflow.
+        ArithmeticOverflow      = 4,
+        //  Invalid instruction encoding or opcode.
+        InvalidInstruction      = 5,
+
+        //  A unit test failed.
+        UnitTestFailure         = 100,
+
+        //  Haywire.
+        Unknown                 = ~((uintptr_t)0),
+    };
+
+    enum class MemoryAccessType : uint8_t
+    {
+        Read            = 0,
+        Write           = 1,
+        Execute         = 2,
+
+        Unprivileged    = 1 << 6,
+        Unaligned       = 1 << 7,
+    };
+
+    ENUMOPS(MemoryAccessType)
+
+    enum class MemoryLocationFlags : uint16_t
+    {
+        None        = 0,
+
+        //  The memory at the given (virtual) address is mapped.
+        Present     = 1 << 0,
+        //  The memory may be written.
+        Writable    = 1 << 1,
+        //  The memory may be executed.
+        Executable  = 1 << 2,
+        //  The memory is global (shared by all processes).
+        Global      = 1 << 3,
+        //  The memory is accessible by userland.
+        Userland    = 1 << 4,
+        //  Previous access to this area of memory have occured.
+        Accessed    = 1 << 5,
+        //  This area of memory has been written to.
+        Written     = 1 << 6,
+    };
+
+    ENUMOPS(MemoryLocationFlags)
 }

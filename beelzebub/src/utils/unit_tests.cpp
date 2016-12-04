@@ -38,7 +38,7 @@
 */
 
 #include <utils/unit_tests.hpp>
-#include <exceptions.hpp>
+#include <beel/exceptions.hpp>
 
 #include <terminals/cache.hpp>
 #include <terminals/cache_pools_heap.hpp>

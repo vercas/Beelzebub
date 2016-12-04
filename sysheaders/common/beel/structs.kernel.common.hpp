@@ -39,7 +39,38 @@
 
 #pragma once
 
-//  Meant to be included in an architecture-specific version of the same file.
-//  Therefore, there are no namespaces or includes in this file.
+#include <beel/enums.kernel.hpp>
 
+namespace Beelzebub
+{
+    struct MemoryAccessViolationData
+    {
+        //  These are ordered by size, descending.
 
+        paddr_t PhysicalAddress;
+        void * Address;
+        //  Physical address may be larger (PAE).
+
+        MemoryLocationFlags PageFlags;
+        MemoryAccessType AccessType;
+    };
+
+    struct UnitTestFailureData
+    {
+        char const * FileName;
+        int Line;
+    };
+
+    struct Exception
+    {
+        ExceptionType Type;
+        uintptr_t InstructionPointer;
+        uintptr_t StackPointer;
+
+        union
+        {
+            MemoryAccessViolationData MemoryAccessViolation;
+            UnitTestFailureData UnitTestFailure;
+        };
+    };
+}

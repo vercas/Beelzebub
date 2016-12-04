@@ -47,11 +47,11 @@
 
 #include <beel/structs.kernel.hpp>
 
-#define KRN_SYM_GLB_FNC(name, retType, ...) \
-    __extern retType name(__VA_ARGS__);
+#define KRN_SYM_GLB_FNC(name, attr, retType, ...) \
+    __extern attr retType name(__VA_ARGS__);
 
-#define KRN_SYM_NMS_FNC(name, retType, ...) \
-    namespace Beelzebub { __extern retType name(__VA_ARGS__); }
+#define KRN_SYM_NMS_FNC(name, attr, retType, ...) \
+    namespace Beelzebub { __extern attr retType name(__VA_ARGS__); }
 
 #include <beel/symbols.kernel.inc>
 

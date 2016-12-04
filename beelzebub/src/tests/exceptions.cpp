@@ -40,7 +40,7 @@
 #ifdef __BEELZEBUB__TEST_EXCP
 
 #include <tests/exceptions.hpp>
-#include <exceptions.hpp>
+#include <beel/exceptions.hpp>
 #include <system/cpu.hpp>
 
 #include <debug.hpp>

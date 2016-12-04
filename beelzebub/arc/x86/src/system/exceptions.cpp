@@ -280,10 +280,8 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
     Pml1Entry * e = nullptr;
 
-    CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
-    ExceptionContext * context = (cpuData == nullptr) ? nullptr : cpuData->XContext;
-
     Thread * activeThread = CpuDataSetUp ? Cpu::GetThread() : nullptr;
+    ExceptionContext * context = (activeThread == nullptr) ? nullptr : activeThread->ExceptionContext;
 
     if (context == nullptr)
     {
@@ -441,69 +439,60 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
         //  Now, to prepare exception delivery!
 
-        // state->RBX = context->RBX;
-        // state->RCX = context->RCX;
-        // state->RBP = context->RBP;
-        // state->R12 = context->R12;
-        // state->R13 = context->R13;
-        // state->R14 = context->R14;
-        // state->R15 = context->R15;
-
         state->RSP = context->StackPointer;
         state->RIP = context->SwapPointer;
         //  Returns where told! Sorta like a task switch.
 
         state->RDI = reinterpret_cast<uint64_t>(context);
-        state->RSI = reinterpret_cast<uint64_t>(&(Cpu::GetData()->XContext));
         //  Required by the swapper.
 
         //  And finally, the exception itself.
 
-        cpuData->X.InstructionPointer = state->RIP;
-        cpuData->X.StackPointer = state->RSP;
+        activeThread->Exception.InstructionPointer = state->RIP;
+        activeThread->Exception.StackPointer = state->RSP;
 
         if (CR2 == 0)
         {
-            cpuData->X.Type = ExceptionType::NullReference;
+            activeThread->Exception.Type = ExceptionType::NullReference;
         }
         else
         {
-            cpuData->X.Type = ExceptionType::MemoryAccessViolation;
+            activeThread->Exception.Type = ExceptionType::MemoryAccessViolation;
 
-            cpuData->X.MemoryAccessViolation.PageFlags = MemoryLocationFlags::None;
+            activeThread->Exception.MemoryAccessViolation.PageFlags = MemoryLocationFlags::None;
             //  Makes sure it's all zeros.
 
             if (e == nullptr)
-                cpuData->X.MemoryAccessViolation.PhysicalAddress = nullpaddr;
+                activeThread->Exception.MemoryAccessViolation.PhysicalAddress = nullpaddr;
             else
             {
-                cpuData->X.MemoryAccessViolation.PhysicalAddress = e->GetAddress();
+                activeThread->Exception.MemoryAccessViolation.PhysicalAddress = e->GetAddress();
 
                 if (present)
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Present;
+                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Present;
 
                 if (e->GetWritable())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Writable;
+                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Writable;
                 if (!e->GetXd()) //  Note the negation.
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Executable;
+                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Executable;
                 if (e->GetGlobal())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Global;
+                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Global;
                 if (e->GetUserland())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Userland;
+                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Userland;
                 if (e->GetAccessed())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Accessed;
+                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Accessed;
                 if (e->GetDirty())
-                    cpuData->X.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Written;
+                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Written;
             }
 
             if (instruction)
-                cpuData->X.MemoryAccessViolation.AccessType = MemoryAccessType::Execute;
+                activeThread->Exception.MemoryAccessViolation.AccessType = MemoryAccessType::Execute;
             else if (write)
-                cpuData->X.MemoryAccessViolation.AccessType = MemoryAccessType::Write;
+                activeThread->Exception.MemoryAccessViolation.AccessType = MemoryAccessType::Write;
             else
-                cpuData->X.MemoryAccessViolation.AccessType = MemoryAccessType::Read;
+                activeThread->Exception.MemoryAccessViolation.AccessType = MemoryAccessType::Read;
 
-            cpuData->X.MemoryAccessViolation.Address = reinterpret_cast<void *>(CR2);
+            activeThread->Exception.MemoryAccessViolation.Address = reinterpret_cast<void *>(CR2);
         }
     }
 }

@@ -224,39 +224,6 @@ namespace Beelzebub { namespace System
 
         /*  Status  */
 
-        static inline bool AreEnabled()
-        {
-#ifdef __GCC_ASM_FLAG_OUTPUTS__
-            bool res;
-
-            #if   defined(__BEELZEBUB__ARCH_AMD64)
-                #define __REG_A__ "rax"
-            #else
-                #define __REG_A__ "eax"
-            #endif
-
-            asm volatile("pushf                      \n\t"
-                         "pop %%" __REG_A__ "        \n\t"
-                         "bt %[bit], %%" __REG_A__ " \n\t"
-                        : "=@ccc"(res)
-                        : [bit]"rN"(9)
-                        : __REG_A__);
-
-            #undef __REG_A__
-
-            return res;
-#else
-            size_t flags;
-
-            asm volatile("pushf        \n\t"
-                         "pop %[flags] \n\t"
-                        : [flags]"=r"(flags));
-            //  Push and pop don't change any flags. Yay!
-
-            return (flags & (size_t)(1 << 9)) != 0;
-#endif
-        }
-
         static inline void Enable()
         {
             asm volatile("sti \n\t" : : : "memory");
