@@ -60,20 +60,8 @@ namespace Beelzebub
 
         static constexpr void const * const InvalidValue = nullptr;
 
-        static inline bool IsEnabled()
+        static inline bool IsEnabled() __must_check
         {
-#ifdef __GCC_ASM_FLAG_OUTPUTS__
-            bool res;
-            uintptr_t tmp;
-
-            asm volatile("pushf             \n\t"
-                         "pop %[tmp]        \n\t"
-                         "bt %[bit], %[tmp] \n\t"
-                        : "=@ccc"(res), [tmp]"+r"(tmp)
-                        : [bit]"rN"(9));
-
-            return res;
-#else
             uintptr_t flags;
 
             asm volatile("pushf        \n\t"
@@ -81,8 +69,7 @@ namespace Beelzebub
                         : [flags]"=r"(flags));
             //  Push and pop don't change any flags. Yay!
 
-            return (flags & (uintptr_t)(1 << 9)) != 0;
-#endif
+            return (flags & ((uintptr_t)1 << 9)) != 0;
         }
 
     private:
@@ -91,8 +78,8 @@ namespace Beelzebub
             void const * cookie;
 
             asm volatile("pushf      \n\t"
-                         "pop %[dst] \n\t"
                          "cli        \n\t"
+                         "pop %[dst] \n\t"
                         : [dst]"=r"(cookie)
                         :
                         : "memory");
@@ -116,7 +103,7 @@ namespace Beelzebub
          *  executing this function.
          *  </return>
          */
-        static inline InterruptState Disable()
+        static inline InterruptState Disable() __must_check
         {
             return InterruptState(DisableInner());
         }
@@ -147,7 +134,7 @@ namespace Beelzebub
          *  executing this function.
          *  </return>
          */
-        static inline InterruptState Enable()
+        static inline InterruptState Enable() __must_check
         {
             return InterruptState(EnableInner());
         }
@@ -164,7 +151,7 @@ namespace Beelzebub
         __forceinline InterruptState(InterruptState && other) : Value(other.Value) { }
 
         InterruptState & operator =(InterruptState const & other) { this->Value = other.Value; return *this; }
-        InterruptState & operator =(InterruptState && other) { return other; }
+        InterruptState & operator =(InterruptState && other) { this->Value = other.Value; return *this; }
 
         /*  Operations  */
 
@@ -182,7 +169,7 @@ namespace Beelzebub
 
         __forceinline bool GetEnabled() const
         {
-            return ((uintptr_t)this->Value & (uintptr_t)(1 << 9)) != 0;
+            return ((uintptr_t)this->Value & ((uintptr_t)1 << 9)) != 0;
         }
 
         /*  Fields  */
