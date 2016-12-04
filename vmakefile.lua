@@ -44,7 +44,7 @@ require "vmake"
 
 Configuration "debug" {
     Data = {
-        Opts_GCC = List { "-fno-omit-frame-pointer" }
+        Opts_GCC = List { "-fno-omit-frame-pointer", "-g" }
     },
 }
 
