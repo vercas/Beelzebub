@@ -88,7 +88,7 @@ void TestTimer()
     ASSERT(Timer::Enqueue(4secs_l        , &Test1, reinterpret_cast<void *>(4)));
     ASSERT(Timer::Enqueue(1secs_l        , &Test1, reinterpret_cast<void *>(1)));
 
-    ASSERT(System::Interrupts::AreEnabled());
+    ASSERT(InterruptState::IsEnabled());
 
     while (Counter > 0) { }
 }

@@ -79,7 +79,7 @@ void Pinger(void * cookie)
 {
     PingPongState * const pps = reinterpret_cast<PingPongState *>(cookie);
 
-    assert(!Interrupts::AreEnabled());
+    assert(!InterruptState::IsEnabled());
 
     assert(!pps->Ponged);
     //  Should've been cleared already.

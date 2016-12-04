@@ -144,22 +144,14 @@ void * TestThreadCode(void *)
         , "Failed to allocate data for VAS test thread: %H."
         , res);
 
-    // DEBUG_TERM_ << "Been given 4 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
     vaddr1 = vaddr;
 
     memset((void *)vaddr, 0xCD, 4 * PageSize);
 
-    // Debug::DebugTerminal->WriteHexTable(vaddr, 4 * PageSize, 32, false);
+    TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
 
-    withInterrupts (false)
-    {
-        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
-
-        if (vaddr + 4 * PageSize < Vmm::UserlandEnd)
-            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 4 * PageSize));
-
-        // DEBUG_TERM_ << EndLine;
-    }
+    if (vaddr + 4 * PageSize < Vmm::UserlandEnd)
+        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 4 * PageSize));
 
     vaddr = Vmm::UserlandStart + 1337 * PageSize;
 
@@ -177,22 +169,13 @@ void * TestThreadCode(void *)
     ASSERT_EQ("%Xp", Vmm::UserlandStart + 1337 * PageSize, vaddr);
     vaddr2 = vaddr;
 
-    // DEBUG_TERM_ << "Been given 5 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
-
     memset((void *)vaddr, 0xAB, 5 * PageSize);
 
-    // Debug::DebugTerminal->WriteHexTable(vaddr, 5 * PageSize, 32, false);
+    if (vaddr - sizeof(uintptr_t) < vaddr1 || vaddr - sizeof(uintptr_t) >= vaddr1 + 4 * PageSize)
+        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
 
-    withInterrupts (false)
-    {
-        if (vaddr - sizeof(uintptr_t) < vaddr1 || vaddr - sizeof(uintptr_t) >= vaddr1 + 4 * PageSize)
-            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
-
-        if (vaddr + 5 * PageSize < Vmm::UserlandEnd && (vaddr + 5 * PageSize < vaddr1 || vaddr + PageSize >= vaddr1))
-            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
-
-        // DEBUG_TERM_ << EndLine;
-    }
+    if (vaddr + 5 * PageSize < Vmm::UserlandEnd && (vaddr + 5 * PageSize < vaddr1 || vaddr + PageSize >= vaddr1))
+        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
 
     vaddr = nullvaddr;
 
@@ -207,26 +190,16 @@ void * TestThreadCode(void *)
         , "Failed to allocate data for VAS test thread: %H."
         , res);
 
-    // DEBUG_TERM_ << "Been given 6 anonymous user pages @ " << (void *)vaddr << "." << EndLine;
-    // vaddr3 = vaddr;
-
     memset((void *)vaddr, 0x65, 6 * PageSize);
 
-    // Debug::DebugTerminal->WriteHexTable(vaddr, 6 * PageSize, 32, false);
+    if ((vaddr - sizeof(uintptr_t) < vaddr1 || vaddr - sizeof(uintptr_t) >= vaddr1 + 4 * PageSize)
+     && (vaddr - sizeof(uintptr_t) < vaddr2 || vaddr - sizeof(uintptr_t) >= vaddr2 + 5 * PageSize))
+        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
 
-    withInterrupts (false)
-    {
-        if ((vaddr - sizeof(uintptr_t) < vaddr1 || vaddr - sizeof(uintptr_t) >= vaddr1 + 4 * PageSize)
-         && (vaddr - sizeof(uintptr_t) < vaddr2 || vaddr - sizeof(uintptr_t) >= vaddr2 + 5 * PageSize))
-            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
-
-        if (vaddr + 6 * PageSize < Vmm::UserlandEnd
-        && (vaddr + 6 * PageSize < vaddr1 || vaddr + 2 * PageSize >= vaddr1)
-        && (vaddr + 6 * PageSize < vaddr2 || vaddr +     PageSize >= vaddr2))
-            TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
-
-        // DEBUG_TERM_ << EndLine;
-    }
+    if (vaddr + 6 * PageSize < Vmm::UserlandEnd
+    && (vaddr + 6 * PageSize < vaddr1 || vaddr + 2 * PageSize >= vaddr1)
+    && (vaddr + 6 * PageSize < vaddr2 || vaddr +     PageSize >= vaddr2))
+        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
 
     Barrier = false;
 
