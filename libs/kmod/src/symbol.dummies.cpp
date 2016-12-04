@@ -41,13 +41,18 @@
 
 #include <beel/structs.kernel.hpp>
 
-#define KRN_SYM_GLB_FNC(name, retType, ...) \
-    __shared retType name(__VA_ARGS__) { return {}; }
+#define KRN_SYM_GLB_FNC(name, attr, retType, ...) \
+    __shared attr retType name(__VA_ARGS__) { }
 
-#define KRN_SYM_NMS_FNC(name, retType, ...) \
-    namespace Beelzebub { __shared retType name(__VA_ARGS__) { return {}; } }
+#define KRN_SYM_NMS_FNC(name, attr, retType, ...) \
+    namespace Beelzebub { __shared attr retType name(__VA_ARGS__) { } }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
 
 #include <beel/symbols.kernel.inc>
+
+#pragma GCC diagnostic pop
 
 #undef KRN_SYM_GLB_FNC
 #undef KRN_SYM_NMS_FNC
