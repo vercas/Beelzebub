@@ -381,3 +381,41 @@ asm volatile goto(".pushsection .locks." #opType ", \"a\", @progbits \n\t" \
 #ifndef EXTEND_POINTER
 #define EXTEND_POINTER(ptr) do { } while (false)
 #endif
+
+#ifdef __cplusplus
+namespace Beelzebub
+{
+    /*******************
+        Scope Guards
+    *******************/
+
+    /// <summary>Guards a scope with a specified function.</summary>
+    template<typename TFunc>
+    struct ScopeGuard
+    {
+        /*  Constructor(s)  */
+
+        inline ScopeGuard(TFunc const func) : Guard(func) { }
+
+        ScopeGuard(ScopeGuard const &) = delete;
+        ScopeGuard(ScopeGuard && other) = default;
+        ScopeGuard & operator =(ScopeGuard const &) = delete;
+        ScopeGuard & operator =(ScopeGuard &&) = default;
+
+        /*  Destructor  */
+
+        inline ~ScopeGuard()
+        {
+            this->Guard();
+        }
+
+    private:
+        /*  Field(s)  */
+
+        TFunc const Guard;
+    };
+
+    template<typename TFunc>
+    __forceinline ScopeGuard<TFunc> MakeScopeGuard(TFunc const func) { return ScopeGuard<TFunc>(func); }
+}
+#endif
