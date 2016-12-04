@@ -460,8 +460,6 @@ struct OperationParameters
             vas->Lock.ReleaseAsWriter();
 
             cookie.Restore();
-
-            DEBUG_TERM_ << vas;
         }
 
         return res;
