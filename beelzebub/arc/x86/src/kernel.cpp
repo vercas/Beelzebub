@@ -467,11 +467,9 @@ static __startup void MainElideLocks()
 #ifdef __BEELZEBUB__TEST_LOCK_ELISION
     if (CHECK_TEST(LOCK_ELISION))
     {
-        MainTerminal->WriteLine("[TEST] Testing lock elision... ");
+        MainTerminal->WriteLine("[TEST] Testing lock elision...");
 
         TestLockElision();
-
-        MainTerminal->WriteLine(" Done.");
     }
 #endif
 
