@@ -39,6 +39,7 @@
 
 #include <terminals/vbe.hpp>
 #include <terminals/font.hpp>
+#include <terminals/splash.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
@@ -94,6 +95,8 @@ VbeTerminal::VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32
     : TerminalBase(&VbeTerminalCapabilities)
     , Width(wid)
     , Height(hei)
+    , PreSplashWidth(wid - SplashImageWidth)
+    , PreSplashHeight(hei - SplashImageHeight)
     , Pitch(pit)
     , VideoMemory(mem)
     , BytesPerPixel(bytesPerPixel)
@@ -111,37 +114,46 @@ TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, c
 {
     /* TEMP */ uint32_t const colf = 0xFFDFE0E6;
     /* TEMP */ uint32_t const colb = 0xFF262223;
+    /* TEMP */ uint32_t const cols = 0xFF121314;
 
     size_t const w = FontWidth;
     size_t const h = FontHeight;
     size_t const x = cx * w;
     size_t const y = cy * h;
 
-    size_t lx, ly, bit;
     size_t line = this->VideoMemory + y * this->Pitch + x * this->BytesPerPixel;
     size_t const byteWidth = w / 8;
 
     uint32_t i = 1U;   //  Number of bytes in this character.
 
+    auto drawBackgroundPixel = [this](size_t x, size_t y, uint32_t * pixel, uint32_t colb, uint32_t cols)
+    {
+        if (x >= this->PreSplashWidth
+         && y >= this->PreSplashHeight)
+        {
+            size_t const byteInd = (x - this->PreSplashWidth) / 8,
+                          bitInd = (x - this->PreSplashWidth) & 7;
+
+            if (SplashImage[(y - this->PreSplashHeight) * (SplashImageWidth / 8) + byteInd] & (0x80 >> bitInd))
+            {
+                *pixel = cols;
+
+                return;
+            }
+        }
+
+        if (colb != NOCOL)
+            *pixel = colb;
+    };
+
     if (*c == ' ')
     {
-        if (colb == NOCOL)
-            return {HandleResult::Okay, 1U, {cx, cy}};
+        // if (colb == NOCOL)
+        //     return {HandleResult::Okay, 1U, {cx, cy}};
 
-        for (ly = 0; ly < h; ++ly)
-        {
-            size_t col = 0;
-
-            for (lx = 0; lx < byteWidth; ++lx)
-                for (bit = 0; bit < 8; ++bit)
-                {
-                    *((uint32_t *)(col + line)) = colb;
-
-                    col += this->BytesPerPixel;
-                }
-
-            line += this->Pitch;
-        }
+        for (size_t ly = 0; ly < h; ++ly, line += this->Pitch)
+            for (size_t lx = 0, col = 0; lx < w; ++lx, col += this->BytesPerPixel)
+                drawBackgroundPixel(x + lx, y + ly, (uint32_t *)(line + col), colb, cols);
     }
     else
     {
@@ -154,27 +166,21 @@ TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, c
             goto skip_bitmap;
         }
 
-        for (ly = 0; ly < h; ++ly)
+        for (size_t ly = 0; ly < h; ++ly, line += this->Pitch)
         {
-            size_t ind = ly * w / 8, col = 0;
+            size_t ind = ly * w / 8;
 
-            for (lx = 0; lx < byteWidth; ++lx)
-                for (bit = 0; bit < 8; ++bit)
-                {
+            for (size_t lx = 0, col = 0; lx < byteWidth; ++lx)
+                for (size_t bit = 0; bit < 8; ++bit, col += this->BytesPerPixel)
                     if (bmp[ind + lx] & (0x80 >> bit))
                     {
                         if (colf == INVCOL)
-                            *((uint32_t *)(col + line)) = ~*((uint32_t *)(col + line));
+                            *((uint32_t *)(line + col)) ^= 0xFFFFFFFFU;
                         else if (colf != NOCOL)
-                            *((uint32_t *)(col + line)) = colf;
+                            *((uint32_t *)(line + col)) = colf;
                     }
-                    else if (colb != NOCOL)
-                        *((uint32_t *)(col + line)) = colb;
-
-                    col += this->BytesPerPixel;
-                }
-
-            line += this->Pitch;
+                    else
+                        drawBackgroundPixel(x + lx * 8 + bit, y + ly, (uint32_t *)(line + col), colb, cols);
         }
     }
 

@@ -15,8 +15,8 @@
 
 namespace Beelzebub { namespace Terminals
 {
-	extern const uint16_t SplashImageWidth = 168;
-	extern const uint16_t SplashImageHeight = 480;
+    extern uint16_t const SplashImageWidth;
+    extern uint16_t const SplashImageHeight;
 
-	extern const uint8_t SplashImage[];
+    extern uint8_t const SplashImage[];
 }}

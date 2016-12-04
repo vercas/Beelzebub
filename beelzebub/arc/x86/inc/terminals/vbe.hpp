@@ -75,7 +75,7 @@ namespace Beelzebub { namespace Terminals
 
 	//private:
 
-		uint16_t Width, Height;
+		uint16_t Width, Height, PreSplashWidth, PreSplashHeight;
 		uint32_t Pitch;
 		uintptr_t VideoMemory;
         uint8_t BytesPerPixel;
