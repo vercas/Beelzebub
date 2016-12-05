@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 #ifdef __cplusplus
     #define CHECK_TEST(name) (Beelzebub::MCATS2(TEST_FLAG_, name) == true)

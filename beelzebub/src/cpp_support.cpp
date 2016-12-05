@@ -1,7 +1,5 @@
 #include <math.h>
-#include <jegudiel.h>
 #include <icxxabi.h>
-#include <metaprogramming.h>
 
 extern "C" void __cxa_pure_virtual()
 {

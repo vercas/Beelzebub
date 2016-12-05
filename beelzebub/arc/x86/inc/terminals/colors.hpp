@@ -39,9 +39,10 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
-namespace Beelzebub { namespace Terminals { namespace Colors {
+namespace Beelzebub { namespace Terminals { namespace Colors
+{
 	///	Possible colors for 16-color terminals.
 	enum Color16 : uint8_t
 	{

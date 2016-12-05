@@ -45,7 +45,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 __shared_inline bool memeq(void const * src1, void const * src2, size_t len);
 __shared_inline comp_t memcmp(void const * src1, void const * src2, size_t len);

@@ -26,22 +26,16 @@
 
 #pragma once
 
-#include "stdint.h"
-#include "stddef.h"
+#include <stdint.h>
+#include <stddef.h>
 
 #ifndef __cplusplus
-#include "stdbool.h"
+    #include <stdbool.h>
 #endif
 
 #if defined(__BEELZEBUB_KERNEL) || defined(__BEELZEBUB_KERNEL_MODULE)
     #define __BEELZEBUB__IN_KERNEL
 #endif
-
-#if   defined(__BEELZEBUB__IN_KERNEL) || defined(__BEELZEBUB_STATIC_LIBRARY) || defined(__BEELZEBUB_DYNAMIC_LIBRARY)
-#include <cpp_support.h>
-#endif
-
-#include <metaprogramming.aux.inc>
 
 /***********************
     Macro Assistance
@@ -233,26 +227,37 @@
 //  These exist because they are shorter and I can later adapt them for
 //  other compilers as well.
 
+/******************
+    C++ Support
+******************/
+
+#ifdef __cplusplus
+    __forceinline void * operator new     (size_t, void * p) { return p; }
+    __forceinline void * operator new[]   (size_t, void * p) { return p; }
+    __forceinline void   operator delete  (void *, void *  ) { }
+    __forceinline void   operator delete[](void *, void *  ) { }
+#endif
+
 /****************************
     Enumarator Assistance
 ****************************/
 
 #ifdef __cplusplus
     #define ENUMOPS_LITE2(T, U)                                                   \
-    inline bool operator == (U   a, T b) { return               a  == (U )(b);  } \
-    inline bool operator != (U   a, T b) { return               a  != (U )(b);  } \
-    inline bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
-    inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
+    __forceinline bool operator == (U   a, T b) { return               a  == (U )(b);  } \
+    __forceinline bool operator != (U   a, T b) { return               a  != (U )(b);  } \
+    __forceinline bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
+    __forceinline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
     #define ENUMOPS_FULL2(T, U)                                                   \
-    inline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
-    inline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
-    inline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
-    inline  T   operator &  (T   a, U b) { return (T  )(  (U  )(a) &       b ); } \
-    inline  T   operator ^  (T   a, T b) { return (T  )(  (U  )(a) ^  (U )(b)); } \
-    inline  T & operator |= (T & a, T b) { return (T &)(  (U &)(a) |= (U )(b)); } \
-    inline  T & operator &= (T & a, T b) { return (T &)(  (U &)(a) &= (U )(b)); } \
-    inline  T & operator ^= (T & a, T b) { return (T &)(  (U &)(a) ^= (U )(b)); } \
+    __forceinline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
+    __forceinline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
+    __forceinline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
+    __forceinline  T   operator &  (T   a, U b) { return (T  )(  (U  )(a) &       b ); } \
+    __forceinline  T   operator ^  (T   a, T b) { return (T  )(  (U  )(a) ^  (U )(b)); } \
+    __forceinline  T & operator |= (T & a, T b) { return (T &)(  (U &)(a) |= (U )(b)); } \
+    __forceinline  T & operator &= (T & a, T b) { return (T &)(  (U &)(a) &= (U )(b)); } \
+    __forceinline  T & operator ^= (T & a, T b) { return (T &)(  (U &)(a) ^= (U )(b)); } \
     ENUMOPS_LITE2(T, U)
 
     #define ENUMOPS_LITE1(T) ENUMOPS_LITE2(T, __underlying_type(T))
@@ -388,9 +393,7 @@ typedef void (* ActionFunction0)(void);
     #define onKernel if (false)
 #endif
 
-#ifndef EXTEND_POINTER
 #define EXTEND_POINTER(ptr) do { } while (false)
-#endif
 
 /******************************
     Lock Elision Assistance
@@ -420,7 +423,7 @@ namespace Beelzebub
     {
         /*  Constructor(s)  */
 
-        inline ScopeGuard(TFunc const func) : Guard(func) { }
+        __forceinline ScopeGuard(TFunc const func) : Guard(func) { }
 
         ScopeGuard(ScopeGuard const &) = delete;
         ScopeGuard(ScopeGuard && other) = default;
@@ -429,7 +432,7 @@ namespace Beelzebub
 
         /*  Destructor  */
 
-        inline ~ScopeGuard()
+        __forceinline ~ScopeGuard()
         {
             this->Guard();
         }

@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 #ifndef __BEELZEBUB__STACK_WALK
 #define __BEELZEBUB__STACK_WALK true

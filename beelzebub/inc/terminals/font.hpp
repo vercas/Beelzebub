@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 /**
  * The #defines `b` and `b_` are taken from the following file:

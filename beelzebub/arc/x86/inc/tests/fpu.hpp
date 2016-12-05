@@ -39,6 +39,6 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 __startup __fancy void TestFpu();

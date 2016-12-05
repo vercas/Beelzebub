@@ -46,7 +46,6 @@
 #pragma once
 
 #include <terminals/base.hpp>
-#include <metaprogramming.h>
 
 //  FORMAT:
 //   0: 7 - Bit index

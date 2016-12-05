@@ -43,7 +43,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 namespace Beelzebub
 {
@@ -132,6 +132,9 @@ namespace Beelzebub
 
     ENUMOPS(MemoryFlags, uint8_t)
 
+    /**
+     *  Represents possible contents of a memory range.
+     */
     #define ENUM_MEMORYCONTENT(ENUMINST) \
         ENUMINST(Generic       , 0x00) /*  Generic contents, nothing remarkable.  */ \
         ENUMINST(Share         , 0x01) /*  Shared with other processes.  */ \
@@ -146,15 +149,7 @@ namespace Beelzebub
         ENUMINST(VmmBootstrap  , 0xFE) /*  VMM bootstrapping data.  */ \
         ENUMINST(Free          , 0xFF) /*  Nothing, waiting to be used.  */ \
 
-    /**
-     *  Represents possible contents of a memory range.
-     */
-    enum class MemoryContent : uint8_t
-    {
-        ENUM_MEMORYCONTENT(ENUMINST_VAL)
-    };
-
-    ENUMOPS_LITE(MemoryContent)
+    ENUMDECL(MemoryContent, ENUM_MEMORYCONTENT, LITE, uint8_t)
 
 #ifdef __BEELZEBUB_KERNEL
     ENUM_TO_STRING_DECL(MemoryContent, ENUM_MEMORYCONTENT);

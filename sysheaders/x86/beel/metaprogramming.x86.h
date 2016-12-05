@@ -37,6 +37,10 @@
     thorough explanation regarding other files.
 */
 
+#pragma once
+
+#include <beel/metaprogramming.common.h>
+
 /*****************
     Attributes
 *****************/
@@ -68,8 +72,6 @@
     #define __fpu  
     #define __min_float  
 #endif
-
-#include <metaprogramming.arc.inc>
 
 /*****************
     Some Types

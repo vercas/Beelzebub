@@ -39,7 +39,6 @@
 
 #pragma once
 
-#include <metaprogramming.h>
 #include <terminals/base.hpp>
 #include <terminals/colors.hpp>
 

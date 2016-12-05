@@ -38,7 +38,7 @@
 */
 
 #include <system/code_patch.hpp>
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;

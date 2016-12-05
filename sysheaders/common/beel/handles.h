@@ -74,7 +74,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 #define ENUM_HANDLETYPE(ENUMINST) \
     /*  This be an invalid handle. */ \

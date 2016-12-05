@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 namespace Beelzebub { namespace Utils
 {

@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 #define ObtainLockGuard(name, lock) Beelzebub::Synchronization::LockGuard<decltype(lock)> name {lock}
 #define withLock(lock) with(ObtainLockGuard(MCATS(_lock_guard_, __LINE__), lock))

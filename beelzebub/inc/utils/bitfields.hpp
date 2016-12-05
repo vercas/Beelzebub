@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metaprogramming.h>
+#include <beel/metaprogramming.h>
 
 #include <utils/bitfields.arc.inc>
 
