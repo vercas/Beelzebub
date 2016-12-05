@@ -39,9 +39,9 @@
 
 #pragma once
 
-#include <terminals/interface.hpp>
+#include <beel/terminals/interface.hpp>
 
-#include "stdarg.h"
+#include <stdarg.h>
 
 #define TERMTRY0(call, tres) do {           \
 tres = call;                                \

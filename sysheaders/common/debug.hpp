@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 #ifdef __BEELZEBUB_KERNEL
 #include <synchronization/spinlock_uninterruptible.hpp>

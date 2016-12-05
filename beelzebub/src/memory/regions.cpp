@@ -40,7 +40,7 @@
 #include <memory/regions.hpp>
 #include <utils/avl_tree.hpp>
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;

@@ -43,7 +43,7 @@
 #include <jegudiel.h>
 
 #ifdef __cplusplus
-    #include <terminals/base.hpp>
+    #include <beel/terminals/base.hpp>
     #include <system/cpuid.hpp>
     #include <system/domain.hpp>
 

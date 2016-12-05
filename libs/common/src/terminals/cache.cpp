@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <terminals/cache.hpp>
+#include <beel/terminals/cache.hpp>
 #include <string.h>
 #include <math.h>
 

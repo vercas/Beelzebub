@@ -40,7 +40,7 @@
 #include <utils/unit_tests.hpp>
 #include <beel/exceptions.hpp>
 
-#include <terminals/cache.hpp>
+#include <beel/terminals/cache.hpp>
 #include <terminals/cache_pools_heap.hpp>
 
 #include <debug.hpp>

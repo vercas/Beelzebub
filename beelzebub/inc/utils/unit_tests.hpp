@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
     #define __unit_test_declaration __used __section(text.tests) 

@@ -39,7 +39,7 @@
 
 #include <syscalls.kernel.hpp>
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 #include <memory/vmm.hpp>
 #include <system/cpu.hpp>

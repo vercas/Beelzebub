@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 #define NOCOL  ((uint32_t)0x90011337)
 #define INVCOL ((uint32_t)0x42666616)

@@ -45,7 +45,7 @@
 
 #pragma once
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 //  FORMAT:
 //   0: 7 - Bit index

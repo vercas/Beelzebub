@@ -39,6 +39,6 @@
 
 #pragma once
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 __startup Beelzebub::Terminals::TerminalWriteResult TestTerminal();

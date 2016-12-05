@@ -41,7 +41,7 @@
 
 #include <system/domain.hpp>    //  Platform-specific.
 #include <execution/thread.hpp>
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 namespace Beelzebub
 {

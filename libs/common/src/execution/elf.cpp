@@ -38,7 +38,7 @@
 */
 
 #include <execution/elf.hpp>
-#include <terminals/base.hpp>
+
 #include <string.h>
 #include <math.h>
 #include <debug.hpp>
@@ -68,6 +68,8 @@ ENUM_TO_STRING_EX2(ElfSymbolType, ENUM_ELFSYMBOLTYPE, Beelzebub::Execution)
 ENUM_TO_STRING_EX2(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY, Beelzebub::Execution)
 
 ENUM_TO_STRING_EX2(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, Beelzebub::Execution)
+
+#include <beel/terminals/base.hpp>
 
 /*  Now to implement some << operator magic.  */
 

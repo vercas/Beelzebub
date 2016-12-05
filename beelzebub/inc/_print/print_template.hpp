@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 #define PRINT_FUNCS(type) \
 __cold __noinline Beelzebub::Terminals::TerminalWriteResult PrintToTerminal(Beelzebub::Terminals::TerminalBase * const term, type val); \

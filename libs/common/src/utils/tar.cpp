@@ -159,7 +159,7 @@ bool TarHeader::IsInDirectory(char const * dir, bool includeSelf) const
     //  the last char of the name must be non-zero.
 }
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 
 /*  Now to implement some << operator magic.  */
 

@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <terminals/debug.hpp>
+#include <beel/terminals/debug.hpp>
 #include <beel/syscalls.h>
 #include <math.h>
 #include <string.h>

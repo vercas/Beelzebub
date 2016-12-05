@@ -41,7 +41,7 @@
 
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <synchronization/atomic.hpp>
-// #include <terminals/base.hpp>
+// #include <beel/terminals/base.hpp>
 #include <beel/handles.h>
 
 namespace Beelzebub { namespace Memory

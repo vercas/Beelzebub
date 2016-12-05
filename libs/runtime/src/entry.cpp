@@ -38,9 +38,10 @@
 */
 
 #include <crt0.hpp>
-#include <terminals/debug.hpp>
+#include <beel/terminals/debug.hpp>
 #include <kernel_data.hpp>
 #include <execution/process_image.hpp>
+
 #include <debug.hpp>
 
 using namespace Beelzebub;

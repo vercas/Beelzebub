@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <terminals/base.hpp>
+#include <beel/terminals/base.hpp>
 #include <system/serial_ports.hpp>
 
 namespace Beelzebub { namespace Terminals

@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <terminals/cache.hpp>
+#include <beel/terminals/cache.hpp>
 
 namespace Beelzebub { namespace Terminals
 {
