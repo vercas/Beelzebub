@@ -39,14 +39,47 @@
 
 #pragma once
 
-#include <syscalls.h>
+#include <beel/syscalls.hpp>
 
 namespace Beelzebub
 {
-    __extern __hot __fastcall_ia32 Handle SyscallCommon(SyscallSelection const selector
-                                                      , void *    arg1, uintptr_t arg2
-                                                      , uintptr_t arg3, uintptr_t arg4
-                                                      , uintptr_t arg5);
+    typedef Handle (* SyscallFunction)(void * arg0, void * arg1, void * arg2
+                                     , void * arg3, void * arg4, void * arg5
+                                     , void * const stackptr, SyscallSelection const selector);
+
+    struct SyscallSlot
+    {
+        /*  Constructors  */
+
+        inline SyscallSlot() : Value() { }
+
+        template<typename TFunc>
+        inline SyscallSlot(TFunc const val)
+            : Value(reinterpret_cast<void *>(val))
+        { }
+
+        /*  Operations  */
+
+        inline SyscallFunction GetFunction() const
+        {
+            return reinterpret_cast<SyscallFunction>(this->Value);
+        }
+
+        inline bool IsImplemented() const
+        {
+            return this->Value != nullptr;
+        }
+
+        /*  Fields  */
+
+        void * Value;
+    };
+
+    extern SyscallSlot DefaultSystemCalls[(size_t)SyscallSelection::COUNT];
+
+    __extern __hot __fastcall_ia32 Handle SyscallCommon(void * arg0, void * arg1, void * arg2
+                                                      , void * arg3, void * arg4, void * arg5
+                                                      , void * const stackptr, SyscallSelection const selector);
     //  A selector and 5 arguments, platform-independent.
     //  Argument 1 (2nd function argument) is the one used to point to extra
     //  data, if 5 syscall arguments are not enough.

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,32 +37,16 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
-
-#include <beel/handles.h>
-
 #define ENUM_SYSCALLSELECTION(ENUMINST) \
     /*  Will simply print a value on the debug terminal. */ \
     ENUMINST(DebugPrint   , SYSCALL_DEBUG_PRINT   ,   0, "Debug Print"   ) \
     /*  Requests a number of pages of memory from the OS. */ \
-    ENUMINST(MemoryRequest, SYSCALL_MEMORY_REQUEST, 100, "Memory Request") \
+    ENUMINST(MemoryRequest, SYSCALL_MEMORY_REQUEST,  10, "Memory Request") \
     /*  Releases a number of pages of memory to the OS. */ \
-    ENUMINST(MemoryRelease, SYSCALL_MEMORY_RELEASE, 101, "Memory Release") \
+    ENUMINST(MemoryRelease, SYSCALL_MEMORY_RELEASE,  11, "Memory Release") \
     /*  Copies a chunk of memory to the target address. */ \
-    ENUMINST(MemoryCopy   , SYSCALL_MEMORY_COPY   , 102, "Memory Copy"   ) \
+    ENUMINST(MemoryCopy   , SYSCALL_MEMORY_COPY   ,  12, "Memory Copy"   ) \
     /*  Fills a chunk of memory with a specific byte value. */ \
-    ENUMINST(MemoryFill   , SYSCALL_MEMORY_COPY   , 103, "Memory Fill"   )
-
-typedef
-#ifdef __cplusplus
-enum class SyscallSelection
-#else
-enum SYSCALLS
-#endif
-{
-    ENUM_SYSCALLSELECTION(ENUMINST_VAL)
-} syscall_selection_t;
-
-#undef ENUM_SYSCALLSELECTION
-
-#include <syscall.inc>
+    ENUMINST(MemoryFill   , SYSCALL_MEMORY_COPY   ,  13, "Memory Fill"   ) \
+    /*  Not an actual syscall; just the number of syscalls. */ \
+    ENUMINST(COUNT        , SYSCALL_COUNT         ,  20, "Syscall Count" )

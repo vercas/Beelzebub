@@ -38,7 +38,7 @@
 */
 
 #include <terminals/debug.hpp>
-#include <syscalls.h>
+#include <beel/syscalls.hpp>
 #include <math.h>
 #include <string.h>
 
@@ -117,8 +117,8 @@ TerminalWriteResult DebugTerminal::WriteUtf8(char const * c)
         } while ((c[i] & 0xC0) == 0x80 && i < 7);
         //  This copies the remainder of the bytes, up to 6.
 
-    Handle res = PerformSyscall3(SyscallSelection::DebugPrint
-        , temp, i, reinterpret_cast<uintptr_t>(&i));
+    Handle res = PerformSyscall(SyscallSelection::DebugPrint
+        , temp, reinterpret_cast<void *>((size_t)i), &i);
 
     return {res, i, InvalidCoordinates};
 }
@@ -127,10 +127,10 @@ TerminalWriteResult DebugTerminal::Write(char const * const str, size_t len)
 {
     uint32_t i = 0;
 
-    Handle res = PerformSyscall3(SyscallSelection::DebugPrint
+    Handle res = PerformSyscall(SyscallSelection::DebugPrint
         , const_cast<char *>(str)
-        , Minimum(len, strlen(str))
-        , reinterpret_cast<uintptr_t>(&i));
+        , reinterpret_cast<void *>(Minimum(len, strlen(str)))
+        , &i);
 
     return {res, i, InvalidCoordinates};
 }

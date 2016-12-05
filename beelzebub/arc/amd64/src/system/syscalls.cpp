@@ -38,17 +38,25 @@
 */
 
 #include <system/syscalls.hpp>
+#include <syscalls.kernel.hpp>
 #include <system/msrs.hpp>
+#include <synchronization/spinlock.hpp>
 #include <entry.h>
 
+#include <syscalls/memory.h>
+
 using namespace Beelzebub;
+using namespace Beelzebub::Syscalls;
 using namespace Beelzebub::System;
 
-/*********************
-    Syscalls class
-*********************/
+static Synchronization::Spinlock<> InitLock {};
+static bool Initialized = false;
 
-void Syscalls::Initialize()
+/********************
+    Syscall class
+********************/
+
+void Syscall::Initialize()
 {
     Msrs::SetFmask(FlagsRegisterFlags::Reserved1);
     Msrs::SetStar(Ia32Star().SetSyscallCsSs(0x8).SetSysretCsSs(0x18));
@@ -57,4 +65,20 @@ void Syscalls::Initialize()
 
     if (BootstrapCpuid.Vendor == CpuVendor::Intel)
         Msrs::SetEfer(Msrs::GetEfer().SetSyscallEnable(true));
+
+    withLock (InitLock)
+    {
+        if likely(!Initialized)
+        {
+#define SET_SYSCALL(enum, func) \
+            DefaultSystemCalls[(size_t)SyscallSelection::enum] = &func
+
+            SET_SYSCALL(MemoryRequest, MemoryRequest);
+            SET_SYSCALL(MemoryRelease, MemoryRelease);
+            SET_SYSCALL(MemoryCopy   , MemoryCopy);
+            SET_SYSCALL(MemoryFill   , MemoryFill);
+
+            Initialized = true;
+        }
+    }
 }

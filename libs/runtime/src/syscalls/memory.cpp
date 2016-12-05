@@ -38,7 +38,7 @@
 */
 
 #include <syscalls/memory.h>
-#include <syscalls.h>
+#include <beel/syscalls.hpp>
 
 using namespace Beelzebub;
 
@@ -51,8 +51,10 @@ handle_t Beelzebub::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t op
     if unlikely((addr + size) < addr)
         return HandleResult::ArgumentOutOfRange;
 
-    return PerformSyscall3(SyscallSelection::MemoryRequest
-        , reinterpret_cast<void *>(addr), (uintptr_t)size, (uintptr_t)(int)opts);
+    return PerformSyscall(SyscallSelection::MemoryRequest
+        , reinterpret_cast<void *>(addr)
+        , reinterpret_cast<void *>((uintptr_t)size)
+        , reinterpret_cast<void *>((uintptr_t)(int)opts));
 }
 
 handle_t Beelzebub::MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t opts)
@@ -64,8 +66,10 @@ handle_t Beelzebub::MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t op
     if unlikely((addr + size) < addr)
         return HandleResult::ArgumentOutOfRange;
 
-    return PerformSyscall3(SyscallSelection::MemoryRelease
-        , reinterpret_cast<void *>(addr), (uintptr_t)size, (uintptr_t)(int)opts);
+    return PerformSyscall(SyscallSelection::MemoryRelease
+        , reinterpret_cast<void *>(addr)
+        , reinterpret_cast<void *>((uintptr_t)size)
+        , reinterpret_cast<void *>((uintptr_t)(int)opts));
 }
 
 handle_t Beelzebub::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
@@ -75,8 +79,10 @@ handle_t Beelzebub::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
 
     //  TODO?: Attempt a normal `memmov` and catch an exception somehow?
 
-    return PerformSyscall3(SyscallSelection::MemoryCopy
-        , reinterpret_cast<void *>(dst), src, (uintptr_t)len);
+    return PerformSyscall(SyscallSelection::MemoryCopy
+        , reinterpret_cast<void *>(dst)
+        , reinterpret_cast<void *>(src)
+        , reinterpret_cast<void *>((uintptr_t)len));
 }
 
 handle_t Beelzebub::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
@@ -86,6 +92,8 @@ handle_t Beelzebub::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
 
     //  TODO?: Attempt a normal `memset` and catch an exception somehow?
 
-    return PerformSyscall3(SyscallSelection::MemoryFill
-        , reinterpret_cast<void *>(dst), (uintptr_t)val, (uintptr_t)len);
+    return PerformSyscall(SyscallSelection::MemoryFill
+        , reinterpret_cast<void *>(dst)
+        , reinterpret_cast<void *>((uintptr_t)val)
+        , reinterpret_cast<void *>((uintptr_t)len));
 }

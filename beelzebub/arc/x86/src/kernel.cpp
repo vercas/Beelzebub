@@ -600,7 +600,7 @@ static __startup void MainInitializeFpu()
 static __startup void MainInitializeSyscalls()
 {
     MainTerminal->Write("[....] Initializing syscalls...");
-    Syscalls::Initialize();
+    Syscall::Initialize();
     MainTerminal->WriteLine(" Done.\r[OKAY]");
 }
 
@@ -921,7 +921,7 @@ void Beelzebub::Secondary()
     Lapic::Initialize();
     //  Quickly get the local APIC initialized.
 
-    Syscalls::Initialize();
+    Syscall::Initialize();
     //  And syscalls.
 
     ApicTimer::Initialize(false);

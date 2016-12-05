@@ -155,7 +155,7 @@ namespace Beelzebub
         uint32_t LapicId;
         uint32_t Padding1;
 
-        uintptr_t SyscallStack;
+        uintptr_t SyscallStack, SyscallUserlandStack;
         SyscallRegisters64 SyscallRegisters;
 
         MONIKER(Thread) * ActiveThread;

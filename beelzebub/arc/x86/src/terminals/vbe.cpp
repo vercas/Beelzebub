@@ -147,14 +147,9 @@ TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, c
     };
 
     if (*c == ' ')
-    {
-        // if (colb == NOCOL)
-        //     return {HandleResult::Okay, 1U, {cx, cy}};
-
         for (size_t ly = 0; ly < h; ++ly, line += this->Pitch)
             for (size_t lx = 0, col = 0; lx < w; ++lx, col += this->BytesPerPixel)
                 drawBackgroundPixel(x + lx, y + ly, (uint32_t *)(line + col), colb, cols);
-    }
     else
     {
         uint8_t const * bmp = Font[*c - FontMin];
@@ -185,7 +180,6 @@ TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, c
     }
 
 skip_bitmap:
-
     return {HandleResult::Okay, i, {cx, cy}};
 }
 

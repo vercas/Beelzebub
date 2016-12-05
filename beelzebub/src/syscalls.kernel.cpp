@@ -39,8 +39,6 @@
 
 #include <syscalls.kernel.hpp>
 
-#include <syscalls/memory.h>
-
 #include <terminals/base.hpp>
 
 #include <memory/vmm.hpp>
@@ -50,71 +48,73 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
-using namespace Beelzebub::Syscalls;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-Handle Beelzebub::SyscallCommon(SyscallSelection const selector, void * arg1
-                              , uintptr_t arg2, uintptr_t arg3
-                              , uintptr_t arg4, uintptr_t arg5)
+SyscallSlot Beelzebub::DefaultSystemCalls[(size_t)SyscallSelection::COUNT] = {0};
+
+Handle Beelzebub::SyscallCommon(void * arg0, void * arg1, void * arg2
+                              , void * arg3, void * arg4, void * arg5
+                              , void * const stackptr, SyscallSelection const selector)
 {
-    switch (selector)
+    if (selector >= SyscallSelection::COUNT)
+        return HandleResult::SyscallSelectionInvalid;
+    //  TODO: Ask kernel modules for their syscalls..?
+
+    SyscallSlot & slot = DefaultSystemCalls[(size_t)selector];
+
+    if unlikely(!slot.IsImplemented())
     {
-    case SyscallSelection::DebugPrint:
+        switch (selector)
         {
-            if (arg2 > (1 << 16))
-                return HandleResult::ArgumentOutOfRange;
-
-            Handle res = Vmm::CheckMemoryRegion(nullptr
-                , reinterpret_cast<uintptr_t>(arg1), arg2
-                , MemoryCheckType::Userland | MemoryCheckType::Readable);
-
-            assert_or(res.IsOkayResult()
-                , "Debug print string failure: %H%n"
-                  "%Xp %up: %s%n"
-                , res, arg1, arg2, arg1)
+        case SyscallSelection::DebugPrint:
             {
-                return res;
-            }
+                if (reinterpret_cast<size_t>(arg1) > (1 << 16))
+                    return HandleResult::ArgumentOutOfRange;
 
-            if (arg3 == 0)
-                return Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1), arg2).Result;
-            else if (0 == (arg3 & 0x3))
-            {
-                //  The 3rd argument must be in the userland memory region and 4-byte aligned.
+                Handle res = Vmm::CheckMemoryRegion(nullptr
+                    , reinterpret_cast<uintptr_t>(arg0)
+                    , reinterpret_cast<size_t>(arg1)
+                    , MemoryCheckType::Userland | MemoryCheckType::Readable);
 
-                res = Vmm::CheckMemoryRegion(nullptr, arg3, 4
-                    , MemoryCheckType::Userland | MemoryCheckType::Writable);
-
-                if unlikely(!res.IsOkayResult())
+                assert_or(res.IsOkayResult()
+                    , "Debug print string failure: %H%n"
+                      "%Xp %up: %s%n"
+                    , res, arg0, arg1, arg0)
+                {
                     return res;
+                }
 
-                uint32_t * const sizePtr = reinterpret_cast<uint32_t *>(arg3);
-                
-                TerminalWriteResult twRes = Debug::DebugTerminal->Write(reinterpret_cast<char *>(arg1), arg2);
+                if (arg2 == nullptr)
+                    return Debug::DebugTerminal->Write((char *)arg0, reinterpret_cast<size_t>(arg1)).Result;
+                else if (0 == (reinterpret_cast<uintptr_t>(arg2) & 0x3))
+                {
+                    //  The 3rd argument must be in the userland memory region and 4-byte aligned.
 
-                *sizePtr = twRes.Size;
-                return twRes.Result;
+                    res = Vmm::CheckMemoryRegion(nullptr
+                        , reinterpret_cast<uintptr_t>(arg2), 4
+                        , MemoryCheckType::Userland | MemoryCheckType::Writable);
+
+                    if unlikely(!res.IsOkayResult())
+                        return res;
+
+                    uint32_t * const sizePtr = reinterpret_cast<uint32_t *>(arg2);
+
+                    TerminalWriteResult twRes = Debug::DebugTerminal->Write((char *)arg0, reinterpret_cast<size_t>(arg1));
+
+                    *sizePtr = twRes.Size;
+                    return twRes.Result;
+                }
+                else
+                    return HandleResult::ArgumentOutOfRange;
             }
-            else
-                return HandleResult::ArgumentOutOfRange;
+
+        default:
+            return HandleResult::SyscallSelectionInvalid;
         }
 
-    case SyscallSelection::MemoryRequest:
-        return MemoryRequest(reinterpret_cast<uintptr_t>(arg1), (size_t)arg2, (mem_req_opts_t)arg3);
-
-    case SyscallSelection::MemoryRelease:
-        return MemoryRelease(reinterpret_cast<uintptr_t>(arg1), (size_t)arg2, (mem_rel_opts_t)arg3);
-
-    case SyscallSelection::MemoryCopy:
-        return MemoryCopy(reinterpret_cast<uintptr_t>(arg1), arg2, (size_t)arg3);
-
-    case SyscallSelection::MemoryFill:
-        return MemoryFill(reinterpret_cast<uintptr_t>(arg1), (uint8_t)arg2, (size_t)arg3);
-
-    default:
-        return HandleResult::SyscallSelectionInvalid;
+        return HandleResult::Okay;
     }
-
-    return HandleResult::Okay;
+    else
+        return slot.GetFunction()(arg0, arg1, arg2, arg3, arg4, arg5, stackptr, selector);
 }

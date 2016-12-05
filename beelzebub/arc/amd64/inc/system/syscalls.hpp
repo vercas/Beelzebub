@@ -49,16 +49,16 @@ namespace Beelzebub { namespace System
     /**
      *  <summary>Contains methods for interfacing with syscalls.</summary>
      */
-    class Syscalls
+    class Syscall
     {
         /*  Constructor(s)  */
 
     protected:
-        Syscalls() = default;
+        Syscall() = default;
 
     public:
-        Syscalls(Syscalls const &) = delete;
-        Syscalls & operator =(Syscalls const &) = delete;
+        Syscall(Syscall const &) = delete;
+        Syscall & operator =(Syscall const &) = delete;
 
         /*  Initialization  */
 

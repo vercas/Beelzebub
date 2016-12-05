@@ -54,25 +54,39 @@ extern SyscallCommon
 SyscallEntry_64:
     swapgs
     ;   Grab kernel GS base ASAP.
-    
-    mov     r12, rsp
-    mov     rsp, qword [gs:CpuData.SyscallStack]
-    ;   Back up user stack pointer into R12 (callee-saved) and retrieve
-    ;   the kernel stack pointer, also ASAP.
 
-    sti
-    ;   Syscalls are interruptible.
+    mov     qword [gs:CpuData.SyscallUserlandStack], rsp
+    mov     rsp, qword [gs:CpuData.SyscallStack]
+    ;   Back up user stack pointer into core data and retrieve the kernel
+    ;   stack pointer, also ASAP.
 
     push    rcx
     push    r11
     ;   Back up return RIP and RFLAGS on kernel stack.
+
+    push    rax
+    ;   This is the syscall selection.
+
+    mov     rax, qword [gs:CpuData.SyscallUserlandStack]
+    push    rax
+    ;   This is the userland stack.
+
+    sti
+    ;   Syscalls are interruptible.
 
     xchg    r10, rcx
     ;   RCX contained return RIP and R10 contained the fourth argument.
     ;   They're needed the other way around.
 
     call    SyscallCommon
-    ;   Just a vanilla call. The arguments are already in the right registers.
+    ;   Just a vanilla call. The arguments are already in the right registers
+    ;   and stack positions.
+
+    pop     rdi
+    ;   This retrieves the userland stack.
+
+    add     rsp, 8
+    ;   "Pop" the syscall selection.
 
     ;   No need to swap R10 and RCX again.
 
@@ -80,20 +94,19 @@ SyscallEntry_64:
     pop     rcx
     ;   Restore return RFLAGS and RIP from kernel stack.
 
-    xor     edi, edi
     xor     esi, esi
     xor     edx, edx
     xor     r8d, r8d
     xor     r9d, r9d
     ;   Make sure that information is not leaked!
-    
+
     cli
     ;   Will disable interrupts until sysret.
 
     swapgs
     ;   Restore user GS base.
-    
-    mov     rsp, r12
+
+    mov     rsp, rdi
     ;   Restore user stack.
 
     o64 sysret
