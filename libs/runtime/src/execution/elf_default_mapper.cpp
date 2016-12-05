@@ -39,7 +39,7 @@
 
 #include <execution/elf_default_mapper.hpp>
 #include <execution/elf.hpp>
-#include <syscalls/memory.h>
+#include <beel/syscalls/memory.h>
 
 #include <string.h>
 #include <math.h>
@@ -47,6 +47,7 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
+using namespace Beelzebub::Syscalls;
 
 bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
 {

@@ -43,7 +43,9 @@
 
 #include <metaprogramming.aux.inc>
 
-/*  Some macro helpers. */
+/***********************
+    Macro Assistance
+***********************/
 
 #define GET_ARG1(_1) _1
 #define GET_ARG2(_2, _1) _1
@@ -104,7 +106,9 @@
 #define VADEF(func, ...) _VADEF(func, __NARG__(__VA_ARGS__)) (__VA_ARGS__)
 //  Got this from http://stackoverflow.com/a/26408195
 
-/*  Constants/keywords..?   */
+/****************
+    Constants
+****************/
 
 #ifdef __cplusplus
 #define nullpaddr ((paddr_t)(uintptr_t)nullptr)
@@ -115,151 +119,166 @@
 #define nullvaddr ((vaddr_t)0)
 #endif
 
-/*  This is interesting.    */
+/*****************
+    Attributes
+*****************/
 
 #ifdef __cplusplus
-#define __extern extern "C"
+    #define __extern extern "C"
 #else
-#define __extern extern
+    #define __extern extern
 #endif
 
 /*  This part defines a few function modifiers based on attributes. */
 
 #ifdef __GNUC__
+    #define __forceinline      inline  __attribute__((__always_inline__))
+    #define __noinline         __attribute__((__noinline__))
+    #define __noclone          __attribute__((__noclone__))
 
-#define __forceinline      inline  __attribute__((__always_inline__))
-#define __noinline         __attribute__((__noinline__))
-#define __noclone          __attribute__((__noclone__))
+    #define __const            __attribute__((__const__))
+    #define __cold             __attribute__((__cold__))
+    #define __hot              __attribute__((__hot__))
+    #define __unoptimized      __attribute__((__optimize__(0)))
+    #define __noreturn         __attribute__((__noreturn__))
+    #define __returns_twice    __attribute__((__returns_twice__))
+    #define __used             __attribute__((__used__))
+    #define __unused           __attribute__((__unused__))
+    #define __weak             __attribute__((__weak__))
+    #define __alias(sym)       __attribute__((__alias__(#sym), __weak__, __used__))
+    #define __must_check       __attribute__((__warn_unused_result__))
+    #define __restrict         __restrict__
+    #define __nonnull(...)     __attribute__((__nonnull__(__VA_ARGS__)))
+    #define __returns_nonnull  __attribute__((__returns_nonnull__))
+    #define __malloc           __attribute__((__malloc__))
 
-#define __const            __attribute__((__const__))
-#define __cold             __attribute__((__cold__))
-#define __hot              __attribute__((__hot__))
-#define __unoptimized      __attribute__((__optimize__(0)))
-#define __noreturn         __attribute__((__noreturn__))
-#define __returns_twice    __attribute__((__returns_twice__))
-#define __used             __attribute__((__used__))
-#define __unused           __attribute__((__unused__))
-#define __weak             __attribute__((__weak__))
-#define __alias(sym)       __attribute__((__alias__(#sym), __weak__, __used__))
-#define __must_check       __attribute__((__warn_unused_result__))
-#define __restrict         __restrict__
-#define __nonnull(...)     __attribute__((__nonnull__(__VA_ARGS__)))
-#define __returns_nonnull  __attribute__((__returns_nonnull__))
-#define __malloc           __attribute__((__malloc__))
+    #define likely(expr)       (__builtin_expect((expr), 1))
+    #define unlikely(expr)     (__builtin_expect((expr), 0))
+    #define ctconst(val)       (__builtin_constant_p((val)))
 
-#define likely(expr)       (__builtin_expect((expr), 1))
-#define unlikely(expr)     (__builtin_expect((expr), 0))
-#define ctconst(val)       (__builtin_constant_p((val)))
+    #define __unreachable_code __builtin_unreachable()
+    #define __prefetch         __builtin_prefetch
 
-#define __unreachable_code __builtin_unreachable()
-#define __prefetch         __builtin_prefetch
+    #define __packed           __attribute__((__packed__))
+    #define __aligned(n)       __attribute__((__aligned__(n)))
+    #define __aligned_nat      __attribute__((__aligned__))
+    #define __alignof(T)       __alignof__(T)
 
-#define __packed           __attribute__((__packed__))
-#define __aligned(n)       __attribute__((__aligned__(n)))
-#define __aligned_nat      __attribute__((__aligned__))
-#define __alignof(T)       __alignof__(T)
+    #define __section(name)    __attribute__((__section__("." #name)))
+    #define __build_data       __attribute__((__section__(".build_data")))
 
-#define __section(name)    __attribute__((__section__("." #name)))
-#define __build_data       __attribute__((__section__(".build_data")))
+    #define __fastcall         __attribute__((__fastcall__))
+    //  To be used on IA-32 on *some* functions.
 
-#define __fastcall         __attribute__((__fastcall__))
-//  To be used on IA-32 on *some* functions.
+    #define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__, __optimize__("Os")))
+    #define __userland         __attribute__((__section__(".text.userland"), __used__))
 
-#define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__, __optimize__("Os")))
-#define __userland         __attribute__((__section__(".text.userland"), __used__))
+    #define __shared            __extern __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__, __noinline__))
+    #define __shared_inline     __extern __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__))
+    #define __shared_cpp        __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__, __noinline__))
+    #define __shared_cpp_inline __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__))
 
-#define __shared            __extern __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__, __noinline__))
-#define __shared_inline     __extern __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__))
-#define __shared_cpp        __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__, __noinline__))
-#define __shared_cpp_inline __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__))
-
-#define __public           __attribute__((__visibility__("default")))
-#define __protected        __attribute__((__visibility__("protected")))
-#define __internal         __attribute__((__visibility__("internal")))
-
+    #define __public           __attribute__((__visibility__("default")))
+    #define __protected        __attribute__((__visibility__("protected")))
+    #define __internal         __attribute__((__visibility__("internal")))
 #else
+    #define __forceinline      inline
+    #define __noinline  
+    #define __noclone  
 
-#define __forceinline      inline
-#define __noinline  
-#define __noclone  
+    #define __const  
+    #define __cold  
+    #define __hot  
+    #define __unoptimized  
+    #define __noreturn  
+    #define __returns_twice  
+    #define __used  
+    #define __unused  
+    #define __weak  
+    #define __alias(sym)  
+    #define __must_check
+    #define __restrict
+    #define __nonnull(...)  
+    #define __returns_nonnull  
+    #define __malloc  
 
-#define __const  
-#define __cold  
-#define __hot  
-#define __unoptimized  
-#define __noreturn  
-#define __returns_twice  
-#define __used  
-#define __unused  
-#define __weak  
-#define __alias(sym)  
-#define __must_check
-#define __restrict
-#define __nonnull(...)  
-#define __returns_nonnull  
-#define __malloc  
+    #define likely(expr)       (expr)
+    #define unlikely(expr)     (expr)
+    #define ctconst(val)       (false)
 
-#define likely(expr)       (expr)
-#define unlikely(expr)     (expr)
-#define ctconst(val)       (false)
+    #define __unreachable_code do { } while (false)
+    #define __prefetch(...)  
 
-#define __unreachable_code do { } while (false)
-#define __prefetch(...)  
+    #define __packed  
+    #define __aligned(n)  
+    #define __aligned_nat  
 
-#define __packed  
-#define __aligned(n)  
-#define __aligned_nat  
+    #define __section(name)  
+    #define __build_data  
 
-#define __section(name)  
-#define __build_data  
+    #define __startup  
+    #define __userland  
 
-#define __startup  
-#define __userland  
+    #define __shared           __extern 
 
-#define __shared           __extern 
-
-#define __public  
-#define __protected  
-#define __internal  
-
+    #define __public  
+    #define __protected  
+    #define __internal  
 #endif
 
 #ifndef __fastcall_ia32
-#define __fastcall_ia32  
+    #define __fastcall_ia32  
 #endif
 
 //  These exist because they are shorter and I can later adapt them for
 //  other compilers as well.
 
+/****************************
+    Enumarator Assistance
+****************************/
 
 #ifdef __cplusplus
+    #define ENUMOPS_LITE2(T, U)                                                   \
+    inline bool operator == (U   a, T b) { return               a  == (U )(b);  } \
+    inline bool operator != (U   a, T b) { return               a  != (U )(b);  } \
+    inline bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
+    inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
-#define ENUMOPS_LITE2(T, U)                                                   \
-inline bool operator == (U   a, T b) { return               a  == (U )(b);  } \
-inline bool operator != (U   a, T b) { return               a  != (U )(b);  } \
-inline bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
-inline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
+    #define ENUMOPS_FULL2(T, U)                                                   \
+    inline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
+    inline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
+    inline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
+    inline  T   operator &  (T   a, U b) { return (T  )(  (U  )(a) &       b ); } \
+    inline  T   operator ^  (T   a, T b) { return (T  )(  (U  )(a) ^  (U )(b)); } \
+    inline  T & operator |= (T & a, T b) { return (T &)(  (U &)(a) |= (U )(b)); } \
+    inline  T & operator &= (T & a, T b) { return (T &)(  (U &)(a) &= (U )(b)); } \
+    inline  T & operator ^= (T & a, T b) { return (T &)(  (U &)(a) ^= (U )(b)); } \
+    ENUMOPS_LITE2(T, U)
 
-#define ENUMOPS2(T, U)                                                        \
-inline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
-inline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
-inline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
-inline  T   operator &  (T   a, U b) { return (T  )(  (U  )(a) &       b ); } \
-inline  T   operator ^  (T   a, T b) { return (T  )(  (U  )(a) ^  (U )(b)); } \
-inline  T & operator |= (T & a, T b) { return (T &)(  (U &)(a) |= (U )(b)); } \
-inline  T & operator &= (T & a, T b) { return (T &)(  (U &)(a) &= (U )(b)); } \
-inline  T & operator ^= (T & a, T b) { return (T &)(  (U &)(a) ^= (U )(b)); } \
-ENUMOPS_LITE2(T, U)
+    #define ENUMOPS_LITE1(T) ENUMOPS_LITE2(T, __underlying_type(T))
+    #define ENUMOPS_FULL1(T) ENUMOPS_FULL2(T, __underlying_type(T))
+    //  All nice and dandy, but it uses a GCC extension for type traits because
+    //  the type_traits.h header is unavailable.
 
-#define ENUMOPS_LITE1(T) ENUMOPS_LITE2(T, __underlying_type(T))
-#define ENUMOPS1(T) ENUMOPS2(T, __underlying_type(T))
-//  All nice and dandy, but it uses a GCC extension for type traits because
-//  the type_traits.h header is unavailable.
+    #define ENUMOPS_LITE(...) GET_MACRO2(__VA_ARGS__, ENUMOPS_LITE2, ENUMOPS_LITE1)(__VA_ARGS__)
+    #define ENUMOPS_FULL(...) GET_MACRO2(__VA_ARGS__, ENUMOPS_FULL2, ENUMOPS_FULL1)(__VA_ARGS__)
 
-#define ENUMOPS_LITE(...) GET_MACRO2(__VA_ARGS__, ENUMOPS_LITE2, ENUMOPS_LITE1)(__VA_ARGS__)
-#define ENUMOPS(...) GET_MACRO2(__VA_ARGS__, ENUMOPS2, ENUMOPS1)(__VA_ARGS__)
+    #define ENUMOPS(...) ENUMOPS_FULL(__VA_ARGS__)
 
-//  Why? For the glory of C++, of course.
+    //  Why? For the glory of C++, of course.
+
+    #define ENUMDECL3(name, macro, type)          \
+        enum class name { macro(ENUMINST_VAL) };  \
+        MCATS(ENUMOPS_, type)(name)
+
+    #define ENUMDECL4(name, macro, type, inner)           \
+        enum class name : inner { macro(ENUMINST_VAL) };  \
+        MCATS(ENUMOPS_, type)(name)
+
+    #define ENUMDECL(name, macro, ...) GET_MACRO2(__VA_ARGS__, ENUMDECL4, ENUMDECL3)(name, macro, __VA_ARGS__)
+#else
+    #define ENUMDECL(name, macro, ...)  \
+        typedef enum MCATS(name, _t) { macro(ENUMINST_VAL) } name;
 #endif
 
 //  Simple enumeration item with default value.
@@ -278,9 +297,9 @@ ENUMOPS_LITE2(T, U)
 //  representation on both.
 
 #ifdef __cplusplus
-#define ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
+    #define ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
 #else
-#define ENUMINST_VAL4(cppname, cname, num, str) cname = num,
+    #define ENUMINST_VAL4(cppname, cname, num, str) cname = num,
 #endif
 
 #define ENUMINST_CASERETSTR4(cppname, cname, num, str) case num: return str;
@@ -311,7 +330,9 @@ ENUMOPS_LITE2(T, U)
 #define ENUM_TO_STRING_DECL(enumName, enumDef) \
     char const * const EnumToString(enumName const val)
 
-/*  Some type aliases...  */
+/*****************
+    Some Types
+*****************/
 
 typedef  int8_t    Int8;
 typedef  int16_t   Int16;
@@ -338,7 +359,9 @@ typedef uintptr_t UIntPtr;
 typedef bool (* PredicateFunction0)(void);
 typedef void (* ActionFunction0)(void);
 
-/*  Memory barriers and forced ordering  */
+/*******************************
+    Miscellaneous Assistance
+*******************************/
 
 #define COMPILER_MEMORY_BARRIER() asm volatile ( "" : : : "memory" )
 
@@ -365,7 +388,13 @@ typedef void (* ActionFunction0)(void);
     #define onKernel if (false)
 #endif
 
-//  Lock elision helpers
+#ifndef EXTEND_POINTER
+#define EXTEND_POINTER(ptr) do { } while (false)
+#endif
+
+/******************************
+    Lock Elision Assistance
+******************************/
 
 #define ANNOTATE_LOCK_OPERATION(opType) \
 asm volatile goto(".pushsection .locks." #opType ", \"a\", @progbits \n\t" \
@@ -378,17 +407,13 @@ asm volatile goto(".pushsection .locks." #opType ", \"a\", @progbits \n\t" \
 #define ANNOTATE_LOCK_OPERATION_ACQ ANNOTATE_LOCK_OPERATION(acq)
 #define ANNOTATE_LOCK_OPERATION_REL ANNOTATE_LOCK_OPERATION(rel)
 
-#ifndef EXTEND_POINTER
-#define EXTEND_POINTER(ptr) do { } while (false)
-#endif
+/******************
+    Scope Guard
+******************/
 
 #ifdef __cplusplus
 namespace Beelzebub
 {
-    /*******************
-        Scope Guards
-    *******************/
-
     /// <summary>Guards a scope with a specified function.</summary>
     template<typename TFunc>
     struct ScopeGuard

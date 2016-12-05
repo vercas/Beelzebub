@@ -562,9 +562,3 @@ namespace Beelzebub
     //  Eh... Good enough?
 
 #endif
-
-#ifdef __cplusplus
-typedef Beelzebub::Handle handle_t;
-#else
-typedef union Handle handle_t;
-#endif

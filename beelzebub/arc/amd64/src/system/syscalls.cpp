@@ -43,7 +43,7 @@
 #include <synchronization/spinlock.hpp>
 #include <entry.h>
 
-#include <syscalls/memory.h>
+#include <beel/syscalls/memory.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Syscalls;

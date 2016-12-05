@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <beel/syscalls.hpp>
+#include <beel/syscalls.h>
 
 namespace Beelzebub
 {

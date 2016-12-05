@@ -37,19 +37,33 @@
     thorough explanation regarding other files.
 */
 
+//////////////////////////////////////////////
+// All syscalls are included at the bottom! //
+//////////////////////////////////////////////
+
 #pragma once
 
 #include <beel/handles.h>
-#include <beel/syscall.selection.h>
 
+#define ENUM_SYSCALLSELECTION(ENUMINST) \
+    /*  Will simply print a value on the debug terminal. */ \
+    ENUMINST(DebugPrint   , SYSCALL_DEBUG_PRINT   ,   0, "Debug Print"   ) \
+    /*  Requests a number of pages of memory from the OS. */ \
+    ENUMINST(MemoryRequest, SYSCALL_MEMORY_REQUEST,  10, "Memory Request") \
+    /*  Releases a number of pages of memory to the OS. */ \
+    ENUMINST(MemoryRelease, SYSCALL_MEMORY_RELEASE,  11, "Memory Release") \
+    /*  Copies a chunk of memory to the target address. */ \
+    ENUMINST(MemoryCopy   , SYSCALL_MEMORY_COPY   ,  12, "Memory Copy"   ) \
+    /*  Fills a chunk of memory with a specific byte value. */ \
+    ENUMINST(MemoryFill   , SYSCALL_MEMORY_COPY   ,  13, "Memory Fill"   ) \
+    /*  Not an actual syscall; just the number of syscalls. */ \
+    ENUMINST(COUNT        , SYSCALL_COUNT         ,  20, "Syscall Count" )
+
+#ifdef __cplusplus
 namespace Beelzebub
 {
-    enum class SyscallSelection : unsigned
-    {
-        ENUM_SYSCALLSELECTION(ENUMINST_VAL)
-    };
-
-    ENUMOPS_LITE(SyscallSelection)
+#endif
+    ENUMDECL(SyscallSelection, ENUM_SYSCALLSELECTION, LITE)
 
     __forceinline Handle PerformSyscall(SyscallSelection selection
         , void * arg0, void * arg1, void * arg2
@@ -161,6 +175,8 @@ namespace Beelzebub
 
         return res;
     }
+#ifdef __cplusplus
 }
+#endif
 
-#undef ENUM_SYSCALLSELECTION
+#include <beel/syscalls/memory.h>

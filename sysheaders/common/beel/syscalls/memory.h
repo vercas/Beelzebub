@@ -41,10 +41,6 @@
 
 #include <beel/handles.h>
 
-/*****************************
-    Memory Request Options
-*****************************/
-
 #define ENUM_MEMREQOPTS(ENUMINST) \
     ENUMINST(None       , MEMREQ_NONE        , 0x000, "None"        ) \
     ENUMINST(Writable   , MEMREQ_WRITABLE    , 0x001, "Writable"    ) \
@@ -55,67 +51,21 @@
     ENUMINST(Commit     , MEMREQ_COMMIT      , 0x200, "Commit"      ) \
     ENUMINST(ThreadStack, MEMREQ_THREAD_STACK, 0x031, "Thread Stack")
 
-typedef enum
-#ifdef __cplusplus
-class MemoryRequestOptions
-#else
-MEMREQOPTS
-#endif
-{
-    ENUM_MEMREQOPTS(ENUMINST_VAL)
-} mem_req_opts_t;
-
-#ifdef __cplusplus
-ENUMOPS(MemoryRequestOptions)
-#endif
-
-#undef ENUM_MEMREQOPTS
-
-/*****************************
-    Memory Release Options
-*****************************/
-
 #define ENUM_MEMRELOPTS(ENUMINST) \
     ENUMINST(None       , MEMREL_NONE        , 0x000, "None"        ) \
     ENUMINST(Decommit   , MEMREL_DECOMMIT    , 0x001, "Decommit"    )
 
-typedef enum
 #ifdef __cplusplus
-class MemoryReleaseOptions
-#else
-MEMRELOPTS
-#endif
+namespace Beelzebub { namespace Syscalls
 {
-    ENUM_MEMRELOPTS(ENUMINST_VAL)
-} mem_rel_opts_t;
-
-#ifdef __cplusplus
-ENUMOPS(MemoryReleaseOptions)
 #endif
+    ENUMDECL(MemoryRequestOptions, ENUM_MEMREQOPTS, FULL)
+    ENUMDECL(MemoryReleaseOptions, ENUM_MEMRELOPTS, FULL)
 
-#undef ENUM_MEMRELOPTS
-
-/****************************
-    Function Declarations
-****************************/
-
+    __shared Handle MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions opts);
+    __shared Handle MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts);
+    __shared Handle MemoryCopy(uintptr_t dst, uintptr_t src, size_t len);
+    __shared Handle MemoryFill(uintptr_t dst, uint8_t val, size_t len);
 #ifdef __cplusplus
-namespace Beelzebub {
-
-    #ifdef __BEELZEBUB_KERNEL
-    namespace Syscalls {
-    #endif
-#endif
-
-__shared handle_t MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opts);
-__shared handle_t MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t opts);
-__shared handle_t MemoryCopy(uintptr_t dst, uintptr_t src, size_t len);
-__shared handle_t MemoryFill(uintptr_t dst, uint8_t val, size_t len);
-
-#ifdef __cplusplus
-    #ifdef __BEELZEBUB_KERNEL
-    }
-    #endif
-
-}
+}}
 #endif

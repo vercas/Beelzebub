@@ -37,6 +37,10 @@
     thorough explanation regarding other files.
 */
 
+/*****************
+    Some Types
+*****************/
+
 typedef uint64_t paddr_t; //  Physical address.
 typedef uint64_t vaddr_t; //  Virtual (linear) address.
 typedef uint64_t psize_t; //  Physical size.
@@ -48,6 +52,10 @@ typedef  int64_t ssize_t;
 
 typedef  __int128_t  int128_t;
 typedef __uint128_t uint128_t;
+
+/*******************************
+    Miscellaneous Assistance
+*******************************/
 
 #define _GAS_DATA_POINTER " .quad "
 

@@ -37,6 +37,10 @@
     thorough explanation regarding other files.
 */
 
+/*****************
+    Attributes
+*****************/
+
 #if defined(__GNUC__) && !defined(__clang__)
     #define __bland __attribute__((__target__("no-aes,no-mmx,no-pclmul,no-sse,"     \
                                               "no-sse2,no-sse3,no-sse4,no-sse4a,"   \
@@ -67,9 +71,15 @@
 
 #include <metaprogramming.arc.inc>
 
+/*****************
+    Some Types
+*****************/
+
 typedef int comp_t; //  Result of comparison functions.
 
-/*  Constants  */
+/****************
+    Constants
+****************/
 
 #ifdef __cplusplus
 namespace Beelzebub { enum size_consts : size_t { PageSize = 0x1000, LargePageSize = 0x200000, }; }

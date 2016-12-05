@@ -38,7 +38,7 @@
 */
 
 #include <terminals/debug.hpp>
-#include <beel/syscalls.hpp>
+#include <beel/syscalls.h>
 #include <math.h>
 #include <string.h>
 

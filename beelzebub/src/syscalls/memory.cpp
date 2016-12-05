@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <syscalls/memory.h>
+#include <beel/syscalls.h>
 #include <memory/vmm.hpp>
 #include <system/cpu.hpp>
 #include <math.h>
@@ -49,7 +49,7 @@ using namespace Beelzebub::Syscalls;
 
 static constexpr size_t const ChunkSize = 4 * 1 << 20;  //  4 MiB.
 
-handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opts)
+Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions opts)
 {
     if unlikely(addr != 0 && (addr < Vmm::UserlandStart || addr >= Vmm::UserlandEnd))
         return HandleResult::ArgumentOutOfRange;
@@ -65,24 +65,24 @@ handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opt
     MemoryAllocationOptions type = MemoryAllocationOptions::VirtualUser;
     MemoryContent content = MemoryContent::Generic;
 
-    if (0 != (opts & mem_req_opts_t::Commit))
+    if (0 != (opts & MemoryRequestOptions::Commit))
         type |= MemoryAllocationOptions::Commit;
-    else if (0 == (opts & mem_req_opts_t::Reserve))
+    else if (0 == (opts & MemoryRequestOptions::Reserve))
         type |= MemoryAllocationOptions::AllocateOnDemand;
 
-    if (0 != (opts & mem_req_opts_t::ThreadStack))
+    if (0 != (opts & MemoryRequestOptions::ThreadStack))
         content = MemoryContent::ThreadStack;
 
-    if (0 != (opts & mem_req_opts_t::GuardLow))
+    if (0 != (opts & MemoryRequestOptions::GuardLow))
         type |= MemoryAllocationOptions::GuardLow;
-    if (0 != (opts & mem_req_opts_t::GuardHigh))
+    if (0 != (opts & MemoryRequestOptions::GuardHigh))
         type |= MemoryAllocationOptions::GuardHigh;
 
     MemoryFlags flags = MemoryFlags::Userland;
 
-    if (0 != (opts & mem_req_opts_t::Writable))
+    if (0 != (opts & MemoryRequestOptions::Writable))
         flags |= MemoryFlags::Writable;
-    if (0 != (opts & mem_req_opts_t::Executable))
+    if (0 != (opts & MemoryRequestOptions::Executable))
         flags |= MemoryFlags::Executable;
 
     Handle res = Vmm::AllocatePages(nullptr, size, type, flags, content, addr);
@@ -93,7 +93,7 @@ handle_t Syscalls::MemoryRequest(uintptr_t addr, size_t size, mem_req_opts_t opt
     return Handle(HandleType::Page, (uint64_t)reinterpret_cast<uintptr_t>(addr), false);
 }
 
-handle_t Syscalls::MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t opts)
+Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts)
 {
     if unlikely(addr != 0 && (addr < Vmm::UserlandStart || addr >= Vmm::UserlandEnd))
         return HandleResult::ArgumentOutOfRange;
@@ -109,7 +109,7 @@ handle_t Syscalls::MemoryRelease(uintptr_t addr, size_t size, mem_rel_opts_t opt
     return Vmm::FreePages(nullptr, addr, size);
 }
 
-handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
+Handle Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
 {
     if unlikely(dst == src || len == 0)
         return HandleResult::Okay;
@@ -165,7 +165,7 @@ handle_t Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
     return HandleResult::Okay;
 }
 
-handle_t Syscalls::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
+Handle Syscalls::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
 {
     if unlikely(len == 0)
         return HandleResult::Okay;
