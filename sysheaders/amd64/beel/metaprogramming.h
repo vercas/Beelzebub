@@ -64,7 +64,7 @@ typedef __uint128_t uint128_t;
 #define _GAS_DATA_POINTER " .quad "
 
 #undef EXTEND_POINTER
-#define EXTEND_POINTER(ptr) do { \
-    if (0 != ((ptr) & 0x0000800000000000UL)) \
-        ptr |= 0xFFFF000000000000UL; \
+#define EXTEND_POINTER(ptr) do {                \
+    if (0 != ((ptr) & 0x0000800000000000UL))    \
+        ptr |= 0xFFFF000000000000UL;            \
 } while (false)

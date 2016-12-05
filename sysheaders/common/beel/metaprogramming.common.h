@@ -243,13 +243,13 @@
 ****************************/
 
 #ifdef __cplusplus
-    #define ENUMOPS_LITE2(T, U)                                                   \
+    #define ENUMOPS_LITE2(T, U)                                                          \
     __forceinline bool operator == (U   a, T b) { return               a  == (U )(b);  } \
     __forceinline bool operator != (U   a, T b) { return               a  != (U )(b);  } \
     __forceinline bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
     __forceinline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
-    #define ENUMOPS_FULL2(T, U)                                                   \
+    #define ENUMOPS_FULL2(T, U)                                                          \
     __forceinline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
     __forceinline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
     __forceinline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
