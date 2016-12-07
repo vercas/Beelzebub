@@ -42,7 +42,7 @@
 #include <beel/structs.kernel.hpp>
 
 #define KRN_SYM_GLB_FNC(name, attr, retType, ...) \
-    __shared attr retType name(__VA_ARGS__) { }
+    __shared attr retType name(__VA_ARGS__) { __unreachable_code; }
 
 #define KRN_SYM_NMS_FNC(name, attr, retType, ...) \
     namespace Beelzebub { __shared attr retType name(__VA_ARGS__) { __unreachable_code; } }
