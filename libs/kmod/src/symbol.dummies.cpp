@@ -45,7 +45,7 @@
     __shared attr retType name(__VA_ARGS__) { }
 
 #define KRN_SYM_NMS_FNC(name, attr, retType, ...) \
-    namespace Beelzebub { __shared attr retType name(__VA_ARGS__) { } }
+    namespace Beelzebub { __shared attr retType name(__VA_ARGS__) { __unreachable_code; } }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
