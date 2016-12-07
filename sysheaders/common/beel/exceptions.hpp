@@ -72,6 +72,7 @@ namespace Beelzebub
     __extern void LeaveExceptionContext();
     __extern Exception * GetException();
     __extern __noreturn void ThrowException();
+    //  These are vital shared symbols.
 
     /// <summary>Guards a scope with an exception context.</summary>
     struct ExceptionGuard
@@ -98,4 +99,11 @@ namespace Beelzebub
 
         ExceptionContext Context;
     };
+
+#ifdef __BEELZEBUB_KERNEL
+    __extern __noreturn void SwapToExceptionContext(ExceptionContext * context);
+    //  Defined in platform-specific code, maybe in assembly.
+    __noreturn void UncaughtExceptionHandler();
+    //  Defined wherever.
+#endif
 }
