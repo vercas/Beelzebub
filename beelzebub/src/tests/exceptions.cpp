@@ -169,6 +169,38 @@ void TestExceptions()
             , "Exception %s should be %up, not %up!"
             , "stack pointer", 2 * 144, x->StackPointer);
     }
+
+    __try
+    {
+        __try
+        {
+            __x_suspend;
+
+            __x_resume;
+
+            TestManualThrow(3);
+
+            FAIL("This part of the code should not execute!");
+        }
+        __catch (x)
+        {
+            ASSERT(x->Type == ExceptionType::ArithmeticOverflow
+                , "Exception %s should be %up, not %up!"
+                , "type", ExceptionType::ArithmeticOverflow, x->Type);
+
+            ASSERT(x->InstructionPointer == 3 * 42
+                , "Exception %s should be %up, not %up!"
+                , "instruction pointer", 3 * 42, x->InstructionPointer);
+
+            ASSERT(x->StackPointer == 3 * 144
+                , "Exception %s should be %up, not %up!"
+                , "stack pointer", 3 * 144, x->StackPointer);
+        }
+    }
+    __catch ()
+    {
+        FAIL("This part of the code should not execute!");
+    }
 }
 
 #endif
