@@ -586,14 +586,6 @@ Project "Beelzebub" {
             return files
         end,
 
-        Rule "Create Directory" {
-            Filter = function(_, dst) return dst.IsDirectory end,
-
-            Action = function(_, dst)
-                fs.MkDir(dst)
-            end,
-        },
-
         Rule "Copy Header" {
             Filter = function(_, dst)
                 return dst:StartsWith(_.SysheadersPath) and not dst.IsDirectory
@@ -606,7 +598,9 @@ Project "Beelzebub" {
                 for arch in _.selArch:Hierarchy() do
                     local src = _.comp.Directory + arch.Name + dst
 
-                    if fs.GetInfo(src) then return src end
+                    if fs.GetInfo(src) then
+                        return List { src, parent }
+                    end
                 end
 
                 return List { _.comp.Directory + "common" + dst, parent }
