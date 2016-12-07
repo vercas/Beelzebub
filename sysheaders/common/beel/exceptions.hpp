@@ -55,12 +55,12 @@
 
 #define __catch(...) GET_MACRO2(__dummy__, ##__VA_ARGS__, __catch1, __catch0)(__VA_ARGS__)
 
-#define __x_suspend() do { \
+#define __x_suspend do { \
     if (__x_ctxt_g.Context.Status == ExceptionStatus::Active) \
         __x_ctxt_g.Context.Status = ExceptionStatus::Suspended; \
 } while (false)
 
-#define __x_resume() do { \
+#define __x_resume do { \
     if (__x_ctxt_g.Context.Status == ExceptionStatus::Suspended) \
         __x_ctxt_g.Context.Status = ExceptionStatus::Active; \
 } while (false)

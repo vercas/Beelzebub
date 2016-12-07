@@ -142,7 +142,7 @@ void TestExceptions()
     {
         __try
         {
-            __x_suspend();
+            __x_suspend;
 
             TestManualThrow(2);
 
