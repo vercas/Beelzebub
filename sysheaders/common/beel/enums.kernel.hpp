@@ -155,6 +155,20 @@ namespace Beelzebub
     ENUM_TO_STRING_DECL(MemoryContent, ENUM_MEMORYCONTENT);
 #endif
 
+    enum class ExceptionStatus : uintptr_t
+    {
+        /////////////////////////////////////////////
+        // THESE VALUES ARE HARDCODED IN ASSEMBLY! //
+        /////////////////////////////////////////////
+
+        Active                  = 0,
+        Suspended               = 1,
+        Handling                = 2,
+        SettingUp               = 3,
+
+        Unknown                 = ~((uintptr_t)0),
+    };
+
     enum class ExceptionType : uintptr_t
     {
         //  This one indicates that there is no exception.

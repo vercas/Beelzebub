@@ -35,6 +35,24 @@
 ; You may also find the text of this license in "LICENSE.md", along with a more
 ; thorough explanation regarding other files.
 
+struc ExceptionContext
+.RBX:           RESQ 1
+.RCX:           RESQ 1
+.RBP:           RESQ 1
+.R12:           RESQ 1
+.R13:           RESQ 1
+.R14:           RESQ 1
+.R15:           RESQ 1
+.RSP:           RESQ 1
+.ResumePointer: RESQ 1
+.SwapPointer:   RESQ 1
+.ReturnAddress: RESQ 1
+.Payload:       RESQ 1
+.Previous:      RESQ 1
+.Status:        RESQ 1
+.size:
+endstruc
+
 struc SyscallRegisters64
 .R15:       RESQ 1
 .R14:       RESQ 1
@@ -100,6 +118,5 @@ struc CpuData
 .LastAlienPml4:         RESQ 1
 .DomainDescriptor:      RESQ 1
 .Tss:                   RESB Tss.size
-.ExceptionContext:      RESQ 1
 .size:
 endstruc

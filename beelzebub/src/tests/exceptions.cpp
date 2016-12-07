@@ -67,13 +67,13 @@ __startup void TestNullDereference(uintptr_t volatile * const testPtr)
     }
 }
 
-__startup void TestManualThrow()
+__startup void TestManualThrow(unsigned arg)
 {
     Exception * x = GetException();
 
     x->Type = ExceptionType::ArithmeticOverflow;
-    x->InstructionPointer = 42;
-    x->StackPointer = 144;
+    x->InstructionPointer = arg * 42;
+    x->StackPointer = arg * 144;
 
     ThrowException();
 
@@ -119,7 +119,7 @@ void TestExceptions()
 
     __try
     {
-        TestManualThrow();
+        TestManualThrow(1);
 
         FAIL("This part of the code should not execute!");
     }
@@ -127,15 +127,47 @@ void TestExceptions()
     {
         ASSERT(x->Type == ExceptionType::ArithmeticOverflow
             , "Exception %s should be %up, not %up!"
-            , "type", ExceptionType::MemoryAccessViolation, x->Type);
+            , "type", ExceptionType::ArithmeticOverflow, x->Type);
 
-        ASSERT(x->InstructionPointer == 42
+        ASSERT(x->InstructionPointer == 1 * 42
             , "Exception %s should be %up, not %up!"
-            , "instruction pointer", 42, x->InstructionPointer);
+            , "instruction pointer", 1 * 42, x->InstructionPointer);
 
-        ASSERT(x->StackPointer == 144
+        ASSERT(x->StackPointer == 1 * 144
             , "Exception %s should be %up, not %up!"
-            , "stack pointer", 144, x->StackPointer);
+            , "stack pointer", 1 * 144, x->StackPointer);
+    }
+
+    __try
+    {
+        __try
+        {
+            __x_suspend();
+
+            TestManualThrow(2);
+
+            FAIL("This part of the code should not execute!");
+        }
+        __catch ()
+        {
+            FAIL("This part of the code should not execute!");
+        }
+
+        FAIL("This part of the code should not execute!");
+    }
+    __catch (x)
+    {
+        ASSERT(x->Type == ExceptionType::ArithmeticOverflow
+            , "Exception %s should be %up, not %up!"
+            , "type", ExceptionType::ArithmeticOverflow, x->Type);
+
+        ASSERT(x->InstructionPointer == 2 * 42
+            , "Exception %s should be %up, not %up!"
+            , "instruction pointer", 2 * 42, x->InstructionPointer);
+
+        ASSERT(x->StackPointer == 2 * 144
+            , "Exception %s should be %up, not %up!"
+            , "stack pointer", 2 * 144, x->StackPointer);
     }
 }
 

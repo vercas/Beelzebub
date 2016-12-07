@@ -35,12 +35,15 @@
 ; You may also find the text of this license in "LICENSE.md", along with a more
 ; thorough explanation regarding other files.
 
+%include "beel/structs.kernel.inc"
+
 section .text
 bits 64
 
 extern GetExceptionContext
 
 global EnterExceptionContext
+global SwapToExceptionContext
 
 ;   Performs the transition into an exception context.
 ;   Arguments:
@@ -52,48 +55,47 @@ EnterExceptionContext:
     mov     rbp, rsp
     ;   Base pointer... For correctness.
 
-    mov     byte [rdi + 104], 0
+    mov     qword [rdi + ExceptionContext.Status], 3
     ;   Marks the context as not ready.
 
     mov     eax, 0
-    mov     [rdi + 88], rax
+    mov     [rdi + ExceptionContext.Payload], rax
     ;   Sets the payload to null.
 
     mov     rax, [rsp]
-    mov     [rdi + 16], rax
+    mov     [rdi + ExceptionContext.RBP], rax
     ;   Save RBP.
 
-    mov     [rdi + 48], r15
-    mov     [rdi + 40], r14
-    mov     [rdi + 32], r13
-    mov     [rdi + 24], r12
-    ;   Base pointer excluded!
-    mov     [rdi +  8], rcx
-    mov     [rdi     ], rbx
+    mov     [rdi + ExceptionContext.R15], r15
+    mov     [rdi + ExceptionContext.R14], r14
+    mov     [rdi + ExceptionContext.R13], r13
+    mov     [rdi + ExceptionContext.R12], r12
+    mov     [rdi + ExceptionContext.RCX], rcx
+    mov     [rdi + ExceptionContext.RBX], rbx
     ;   These are callee-saved registers.
 
-    mov     [rdi + 56], rsp
+    mov     [rdi + ExceptionContext.RSP], rsp
     mov     rdx, .resume
-    mov     [rdi + 64], rdx
+    mov     [rdi + ExceptionContext.ResumePointer], rdx
     mov     rax, .swap
-    mov     [rdi + 72], rax
+    mov     [rdi + ExceptionContext.SwapPointer], rax
     ;   Stores the current stack pointer, the resume pointer and the swap pointer.
 
     mov     rdx, [rsp + 8]
-    mov     [rdi + 80], rdx
+    mov     [rdi + ExceptionContext.ReturnAddress], rdx
     ;   This preserves the return address.
 
     call GetExceptionContext
     ;   Now RAX will hold the pointer to the current exception context's address.
 
-    mov     rdx       , [rax]
-    mov     [rdi + 96], rdx
+    mov     rdx, [rax]
+    mov     [rdi + ExceptionContext.Previous], rdx
     ;   This sets the entering context's previous pointer to the current context
 
-    mov     byte [rdi + 104], 1
-    ;   Marks the context as ready.
+    mov     qword [rdi + ExceptionContext.Status], 0
+    ;   Marks the context as active.
     
-    mov     [rax     ], rdi
+    mov     [rax], rdi
     ;   And this sets the current exception context pointer to the address of
     ;   the entering context.
 
@@ -104,33 +106,28 @@ EnterExceptionContext:
     ret
 
 .swap:
-    mov     rsp, [rdi + 56]
-    mov     r15, [rdi + 48]
-    mov     r14, [rdi + 40]
-    mov     r13, [rdi + 32]
-    mov     r12, [rdi + 24]
-    ;   Base pointer excluded!
-    mov     rcx, [rdi +  8]
-    mov     rbx, [rdi     ]
-    ;   This restores stack pointer and all calee-saved registers.
+    mov     qword [rdi + ExceptionContext.Status], 2
+    ;   Marks the context as handling.
 
-    mov     rax, [rdi + 16]
-    mov     [rsp], rax
-    ;   Prepares RBP for being restored.
+    mov     rsp, [rdi + ExceptionContext.RSP]
+    mov     r15, [rdi + ExceptionContext.R15]
+    mov     r14, [rdi + ExceptionContext.R14]
+    mov     r13, [rdi + ExceptionContext.R13]
+    mov     r12, [rdi + ExceptionContext.R12]
+    mov     rbp, [rdi + ExceptionContext.RBP]
+    mov     rcx, [rdi + ExceptionContext.RCX]
+    mov     rbx, [rdi + ExceptionContext.RBX]
+    ;   This restores stack pointer and all calee-saved registers.
 
     ;   Swapping ends with resuming.
     ;   When resumed by an exception handler, normally it's going to be the one
-    ;   restoring registers and such.
+    ;   restoring registers and marking it as handling.
 
 .resume:
+    mov     [rsp], rbp
+    ;   This is just for consistency...
 
-    ;   Now that the context is resuming, it must be deactivated so it doesn't
-    ;   re-enter accidentally.
-
-    mov     byte [rdi + 104], 0
-    ;   Marks the context as not ready.
-
-    mov     rax, [rdi + 80]
+    mov     rax, [rdi + ExceptionContext.ReturnAddress]
     mov     [rsp + 8], rax
     ;   This restores the return address.
 
@@ -143,3 +140,9 @@ EnterExceptionContext:
 
     pop     rbp
     ret
+
+;   Swaps to the catch block of an exception context.
+;   Arguments:
+;       RDI: Address of context;
+SwapToExceptionContext:
+    jmp     [rdi + ExceptionContext.SwapPointer]

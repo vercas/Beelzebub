@@ -44,11 +44,26 @@
 #define withExceptionContext(name) with(Beelzebub::ExceptionGuard name)
 
 #define __try \
-    withExceptionContext(MCATS(_excp_guard_, __LINE__)) \
-    if (Beelzebub::EnterExceptionContext(&(MCATS(_excp_guard_, __LINE__).Context)))
+    withExceptionContext(__x_ctxt_g) \
+    if (Beelzebub::EnterExceptionContext(&(__x_ctxt_g.Context)))
 
-#define __catch(name) \
+#define __catch0() \
+    else
+
+#define __catch1(name) \
     else with (Beelzebub::Exception const * const name = Beelzebub::GetException())
+
+#define __catch(...) GET_MACRO2(__dummy__, ##__VA_ARGS__, __catch1, __catch0)(__VA_ARGS__)
+
+#define __x_suspend() do { \
+    if (__x_ctxt_g.Context.Status == ExceptionStatus::Active) \
+        __x_ctxt_g.Context.Status = ExceptionStatus::Suspended; \
+} while (false)
+
+#define __x_resume() do { \
+    if (__x_ctxt_g.Context.Status == ExceptionStatus::Suspended) \
+        __x_ctxt_g.Context.Status = ExceptionStatus::Active; \
+} while (false)
 
 namespace Beelzebub
 {
@@ -56,7 +71,7 @@ namespace Beelzebub
     __extern __returns_twice bool EnterExceptionContext(ExceptionContext * context);
     __extern void LeaveExceptionContext();
     __extern Exception * GetException();
-    __extern void ThrowException();
+    __extern __noreturn void ThrowException();
 
     /// <summary>Guards a scope with an exception context.</summary>
     struct ExceptionGuard

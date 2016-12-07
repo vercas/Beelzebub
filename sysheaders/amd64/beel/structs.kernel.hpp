@@ -52,16 +52,18 @@ namespace Beelzebub
     struct ExceptionContext
     {
         uint64_t RBX, RCX, RBP;
-        uint64_t R12, R13, R14, R15;
+        uint64_t R12, R13, R14, R15, RSP;
 
-        uintptr_t StackPointer, ResumePointer, SwapPointer;
-        //  The `ResumePointer` is used to resume 
+        uintptr_t ResumePointer, SwapPointer;
+        //  The `ResumePointer` is used by interrupt handlers, which restores
+        //  registers and sets the context as handling. The `SwapPointer` is used
+        //  to do all that manually.
 
         uintptr_t ReturnAddress;
 
         Exception const * Payload;
         ExceptionContext * Previous;
-        bool Ready;
+        ExceptionStatus Status;
     } __packed;
 
     /**

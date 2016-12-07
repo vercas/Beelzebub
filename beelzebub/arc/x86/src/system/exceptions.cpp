@@ -430,7 +430,7 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
     {
         //  First, find the right context.
 
-        while (!context->Ready)
+        while (context->Status != ExceptionStatus::Active)
             if (context->Previous != nullptr)
                 context = context->Previous;
             else
@@ -439,7 +439,7 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 
         //  Now, to prepare exception delivery!
 
-        state->RSP = context->StackPointer;
+        state->RSP = context->RSP;
         state->RIP = context->SwapPointer;
         //  Returns where told! Sorta like a task switch.
 

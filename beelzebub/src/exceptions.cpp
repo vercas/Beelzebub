@@ -43,6 +43,9 @@
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 
+__extern __noreturn void SwapToExceptionContext(ExceptionContext * context);
+//  Defined in platform-specific code.
+
 ExceptionContext * * Beelzebub::GetExceptionContext()
 {
     return &(Cpu::GetThread()->ExceptionContext);
@@ -59,4 +62,26 @@ void Beelzebub::LeaveExceptionContext()
 Exception * Beelzebub::GetException()
 {
     return &(Cpu::GetThread()->Exception);
+}
+
+void Beelzebub::ThrowException()
+{
+    ExceptionContext * context = *(GetExceptionContext());
+
+    if (context == nullptr)
+        goto failure;
+
+    while (context->Status != ExceptionStatus::Active)
+        if (context->Previous != nullptr)
+            context = context->Previous;
+        else
+            goto failure;
+    //  This will find the first ready context.
+
+    SwapToExceptionContext(context);
+    __unreachable_code;
+    //  Easy-peasy!
+
+failure:
+    FAIL("Unhandled exception!");
 }
