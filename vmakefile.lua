@@ -44,7 +44,7 @@ require "vmake"
 
 Configuration "debug" {
     Data = {
-        Opts_GCC = List { "-fno-omit-frame-pointer", "-g" }
+        Opts_GCC = List { "-fno-omit-frame-pointer", "-g3" }
     },
 }
 
@@ -490,15 +490,17 @@ end
 
 Project "Beelzebub" {
     Data = {
-        Sysroot                 = function(_) return _.outDir + "sysroot" end,
-        SysheadersPath          = function(_) return _.Sysroot + "usr/include" end,
-        JegudielPath            = function(_) return _.outDir + "jegudiel.bin" end,
-        CommonLibraryPath       = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
-        RuntimeLibraryPath      = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
-        KernelModuleLibraryPath = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
-        TestKernelModulePath    = function(_) return _.Sysroot + "kmods/test.kmod" end,
-        KernelPath              = function(_) return _.outDir + "beelzebub.bin" end,
-        LoadtestAppPath         = function(_) return _.Sysroot + "apps/loadtest.exe" end,
+        Sysroot                     = function(_) return _.outDir + "sysroot" end,
+        SysheadersPath              = function(_) return _.Sysroot + "usr/include" end,
+        JegudielPath                = function(_) return _.outDir + "jegudiel.bin" end,
+        CommonLibraryPath           = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
+        --JemallocKernelLibraryPath   = function(_) return _.Sysroot + "usr/lib/libjemalloc.kernel.a" end,
+        --JemallocUserlandLibraryPath = function(_) return _.Sysroot + "usr/lib/libjemalloc.userland.a" end,
+        RuntimeLibraryPath          = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
+        KernelModuleLibraryPath     = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
+        TestKernelModulePath        = function(_) return _.Sysroot + "kmods/test.kmod" end,
+        KernelPath                  = function(_) return _.outDir + "beelzebub.bin" end,
+        LoadtestAppPath             = function(_) return _.Sysroot + "apps/loadtest.exe" end,
 
         CrtFiles = function(_)
             return _.selArch.Data.CrtFiles:Select(function(val)
@@ -791,6 +793,59 @@ Project "Beelzebub" {
         },
     },
 
+    -- ArchitecturalComponent "jemalloc - Kernel" {
+    --     Data = {
+    --         ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
+
+    --         Opts_GCC = function(_)
+    --             local res = List {
+    --                 "-fvisibility=hidden",
+    --                 "-ffreestanding", "-nostdlib", "-static-libgcc",
+    --                 "-Wall", "-Wsystem-headers",
+    --                 "-O2", "-flto",
+    --                 "-pipe",
+    --                 "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
+    --                 "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
+    --                 "--sysroot=" .. tostring(_.Sysroot),
+    --                 "-D__BEELZEBUB_STATIC_LIBRARY",
+    --                 "-D__BEELZEBUB_KERNEL",
+    --                 "-DJEMALLOC_ENABLE_INLINE",
+    --             } + _.Opts_GCC_Precompiler + _.Opts_Includes
+    --             + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
+    --             + specialOptions
+
+    --             if _.selArch.Name == "amd64" then
+    --                 res:Append("-mcmodel=kernel"):Append("-mno-red-zone")
+    --             end
+
+    --             return res
+    --         end,
+
+    --         Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
+    --         Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+    --         Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
+    --         Opts_GAS     = function(_) return _.Opts_GCC + List { "-flto" } end,
+
+    --         Opts_AR = List { "rcs" },
+    --     },
+
+    --     Directory = "libs/jemalloc",
+
+    --     Dependencies = "System Headers",
+
+    --     Output = function(_) return List { _.JemallocKernelLibraryPath } end,
+
+    --     Rule "Archive Objects" {
+    --         Filter = function(_, dst) return _.JemallocKernelLibraryPath end,
+
+    --         Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
+
+    --         Action = function(_, dst, src)
+    --             sh.silent(AR, _.Opts_AR, dst, _.Objects)
+    --         end,
+    --     },
+    -- },
+
     ArchitecturalComponent "Runtime Library" {
         Data = {
             BinaryPath = function(_) return _.ObjectsDirectory + _.RuntimeLibraryPath:GetName() end,
@@ -1010,7 +1065,12 @@ Project "Beelzebub" {
 
             Opts_STRIP = List { "-s", "-K", "jegudiel_header" },
 
-            Libraries = function(_) return List { "common." .. _.selArch.Name, } end,
+            Libraries = function(_)
+                return List {
+                    "common." .. _.selArch.Name,
+                    --"jemalloc.kernel",
+                }
+            end,
         },
 
         Directory = "beelzebub",
@@ -1024,7 +1084,12 @@ Project "Beelzebub" {
 
             Source = function(_, dst)
                 return _.Objects
-                    + List { _.LinkerScript, _.CommonLibraryPath, dst:GetParent() }
+                    + List {
+                        _.LinkerScript,
+                        _.CommonLibraryPath,
+                        --_.JemallocKernelLibraryPath,
+                        dst:GetParent(),
+                    }
             end,
 
             Action = function(_, dst, src)

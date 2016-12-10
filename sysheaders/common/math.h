@@ -171,39 +171,39 @@ __forceinline __const constexpr TNum GreatestCommonDivisor(TNum a, TNum b, const
 #else
 
 #ifdef __BEELZEBUB__ARCH_X86
-__forceinline uint64_t RoundUp64(const uint64_t value, const uint64_t step) __const
+__forceinline __const uint64_t RoundUp64(const uint64_t value, const uint64_t step)
 {
     return ((value + step - 1) / step) * step;
 }
-__forceinline uint32_t RoundUp32(const uint32_t value, const uint32_t step) __const
+__forceinline __const uint32_t RoundUp32(const uint32_t value, const uint32_t step)
 {
     return ((value + step - 1) / step) * step;
 }
 #else
-__forceinline uint64_t RoundUp64(const uint64_t value, const uint64_t step) __const
+__forceinline __const uint64_t RoundUp64(const uint64_t value, const uint64_t step)
 {
     return value + ((step - (value % step)) % step);
 }
-__forceinline uint32_t RoundUp32(const uint32_t value, const uint32_t step) __const
+__forceinline __const uint32_t RoundUp32(const uint32_t value, const uint32_t step)
 {
     return value + ((step - (value % step)) % step);
 }
 #endif
 
-__forceinline uint64_t RoundDown64(const uint64_t value, const uint64_t step) __const
+__forceinline __const uint64_t RoundDown64(const uint64_t value, const uint64_t step)
 {
     return value - (value & step);
 }
-__forceinline uint32_t RoundDown32(const uint32_t value, const uint32_t step) __const
+__forceinline __const uint32_t RoundDown32(const uint32_t value, const uint32_t step)
 {
     return value - (value & step);
 }
 
-__forceinline uint64_t RoundUpDiff64(const uint64_t value, const uint64_t step) __const
+__forceinline __const uint64_t RoundUpDiff64(const uint64_t value, const uint64_t step)
 {
     return (step - (value % step)) % step;
 }
-__forceinline uint32_t RoundUpDiff32(const uint32_t value, const uint32_t step) __const
+__forceinline __const uint32_t RoundUpDiff32(const uint32_t value, const uint32_t step)
 {
     return (step - (value % step)) % step;
 }
@@ -218,7 +218,7 @@ __forceinline uint32_t RoundUpDiff32(const uint32_t value, const uint32_t step) 
        _a > _b ? _a : _b;        })
 //  Courtesy of http://stackoverflow.com/a/3437484/485098
 
-__forceinline uint64_t GreatestCommonDivisor64(uint64_t a, uint64_t b) __const
+__forceinline __const uint64_t GreatestCommonDivisor64(uint64_t a, uint64_t b)
 {
     uint64_t t;
 
@@ -232,7 +232,7 @@ __forceinline uint64_t GreatestCommonDivisor64(uint64_t a, uint64_t b) __const
     return a;
 }
 
-__forceinline uint64_t GreatestCommonDivisor32(uint32_t a, uint32_t b) __const
+__forceinline __const uint64_t GreatestCommonDivisor32(uint32_t a, uint32_t b)
 {
     uint32_t t;
 

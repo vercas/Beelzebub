@@ -225,15 +225,20 @@ bochsrc.old.txt
 copy.bat
 copy.bat - Shortcut.lnk
 
+last_settings.txt
+start_cygwin.bat
+mintty.exe.stackdump
+
+vmake-edge.lua
+
+# Ignored Files
+
+/libs/jemalloc/
+/sysheaders/common/beel/jemalloc.tsd.h
+
 # Cartman300's stuff
 
 ToUSB.bat
 
 Build.bat
 CleanBuild.bat
-
-last_settings.txt
-start_cygwin.bat
-mintty.exe.stackdump
-
-vmake-edge.lua

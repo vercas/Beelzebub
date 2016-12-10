@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,54 +37,5 @@
     thorough explanation regarding other files.
 */
 
-#include <beel/exceptions.hpp>
-#include <system/cpu.hpp>
+#pragma once
 
-using namespace Beelzebub;
-using namespace Beelzebub::System;
-
-ExceptionContext * * Beelzebub::GetExceptionContext()
-{
-    return &(Cpu::GetThread()->ExceptionContext);
-}
-
-void Beelzebub::LeaveExceptionContext()
-{
-    ExceptionContext * * const context = GetExceptionContext();
-
-    if (*context != nullptr)
-        *context = (*context)->Previous;
-}
-
-Exception * Beelzebub::GetException()
-{
-    return &(Cpu::GetThread()->Exception);
-}
-
-void Beelzebub::ThrowException()
-{
-    ExceptionContext * context = *(GetExceptionContext());
-
-    if (context == nullptr)
-        goto failure;
-
-    while (context->Status != ExceptionStatus::Active)
-        if (context->Previous != nullptr)
-            context = context->Previous;
-        else
-            goto failure;
-    //  This will find the first ready context.
-
-    SwapToExceptionContext(context);
-    __unreachable_code;
-    //  Easy-peasy!
-
-failure:
-    UncaughtExceptionHandler();
-    __unreachable_code;
-}
-
-void Beelzebub::UncaughtExceptionHandler()
-{
-    FAIL("Unhandled exception!");
-}
