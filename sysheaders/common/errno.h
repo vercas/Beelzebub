@@ -39,7 +39,12 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
+#ifdef __BEELZEBUB_KERNEL
+    #include <beel/metaprogramming.h>
 
-extern void SetErrorNumber(int val);
-extern __must_check int GetErrorNumber(void);
+    extern void SetErrorNumber(int val);
+    extern __must_check int GetErrorNumber(void);
+    extern __must_check int * GetErrorNumberPointer(void);
+
+    #define errno (*GetErrorNumberPointer())
+#endif
