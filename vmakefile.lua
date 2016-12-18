@@ -66,7 +66,17 @@ Configuration "profile" {
 
 Architecture "amd64" {
     Data = {
-        Opts_GCC = List { "-m64" },
+        Opts_GCC = function(_)
+            return List {
+                "-m64",
+            } + _.Opts_GCC_x86
+        end,
+
+        Opts_GCC_Kernel = function(_)
+            return List {
+                "-mno-red-zone", "-mtls-gs",
+            } + _.Opts_GCC_Kernel_x86
+        end,
 
         Opts_NASM = List { "-f", "elf64" },
     },
@@ -76,7 +86,13 @@ Architecture "amd64" {
 
 Architecture "ia32" {
     Data = {
-        Opts_GCC = List { "-m32" },
+        Opts_GCC = function(_)
+            return List {
+                "-m32",
+            } + _.Opts_GCC_x86
+        end,
+
+        Opts_GCC_Kernel = function(_) return _.Opts_GCC_Kernel_x86 end,
 
         Opts_NASM = List { "-f", "elf32" },
     },
@@ -86,6 +102,16 @@ Architecture "ia32" {
 
 Architecture "x86" {
     Data = {
+        Opts_GCC_x86 = List {
+            "-mtls-direct-seg-refs",
+        },
+
+        Opts_GCC_Kernel_x86 = List {
+            "-ffreestanding", "-nostdlib", "-static-libgcc",
+            "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
+            "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
+        },
+
         ISO = true,
 
         CrtFiles = List { "crt0.o", "crti.o", "crtn.o" },
@@ -107,7 +133,7 @@ if CROSSCOMPILERS_DIR then
 end
 
 local CC    = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gcc"
-local CXX   = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gcc"
+local CXX   = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-g++"
 local GAS   = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gcc"
 local DC    = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gdc"
 local AS    = "nasm"
@@ -140,11 +166,11 @@ local availableTests = List {
     "STR",
     --"OBJA",
     --"METAP",
-    "EXCP",
+    --"EXCP",
     "APP",
     "KMOD",
-    "TIMER",
-    "MAILBOX",
+    --"TIMER",
+    --"MAILBOX",
     --"STACKINT",
     --"AVL_TREE",
     --"TERMINAL",
@@ -154,20 +180,21 @@ local availableTests = List {
     "LOCK_ELISION",
     --"RW_SPINLOCK",
     "VAS",
-    "INTERRUPT_LATENCY",
+    --"INTERRUPT_LATENCY",
+    "MALLOC",
 }
 
 local availableApicModes = List {
     "legacy", "x2apic", "flexible"
 }
 
-for i = 1, #availableTests do availableTests[availableTests[i]] = true end
-for i = 1, #availableApicModes do availableApicModes[availableApicModes[i]] = true end
---  Makes lookup easier.
+local availableDynamicAllocators = List {
+    "streamflow", "ptmalloc3", "jemalloc", "none"
+}
 
 local testOptions, specialOptions = List { }, List { }
 local settSmp, settInlineSpinlocks, settUnitTests = true, true, true
-local settApicMode = "FLEXIBLE"
+local settApicMode, settKrnDynAlloc, settUsrDynAlloc = "FLEXIBLE", "NONE", "NONE"
 local settMakeDeps = true
 
 CmdOpt "tests" "t" {
@@ -190,7 +217,7 @@ CmdOpt "tests" "t" {
 
                 local testName = string.upper(string.gsub(test, "[%s%-]", "_"))
 
-                if not availableTests[testName] then
+                if not availableTests:Contains(testName) then
                     error("Unknown Beelzebub test \"" .. testName .. "\".")
                 end
 
@@ -239,18 +266,50 @@ CmdOpt "unit-tests" {
 }
 
 CmdOpt "apic-mode" {
-    Description = "Specifies the APIC mode(s) supported by the kernel. Defaults to flexible.",
+    Description = "The APIC mode(s) supported by the kernel. Defaults to flexible.",
 
     Type = "string",
     Display = availableApicModes:Print("|"),
 
     Handler = function(_, val)
-        if not availableApicModes[string.lower(val)] then
+        if not availableApicModes:Contains(string.lower(val)) then
             error("Invalid value given to \"apic-mode\" command-line option: \""
                 .. val .. "\".")
         end
 
         settApicMode = string.upper(val)
+    end,
+}
+
+CmdOpt "kernel-dynalloc" {
+    Description = "The dynamic allocator used in the kernel; defaults to " .. settKrnDynAlloc .. ".",
+
+    Type = "string",
+    Display = availableDynamicAllocators:Print("|"),
+
+    Handler = function(_, val)
+        if not availableDynamicAllocators:Contains(string.lower(val)) then
+            error("Invalid value given to \"kernel-dynalloc\" command-line option: \""
+                .. val .. "\".")
+        end
+
+        settKrnDynAlloc = string.upper(val)
+    end,
+}
+
+CmdOpt "userland-dynalloc" {
+    Description = "The dynamic allocator used in the userland; defaults to " .. settUsrDynAlloc .. ".",
+
+    Type = "string",
+    Display = availableDynamicAllocators:Print("|"),
+
+    Handler = function(_, val)
+        if not availableDynamicAllocators:Contains(string.lower(val)) then
+            error("Invalid value given to \"userland-dynalloc\" command-line option: \""
+                .. val .. "\".")
+        end
+
+        settUsrDynAlloc = string.upper(val)
     end,
 }
 
@@ -283,12 +342,18 @@ CmdOpt "mtune" {
 }
 
 CmdOpt "no-make-deps" {
-    Description = "Specifies that GNU Make dependency files are not to be generated by GCC.",
+    Description = "Indicates that GNU Make dependency files are not to be generated by GCC.",
 
     Handler = function(_, val) settMakeDeps = false end,
 }
 
 --  Utilities
+
+local dynAllocLibs = {
+    STREAMFLOW = "streamflow",
+    PTMALLOC3 = "ptmalloc3",
+    JEMALLOC = "jemalloc",
+}
 
 local function parseObjectExtension(path)
     local part1, part2 = tostring(path):match("^(.+)%.([^%.]+)%.o$")
@@ -490,17 +555,15 @@ end
 
 Project "Beelzebub" {
     Data = {
-        Sysroot                     = function(_) return _.outDir + "sysroot" end,
-        SysheadersPath              = function(_) return _.Sysroot + "usr/include" end,
-        JegudielPath                = function(_) return _.outDir + "jegudiel.bin" end,
-        CommonLibraryPath           = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
-        --JemallocKernelLibraryPath   = function(_) return _.Sysroot + "usr/lib/libjemalloc.kernel.a" end,
-        --JemallocUserlandLibraryPath = function(_) return _.Sysroot + "usr/lib/libjemalloc.userland.a" end,
-        RuntimeLibraryPath          = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
-        KernelModuleLibraryPath     = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
-        TestKernelModulePath        = function(_) return _.Sysroot + "kmods/test.kmod" end,
-        KernelPath                  = function(_) return _.outDir + "beelzebub.bin" end,
-        LoadtestAppPath             = function(_) return _.Sysroot + "apps/loadtest.exe" end,
+        Sysroot                         = function(_) return _.outDir + "sysroot" end,
+        SysheadersPath                  = function(_) return _.Sysroot + "usr/include" end,
+        JegudielPath                    = function(_) return _.outDir + "jegudiel.bin" end,
+        CommonLibraryPath               = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
+        RuntimeLibraryPath              = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
+        KernelModuleLibraryPath         = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
+        TestKernelModulePath            = function(_) return _.Sysroot + "kmods/test.kmod" end,
+        KernelPath                      = function(_) return _.outDir + "beelzebub.bin" end,
+        LoadtestAppPath                 = function(_) return _.Sysroot + "apps/loadtest.exe" end,
 
         CrtFiles = function(_)
             return _.selArch.Data.CrtFiles:Select(function(val)
@@ -519,6 +582,9 @@ Project "Beelzebub" {
                 "-D__BEELZEBUB",
                 "-D__BEELZEBUB__ARCH=" .. _.selArch.Name,
                 "-D__BEELZEBUB__CONF=" .. _.selConf.Name,
+                "-D__BEELZEBUB_SETTINGS_APIC_MODE=" .. settApicMode,
+                "-D__BEELZEBUB_SETTINGS_KRNDYNALLOC=" .. settKrnDynAlloc,
+                "-D__BEELZEBUB_SETTINGS_USRDYNALLOC=" .. settUsrDynAlloc,
             } + testOptions:Select(function(val) return "-D" .. val end)
 
             for arch in _.selArch:Hierarchy() do
@@ -528,6 +594,10 @@ Project "Beelzebub" {
             for conf in _.selConf:Hierarchy() do
                 res:Append("-D__BEELZEBUB__" .. string.upper(conf.Name))
             end
+
+            res:Append("-D__BEELZEBUB_SETTINGS_APIC_MODE_" .. settApicMode)
+            res:Append("-D__BEELZEBUB_SETTINGS_KRNDYNALLOC_" .. settKrnDynAlloc)
+            res:Append("-D__BEELZEBUB_SETTINGS_USRDYNALLOC_" .. settUsrDynAlloc)
 
             res:Append(settSmp
                 and "-D__BEELZEBUB_SETTINGS_SMP"
@@ -545,9 +615,28 @@ Project "Beelzebub" {
                 res:Append("-D__BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET")
             end
 
-            res:Append("-D__BEELZEBUB_SETTINGS_APIC_MODE_" .. settApicMode)
-
             return res
+        end,
+
+        Opts_GCC_Common = function(_)
+            return List {
+                "-pipe", "--sysroot=" .. tostring(_.Sysroot),
+            } + _.Opts_GCC_Precompiler
+            + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
+            + specialOptions
+        end,
+
+        StreamflowKernelLibraryPath     = function(_) return _.Sysroot + "usr/lib/libstreamflow.kernel.a" end,
+        StreamflowUserlandLibraryPath   = function(_) return _.Sysroot + "usr/lib/libstreamflow.userland.a" end,
+        JemallocKernelLibraryPath       = function(_) return _.Sysroot + "usr/lib/libjemalloc.kernel.a" end,
+        JemallocUserlandLibraryPath     = function(_) return _.Sysroot + "usr/lib/libjemalloc.userland.a" end,
+        
+        KernelDynamicAllocatorPath = function(_)
+            return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settKrnDynAlloc] .. ".kernel.a")
+        end,
+
+        UserlandDynamicAllocatorPath = function(_)
+            return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settUsrDynAlloc] .. ".userland.a")
         end,
     },
 
@@ -571,7 +660,7 @@ Project "Beelzebub" {
                 end
 
                 files = files:Where(function(val)
-                    return val.IsFile and val:EndsWith(".h", ".hpp", ".inc")
+                    return val.IsFile --and val:EndsWith(".h", ".hpp", ".inc")
                 end)
 
                 return files
@@ -641,7 +730,7 @@ Project "Beelzebub" {
             Opts_C = function(_)
                 return List {
                     "-m64", "-ffreestanding",
-                    "-Wall", "-Wsystem-headers",
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-mcmodel=kernel", "-static-libgcc",
                     "-O0",
                 } + _.Opts_GCC_Precompiler + _.Opts_Includes
@@ -718,19 +807,13 @@ Project "Beelzebub" {
             Opts_GCC = function(_)
                 local res = List {
                     "-fvisibility=hidden",
-                    "-ffreestanding", "-nostdlib", "-static-libgcc",
-                    "-Wall", "-Wsystem-headers",
-                    "-pipe",
-                    "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
-                    "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
-                    "--sysroot=" .. tostring(_.Sysroot),
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-D__BEELZEBUB_STATIC_LIBRARY",
-                } + _.Opts_GCC_Precompiler + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
-                + specialOptions
+                } + _.Opts_GCC_Common + _.Opts_Includes
+                + _.selArch.Data.Opts_GCC_Kernel
 
                 if _.selArch.Name == "amd64" then
-                    res:Append("-mcmodel=large"):Append("-mno-red-zone")
+                    res:Append("-mcmodel=large")
                 end
 
                 return res
@@ -793,58 +876,96 @@ Project "Beelzebub" {
         },
     },
 
-    -- ArchitecturalComponent "jemalloc - Kernel" {
-    --     Data = {
-    --         ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
+    ArchitecturalComponent "Streamflow - Kernel" {
+        Data = {
+            ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
 
-    --         Opts_GCC = function(_)
-    --             local res = List {
-    --                 "-fvisibility=hidden",
-    --                 "-ffreestanding", "-nostdlib", "-static-libgcc",
-    --                 "-Wall", "-Wsystem-headers",
-    --                 "-O2", "-flto",
-    --                 "-pipe",
-    --                 "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
-    --                 "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
-    --                 "--sysroot=" .. tostring(_.Sysroot),
-    --                 "-D__BEELZEBUB_STATIC_LIBRARY",
-    --                 "-D__BEELZEBUB_KERNEL",
-    --                 "-DJEMALLOC_ENABLE_INLINE",
-    --             } + _.Opts_GCC_Precompiler + _.Opts_Includes
-    --             + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
-    --             + specialOptions
+            Opts_GCC = function(_)
+                local res = List {
+                    "-fvisibility=hidden",
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers", "-Wno-int-to-pointer-cast", "-Wno-strict-aliasing",
+                    "-O2", "-flto",
+                    "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
+                    "-DRADIX_TREE",
+                } + _.Opts_GCC_Common + _.Opts_Includes
+                + _.selArch.Data.Opts_GCC_Kernel
 
-    --             if _.selArch.Name == "amd64" then
-    --                 res:Append("-mcmodel=kernel"):Append("-mno-red-zone")
-    --             end
+                if _.selArch.Name == "amd64" then
+                    res:Append("-mcmodel=kernel")
+                end
 
-    --             return res
-    --         end,
+                return res
+            end,
 
-    --         Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
-    --         Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-    --         Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-    --         Opts_GAS     = function(_) return _.Opts_GCC + List { "-flto" } end,
+            Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
+            Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+            Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
+            Opts_GAS     = function(_) return _.Opts_GCC end,
 
-    --         Opts_AR = List { "rcs" },
-    --     },
+            Opts_AR = List { "rcs" },
+        },
 
-    --     Directory = "libs/jemalloc",
+        Directory = "libs/streamflow",
 
-    --     Dependencies = "System Headers",
+        Output = function(_) return List { _.StreamflowKernelLibraryPath } end,
 
-    --     Output = function(_) return List { _.JemallocKernelLibraryPath } end,
+        Rule "Archive Objects" {
+            Filter = function(_, dst) return _.StreamflowKernelLibraryPath end,
 
-    --     Rule "Archive Objects" {
-    --         Filter = function(_, dst) return _.JemallocKernelLibraryPath end,
+            Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
-    --         Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
+            Action = function(_, dst, src)
+                sh.silent(AR, _.Opts_AR, dst, _.Objects)
+            end,
+        },
+    },
 
-    --         Action = function(_, dst, src)
-    --             sh.silent(AR, _.Opts_AR, dst, _.Objects)
-    --         end,
-    --     },
-    -- },
+    ArchitecturalComponent "jemalloc - Kernel" {
+        Data = {
+            ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
+
+            Opts_GCC = function(_)
+                local res = List {
+                    "-fvisibility=hidden",
+                    --"-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
+                    "-Wno-int-to-pointer-cast", "-Wno-strict-aliasing",
+                    "-Wno-implicit-function-declaration", "-Wno-unused-parameter",
+                    "-O2", "-flto",
+                    "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
+                    "-DJEMALLOC_MALLOC_THREAD_CLEANUP",
+                    "-DJEMALLOC_PURGE_MADVISE_FREE",
+                } + _.Opts_GCC_Common + _.Opts_Includes
+                + _.selArch.Data.Opts_GCC_Kernel
+
+                if _.selArch.Name == "amd64" then
+                    res:Append("-mcmodel=kernel")
+                end
+
+                return res
+            end,
+
+            Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
+            Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+            Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
+            Opts_GAS     = function(_) return _.Opts_GCC end,
+
+            Opts_AR = List { "rcs" },
+        },
+
+        Directory = "libs/jemalloc",
+
+        Output = function(_) return List { _.JemallocKernelLibraryPath } end,
+
+        Rule "Archive Objects" {
+            Filter = function(_, dst) return _.JemallocKernelLibraryPath end,
+
+            Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
+
+            Action = function(_, dst, src)
+                sh.silent(AR, _.Opts_AR, dst, _.Objects)
+            end,
+        },
+    },
 
     ArchitecturalComponent "Runtime Library" {
         Data = {
@@ -852,17 +973,12 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 return List {
-                    "-fvisibility=hidden",
+                    "-fvisibility=hidden", "-fPIC",
                     "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
-                    "-fPIC",
-                    "-Wall", "-Wsystem-headers",
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-O3", "-flto",
-                    "-pipe",
-                    "--sysroot=" .. tostring(_.Sysroot),
                     "-D__BEELZEBUB_DYNAMIC_LIBRARY",
-                } + _.Opts_GCC_Precompiler + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
-                + specialOptions
+                } + _.Opts_GCC_Common + _.Opts_Includes
             end,
 
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
@@ -915,17 +1031,12 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 return List {
-                    "-fvisibility=hidden",
+                    "-fvisibility=hidden", "-fPIC",
                     "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
-                    "-fPIC",
-                    "-Wall", "-Wsystem-headers",
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-O2", "-flto",
-                    "-pipe",
-                    "--sysroot=" .. tostring(_.Sysroot),
                     "-D__BEELZEBUB_DYNAMIC_LIBRARY",
-                } + _.Opts_GCC_Precompiler + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
-                + specialOptions
+                } + _.Opts_GCC_Common + _.Opts_Includes
             end,
 
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
@@ -976,12 +1087,8 @@ Project "Beelzebub" {
                     "-fvisibility=hidden",
                     "-Wall", "-Wsystem-headers",
                     "-O2", "-flto",
-                    "-pipe",
-                    "--sysroot=" .. tostring(_.Sysroot),
                     "-D__BEELZEBUB_APPLICATION",
-                } + _.Opts_GCC_Precompiler + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
-                + specialOptions
+                } + _.Opts_GCC_Common + _.Opts_Includes
             end,
 
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
@@ -1037,20 +1144,14 @@ Project "Beelzebub" {
             Opts_GCC = function(_)
                 local res = List {
                     "-fvisibility=hidden",
-                    "-ffreestanding", "-nostdlib", "-static-libgcc",
-                    "-Wall", "-Wsystem-headers",
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-O2", "-flto",
-                    "-pipe",
-                    "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
-                    "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
-                    "--sysroot=" .. tostring(_.Sysroot),
                     "-D__BEELZEBUB_KERNEL",
-                } + _.Opts_GCC_Precompiler + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
-                + specialOptions
+                } + _.Opts_GCC_Common + _.Opts_Includes
+                + _.selArch.Data.Opts_GCC_Kernel
 
                 if _.selArch.Name == "amd64" then
-                    res:Append("-mcmodel=kernel"):Append("-mno-red-zone")
+                    res:Append("-mcmodel=kernel")
                 end
 
                 return res
@@ -1066,10 +1167,15 @@ Project "Beelzebub" {
             Opts_STRIP = List { "-s", "-K", "jegudiel_header" },
 
             Libraries = function(_)
-                return List {
+                local res = List {
                     "common." .. _.selArch.Name,
-                    --"jemalloc.kernel",
                 }
+
+                if settKrnDynAlloc ~= "NONE" then
+                    res:Append(dynAllocLibs[settKrnDynAlloc])
+                end
+
+                return res;
             end,
         },
 
@@ -1083,13 +1189,18 @@ Project "Beelzebub" {
             Filter = function(_, dst) return _.BinaryPath end,
 
             Source = function(_, dst)
-                return _.Objects
+                local res = _.Objects
                     + List {
                         _.LinkerScript,
                         _.CommonLibraryPath,
-                        --_.JemallocKernelLibraryPath,
                         dst:GetParent(),
                     }
+
+                if settKrnDynAlloc ~= "NONE" then
+                    res:Append(_.KernelDynamicAllocatorPath)
+                end
+
+                return res;
             end,
 
             Action = function(_, dst, src)
@@ -1116,21 +1227,12 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 local res = List {
-                    "-fvisibility=hidden",
-                    "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
-                    "-fPIC",
-                    "-Wall", "-Wsystem-headers",
+                    "-fvisibility=hidden", "-fPIC",
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-O2", "-flto",
-                    "-pipe",
-                    "--sysroot=" .. tostring(_.Sysroot),
                     "-D__BEELZEBUB_KERNEL_MODULE",
-                } + _.Opts_GCC_Precompiler + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
-                + specialOptions
-
-                if _.selArch.Name == "amd64" then
-                    res:Append("-mno-red-zone")
-                end
+                } + _.Opts_GCC_Common + _.Opts_Includes
+                + _.selArch.Data.Opts_GCC_Kernel
 
                 return res
             end,

@@ -175,25 +175,6 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         size_t controlStructuresSize = RoundUp(cur->GetControlAreaSize(), PageSize);
         //  Size of control pages.
 
-        // if (curLoc + controlStructuresSize > VmmArc::KernelHeapEnd)
-        //     break;
-        // //  Well, the maximum is reached! Like this will ever happen...
-
-        // for (size_t offset = 0; offset < controlStructuresSize; offset += PageSize)
-        // {
-        //     res = Vmm::MapPage(bootstrapProc, curLoc + offset, pasStart + offset
-        //         , MemoryFlags::Global | MemoryFlags::Writable
-        //         , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
-
-        //     ASSERT(res.IsOkayResult()
-        //         , "Failed to map page #%u8 (%Xp to %XP): %H"
-        //         , offset / PageSize
-        //         , curLoc + offset
-        //         , pasStart + offset
-        //         , res);
-        //     //  Failure is fatal.
-        // }
-
         res = Vmm::MapRange(bootstrapProc
             , curLoc, pasStart, RoundUp(controlStructuresSize, PageSize)
             , MemoryFlags::Global | MemoryFlags::Writable
@@ -262,12 +243,12 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     curLoc += BootstrapKVasPageCount * PageSize;
 
-    MSG("Instancing KVAS.%n");
+    // MSG("Instancing KVAS.%n");
 
     new (&KVas) KernelVas();
     //  Just making sure.
 
-    MSG("Initializing KVAS.%n");
+    // MSG("Initializing KVAS.%n");
 
     res = KVas.Initialize(VmmArc::KernelHeapStart, VmmArc::KernelHeapEnd
         , &AcquirePoolForVas, &EnlargePoolForVas, &ReleasePoolFromKernelHeap
@@ -276,7 +257,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     ASSERT(res.IsOkayResult(), "Failed to initialize the kernel VAS.")(res);
 
-    MSG("Allocating VMM bootstrap region in KVAS.%n");
+    // MSG("Allocating VMM bootstrap region in KVAS.%n");
 
     vaddr_t khs = VmmArc::KernelHeapStart;
 
@@ -291,7 +272,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     KVas.Bootstrapping = false;
     //  Should be ready!
 
-    MSG("Finished VMM init!%n");
+    // MSG("Finished VMM init!%n");
 
     return res;
 }
@@ -350,6 +331,8 @@ Handle Vmm::Initialize(Process * proc)
 
 Handle Vmm::Switch(Process * const oldProc, Process * const newProc)
 {
+    (void)oldProc;
+
     Cr3 const newVal = Cr3(newProc->PagingTable, false, false);
 
     Cpu::SetCr3(newVal);
@@ -828,8 +811,8 @@ struct RecursiveUnmapState
 static __hot Handle UnmapRecursively(RecursiveUnmapState * state, PageNode const * node)
 {
     vaddr_t next;
-    paddr_t paddr;
-    FrameSize fSize;
+    paddr_t paddr = nullpaddr;
+    FrameSize fSize = FrameSize::_1GiB;
 
     Handle res = TranslateInternal(state->proc, state->vaddr, [&paddr, &fSize](PmlCommonEntry * pE, int level)
     {
@@ -949,7 +932,7 @@ Handle Vmm::UnmapRange(Process * proc
 
             while (vaddr < endAddr)
             {
-                FrameSize fSize;
+                FrameSize fSize = FrameSize::_1GiB;
 
                 Handle res = TranslateInternal(proc, vaddr, [&fSize](PmlCommonEntry * pE, int level)
                 {
@@ -1025,6 +1008,8 @@ Handle Vmm::Translate(Execution::Process * proc, uintptr_t const vaddr, paddr_t 
 {
     return TryTranslate(proc, vaddr, [&paddr](PmlCommonEntry * pE, int level)
     {
+        (void)level;
+
         paddr = pE->GetAddress();
 
         return HandleResult::Okay;
@@ -1038,6 +1023,8 @@ Handle Vmm::GetPageFlags(Process * proc, uintptr_t const vaddr
 {
     return TryTranslate(proc, vaddr, [&flags](PmlCommonEntry * pE, int level)
     {
+        (void)level;
+
         PmlCommonEntry const e = *pE;
         MemoryFlags f = MemoryFlags::None;
 
@@ -1059,6 +1046,8 @@ Handle Vmm::SetPageFlags(Process * proc, uintptr_t const vaddr
 
     Handle res = TryTranslate(proc, vaddr, [flags](PmlCommonEntry * pE, int level)
     {
+        (void)level;
+        
         PmlCommonEntry e = *pE;
 
         e.SetGlobal( ((MemoryFlags::Global     & flags) != 0))

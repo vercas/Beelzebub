@@ -111,7 +111,7 @@ namespace Beelzebub
         unsigned int DestinationCount; 
         Synchronization::Atomic<unsigned int> DestinationsLeft;
         size_t Flags;
-        MailboxEntryLink Links[0];
+        __extension__ MailboxEntryLink Links[0];
     };
 
     static_assert(sizeof(MailboxEntryBase) == (2 * sizeof(void *) + 2 * sizeof(unsigned int) + sizeof(size_t)), "Struct size mismatch.");
@@ -174,7 +174,7 @@ namespace Beelzebub
     };
 
 #define ALLOCATE_MAIL_4(name, dstcnt, func, cookie) \
-    uint8_t MCATS(__, name, _buff)[sizeof(Beelzebub::MailboxEntryBase) + (dstcnt) * sizeof(Beelzebub::MailboxEntryLink)]; \
+    __extension__ uint8_t MCATS(__, name, _buff)[sizeof(Beelzebub::MailboxEntryBase) + (dstcnt) * sizeof(Beelzebub::MailboxEntryLink)]; \
     Beelzebub::MailboxEntryBase & name = *(new (reinterpret_cast<Beelzebub::MailboxEntryBase *>(&(MCATS(__, name, _buff)[0]))) Beelzebub::MailboxEntryBase((dstcnt), (func), (cookie)));
 #define ALLOCATE_MAIL_3(name, dstcnt, func) ALLOCATE_MAIL_4(name, dstcnt, func, nullptr)
 #define ALLOCATE_MAIL_2(name, dstcnt) ALLOCATE_MAIL_3(name, dstcnt, nullptr)

@@ -39,3 +39,45 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef __SIZE_TYPE__ size_t;
+typedef unsigned long long off_t;
+
+enum PROT
+{
+    PROT_READ = 1,
+    PROT_WRITE = 2,
+    PROT_EXEC = 4,
+    PROT_NONE = 0,
+};
+
+enum MAP
+{
+    MAP_SHARED = 1,
+    MAP_PRIVATE = 0,
+    MAP_FIXED = 2,
+    MAP_ANON = 4,   //  Seriously? It's deprecated.
+    MAP_ANONYMOUS = 4,
+
+    MAP_HUGETLB = 0x100,
+    MAP_HUGE_2MB = 0x100,
+};
+
+enum MREMAP
+{
+    MREMAP_MAYMOVE = 1,
+    MREMAP_FIXED = 2,
+};
+
+#define MAP_FAILED ((void *)(unsigned long)(long)(-1))
+
+void * mmap(void * addr, size_t length, int prot, int flags, int fd, off_t offset);
+int munmap(void * addr, size_t length);
+void * mremap(void * old_address, size_t old_size, size_t new_size, int flags, ...);
+
+#ifdef __cplusplus
+}
+#endif

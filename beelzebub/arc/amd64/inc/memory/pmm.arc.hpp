@@ -136,7 +136,7 @@ namespace Beelzebub { namespace Memory
         /*  Debug  */
 
     #ifdef __BEELZEBUB__DEBUG
-        const char * GetStatusString() const
+        char const * GetStatusString() const
         {
             switch (this->Status)
             {
@@ -156,7 +156,7 @@ namespace Beelzebub { namespace Memory
             }
         }
 
-        const char GetStatusChar() const
+        char GetStatusChar() const
         {
             switch (this->Status)
             {
@@ -371,7 +371,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Frame manipulation  */
 
-        __hot paddr_t AllocateFrame(Handle & desc, FrameSize size, uint32_t refCnt);
+        __hot paddr_t AllocateFrame(FrameSize size, uint32_t refCnt);
 
         __hot Handle Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
         __cold Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy);
@@ -434,7 +434,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Page Manipulation  */
 
-        __hot paddr_t AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn, uint32_t refCnt);
+        __hot paddr_t AllocateFrame(FrameSize size, AddressMagnitude magn, uint32_t refCnt);
 
         __hot Handle Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
         __cold Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy);

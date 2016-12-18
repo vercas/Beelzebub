@@ -56,19 +56,16 @@ void Debug::CatchFire(char const * const file
 {
     if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
     {
-        DebugTerminal->WriteLine("");
-        DebugTerminal->Write("CAUGHT FIRE at line ");
-        DebugTerminal->WriteUIntD(line);
-        DebugTerminal->Write(" of \"");
-        DebugTerminal->Write(file);
+        *DebugTerminal << "Caugth fire at:" << Terminals::EndLine
+            << '\t' << file << ": " << line << Terminals::EndLine;
 
-        if (msg == nullptr)
-            DebugTerminal->WriteLine("\".");
-        else
-        {
-            DebugTerminal->WriteLine("\":");
-            DebugTerminal->WriteLine(msg);
-        }
+        if (cond != nullptr)
+            *DebugTerminal << "Expression:" << Terminals::EndLine
+                << '\t' << cond << Terminals::EndLine;
+
+        if (msg != nullptr)
+            *DebugTerminal << "Message:" << Terminals::EndLine
+                << '\t' << msg << Terminals::EndLine;
     }
 
     QuitProcess(HandleResult::ImmediateTermination, -1);
@@ -78,26 +75,30 @@ void Debug::CatchFire(char const * const file
     __unreachable_code;
 }
 
-void Debug::CatchFire(char const * const file
-                    , size_t const line
-                    , char const * const cond
-                    , char const * const fmt
-                    , va_list args)
+void Debug::CatchFireV(char const * const file
+                     , size_t const line
+                     , char const * const cond
+                     , char const * const fmt
+                     , va_list args)
 {
     if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
     {
-        DebugTerminal->WriteLine("");
-        DebugTerminal->Write(">-- CAUGHT FIRE at line ");
-        DebugTerminal->WriteUIntD(line);
-        DebugTerminal->Write(" of \"");
-        DebugTerminal->Write(file);
-        DebugTerminal->WriteLine("\":");
+        *DebugTerminal << "Caugth fire at:" << Terminals::EndLine
+            << '\t' << file << ": " << line << Terminals::EndLine;
 
         if (cond != nullptr)
-            DebugTerminal->WriteLine(cond);
+            *DebugTerminal << "Expression:" << Terminals::EndLine
+                << '\t' << cond << Terminals::EndLine;
 
         if (fmt != nullptr)
+        {
+            *DebugTerminal << "Message:" << Terminals::EndLine
+                << '\t';
+
             DebugTerminal->Write(fmt, args);
+
+            DebugTerminal->WriteLine();
+        }
     }
 
     QuitProcess(HandleResult::ImmediateTermination, -1);

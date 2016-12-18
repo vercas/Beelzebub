@@ -57,9 +57,12 @@
 /**
  *  Acquire the spinlock, if possible.
  */
-__forceinline __must_check bool SpinlockTryAcquire(union ticketlock_t * lock)
+__forceinline __must_check bool SpinlockTryAcquire(union ticketlock_t * const lock)
 {
     COMPILER_MEMORY_BARRIER();
+
+op_start:
+    asm volatile ( "" );   //  Complete dummy.
 
     uint16_t const oldTail = lock->HT.Tail;
     union ticketlock_t cmp = { .HT = {oldTail, oldTail} };
@@ -67,14 +70,16 @@ __forceinline __must_check bool SpinlockTryAcquire(union ticketlock_t * lock)
     union ticketlock_t const cmpCpy = cmp;
 
     asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
-                : [curVal]"+m"(lock), "+a"(cmp)
+                : [curVal]"+m"(lock->Overall), "+a"(cmp)
                 : [newVal]"r"(newVal)
                 : "cc" );
 
     if (cmp.Overall != cmpCpy.Overall)
         return false;
+op_end:
 
     COMPILER_MEMORY_BARRIER();
+    ANNOTATE_LOCK_OPERATION_CHK;
 
     return true;
 }
@@ -83,31 +88,37 @@ __forceinline __must_check bool SpinlockTryAcquire(union ticketlock_t * lock)
  *  Awaits for the spinlock to be freed.
  *  Does not acquire the lock.
  */
-__forceinline void SpinlockSpin(union ticketlock_t * lock)
+__forceinline void SpinlockSpin(union ticketlock_t * const lock)
 {
     COMPILER_MEMORY_BARRIER();
 
     union ticketlock_t copy;
 
+op_start:
     do
     {
         copy.Overall = lock->Overall;
 
         asm volatile ( "pause \n\t" : : : "memory" );
     } while (copy.HT.Tail != copy.HT.Head);
+op_end:
 
     COMPILER_MEMORY_BARRIER();
+    ANNOTATE_LOCK_OPERATION_CHK;
 }
 
 /**
  *  Checks if the spinlock is free. If not, it awaits.
  *  Does not acquire the lock.
  */
-__forceinline void SpinlockAwait(union ticketlock_t * lock)
+__forceinline void SpinlockAwait(union ticketlock_t * const lock)
 {
+    union ticketlock_t copy;
+
     COMPILER_MEMORY_BARRIER();
 
-    union ticketlock_t copy = { .Overall = lock->Overall };
+op_start:
+    copy = *lock;
 
     while (copy.HT.Tail != copy.HT.Head)
     {
@@ -115,18 +126,23 @@ __forceinline void SpinlockAwait(union ticketlock_t * lock)
 
         copy.Overall = lock->Overall;
     }
+op_end:
 
     COMPILER_MEMORY_BARRIER();
+    ANNOTATE_LOCK_OPERATION_CHK;
 }
 
 /**
  *  Acquire the spinlock, waiting if necessary.
  */
-__forceinline void SpinlockAcquire(union ticketlock_t * lock)
+__forceinline void SpinlockAcquire(union ticketlock_t * const lock)
 {
+    uint16_t myTicket;
+
     COMPILER_MEMORY_BARRIER();
 
-    uint16_t myTicket = 1;
+op_start:
+    myTicket = 1;
 
     asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
                 : [tail]"+m"(lock->HT.Tail)
@@ -136,37 +152,47 @@ __forceinline void SpinlockAcquire(union ticketlock_t * lock)
 
     while (lock->HT.Head != myTicket)
         asm volatile ( "pause \n\t" : : : "memory" );
+op_end:
 
     COMPILER_MEMORY_BARRIER();
+    ANNOTATE_LOCK_OPERATION_CHK;
 }
 
 /**
  *  Release the spinlock.
  */
-__forceinline void SpinlockRelease(union ticketlock_t * lock)
+__forceinline void SpinlockRelease(union ticketlock_t * const lock)
 {
     COMPILER_MEMORY_BARRIER();
 
+op_start:
     asm volatile( "lock addw $1, %[head] \n\t"
                 : [head]"+m"(lock->HT.Head)
                 : : "cc" );
+op_end:
 
     COMPILER_MEMORY_BARRIER();
+    ANNOTATE_LOCK_OPERATION_CHK;
 }
 
 /**
  *  Checks whether the spinlock is free or not.
  */
-__forceinline __must_check bool SpinlockCheck(union ticketlock_t * lock)
+__forceinline __must_check bool SpinlockCheck(union ticketlock_t * const lock)
 {
+    union ticketlock_t copy;
+
     COMPILER_MEMORY_BARRIER();
 
-    union ticketlock_t copy = { .Overall = lock->Overall };
+op_start:
+    copy = *lock;
 
     if (copy.HT.Head != copy.HT.Tail)
         return false;
+op_end:
 
     COMPILER_MEMORY_BARRIER();
+    ANNOTATE_LOCK_OPERATION_CHK;
 
     return true;
 }
@@ -174,7 +200,7 @@ __forceinline __must_check bool SpinlockCheck(union ticketlock_t * lock)
 /**
  *  Reset the spinlock.
  */
-__forceinline void SpinlockReset(union ticketlock_t * lock)
+__forceinline void SpinlockReset(union ticketlock_t * const lock)
 {
     COMPILER_MEMORY_BARRIER();
 

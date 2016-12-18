@@ -39,7 +39,12 @@
 
 using namespace Beelzebub::Terminals;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 static ElfValidationResult PerformRelocation32(Elf const * elf, uintptr_t offset, uintptr_t append, ElfRelType rtype, uint32_t symInd, uint32_t data, Elf::SymbolResolverFunc symres, void * lddata)
 {
 
 }
+
+#pragma GCC diagnostic pop

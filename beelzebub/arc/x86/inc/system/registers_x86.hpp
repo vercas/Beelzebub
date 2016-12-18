@@ -416,7 +416,7 @@ namespace Beelzebub { namespace System
 
         /*  Field(s)  */
 
-        union
+        __extension__ union
         {
             struct
             {
@@ -462,7 +462,7 @@ namespace Beelzebub { namespace System
 
         /*  Field(s)  */
 
-        union
+        __extension__ union
         {
             struct
             {
@@ -508,7 +508,7 @@ namespace Beelzebub { namespace System
 
         /*  Field(s)  */
 
-        union
+        __extension__ union
         {
             struct
             {
@@ -563,7 +563,7 @@ namespace Beelzebub { namespace System
 
         /*  Fields  */
 
-        union
+        __extension__ union
         {
             uint64_t Value;
 

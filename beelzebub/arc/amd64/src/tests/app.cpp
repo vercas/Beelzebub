@@ -180,6 +180,8 @@ void TestApplication()
 
 void * JumpToRing3(void * arg)
 {
+    (void)arg;
+
     Handle res;
 
     //  First, the userland stack page.

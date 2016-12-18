@@ -55,6 +55,8 @@ static Synchronization::Atomic<int> Counter {6};
 
 static __startup void Test1(System::IsrState * const state, void * cookie)
 {
+    (void)state;
+
     Rtc::Read();
     DEBUG_TERM_ << "Timer hit: " << (size_t)cookie << ": "
                 << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day

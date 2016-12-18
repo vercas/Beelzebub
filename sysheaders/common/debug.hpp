@@ -40,6 +40,7 @@
 #pragma once
 
 #include <beel/terminals/base.hpp>
+#include <beel/debug.funcs.h>
 
 #ifdef __BEELZEBUB_KERNEL
 #include <synchronization/spinlock_uninterruptible.hpp>
@@ -56,14 +57,16 @@
             (*(Beelzebub::Debug::DebugTerminal)) 
 #endif
 
-#define FAIL_0() ({                                                     \
-    Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr       \
+#define FAIL_0()  __extension__ ({                                      \
+    Beelzebub::Debug::CatchFire(__FILE__, __LINE__, nullptr             \
         , nullptr);                                                     \
+    __unreachable_code;                                                 \
 })
 
-#define FAIL_N(...) ({                                                  \
+#define FAIL_N(...)  __extension__ ({                                   \
     Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr       \
         , __VA_ARGS__);                                                 \
+    __unreachable_code;                                                 \
 })
 
 #define FAIL(...) GET_MACRO100(DUMMEH, ##__VA_ARGS__, \
@@ -88,13 +91,13 @@ FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
 FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_N, \
 FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_0)(__VA_ARGS__)
 
-#define MSG(...) ({                                                     \
+#define MSG(...)  __extension__ ({                                      \
     if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
         Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
 })
 
 #ifdef __BEELZEBUB_KERNEL
-    #define MSG_(...) ({                                                    \
+    #define MSG_(...)  __extension__ ({                                     \
         if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
             withLock (Beelzebub::Debug::MsgSpinlock)                        \
                 Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
@@ -111,23 +114,6 @@ namespace Beelzebub { namespace Debug
 #else
     __shared __cold __bland Terminals::TerminalBase * GetDebugTerminal();
 #endif
-
-    __cold __noinline __noreturn void CatchFire(char const * const file
-                                              , size_t const line
-                                              , char const * const cond
-                                              , char const * const msg);
-
-    __cold __noinline __noreturn void CatchFire(char const * const file
-                                              , size_t const line
-                                              , char const * const cond
-                                              , char const * const fmt
-                                              , va_list args);
-
-    __cold __noinline __noreturn void CatchFireFormat(char const * const file
-                                                    , size_t const line
-                                                    , char const * const cond
-                                                    , char const * const fmt
-                                                    , ...);
 
     __noinline void Assert(bool const condition
                          , char const * const file
@@ -220,13 +206,13 @@ namespace Beelzebub { namespace Debug
 #define ASSERT_1(cond) \
     if unlikely(!(cond)) \
         with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
-            while (MCATS(_assh_, __LINE__).RealityCheck()) \
+            while (MCATS(_assh_, __LINE__).RealityCheck() || true) \
                 MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #cond, nullptr).AssertHelperAlpha
 
 #define ASSERT_N(cond, ...) \
     if unlikely(!(cond)) \
         with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
-            while (MCATS(_assh_, __LINE__).RealityCheck()) \
+            while (MCATS(_assh_, __LINE__).RealityCheck() || true) \
                 MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #cond, __VA_ARGS__).AssertHelperAlpha
 
 #define ASSERT(...) GET_MACRO100(__VA_ARGS__, \
@@ -254,7 +240,7 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
 #define ASSERT_EQ_2(expec, given) \
     if unlikely((expec) != (given)) \
         with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
-            while (MCATS(_assh_, __LINE__).RealityCheck()) \
+            while (MCATS(_assh_, __LINE__).RealityCheck() || true) \
                 MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #expec " == " #given, nullptr) \
                 .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha
 
@@ -269,7 +255,7 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
 #define ASSERT_NEQ_2(expec, given) \
     if unlikely((expec) == (given)) \
         with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
-            while (MCATS(_assh_, __LINE__).RealityCheck()) \
+            while (MCATS(_assh_, __LINE__).RealityCheck() || true) \
                 MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #expec " != " #given, nullptr) \
                 .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha
 
@@ -291,13 +277,13 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
     else if (false)
 
     //#define assert(cond, msg) Beelzebub::Debug::Assert(cond, __FILE__, __LINE__, msg)
-    #define msg(...) ({                                                     \
+    #define msg(...)  __extension__ ({                                      \
         if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
             Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
     })
 
     #ifdef __BEELZEBUB_KERNEL
-        #define msg_(...) ({                                                    \
+        #define msg_(...)  __extension__ ({                                     \
             if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
                 withLock (Beelzebub::Debug::MsgSpinlock)                        \
                     Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
@@ -311,14 +297,14 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
     // //  Tests show that it gets the clue.
 
     #define assert(cond, ...) \
-        if unlikely(!(cond)) __unreachable_code; \
+        if (!(cond)) __unreachable_code; \
         if (false) \
             Beelzebub::Debug::AssertHelper(Beelzebub::Debug::DebugTerminal).AssertHelperAlpha
 
     #define assert_or(cond, ...) \
         if unlikely(!(cond))
 
-    #define msg(...) ({                                                \
+    #define msg(...)  __extension__ ({                                 \
         if (false)                                                     \
             Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__); \
     })

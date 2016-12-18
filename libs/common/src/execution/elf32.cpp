@@ -58,8 +58,10 @@ static inline RangeLoadStatus CheckRangeLoaded(Elf const * elf, uint32_t rStart,
 
 ElfValidationResult Elf::ValidateParseDt32(ElfDynamicEntry_32 const * dts)
 {
+    ASSUME(this->IsElf32());
+
     ElfDynamicEntry_32 const * dtCursor = dts;
-    size_t offset = 0, dtCount;
+    size_t offset = 0, dtCount = 0;
 
     size_t tagCounters[(size_t)(ElfDynamicEntryTag::DT__MAX)] = {0};
 
@@ -202,6 +204,8 @@ ElfValidationResult Elf::ValidateParseDt32(ElfDynamicEntry_32 const * dts)
 
 ElfValidationResult Elf::ValidateParseElf32(Elf::SegmentValidatorFunc segval, void * valdata)
 {
+    ASSUME(this->IsElf32());
+
     if unlikely(this->GetH3()->ProgramHeaderTableEntrySize != sizeof(ElfProgramHeader_32))
         return ElfValidationResult::StructureSizeMismatch;
 
@@ -330,6 +334,8 @@ ElfValidationResult Elf::LoadAndValidate32(Elf::SegmentMapper32Func segmap, Elf:
     if unlikely(!this->Loadable)
         return ElfValidationResult::Unloadable;
 
+    ASSUME(this->IsElf32());
+
     ElfValidationResult res = ElfValidationResult::LoadFailure;
 
     //  Step 1 is trying to map all the segments.
@@ -434,17 +440,19 @@ skipRollback:
 
 Elf::Symbol Elf::GetSymbol32(uint32_t index) const
 {
+    ASSUME(this->IsElf32());
+
     if unlikely(!this->Loadable)
-        return {0};
+        return {};
 
     if unlikely(this->NewLocation == 0 && this->H1->Type == ElfFileType::Dynamic)
-        return {0};
+        return {};
 
     if unlikely(this->HASH == nullptr || this->DYNSYM_32 == nullptr || this->STRTAB == nullptr)
-        return {0};
+        return {};
 
     if unlikely(index >= this->HASH->ChainCount)
-        return {0};
+        return {};
 
     ElfSymbol_32 const & sym = this->DYNSYM_32[index];
 
@@ -470,6 +478,8 @@ Elf::Symbol Elf::GetSymbol32(uint32_t index) const
 
 RangeLoadStatus Elf::CheckRangeLoaded32(uint32_t rStart, uint32_t rSize, RangeLoadOptions opts) const
 {
+    ASSUME(this->IsElf32());
+
     auto phdr_count = this->GetH3()->ProgramHeaderTableEntryCount;
     auto phdrs = this->GetPhdrs_32();
 

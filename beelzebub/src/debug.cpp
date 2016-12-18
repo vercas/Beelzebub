@@ -49,6 +49,8 @@ using namespace Beelzebub::Terminals;
 
 static __cold void Killer(void * cookie)
 {
+    (void)cookie;
+
     DEBUG_TERM_ << "Core " << Cpu::GetData()->Index << " was ordered to catch fire." << EndLine;
 
     //  Allow the CPU to rest. Interrupts are already disabled.
@@ -73,51 +75,53 @@ SpinlockUninterruptible<> Debug::MsgSpinlock;
 //  Although the 'CatchFire' functions will brick the CPU,
 //  I still feel obliged to make them... Efficient...
 
-void Debug::CatchFire(const char * const file
-                    , const size_t line
-                    , const char * const cond
-                    , const char * const msg)
+void Debug::CatchFire(char const * const file
+                    , size_t const line
+                    , char const * const cond
+                    , char const * const msg)
 {
     if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
         withLock (MsgSpinlock)
         {
-            DebugTerminal->WriteLine("");
-            DebugTerminal->Write("CAUGHT FIRE at line ");
-            DebugTerminal->WriteUIntD(line);
-            DebugTerminal->Write(" of \"");
-            DebugTerminal->Write(file);
+            *DebugTerminal << "Caugth fire at:" << Terminals::EndLine
+                << '\t' << file << ": " << line << Terminals::EndLine;
 
-            if (msg == nullptr)
-                DebugTerminal->WriteLine("\".");
-            else
-            {
-                DebugTerminal->WriteLine("\":");
-                DebugTerminal->WriteLine(msg);
-            }
+            if (cond != nullptr)
+                *DebugTerminal << "Expression:" << Terminals::EndLine
+                    << '\t' << cond << Terminals::EndLine;
+
+            if (msg != nullptr)
+                *DebugTerminal << "Message:" << Terminals::EndLine
+                    << '\t' << msg << Terminals::EndLine;
         }
 
     Die();
 }
 
-void Debug::CatchFire(const char * const file
-                    , const size_t line
-                    , const char * const cond
-                    , const char * const fmt, va_list args)
+void Debug::CatchFireV(char const * const file
+                     , size_t const line
+                     , char const * const cond
+                     , char const * const fmt, va_list args)
 {
     if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
         withLock (MsgSpinlock)
         {
-            DebugTerminal->WriteLine("");
-            DebugTerminal->Write(">-- CAUGHT FIRE at line ");
-            DebugTerminal->WriteUIntD(line);
-            DebugTerminal->Write(" of \"");
-            DebugTerminal->Write(file);
-            DebugTerminal->WriteLine("\":");
+            *DebugTerminal << "Caugth fire at:" << Terminals::EndLine
+                << '\t' << file << ": " << line << Terminals::EndLine;
 
-            DebugTerminal->WriteLine(cond);
+            if (cond != nullptr)
+                *DebugTerminal << "Expression:" << Terminals::EndLine
+                    << '\t' << cond << Terminals::EndLine;
 
             if (fmt != nullptr)
+            {
+                *DebugTerminal << "Message:" << Terminals::EndLine
+                    << '\t';
+
                 DebugTerminal->Write(fmt, args);
+
+                DebugTerminal->WriteLine();
+            }
         }
 
     Die();

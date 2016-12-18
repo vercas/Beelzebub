@@ -43,6 +43,8 @@ using namespace Beelzebub::Terminals;
 
 static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset, uintptr_t A, ElfRelType rtype, uint32_t symInd, uint32_t data, Elf::SymbolResolverFunc symres, void * lddata)
 {
+    (void)data;
+
     ptrdiff_t const B = elf->GetLocationDifference();
 
     union

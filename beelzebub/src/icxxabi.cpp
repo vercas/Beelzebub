@@ -15,17 +15,18 @@ extern "C"
 
     int __cxa_atexit(void (*f)(void *), void *objptr, void *dso)
     {
-        if (__atexit_func_count >= ATEXIT_MAX_FUNCS) {return -1;};
+        if (__atexit_func_count >= ATEXIT_MAX_FUNCS) {return -1;}
         __atexit_funcs[__atexit_func_count].destructor_func = f;
         __atexit_funcs[__atexit_func_count].obj_ptr = objptr;
         __atexit_funcs[__atexit_func_count].dso_handle = dso;
         __atexit_func_count++;
         return 0; /*I would prefer if functions returned 1 on success, but the ABI says...*/
-    };
+    }
 
     void __cxa_finalize(void *f)
     {
         uarch_t i = __atexit_func_count;
+
         if (!f)
         {
             /*
@@ -56,12 +57,13 @@ extern "C"
                     * This will result in the processor executing trash, and...we don't want that.
                     **/
                     (*__atexit_funcs[i].destructor_func)(__atexit_funcs[i].obj_ptr);
-                };
-            };
+                }
+            }
+
             return;
-        };
+        }
      
-        for ( ; i >= 0; --i)
+        for (;; --i)
         {
             /*
             * The ABI states that multiple calls to the __cxa_finalize(destructor_func_ptr) function
@@ -79,7 +81,10 @@ extern "C"
             * being called and removed one place down in the list, so as to cover up the hole.
             * Otherwise, whenever a destructor is called and removed, an entire space in the table is wasted.
             **/
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
             if (__atexit_funcs[i].destructor_func == f)
+#pragma GCC diagnostic pop
             {
                 /* 
                 * Note that in the next line, not every destructor function is a class destructor.
@@ -98,7 +103,9 @@ extern "C"
                 * Notice that we didn't decrement __atexit_func_count: this is because this algorithm
                 * requires patching to deal with the FIXME outlined above.
                 **/
-            };
-        };
-    };
-};
+            }
+
+            if (i == 0) break;
+        }
+    }
+}

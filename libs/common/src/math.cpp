@@ -67,7 +67,7 @@ static uint8_t const LogTable[] = {
 };
 //  Vital note: Logarithm of 0 should be negative infinity... But this'll make it 0.
 
-uint8_t Beelzebub::Log2_32(uint32_t val)
+uint_fast8_t Beelzebub::Log2_32(uint32_t val)
 {
     if (val >= (1U << 16))
         if (val >= (1U << 24))
@@ -81,7 +81,7 @@ uint8_t Beelzebub::Log2_32(uint32_t val)
             return      LogTable[val      ];
 }
 
-uint8_t Beelzebub::Log2_64(uint64_t val)
+uint_fast8_t Beelzebub::Log2_64(uint64_t val)
 {
     if (val >= (1ULL << 32))
         if (val >= (1ULL << 48))

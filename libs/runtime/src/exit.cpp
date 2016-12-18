@@ -46,6 +46,9 @@ __extern __used void _fini(void);
 
 void Beelzebub::QuitProcess(Handle hRes, int iRes)
 {
+    (void)hRes;
+    (void)iRes;
+
     _fini();
     
     while (true) ;

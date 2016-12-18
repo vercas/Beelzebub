@@ -187,7 +187,7 @@ namespace Beelzebub { namespace System
 
     //private:
 
-        union
+        __extension__ union
         {
             uint64_t Value;
 

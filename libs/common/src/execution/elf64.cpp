@@ -58,8 +58,10 @@ static inline RangeLoadStatus CheckRangeLoaded(Elf const * elf, uint64_t rStart,
 
 ElfValidationResult Elf::ValidateParseDt64(ElfDynamicEntry_64 const * dts)
 {
+    ASSUME(this->IsElf64());
+
     ElfDynamicEntry_64 const * dtCursor = dts;
-    size_t offset = 0, dtCount;
+    size_t offset = 0, dtCount = 0;
 
     size_t tagCounters[(size_t)(ElfDynamicEntryTag::DT__MAX)] = {0};
 
@@ -202,6 +204,8 @@ ElfValidationResult Elf::ValidateParseDt64(ElfDynamicEntry_64 const * dts)
 
 ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, void * valdata)
 {
+    ASSUME(this->IsElf64());
+
     if unlikely(this->GetH3()->ProgramHeaderTableEntrySize != sizeof(ElfProgramHeader_64))
         return ElfValidationResult::StructureSizeMismatch;
 
@@ -227,7 +231,7 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
 
     for (size_t i = 0; i < phdr_count; ++i)
     {
-        auto phdr = phdrs[i];
+        auto & phdr = phdrs[i];
 
         if unlikely(phdr.Offset >= this->Size)
             return ElfValidationResult::SegmentOutOfBounds;
@@ -278,16 +282,23 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
             this->DT_64 = reinterpret_cast<ElfDynamicEntry_64 const *>(phdr.VAddr);
             this->DT_Size = (size_t)(phdr.VSize);
         }
+        else if (phdr.Type == ElfProgramHeaderType::Tls)
+        {
+            if unlikely(this->TLS_64 != nullptr)
+                return ElfValidationResult::DynamicSegmentMultiplicate;
+
+            this->TLS_64 = &phdr;
+        }
     }
 
     //  Now, all the non-load segments need to be checked. They ought to fit within
-    //  a load segment.
+    //  a load segment. Exception makes the TLS segment.
 
     for (size_t i = 0; i < phdr_count; ++i)
     {
         auto nonload = phdrs[i];
 
-        if (nonload.Type == ElfProgramHeaderType::Load)
+        if (nonload.Type == ElfProgramHeaderType::Load || nonload.Type == ElfProgramHeaderType::Tls)
             continue;
 
         //  Note: Since a section can only be within one segment, there's no
@@ -329,6 +340,8 @@ ElfValidationResult Elf::LoadAndValidate64(Elf::SegmentMapper64Func segmap, Elf:
 {
     if unlikely(!this->Loadable)
         return ElfValidationResult::Unloadable;
+
+    ASSUME(this->IsElf64());
 
     ElfValidationResult res = ElfValidationResult::LoadFailure;
 
@@ -434,17 +447,19 @@ skipRollback:
 
 Elf::Symbol Elf::GetSymbol64(uint32_t index) const
 {
+    ASSUME(this->IsElf64());
+
     if unlikely(!this->Loadable)
-        return {0};
+        return {};
 
     if unlikely(this->NewLocation == 0 && this->H1->Type == ElfFileType::Dynamic)
-        return {0};
+        return {};
 
     if unlikely(this->HASH == nullptr || this->DYNSYM_64 == nullptr || this->STRTAB == nullptr)
-        return {0};
+        return {};
 
     if unlikely(index >= this->HASH->ChainCount)
-        return {0};
+        return {};
 
     ElfSymbol_64 const & sym = this->DYNSYM_64[index];
 
@@ -470,6 +485,8 @@ Elf::Symbol Elf::GetSymbol64(uint32_t index) const
 
 RangeLoadStatus Elf::CheckRangeLoaded64(uint64_t rStart, uint64_t rSize, RangeLoadOptions opts) const
 {
+    ASSUME(this->IsElf64());
+
     auto phdr_count = this->GetH3()->ProgramHeaderTableEntryCount;
     auto phdrs = this->GetPhdrs_64();
 

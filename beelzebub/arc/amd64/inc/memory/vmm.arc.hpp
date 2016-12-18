@@ -134,14 +134,14 @@ namespace Beelzebub { namespace Memory
 
         //  Local Map.
 
-        static __forceinline Pml4 * const GetLocalPml4()          { return (Pml4 *)LocalPml4Base; }
-        static __forceinline Pml4 * const GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base; }
+        static __forceinline Pml4 * GetLocalPml4()          { return (Pml4 *)LocalPml4Base; }
+        static __forceinline Pml4 * GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base; }
         static __forceinline Pml4Entry & GetLocalPml4Entry(vaddr_t const addr)
         {
             return (*GetLocalPml4())[GetPml4Index(addr)];
         }
 
-        static __forceinline Pml3 * const GetLocalPml3(vaddr_t const addr)
+        static __forceinline Pml3 * GetLocalPml3(vaddr_t const addr)
         {
             return (Pml3 *)(LocalPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
         }
@@ -150,7 +150,7 @@ namespace Beelzebub { namespace Memory
             return (*GetLocalPml3(addr))[GetPml3Index(addr)];
         }
 
-        static __forceinline Pml2 * const GetLocalPml2(vaddr_t const addr)
+        static __forceinline Pml2 * GetLocalPml2(vaddr_t const addr)
         {
             return (Pml2 *)(LocalPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
         }
@@ -159,7 +159,7 @@ namespace Beelzebub { namespace Memory
             return (*GetLocalPml2(addr))[GetPml2Index(addr)];
         }
 
-        static __forceinline Pml1 * const GetLocalPml1(vaddr_t const addr)
+        static __forceinline Pml1 * GetLocalPml1(vaddr_t const addr)
         {
             return (Pml1 *)(LocalPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
         }
@@ -170,14 +170,14 @@ namespace Beelzebub { namespace Memory
 
         //  Alien Map.
 
-        static __forceinline Pml4 * const GetAlienPml4()          { return (Pml4 *)AlienPml4Base; }
-        static __forceinline Pml4 * const GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base; }
+        static __forceinline Pml4 * GetAlienPml4()          { return (Pml4 *)AlienPml4Base; }
+        static __forceinline Pml4 * GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base; }
         static __forceinline Pml4Entry & GetAlienPml4Entry(vaddr_t const addr)
         {
             return (*GetAlienPml4())[GetPml4Index(addr)];
         }
 
-        static __forceinline Pml3 * const GetAlienPml3(vaddr_t const addr)
+        static __forceinline Pml3 * GetAlienPml3(vaddr_t const addr)
         {
             return (Pml3 *)(AlienPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
         }
@@ -186,7 +186,7 @@ namespace Beelzebub { namespace Memory
             return (*GetAlienPml3(addr))[GetPml3Index(addr)];
         }
 
-        static __forceinline Pml2 * const GetAlienPml2(vaddr_t const addr)
+        static __forceinline Pml2 * GetAlienPml2(vaddr_t const addr)
         {
             return (Pml2 *)(AlienPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
         }
@@ -195,7 +195,7 @@ namespace Beelzebub { namespace Memory
             return (*GetAlienPml2(addr))[GetPml2Index(addr)];
         }
 
-        static __forceinline Pml1 * const GetAlienPml1(vaddr_t const addr)
+        static __forceinline Pml1 * GetAlienPml1(vaddr_t const addr)
         {
             return (Pml1 *)(AlienPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
         }

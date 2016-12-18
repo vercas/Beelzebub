@@ -59,7 +59,7 @@ void idt_intgate(idt_entry_t *entry, uintptr_t handler, uint16_t cs, uint8_t dpl
     entry->cs = cs;
     
     entry->flags = 0xE;                 // interrupt gate
-    entry->flags |= (dpl & 0b11) << 5;  // dpl
+    entry->flags |= (dpl & 3) << 5;  // dpl
     entry->flags |= (1 << 7);           // present
     
     entry->ist = 0;

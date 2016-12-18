@@ -53,6 +53,8 @@ using namespace Beelzebub::Memory;
 
 static bool HeaderValidator(ElfHeader1 const * header, void * data)
 {
+    (void)data;
+
     return header->Identification.Class == ElfClass::Elf64;
 }
 
@@ -169,7 +171,8 @@ Handle Runtime64::Deploy(uintptr_t base, StartupData * & data)
 
     Elf::Symbol stdat_s = copy.GetSymbol(STARTUP_DATA_SYMBOL);
 
-    assert_or(stdat_s.Exists, "'" STARTUP_DATA_SYMBOL "' symbol doesn't exist in the runtime.");
+    assert_or(stdat_s.Exists, "'" STARTUP_DATA_SYMBOL "' symbol doesn't exist in the runtime.")
+    { }
 
     assert_or(stdat_s.Size == sizeof(StartupData)
         , "'" STARTUP_DATA_SYMBOL "' symbol size doesn't match ELF class size!")

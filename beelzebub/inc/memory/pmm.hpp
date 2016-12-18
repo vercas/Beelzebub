@@ -58,29 +58,13 @@ namespace Beelzebub { namespace Memory
     public:
         /*  Frame operations  */
 
-        static __hot __noinline paddr_t AllocateFrame(Handle & desc, FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any, uint32_t refCnt = 0);
-
-        static __hot __forceinline paddr_t AllocateFrame(FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any, uint32_t refCnt = 0)
-        {
-            Handle sink {};
-
-            return AllocateFrame(sink, size, magn, refCnt);
-        }
-
-        static __hot __forceinline paddr_t AllocateFrame(Handle & desc, AddressMagnitude magn, FrameSize size = FrameSize::_4KiB, uint32_t refCnt = 0)
-        { return AllocateFrame(desc, size, magn, refCnt); }
+        static __hot __noinline paddr_t AllocateFrame(FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any, uint32_t refCnt = 0);
 
         static __hot __forceinline paddr_t AllocateFrame(AddressMagnitude magn, FrameSize size = FrameSize::_4KiB, uint32_t refCnt = 0)
         { return AllocateFrame(size, magn, refCnt); }
 
-        static __hot __forceinline paddr_t AllocateFrame(Handle & desc, uint32_t refCnt, FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any)
-        { return AllocateFrame(desc, size, magn, refCnt); }
-
         static __hot __forceinline paddr_t AllocateFrame(uint32_t refCnt, FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any)
         { return AllocateFrame(size, magn, refCnt); }
-
-        static __hot __forceinline paddr_t AllocateFrame(Handle & desc, uint32_t refCnt, AddressMagnitude magn, FrameSize size = FrameSize::_4KiB)
-        { return AllocateFrame(desc, size, magn, refCnt); }
 
         static __hot __forceinline paddr_t AllocateFrame(uint32_t refCnt, AddressMagnitude magn, FrameSize size = FrameSize::_4KiB)
         { return AllocateFrame(size, magn, refCnt); }

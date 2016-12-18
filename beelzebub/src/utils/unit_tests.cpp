@@ -107,7 +107,7 @@ static __unit_test_startup void PrintSection(UnitTestSection const * const secti
 
 UnitTestsReport Beelzebub::Utils::RunUnitTests()
 {
-    UnitTestDeclaration * last = nullptr;
+    UnitTestDeclaration * volatile last = nullptr;
 
     for (uintptr_t * prol = &tests_data_section_start; prol < &tests_data_section_end; )
     {
@@ -149,8 +149,8 @@ UnitTestsReport Beelzebub::Utils::RunUnitTests()
     UnitTestTerminal = nullptr;
 #endif
 
-    size_t countAll = 0, countSucceded = 0, countFailed = 0;
-    UnitTestDeclaration * first = last; //  Makes little sense, but oh well.
+    size_t volatile countAll = 0, countSucceded = 0, countFailed = 0;
+    UnitTestDeclaration * volatile first = last; //  Makes little sense, but oh well.
 
     for (/* nothing */; last != nullptr; last = last->Next)
     {

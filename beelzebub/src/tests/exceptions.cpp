@@ -54,7 +54,7 @@ __startup void TestNullDereference(uintptr_t volatile * const testPtr)
 
     __try
     {
-        uintptr_t thisShouldFail = *testNullPtr;
+        uintptr_t volatile thisShouldFail = *testNullPtr;
 
         FAIL("(( Test value that should've failed: %Xp ))%n",
             thisShouldFail);
@@ -84,10 +84,10 @@ void TestExceptions()
 {
     uintptr_t volatile * volatile testPtr = reinterpret_cast<uintptr_t volatile *>(0x1234567);
     
-    for (size_t i = 0; i < 100; ++i)
+    for (size_t volatile i = 0; i < 100; ++i)
         __try
         {
-            uintptr_t thisShouldFail = *testPtr;
+            uintptr_t volatile thisShouldFail = *testPtr;
 
             FAIL("(( Test value that should've failed: %Xp ))%n",
                 thisShouldFail);

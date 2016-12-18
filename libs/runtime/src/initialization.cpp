@@ -43,5 +43,10 @@ using namespace Beelzebub;
 
 Handle Beelzebub::InitializeRuntime(bool legacy, char * args, char * * & argv, int & argc)
 {
+    (void)legacy;
+    (void)args;
+    (void)argv;
+    (void)argc;
+
     return HandleResult::Okay;
 }

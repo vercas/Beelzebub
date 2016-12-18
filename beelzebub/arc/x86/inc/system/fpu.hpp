@@ -162,7 +162,7 @@ namespace Beelzebub { namespace System
 
         /*  Fields  */
 
-        union
+        __extension__ union
         {
             uint64_t Value;
 

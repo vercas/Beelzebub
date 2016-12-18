@@ -153,6 +153,8 @@ namespace Beelzebub
 
 #ifdef __BEELZEBUB_KERNEL
     ENUM_TO_STRING_DECL(MemoryContent, ENUM_MEMORYCONTENT);
+
+    bool MemoryContentsMergeable(MemoryContent a, MemoryContent b);
 #endif
 
     enum class ExceptionStatus : uintptr_t

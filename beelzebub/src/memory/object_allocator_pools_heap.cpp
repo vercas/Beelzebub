@@ -55,6 +55,9 @@ void Memory::FillPool(ObjectPoolBase volatile * volatile pool
                     , size_t const headerSize
                     , obj_ind_t const objectCount)
 {
+    ASSUME(pool != nullptr);
+    ASSUME(objectCount > 0);
+
     pool->Capacity = objectCount;
     pool->FreeCount = objectCount;
 
@@ -79,6 +82,8 @@ void Memory::FillPool(ObjectPoolBase volatile * volatile pool
 
         last = obj;
     }
+
+    ASSUME(last != nullptr);
 
     //  After the loop is finished, `last` will point to the very last object
     //  in the pool. `pool->Capacity - 1` will be the index of the last object.

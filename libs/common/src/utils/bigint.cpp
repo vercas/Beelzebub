@@ -48,7 +48,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
 
-union Qword
+__extension__ union Qword
 {
     uint64_t u64;
     int64_t  i64;
@@ -75,7 +75,7 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
 {
     if (dst == src1)
     {
-        uint32_t bck[size1];  //  A backup.
+        __extension__ uint32_t bck[size1];  //  A backup.
 
         memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
         //  Meh.
@@ -84,7 +84,7 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
     }
     else if (dst == src2)
     {
-        uint32_t bck[size2];  //  A backup.
+        __extension__ uint32_t bck[size2];  //  A backup.
 
         memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
         //  Meh.
@@ -146,11 +146,14 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
     return overflow;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 static __noinline void BigIntDiv32(uint32_t       * quot, uint32_t sizeQ
                                  , uint32_t       * remn, uint32_t sizeR
                                  , uint32_t const * src1, uint32_t size1
                                  , uint32_t src2)
 {
+#pragma GCC diagnostic pop
 
 }
 
@@ -163,7 +166,7 @@ void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
     {
         sizeQ = Maximum(size1, size2);
 
-        uint32_t bck[sizeQ];
+        __extension__ uint32_t bck[sizeQ];
         memset(&(bck[0]), 0, sizeQ * sizeof(uint32_t));
 
         return BigIntDiv(&(bck[0]), sizeQ, remn, sizeR, src1, size1, src2, size2);
@@ -172,21 +175,21 @@ void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
     {
         sizeR = Maximum(size1, size2);
 
-        uint32_t bck[sizeR];
+        __extension__ uint32_t bck[sizeR];
         memset(&(bck[0]), 0, sizeR * sizeof(uint32_t));
 
         return BigIntDiv(quot, sizeQ, &(bck[0]), sizeR, src1, size1, src2, size2);
     }
     else if (src1 == quot || src1 == remn)
     {
-        uint32_t bck[size1];
+        __extension__ uint32_t bck[size1];
         memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
 
         return BigIntDiv(quot, sizeQ, remn, sizeR, &(bck[0]), size1, src2, size2);
     }
     else if (src2 == quot || src2 == remn)
     {
-        uint32_t bck[size2];
+        __extension__ uint32_t bck[size2];
         memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
 
         return BigIntDiv(quot, sizeQ, remn, sizeR, src1, size1, &(bck[0]), size2);
@@ -446,7 +449,7 @@ bool Beelzebub::Utils::BigIntShR(uint32_t       * dst, uint32_t & sizeD
 {
     if unlikely(src == dst)
     {
-        uint32_t bck[sizeS];
+        __extension__ uint32_t bck[sizeS];
         memcpy(&(bck[0]), src, sizeS * sizeof(uint32_t));
 
         return BigIntShR(dst, sizeD, &(bck[0]), sizeS, amnt);

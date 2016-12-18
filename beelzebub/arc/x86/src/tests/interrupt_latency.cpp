@@ -51,6 +51,9 @@ using namespace Beelzebub::Terminals;
 
 uint64_t midInterruptTime;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 void LatencyTestInterruptHandlerPartial(INTERRUPT_HANDLER_ARGS)
 {
     midInterruptTime = CpuInstructions::Rdtsc();
@@ -60,6 +63,8 @@ void LatencyTestInterruptHandlerFull(INTERRUPT_HANDLER_ARGS_FULL)
 {
     midInterruptTime = CpuInstructions::Rdtsc();
 }
+
+#pragma GCC diagnostic pop
 
 template<uint8_t vec>
 __startup void DoTest(bool const full)

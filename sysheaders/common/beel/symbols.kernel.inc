@@ -83,15 +83,15 @@ KRN_SYM_GLB_FNC(strcasestrex, , char const *, char const * haystack, char const 
 /******************************************************************************\
 \*  Basic system information and state                                        */
 
-KRN_SYM_NMS_FNC(GetCpuData           ,                , Beelzebub::CpuData const *)
-KRN_SYM_NMS_FNC(GetActiveProcess     ,                , Beelzebub::Process const *)
-KRN_SYM_NMS_FNC(GetActiveThread      ,                , Beelzebub::Thread  const *)
+KRN_SYM_NMS_FNC(GetCpuData           ,                , Beelzebub::CpuData const *, void)
+KRN_SYM_NMS_FNC(GetActiveProcess     ,                , Beelzebub::Process const *, void)
+KRN_SYM_NMS_FNC(GetActiveThread      ,                , Beelzebub::Thread  const *, void)
 
 /******************************************************************************\
 \*  Exceptions                                                                */
 
-KRN_SYM_NMS_FNC(GetException         ,                , Beelzebub::Exception *)
-KRN_SYM_NMS_FNC(GetExceptionContext  ,                , Beelzebub::ExceptionContext * *)
+KRN_SYM_NMS_FNC(GetException         ,                , Beelzebub::Exception *         , void)
+KRN_SYM_NMS_FNC(GetExceptionContext  ,                , Beelzebub::ExceptionContext * *, void)
 KRN_SYM_NMS_FNC(EnterExceptionContext, __returns_twice, bool                           , Beelzebub::ExceptionContext * context)
-KRN_SYM_NMS_FNC(LeaveExceptionContext,                , void)
-KRN_SYM_NMS_FNC(ThrowException       , __noreturn     , void)
+KRN_SYM_NMS_FNC(LeaveExceptionContext,                , void                           , void)
+KRN_SYM_NMS_FNC(ThrowException       , __noreturn     , void                           , void)

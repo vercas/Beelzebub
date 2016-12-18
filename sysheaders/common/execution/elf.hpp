@@ -1031,12 +1031,10 @@ namespace Beelzebub { namespace Execution
 
         inline uintptr_t GetEntryPoint() const
         {
-            auto h2_64 = this->GetH2_64();
-
-            if (h2_64 == nullptr)
-                return this->GetLocationDifference() + this->GetH2_32()->EntryPoint;
+            if (this->IsElf32())
+                return this->GetLocationDifference() + reinterpret_cast<ElfHeader2_32 const *>(this->H1 + 1)->EntryPoint;
             else
-                return this->GetLocationDifference() + h2_64->EntryPoint;
+                return this->GetLocationDifference() + reinterpret_cast<ElfHeader2_64 const *>(this->H1 + 1)->EntryPoint;
         }
 
         /*  Fields  */
@@ -1132,5 +1130,14 @@ namespace Beelzebub { namespace Execution
 
         union { ActionFunction0 INIT; uint64_t Dummy20; };
         union { ActionFunction0 FINI; uint64_t Dummy21; };
+
+        //  TLS segment.
+
+        union
+        {
+            ElfProgramHeader_32 const * TLS_32;
+            ElfProgramHeader_64 const * TLS_64;
+            uint64_t Dummy22;
+        };
     };
 }}

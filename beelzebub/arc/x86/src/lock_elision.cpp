@@ -82,7 +82,7 @@ Handle Beelzebub::ElideLocks()
         , &kernel_mapping_start, &kernel_mapping_end
         , kernel_size, kernel_page_count);
 
-    MemoryFlags flags[kernel_page_count] {};
+    __extension__ MemoryFlags flags[kernel_page_count] {};
 
     for (size_t pageInd = 0; pageInd < kernel_page_count; ++pageInd)
     {

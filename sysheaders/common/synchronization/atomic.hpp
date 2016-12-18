@@ -196,6 +196,8 @@ namespace Beelzebub { namespace Synchronization
     #ifdef __GCC_ASM_FLAG_OUTPUTS__
         inline bool TestSet(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
+            (void)mo;
+
             bool res;
 
             asm volatile("lock bts %[bit], %[dst] \n\t"
@@ -208,6 +210,8 @@ namespace Beelzebub { namespace Synchronization
 
         inline bool TestClear(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
+            (void)mo;
+
             bool res;
 
             asm volatile("lock btr %[bit], %[dst] \n\t"
@@ -220,6 +224,8 @@ namespace Beelzebub { namespace Synchronization
 
         inline bool TestComplement(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
+            (void)mo;
+
             bool res;
 
             asm volatile("lock btc %[bit], %[dst] \n\t"
@@ -232,6 +238,8 @@ namespace Beelzebub { namespace Synchronization
     #else
         inline bool TestSet(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
+            (void)mo;
+
             bool res;
 
             asm volatile("lock bts %[bit], %[dst] \n\t"
@@ -245,6 +253,8 @@ namespace Beelzebub { namespace Synchronization
 
         inline bool TestClear(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
+            (void)mo;
+
             bool res;
 
             asm volatile("lock btr %[bit], %[dst] \n\t"
@@ -258,6 +268,8 @@ namespace Beelzebub { namespace Synchronization
 
         inline bool TestComplement(size_t const bit, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
+            (void)mo;
+
             bool res;
 
             asm volatile("lock btc %[bit], %[dst] \n\t"
@@ -412,33 +424,33 @@ namespace Beelzebub { namespace Synchronization
             return __atomic_load_n(&this->InnerValue, (int)mo);
         }
 
-        inline T * Xchg(T const * const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline T * Xchg(T * const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_exchange_n(&this->InnerValue, other, (int)mo);
         }
-        inline void Xchg(T const * * other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Xchg(T * * other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_exchange(&this->InnerValue, other, other, (int)mo);
         }
 
         /*  Compare-Exchange  */
 
-        inline bool CmpXchgWeak(T const * const & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        inline bool CmpXchgWeak(T * & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, true, (int)smo, (int)fmo);
         }
 
-        inline bool CmpXchgStrong(T const * const & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
+        inline bool CmpXchgStrong(T * & expected, T * const desired, MemoryOrder const smo, MemoryOrder const fmo) volatile
         {
             return __atomic_compare_exchange_n(&this->InnerValue, &expected, desired, false, (int)smo, (int)fmo);
         }
 
-        inline bool CmpXchgWeak(T const * const & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool CmpXchgWeak(T * & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgWeak(expected, desired, mo, mo);
         }
 
-        inline bool CmpXchgStrong(T const * const & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline bool CmpXchgStrong(T * & expected, T * const desired, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return this->CmpXchgStrong(expected, desired, mo, mo);
         }

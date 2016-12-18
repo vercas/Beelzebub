@@ -37,12 +37,14 @@
     thorough explanation regarding other files.
 */
 
-#include <cores.hpp>
-#include <memory/vmm.hpp>
+#include "cores.hpp"
+#include "memory/vmm.hpp"
 #include <system/cpu.hpp>
+#include "kernel.image.hpp"
 #include <synchronization/atomic.hpp>
 #include <kernel.hpp>
 #include <math.h>
+#include <string.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
@@ -53,18 +55,19 @@ using namespace Beelzebub::System;
     Internals
 ****************/
 
-static constexpr size_t const DataSize = RoundUp(sizeof(CpuData), __alignof(CpuData));
+static size_t DataSize, TlsSize;
 static uintptr_t DatasBase;
 
 static Atomic<size_t> RegistrationCounter {0};
 
-#if defined(__BEELZEBUB_SETTINGS_SMP)
-    Atomic<uint16_t> TssSegmentCounter {(uint16_t)(8 * 8)};
-#else
-    CpuData BspCpuData;
-#endif
+Atomic<uint16_t> TssSegmentCounter {(uint16_t)(8 * 8)};
 
 static __startup void CreateStacks(CpuData * const data);
+
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_STREAMFLOW
+    //  TODO: Unhax this thing.
+    extern "C" __thread unsigned int thread_id;
+#endif
 
 /******************
     Cores class
@@ -82,6 +85,19 @@ bool Cores::Ready = false;
 
 Handle Cores::Initialize(size_t const count)
 {
+    if (KernelImage::Elf.TLS_64 != nullptr)
+    {
+        auto & phdrTls = KernelImage::Elf.TLS_64;
+
+        TlsSize = RoundUp(phdrTls->VSize, phdrTls->Alignment);
+        DataSize = RoundUp(TlsSize + sizeof(CpuData), Maximum(__alignof(CpuData), phdrTls->Alignment));
+    }
+    else
+    {
+        TlsSize = 0;
+        DataSize = RoundUp(sizeof(CpuData), __alignof(CpuData));
+    }
+
     size_t const size = RoundUp(count * DataSize, PageSize);
 
     Handle res = Vmm::AllocatePages(nullptr
@@ -115,31 +131,37 @@ void Cores::Register()
     if (index == Count - 1)
         Ready = true;
 
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    CpuData * const data = reinterpret_cast<CpuData *>(DatasBase + index * DataSize);
+    uint8_t * const loc = reinterpret_cast<uint8_t *>(DatasBase + index * DataSize);
+
+    //  First, initialize the kernel's CPU data structure.
+
+    CpuData * const data = reinterpret_cast<CpuData *>(loc + TlsSize);
     new (data) CpuData();
 
     data->Index = index;
     data->TssSegment = TssSegmentCounter.FetchAdd(sizeof(GdtTss64Entry));
-#else
-    CpuData * const data = &BspCpuData;
-    new (data) CpuData();
-    
-    data->Index = 0;
-    data->TssSegment = 8 * 8;
-#endif
 
     data->SelfPointer = data;
     //  Hue.
 
+    //  Then, activate it.
+
     Msrs::Write(Msr::IA32_GS_BASE, (uint64_t)(uintptr_t)data);
+
+    //  Now, the rest of the structure...
 
     data->DomainDescriptor = &Domain0;
     data->X2ApicMode = false;
 
     withLock (data->DomainDescriptor->GdtLock)
-        data->DomainDescriptor->Gdt.Size = TssSegmentCounter.Load() - 1;
-    //  This will eventually set the size to the highest value.
+    {
+        //  This will eventually set the size to the highest value.
+
+        uint16_t cnt = TssSegmentCounter.Load();
+
+        if (data->DomainDescriptor->Gdt.Size < cnt - 1)
+            data->DomainDescriptor->Gdt.Size = cnt - 1;
+    }
 
     data->DomainDescriptor->Gdt.Activate();
     //  Doesn't matter if a core lags behind here. It only needs its own TSS to
@@ -159,16 +181,32 @@ void Cores::Register()
 
     data->LastExtendedStateThread = nullptr;
 
-    return CreateStacks(data);
+    //  And the stack.
 
-    //msg("-- Core #%us @ %Xp. --%n", ind, data);
+    CreateStacks(data);
+
+    //  And finally, prepare the TLS area!
+
+    if (KernelImage::Elf.TLS_64 != nullptr)
+    {
+        auto & phdrTls = *(KernelImage::Elf.TLS_64);
+
+        void * const loc2 = mempcpy(loc, reinterpret_cast<void *>(KernelImage::Elf.Start + phdrTls.Offset), phdrTls.PSize);
+
+        memset(loc2, 0, phdrTls.VSize - phdrTls.PSize);
+
+    #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_STREAMFLOW
+        //  TODO: Unhax this thing.
+        thread_id = (unsigned int)index;
+    #endif
+    }
 }
 
 CpuData * Cores::Get(size_t const index)
 {
     assert(index < Count)(index)(Count);
 
-    return reinterpret_cast<CpuData *>(DatasBase + index * DataSize);
+    return reinterpret_cast<CpuData *>(DatasBase + index * DataSize + TlsSize);
 }
 
 /****************

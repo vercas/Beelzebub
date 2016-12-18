@@ -82,8 +82,11 @@ Interrupts::Data const & Interrupts::Data::SetHandler(InterruptHandlerPartialFun
 
     auto stub = this->GetStub();
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
     if (stub->GetJumpTarget() == &IsrFullStub)
     {
+#pragma GCC diagnostic pop
         withWriteProtect (false)
             stub->SetJumpTarget(reinterpret_cast<void const *>(&IsrCommonStub));
 
@@ -99,8 +102,11 @@ Interrupts::Data const & Interrupts::Data::SetHandler(InterruptHandlerFullFuncti
 
     auto stub = this->GetStub();
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
     if (stub->GetJumpTarget() == &IsrCommonStub)
     {
+#pragma GCC diagnostic pop
         withWriteProtect (false)
             stub->SetJumpTarget(reinterpret_cast<void const *>(&IsrFullStub));
 
@@ -126,5 +132,8 @@ Interrupts::Data const & Interrupts::Data::SetEnder(InterruptEnderFunction const
 
 bool Interrupts::Data::IsFull() const
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
     return this->GetStub()->GetJumpTarget() == &IsrFullStub;
+#pragma GCC diagnostic pop
 }

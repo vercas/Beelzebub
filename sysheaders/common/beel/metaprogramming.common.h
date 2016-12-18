@@ -231,7 +231,9 @@
     C++ Support
 ******************/
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && !defined(__BEELZEBUB__PLACEMENT_NEW)
+    #define __BEELZEBUB__PLACEMENT_NEW
+    
     __forceinline void * operator new     (size_t, void * p) { return p; }
     __forceinline void * operator new[]   (size_t, void * p) { return p; }
     __forceinline void   operator delete  (void *, void *  ) { }
@@ -313,7 +315,7 @@
 #define ENUMINST_CASERETSTR(...) GET_MACRO4(__VA_ARGS__, ENUMINST_CASERETSTR4, ENUMINST_CASERETSTR3, ENUMINST_CASERETSTR2, ENUMINST_CASERETSTR1)(__VA_ARGS__)
 
 #define ENUM_TO_STRING_EX1(enumName, attrBefore, func, val, enumDef) \
-    attrBefore char const * const func              \
+    attrBefore char const * func                    \
     {                                               \
         switch ((__underlying_type(enumName))val)   \
         {                                           \
@@ -333,7 +335,7 @@
     ENUM_TO_STRING_EX1(enumName, , EnumToString(enumName const val), val, enumDef)
 
 #define ENUM_TO_STRING_DECL(enumName, enumDef) \
-    char const * const EnumToString(enumName const val)
+    char const * EnumToString(enumName const val)
 
 /*****************
     Some Types
@@ -447,3 +449,9 @@ namespace Beelzebub
     __forceinline ScopeGuard<TFunc> MakeScopeGuard(TFunc const func) { return ScopeGuard<TFunc>(func); }
 }
 #endif
+
+/******************
+    Scope Guard
+******************/
+
+#define ASSUME(cond) __extension__ ({ if (!(cond)) { __unreachable_code; } })

@@ -52,6 +52,8 @@ using namespace Beelzebub::System;
 
 bool Execution::MapKmodSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
 {
+    (void)data;
+
     withWriteProtect (false)
     {
         memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
@@ -67,5 +69,9 @@ bool Execution::MapKmodSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_
 
 bool Execution::UnmapKmodSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data)
 {
+    (void)loc;
+    (void)phdr;
+    (void)data;
+
     return false;
 }

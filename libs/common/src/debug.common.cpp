@@ -55,8 +55,19 @@ void Debug::CatchFireFormat(const char * const file
 
     va_start(args, fmt);
 
-    CatchFire(file, line, cond, fmt, args);
+    CatchFireV(file, line, cond, fmt, args);
     //  That function will never return.
+
+    va_end(args);
+}
+
+void Debug::DebugMessage(char const * const fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+
+    DebugTerminal->Write(fmt, args);
 
     va_end(args);
 }
@@ -77,7 +88,7 @@ void Debug::Assert(const bool condition
                   , va_list args)
 {
     if unlikely(!condition)
-        CatchFire(file, line, "", msg, args);
+        CatchFireV(file, line, "", msg, args);
 }
 
 void Debug::AssertFormat(const bool condition
@@ -92,7 +103,7 @@ void Debug::AssertFormat(const bool condition
 
         va_start(args, fmt);
 
-        CatchFire(file, line, "", fmt, args);
+        CatchFireV(file, line, "", fmt, args);
         //  That function will never return either.
 
         va_end(args);

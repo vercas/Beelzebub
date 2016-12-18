@@ -55,7 +55,7 @@ using namespace Beelzebub::System;
     Utilitary functions
 **************************/
 
-static __hot void SplitLargeFrame(paddr_t paddr, LargeFrameDescriptor * desc, psize_t cnt = LargeFrameDescriptor::SubDescriptorsCount)
+static __hot void SplitLargeFrame(LargeFrameDescriptor * desc, psize_t cnt = LargeFrameDescriptor::SubDescriptorsCount)
 {
     auto extra = new (desc->GetExtras()) SplitFrameExtra();
 
@@ -98,11 +98,11 @@ FrameAllocator * PmmArc::MainAllocator = nullptr;
 
 /*  Frame operations  */
 
-paddr_t Pmm::AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn, uint32_t refCnt)
+paddr_t Pmm::AllocateFrame(FrameSize size, AddressMagnitude magn, uint32_t refCnt)
 {
     //  TODO: NUMA selection of some sorts, maybe based on process?
 
-    return PmmArc::MainAllocator->AllocateFrame(desc, size, magn, refCnt);
+    return PmmArc::MainAllocator->AllocateFrame(size, magn, refCnt);
 }
 
 Handle Pmm::FreeFrame(paddr_t addr, bool ignoreRefCnt)
@@ -321,7 +321,7 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
         this->ControlAreaSize += sizeof(LargeFrameDescriptor);
         this->FreeSize        += phys_end - algn_end - PageSize;
 
-        SplitLargeFrame(algn_end, new (this->Map + frameCount) LargeFrameDescriptor(), (phys_end - algn_end) / PageSize - 2);
+        SplitLargeFrame(new (this->Map + frameCount) LargeFrameDescriptor(), (phys_end - algn_end) / PageSize - 2);
 
         this->SplitFree = frameCount;
 
@@ -331,7 +331,7 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
 
 /*  Frame manipulation  */
 
-paddr_t FrameAllocationSpace::AllocateFrame(Handle & desc, FrameSize size, uint32_t refCnt)
+paddr_t FrameAllocationSpace::AllocateFrame(FrameSize size, uint32_t refCnt)
 {
     switch (size)
     {
@@ -439,7 +439,7 @@ grab_large_page:
 
     //  At this point, `lIndex`, `paddr` and `lDesc` are valid.
 
-    SplitLargeFrame(paddr, lDesc);
+    SplitLargeFrame(lDesc);
 
     sIndex = lDesc->GetExtras()->NextFree;
     SmallFrameDescriptor * const sDesc = lDesc->SubDescriptors + sIndex;
@@ -706,7 +706,7 @@ Handle FrameAllocationSpace::ReserveRange(paddr_t start, psize_t size, bool incl
 
 /*  Page Manipulation  */
 
-paddr_t FrameAllocator::AllocateFrame(Handle & desc, FrameSize size, AddressMagnitude magn, uint32_t refCnt)
+paddr_t FrameAllocator::AllocateFrame(FrameSize size, AddressMagnitude magn, uint32_t refCnt)
 {
     paddr_t ret = nullpaddr;
     FrameAllocationSpace * space;
@@ -719,7 +719,7 @@ paddr_t FrameAllocator::AllocateFrame(Handle & desc, FrameSize size, AddressMagn
 
         while (space != nullptr)
         {
-            ret = space->AllocateFrame(desc, size, refCnt);
+            ret = space->AllocateFrame(size, refCnt);
 
             if (ret != nullpaddr)
                 return ret;
@@ -739,7 +739,7 @@ paddr_t FrameAllocator::AllocateFrame(Handle & desc, FrameSize size, AddressMagn
                 //  at a 32-bit address. (all the other addresses are less,
                 //  thus have to be 32-bit if the end is)
 
-                ret = space->AllocateFrame(desc, size, refCnt);
+                ret = space->AllocateFrame(size, refCnt);
 
                 if (ret != nullpaddr)
                     return ret;
@@ -756,7 +756,6 @@ paddr_t FrameAllocator::AllocateFrame(Handle & desc, FrameSize size, AddressMagn
             , (magn == AddressMagnitude::_24bit) ? "24-bit" : "16-bit");
     }
 
-    desc = Handle();
     return nullpaddr;
 }
 

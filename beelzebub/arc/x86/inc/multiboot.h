@@ -46,7 +46,7 @@ typedef struct multiboot_info {
 	uint8_t framebuffer_bpp;
 	uint8_t framebuffer_type;
 
-	union
+	__extension__ union
 	{
 		struct
 		{

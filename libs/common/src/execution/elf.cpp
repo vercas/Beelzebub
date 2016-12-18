@@ -332,9 +332,13 @@ namespace Beelzebub { namespace Terminals
                         << *(value.GetH2_32()) << EndLine
                         << *(value.GetH3()) << EndLine;
         else
+        {
+            ASSUME(value.IsElf64());
+
             return term << *(value.H1) << EndLine
                         << *(value.GetH2_64()) << EndLine
                         << *(value.GetH3()) << EndLine;
+        }
     }
 }}
 
@@ -373,6 +377,7 @@ Elf::Elf(void const * addr, size_t size)
     , DYNSYM_32(nullptr), DYNSYM_Count(0)
     , STRTAB(nullptr), STRTAB_Size(0)
     , HASH(nullptr), INIT(nullptr), FINI(nullptr)
+    , TLS_32(nullptr)
 {
 
 }
@@ -436,7 +441,7 @@ ElfValidationResult Elf::Relocate(uintptr_t newAddress)
 Elf::Symbol Elf::GetSymbol(uint32_t index) const
 {
     if unlikely(!this->Loadable)
-        return {0};
+        return {};
 
     switch (this->H1->Identification.Class)
     {
@@ -445,20 +450,20 @@ Elf::Symbol Elf::GetSymbol(uint32_t index) const
     case ElfClass::Elf64:
         return this->GetSymbol64(index);
     default:
-        return {0};
+        return {};
     }
 }
 
 Elf::Symbol Elf::GetSymbol(char const * name) const
 {
     if unlikely(!this->Loadable)
-        return {0};
+        return {};
 
     if unlikely(this->NewLocation == 0 && this->H1->Type == ElfFileType::Dynamic)
-        return {0};
+        return {};
 
     if unlikely(this->HASH == nullptr || this->DYNSYM_64 == nullptr || this->STRTAB == nullptr)
-        return {0};
+        return {};
 
     //  Step one is obtaining the hash.
 
@@ -477,6 +482,6 @@ Elf::Symbol Elf::GetSymbol(char const * name) const
         //  Found, apparently.
     } while((id = this->HASH->GetChain(id)) != 0 && id != this->HASH->GetBucket(hash));
 
-    return {0};
+    return {};
     //  Not found. :c
 }

@@ -160,6 +160,8 @@ execute:
 
 static __hot void MailboxIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
+    (void)state;
+
     while (ExecuteHead()) { /* loopie loop */ }
     
     END_OF_INTERRUPT();

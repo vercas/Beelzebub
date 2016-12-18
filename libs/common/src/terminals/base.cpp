@@ -62,6 +62,10 @@ using namespace Beelzebub::Terminals;
 
 TerminalWriteResult TerminalBase::WriteUtf8At(char const * c, int16_t const x, int16_t const y)
 {
+    (void)c;
+    (void)x;
+    (void)y;
+
     return {HandleResult::NotImplemented, 0U, InvalidCoordinates};
 }
 
@@ -569,6 +573,9 @@ TerminalWriteResult TerminalBase::WriteFormat(char const * const fmt, ...)
 
 Handle TerminalBase::SetCursorPosition(int16_t const x, int16_t const y)
 {
+    (void)x;
+    (void)y;
+
     return HandleResult::UnsupportedOperation;
 }
 
@@ -609,6 +616,9 @@ TerminalCoordinates TerminalBase::GetCurrentPosition()
 
 Handle TerminalBase::SetSize(int16_t const w, int16_t const h)
 {
+    (void)w;
+    (void)h;
+
     return HandleResult::UnsupportedOperation;
 }
 
@@ -625,6 +635,9 @@ TerminalCoordinates TerminalBase::GetSize()
 
 Handle TerminalBase::SetBufferSize(int16_t const w, int16_t const h)
 {
+    (void)w;
+    (void)h;
+
     return HandleResult::UnsupportedOperation;
 }
 
@@ -1040,7 +1053,7 @@ TerminalWriteResult TerminalBase::WriteHexTable(uintptr_t const start, size_t co
             return {HandleResult::ArgumentOutOfRange, 0U, InvalidCoordinates};
     }
 
-    char addrhexstr[sizeof(size_t) * 2 + 2], hexstr[actualCharsPerLine * 3 + 1]
+    __extension__ char addrhexstr[sizeof(size_t) * 2 + 2], hexstr[actualCharsPerLine * 3 + 1]
        , asciistr[2 + actualCharsPerLine + 4];
 
     addrhexstr[sizeof(size_t) * 2] = ':';

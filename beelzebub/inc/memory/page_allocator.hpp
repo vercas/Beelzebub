@@ -210,7 +210,7 @@ namespace Beelzebub { namespace Memory
         /*  Debug  */
 
 #ifdef __BEELZEBUB__DEBUG
-        __forceinline const char * GetStatusString() const
+        __forceinline char const * GetStatusString() const
         {
             switch (this->Status)
             {
@@ -228,7 +228,7 @@ namespace Beelzebub { namespace Memory
             }
         }
 
-        __forceinline const char GetStatusChar() const
+        __forceinline char GetStatusChar() const
         {
             switch (this->Status)
             {

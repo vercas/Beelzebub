@@ -538,7 +538,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t size
                     && 0 == (prev->Type & MemoryAllocationOptions::GuardHigh)   //  Previous region must not have a high guard.
                     && 0 == (this->Type & MemoryAllocationOptions::GuardLow)    //  Requested one must not have a low guard.
                     && prev->Flags == this->Flags                               //  Flags and content must match.
-                    && prev->Content == this->Content
+                    && MemoryContentsMergeable(prev->Content, this->Content)
                     && (prev->Type & ~MemoryAllocationOptions::GuardFull) == (this->Type & ~MemoryAllocationOptions::GuardFull);
 
                 res.RightMergeable = res.MeetsRight
@@ -546,7 +546,7 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t size
                     && 0 == (next->Type & MemoryAllocationOptions::GuardLow)
                     && 0 == (this->Type & MemoryAllocationOptions::GuardHigh)
                     && next->Flags == this->Flags
-                    && next->Content == this->Content
+                    && MemoryContentsMergeable(next->Content, this->Content)
                     && (next->Type & ~MemoryAllocationOptions::GuardFull) == (this->Type & ~MemoryAllocationOptions::GuardFull);
             }
 
@@ -644,6 +644,8 @@ Handle Vas::Free(vaddr_t vaddr, size_t size, bool sparse, bool tolerant, bool lo
 
         virtual bool CanAllocateAnonymously(MemoryRegion * reg) override
         {
+            (void)reg;
+
             FAIL("VAS free operation should not consider the possibility of anonymous allocation.");
         }
     } manip(this, vaddr, size, sparse, tolerant);
@@ -654,6 +656,10 @@ Handle Vas::Free(vaddr_t vaddr, size_t size, bool sparse, bool tolerant, bool lo
 Handle Vas::Modify(vaddr_t vaddr, size_t pageCnt
     , MemoryFlags flags, bool lock)
 {
+    (void)vaddr;
+    (void)pageCnt;
+    (void)flags;
+
     if unlikely(this->First == nullptr)
         return HandleResult::ObjectDisposed;
 
@@ -670,7 +676,7 @@ Handle Vas::Modify(vaddr_t vaddr, size_t pageCnt
 
     //  So, this is gonna suck a bit. There are... Lots of options.
 
-end:
+//end:
     if likely(lock)
     {
         this->Lock.ReleaseAsWriter();
@@ -700,6 +706,9 @@ Handle Vas::RemoveNode(AvlTree<MemoryRegion>::Node * const node)
 
 bool Vas::PreCheck(bool & lock, bool alloc)
 {
+    (void)lock;
+    (void)alloc;
+
     return false;
 }
 

@@ -432,11 +432,11 @@ namespace Beelzebub
 
         /*  Operator(s)  */
 
-        inline bool operator ==(Handle const other) { return this->Value == other.Value; }
-        inline bool operator !=(Handle const other) { return this->Value != other.Value; }
+        inline bool operator ==(Handle const other) const { return this->Value == other.Value; }
+        inline bool operator !=(Handle const other) const { return this->Value != other.Value; }
 
-        inline bool operator ==(HandleResult const res) { return this->IsResult(res); }
-        inline bool operator !=(HandleResult const res) { return !this->IsResult(res); }
+        inline bool operator ==(HandleResult const res) const { return this->IsResult(res); }
+        inline bool operator !=(HandleResult const res) const { return !this->IsResult(res); }
 
         /*  Field(s)  */
 
@@ -454,8 +454,8 @@ namespace Beelzebub
 
         /*  Printing  */
 
-        __noinline char const * const GetTypeString() const;
-        __noinline char const * const GetResultString() const;
+        __noinline char const * GetTypeString() const;
+        __noinline char const * GetResultString() const;
 
     } __packed;
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.

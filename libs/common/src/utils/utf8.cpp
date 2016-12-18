@@ -45,7 +45,7 @@ using namespace Beelzebub::Utils;
 decoded_codepoint_t Utils::GetUtf8Codepoint(char const * chr)
 {
     decoded_codepoint_t res;
-    char c1 = *chr;
+    unsigned char c1 = *reinterpret_cast<unsigned char const *>(chr);
 
     if (c1 >= 0xE0 /* 0b1110_xxxx */)
     {

@@ -60,11 +60,15 @@ using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #if   defined(__BEELZEBUB__ARCH_AMD64)
 #define INSTRUCTION_POINTER (state->RIP)
 #elif defined(__BEELZEBUB__ARCH_IA32)
 #define INSTRUCTION_POINTER (state->EIP)
 #endif
+
+static Synchronization::Spinlock<> PrintLock {};
 
 /**
  *  Interrupt handler for miscellaneous interrupts that do not represent an exception.
@@ -81,6 +85,39 @@ void System::MiscellaneousInterruptHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::DivideErrorHandler(INTERRUPT_HANDLER_ARGS)
 {
+    CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
+
+    Synchronization::LockGuard<Synchronization::Spinlock<> > lg {PrintLock};
+
+    if (cpuData != nullptr)
+        MSG("<< DIVIDE ERROR! core %us >>%n", cpuData->Index);
+    else
+        MSG("<< DIVIDE ERROR! >>%n");
+
+    PrintToDebugTerminal(state);
+
+    uintptr_t stackPtr = state->RSP;
+    uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+
+    if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+    {
+        msg("Stack pointer was not a multiple of %us! (%Xp)%n"
+            , sizeof(size_t), stackPtr);
+
+        stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+    }
+
+    bool odd;
+    for (odd = true; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+    {
+        msg("%X2|%Xs|%s"
+            , (uint16_t)(stackPtr - state->RSP)
+            , *((size_t const *)stackPtr)
+            , odd ? "\t" : "\r\n");
+    }
+
+    if (odd) msg("%n");
+
     FAIL("<<DIVIDE ERROR @ %Xp>>", INSTRUCTION_POINTER);
 }
 
@@ -209,6 +246,8 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
 
+    Synchronization::LockGuard<Synchronization::Spinlock<> > lg {PrintLock};
+
     if (cpuData != nullptr)
         MSG("<< GP FAULT! core %us >>%n", cpuData->Index);
     else
@@ -294,134 +333,141 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
         if (reserved)    status[3] = '0';
         if (instruction) status[4] = 'I'; else status[4] = 'd';
 
-        MSG("%n<< PAGE FAULT @ %Xp ("
-            , INSTRUCTION_POINTER);
-
-        switch (state->ErrorCode)
+        withLock (PrintLock)
         {
-        case 2:
-            MSG("kernel attempted write to absent page");
-            break;
+            MSG("%n<< PAGE FAULT @ %Xp ("
+                , INSTRUCTION_POINTER);
 
-        case 3:
-            MSG("kernel could not write to present page");
-            break;
-
-        case 4:
-            MSG("userland attempted to read from absent page");
-            break;
-
-        case 5:
-            MSG("userland attempted to read from kernel page");
-            break;
-
-        case 6:
-            MSG("userland attempted to write to absent page");
-            break;
-
-        case 7:
-            MSG("userland could not write to present page");
-            break;
-
-        case 8:
-            MSG("reserved bit set in paging table entry");
-            break;
-
-        case 16:
-            MSG("kernel attempted to execute from unmapped page");
-            break;
-
-        case 17:
-            MSG("kernel attempted to execute from non-executable page");
-            break;
-
-        case 20:
-            MSG("userland attempted to execute from unmapped page");
-            break;
-
-        case 21:
-            MSG("userland attempted to execute from kernel/non-executable page");
-            break;
-
-        default:
-            MSG("%s", status);
-            break;
-        }
-
-        MSG("|%X1); CR2: %Xp | "
-            , (uint8_t)state->ErrorCode, CR2);
-
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-        MSG("%u2:%u2:%u2:%u2 | ", ind4, ind3, ind2, ind1);
-#elif defined(__BEELZEBUB__ARCH_IA32PAE)
-        MSG("%u2:%u2:%u2 | ", ind3, ind2, ind1);
-#elif defined(__BEELZEBUB__ARCH_IA32)
-        MSG("%u2:%u2 | ", ind2, ind1);
-#endif
-
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-        if (CR2 >= VmmArc::FractalStart && CR2 <= VmmArc::FractalEnd)
-        {
-            vaddr_t vaddr = (CR2 - VmmArc::LocalPml1Base) << 9;
-
-            if (0 != (vaddr & 0x0000800000000000ULL))
-                vaddr |= 0xFFFF000000000000ULL;
-
-            uint16_t vind1 = VmmArc::GetPml1Index(CR2)
-                   , vind2 = VmmArc::GetPml2Index(CR2)
-                   , vind3 = VmmArc::GetPml3Index(CR2)
-                   , vind4 = VmmArc::GetPml4Index(CR2);
-
-            MSG("Adr: %Xp - %u2:%u2:%u2:%u2 | ", vaddr, vind4, vind3, vind2, vind1);
-        }
-#endif
-
-        if (e != nullptr)
-        {
-            PrintToTerminal(Beelzebub::Debug::DebugTerminal, *e);
-
-            MSG(" >>%n");
-        }
-        else
-            MSG("%H >>%n", res);
-
-        MSG("<< AT@%Xp >>%n", activeThread);
-
-        PrintToDebugTerminal(state);
-
-        uintptr_t stackPtr = state->RSP;
-        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
-
-        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
-        {
-            msg("Stack pointer was not a multiple of %us! (%Xp)%n"
-                , sizeof(size_t), stackPtr);
-
-            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
-        }
-
-        bool odd;
-        for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
-        {
-            msg("%X2|%Xp|%Xs|%s"
-                , (uint16_t)(stackPtr - state->RSP)
-                , stackPtr
-                , *((size_t const *)stackPtr)
-                , odd ? "\r\n" : "\t");
-        }
-
-        if (odd) msg("%n");
-
-        Utils::StackFrame stackFrame;
-
-        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
-        {
-            do
+            switch (state->ErrorCode)
             {
-                msg("[Func %Xp; Stack top %Xp + %us]%n"
-                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+            case 0:
+                MSG("kernel attempted to read from absent page");
+                break;
 
-            } while (stackFrame.LoadNext());
+            case 2:
+                MSG("kernel attempted write to absent page");
+                break;
+
+            case 3:
+                MSG("kernel could not write to present page");
+                break;
+
+            case 4:
+                MSG("userland attempted to read from absent page");
+                break;
+
+            case 5:
+                MSG("userland attempted to read from kernel page");
+                break;
+
+            case 6:
+                MSG("userland attempted to write to absent page");
+                break;
+
+            case 7:
+                MSG("userland could not write to present page");
+                break;
+
+            case 8:
+                MSG("reserved bit set in paging table entry");
+                break;
+
+            case 16:
+                MSG("kernel attempted to execute from unmapped page");
+                break;
+
+            case 17:
+                MSG("kernel attempted to execute from non-executable page");
+                break;
+
+            case 20:
+                MSG("userland attempted to execute from unmapped page");
+                break;
+
+            case 21:
+                MSG("userland attempted to execute from kernel/non-executable page");
+                break;
+
+            default:
+                MSG("%s", status);
+                break;
+            }
+
+            MSG("|%X1); CR2: %Xp | "
+                , (uint8_t)state->ErrorCode, CR2);
+
+    #if   defined(__BEELZEBUB__ARCH_AMD64)
+            MSG("%u2:%u2:%u2:%u2 | ", ind4, ind3, ind2, ind1);
+    #elif defined(__BEELZEBUB__ARCH_IA32PAE)
+            MSG("%u2:%u2:%u2 | ", ind3, ind2, ind1);
+    #elif defined(__BEELZEBUB__ARCH_IA32)
+            MSG("%u2:%u2 | ", ind2, ind1);
+    #endif
+
+    #if   defined(__BEELZEBUB__ARCH_AMD64)
+            if (CR2 >= VmmArc::FractalStart && CR2 <= VmmArc::FractalEnd)
+            {
+                vaddr_t vaddr = (CR2 - VmmArc::LocalPml1Base) << 9;
+
+                if (0 != (vaddr & 0x0000800000000000ULL))
+                    vaddr |= 0xFFFF000000000000ULL;
+
+                uint16_t vind1 = VmmArc::GetPml1Index(CR2)
+                       , vind2 = VmmArc::GetPml2Index(CR2)
+                       , vind3 = VmmArc::GetPml3Index(CR2)
+                       , vind4 = VmmArc::GetPml4Index(CR2);
+
+                MSG("Adr: %Xp - %u2:%u2:%u2:%u2 | ", vaddr, vind4, vind3, vind2, vind1);
+            }
+    #endif
+
+            if (e != nullptr)
+            {
+                PrintToTerminal(Beelzebub::Debug::DebugTerminal, *e);
+
+                MSG(" >>%n");
+            }
+            else
+                MSG("%H >>%n", res);
+
+            MSG("<< AT@%Xp >>%n", activeThread);
+
+            PrintToDebugTerminal(state);
+
+            uintptr_t stackPtr = state->RSP;
+            uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+
+            if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+            {
+                msg("Stack pointer was not a multiple of %us! (%Xp)%n"
+                    , sizeof(size_t), stackPtr);
+
+                stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+            }
+
+            bool odd;
+            for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+            {
+                msg("%X2|%Xp|%Xs|%s"
+                    , (uint16_t)(stackPtr - state->RSP)
+                    , stackPtr
+                    , *((size_t const *)stackPtr)
+                    , odd ? "\r\n" : "\t");
+            }
+
+            if (odd) msg("%n");
+
+            Utils::StackFrame stackFrame;
+
+            if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+            {
+                do
+                {
+                    msg("[Func %Xp; Stack top %Xp + %us]%n"
+                        , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+
+                } while (stackFrame.LoadNext());
+            }
         }
 
         Beelzebub::Debug::CatchFireFormat(__FILE__, __LINE__, nullptr, nullptr);

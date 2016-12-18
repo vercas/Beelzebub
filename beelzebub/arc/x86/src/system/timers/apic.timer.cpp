@@ -66,6 +66,8 @@ static size_t FirstCounter, AverageCounter;
 
 static __cold void PitTickIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
+    (void)state;
+
     if likely(Stage < StageCount)
     {
         if unlikely(Stage == 0)
@@ -93,6 +95,8 @@ static __cold void PitTickIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 
 static __cold void CalibratorIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
+    (void)state;
+
     //  If calibration already succeeded, no reason to force failure upon it.
     CalibrationStatus st = Ongoing;
     Status.CmpXchgStrong(st, Failed);
@@ -152,9 +156,12 @@ void ApicTimer::Initialize(bool bsp)
         vec.SetHandler(&CalibratorIrqHandler);
     else
     {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
         ASSERT(handler == &CalibratorIrqHandler
             , "Wrong APIC timer calibration interrupt handler.")
             (handler);
+#pragma GCC diagnostic pop
     }
 
     vec.SetEnder(&Lapic::IrqEnder);
@@ -171,7 +178,7 @@ void ApicTimer::Initialize(bool bsp)
 
     bool sufficient = false;
     unsigned int divisor;
-    size_t freq, absFreq;
+    size_t freq = 0, absFreq = 0;
 
     for (divisor = 1; !sufficient && divisor <= 128; divisor <<= 1)
     {

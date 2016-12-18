@@ -199,7 +199,7 @@ namespace Beelzebub { namespace Terminals
 
         __forceinline TerminalWriteResult WriteLine()
         {
-            return this->WriteLine("", 0);
+            return this->WriteLine("", 1);
         }
 
         /*  Fields  */

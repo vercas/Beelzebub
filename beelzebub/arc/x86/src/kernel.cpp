@@ -133,6 +133,10 @@
 #include <tests/vas.hpp>
 #endif
 
+#if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
+#include "tests/malloc.hpp"
+#endif
+
 #ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
 #include <tests/interrupt_latency.hpp>
 #endif
@@ -680,6 +684,7 @@ void Beelzebub::Main()
         MainInitializePhysicalMemory();
         MainInitializeAcpiTables();
         MainInitializeVirtualMemory();
+        MainInitializeBootModules();
         MainInitializeCores();
 
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
@@ -694,21 +699,6 @@ void Beelzebub::Main()
 #endif
 
         MainBootstrapThread();
-
-        MainInitializeExtraCpus();
-        MainElideLocks();
-
-        MainInitializeBootModules();
-        MainInitializeRuntimeLibraries();
-
-        MainInitializeFpu();
-        MainInitializeSyscalls();
-        MainInitializeKernelModules();
-
-        MainInitializeMainTerminal();
-
-        //  Permit other processors to initialize themselves.
-        MainTerminal->WriteLine("--  Initialization complete! --");
 
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
         if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
@@ -727,6 +717,29 @@ void Beelzebub::Main()
             ObjectAllocatorTestBarrier3.Reset();
         }
 #endif
+
+#if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
+        if (CHECK_TEST(MALLOC))
+        {
+            MallocTestBarrier1.Reset();
+            MallocTestBarrier2.Reset();
+            MallocTestBarrier3.Reset();
+        }
+#endif
+
+        MainInitializeExtraCpus();
+        MainElideLocks();
+
+        MainInitializeRuntimeLibraries();
+
+        MainInitializeFpu();
+        MainInitializeSyscalls();
+        MainInitializeKernelModules();
+
+        MainInitializeMainTerminal();
+
+        //  Permit other processors to initialize themselves.
+        MainTerminal->WriteLine("--  Initialization complete! --");
     }
 
     Scheduling = true;
@@ -909,6 +922,19 @@ void Beelzebub::Main()
     }
 #endif
 
+#if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
+    if (CHECK_TEST(MALLOC))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing dynamic allocator.%n", Cpu::GetData()->Index);
+        
+        TestMalloc(true);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished dynamic allocator test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
     //  Allow the CPU to rest.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 }
@@ -963,6 +989,19 @@ void Beelzebub::Secondary()
 
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
+#if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
+    if (CHECK_TEST(MALLOC))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing dynamic allocator.%n", Cpu::GetData()->Index);
+        
+        TestMalloc(false);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished dynamic allocator test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1084,8 +1123,8 @@ Handle InitializeInterrupts()
     Pic::Initialize(0x20);  //  Just below the spurious interrupt vector.
 
     Pic::Subscribe(1, &keyboard_handler);
-    Pic::Subscribe(3, &SerialPort::IrqHandler);
-    Pic::Subscribe(4, &SerialPort::IrqHandler);
+    Pic::Subscribe(3, &ManagedSerialPort::IrqHandler);
+    Pic::Subscribe(4, &ManagedSerialPort::IrqHandler);
 
     Interrupts::Register.Activate();
 

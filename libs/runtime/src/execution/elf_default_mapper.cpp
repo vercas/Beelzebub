@@ -51,6 +51,8 @@ using namespace Beelzebub::Syscalls;
 
 bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
 {
+    (void)data;
+
     vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
     vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
 
@@ -135,6 +137,8 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
 
 bool Execution::UnmapSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data)
 {
+    (void)data;
+
     vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
     vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
 

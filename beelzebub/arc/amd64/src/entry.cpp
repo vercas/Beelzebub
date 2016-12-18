@@ -59,6 +59,7 @@
 #include <system/fpu.hpp>
 
 #include <initrd.hpp>
+#include "kernel.image.hpp"
 
 #include <kernel.hpp>
 #include <entry.h>
@@ -425,27 +426,6 @@ void RemapTerminal(TerminalBase * const terminal)
     MODULES
 **************/
 
-// /**
-//  *  <summary>
-//  *  Does something with the kernel's module...
-//  *  </summary>
-//  */
-// __startup Handle HandleKernelModule(size_t const index
-//                                , jg_info_module_t const * const module
-//                                , vaddr_t const vaddr
-//                                , size_t const size)
-// {
-//     Image * kimg;
-
-//     Handle res = Images::Load("kernel", ImageRole::Kernel
-//         , reinterpret_cast<uint8_t *>(vaddr), size
-//         , kimg, nullptr);
-
-//     KernelImage = kimg;
-
-//     return res;
-// }
-
 /**
  *  <summary>
  *  Processes a module.
@@ -457,23 +437,23 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
 
     size_t const size = RoundUp(module->length, PageSize);
 
-    msg("Module #%us:%n"
-        "\tName: (%X2) %s%n"
-        "\tCommand-line: (%X2) %s%n"
-        "\tPhysical Address: %XP%n"
-        "\tSize: %X4 (%Xs)%n"
-        , index
-        , module->name, JG_INFO_STRING_EX + module->name
-        , module->cmdline, JG_INFO_STRING_EX + module->cmdline
-        , module->address
-        , module->length, size);//*/
+    // msg("Module #%us:%n"
+    //     "\tName: (%X2) %s%n"
+    //     "\tCommand-line: (%X2) %s%n"
+    //     "\tPhysical Address: %XP%n"
+    //     "\tSize: %X4 (%Xs)%n"
+    //     , index
+    //     , module->name, JG_INFO_STRING_EX + module->name
+    //     , module->cmdline, JG_INFO_STRING_EX + module->cmdline
+    //     , module->address
+    //     , module->length, size);
 
     vaddr_t vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(&BootstrapProcess
         , size
         , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryFlags::Global
         , MemoryContent::BootModule
         , vaddr);
 
@@ -485,7 +465,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
 
     res = Vmm::MapRange(&BootstrapProcess
         , vaddr, module->address, size
-        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryFlags::Global
         , MemoryMapOptions::NoReferenceCounting);
 
     ASSERT(res.IsOkayResult()
@@ -494,9 +474,9 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
         , index, JG_INFO_STRING_EX + module->name
         , res);
 
-    /*if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
-        return HandleKernelModule(index, module, vaddr, size);
-    else*/ if (memeq("initrd", JG_INFO_STRING_EX + module->name, 7))
+    if (memeq("kernel64", JG_INFO_STRING_EX + module->name, 9))
+        return KernelImage::Initialize(vaddr, size);
+    else if (memeq("initrd", JG_INFO_STRING_EX + module->name, 7))
         return InitRd::Initialize(vaddr, size);
 
     return res;
@@ -541,6 +521,8 @@ Process tPb;
 
 __hot void * TestThreadEntryPoint(void * const arg)
 {
+    (void)arg;
+
     char * const myChars = (char *)(uintptr_t)0x321000ULL;
 
     while (true)

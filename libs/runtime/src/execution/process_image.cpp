@@ -49,8 +49,12 @@ using namespace Beelzebub::Terminals;
 
 static Elf _ApplicationImage;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 static bool HeaderValidator(ElfHeader1 const * header, void * data)
 {
+#pragma GCC diagnostic pop
+
     return header->Identification.Class == ElfClass::Elf64;
 }
 
@@ -99,8 +103,12 @@ Handle ProcessImage::Initialize()
 
 /*  Symbols  */
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 Elf::Symbol ProcessImage::ResolveSymbol(char const * name, void * lddata)
 {
+#pragma GCC diagnostic pop
+
     Elf::Symbol res = ApplicationImage->GetSymbol(name);
 
     if (res.Defined)

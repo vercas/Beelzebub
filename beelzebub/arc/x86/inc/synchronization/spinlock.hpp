@@ -48,7 +48,7 @@ namespace Beelzebub { namespace Synchronization
     typedef union spinlock_t
     {
         uint32_t volatile Overall;
-        struct
+        __extension__ struct
         {
             uint16_t volatile Head;
             uint16_t volatile Tail;

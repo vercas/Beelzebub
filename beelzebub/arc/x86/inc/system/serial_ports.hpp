@@ -121,7 +121,7 @@ namespace Beelzebub { namespace System
 
         /*  Static methods  */
 
-        static void IrqHandler(IsrState * const state);
+        static void IrqHandler(INTERRUPT_HANDLER_ARGS);
 
         /*  Construction  */
 

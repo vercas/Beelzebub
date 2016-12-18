@@ -147,29 +147,48 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
     //  Okay... Out of memory... Bad.
     //  TODO: Handle this.
 
+    //  Right now, the page is categorically unmapped.
+
     res = Vmm::MapPage(proc, vaddr_algn, paddr, reg->Flags);
+
+    //  Very important note - here are two acceptable results:
+    //  Okay and PageMapped.
 
     if unlikely(res != HandleResult::Okay)
     {
-        //  Okay, this really shouldn't fail.
-
         Pmm::FreeFrame(paddr);
         //  Get rid of the physical page if mapping failed. :frown:
     }
 
     vas->Lock.ReleaseAsReader();
 
-    if likely(vaddr < KernelStart)
+    if likely(res == HandleResult::Okay)
     {
-        //  This was a request in userland, therefore the page contents need to
-        //  be TERMINATED.
+        if likely(vaddr < KernelStart)
+        {
+            //  This was a request in userland, therefore the page contents need to
+            //  be TERMINATED.
 
-        withWriteProtect (false)
-            memset(reinterpret_cast<void *>(vaddr_algn), 0xCA, PageSize);
-        //  It's all CACA!
+            if (0 != (reg->Flags & MemoryFlags::Writable))
+                memset(reinterpret_cast<void *>(vaddr_algn), 0, PageSize);
+                //  This is allowed.
+            else
+                withWriteProtect (false)
+                    memset(reinterpret_cast<void *>(vaddr_algn), 0xCA, PageSize);
+                //  It's all CACA! It shouldn't be read, it should be written to using
+                //  a syscall.
+        }
+        else
+        {
+            ASSERT(0 != (reg->Flags & MemoryFlags::Writable)
+                , "Kernel should not request read-only pages allocated on demand!");
+
+            memset(reinterpret_cast<void *>(vaddr_algn), 0, PageSize);
+        }
     }
 
-    return res;
+    return HandleResult::Okay;
+    //  Even if it was PageMapped!
 
 #undef RETURN
 end:
@@ -190,7 +209,7 @@ Handle Vmm::CheckMemoryRegion(Execution::Process * proc
     if (addr >= UserlandStart && addr < UserlandEnd)
         vas = &(proc->Vas);
     else if (addr >= KernelStart && addr < KernelEnd)
-        return HandleResult::NotImplemented;    //  TODO: Kernel VAS
+        vas = &(Vmm::KVas);
     else
         return HandleResult::ArgumentOutOfRange;
 

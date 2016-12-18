@@ -95,6 +95,8 @@ Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions
 
 Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts)
 {
+    (void)opts;
+
     if unlikely(addr != 0 && (addr < Vmm::UserlandStart || addr >= Vmm::UserlandEnd))
         return HandleResult::ArgumentOutOfRange;
 

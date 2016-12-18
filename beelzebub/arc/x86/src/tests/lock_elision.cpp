@@ -100,8 +100,8 @@ op_end:
 
 __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
 {
-    Debug::DebugTerminal->WriteHexDump(tStart, tEnd - tStart, 16);
-    msg("Lock: %Xp -> %Xp ", tStart, tEnd);
+    // Debug::DebugTerminal->WriteHexDump(tStart, tEnd - tStart, 16);
+    // msg("Lock: %Xp -> %Xp ", tStart, tEnd);
 
     vaddr_t const vaddr1 = RoundDown(tStart, PageSize);
     vaddr_t const vaddr2 = RoundDown(tEnd  , PageSize);
@@ -125,7 +125,7 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
             , vaddr2, res);
     }
 
-    msg("A ");
+    // msg("A ");
 
     //  Then make the pages writable and executable (because they may overlap
     //  with this code and all the functions used by it).
@@ -145,7 +145,7 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
             , vaddr2, res);
     }
 
-    msg("B%n");
+    // msg("B%n");
 
     //  Finally, no-op the code.
 
@@ -155,15 +155,15 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
     ASSERT(okay, "Failed to turn region %Xp-%Xp into a no-op."
         , tStart, tEnd);
 
-    Debug::DebugTerminal->WriteLine();
-    Debug::DebugTerminal->WriteHexDump(tStart, tEnd - tStart, 16);
+    // Debug::DebugTerminal->WriteLine();
+    // Debug::DebugTerminal->WriteHexDump(tStart, tEnd - tStart, 16);
 
     //  And close by restoring the page flags.
 
     for (uintptr_t i = tStart; i < tEnd; i += 32)
         CpuInstructions::FlushCache((void *)i);
 
-    msg("D ");
+    // msg("D ");
 
     res = Vmm::SetPageFlags(nullptr, vaddr1, mf1);
 
@@ -180,12 +180,12 @@ __startup void PatchRange(uintptr_t tStart, uintptr_t tEnd)
             , vaddr2, res);
     }
 
-    msg("E%n");
+    // msg("E%n");
 }
 
 void TestLockElision()
 {
-    msg("Test range 1: %Xp-%Xp%n", testStart1, testEnd1);
+    // msg("Test range 1: %Xp-%Xp%n", testStart1, testEnd1);
 
     TestFunction1();
 
@@ -193,7 +193,7 @@ void TestLockElision()
 
     TestFunction1();
 
-    msg("Test range 2: %Xp-%Xp%n", testStart2, testEnd2);
+    // msg("Test range 2: %Xp-%Xp%n", testStart2, testEnd2);
 
     TestFunction2();
 

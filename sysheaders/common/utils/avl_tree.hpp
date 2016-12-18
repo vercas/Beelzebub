@@ -77,7 +77,7 @@ namespace Beelzebub { namespace Utils
 
         /*  Properties and Manipulation  */
 
-        int GetHeight(AvlTreeNode const * const dis)
+        static int GetHeight(AvlTreeNode const * const dis)
         {
             if unlikely(dis == nullptr)
                 return 0;
@@ -85,7 +85,7 @@ namespace Beelzebub { namespace Utils
                 return dis->Height;
         }
 
-        int GetBalance(AvlTreeNode const * const dis)
+        static int GetBalance(AvlTreeNode const * const dis)
         {
             if unlikely(dis == nullptr)
                 return 0;

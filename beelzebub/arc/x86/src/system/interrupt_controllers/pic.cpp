@@ -58,6 +58,8 @@ bool Pic::Active = false;
 
 void Pic::IrqEnder(INTERRUPT_ENDER_ARGS)
 {
+    (void)handler;
+
     if (vector >= VectorOffset + 8)
         Io::Out8(SlaveCommandPort, 0x20);
  

@@ -101,6 +101,7 @@ namespace Beelzebub { namespace Memory
         {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
+#pragma GCC diagnostic ignored "-Wpedantic"
             return reinterpret_cast<void *>(this->*(&Vas::PreCheck)) != reinterpret_cast<void *>(&Vas::PreCheck);
 #pragma GCC diagnostic pop
         }

@@ -60,6 +60,8 @@ ObjectAllocatorSmp ModulesAllocator;
 
 static bool HeaderValidator(ElfHeader1 const * header, void * data)
 {
+    (void)data;
+
     return header->Identification.Class == ElfClass::Elf64;
 }
 
@@ -87,7 +89,7 @@ Handle Modules::Initialize()
 
 Handle Modules::Load(uintptr_t start, size_t len)
 {
-    KernelModule * kmod;
+    KernelModule * kmod = nullptr;
     Handle res = ModulesAllocator.AllocateObject(kmod);
 
     if (!res.IsOkayResult())

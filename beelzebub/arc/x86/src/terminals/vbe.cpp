@@ -154,7 +154,7 @@ TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, c
     {
         uint8_t const * bmp = Font[*c - FontMin];
 
-        if (*c >= 0x80)
+        if (*reinterpret_cast<unsigned char const *>(c) >= 0x80)
         {
             //  This belongs to a multibyte character... Uh oh...
 

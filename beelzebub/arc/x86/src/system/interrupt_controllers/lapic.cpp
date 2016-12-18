@@ -82,6 +82,9 @@ paddr_t Lapic::PhysicalAddress = nullpaddr;
 
 void Lapic::IrqEnder(INTERRUPT_ENDER_ARGS)
 {
+    (void)handler;
+    (void)vector;
+
     EndOfInterrupt();
 }
 

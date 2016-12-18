@@ -58,5 +58,8 @@ Ioapic Ioapic::All[Ioapic::Limit];
 
 void Ioapic::IrqEnder(INTERRUPT_ENDER_ARGS)
 {
+    (void)handler;
+    (void)vector;
+
     Lapic::EndOfInterrupt();
 }

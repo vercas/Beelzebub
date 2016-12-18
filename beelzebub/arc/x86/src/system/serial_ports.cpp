@@ -57,6 +57,8 @@ ManagedSerialPort Beelzebub::System::COM4 {0x02E8};
 
 void SerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
 {
+    (void)state;
+
     //COM1.WriteNtString("IRQ!");
 
     END_OF_INTERRUPT();
@@ -162,14 +164,18 @@ size_t SerialPort::WriteNtString(char const * const str, size_t len) const
 
 /*  Static methods  */
 
-void ManagedSerialPort::IrqHandler(IsrState * const state)
+void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
 {
+    (void)state;
+
     //uint8_t reg = Io::In8(COM1.BasePort + 2);
 
     //if (0 == (reg & 1))
     //{
         COM1.WriteNtString("COM1");
     //}
+
+    END_OF_INTERRUPT();
 }
 
 /*  Construction  */

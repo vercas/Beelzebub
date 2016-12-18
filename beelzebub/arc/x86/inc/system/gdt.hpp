@@ -228,7 +228,7 @@ namespace Beelzebub { namespace System
 
         uint64_t Low;
 
-        union
+        __extension__ union
         {
             uint64_t High;
 

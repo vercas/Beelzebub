@@ -42,3 +42,25 @@
 using namespace Beelzebub;
 
 ENUM_TO_STRING_EX2(MemoryContent, ENUM_MEMORYCONTENT, Beelzebub)
+
+bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
+{
+    if (a == b)
+    {
+        switch (a)
+        {
+        case MemoryContent::Generic:
+        case MemoryContent::CpuDatas:
+        case MemoryContent::VmmBootstrap:
+        case MemoryContent::Free:
+            //  Descriptors with these contents can be merged safely.
+            return true;
+
+        default:
+            //  All the others have an important unique identity.
+            return false;
+        }
+    }
+
+    return false;
+}

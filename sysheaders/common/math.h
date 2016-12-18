@@ -168,6 +168,41 @@ __forceinline __const constexpr TNum GreatestCommonDivisor(TNum a, TNum b, const
     return a;
 }
 
+template<typename TNum>
+__forceinline __const constexpr uint_fast8_t FastLog2(TNum val);
+
+template<>
+__forceinline __const constexpr uint_fast8_t FastLog2<unsigned int>(unsigned int val)
+{
+    return (sizeof(unsigned int) * 8 - 1) - __builtin_clz(val);
+}
+
+template<>
+__forceinline __const constexpr uint_fast8_t FastLog2<unsigned long>(unsigned long val)
+{
+    return (sizeof(unsigned long) * 8 - 1) - __builtin_clzl(val);
+}
+
+template<>
+__forceinline __const constexpr uint_fast8_t FastLog2<unsigned long long>(unsigned long long val)
+{
+    return (sizeof(unsigned long long) * 8 - 1) - __builtin_clzll(val);
+}
+
+template<typename TNum>
+__forceinline __const constexpr uint_fast8_t FastCeilLog2(TNum val)
+{
+    uint_fast8_t log = FastLog2<TNum>(val);
+
+    return val == ((TNum)1 << log) ? log : (log + 1);
+}
+
+template<typename TNum1, typename TNum2>
+__forceinline __const constexpr auto DivRoundUp(TNum1 dividend, TNum2 divisor) -> decltype((dividend + divisor - 1) / divisor)
+{
+    return (dividend + divisor - 1) / divisor;
+}
+
 #else
 
 #ifdef __BEELZEBUB__ARCH_X86
@@ -208,13 +243,13 @@ __forceinline __const uint32_t RoundUpDiff32(const uint32_t value, const uint32_
     return (step - (value % step)) % step;
 }
 
- #define MIN(aP, bP)             \
-   ({  __typeof__ (a) _a = (aP); \
-       __typeof__ (b) _b = (bP); \
+#define MIN(aP, bP)              \
+   ({  __typeof__(aP) _a = (aP); \
+       __typeof__(bP) _b = (bP); \
        _a < _b ? _a : _b;        })
- #define MAX(aP, bP)             \
-   ({  __typeof__ (a) _a = (aP); \
-       __typeof__ (b) _b = (bP); \
+#define MAX(aP, bP)              \
+   ({  __typeof__(aP) _a = (aP); \
+       __typeof__(bP) _b = (bP); \
        _a > _b ? _a : _b;        })
 //  Courtesy of http://stackoverflow.com/a/3437484/485098
 
@@ -246,10 +281,44 @@ __forceinline __const uint64_t GreatestCommonDivisor32(uint32_t a, uint32_t b)
     return a;
 }
 
+__forceinline __const uint_fast8_t FastLog2_32(unsigned int val)
+{
+    return (sizeof(unsigned int) * 8 - 1) - __builtin_clz(val);
+}
+
+__forceinline __const uint_fast8_t FastCeilLog2_32(unsigned int val)
+{
+    uint_fast8_t log = FastLog2_32(val);
+
+    return val == ((unsigned int)1 << log) ? log : (log + 1);
+}
+
+__forceinline __const uint_fast8_t FastLog2_64(unsigned long long val)
+{
+    return (sizeof(unsigned long long) * 8 - 1) - __builtin_clzll(val);
+}
+
+__forceinline __const uint_fast8_t FastCeilLog2_64(unsigned long long val)
+{
+    uint_fast8_t log = FastLog2_64(val);
+
+    return val == ((unsigned long long)1 << log) ? log : (log + 1);
+}
+
+__forceinline __const unsigned int DivRoundUp32(unsigned int dividend, unsigned int divisor)
+{
+    return (dividend + divisor - 1) / divisor;
+}
+
+__forceinline __const unsigned long long DivRoundUp64(unsigned long long dividend, unsigned long long divisor)
+{
+    return (dividend + divisor - 1) / divisor;
+}
+
 #endif
 
-__shared __const uint8_t Log2_32(uint32_t val);
-__shared __const uint8_t Log2_64(uint64_t val);
+__shared __const uint_fast8_t Log2_32(uint32_t val);
+__shared __const uint_fast8_t Log2_64(uint64_t val);
 
 __shared __const uint32_t AddWithCarry32(uint32_t * dst, uint32_t src, uint32_t cin);
 __shared __const uint32_t AddWithCarry32_3(uint32_t * dst, uint32_t src1, uint32_t src2, uint32_t cin);
@@ -267,4 +336,22 @@ __shared __const bool DoRangesIntersect(struct PointerAndSize a, struct PointerA
 
 #ifdef __cplusplus
 }
+#endif
+
+#ifndef __cplusplus
+    #ifdef __BEELZEBUB__ARCH_IA32
+        #define Log2_S Log2_32
+        #define FastLog2_S FastLog2_32
+        #define FastCeilLog2_S FastCeilLog2_32
+        #define RoundUpS RoundUp32
+        #define RoundDownS RoundDown32
+        #define DivRoundUpS DivRoundUp32
+    #else
+        #define Log2_S Log2_64
+        #define FastLog2_S FastLog2_64
+        #define FastCeilLog2_S FastCeilLog2_64
+        #define RoundUpS RoundUp64
+        #define RoundDownS RoundDown64
+        #define DivRoundUpS DivRoundUp64
+    #endif
 #endif
