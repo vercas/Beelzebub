@@ -50,21 +50,35 @@
 
 namespace Beelzebub { namespace Memory
 {
-    struct PageNode
-    {
-        inline PageNode(vaddr_t addr) : Address( addr), Next(nullptr) { }
-        inline PageNode(vaddr_t addr, PageNode const * next) : Address( addr), Next(next) { }
-
-        vaddr_t const Address;
-        PageNode const * Next;
-    };
-
     /**
      *  The virtual memory manager.
      */
     class Vmm
     {
     public:
+        /*  Types  */
+
+        struct InvalidationInfo;
+
+        typedef void (* AfterInvalidationFunc)(InvalidationInfo const *, bool);
+
+        struct PageNode
+        {
+            inline PageNode(vaddr_t addr) : Address( addr), Next(nullptr) { }
+            inline PageNode(vaddr_t addr, PageNode const * next) : Address( addr), Next(next) { }
+
+            vaddr_t const Address;
+            PageNode const * Next;
+        };
+
+        struct InvalidationInfo
+        {
+            Execution::Process * const Proc;
+            PageNode const * const Node;
+            AfterInvalidationFunc const After;
+            void * const Cookie;
+        };
+
         /*  Statics  */
 
         static Synchronization::Spinlock<> KernelHeapLock;
@@ -163,12 +177,14 @@ namespace Beelzebub { namespace Memory
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
         static __hot __noinline Handle InvalidateChain(Execution::Process * proc
-            , PageNode const * node, bool broadcast = true);
+            , PageNode const * node, bool broadcast = true
+            , AfterInvalidationFunc after = nullptr, void * cookie = nullptr);
 
         static __hot __noinline Handle InvalidateChain(Execution::Process * proc
-            , PageNode const node, bool broadcast = true)
+            , PageNode const node, bool broadcast = true
+            , AfterInvalidationFunc after = nullptr, void * cookie = nullptr)
         {
-            return InvalidateChain(proc, &node, broadcast);
+            return InvalidateChain(proc, &node, broadcast, after, cookie);
         }
 
         static __hot __noinline Handle InvalidatePage(Execution::Process * proc

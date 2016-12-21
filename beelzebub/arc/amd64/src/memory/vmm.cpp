@@ -45,8 +45,8 @@
 #include <synchronization/spinlock_uninterruptible.hpp>
 #include <system/cpu.hpp>
 #include <beel/interrupt.state.hpp>
-#include <mailbox.hpp>
-#include <kernel.hpp>
+#include "kernel.hpp"
+#include "mailbox.hpp"
 
 #include <string.h>
 #include <math.h>
@@ -357,7 +357,7 @@ bool Vmm::IsAlien(Process * proc)
 /*  Page Management  */
 
 template<typename cbk_t>
-static __hot inline Handle TranslateInternal(Process * proc
+static __hot __noinline Handle TranslateInternal(Process * proc
     , uintptr_t const vaddr
     , cbk_t cbk
     , bool const lockHeap
@@ -799,33 +799,69 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
 
 struct RecursiveUnmapState
 {
-    Process * const proc;
-    vaddr_t vaddr;
-    vaddr_t const endAddr;
-    Spinlock<> * const alienLock;
-    Spinlock<> * const heapLock;
-    InterruptState const int_cookie;
-    bool const nonLocal, invalidate, broadcast;
+    Execution::Process * const Process;
+    vaddr_t Address;
+    vaddr_t const EndAddress;
+    Spinlock<> * const AlienLock;
+    Spinlock<> * const HeapLock;
+    Beelzebub::InterruptState const InterruptState;
+    bool const NonLocal, Invalidate, Broadcast, CountReferences;
 };
 
-static __hot Handle UnmapRecursively(RecursiveUnmapState * state, PageNode const * node)
+struct HybridPageNode : public Vmm::PageNode
+{
+    inline HybridPageNode(vaddr_t vaddr, paddr_t paddr) : Vmm::PageNode( vaddr), Frame(paddr) { }
+    inline HybridPageNode(vaddr_t vaddr, paddr_t paddr, HybridPageNode const * next) : Vmm::PageNode(vaddr, next), Frame(paddr) { }
+
+    paddr_t const Frame;
+    
+    inline HybridPageNode const * GetNext() const
+    {
+        return static_cast<HybridPageNode const *>(this->Next);
+    }
+};
+
+static __hot void FreeAfterInvalidation(Vmm::InvalidationInfo const * const inf
+    , bool caller)
+{
+    if (!caller)
+        return;
+
+    auto tmp = static_cast<HybridPageNode const *>(inf->Node);
+
+    do
+    {
+        assert(tmp->Frame != nullpaddr);
+
+        Handle res = Pmm::AdjustReferenceCount(tmp->Frame, -1);
+
+        assert(res == HandleResult::Okay
+            || res == HandleResult::PageReserved
+            || res == HandleResult::PagesOutOfAllocatorRange)
+            (res);
+    } while ((tmp = tmp->GetNext()) != nullptr);
+}
+
+static __hot Handle UnmapRecursively(RecursiveUnmapState * const state
+    , HybridPageNode const * node)
 {
     vaddr_t next;
     paddr_t paddr = nullpaddr;
     FrameSize fSize = FrameSize::_1GiB;
 
-    Handle res = TranslateInternal(state->proc, state->vaddr, [&paddr, &fSize](PmlCommonEntry * pE, int level)
-    {
-        paddr = pE->GetAddress();
-        fSize = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
+    Handle res = TranslateInternal(state->Process, state->Address
+        , [&paddr, &fSize](PmlCommonEntry * pE, int level)
+        {
+            paddr = pE->GetAddress();
+            fSize = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
 
-        *pE = PmlCommonEntry();
-        //  Null.
+            *pE = PmlCommonEntry();
+            //  Null.
 
-        return HandleResult::Okay;
-    }, false, false, state->nonLocal);
+            return HandleResult::Okay;
+        }, false, false, state->NonLocal);
 
-    PageNode const newNode {state->vaddr, node};
+    HybridPageNode const newNode {state->Address, paddr, node};
 
     if unlikely(res != HandleResult::Okay)
         goto bail;
@@ -834,15 +870,15 @@ static __hot Handle UnmapRecursively(RecursiveUnmapState * state, PageNode const
     //  Yep, re-using a variable, evilishly.
 
     if (fSize == FrameSize::_4KiB)
-        next = state->vaddr + PageSize;
+        next = state->Address + PageSize;
     else
-        next = RoundUp(state->vaddr + 1, LargePageSize);
+        next = RoundUp(state->Address + 1, LargePageSize);
 
-    if (next >= state->endAddr)
+    if (next >= state->EndAddress)
         goto bail;
     //  This means enough has been mapped!
 
-    state->vaddr = next;
+    state->Address = next;
 
     res = UnmapRecursively(state, node);
     //  Note: `node` = &newNode;
@@ -850,24 +886,20 @@ static __hot Handle UnmapRecursively(RecursiveUnmapState * state, PageNode const
     goto end;
 
 bail:
-    if (state->alienLock != nullptr)
-        state->alienLock->Release();
-    if (state->heapLock != nullptr)
-        state->heapLock->Release();
+    if (state->AlienLock != nullptr)
+        state->AlienLock->Release();
+    if (state->HeapLock != nullptr)
+        state->HeapLock->Release();
 
-    state->int_cookie.Restore();
+    state->InterruptState.Restore();
 
-    if (state->invalidate)
-        Vmm::InvalidateChain(state->proc, node, state->broadcast);
+    if (state->Invalidate)
+        Vmm::InvalidateChain(state->Process, node, state->Broadcast
+            , state->CountReferences ? FreeAfterInvalidation : nullptr);
     //  Easy..?
 
 end:
-    if unlikely(res != HandleResult::Okay)
-        return res;
-
-    assert(paddr != nullpaddr);
-
-    return Pmm::AdjustReferenceCount(paddr, -1);
+    return res;
 }
 
 Handle Vmm::UnmapRange(Process * proc
@@ -905,101 +937,57 @@ Handle Vmm::UnmapRange(Process * proc
             ? &(proc->LocalTablesLock)
             : &(Vmm::KernelHeapLock));
 
-    //  TODO: Do it all recursively, maybe in batches? The state should be reusable...
-    //  Recursion is needed when not doing any refcounting too because of the invalidation
-    //  chain. :c
+    InterruptState int_cookie = InterruptState::Disable();
 
-    if likely(0 == (opts & MemoryMapOptions::NoReferenceCounting))
-    {
-        InterruptState int_cookie = InterruptState::Disable();
+    if (alienLock != nullptr)
+        alienLock->Acquire();
+    if (heapLock != nullptr)
+        heapLock->Acquire();
 
-        if (alienLock != nullptr)
-            alienLock->Acquire();
-        if (heapLock != nullptr)
-            heapLock->Acquire();
+    RecursiveUnmapState state = {
+        proc, vaddr, endAddr, alienLock, heapLock, int_cookie
+        , nonLocal, invalidate, broadcast
+        , 0 == (opts & MemoryMapOptions::NoReferenceCounting)
+    };
 
-        RecursiveUnmapState state = {proc, vaddr, endAddr, alienLock, heapLock, int_cookie, nonLocal, invalidate, broadcast};
-
-        return UnmapRecursively(&state, nullptr);
-    }
-    else
-        withInterrupts (false)
-        {
-            //  THE SCOPE IS OPTIONALLY LOCK-GUARDED AS WELL!
-
-            LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
-            LockGuardFlexible<Spinlock<> > heapLg {heapLock};
-
-            while (vaddr < endAddr)
-            {
-                FrameSize fSize = FrameSize::_1GiB;
-
-                Handle res = TranslateInternal(proc, vaddr, [&fSize](PmlCommonEntry * pE, int level)
-                {
-                    fSize = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
-
-                    *pE = PmlCommonEntry();
-                    //  Null.
-
-                    return HandleResult::Okay;
-                }, false, false, nonLocal);
-
-                if unlikely(res != HandleResult::Okay)
-                    return res;
-
-                if (fSize == FrameSize::_4KiB)
-                    vaddr += PageSize;
-                else
-                    vaddr = RoundUp(vaddr + 1, LargePageSize);
-            }
-        }
-
-    return HandleResult::Okay;
+    return UnmapRecursively(&state, nullptr);
 }
 
-struct InvalidationInfo
-{
-    Process * const Proc;
-    PageNode const * const Node;
-};
-
+template<bool caller>
 static __hot void Invalidator(void * cookie)
 {
-    InvalidationInfo const * const inf = (InvalidationInfo const *)cookie;
+    Vmm::InvalidationInfo const * const inf = (Vmm::InvalidationInfo const *)cookie;
 
-    PageNode const * tmp = inf->Node;
+    Vmm::PageNode const * tmp = inf->Node;
 
     do
     {
         CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(tmp->Address));
     } while ((tmp = tmp->Next) != nullptr);
+
+    if (inf->After != nullptr)
+        inf->After(inf, caller);
 }
 
-Handle Vmm::InvalidateChain(Process * proc, PageNode const * node, bool broadcast)
+Handle Vmm::InvalidateChain(Process * proc, PageNode const * node, bool broadcast
+    , Vmm::AfterInvalidationFunc after, void * cookie)
 {
     if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
     if (broadcast && ((node->Address >= UserlandStart && node->Address < UserlandEnd && proc->ActiveCoreCount == 1 && !VmmArc::PCID) || unlikely(!Mailbox::IsReady())))
         broadcast = false;
 
+    InvalidationInfo info { proc, node, after, cookie };
+
     if (broadcast)
     {
-        InvalidationInfo info { proc, node };
-
-        ALLOCATE_MAIL_BROADCAST(mail, &Invalidator, &info);
-        mail.SetAwait(true).Post(&Invalidator, &info);
+        ALLOCATE_MAIL_BROADCAST(mail, &Invalidator<false>, &info);
+        mail.SetAwait(true).Post(&Invalidator<true>, &info);
 
         //  Quite simple.
     }
     else
-    {
-        PageNode const * tmp = node;
-
-        do
-        {
-            CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(tmp->Address));
-        } while ((tmp = tmp->Next) != nullptr);
-    }
+        Invalidator<true>(&info);
 
     return HandleResult::Okay;
 }
