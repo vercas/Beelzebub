@@ -613,7 +613,7 @@ do_small_frame:
 
                 sDesc->NextIndex = lDesc->GetExtras()->NextFree;
                 lDesc->GetExtras()->NextFree = sIndex;
-                uint16_t newCnt = lDesc->GetExtras()->FreeCount += 1;
+                uint16_t subDescCnt = lDesc->GetExtras()->FreeCount += 1;
 
                 if unlikely(lDesc->Status == FrameStatus::Full)
                 {
@@ -632,7 +632,7 @@ do_small_frame:
 
                     lDesc->GetExtras()->PrevIndex = LargeFrameDescriptor::NullIndex;
                 }
-                else if unlikely(newCnt == LargeFrameDescriptor::SubDescriptorsCount)
+                else if unlikely(subDescCnt == LargeFrameDescriptor::SubDescriptorsCount)
                 {
                     //  All small frames within the split frame are free, so it
                     //  can be freed completely.
