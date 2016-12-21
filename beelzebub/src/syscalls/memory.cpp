@@ -38,6 +38,7 @@
 */
 
 #include <beel/syscalls.h>
+#include <beel/exceptions.hpp>
 #include <memory/vmm.hpp>
 #include <system/cpu.hpp>
 #include <math.h>
@@ -47,7 +48,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Syscalls;
 
-static constexpr size_t const ChunkSize = 4 * 1 << 20;  //  4 MiB.
+static constexpr size_t const ChunkSize = 1 * 1 << 20;  //  1 MiB.
 
 Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions opts)
 {
@@ -111,7 +112,7 @@ Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions
     return Vmm::FreePages(nullptr, addr, size);
 }
 
-Handle Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
+Handle Syscalls::MemoryCopy(uintptr_t const dst, uintptr_t const src, size_t const len)
 {
     if unlikely(dst == src || len == 0)
         return HandleResult::Okay;
@@ -147,27 +148,28 @@ Handle Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
         return res;
     }
 
-    //  So everything *appears* to be okay. This will not be true for long.
-    //  TODO: Lock onto the regions or something like that. Or use kernel's exceptions
-    //  to catch a page fault if either the source or destination changed.
-
-    //  Anyhow, this will perform the copy in 4-MiB chunks, between which the syscall
-    //  may actually be interrupted.
-
-    for (size_t chunk = 0; chunk < len; chunk += ChunkSize, dst += ChunkSize, src += ChunkSize)
+    __try
     {
-        size_t curChunk = Minimum(ChunkSize, len - chunk);
+        for (size_t chunk = 0; chunk < len; chunk += ChunkSize)
+        {
+            size_t const curChunk = Minimum(ChunkSize, len - chunk);
 
-        withInterrupts (false)
-        withWriteProtect (false)
-            memmove(reinterpret_cast<void *>(dst), reinterpret_cast<void const *>(src), curChunk);
-        //  TODO: Exception handling, maybe?
+            withInterrupts (false)
+            withWriteProtect (false)
+                memmove(reinterpret_cast<void *>(dst + chunk)
+                    , reinterpret_cast<void const *>(src + chunk)
+                    , curChunk);
+        }
+    }
+    __catch ()
+    {
+        return HandleResult::Failed;
     }
 
     return HandleResult::Okay;
 }
 
-Handle Syscalls::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
+Handle Syscalls::MemoryFill(uintptr_t const dst, uint8_t const val, size_t const len)
 {
     if unlikely(len == 0)
         return HandleResult::Okay;
@@ -191,20 +193,21 @@ Handle Syscalls::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
         return res;
     }
 
-    //  TODO: Lock onto the regions or something like that. Or use kernel's exceptions
-    //  to catch a page fault if destination changed.
-
-    //  Anyhow, this will perform the filling in 4-MiB chunks, between which the syscall
-    //  may actually be interrupted.
-
-    for (size_t chunk = 0; chunk < len; chunk += ChunkSize, dst += ChunkSize)
+    __try
     {
-        size_t curChunk = Minimum(ChunkSize, len - chunk);
+        for (size_t chunk = 0; chunk < len; chunk += ChunkSize)
+        {
+            size_t const curChunk = Minimum(ChunkSize, len - chunk);
 
-        withInterrupts (false)
-        withWriteProtect (false)
-            memset(reinterpret_cast<void *>(dst), val, curChunk);
-        //  TODO: Exception handling, maybe?
+            withInterrupts (false)
+            withWriteProtect (false)
+                memset(reinterpret_cast<void *>(dst + chunk), val, curChunk);
+            //  TODO: Exception handling, maybe?
+        }
+    }
+    __catch ()
+    {
+        return HandleResult::Failed;
     }
 
     return HandleResult::Okay;
