@@ -171,27 +171,21 @@ namespace Beelzebub
         Unknown                 = ~((uintptr_t)0),
     };
 
-    enum class ExceptionType : uintptr_t
-    {
-        //  This one indicates that there is no exception.
-        None                    = 0,
-        //  Null pointer dereference.
-        NullReference           = 1,
-        //  Illegal memory access.
-        MemoryAccessViolation   = 2,
-        //  Integral division by zero.
-        DivideByZero            = 3,
-        //  Checked arithmeetic overflow.
-        ArithmeticOverflow      = 4,
-        //  Invalid instruction encoding or opcode.
-        InvalidInstruction      = 5,
+    /**
+     *  Known exception types.
+     */
+    #define ENUM_EXCEPTIONTYPE(ENUMINST) \
+        ENUMINST(None                   , 0x00) /*  This one indicates that there is no exception. */ \
+        ENUMINST(NullReference          , 0x01) /*  Null pointer dereference.  */ \
+        ENUMINST(MemoryAccessViolation  , 0x02) /*  Illegal memory access.  */ \
+        ENUMINST(DivideByZero           , 0x03) /*  Integral division by zero.  */ \
+        ENUMINST(ArithmeticOverflow     , 0x04) /*  Checked arithmetic overflow.  */ \
+        ENUMINST(InvalidInstruction     , 0x05) /*  Invalid instruction encoding or opcode.  */ \
+        ENUMINST(UnitTestFailure        , 0xFF) /*  A unit test failed.  */ \
+        ENUMINST(Unknown                , (0UL - 1UL)) /*  Haywire!  */ \
 
-        //  A unit test failed.
-        UnitTestFailure         = 100,
-
-        //  Haywire.
-        Unknown                 = ~((uintptr_t)0),
-    };
+    ENUMDECL(ExceptionType, ENUM_EXCEPTIONTYPE, LITE, uintptr_t)
+    ENUM_TO_STRING_DECL(ExceptionType, ENUM_EXCEPTIONTYPE);
 
     enum class MemoryAccessType : uint8_t
     {
@@ -205,25 +199,16 @@ namespace Beelzebub
 
     ENUMOPS(MemoryAccessType)
 
-    enum class MemoryLocationFlags : uint16_t
-    {
-        None        = 0,
+    /**
+     *  Represents possible flags of a memory location
+     */
+    #define ENUM_MEMORYLOCATIONFLAGS(ENUMINST) \
+        ENUMINST(None          , 0x00) \
+        ENUMINST(Present       , 0x01) /*  The memory at the given (virtual) address is mapped.  */ \
+        ENUMINST(Writable      , 0x02) /*  The memory may be written.  */ \
+        ENUMINST(Executable    , 0x04) /*  The memory may be executed.  */ \
+        ENUMINST(Global        , 0x08) /*  The memory is global (shared by all processes).  */ \
+        ENUMINST(Userland      , 0x10) /*  The memory is accessible by userland.  */ \
 
-        //  The memory at the given (virtual) address is mapped.
-        Present     = 1 << 0,
-        //  The memory may be written.
-        Writable    = 1 << 1,
-        //  The memory may be executed.
-        Executable  = 1 << 2,
-        //  The memory is global (shared by all processes).
-        Global      = 1 << 3,
-        //  The memory is accessible by userland.
-        Userland    = 1 << 4,
-        //  Previous access to this area of memory have occured.
-        Accessed    = 1 << 5,
-        //  This area of memory has been written to.
-        Written     = 1 << 6,
-    };
-
-    ENUMOPS(MemoryLocationFlags)
+    ENUMDECL(MemoryLocationFlags, ENUM_MEMORYLOCATIONFLAGS, FULL, uint16_t)
 }

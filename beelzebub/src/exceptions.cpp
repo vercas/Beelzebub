@@ -39,6 +39,7 @@
 
 #include <beel/exceptions.hpp>
 #include <system/cpu.hpp>
+#include <beel/terminals/base.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
@@ -88,3 +89,94 @@ void Beelzebub::UncaughtExceptionHandler()
 {
     FAIL("Unhandled exception!");
 }
+
+/*  Now to implement some << operator magic.  */
+
+namespace Beelzebub { namespace Terminals
+{
+    /*  First, the enums  */
+
+    #define SPAWN_ENUM(eName) \
+    template<> \
+    TerminalBase & operator << <eName>(TerminalBase & term, eName const value) \
+    { \
+        return term << (__underlying_type(eName))(value) << " (" << EnumToString(value) << ")"; \
+    }
+
+    SPAWN_ENUM(ExceptionType)
+
+    template<>
+    TerminalBase & operator << <MemoryAccessType>(TerminalBase & term, MemoryAccessType const value)
+    {
+        term << (__underlying_type(MemoryAccessType))(value);
+
+        if (0 != (value & MemoryAccessType::Unprivileged))
+            term << " Unprivileged";
+        if (0 != (value & MemoryAccessType::Unaligned))
+            term << " Unaligned";
+
+        switch (value & ~(MemoryAccessType::Unprivileged | MemoryAccessType::Unaligned))
+        {
+        case MemoryAccessType::Read:
+            return term << " Read";
+        case MemoryAccessType::Write:
+            return term << " Write";
+        case MemoryAccessType::Execute:
+            return term << " Execute";
+        default:
+            return term << " UNKNOWN";
+        }
+    }
+
+    template<>
+    TerminalBase & operator << <MemoryLocationFlags>(TerminalBase & term, MemoryLocationFlags const value)
+    {
+        char specs[7] = " r  s)";
+        specs[6] = '\0';
+
+        if (0 != (value & MemoryLocationFlags::Present))        specs[0] = 'P';
+        if (0 != (value & MemoryLocationFlags::Writable))       specs[1] = 'W';
+        if (0 != (value & MemoryLocationFlags::Executable))     specs[2] = 'X';
+        if (0 != (value & MemoryLocationFlags::Global))         specs[3] = 'G';
+        if (0 != (value & MemoryLocationFlags::Userland))       specs[4] = 'U';
+
+        return term << (__underlying_type(MemoryLocationFlags))(value) << " (" << specs;
+    }
+
+    template<>
+    TerminalBase & operator << <MemoryAccessViolationData const *>(TerminalBase & term, MemoryAccessViolationData const * const value)
+    {
+        return term
+            << "\tAddress: " << value->Address << EndLine
+            << "\tFrame: " << reinterpret_cast<void *>(value->PhysicalAddress) << EndLine
+            << "\tAccess type: " << value->AccessType << EndLine
+            << "\tPage flags: " << value->PageFlags << EndLine;
+    }
+
+    template<>
+    TerminalBase & operator << <UnitTestFailureData const *>(TerminalBase & term, UnitTestFailureData const * const value)
+    {
+        return term
+            << "\tFile: " << value->FileName << EndLine
+            << "\tLine: " << value->Line << EndLine;
+    }
+
+    template<>
+    TerminalBase & operator << <Exception const *>(TerminalBase & term, Exception const * const value)
+    {
+        term << "Exception:" << EndLine
+            << "\tType: " << value->Type << EndLine
+            << "\tIP: " << reinterpret_cast<void *>(value->InstructionPointer) << EndLine
+            << "\tSP: " << reinterpret_cast<void *>(value->StackPointer) << EndLine;
+
+        switch (value->Type)
+        {
+        case ExceptionType::MemoryAccessViolation:
+            return term << &(value->MemoryAccessViolation);
+        case ExceptionType::UnitTestFailure:
+            return term << &(value->UnitTestFailure);
+        default:
+            return term;
+        }
+    }
+}}

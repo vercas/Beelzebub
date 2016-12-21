@@ -525,10 +525,10 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
                     activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Global;
                 if (e->GetUserland())
                     activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Userland;
-                if (e->GetAccessed())
-                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Accessed;
-                if (e->GetDirty())
-                    activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Written;
+                // if (e->GetAccessed())
+                //     activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Accessed;
+                // if (e->GetDirty())
+                //     activeThread->Exception.MemoryAccessViolation.PageFlags |= MemoryLocationFlags::Written;
             }
 
             if (instruction)

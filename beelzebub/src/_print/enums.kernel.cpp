@@ -64,3 +64,5 @@ bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
 
     return false;
 }
+
+ENUM_TO_STRING_EX2(ExceptionType, ENUM_EXCEPTIONTYPE, Beelzebub)
