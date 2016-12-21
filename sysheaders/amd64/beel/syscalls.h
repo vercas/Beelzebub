@@ -47,17 +47,27 @@
 
 #define ENUM_SYSCALLSELECTION(ENUMINST) \
     /*  Will simply print a value on the debug terminal. */ \
-    ENUMINST(DebugPrint   , SYSCALL_DEBUG_PRINT   ,   0, "Debug Print"   ) \
+    ENUMINST(DebugPrint    , SYSCALL_DEBUG_PRINT    , 0x000, "Debug Print"    ) \
+    /*  Sends an IPC message. */ \
+    ENUMINST(PostMessage   , SYSCALL_POST_MESSAGE   , 0x00E, "Post Message"   ) \
+    /*  Receives an IPC message. */ \
+    ENUMINST(ReceiveMessage, SYSCALL_RECEIVE_MESSAGE, 0x00F, "Receive Message") \
     /*  Requests a number of pages of memory from the OS. */ \
-    ENUMINST(MemoryRequest, SYSCALL_MEMORY_REQUEST,  10, "Memory Request") \
+    ENUMINST(MemoryRequest , SYSCALL_MEMORY_REQUEST , 0x010, "Memory Request" ) \
     /*  Releases a number of pages of memory to the OS. */ \
-    ENUMINST(MemoryRelease, SYSCALL_MEMORY_RELEASE,  11, "Memory Release") \
+    ENUMINST(MemoryRelease , SYSCALL_MEMORY_RELEASE , 0x011, "Memory Release" ) \
     /*  Copies a chunk of memory to the target address. */ \
-    ENUMINST(MemoryCopy   , SYSCALL_MEMORY_COPY   ,  12, "Memory Copy"   ) \
+    ENUMINST(MemoryCopy    , SYSCALL_MEMORY_COPY    , 0x012, "Memory Copy"    ) \
     /*  Fills a chunk of memory with a specific byte value. */ \
-    ENUMINST(MemoryFill   , SYSCALL_MEMORY_COPY   ,  13, "Memory Fill"   ) \
+    ENUMINST(MemoryFill    , SYSCALL_MEMORY_COPY    , 0x013, "Memory Fill"    ) \
     /*  Not an actual syscall; just the number of syscalls. */ \
-    ENUMINST(COUNT        , SYSCALL_COUNT         ,  20, "Syscall Count" )
+    ENUMINST(COUNT         , SYSCALL_COUNT          , 0x020, "Syscall Count"  )
+
+#ifdef __cplusplus
+    #define PERFORM_SYSCALL(n) PerformSyscall
+#else
+    #define PERFORM_SYSCALL(n) MCATS(PerformSyscall, n)
+#endif
 
 #ifdef __cplusplus
 namespace Beelzebub
@@ -65,7 +75,7 @@ namespace Beelzebub
 #endif
     ENUMDECL(SyscallSelection, ENUM_SYSCALLSELECTION, LITE)
 
-    __forceinline Handle PerformSyscall(SyscallSelection selection
+    __forceinline Handle PERFORM_SYSCALL(6)(SyscallSelection selection
         , void * arg0, void * arg1, void * arg2
         , void * arg3, void * arg4, void * arg5)
     {
@@ -85,7 +95,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PerformSyscall(SyscallSelection selection
+    __forceinline Handle PERFORM_SYSCALL(5)(SyscallSelection selection
         , void * arg0, void * arg1, void * arg2
         , void * arg3, void * arg4)
     {
@@ -104,7 +114,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PerformSyscall(SyscallSelection selection
+    __forceinline Handle PERFORM_SYSCALL(4)(SyscallSelection selection
         , void * arg0, void * arg1, void * arg2
         , void * arg3)
     {
@@ -122,7 +132,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PerformSyscall(SyscallSelection selection
+    __forceinline Handle PERFORM_SYSCALL(3)(SyscallSelection selection
         , void * arg0, void * arg1, void * arg2)
     {
         Handle res;
@@ -136,7 +146,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PerformSyscall(SyscallSelection selection
+    __forceinline Handle PERFORM_SYSCALL(2)(SyscallSelection selection
         , void * arg0, void * arg1)
     {
         Handle res;
@@ -150,7 +160,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PerformSyscall(SyscallSelection selection
+    __forceinline Handle PERFORM_SYSCALL(1)(SyscallSelection selection
         , void * arg0)
     {
         Handle res;
@@ -164,7 +174,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PerformSyscall(SyscallSelection selection)
+    __forceinline Handle PERFORM_SYSCALL(0)(SyscallSelection selection)
     {
         Handle res;
 
