@@ -44,7 +44,7 @@
 section .text
 bits 64
 
-global SyscallEntry_64
+global SyscallEntry_64:function
 extern SyscallCommon
 
 ;   It is absolutely vital that the time & instructions between syscall/sysret
