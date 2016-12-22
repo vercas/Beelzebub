@@ -337,6 +337,15 @@
 #define ENUM_TO_STRING_DECL(enumName, enumDef) \
     char const * EnumToString(enumName const val)
 
+/***************************
+    Structure Assistance
+***************************/
+
+#define STRUCT(name) \
+struct MCATS(name, _s); \
+typedef MCATS(name, _s) name; \
+struct MCATS(name, _s)
+
 /*****************
     Some Types
 *****************/
@@ -396,6 +405,9 @@ typedef void (* ActionFunction0)(void);
 #endif
 
 #define EXTEND_POINTER(ptr) do { } while (false)
+
+#define PUT_IN_REGISTER(reg, val) register __typeof__((val)) reg asm(#reg) = (val)
+#define REGISTER_VARIABLE(reg) register uintptr_t reg asm(#reg)
 
 /******************************
     Lock Elision Assistance
