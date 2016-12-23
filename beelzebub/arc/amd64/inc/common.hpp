@@ -39,7 +39,9 @@
 
 #include <beel/sync/spinlock.hpp>
 #include <beel/sync/spinlock.unint.hpp>
-#include <beel/sync/spinlock.unint.hpp>
+#include <beel/sync/rw.spinlock.hpp>
+#include <beel/sync/atomic.hpp>
+#include <beel/sync/lock.guard.hpp>
 
 #include "cores.hpp"
 #include "mailbox.hpp"

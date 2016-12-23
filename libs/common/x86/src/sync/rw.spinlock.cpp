@@ -50,9 +50,6 @@ using namespace Beelzebub::Synchronization;
 
     bool RwSpinlock::TryAcquireAsReader() volatile
     {
-        COMPILER_MEMORY_BARRIER();
-
-    op_start:
         uint32_t val = this->Value.FetchAdd(Read);
         //  Attempt registration as reader.
 
@@ -66,19 +63,12 @@ using namespace Beelzebub::Synchronization;
             return false;
             //  Fail.
         }
-    op_end:
-
-        COMPILER_MEMORY_BARRIER();
-        ANNOTATE_LOCK_OPERATION_ACQ;
 
         return true;
     }
 
     void RwSpinlock::AcquireAsReader() volatile
     {
-        COMPILER_MEMORY_BARRIER();
-
-    op_start:
         while (true)
         {
             while (this->Value.Load() & (Wait | Write))
@@ -92,34 +82,22 @@ using namespace Beelzebub::Synchronization;
             this->Value -= Read;
             //  Whoops, failed. Undo damage.
         }
-    op_end:
-
-        COMPILER_MEMORY_BARRIER();
-        ANNOTATE_LOCK_OPERATION_ACQ;
     }
 
     bool RwSpinlock::TryAcquireAsWriter() volatile
     {
         COMPILER_MEMORY_BARRIER();
 
-    op_start:
         uint32_t val = this->Value.Load();
 
         if ((val >= Write) || !this->Value.CmpXchgStrong(val, val | Write))
             return false;
-    op_end:
-
-        COMPILER_MEMORY_BARRIER();
-        ANNOTATE_LOCK_OPERATION_ACQ;
 
         return true;
     }
 
     void RwSpinlock::AcquireAsWriter() volatile
     {
-        COMPILER_MEMORY_BARRIER();
-
-    op_start:
         uint32_t val = this->Value.Load();
 
         while (true)
@@ -145,17 +123,10 @@ using namespace Beelzebub::Synchronization;
                 asm volatile ( "pause \n\t" : : : "memory" );
             //  Wait for all the readers and writers to hold their horses.
         }
-    op_end:
-
-        COMPILER_MEMORY_BARRIER();
-        ANNOTATE_LOCK_OPERATION_ACQ;
     }
 
     bool RwSpinlock::UpgradeToWriter() volatile
     {
-        COMPILER_MEMORY_BARRIER();
-
-    op_start:
         if (this->Value.TestSet(WriteBit))
             return false;
         //  Fail if another writer is awaiting on this lock.
@@ -166,10 +137,6 @@ using namespace Beelzebub::Synchronization;
         while (this->Value.Load() & ReadMask)
             asm volatile ( "pause \n\t" : : : "memory" );
         //  Wait for readers to clear.
-    op_end:
-
-        COMPILER_MEMORY_BARRIER();
-        ANNOTATE_LOCK_OPERATION_ACQ;
 
         return true;
     }
@@ -178,42 +145,21 @@ using namespace Beelzebub::Synchronization;
 
     void RwSpinlock::ReleaseAsReader() volatile
     {
-        COMPILER_MEMORY_BARRIER();
-
-    op_start:
         this->Value -= Read;
-    op_end:
-
-        COMPILER_MEMORY_BARRIER();
-        ANNOTATE_LOCK_OPERATION_REL;
     }
 
     void RwSpinlock::ReleaseAsWriter() volatile
     {
-        COMPILER_MEMORY_BARRIER();
-
-    op_start:
         this->Value &= ~Write;
-    op_end:
-
-        COMPILER_MEMORY_BARRIER();
-        ANNOTATE_LOCK_OPERATION_REL;
     }
 
     void RwSpinlock::DowngradeToReader() volatile
     {
-        COMPILER_MEMORY_BARRIER();
-
-    op_start:
         this->Value += Read;
         //  Count this as a reader first.
 
         this->Value &= ~Write;
         //  De-register as writer.
-    op_end:
-
-        COMPILER_MEMORY_BARRIER();
-        ANNOTATE_LOCK_OPERATION_REL;
     }
 
     void RwSpinlock::Reset() volatile
