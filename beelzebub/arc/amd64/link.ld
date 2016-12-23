@@ -9,6 +9,10 @@ SECTIONS
         *(.text.unlikely)
     }
 
+    .text.assertions ALIGN(16) : {
+        *(.text.assertions)
+    }
+
     .text ALIGN(16) : {
         *(.text)
     }

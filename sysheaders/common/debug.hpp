@@ -240,7 +240,7 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
 #define XEND ; __unreachable_code; })()
 
 #define ASSERTX_COMMON(cond) \
-    if unlikely(!(cond)) ([=]() __attribute__((__noinline__, __cold__, __noreturn__, __optimize__("Os"))) -> void { \
+    if unlikely(!(cond)) ([=]() __attribute__((__noinline__, __cold__, __noreturn__, __optimize__("Os"), __section__(".text.assertions"))) -> void { \
         Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }; \
         while (MCATS(_assh_, __LINE__).RealityCheck() || true) \
             MCATS(_assh_, __LINE__)
@@ -281,7 +281,7 @@ ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_1)(__VA_ARGS__)
                 .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha
 */
 #define ASSERT_EQ_2(expec, given) \
-    ASSERTX_COMMON((expec) != (given)).DumpContext(__FILE__, __LINE__, #expec " == " #given, nullptr) \
+    ASSERTX_COMMON((expec) == (given)).DumpContext(__FILE__, __LINE__, #expec " == " #given, nullptr) \
     .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha XEND
 
 #define ASSERT_EQ_3(fmt, expec, given) \
@@ -300,7 +300,7 @@ ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_1)(__VA_ARGS__)
                 .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha
 */
 #define ASSERT_NEQ_2(expec, given) \
-    ASSERTX_COMMON((expec) == (given)).DumpContext(__FILE__, __LINE__, #expec " != " #given, nullptr) \
+    ASSERTX_COMMON((expec) != (given)).DumpContext(__FILE__, __LINE__, #expec " != " #given, nullptr) \
     .DumpParameter("did not expect", (expec)).AssertHelperAlpha XEND
 
 #define ASSERT_NEQ_3(fmt, expec, given) \

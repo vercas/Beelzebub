@@ -230,7 +230,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     {
         paddr_t const paddr = Pmm::AllocateFrame();
 
-        ASSERT_NEQ(paddr, nullpaddr);
+        ASSERT_NEQ(nullpaddr, paddr);
 
         res = Vmm::MapPage(bootstrapProc
             , BootstrapKVasAddr + i * PageSize, paddr
