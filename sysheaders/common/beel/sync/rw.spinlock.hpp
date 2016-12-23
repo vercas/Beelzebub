@@ -69,6 +69,19 @@ namespace Beelzebub { namespace Synchronization
         RwSpinlock & operator =(RwSpinlock &&) = delete;
 
 #ifdef __BEELZEBUB_SETTINGS_SMP
+    #ifdef __BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS
+        __noinline __must_check bool TryAcquireAsReader() volatile;
+        __noinline void AcquireAsReader() volatile;
+        __noinline __must_check bool TryAcquireAsWriter() volatile;
+        __noinline void AcquireAsWriter() volatile;
+        __noinline __must_check bool UpgradeToWriter() volatile;
+        __noinline void ReleaseAsReader() volatile;
+        __noinline void ReleaseAsWriter() volatile;
+        __noinline void DowngradeToReader() volatile;
+        __noinline void Reset() volatile;
+        __noinline __must_check bool HasWriter() const volatile;
+        __noinline __must_check size_t GetReaderCount() const volatile;
+    #else
 
         /*  Acquisition Operations  */
 
@@ -294,12 +307,12 @@ namespace Beelzebub { namespace Synchronization
         {
             return (this->Value.Load() & ReadMask) >> ReadBit;
         }
+    #endif
 
     private:
         /*  Fields  */
 
         Atomic<uint32_t> Value;
-
 #else
 
         /*  Acquisition Operations  */
@@ -343,7 +356,7 @@ namespace Beelzebub { namespace Synchronization
 
     private:
 
-        char ReaderCount;
+        uint32_t ReaderCount;
 #endif
     };
 }}

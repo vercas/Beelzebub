@@ -341,6 +341,12 @@ namespace Beelzebub { namespace Synchronization
 
         __forceinline constexpr spinlock_t GetValue() const volatile
         { return (spinlock_t)0; }
+
+        /*  Fields  */
+
+    private:
+
+        spinlock_t Value; 
     };
 #endif
 }}
