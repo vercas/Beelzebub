@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <synchronization/spinlock_uninterruptible.hpp>
+#include <beel/sync/spinlock.unint.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub::Synchronization;

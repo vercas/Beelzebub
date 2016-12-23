@@ -39,18 +39,18 @@
 
 #pragma once
 
-#include <system/registers.hpp>
-#include <system/registers_x86.hpp>
-#include <system/cpu_instructions.hpp>
-#include <system/domain.hpp>
-#include <system/msrs.hpp>
+#include "system/registers.hpp"
+#include "system/registers_x86.hpp"
+#include "system/cpu_instructions.hpp"
+#include "system/domain.hpp"
+#include "system/msrs.hpp"
 
-#include <execution/thread.hpp>
+#include "execution/thread.hpp"
 
-#include <mailbox.hpp>
+#include "mailbox.hpp"
 
-#include <synchronization/atomic.hpp>
-#include <synchronization/spinlock.hpp>
+#include <beel/sync/atomic.hpp>
+#include <beel/sync/spinlock.hpp>
 
 #define REGFUNC1(regl, regu, type)                                   \
 static __forceinline type MCATS2(Get, regu)()                        \

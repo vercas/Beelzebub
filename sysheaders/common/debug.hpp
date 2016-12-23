@@ -43,7 +43,7 @@
 #include <beel/debug.funcs.h>
 
 #ifdef __BEELZEBUB_KERNEL
-#include <synchronization/spinlock_uninterruptible.hpp>
+#include <beel/sync/spinlock.unint.hpp>
 #endif
 
 //  NOTE: debug_arch.hpp is included near the end.
@@ -184,7 +184,7 @@ namespace Beelzebub { namespace Debug
 }}
 
 #ifdef __BEELZEBUB_KERNEL
-    #include <debug_arch.hpp>
+    #include "debug_arch.hpp"
 
     #ifndef breakpoint
     #define breakpoint(...) do {} while (false)

@@ -40,7 +40,7 @@
 #pragma once
 
 #include <beel/timing.hpp>
-#include <synchronization/atomic.hpp>
+#include <beel/sync/atomic.hpp>
 #include <beel/handles.h>
 #include <utils/bitfields.hpp>
 

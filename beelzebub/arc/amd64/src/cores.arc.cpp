@@ -39,10 +39,10 @@
 
 #include "cores.hpp"
 #include "memory/vmm.hpp"
-#include <system/cpu.hpp>
+#include "system/cpu.hpp"
 #include "kernel.image.hpp"
-#include <synchronization/atomic.hpp>
-#include <kernel.hpp>
+#include "kernel.hpp"
+#include <beel/sync/atomic.hpp>
 #include <math.h>
 #include <string.h>
 

@@ -45,11 +45,11 @@ lean & mean implementation without his aid.
 
 #ifdef __BEELZEBUB_SETTINGS_SMP
 
-#include <mailbox.hpp>
-#include <cores.hpp>
-#include <system/interrupt_controllers/lapic.hpp>
-#include <synchronization/spinlock.hpp>
-#include <kernel.hpp>
+#include "mailbox.hpp"
+#include "cores.hpp"
+#include "system/interrupt_controllers/lapic.hpp"
+#include "kernel.hpp"
+#include <beel/sync/spinlock.hpp>
 #include <string.h>
 
 using namespace Beelzebub;

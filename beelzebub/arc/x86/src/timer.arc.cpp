@@ -37,12 +37,12 @@
     thorough explanation regarding other files.
 */
 
-#include <timer.hpp>
-#include <system/timers/apic.timer.hpp>
-#include <system/interrupt_controllers/lapic.hpp>
-#include <system/cpu.hpp>
-#include <synchronization/spinlock.hpp>
-#include <kernel.hpp>
+#include "timer.hpp"
+#include "system/timers/apic.timer.hpp"
+#include "system/interrupt_controllers/lapic.hpp"
+#include "system/cpu.hpp"
+#include "kernel.hpp"
+#include <beel/sync/spinlock.hpp>
 #include <string.h>
 
 using namespace Beelzebub;

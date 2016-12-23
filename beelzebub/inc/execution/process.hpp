@@ -39,11 +39,12 @@
 
 #pragma once
 
-#include <execution/process.arc.hpp>
+#include "execution/process.arc.hpp"
+#include "memory/vas.hpp"
+    
 #include <beel/structs.kernel.hpp>
-#include <memory/vas.hpp>
-#include <synchronization/spinlock.hpp>
-#include <synchronization/atomic.hpp>
+#include <beel/sync/spinlock.hpp>
+#include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace Execution
 {

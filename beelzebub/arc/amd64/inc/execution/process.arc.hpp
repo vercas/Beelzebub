@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include <synchronization/spinlock.hpp>
-#include <synchronization/atomic.hpp>
+#include <beel/sync/spinlock.hpp>
+#include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace Execution
 {

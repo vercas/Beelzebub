@@ -39,9 +39,9 @@
 
 #pragma once
 
-#include <system/interrupts.hpp>
+#include "system/interrupts.hpp"
 #include <utils/bitfields.hpp>
-#include <synchronization/atomic.hpp>
+#include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace System { namespace Timers
 {

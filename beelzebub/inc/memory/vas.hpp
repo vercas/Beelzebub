@@ -39,13 +39,13 @@
 
 #pragma once
 
-#include <memory/regions.hpp>
-#include <memory/enums.hpp>
+#include "memory/regions.hpp"
+#include "memory/enums.hpp"
 #include <utils/avl_tree.hpp>
 #include <memory/object_allocator.hpp>
 
-#include <synchronization/rw_spinlock.hpp>
-#include <synchronization/atomic.hpp>
+#include <beel/sync/rw.spinlock.hpp>
+#include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace Memory
 {

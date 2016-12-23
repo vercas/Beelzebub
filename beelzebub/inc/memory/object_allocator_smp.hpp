@@ -49,8 +49,8 @@
     #endif
 
     #include <memory/object_allocator_pools.hpp>
-    #include <synchronization/spinlock.hpp>
-    #include <synchronization/atomic.hpp>
+    #include <beel/sync/spinlock.hpp>
+    #include <beel/sync/atomic.hpp>
 
     #define OBJA_LOCK_TYPE Beelzebub::Synchronization::Spinlock<>
     #define OBJA_COOK_TYPE Beelzebub::InterruptState

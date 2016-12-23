@@ -39,9 +39,9 @@
 
 #pragma once
 
-#include <synchronization/spinlock_uninterruptible.hpp>
-#include <synchronization/atomic.hpp>
-#include <system/interrupts.hpp>
+#include "system/interrupts.hpp"
+#include <beel/sync/spinlock.unint.hpp>
+#include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace System
 {

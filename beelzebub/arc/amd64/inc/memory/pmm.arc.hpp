@@ -41,7 +41,7 @@
 
 #include <beel/enums.kernel.hpp>
 #include <beel/structs.kernel.hpp>
-#include <synchronization/spinlock_uninterruptible.hpp>
+#include <beel/sync/spinlock.unint.hpp>
 #include <math.h>
 
 namespace Beelzebub { namespace Memory

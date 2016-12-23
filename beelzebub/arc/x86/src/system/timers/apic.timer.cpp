@@ -37,11 +37,10 @@
     thorough explanation regarding other files.
 */
 
-#include <system/timers/apic.timer.hpp>
-#include <system/timers/pit.hpp>
-#include <system/interrupt_controllers/lapic.hpp>
-#include <system/cpu.hpp>
-#include <synchronization/atomic.hpp>
+#include "system/timers/apic.timer.hpp"
+#include "system/timers/pit.hpp"
+#include "system/interrupt_controllers/lapic.hpp"
+#include <beel/sync/atomic.hpp>
 
 #include <debug.hpp>
 

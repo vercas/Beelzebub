@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include <system/gdt.hpp>
-#include <synchronization/spinlock.hpp>
+#include "system/gdt.hpp"
+#include <beel/sync/spinlock.hpp>
 
 namespace Beelzebub { namespace System
 {

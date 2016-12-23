@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include <memory/vas.hpp>
-#include <synchronization/atomic.hpp>
+#include "memory/vas.hpp"
+#include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace Memory
 {

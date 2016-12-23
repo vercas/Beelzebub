@@ -39,11 +39,11 @@
 
 #pragma once
 
-#include <synchronization/atomic.hpp>
+#include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
-    //  The first version (on non-SMP builds) is dumbed down.
+    //  The second version (on non-SMP builds) is dumbed down.
 
     struct RwSpinlock
     {

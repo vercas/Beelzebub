@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <synchronization/lock_guard.hpp>
+#include <beel/sync/lock.guard.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {

@@ -37,17 +37,16 @@
     thorough explanation regarding other files.
 */
 
-#include <memory/vmm.hpp>
-#include <memory/vmm.arc.hpp>
-#include <memory/pmm.hpp>
-#include <memory/pmm.arc.hpp>
+#include "memory/vmm.hpp"
+#include "memory/vmm.arc.hpp"
+#include "memory/pmm.hpp"
+#include "memory/pmm.arc.hpp"
 #include <memory/object_allocator_pools_heap.hpp>
-#include <synchronization/spinlock_uninterruptible.hpp>
-#include <system/cpu.hpp>
-#include <beel/interrupt.state.hpp>
 #include "kernel.hpp"
+#include "cores.hpp"
 #include "mailbox.hpp"
 
+#include <beel/interrupt.state.hpp>
 #include <string.h>
 #include <math.h>
 #include <debug.hpp>

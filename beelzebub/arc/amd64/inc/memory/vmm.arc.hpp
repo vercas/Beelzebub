@@ -43,8 +43,8 @@
 
 #pragma once
 
-#include <memory/paging.hpp>
-#include <synchronization/spinlock.hpp>
+#include "memory/paging.hpp"
+#include <beel/sync/spinlock.hpp>
 #include <beel/handles.h>
 
 namespace Beelzebub { namespace Memory

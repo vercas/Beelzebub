@@ -37,12 +37,12 @@
     thorough explanation regarding other files.
 */
 
-#include <system/syscalls.hpp>
-#include <syscalls.kernel.hpp>
-#include <system/msrs.hpp>
-#include <synchronization/spinlock.hpp>
-#include <entry.h>
+#include "system/syscalls.hpp"
+#include "syscalls.kernel.hpp"
+#include "system/msrs.hpp"
+#include "entry.h"
 
+#include <beel/sync/spinlock.hpp>
 #include <beel/syscalls/memory.h>
 
 using namespace Beelzebub;

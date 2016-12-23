@@ -37,46 +37,46 @@
     thorough explanation regarding other files.
 */
 
-#include <system/cpuid.hpp>
-#include <execution/thread_init.hpp>
-#include <terminals/vbe.hpp>
+#include "system/cpuid.hpp"
+#include "execution/thread_init.hpp"
+#include "terminals/vbe.hpp"
 
-#include <memory/pmm.hpp>
-#include <memory/pmm.arc.hpp>
-#include <memory/vmm.hpp>
-#include <memory/vmm.arc.hpp>
-#include <memory/regions.hpp>
+#include "memory/pmm.hpp"
+#include "memory/pmm.arc.hpp"
+#include "memory/vmm.hpp"
+#include "memory/vmm.arc.hpp"
+#include "memory/regions.hpp"
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
     #include <memory/object_allocator_smp.hpp>
     #include <memory/object_allocator_pools_heap.hpp>
 #endif
 
-#include <keyboard.hpp>
-#include <system/serial_ports.hpp>
-#include <system/timers/pit.hpp>
-#include <system/cpu.hpp>
-#include <system/fpu.hpp>
+#include "keyboard.hpp"
+#include "system/serial_ports.hpp"
+#include "system/timers/pit.hpp"
+#include "system/cpu.hpp"
+#include "system/fpu.hpp"
 
-#include <initrd.hpp>
+#include "initrd.hpp"
 #include "kernel.image.hpp"
 
-#include <kernel.hpp>
-#include <entry.h>
-#include <global_options.hpp>
-#include <cores.hpp>
+#include "kernel.hpp"
+#include "entry.h"
+#include "global_options.hpp"
+#include "cores.hpp"
 
-#include <synchronization/atomic.hpp>
+#include <beel/sync/atomic.hpp>
 #include <math.h>
 #include <string.h>
 
 #ifdef __BEELZEBUB__TEST_APP
-#include <tests/app.hpp>
+#include "tests/app.hpp"
 #endif
 
 #include <debug.hpp>
-#include <_print/registers.hpp>
-#include <_print/gdt.hpp>
+#include "_print/registers.hpp"
+#include "_print/gdt.hpp"
 
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;
