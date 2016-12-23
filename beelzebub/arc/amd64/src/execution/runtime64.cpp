@@ -94,9 +94,9 @@ Handle Runtime64::Initialize()
             //  Modules are normally global-supervisor-writable. This one needs to
             //  be global-userland-readable.
 
-            ASSERT(res.IsOkayResult()
-                , "Failed to change flags of page at %Xp for 64-bit runtime module: %H."
-                , bnd.Start + offset, res);
+            ASSERTX(res.IsOkayResult()
+                , "Failed to change page flags for 64-bit runtime module.")
+                ("page", bnd.Start + offset)(res)XEND;
         }
 
         new (&Template) Elf(reinterpret_cast<void *>(bnd.Start), bnd.Size);
@@ -113,9 +113,9 @@ Handle Runtime64::Initialize()
             , MemoryContent::Generic
             , vaddr);
 
-        ASSERT(res.IsOkayResult()
-            , "Failed to allocate space for 64-bit runtime image: %H."
-            , res);
+        ASSERTX(res.IsOkayResult()
+            , "Failed to allocate space for 64-bit runtime image.")
+            (res)XEND;
 
         withWriteProtect (false)
             memcpy(reinterpret_cast<void *>(vaddr), reinterpret_cast<void *>(bnd.Start), size);

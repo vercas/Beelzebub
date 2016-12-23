@@ -124,9 +124,9 @@ void Cores::Register()
 {
     size_t index = RegistrationCounter++;
 
-    ASSERT(index < Count
+    ASSERTX(index < Count
         , "Too many CPU cores attempted to register with the cores manager!")
-        (index)(Count);
+        (index)(Count)XEND;
 
     if (index == Count - 1)
         Ready = true;
@@ -232,10 +232,10 @@ void CreateStacks(CpuData * const data)
         , MemoryContent::ThreadStack
         , vaddr);
 
-    ASSERT(res.IsOkayResult()
+    ASSERTX(res.IsOkayResult()
         , "Failed to allocate #DF stack of CPU #%us: %H."
         , data->Index
-        , res);
+        , res)XEND;
 
     data->EmbeddedTss.Ist[0] = vaddr + DoubleFaultStackSize;
 
@@ -251,10 +251,10 @@ void CreateStacks(CpuData * const data)
         , MemoryContent::ThreadStack
         , vaddr);
 
-    ASSERT(res.IsOkayResult()
+    ASSERTX(res.IsOkayResult()
         , "Failed to allocate #DF stack of CPU #%us: %H."
         , data->Index
-        , res);
+        , res)XEND;
 
     data->EmbeddedTss.Ist[1] = vaddr + PageFaultStackSize;
 }

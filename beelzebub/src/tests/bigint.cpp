@@ -365,32 +365,32 @@ void TestBigInt()
 
     BIT k = 0xFFFFFFF9FFFFFC8BU, l = j >> 999, m = 0U;
 
-    ASSERT(  k == (j >> 64) , "Expected equality."  );
-    ASSERT(!(k == (j >> 63)), "Expected inequality.");
-    ASSERT(  k != (j >> 63) , "Expected inequality.");
+    ASSERTX(  k == (j >> 64) , "Expected equality."  )XEND;
+    ASSERTX(!(k == (j >> 63)), "Expected inequality.")XEND;
+    ASSERTX(  k != (j >> 63) , "Expected inequality.")XEND;
 
     ASSERT_EQ("%u4",          0U, l.CurrentSize);
     ASSERT_EQ("%u4",          2U, m.CurrentSize);
 
-    ASSERT(m == 0U);
+    ASSERTX(m == 0U)XEND;
         // , "Expected equality [%X4:%X4:%X4:%X4]."
         // , m.Data[3], m.Data[2], m.Data[1], m.Data[0]);
 
-    ASSERT(l == m);
+    ASSERTX(l == m)XEND;
         // , "Expected equality [%u4 %X4:%X4:%X4:%X4] vs [%u4 %X4:%X4:%X4:%X4].%n%i4%n"
         // , l.CurrentSize, l.Data[3], l.Data[2], l.Data[1], l.Data[0]
         // , m.CurrentSize, m.Data[3], m.Data[2], m.Data[1], m.Data[0]
         // , BigIntCmp(&(l.Data[0]), l.CurrentSize, &(m.Data[0]), m.CurrentSize));
 
-    ASSERT(l == 0U);
+    ASSERTX(l == 0U)XEND;
         // , "Expected equality [%X4:%X4:%X4:%X4]."
         // , l.Data[3], l.Data[2], l.Data[1], l.Data[0]);
 
-    ASSERT(i > j); ASSERT(i >= j);
-    ASSERT(j < i); ASSERT(j <= i);
+    ASSERTX(i > j)XEND; ASSERTX(i >= j)XEND;
+    ASSERTX(j < i)XEND; ASSERTX(j <= i)XEND;
 
-    ASSERT(i > k); ASSERT(i >= k);
-    ASSERT(j > k); ASSERT(j >= k);
+    ASSERTX(i > k)XEND; ASSERTX(i >= k)XEND;
+    ASSERTX(j > k)XEND; ASSERTX(j >= k)XEND;
 }
 
 #endif

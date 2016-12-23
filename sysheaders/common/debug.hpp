@@ -237,30 +237,74 @@ ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
 ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, \
 ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_N, ASSERT_1)(__VA_ARGS__)
 
+#define XEND ; __unreachable_code; })()
+
+#define ASSERTX_COMMON(cond) \
+    if unlikely(!(cond)) ([=]() __attribute__((__noinline__, __cold__, __noreturn__, __optimize__("Os"))) -> void { \
+        Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }; \
+        while (MCATS(_assh_, __LINE__).RealityCheck() || true) \
+            MCATS(_assh_, __LINE__)
+
+#define ASSERTX_1(cond) \
+    ASSERTX_COMMON(cond).DumpContext(__FILE__, __LINE__, #cond, nullptr).AssertHelperAlpha
+
+#define ASSERTX_N(cond, ...) \
+    ASSERTX_COMMON(cond).DumpContext(__FILE__, __LINE__, #cond, __VA_ARGS__).AssertHelperAlpha
+
+#define ASSERTX(...) GET_MACRO100(__VA_ARGS__, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, \
+ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_1)(__VA_ARGS__)
+/*
 #define ASSERT_EQ_2(expec, given) \
     if unlikely((expec) != (given)) \
         with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
             while (MCATS(_assh_, __LINE__).RealityCheck() || true) \
                 MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #expec " == " #given, nullptr) \
                 .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha
+*/
+#define ASSERT_EQ_2(expec, given) \
+    ASSERTX_COMMON((expec) != (given)).DumpContext(__FILE__, __LINE__, #expec " == " #given, nullptr) \
+    .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha XEND
 
 #define ASSERT_EQ_3(fmt, expec, given) \
-    ASSERT((expec) == (given), "Expected " fmt ", given " fmt ".", (expec), (given))
+    ASSERTX((expec) == (given), "Expected " fmt ", given " fmt ".", (expec), (given))XEND
 
 #define ASSERT_EQ_4(fmtE, fmtG, expec, given) \
-    ASSERT((expec) == (given), "Expected " fmtE ", given " fmtG ".", (expec), (given))
+    ASSERTX((expec) == (given), "Expected " fmtE ", given " fmtG ".", (expec), (given))XEND
 
 #define ASSERT_EQ(arg1, ...) GET_MACRO3(__VA_ARGS__, ASSERT_EQ_4, ASSERT_EQ_3, ASSERT_EQ_2)(arg1, __VA_ARGS__)
-
+/*
 #define ASSERT_NEQ_2(expec, given) \
     if unlikely((expec) == (given)) \
         with (Beelzebub::Debug::AssertHelper MCATS(_assh_, __LINE__) { Beelzebub::Debug::DebugTerminal }) \
             while (MCATS(_assh_, __LINE__).RealityCheck() || true) \
                 MCATS(_assh_, __LINE__).DumpContext(__FILE__, __LINE__, #expec " != " #given, nullptr) \
                 .DumpParameter("expected", (expec)).DumpParameter("given", (given)).AssertHelperAlpha
+*/
+#define ASSERT_NEQ_2(expec, given) \
+    ASSERTX_COMMON((expec) == (given)).DumpContext(__FILE__, __LINE__, #expec " != " #given, nullptr) \
+    .DumpParameter("did not expect", (expec)).AssertHelperAlpha XEND
 
 #define ASSERT_NEQ_3(fmt, expec, given) \
-    ASSERT((expec) != (given), "Expected anything but " fmt ".", (expec))
+    ASSERTX((expec) != (given), "Expected anything but " fmt ".", (expec))XEND
 
 #define ASSERT_NEQ(arg1, ...) GET_MACRO2(__VA_ARGS__, ASSERT_NEQ_3, ASSERT_NEQ_2)(arg1, __VA_ARGS__)
 

@@ -146,8 +146,8 @@
     #define __returns_nonnull  __attribute__((__returns_nonnull__))
     #define __malloc           __attribute__((__malloc__))
 
-    #define likely(expr)       (__builtin_expect((expr), 1))
-    #define unlikely(expr)     (__builtin_expect((expr), 0))
+    #define likely(expr)       (__builtin_expect(!!(expr), 1))
+    #define unlikely(expr)     (__builtin_expect(!!(expr), 0))
     #define ctconst(val)       (__builtin_constant_p((val)))
 
     #define __unreachable_code __builtin_unreachable()

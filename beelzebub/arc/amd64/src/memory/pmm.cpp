@@ -277,13 +277,13 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
         }
     }
 
-    ASSERT(frameCount > 0
-        , "Failed to squeeze any frames in allocation space %XP-%XP."
-        , phys_start, phys_end);
+    ASSERTX(frameCount > 0
+        , "Failed to squeeze any frames in allocation space.")
+        (phys_start)(phys_end)XEND;
 
-    ASSERT(alloc_start + (frameCount << 21) == algn_end
+    ASSERTX(alloc_start + (frameCount << 21) == algn_end
         , "Sanity failure: %XP + %Xs != %XP??"
-        , alloc_start, frameCount << 21, algn_end);
+        , alloc_start, frameCount << 21, algn_end)XEND;
     //  Just checking sanity.
 
     this->AllocationStart = alloc_start;

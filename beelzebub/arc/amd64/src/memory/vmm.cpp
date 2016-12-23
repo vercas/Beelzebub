@@ -156,9 +156,9 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
                 , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
             //  Global because it's shared by processes, and writable for hotplug.
 
-            ASSERT(res.IsOkayResult()
-                , "Failed to map links between allocation spaces: %H"
-                , res);
+            ASSERTX(res.IsOkayResult()
+                , "Failed to map links between allocation spaces.")
+                (res)XEND;
             //  Failure is fatal.
 
             PmmArc::Remap(PmmArc::MainAllocator, RoundDown((vaddr_t)cur, PageSize), curLoc);
@@ -180,12 +180,12 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
 
-        ASSERT(res.IsOkayResult()
+        ASSERTX(res.IsOkayResult()
             , "Failed to map range %Xp to %XP (%Xs bytes): %H"
             , curLoc
             , pasStart
             , controlStructuresSize
-            , res);
+            , res)XEND;
         //  Failure is fatal.
 
         withLock (cur->LargeLocker)
@@ -202,12 +202,12 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
                 , MemoryFlags::Global | MemoryFlags::Writable
                 , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
 
-            ASSERT(res.IsOkayResult()
+            ASSERTX(res.IsOkayResult()
                 , "Failed to map split frame subdescriptor page #%u8 (%Xp to %XP): %H"
                 , i
                 , curLoc
                 , lDesc->SubDescriptors
-                , res);
+                , res)XEND;
 
             withLock (cur->SplitLocker)
                 lDesc->SubDescriptors = reinterpret_cast<SmallFrameDescriptor *>(curLoc);
@@ -230,15 +230,15 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     {
         paddr_t const paddr = Pmm::AllocateFrame();
 
-        ASSERT(paddr != nullpaddr);
+        ASSERT_NEQ(paddr, nullpaddr);
 
         res = Vmm::MapPage(bootstrapProc
             , BootstrapKVasAddr + i * PageSize, paddr
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryMapOptions::NoLocking);
 
-        ASSERT(res.IsOkayResult(), "Failed to map page for bootstrap KVAS descriptor pool.")
-            (res)("page number", i + 1);
+        ASSERTX(res.IsOkayResult(), "Failed to map page for bootstrap KVAS descriptor pool.")
+            (res)("page number", i + 1)XEND;
     }
 
     curLoc += BootstrapKVasPageCount * PageSize;
@@ -255,7 +255,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         , PoolReleaseOptions::KeepOne);
     //  Prepare the VAS for usage.
 
-    ASSERT(res.IsOkayResult(), "Failed to initialize the kernel VAS.")(res);
+    ASSERTX(res.IsOkayResult(), "Failed to initialize the kernel VAS.")(res)XEND;
 
     // MSG("Allocating VMM bootstrap region in KVAS.%n");
 
@@ -267,7 +267,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         , MemoryContent::VmmBootstrap
         , MemoryAllocationOptions::Permanent);
 
-    ASSERT(res.IsOkayResult(), "Failed to allocate VMM bootstrap area descriptor in kernel VAS.")(res);
+    ASSERTX(res.IsOkayResult(), "Failed to allocate VMM bootstrap area descriptor in kernel VAS.")(res)XEND;
 
     KVas.Bootstrapping = false;
     //  Should be ready!
@@ -691,8 +691,8 @@ Handle Vmm::MapRange(Process * proc
     if unlikely(!Is4KiBAligned(vaddr) || !Is4KiBAligned(paddr) || !Is4KiBAligned(size))
         return HandleResult::AlignmentFailure;
 
-    ASSERT(0 != (opts & MemoryMapOptions::NoReferenceCounting)
-        , "Reference counting must be explicitly disabled when mapping a memory range!");
+    ASSERTX(0 != (opts & MemoryMapOptions::NoReferenceCounting)
+        , "Reference counting must be explicitly disabled when mapping a memory range!")XEND;
 
     vaddr_t const end = vaddr + size;
 
@@ -916,8 +916,8 @@ Handle Vmm::UnmapRange(Process * proc
     if unlikely(!Is4KiBAligned(vaddr) || !Is4KiBAligned(size))
         return HandleResult::AlignmentFailure;
 
-    ASSERT(0 == (opts & MemoryMapOptions::PreciseUnmapping)
-        , "Precise unmapping is not supported yet.");
+    ASSERTX(0 == (opts & MemoryMapOptions::PreciseUnmapping)
+        , "Precise unmapping is not supported yet.")XEND;
 
     if (proc == nullptr)
         proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
@@ -1114,10 +1114,10 @@ Handle Vmm::EnlargePoolForVas(size_t objectSize, size_t headerSize
     size_t const oldSize = RoundUp(objectSize * pool->Capacity + headerSize, PageSize);
     size_t const newSize = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize);
 
-    ASSERT(newSize > oldSize
+    ASSERTX(newSize > oldSize
         , "New size should be larger than the old size of a pool that needs enlarging!%n"
           "It appears that the previous capacity is wrong.")
-        (newSize)(oldSize);
+        (newSize)(oldSize)XEND;
 
     vaddr_t vaddr = oldSize + (vaddr_t)pool;
     vaddr_t const oldEnd = vaddr;
