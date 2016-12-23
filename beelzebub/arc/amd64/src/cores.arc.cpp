@@ -151,7 +151,6 @@ void Cores::Register()
     //  Now, the rest of the structure...
 
     data->DomainDescriptor = &Domain0;
-    data->X2ApicMode = false;
 
     withLock (data->DomainDescriptor->GdtLock)
     {

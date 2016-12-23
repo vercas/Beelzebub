@@ -71,12 +71,14 @@ static bool supportsX2APIC()
     Lapic class
 ******************/
 
-vaddr_t const volatile Lapic::VirtualAddress = 0xFFFFFFFFFFFFF000;
+/*  Statics  */
+
+__thread bool Lapic::X2ApicMode = false;
 
 /*  Addresses  */
 
 paddr_t Lapic::PhysicalAddress = nullpaddr;
-//vaddr_t Lapic::VirtualAddress = nullvaddr;
+vaddr_t const volatile Lapic::VirtualAddress = 0xFFFFFFFFFFFFF000;
 
 /*  Ender  */
 
@@ -97,7 +99,7 @@ Handle Lapic::Initialize()
 #endif
 
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
-    Cpu::GetData()->X2ApicMode = x2ApicSupported;
+    X2ApicMode = x2ApicSupported;
     //  This is just a CPU-specific boolean value. Doesn't actually enable
     //  x2APIC mode, or disable it for that matter.
 
@@ -138,7 +140,7 @@ Handle Lapic::Initialize()
 uint32_t Lapic::ReadRegister(LapicRegister const reg)
 {
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
-    if (Cpu::GetData()->X2ApicMode)
+    if (X2ApicMode)
     {
 #endif
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)
@@ -164,7 +166,7 @@ uint32_t Lapic::ReadRegister(LapicRegister const reg)
 void Lapic::WriteRegister(LapicRegister const reg, uint32_t const value)
 {
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
-    if (Cpu::GetData()->X2ApicMode)
+    if (X2ApicMode)
     {
 #endif
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)
@@ -190,7 +192,7 @@ void Lapic::WriteRegister(LapicRegister const reg, uint32_t const value)
 void Lapic::SendIpi(LapicIcr icr)
 {
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
-    if (Cpu::GetData()->X2ApicMode)
+    if (X2ApicMode)
     {
 #endif
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)

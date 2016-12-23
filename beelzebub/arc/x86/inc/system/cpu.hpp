@@ -47,7 +47,6 @@
 
 #include <execution/thread.hpp>
 
-#include <timer.hpp>
 #include <mailbox.hpp>
 
 #include <synchronization/atomic.hpp>
@@ -128,12 +127,8 @@ namespace Beelzebub { namespace System
 
         uint16_t GdtLength;
         uint16_t TssSegment;
-        bool X2ApicMode = false;
 
         Execution::Thread * LastExtendedStateThread = nullptr;
-
-        uint_fast16_t TimersCount = 0;
-        TimerEntry Timers[Timer::Count];
 
 #if defined(__BEELZEBUB_SETTINGS_SMP)
         MailboxEntryBase * MailHead = nullptr, * MailTail = nullptr;

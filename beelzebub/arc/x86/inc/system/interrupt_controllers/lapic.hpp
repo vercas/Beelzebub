@@ -61,6 +61,10 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
     class Lapic
     {
     public:
+        /*  Statics  */
+
+        static __thread bool X2ApicMode;
+
         /*  Addresses  */
 
         static paddr_t PhysicalAddress;

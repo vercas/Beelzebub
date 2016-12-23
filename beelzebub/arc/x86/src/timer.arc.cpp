@@ -55,25 +55,26 @@ using namespace Beelzebub::System::Timers;
     Internals
 ****************/
 
+static __thread uint_fast16_t MyTimersCount = 0;
+static __thread TimerEntry MyTimers[Timer::Count];
+
 static __hot void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
-    CpuData * const data = Cpu::GetData();
-
-    auto timersCount = data->TimersCount;
+    auto timersCount = MyTimersCount;
 
     if likely(timersCount > 0)
     {
-        TimerEntry const entry = data->Timers[0];
+        TimerEntry const entry = MyTimers[0];
 
-        data->TimersCount = --timersCount;
+        MyTimersCount = --timersCount;
         //  First timer is popped.
 
         if (timersCount > 0)
         {
-            memmove(&(data->Timers[0]), &(data->Timers[1]), timersCount * sizeof(TimerEntry));
+            memmove(&(MyTimers[0]), &(MyTimers[1]), timersCount * sizeof(TimerEntry));
             //  Shifts the remaining items.
 
-            uint32_t next = data->Timers[0].Time;
+            uint32_t next = MyTimers[0].Time;
 
             if unlikely(next == 0)
                 next = 1;
@@ -108,9 +109,7 @@ void Timer::Initialize()
     auto const vec = Interrupts::Get(KnownExceptionVectors::ApicTimer);
     //  Unique.
 
-    CpuData * const data = Cpu::GetData();
-
-    data->TimersCount = 0;
+    MyTimersCount = 0;
     
     ApicTimer::OneShot(0, vec.GetVector(), false);
 
@@ -142,8 +141,7 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
 
     InterruptGuard<> intGuard;
 
-    CpuData * const data = Cpu::GetData();
-    uint_fast16_t timersCount = data->TimersCount;
+    uint_fast16_t timersCount = MyTimersCount;
 
     if unlikely(timersCount == Timer::Count)
         return false;
@@ -153,34 +151,34 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
         //  If there are some timers already queued, the full algorithm needs to
         //  be employed.
 
-        ticks += data->Timers[0].Time - ApicTimer::GetCount();
+        ticks += MyTimers[0].Time - ApicTimer::GetCount();
         //  Add the already-elapsed time to the target time.
 
         uint64_t lastTicks = 0;
         unsigned int i = 0;
 
-        for (uint64_t acc = 0; i < timersCount && (acc += data->Timers[i].Time) <= ticks; ++i)
+        for (uint64_t acc = 0; i < timersCount && (acc += MyTimers[i].Time) <= ticks; ++i)
             lastTicks = acc;
 
         uint32_t diff = (uint32_t)(ticks - lastTicks);
 
         if (i < timersCount)
         {
-            memmove(&(data->Timers[i + 1]), &(data->Timers[i]), (timersCount - i) * sizeof(TimerEntry));
+            memmove(&(MyTimers[i + 1]), &(MyTimers[i]), (timersCount - i) * sizeof(TimerEntry));
             //  Shift forward the elements after the insertion point.
 
-            data->Timers[i + 1].Time -= diff;
+            MyTimers[i + 1].Time -= diff;
             //  Adjust timer after insertion point.
         }
 
         if (i == 0)
             ApicTimer::SetCount(diff);
 
-        data->Timers[i].Time = diff;
-        data->Timers[i].Function = func;
-        data->Timers[i].Cookie = cookie;
+        MyTimers[i].Time = diff;
+        MyTimers[i].Function = func;
+        MyTimers[i].Cookie = cookie;
 
-        ++data->TimersCount;
+        ++MyTimersCount;
     }
     else
     {
@@ -188,11 +186,11 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
 
         ApicTimer::SetCount((uint32_t)ticks);
 
-        data->Timers[0].Time = (uint32_t)ticks;
-        data->Timers[0].Function = func;
-        data->Timers[0].Cookie = cookie;
+        MyTimers[0].Time = (uint32_t)ticks;
+        MyTimers[0].Function = func;
+        MyTimers[0].Cookie = cookie;
 
-        data->TimersCount = 1;
+        MyTimersCount = 1;
     }
 
     return true;

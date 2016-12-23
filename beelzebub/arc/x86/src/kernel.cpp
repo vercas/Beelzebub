@@ -1190,7 +1190,7 @@ Handle InitializeApic()
         , "Failed to initialize the LAPIC.")
         (res);
 
-    if (Cpu::GetData()->X2ApicMode)
+    if (Lapic::X2ApicMode)
         MainTerminal->Write(" Local x2APIC...");
     else
         MainTerminal->Write(" LAPIC...");
