@@ -110,9 +110,9 @@ void PrintNode(TerminalBase * const term, NodeType * node\
 
     res = IndentForNode(term, indDat);
 
-    ASSERT(res.Result.IsOkayResult()
-        , "Failed to print indentation..? %H"
-        , res.Result);
+    ASSERTX(res.Result.IsOkayResult()
+        , "Failed to print indentation..?")
+        (res.Result)XEND;
 
     res = term->WriteFormat("%s%#{%s; Key = %i4; Value = %i4}%#"
         , indDat->IsRoot ? "/─" : (indDat->IsLast ? "└─" : "├─")
@@ -155,45 +155,40 @@ void PrintNode(TerminalBase * const term, NodeType * node\
 
 #define INSERT_NODE(k, v) do {                                      \
     res = Tree.Insert({(k), (v)});                                  \
-    ASSERT(res.IsOkayResult(), "Failed to insert node: %H.", res);  \
+    ASSERTX(res.IsOkayResult(), "Failed to insert node.")(res)XEND; \
 } while (false)
 
 #define REMOVE_NODE(k, v) do {                                      \
     TestPayload pl;                                                 \
     res = Tree.Remove((k), pl);                                     \
-    ASSERT(res.IsOkayResult(), "Failed to insert node: %H.", res);  \
-    ASSERT(pl.Value == (v)                                          \
-        , "Found payload with key %i4 and value %i4, expected "     \
-          "value %i4."                                              \
-        , (k), pl.Value, (v));                                      \
+    ASSERTX(res.IsOkayResult(), "Failed to insert node.")(res)XEND; \
+    ASSERTX(pl.Value == (v), "Wrong node value.")                   \
+        ("key", (k))("expected", (v))("found", pl.Value)XEND;       \
 } while (false)
 
 #define REMOVE_NO_NODE(k) do {                                      \
     TestPayload pl;                                                 \
     res = Tree.Remove((k), pl);                                     \
-    ASSERT(res.IsResult(HandleResult::NotFound)                     \
-        , "Should have failed to remove node with key %i4: %H."     \
-        , (k), res);                                                \
+    ASSERTX(res.IsResult(HandleResult::NotFound)                    \
+        , "Should have failed to remove node.")                     \
+        ("key", (k))(res)XEND;                                      \
 } while (false)
 
-#define CHECK_KEY(n, v)                         \
-    ASSERT((n)->Payload.Key == (v)              \
-        , "Root's key should be %i4, not %i4."  \
-        , (v), (n)->Payload.Key)
+#define CHECK_KEY(n, k)                                             \
+    ASSERTX((n)->Payload.Key == (k), "Wrong node key.")             \
+        ("expected", (k))("found", (n)->Payload.Key)XEND
 
-#define FIND_NODE(k, v) do {                                            \
-    TestPayload * pl = Tree.Find<int>((k));                             \
-    ASSERT(pl != nullptr, "Failed to find node with key %i4.", (k));    \
-    ASSERT(pl->Value == (v)                                             \
-        , "Found payload %Xp with value %i4, expected %i4."             \
-        , pl, pl->Value, (k));                                          \
+#define FIND_NODE(k, v) do {                                                \
+    TestPayload * pl = Tree.Find<int>((k));                                 \
+    ASSERTX(pl != nullptr, "Failed to find node with key.")("key", (k))XEND;\
+    ASSERTX(pl->Value == (v), "Wrong node value.")("payload", (void *)pl)   \
+        ("expected", (v))("found", pl->Value)("key", (k))XEND;              \
 } while (false)
 
 #define FIND_NO_NODE(k) do {                                            \
     TestPayload * pl = Tree.Find<int>((k));                             \
-    ASSERT(pl == nullptr                                                \
-        , "Should not have found node %Xp with key %i4."                \
-        , pl, (k));                                                     \
+    ASSERTX(pl == nullptr, "Should not have found a node.")             \
+        ("payload", (void *)pl)("key", (k))XEND;                        \
 } while (false)
 
 void TestAvlTree()
@@ -433,12 +428,16 @@ namespace Beelzebub { namespace Utils
     template<>
     Handle AvlTree<TestPayload>::AllocateNode(AvlTree<TestPayload>::Node * & node, void * cookie)
     {
+        (void)cookie;
+        
         return testAllocator.AllocateObject(node);
     }
 
     template<>
     Handle AvlTree<TestPayload>::RemoveNode(AvlTree<TestPayload>::Node * const node, void * cookie)
     {
+        (void)cookie;
+        
         return testAllocator.DeallocateObject(node);
     }
 

@@ -145,10 +145,10 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
     size_t const oldSize = RoundUp(objectSize * pool->Capacity + headerSize, PageSize);
     size_t const newSize = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize);
 
-    ASSERT(newSize > oldSize
+    ASSERTX(newSize > oldSize
         , "New size should be larger than the old size of a pool that needs enlarging!%n"
           "It appears that the previous capacity is wrong.")
-        (newSize)(oldSize);
+        (newSize)(oldSize)XEND;
 
     vaddr_t vaddr = oldSize + (vaddr_t)pool;
     vaddr_t const oldEnd = vaddr;

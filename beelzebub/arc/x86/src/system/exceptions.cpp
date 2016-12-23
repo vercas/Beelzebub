@@ -155,13 +155,13 @@ void System::InvalidOpcodeHandler(INTERRUPT_HANDLER_ARGS)
  */
 void System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
 {
-    ASSERT(CpuDataSetUp
-        , "CPU data should be set up prior to using the FPU.");
+    ASSERTX(CpuDataSetUp
+        , "CPU data should be set up prior to using the FPU.")XEND;
 
     Thread * activeThread = Cpu::GetThread();
 
-    ASSERT(activeThread != nullptr
-        , "There should be an active thread when trying to use the FPU.");
+    ASSERTX(activeThread != nullptr
+        , "There should be an active thread when trying to use the FPU.")XEND;
 
     CpuData * cpuData = Cpu::GetData();
     
@@ -173,9 +173,8 @@ void System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
 
             Handle res = ExtendedStates::AllocateNew(activeThread->ExtendedState);
 
-            ASSERT(res.IsOkayResult()
-                , "Failed to allocate extended thread state: %H"
-                , res);
+            ASSERTX(res.IsOkayResult(), "Failed to allocate extended thread state.")
+                (res)XEND;
             //  TODO: Crash the thread gracefully.
         }
 

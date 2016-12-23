@@ -180,8 +180,8 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
         }
         else
         {
-            ASSERT(0 != (reg->Flags & MemoryFlags::Writable)
-                , "Kernel should not request read-only pages allocated on demand!");
+            ASSERTX(0 != (reg->Flags & MemoryFlags::Writable)
+                , "Kernel should not request read-only pages allocated on demand!")XEND;
 
             memset(reinterpret_cast<void *>(vaddr_algn), 0, PageSize);
         }
