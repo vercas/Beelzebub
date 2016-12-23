@@ -163,23 +163,23 @@ end
 
 local availableTests = List {
     "MT",
-    "STR",
+    -- "STR",
     --"OBJA",
     --"METAP",
     --"EXCP",
     "APP",
     "KMOD",
-    --"TIMER",
-    --"MAILBOX",
+    -- "TIMER",
+    -- "MAILBOX",
     --"STACKINT",
-    --"AVL_TREE",
+    -- "AVL_TREE",
     --"TERMINAL",
     --"CMDO",
-    "FPU",
-    "BIGINT",
-    "LOCK_ELISION",
+    -- "FPU",
+    -- "BIGINT",
+    -- "LOCK_ELISION",
     --"RW_SPINLOCK",
-    "VAS",
+    -- "VAS",
     --"INTERRUPT_LATENCY",
     "MALLOC",
 }
@@ -355,24 +355,29 @@ local dynAllocLibs = {
     JEMALLOC = "jemalloc",
 }
 
-local function parseObjectExtension(path)
-    local part1, part2 = tostring(path):match("^(.+)%.([^%.]+)%.o$")
-
-    if not part1 then
-        return nil, nil
-    end
-
-    local arch = GetArchitecture(part2)
-
-    if arch then
-        return part1, arch
+local function parseObjectExtension(path, header)
+    if header then
+        return tostring(path):match("^(.+)%.gch$")
     else
-        return part1 .. "." .. part2, nil
+        local part1, part2 = tostring(path):match("^(.+)%.([^%.]+)%.o$")
+
+        if not part1 then
+            return nil, nil
+        end
+
+        local arch = GetArchitecture(part2)
+
+        if arch then
+            return part1, arch
+        else
+            return part1 .. "." .. part2, nil
+        end
     end
 end
 
-local function checkObjectExtension(path, ext)
-    local part1, part2 = tostring(path):match("^(.+)%.([^%.]+)%.o$")
+local function checkObjectExtension(path, ext, header)
+    local part1, part2 = tostring(path):match(header and "^(.+)%.([^%.]+)%.gch$"
+                                                     or  "^(.+)%.([^%.]+)%.o$")
 
     if not part1 then
         return false
@@ -387,20 +392,53 @@ end
 
 --  Templates
 
-local function sourceArchitectural(_, dst)
-    local codeFile, arch, src = parseObjectExtension(dst)
+local function sourceArchitecturalCode(_, dst)
+    local file, arch, src, res = parseObjectExtension(dst, false)
 
     if arch then
-        src = _.ArchitecturesDirectory + arch.Name + "src" + Path(codeFile):Skip(_.ObjectsDirectory)
+        src = _.ArchitecturesDirectory + arch.Name + "src" + Path(file):Skip(_.ObjectsDirectory)
     else
-        src = _.CommonDirectory + "src" + Path(codeFile):Skip(_.ObjectsDirectory)
+        src = _.CommonDirectory + "src" + Path(file):Skip(_.ObjectsDirectory)
     end
 
     if settMakeDeps then
-        return ParseGccDependencies(dst, src, true) + List { dst:GetParent() }
+        res = ParseGccDependencies(dst, src, true) + List { dst:GetParent() }
     else
-        return List { src, dst:GetParent() }
+        res = List { src, dst:GetParent() }
     end
+
+    if _.PrecompiledCppHeader then
+        res:Append(_.PrecompiledCppHeaderPath .. ".gch")
+    end
+
+    return res
+end
+
+local function sourceArchitecturalHeader(_, dst)
+    local file, src, res = parseObjectExtension(dst, true), nil
+    file = Path(file):Skip(_.PchDirectory)
+
+    for arch in _.selArch:Hierarchy() do
+        local pth = _.ArchitecturesDirectory + arch.Name + "inc" + file
+
+        if fs.GetInfo(pth) then
+            src = pth
+
+            break
+        end
+    end
+
+    if not src then
+        src = _.comp.Directory + "inc" + file
+    end
+
+    if settMakeDeps then
+        res = ParseGccDependencies(dst, src, true) + List { dst:GetParent() }
+    else
+        res = List { src, dst:GetParent() }
+    end
+
+    return res
 end
 
 local function gzipSingleFile(_, dst, src)
@@ -412,9 +450,9 @@ end
 local function ArchitecturalComponent(name)
     local comp = Component(name)({
         Rule "Compile C" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "c") end,
+            Filter = function(_, dst) return checkObjectExtension(dst, "c", false) end,
 
-            Source = sourceArchitectural,
+            Source = sourceArchitecturalCode,
 
             Action = function(_, dst, src)
                 if settMakeDeps then
@@ -426,9 +464,9 @@ local function ArchitecturalComponent(name)
         },
 
         Rule "Compile C++" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "cpp") end,
+            Filter = function(_, dst) return checkObjectExtension(dst, "cpp", false) end,
 
-            Source = sourceArchitectural,
+            Source = sourceArchitecturalCode,
 
             Action = function(_, dst, src)
                 if settMakeDeps then
@@ -440,9 +478,9 @@ local function ArchitecturalComponent(name)
         },
 
         Rule "Assemble w/ NASM" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "asm") end,
+            Filter = function(_, dst) return checkObjectExtension(dst, "asm", false) end,
 
-            Source = sourceArchitectural,
+            Source = sourceArchitecturalCode,
 
             Action = function(_, dst, src)
                 sh.silent(AS, _.Opts_NASM, src[1], "-o", dst)
@@ -450,12 +488,40 @@ local function ArchitecturalComponent(name)
         },
 
         Rule "Assemble w/ GAS" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "s") end,
+            Filter = function(_, dst) return checkObjectExtension(dst, "s", false) end,
 
-            Source = sourceArchitectural,
+            Source = sourceArchitecturalCode,
 
             Action = function(_, dst, src)
                 sh.silent(GAS, _.Opts_GAS, "-c", src[1], "-o", dst)
+            end,
+        },
+
+        Rule "Precompile C Header" {
+            Filter = function(_, dst) return checkObjectExtension(dst, "h", true) end,
+
+            Source = sourceArchitecturalHeader,
+
+            Action = function(_, dst, src)
+                if settMakeDeps then
+                    sh.silent(CC, _.Opts_C, "-MD", "-MP", "-c", src[1], "-o", dst)
+                else
+                    sh.silent(CC, _.Opts_C, "-c", src[1], "-o", dst)
+                end
+            end,
+        },
+
+        Rule "Precompile C++ Header" {
+            Filter = function(_, dst) return checkObjectExtension(dst, "hpp", true) end,
+
+            Source = sourceArchitecturalHeader,
+
+            Action = function(_, dst, src)
+                if settMakeDeps then
+                    sh.silent(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src[1], "-o", dst)
+                else
+                    sh.silent(CXX, _.Opts_CXX, "-c", src[1], "-o", dst)
+                end
             end,
         },
 
@@ -468,9 +534,13 @@ local function ArchitecturalComponent(name)
         ArchitecturesDirectory = function(_) return _.comp.Directory end,
 
         IncludeDirectories = function(_)
-            local res = List {
-                _.comp.Directory + "inc",
-            }
+            local res = List { }
+
+            if _.PrecompiledCHeader or _.PrecompiledCppHeader then
+                res:Append(_.PchDirectory)
+            end
+
+            res:Append(_.comp.Directory + "inc")
 
             for arch in _.selArch:Hierarchy() do
                 res:Append(_.ArchitecturesDirectory + arch.Name + "inc")
@@ -526,6 +596,11 @@ local function ArchitecturalComponent(name)
 
             return objects
         end,
+
+        PchDirectory = function(_) return _.outDir + _.comp.Directory + ".pch" end,
+
+        PrecompiledCHeaderPath   = function(_) return _.PchDirectory + _.PrecompiledCHeader   end,
+        PrecompiledCppHeaderPath = function(_) return _.PchDirectory + _.PrecompiledCppHeader end,
     }
 
     return function(tab)
@@ -1138,6 +1213,8 @@ Project "Beelzebub" {
             ArchitecturesDirectory = function(_) return _.comp.Directory + "arc" end,
             BinaryPath             = function(_) return _.ObjectsDirectory + _.KernelPath:GetName() end,
             LinkerScript           = function(_) return _.ArchitecturesDirectory + _.selArch.Name + "link.ld" end,
+
+            PrecompiledCppHeader = "common.hpp",
 
             Opts_Includes = function(_) return List { "-Iacpica/include", } + _.Opts_Includes_Base end,
 
