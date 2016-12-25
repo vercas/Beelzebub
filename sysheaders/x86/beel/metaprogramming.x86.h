@@ -86,7 +86,7 @@ typedef int comp_t; //  Result of comparison functions.
     Constants
 ****************/
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub
 {
     static constexpr size_t const PageSize = 0x1000;

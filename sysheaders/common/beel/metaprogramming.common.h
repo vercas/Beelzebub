@@ -30,17 +30,28 @@
 #pragma GCC diagnostic ignored "-Wvariadic-macros"
 #endif
 
-#if !defined(__ASSEMBLER__)
+#if defined(__cplusplus)
+    #define __BEELZEBUB__SOURCE_CXX
+    #define __BEELZEBUB__SOURCE CXX
+#elif defined(__ASSEMBLER__)
+    #define __BEELZEBUB__SOURCE_GAS
+    #define __BEELZEBUB__SOURCE GAS
+#else
+    #define __BEELZEBUB__SOURCE_C
+    #define __BEELZEBUB__SOURCE C
+#endif
+
+#ifndef __BEELZEBUB__SOURCE_GAS
 #include <stdint.h>
 #include <stddef.h>
 #endif
 
-#if !defined(__cplusplus) && !defined(__ASSEMBLER__)
-    #include <stdbool.h>
-#endif
-
 #if defined(__BEELZEBUB_KERNEL) || defined(__BEELZEBUB_KERNEL_MODULE)
     #define __BEELZEBUB__IN_KERNEL
+#endif
+
+#ifdef __BEELZEBUB__SOURCE_C
+    #include <stdbool.h>
 #endif
 
 /***********************
@@ -115,7 +126,7 @@
     Constants
 ****************/
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
     #define nullpaddr ((paddr_t)(uintptr_t)nullptr)
     #define nullvaddr ((vaddr_t)(uintptr_t)nullptr)
 #else
@@ -129,7 +140,7 @@
 *****************/
 
 #if !defined(__ASSEMBLER__)
-    #ifdef __cplusplus
+    #ifdef __BEELZEBUB__SOURCE_CXX
         #define __extern extern "C"
     #else
         #define __extern extern
@@ -244,7 +255,7 @@
     C++ Support
 ******************/
 
-#if defined(__cplusplus) && !defined(__BEELZEBUB__PLACEMENT_NEW)
+#if defined(__BEELZEBUB__SOURCE_CXX) && !defined(__BEELZEBUB__PLACEMENT_NEW)
     #define __BEELZEBUB__PLACEMENT_NEW
     
     __forceinline void * operator new     (size_t, void * p) { return p; }
@@ -257,7 +268,7 @@
     Enumarator Assistance
 ****************************/
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
     #define ENUMOPS_LITE2(T, U)                                                          \
     __forceinline bool operator == (U   a, T b) { return               a  == (U )(b);  } \
     __forceinline bool operator != (U   a, T b) { return               a  != (U )(b);  } \
@@ -317,7 +328,7 @@
     //  Enumeration item with different names on C and C++, but same value and string
     //  representation on both.
 
-    #ifdef __cplusplus
+    #ifdef __BEELZEBUB__SOURCE_CXX
         #define ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
     #else
         #define ENUMINST_VAL4(cppname, cname, num, str) cname = num,
@@ -356,10 +367,10 @@
     Structure Assistance
 ***************************/
 
-#if defined(__cplusplus)
+#if defined(__BEELZEBUB__SOURCE_CXX)
     #define STRUCT(name) \
     struct name
-#elif !defined(__ASSEMBLER__)
+#elif defined(__BEELZEBUB__SOURCE_C)
     #define STRUCT(name) \
     struct MCATS(name, _s); \
     typedef MCATS(name, _s) name; \
@@ -471,7 +482,7 @@
     Scope Guard
 ******************/
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
     namespace Beelzebub
     {
         /// <summary>Guards a scope with a specified function.</summary>

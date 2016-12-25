@@ -39,7 +39,7 @@
 
 #pragma once
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 extern "C" {
 #endif
 
@@ -78,6 +78,6 @@ void * mmap(void * addr, size_t length, int prot, int flags, int fd, off_t offse
 int munmap(void * addr, size_t length);
 void * mremap(void * old_address, size_t old_size, size_t new_size, int flags, ...);
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 }
 #endif

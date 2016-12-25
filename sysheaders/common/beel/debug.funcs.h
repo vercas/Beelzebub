@@ -42,7 +42,7 @@
 #include <beel/metaprogramming.h>
 #include <stdarg.h>
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub { namespace Debug
 {
 #endif
@@ -64,6 +64,6 @@ namespace Beelzebub { namespace Debug
                                                   , ...);
 
     __shared void DebugMessage(char const * const fmt, ...);
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 }}
 #endif

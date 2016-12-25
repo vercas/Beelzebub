@@ -41,13 +41,13 @@
 
 #include <beel/metaprogramming.h>
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
     #define CHECK_TEST(name) (Beelzebub::MCATS2(TEST_FLAG_, name) == true)
 #else
     #define CHECK_TEST(name) (MCATS2(TEST_FLAG_, name) == true)
 #endif
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub
 {
 #endif
@@ -56,6 +56,6 @@ namespace Beelzebub
 #include <tests.inc>
 #undef DECLARE_TEST
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 }
 #endif

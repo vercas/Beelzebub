@@ -208,7 +208,7 @@
     /*  A process exited with a non-zero return code. */ \
     ENUMINST(NonZeroReturnCode        , 0xFFU, "Non-0 ret c") \
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 
 namespace Beelzebub
 {
@@ -539,7 +539,7 @@ namespace Beelzebub
     };
 }
 
-#elif !defined(__ASSEMBLER__)
+#elif defined(__BEELZEBUB__SOURCE_C)
     
     enum HANDLE_TYPE
     {

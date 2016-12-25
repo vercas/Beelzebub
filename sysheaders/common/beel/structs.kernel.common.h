@@ -41,7 +41,7 @@
 
 #include <beel/handles.h>
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub
 {
 #endif
@@ -64,7 +64,7 @@ STRUCT(Message)
 #else
 #endif
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
     static_assert(sizeof(Message) == 64, "IPC message struct should be exactly 64 bytes in size!");
 }
 #endif

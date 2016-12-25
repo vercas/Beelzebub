@@ -41,7 +41,7 @@
 
 #include <beel/metaprogramming.h>
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub { namespace Utils {
 #endif
 
@@ -53,6 +53,6 @@ typedef struct DecodedCodepoint
 
 __shared decoded_codepoint_t GetUtf8Codepoint(char const * chr);
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 }}
 #endif

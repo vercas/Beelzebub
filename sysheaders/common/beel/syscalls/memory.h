@@ -55,7 +55,7 @@
     ENUMINST(None       , MEMREL_NONE        , 0x000, "None"        ) \
     ENUMINST(Decommit   , MEMREL_DECOMMIT    , 0x001, "Decommit"    )
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub { namespace Syscalls
 {
 #endif
@@ -66,6 +66,6 @@ namespace Beelzebub { namespace Syscalls
     __shared Handle MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts);
     __shared Handle MemoryCopy(uintptr_t dst, uintptr_t src, size_t len);
     __shared Handle MemoryFill(uintptr_t dst, uint8_t val, size_t len);
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 }}
 #endif

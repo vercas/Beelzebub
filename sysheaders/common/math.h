@@ -41,7 +41,7 @@
 
 #include <beel/metaprogramming.h>
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub
 {
 
@@ -334,11 +334,11 @@ struct PointerAndSize
 __shared __const struct PointerAndSize IntersectMemoryRanges(struct PointerAndSize a, struct PointerAndSize b);
 __shared __const bool DoRangesIntersect(struct PointerAndSize a, struct PointerAndSize b);
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 }
 #endif
 
-#ifndef __cplusplus
+#ifndef __BEELZEBUB__SOURCE_CXX
     #ifdef __BEELZEBUB__ARCH_IA32
         #define Log2_S Log2_32
         #define FastLog2_S FastLog2_32

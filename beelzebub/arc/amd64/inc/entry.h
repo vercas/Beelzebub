@@ -42,7 +42,7 @@
 #include <beel/handles.h>
 #include <jegudiel.h>
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
     #include <beel/terminals/base.hpp>
     #include <system/cpuid.hpp>
     #include <system/domain.hpp>
@@ -67,7 +67,7 @@
 __extern __public __startup void kmain_bsp();
 __extern __startup void kmain_ap();
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub
 {
     extern System::CpuId BootstrapCpuid;

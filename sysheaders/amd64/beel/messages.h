@@ -46,13 +46,13 @@
 #include <beel/syscalls.h>
 #include <beel/structs.kernel.common.h>
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
     #define POST_MESSAGE(n) PostMessage
 #else
     #define POST_MESSAGE(n) MCATS(PostMessage, n)
 #endif
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 #define SYSCALL_POST_MESSAGE (SyscallSelection::PostMessage)
 #define SYSCALL_RECEIVE_MESSAGE (SyscallSelection::ReceiveMessage)
 namespace Beelzebub
@@ -104,6 +104,6 @@ namespace Beelzebub
 
         return res;
     }
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 }
 #endif

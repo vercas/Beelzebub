@@ -63,13 +63,13 @@
     /*  Not an actual syscall; just the number of syscalls. */ \
     ENUMINST(COUNT         , SYSCALL_COUNT          , 0x020, "Syscall Count"  )
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
     #define PERFORM_SYSCALL(n) PerformSyscall
 #else
     #define PERFORM_SYSCALL(n) MCATS(PerformSyscall, n)
 #endif
 
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub
 {
 #endif
@@ -185,7 +185,7 @@ namespace Beelzebub
 
         return res;
     }
-#ifdef __cplusplus
+#ifdef __BEELZEBUB__SOURCE_CXX
 }
 #endif
 
