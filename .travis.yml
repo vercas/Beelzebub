@@ -11,7 +11,7 @@ addons:
     packages:
     - nasm
     - zip
-    - libisl15
+    - libisl14
     - libcloog-isl4
     - texinfo
     - lua5.2
