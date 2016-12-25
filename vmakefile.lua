@@ -898,8 +898,8 @@ Project "Beelzebub" {
             Opts_CXX_CRT = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_CXX     = function(_) return _.Opts_CXX_CRT + List { "-O2", "-flto", } end,
             Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS_CRT = function(_) return _.Opts_GCC end,
-            Opts_GAS     = function(_) return _.Opts_GAS_CRT + List { "-flto" } end,
+            Opts_GAS_CRT = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS     = function(_) return _.Opts_GAS_CRT + List { "-flto", } end,
 
             Opts_AR = List { "rcs" },
         },
@@ -975,7 +975,7 @@ Project "Beelzebub" {
             Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS     = function(_) return _.Opts_GCC end,
+            Opts_GAS     = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
 
             Opts_AR = List { "rcs" },
         },
@@ -1022,7 +1022,7 @@ Project "Beelzebub" {
             Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS     = function(_) return _.Opts_GCC end,
+            Opts_GAS     = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
 
             Opts_AR = List { "rcs" },
         },
@@ -1059,7 +1059,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
+            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
 
             Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 
@@ -1117,7 +1117,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
+            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
 
             Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 
@@ -1169,7 +1169,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
+            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
 
             Opts_LO = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } + _.Opts_GCC end,
 
@@ -1237,7 +1237,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
+            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
 
             Opts_LO = function(_) return _.Opts_GCC + List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } end,
 
@@ -1317,7 +1317,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
+            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
 
             Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 

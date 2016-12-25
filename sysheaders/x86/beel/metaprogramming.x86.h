@@ -73,11 +73,14 @@
     #define __min_float  
 #endif
 
+#if !defined(__ASSEMBLER__)
 /*****************
     Some Types
 *****************/
 
 typedef int comp_t; //  Result of comparison functions.
+
+#endif
 
 /****************
     Constants
@@ -89,7 +92,10 @@ namespace Beelzebub
     static constexpr size_t const PageSize = 0x1000;
     static constexpr size_t const LargePageSize = 0x200000;
 }
+#elif !defined(__ASSEMBLER__)
+#define __PAGE_SIZE         ((size_t)0x1000)
+#define __LARGE_PAGE_SIZE   ((size_t)0x200000)
 #else
-#define __PAGE_SIZE ((size_t)0x1000)
-#define __LARGE_PAGE_SIZE ((size_t)0x200000)
+#define __PAGE_SIZE         0x1000
+#define __LARGE_PAGE_SIZE   0x200000
 #endif

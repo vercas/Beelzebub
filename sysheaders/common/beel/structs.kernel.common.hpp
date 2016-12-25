@@ -67,7 +67,7 @@ namespace Beelzebub
         uintptr_t InstructionPointer;
         uintptr_t StackPointer;
 
-        union
+        __extension__ union
         {
             MemoryAccessViolationData MemoryAccessViolation;
             UnitTestFailureData UnitTestFailure;

@@ -539,7 +539,7 @@ namespace Beelzebub
     };
 }
 
-#else
+#elif !defined(__ASSEMBLER__)
     
     enum HANDLE_TYPE
     {
@@ -560,5 +560,12 @@ namespace Beelzebub
     } Handle;
 
     //  Eh... Good enough?
+
+#else
+
+.struct 0
+FIELDT(Handle, Value, uint64_t)
+Handle_size:
+#define SIZE_OF_Handle Handle_size
 
 #endif

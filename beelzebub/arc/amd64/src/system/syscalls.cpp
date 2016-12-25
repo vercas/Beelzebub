@@ -52,6 +52,8 @@ using namespace Beelzebub::System;
 static Synchronization::Spinlock<> InitLock {};
 static bool Initialized = false;
 
+__thread uintptr_t System::SyscallUserlandStack;
+
 /********************
     Syscall class
 ********************/

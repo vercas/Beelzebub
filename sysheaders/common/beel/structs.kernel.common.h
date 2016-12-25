@@ -46,20 +46,23 @@ namespace Beelzebub
 {
 #endif
 
-    STRUCT(Message)
-    {
-        Handle Destination, Source;
-        uint64_t Flags;
+#ifndef __ASSEMBLER__
+STRUCT(Message)
+{
+    Handle Destination, Source;
+    uint64_t Flags;
 
-        __extension__ union
-        {
-            Handle Handles[5];  //  Handles (double words)
-            uint64_t D[5    ];  //  Double words
-            uint32_t W[5 * 2];  //  Words
-            uint16_t H[5 * 4];  //  Half words
-            uint8_t  B[5 * 8];  //  Bytes
-        };
+    __extension__ union
+    {
+        Handle Handles[5];  //  Handles (double words)
+        uint64_t D[5    ];  //  Double words
+        uint32_t W[5 * 2];  //  Words
+        uint16_t H[5 * 4];  //  Half words
+        uint8_t  B[5 * 8];  //  Bytes
     };
+};
+#else
+#endif
 
 #ifdef __cplusplus
     static_assert(sizeof(Message) == 64, "IPC message struct should be exactly 64 bytes in size!");

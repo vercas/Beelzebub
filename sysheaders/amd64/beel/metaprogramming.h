@@ -41,6 +41,7 @@
 
 #include <beel/metaprogramming.x86.h>
 
+#if !defined(__ASSEMBLER__)
 /*****************
     Some Types
 *****************/
@@ -57,6 +58,8 @@ typedef  int64_t ssize_t;
 typedef  __int128_t  int128_t;
 typedef __uint128_t uint128_t;
 
+#endif
+
 /*******************************
     Miscellaneous Assistance
 *******************************/
@@ -68,3 +71,13 @@ typedef __uint128_t uint128_t;
     if (0 != ((ptr) & 0x0000800000000000UL))    \
         ptr |= 0xFFFF000000000000UL;            \
 } while (false)
+
+/***************************
+    Structure Assistance
+***************************/
+
+#if defined(__ASSEMBLER__)
+    #define SIZE_OF_size_t 8
+    #define SIZE_OF_intptr_t 8
+    #define SIZE_OF_uintptr_t 8
+#endif
