@@ -37,17 +37,6 @@
     thorough explanation regarding other files.
 */
 
-#include <beel.hpp>
+#pragma once
 
-#include "cores.hpp"
-#include "mailbox.hpp"
-#include "timer.hpp"
-#include "modules.hpp"
-
-#include "memory/vmm.hpp"
-#include "memory/pmm.hpp"
-
-#include <string.h>
-#include <math.h>
-
-#include <debug.hpp>
+#include <beel.common.hpp>

@@ -37,17 +37,24 @@
     thorough explanation regarding other files.
 */
 
-#include <beel.hpp>
+#pragma once
 
-#include "cores.hpp"
-#include "mailbox.hpp"
-#include "timer.hpp"
-#include "modules.hpp"
+#include <beel/metaprogramming.h>
 
-#include "memory/vmm.hpp"
-#include "memory/pmm.hpp"
+#ifdef __BEELZEBUB__IN_KERNEL
+#include <beel/interrupt.state.hpp>
+#endif
 
-#include <string.h>
-#include <math.h>
+#ifdef __BEELZEBUB_KERNEL_MODULE
+#include <beel/kernel.module.hpp>
+#else
+#include <beel/syscalls.h>
+#endif
 
-#include <debug.hpp>
+#include <beel/sync/spinlock.hpp>
+#include <beel/sync/spinlock.unint.hpp>
+#include <beel/sync/rw.spinlock.hpp>
+#include <beel/sync/atomic.hpp>
+#include <beel/sync/lock.guard.hpp>
+
+#include <beel/terminals/base.hpp>
