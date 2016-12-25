@@ -488,7 +488,7 @@ local function ArchitecturalComponent(name)
         },
 
         Rule "Assemble w/ GAS" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "s", false) end,
+            Filter = function(_, dst) return checkObjectExtension(dst, "S", false) end,
 
             Source = sourceArchitecturalCode,
 
@@ -518,9 +518,9 @@ local function ArchitecturalComponent(name)
 
             Action = function(_, dst, src)
                 if settMakeDeps then
-                    sh.silent(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src[1], "-o", dst)
+                    sh.silent(CXX, _.Opts_CXX, "-x", "c++-header", "-MD", "-MP", "-c", src[1], "-o", dst)
                 else
-                    sh.silent(CXX, _.Opts_CXX, "-c", src[1], "-o", dst)
+                    sh.silent(CXX, _.Opts_CXX, "-x", "c++-header", "-c", src[1], "-o", dst)
                 end
             end,
         },
@@ -576,7 +576,7 @@ local function ArchitecturalComponent(name)
             local comSrcDir = _.CommonDirectory + "src"
 
             local objects = fs.ListDir(comSrcDir)
-                :Where(function(val) return val:EndsWith(".c", ".cpp", ".asm", ".s") end)
+                :Where(function(val) return val:EndsWith(".c", ".cpp", ".asm", ".S") end)
                 :Select(function(val)
                     return _.ObjectsDirectory + val:Skip(comSrcDir) .. ".o"
                 end)
@@ -587,7 +587,7 @@ local function ArchitecturalComponent(name)
 
                 if fs.GetInfo(arcSrcDir) then
                     objects:AppendMany(fs.ListDir(arcSrcDir)
-                        :Where(function(val) return val:EndsWith(".c", ".cpp", ".asm", ".s") end)
+                        :Where(function(val) return val:EndsWith(".c", ".cpp", ".asm", ".S") end)
                         :Select(function(val)
                             return _.ObjectsDirectory + val:Skip(arcSrcDir) .. suffix
                         end))
@@ -929,7 +929,7 @@ Project "Beelzebub" {
 
                 for arch in _.selArch:Hierarchy() do
                     local archCrtBase = _.ArchitecturesDirectory + arch.Name + "crt" + crtName
-                    local cpp, gas = archCrtBase .. ".cpp", archCrtBase .. ".s"
+                    local cpp, gas = archCrtBase .. ".cpp", archCrtBase .. ".S"
 
                     if fs.GetInfo(cpp) then
                         return List { cpp, dst:GetParent() }
