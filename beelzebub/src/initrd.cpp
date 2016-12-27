@@ -37,8 +37,8 @@
     thorough explanation regarding other files.
 */
 
-#include <initrd.hpp>
-#include <utils/tar.hpp>
+#include "initrd.hpp"
+#include <beel/utils/tar.hpp>
 
 #include <math.h>
 #include <debug.hpp>

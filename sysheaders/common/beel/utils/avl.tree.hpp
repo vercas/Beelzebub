@@ -51,7 +51,7 @@
 
 #pragma once
 
-#include <utils/comparisons.hpp>
+#include <beel/utils/comparisons.hpp>
 #include <beel/handles.h>
 #include <math.h>
 

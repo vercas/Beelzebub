@@ -41,9 +41,9 @@
 
 #include "memory/regions.hpp"
 #include "memory/enums.hpp"
-#include <utils/avl_tree.hpp>
 #include <memory/object_allocator.hpp>
 
+#include <beel/utils/avl.tree.hpp>
 #include <beel/sync/rw.spinlock.hpp>
 #include <beel/sync/atomic.hpp>
 

@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <utils/comparisons.hpp>
+#include <beel/utils/comparisons.hpp>
 #include <string.h>
 
 namespace Beelzebub { namespace Utils

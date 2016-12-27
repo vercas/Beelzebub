@@ -37,7 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <utils/conversions.hpp>
+#include <beel/utils/conversions.hpp>
 #include <string.h>
 
 using namespace Beelzebub;

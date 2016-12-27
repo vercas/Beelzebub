@@ -37,79 +37,24 @@
     thorough explanation regarding other files.
 */
 
-#include <beel/utils/utf8.h>
+/*  I just need to take the time to say, that I looked at 12 (!) different AVL
+    tree implementations and they all had issues. Some used the wrong order/sign
+    for comparisons and balance factor, others used operations which were much
+    more complex (asymptotically, in time) than needed... Some lacked removal,
+    and all those which had removal implemented had severe issues: incomplete
+    code (literally garbage characters all over the code!), logic errors
+    (deleting a node just to reallocate it immediately, wrong interpretation of
+    comparisons/balance) and/or leaked memory...
 
-using namespace Beelzebub;
-using namespace Beelzebub::Utils;
+    If you need something done well, do it yourself.
+*/
 
-decoded_codepoint_t Utils::GetUtf8Codepoint(char const * chr)
+#pragma once
+
+#include <beel/metaprogramming.h>
+
+namespace Beelzebub { namespace Utils
 {
-    decoded_codepoint_t res;
-    unsigned char c1 = *reinterpret_cast<unsigned char const *>(chr);
-
-    if (c1 >= 0xE0 /* 0b1110_xxxx */)
-    {
-        if likely(c1 < 0xF8 /* 0b1111_10xx */)
-        {
-            if likely(c1 < 0xF0 /* 0b1110_xxxx */)
-            {
-                res.Next = const_cast<char *>(chr) + 3;
-                res.Char = c1 & 0x0F;
-            }
-            else /* 0b1111_0xxx */
-            {
-                res.Next = const_cast<char *>(chr) + 4;
-                res.Char = c1 & 0x07;
-            }
-        }
-        else
-        {
-            if (c1 >= 0xFC /* 0b1111_110x */)
-            {
-                res.Next = const_cast<char *>(chr) + 6;
-                res.Char = c1 & 0x01;
-            }
-            else /* 0b1111_10xx */
-            {
-                res.Next = const_cast<char *>(chr) + 5;
-                res.Char = c1 & 0x03;
-            }
-        }
-    }
-    else
-    {
-        if (c1 >= 0xC0 /* 0b110x_xxxx */)
-        {
-            res.Next = const_cast<char *>(chr) + 2;
-            res.Char = c1 & 0x1F;
-        }
-        else if likely(c1 < 0x80 /* 0b10xx_xxxx */)
-        {
-            res.Next = const_cast<char *>(chr) + 1;
-            res.Char = c1 & 0x7F;
-
-            return res;
-        }
-        else /* 0b0xxx_xxxx */
-            goto failure;
-    }
-
-    do
-    {
-        char c = *(++chr);
-
-        if unlikely((c & 0xC0) != 0x80)
-            goto failure;
-
-        res.Char = (res.Char << 6) | (c & 0x3F);
-    }
-    while (chr < res.Next);
-
-    return res;
-
-failure:
-    res.Next = nullptr;
-    res.Char = __WCHAR_MAX__;
-
-    return res;
-}
+    __public uint8_t Checksum8(void const * const start, size_t const length);
+    __public uint8_t Crc8(void const * const start, size_t const length);
+}}

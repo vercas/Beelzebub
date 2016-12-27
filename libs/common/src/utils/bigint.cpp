@@ -42,7 +42,7 @@
     Constants also come from there.
 */
 
-#include <utils/bigint.hpp>
+#include <beel/utils/bigint.hpp>
 #include <string.h>
 
 using namespace Beelzebub;

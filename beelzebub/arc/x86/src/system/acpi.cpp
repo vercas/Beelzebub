@@ -37,12 +37,12 @@
     thorough explanation regarding other files.
 */
 
-#include <system/acpi.hpp>
-#include <memory/vmm.hpp>
-#include <memory/vmm.arc.hpp>
-#include <entry.h>
+#include "system/acpi.hpp"
+#include "memory/vmm.hpp"
+#include "memory/vmm.arc.hpp"
+#include "entry.h"
 
-#include <utils/checksum.hpp>
+#include <beel/utils/checksums.hpp>
 #include <string.h>
 #include <math.h>
 

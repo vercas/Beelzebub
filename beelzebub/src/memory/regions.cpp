@@ -37,9 +37,9 @@
     thorough explanation regarding other files.
 */
 
-#include <memory/regions.hpp>
-#include <utils/avl_tree.hpp>
+#include "memory/regions.hpp"
 
+#include <beel/utils/avl.tree.hpp>
 #include <beel/terminals/base.hpp>
 
 using namespace Beelzebub;
