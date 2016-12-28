@@ -71,6 +71,8 @@ static uint8_t const Crc8Table[256] = {
 
 uint8_t Utils::Checksum8(void const * const start, size_t const length)
 {
+    ASSUME(start != nullptr);
+
     uint8_t const * p = reinterpret_cast<uint8_t const *>(start);
     uint8_t const * const end = p + length;
     uint_fast8_t sum = 0;
@@ -83,6 +85,8 @@ uint8_t Utils::Checksum8(void const * const start, size_t const length)
 
 uint8_t Utils::Crc8(void const * const start, size_t const length)
 {
+    ASSUME(start != nullptr);
+
     uint8_t const * p = reinterpret_cast<uint8_t const *>(start);
     uint8_t const * const end = p + length;
     uint_fast8_t res = 0;
