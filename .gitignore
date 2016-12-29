@@ -233,7 +233,6 @@ vmake-edge.lua
 
 # Ignored Files
 
-/libs/jemalloc/
 /sysheaders/common/beel/jemalloc.tsd.h
 
 # Cartman300's stuff
