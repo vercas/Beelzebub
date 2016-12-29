@@ -243,11 +243,11 @@ __forceinline __const uint32_t RoundUpDiff32(const uint32_t value, const uint32_
     return (step - (value % step)) % step;
 }
 
-#define MIN(aP, bP)              \
+#define MIN(aP, bP) __extension__\
    ({  __typeof__(aP) _a = (aP); \
        __typeof__(bP) _b = (bP); \
        _a < _b ? _a : _b;        })
-#define MAX(aP, bP)              \
+#define MAX(aP, bP) __extension__\
    ({  __typeof__(aP) _a = (aP); \
        __typeof__(bP) _b = (bP); \
        _a > _b ? _a : _b;        })
