@@ -444,13 +444,13 @@ __startup Handle ObjectAllocatorSpamTest()
     ObjectAllocatorTestBarrier2.Reach();
     ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
 
-#ifdef __BEELZEBUB__PROFILE
+#ifdef __BEELZEBUB__CONF_PROFILE
     uint64_t perfAcc = 0;
 #endif
 
     for (size_t x = REPETITION_COUNT; x > 0; --x)
     {
-#ifdef __BEELZEBUB__PROFILE
+#ifdef __BEELZEBUB__CONF_PROFILE
         uint64_t perfStart = CpuInstructions::Rdtsc();
 #endif
 
@@ -513,14 +513,14 @@ __startup Handle ObjectAllocatorSpamTest()
             , tOA, 1 + REPETITION_COUNT - x, res);
 #endif        
 
-#ifdef __BEELZEBUB__PROFILE
+#ifdef __BEELZEBUB__CONF_PROFILE
         uint64_t perfEnd = CpuInstructions::Rdtsc();
 
         perfAcc += perfEnd - perfStart;
 #endif
     }
 
-#ifdef __BEELZEBUB__PROFILE
+#ifdef __BEELZEBUB__CONF_PROFILE
     MSG_("Core %us: %u8 / %us = %u8; %u8 / %us = %u8; %n"
         , Cpu::GetData()->Index
         , perfAcc, REPETITION_COUNT, perfAcc / REPETITION_COUNT

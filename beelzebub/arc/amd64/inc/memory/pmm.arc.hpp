@@ -135,7 +135,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Debug  */
 
-    #ifdef __BEELZEBUB__DEBUG
+    #ifdef __BEELZEBUB__CONF_DEBUG
         char const * GetStatusString() const
         {
             switch (this->Status)
@@ -218,7 +218,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Debug  */
 
-    #ifdef __BEELZEBUB__DEBUG
+    #ifdef __BEELZEBUB__CONF_DEBUG
         // __forceinline Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term)
         // {
         //     return term->WriteFormat("|%c|D@%Xp|R-%X4|A-%X2|I-%X4|"
@@ -303,7 +303,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Debug  */
 
-    #ifdef __BEELZEBUB__DEBUG
+    #ifdef __BEELZEBUB__CONF_DEBUG
         // __forceinline Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term)
         // {
         //     return term->WriteFormat("|%c|D@%Xp|R-%X4|A-%X2|I-%X4|"
@@ -398,7 +398,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Debug  */
 
-    #ifdef __BEELZEBUB__DEBUG
+    #ifdef __BEELZEBUB__CONF_DEBUG
         // __cold Terminals::TerminalWriteResult PrintStackToTerminal(Terminals::TerminalBase * const term, bool const details);
     #endif
     };

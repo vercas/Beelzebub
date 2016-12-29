@@ -70,7 +70,7 @@ do                              \
     breakpointEscapedAux = val; \
 } while(false);
 
-#ifdef __BEELZEBUB__DEBUG
+#ifdef __BEELZEBUB__CONF_DEBUG
 #define breakpoint BREAKPOINT
 #else
 #define breakpoint(...) do {} while(false)

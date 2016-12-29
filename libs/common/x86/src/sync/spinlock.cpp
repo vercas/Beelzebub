@@ -46,7 +46,7 @@ using namespace Beelzebub::Synchronization;
     Spinlock struct
 **********************/
 
-#ifdef __BEELZEBUB__DEBUG
+#ifdef __BEELZEBUB__CONF_DEBUG
     /*  Destructor  */
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)

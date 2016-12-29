@@ -441,7 +441,7 @@
         for (primExp; MCATS(_go_, __LINE__); MCATS(_go_, __LINE__) = false)
     //  Astonishingly, GCC can optimize this.
 
-    #ifdef __BEELZEBUB__DEBUG
+    #ifdef __BEELZEBUB__CONF_DEBUG
         #define onDebug if (true)
         #define onRelease if (false)
     #else

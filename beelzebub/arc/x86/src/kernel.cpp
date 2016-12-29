@@ -959,7 +959,7 @@ TerminalBase * InitializeTerminalProto()
 
     new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
 
-#ifdef __BEELZEBUB__RELEASE
+#ifdef __BEELZEBUB__CONF_RELEASE
     Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
 #endif
 

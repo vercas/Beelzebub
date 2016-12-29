@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-time lua vmakefile.lua -t all --march=native --mtune=native -j 8 --clean --full $*
+time lua vmakefile.lua -t all --march=native --mtune=native -cfj 8 $*

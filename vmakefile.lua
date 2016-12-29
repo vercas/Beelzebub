@@ -40,7 +40,10 @@ require "vmake"
     thorough explanation regarding other files.
 ]]
 
+
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Configurations
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 Configuration "debug" {
     Data = {
@@ -66,6 +69,8 @@ Configuration "profile" {
 
 Architecture "amd64" {
     Data = {
+        GccTargetName = "x86_64",
+
         Opts_GCC = function(_)
             return List {
                 "-m64",
@@ -80,6 +85,8 @@ Architecture "amd64" {
 
         Opts_NASM = List { "-f", "elf64" },
     },
+
+    Description = "64-bit x86",
 
     Base = "x86",
 }
@@ -96,6 +103,8 @@ Architecture "ia32" {
 
         Opts_NASM = List { "-f", "elf32" },
     },
+
+    Description = "32-bit x86",
 
     Base = "x86",
 }
@@ -122,42 +131,56 @@ Architecture "x86" {
 
 --  Toolchain
 
-local CROSSCOMPILER_DIRECTORY = Path "/usr/local/gcc-x86_64-beelzebub/bin"
---  Default
+local xcsDir, settXcDir = Path(os.getenv("CROSSCOMPILERS_DIR") or "/usr/local"), nil
 
-local CROSSCOMPILERS_DIR = os.getenv("CROSSCOMPILERS_DIR")
 local MISC_TOOLS_DIR = os.getenv("MISC_TOOLS_DIR")
 
-if CROSSCOMPILERS_DIR then
-    CROSSCOMPILER_DIRECTORY = Path(CROSSCOMPILERS_DIR) + "gcc-x86_64-beelzebub/bin"
-end
+CmdOpt "xc-dir" {
+    Description = "The directory containing the cross-compiler's binaries for the"
+             .. "\nselected architecture."
+             .. "\nBy default, `$CROSSCOMPILERS_DIR/gcc-<arch>-beelzebub/bin` is used."
+             .. "\nThe <arch> is substituted with GCC's name for the selected architecture."
+             .. "\nIf CROSSCOMPILERS_DIR is undefined in the environment,"
+             .. "\nit defaults to `/usr/local`.",
 
-local CC    = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gcc"
-local CXX   = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-g++"
-local GAS   = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gcc"
-local DC    = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gdc"
-local AS    = "nasm"
-local LO    = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gcc"
-local LD    = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-ld"
-local AR    = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-gcc-ar"
-local STRIP = CROSSCOMPILER_DIRECTORY + "x86_64-beelzebub-strip"
-local MKISO = "mkisofs"
-local TAR   = "tar"
-local GZIP  = "gzip"
+    Type = "string",
+    Display = "directory",
 
-if not os.execute(MKISO .. " --version > /dev/null 2> /dev/null") then
-    --  So, mkisofs may not be completely absent.
+    Handler = function(_, val)
+        settXcDir = val
+    end,
+}
 
-    if os.execute("genisoimage --version > /dev/null 2> /dev/null") then
-        --  Maybe genisoimage no longer symlinks it.
+GlobalData {
+    XCDirectory = function(_)
+        return settXcDir or (xcsDir + ("gcc-" .. _.selArch.Data.GccTargetName .. "-beelzebub/bin"))
+    end,
 
-        MKISO = "genisoimage"
-    elseif MISC_TOOLS_DIR then
-        --  Or maybe it comes from an external source?
+    CC    = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-gcc"    end,
+    CXX   = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-g++"    end,
+    GAS   = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-gcc"    end,
+    LO    = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-gcc"    end,
+    LD    = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-ld"     end,
+    AR    = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-gcc-ar" end,
+    STRIP = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-strip"  end,
+    AS    = "nasm",
+    TAR   = "tar",
+    GZIP  = "gzip",
 
-        MKISO = MISC_TOOLS_DIR .. "/genisoimage"
-    end
-end
+    MKISO = function(_)
+        if os.execute("mkisofs --version > /dev/null 2> /dev/null") then
+            return "mkisofs"
+        elseif os.execute("genisoimage --version > /dev/null 2> /dev/null") then
+            return "genisoimage"
+        elseif MISC_TOOLS_DIR then
+            --  Or maybe it comes from an external source?
+
+            return MISC_TOOLS_DIR .. "/genisoimage"
+        end
+
+        error("Could not find mkisofs or genisoimage, or $MISC_TOOLS_DIR in the environment.")
+    end,
+}
 
 --  Tests
 
@@ -184,18 +207,7 @@ local availableTests = List {
     "MALLOC",
 }
 
-local availableApicModes = List {
-    "legacy", "x2apic", "flexible"
-}
-
-local availableDynamicAllocators = List {
-    "streamflow", "ptmalloc3", "jemalloc", "none"
-}
-
-local testOptions, specialOptions = List { }, List { }
-local settSmp, settInlineSpinlocks, settUnitTests = true, true, true
-local settApicMode, settKrnDynAlloc, settUsrDynAlloc = "FLEXIBLE", "NONE", "NONE"
-local settMakeDeps = true
+local settSelTests, settUnitTests = List { }, true
 
 CmdOpt "tests" "t" {
     Description = "Specifies which tests to include in the Beelzebub build.",
@@ -207,7 +219,7 @@ CmdOpt "tests" "t" {
     Handler = function(_, val)
         if val == "all" then
             availableTests:ForEach(function(testName)
-                testOptions:AppendUnique("__BEELZEBUB__TEST_" .. testName)
+                settSelTests:AppendUnique(testName)
             end)
         else
             for test in string.iteratesplit(val, "[,;]") do
@@ -221,30 +233,16 @@ CmdOpt "tests" "t" {
                     error("Unknown Beelzebub test \"" .. testName .. "\".")
                 end
 
-                testOptions:AppendUnique("__BEELZEBUB__TEST_" .. testName)
+                settSelTests:AppendUnique(testName)
             end
         end
     end,
 }
 
-CmdOpt "smp" {
-    Description = "Specifies whether the Beelzebub build includes symmetric multiprocessing support; defaults to yes.",
-
-    Type = "boolean",
-
-    Handler = function(_, val) settSmp = val end,
-}
-
-CmdOpt "inline-spinlocks" {
-    Description = "Specifies whether spinlock operations are inlined in the kernel code; defaults to yes.",
-
-    Type = "boolean",
-
-    Handler = function(_, val) settInlineSpinlocks = val end,
-}
-
 CmdOpt "unit-tests" {
-    Description = "Specifies whether kernel unit tests are included in the kernel or not, or if they will be quieted; defaults to yes (included but not quieted).",
+    Description = "Specifies whether kernel unit tests are included in the"
+             .. "\nkernel or not, or if they will be quieted; defaults to yes"
+             .. "\n(included but not quieted).",
 
     Type = "string",
     Display = "boolean|quiet",
@@ -265,21 +263,13 @@ CmdOpt "unit-tests" {
     end,
 }
 
-CmdOpt "apic-mode" {
-    Description = "The APIC mode(s) supported by the kernel. Defaults to flexible.",
+--  Component Choices
 
-    Type = "string",
-    Display = availableApicModes:Print("|"),
-
-    Handler = function(_, val)
-        if not availableApicModes:Contains(string.lower(val)) then
-            error("Invalid value given to \"apic-mode\" command-line option: \""
-                .. val .. "\".")
-        end
-
-        settApicMode = string.upper(val)
-    end,
+local availableDynamicAllocators = List {
+    "streamflow", "ptmalloc3", "jemalloc", "none"
 }
+
+local settKrnDynAlloc, settUsrDynAlloc = "NONE", "NONE"
 
 CmdOpt "kernel-dynalloc" {
     Description = "The dynamic allocator used in the kernel; defaults to " .. settKrnDynAlloc .. ".",
@@ -313,6 +303,16 @@ CmdOpt "userland-dynalloc" {
     end,
 }
 
+--  Code Generation Options
+
+local availableApicModes = List {
+    "legacy", "x2apic", "flexible"
+}
+
+local specialOptions = List { }
+local settApicMode = "FLEXIBLE"
+local settSmp, settInlineSpinlocks = true, true
+
 CmdOpt "march" {
     Description = "Specifies an `-march=` option to pass on to GCC on compilation.",
 
@@ -341,10 +341,145 @@ CmdOpt "mtune" {
     end,
 }
 
+CmdOpt "smp" {
+    Description = "Specifies whether the Beelzebub build includes symmetric"
+             .. "\nmultiprocessing support; defaults to yes.",
+
+    Type = "boolean",
+
+    Handler = function(_, val) settSmp = val end,
+}
+
+CmdOpt "inline-spinlocks" {
+    Description = "Specifies whether spinlock operations are inlined in the"
+             .. "\nkernel code; defaults to yes.",
+
+    Type = "boolean",
+
+    Handler = function(_, val) settInlineSpinlocks = val end,
+}
+
+CmdOpt "apic-mode" {
+    Description = "The APIC mode(s) supported by the kernel. Defaults to flexible.",
+
+    Type = "string",
+    Display = availableApicModes:Print("|"),
+
+    Handler = function(_, val)
+        if not availableApicModes:Contains(string.lower(val)) then
+            error("Invalid value given to \"apic-mode\" command-line option: \""
+                .. val .. "\".")
+        end
+
+        settApicMode = string.upper(val)
+    end,
+}
+
+--  Dependency Management
+
+local settMakeDeps = true
+
 CmdOpt "no-make-deps" {
-    Description = "Indicates that GNU Make dependency files are not to be generated by GCC.",
+    Description = "Indicates that GNU Make dependency files are not to be"
+             .. "\ngenerated by GCC, G++ or GAS.",
 
     Handler = function(_, val) settMakeDeps = false end,
+}
+
+--  Options nad Parameters
+
+GlobalData {
+    Opts_GCC_Tests = function(_)
+        return settSelTests:Select(function(val)
+            return "-D__BEELZEBUB__TEST_" .. val
+        end)
+    end,
+
+    Opts_GCC_Precompiler = function(_)
+        local res = List {
+            "-D__BEELZEBUB",
+            "-D__BEELZEBUB__ARCH=" .. _.selArch.Name,
+            "-D__BEELZEBUB__CONF=" .. _.selConf.Name,
+            "-D__BEELZEBUB_SETTINGS_APIC_MODE=" .. settApicMode,
+            "-D__BEELZEBUB_SETTINGS_APIC_MODE_" .. settApicMode,
+            "-D__BEELZEBUB_SETTINGS_KRNDYNALLOC=" .. settKrnDynAlloc,
+            "-D__BEELZEBUB_SETTINGS_KRNDYNALLOC_" .. settKrnDynAlloc,
+            "-D__BEELZEBUB_SETTINGS_USRDYNALLOC=" .. settUsrDynAlloc,
+            "-D__BEELZEBUB_SETTINGS_USRDYNALLOC_" .. settUsrDynAlloc,
+
+            settSmp             and "-D__BEELZEBUB_SETTINGS_SMP"                or "-D__BEELZEBUB_SETTINGS_NO_SMP",
+            settInlineSpinlocks and "-D__BEELZEBUB_SETTINGS_INLINE_SPINLOCKS"   or "-D__BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS",
+            settUnitTests       and "-D__BEELZEBUB_SETTINGS_UNIT_TESTS"         or "-D__BEELZEBUB_SETTINGS_NO_UNIT_TESTS"
+        } + _.Opts_GCC_Tests
+
+        for arch in _.selArch:Hierarchy() do
+            res:Append("-D__BEELZEBUB__ARCH_" .. string.upper(arch.Name))
+        end
+
+        for conf in _.selConf:Hierarchy() do
+            res:Append("-D__BEELZEBUB__CONF_" .. string.upper(conf.Name))
+        end
+
+        if settUnitTests == "quiet" then
+            res:Append("-D__BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET")
+        end
+
+        return res
+    end,
+
+    Opts_GCC_Common = function(_)
+        local res = List {
+            --"-fdollars-in-identifiers",
+            "-pipe", "--sysroot=" .. tostring(_.Sysroot),
+        } + _.Opts_GCC_Precompiler
+        + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
+        + specialOptions
+
+        if settMakeDeps then
+            res:Append("-MD"):Append("-MP")
+        end
+
+        return res
+    end,
+}
+
+--  Main File Locations
+
+GlobalData {
+    Sysroot                 = function(_) return _.outDir + "sysroot" end,
+    SysheadersPath          = function(_) return _.Sysroot + "usr/include" end,
+    JegudielPath            = function(_) return _.outDir + "jegudiel.bin" end,
+    CommonLibraryPath       = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
+    RuntimeLibraryPath      = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
+    KernelModuleLibraryPath = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
+    TestKernelModulePath    = function(_) return _.Sysroot + "kmods/test.kmod" end,
+    KernelPath              = function(_) return _.outDir + "beelzebub.bin" end,
+    LoadtestAppPath         = function(_) return _.Sysroot + "apps/loadtest.exe" end,
+
+    CrtFiles = function(_)
+        return _.selArch.Data.CrtFiles:Select(function(val)
+            return _.Sysroot + "usr/lib" + val
+        end)
+    end,
+
+    IsoFile = function(_)
+        if _.selArch.Base.Data.ISO then
+            return _.outDir + ("beelzebub." .. _.selArch.Name .. "." .. _.selConf.Name .. ".iso")
+        end
+    end,
+
+    StreamflowKernelLibraryPath     = function(_) return _.Sysroot + "usr/lib/libstreamflow.kernel.a" end,
+    StreamflowUserlandLibraryPath   = function(_) return _.Sysroot + "usr/lib/libstreamflow.userland.a" end,
+    JemallocKernelLibraryPath       = function(_) return _.Sysroot + "usr/lib/libjemalloc.kernel.a" end,
+    JemallocUserlandLibraryPath     = function(_) return _.Sysroot + "usr/lib/libjemalloc.userland.a" end,
+    
+    KernelDynamicAllocatorPath = function(_)
+        return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settKrnDynAlloc] .. ".kernel.a")
+    end,
+
+    UserlandDynamicAllocatorPath = function(_)
+        return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settUsrDynAlloc] .. ".userland.a")
+    end,
 }
 
 --  Utilities
@@ -444,7 +579,7 @@ end
 local function gzipSingleFile(_, dst, src)
     local tmp = dst:TrimEnd(3)  --  3 = #".gz"
     fs.Copy(tmp, src[1])
-    sh.silent(GZIP, "-f", "-9", tmp)
+    sh.silent(_.GZIP, "-f", "-9", tmp)
 end
 
 local function ArchitecturalComponent(name)
@@ -455,11 +590,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitecturalCode,
 
             Action = function(_, dst, src)
-                if settMakeDeps then
-                    sh.silent(CC, _.Opts_C, "-MD", "-MP", "-c", src[1], "-o", dst)
-                else
-                    sh.silent(CC, _.Opts_C, "-c", src[1], "-o", dst)
-                end
+                sh.silent(_.CC, _.Opts_C, "-x", "c", "-c", src[1], "-o", dst)
             end,
         },
 
@@ -469,11 +600,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitecturalCode,
 
             Action = function(_, dst, src)
-                if settMakeDeps then
-                    sh.silent(CXX, _.Opts_CXX, "-MD", "-MP", "-c", src[1], "-o", dst)
-                else
-                    sh.silent(CXX, _.Opts_CXX, "-c", src[1], "-o", dst)
-                end
+                sh.silent(_.CXX, _.Opts_CXX, "-x", "c++", "-c", src[1], "-o", dst)
             end,
         },
 
@@ -483,7 +610,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitecturalCode,
 
             Action = function(_, dst, src)
-                sh.silent(AS, _.Opts_NASM, src[1], "-o", dst)
+                sh.silent(_.AS, _.Opts_NASM, src[1], "-o", dst)
             end,
         },
 
@@ -493,7 +620,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitecturalCode,
 
             Action = function(_, dst, src)
-                sh.silent(GAS, _.Opts_GAS, "-c", src[1], "-o", dst)
+                sh.silent(_.GAS, _.Opts_GAS, "-x", "assembler-with-cpp", "-c", src[1], "-o", dst)
             end,
         },
 
@@ -503,11 +630,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitecturalHeader,
 
             Action = function(_, dst, src)
-                if settMakeDeps then
-                    sh.silent(CC, _.Opts_C, "-MD", "-MP", "-c", src[1], "-o", dst)
-                else
-                    sh.silent(CC, _.Opts_C, "-c", src[1], "-o", dst)
-                end
+                sh.silent(_.CC, _.Opts_C, "-x", "c-header", "-c", src[1], "-o", dst)
             end,
         },
 
@@ -517,11 +640,7 @@ local function ArchitecturalComponent(name)
             Source = sourceArchitecturalHeader,
 
             Action = function(_, dst, src)
-                if settMakeDeps then
-                    sh.silent(CXX, _.Opts_CXX, "-x", "c++-header", "-MD", "-MP", "-c", src[1], "-o", dst)
-                else
-                    sh.silent(CXX, _.Opts_CXX, "-x", "c++-header", "-c", src[1], "-o", dst)
-                end
+                sh.silent(_.CXX, _.Opts_CXX, "-x", "c++-header", "-c", src[1], "-o", dst)
             end,
         },
 
@@ -629,92 +748,6 @@ end
 --  Projects
 
 Project "Beelzebub" {
-    Data = {
-        Sysroot                         = function(_) return _.outDir + "sysroot" end,
-        SysheadersPath                  = function(_) return _.Sysroot + "usr/include" end,
-        JegudielPath                    = function(_) return _.outDir + "jegudiel.bin" end,
-        CommonLibraryPath               = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
-        RuntimeLibraryPath              = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
-        KernelModuleLibraryPath         = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
-        TestKernelModulePath            = function(_) return _.Sysroot + "kmods/test.kmod" end,
-        KernelPath                      = function(_) return _.outDir + "beelzebub.bin" end,
-        LoadtestAppPath                 = function(_) return _.Sysroot + "apps/loadtest.exe" end,
-
-        CrtFiles = function(_)
-            return _.selArch.Data.CrtFiles:Select(function(val)
-                return _.Sysroot + "usr/lib" + val
-            end)
-        end,
-
-        IsoFile = function(_)
-            if _.selArch.Base.Data.ISO then
-                return _.outDir + ("beelzebub." .. _.selArch.Name .. "." .. _.selConf.Name .. ".iso")
-            end
-        end,
-
-        Opts_GCC_Precompiler = function(_)
-            local res = List {
-                "-D__BEELZEBUB",
-                "-D__BEELZEBUB__ARCH=" .. _.selArch.Name,
-                "-D__BEELZEBUB__CONF=" .. _.selConf.Name,
-                "-D__BEELZEBUB_SETTINGS_APIC_MODE=" .. settApicMode,
-                "-D__BEELZEBUB_SETTINGS_KRNDYNALLOC=" .. settKrnDynAlloc,
-                "-D__BEELZEBUB_SETTINGS_USRDYNALLOC=" .. settUsrDynAlloc,
-            } + testOptions:Select(function(val) return "-D" .. val end)
-
-            for arch in _.selArch:Hierarchy() do
-                res:Append("-D__BEELZEBUB__ARCH_" .. string.upper(arch.Name))
-            end
-
-            for conf in _.selConf:Hierarchy() do
-                res:Append("-D__BEELZEBUB__" .. string.upper(conf.Name))
-            end
-
-            res:Append("-D__BEELZEBUB_SETTINGS_APIC_MODE_" .. settApicMode)
-            res:Append("-D__BEELZEBUB_SETTINGS_KRNDYNALLOC_" .. settKrnDynAlloc)
-            res:Append("-D__BEELZEBUB_SETTINGS_USRDYNALLOC_" .. settUsrDynAlloc)
-
-            res:Append(settSmp
-                and "-D__BEELZEBUB_SETTINGS_SMP"
-                or "-D__BEELZEBUB_SETTINGS_NO_SMP")
-
-            res:Append(settInlineSpinlocks
-                and "-D__BEELZEBUB_SETTINGS_INLINE_SPINLOCKS"
-                or "-D__BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS")
-
-            res:Append(settUnitTests
-                and "-D__BEELZEBUB_SETTINGS_UNIT_TESTS"
-                or "-D__BEELZEBUB_SETTINGS_NO_UNIT_TESTS")
-
-            if settUnitTests == "quiet" then
-                res:Append("-D__BEELZEBUB_SETTINGS_UNIT_TESTS_QUIET")
-            end
-
-            return res
-        end,
-
-        Opts_GCC_Common = function(_)
-            return List {
-                "-pipe", "--sysroot=" .. tostring(_.Sysroot),
-            } + _.Opts_GCC_Precompiler
-            + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
-            + specialOptions
-        end,
-
-        StreamflowKernelLibraryPath     = function(_) return _.Sysroot + "usr/lib/libstreamflow.kernel.a" end,
-        StreamflowUserlandLibraryPath   = function(_) return _.Sysroot + "usr/lib/libstreamflow.userland.a" end,
-        JemallocKernelLibraryPath       = function(_) return _.Sysroot + "usr/lib/libjemalloc.kernel.a" end,
-        JemallocUserlandLibraryPath     = function(_) return _.Sysroot + "usr/lib/libjemalloc.userland.a" end,
-        
-        KernelDynamicAllocatorPath = function(_)
-            return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settKrnDynAlloc] .. ".kernel.a")
-        end,
-
-        UserlandDynamicAllocatorPath = function(_)
-            return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settUsrDynAlloc] .. ".userland.a")
-        end,
-    },
-
     Description = "Lord of Flies",
 
     Output = function(_)
@@ -833,7 +866,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(LD, _.Opts_LD, "-T", _.LinkerScript, "-o", dst, _.Objects)
+                sh.silent(_.LD, _.Opts_LD, "-T", _.LinkerScript, "-o", dst, _.Objects)
             end,
         },
 
@@ -845,7 +878,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
 
@@ -858,7 +891,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(CC, _.Opts_C, "-c", src[1], "-o", dst)
+                sh.silent(_.CC, _.Opts_C, "-c", src[1], "-o", dst)
             end,
         },
 
@@ -870,7 +903,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(AS, _.Opts_NASM, src[1], "-o", dst)
+                sh.silent(_.AS, _.Opts_NASM, src[1], "-o", dst)
             end,
         },
 
@@ -898,7 +931,7 @@ Project "Beelzebub" {
             Opts_CXX_CRT = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_CXX     = function(_) return _.Opts_CXX_CRT + List { "-O2", "-flto", } end,
             Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS_CRT = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS_CRT = function(_) return _.Opts_GCC end,
             Opts_GAS     = function(_) return _.Opts_GAS_CRT + List { "-flto", } end,
 
             Opts_AR = List { "rcs" },
@@ -916,7 +949,7 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
             Action = function(_, dst, src)
-                sh.silent(AR, _.Opts_AR, dst, _.Objects)
+                sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
             end,
         },
 
@@ -943,9 +976,9 @@ Project "Beelzebub" {
 
             Action = function(_, dst, src)
                 if src[1]:EndsWith(".cpp") then
-                    sh.silent(CXX, _.Opts_CXX_CRT, "-MD", "-MP", "-c", src[1], "-o", dst)
+                    sh.silent(_.CXX, _.Opts_CXX_CRT, "-MD", "-MP", "-c", src[1], "-o", dst)
                 else
-                    sh.silent(GAS, _.Opts_GAS_CRT, "-c", src[1], "-o", dst)
+                    sh.silent(_.GAS, _.Opts_GAS_CRT, "-c", src[1], "-o", dst)
                 end
             end,
         },
@@ -975,7 +1008,7 @@ Project "Beelzebub" {
             Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS     = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS     = function(_) return _.Opts_GCC end,
 
             Opts_AR = List { "rcs" },
         },
@@ -990,7 +1023,7 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
             Action = function(_, dst, src)
-                sh.silent(AR, _.Opts_AR, dst, _.Objects)
+                sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
             end,
         },
     },
@@ -1022,7 +1055,7 @@ Project "Beelzebub" {
             Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS     = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS     = function(_) return _.Opts_GCC end,
 
             Opts_AR = List { "rcs" },
         },
@@ -1037,7 +1070,7 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
             Action = function(_, dst, src)
-                sh.silent(AR, _.Opts_AR, dst, _.Objects)
+                sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
             end,
         },
     },
@@ -1059,7 +1092,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS  = function(_) return _.Opts_GCC end,
 
             Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 
@@ -1083,7 +1116,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
+                sh.silent(_.LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
             end,
         },
 
@@ -1095,7 +1128,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
     },
@@ -1117,7 +1150,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS  = function(_) return _.Opts_GCC end,
 
             Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 
@@ -1136,7 +1169,7 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
+                sh.silent(_.LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
             end,
         },
 
@@ -1148,7 +1181,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
     },
@@ -1169,7 +1202,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS  = function(_) return _.Opts_GCC end,
 
             Opts_LO = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } + _.Opts_GCC end,
 
@@ -1191,7 +1224,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
+                sh.silent(_.LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
             end,
         },
 
@@ -1203,7 +1236,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
     },
@@ -1237,7 +1270,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS  = function(_) return _.Opts_GCC end,
 
             Opts_LO = function(_) return _.Opts_GCC + List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } end,
 
@@ -1281,7 +1314,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-T", _.LinkerScript, "-o", dst, _.Objects, _.Opts_Libraries)
+                sh.silent(_.LO, _.Opts_LO, "-T", _.LinkerScript, "-o", dst, _.Objects, _.Opts_Libraries)
             end,
         },
 
@@ -1293,7 +1326,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
     },
@@ -1317,7 +1350,7 @@ Project "Beelzebub" {
             Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC + List { "-x", "assembler-with-cpp", } end,
+            Opts_GAS  = function(_) return _.Opts_GCC end,
 
             Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 
@@ -1341,7 +1374,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
+                sh.silent(_.LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
             end,
         },
 
@@ -1353,7 +1386,7 @@ Project "Beelzebub" {
             end,
 
             Action = function(_, dst, src)
-                sh.silent(STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
+                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
             end,
         },
     },
@@ -1432,7 +1465,7 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.IsoSources end,
 
             Action = function(_, dst, src)
-                sh.silent(MKISO, "-R", "-b", _.IsoEltoritoPath:Skip(_.IsoDirectory), "-no-emul-boot", "-boot-load-size", 4, "-boot-info-table", "-o", _.IsoFile, _.IsoDirectory)
+                sh.silent(_.MKISO, "-R", "-b", _.IsoEltoritoPath:Skip(_.IsoDirectory), "-no-emul-boot", "-boot-load-size", 4, "-boot-info-table", "-o", _.IsoFile, _.IsoDirectory)
             end,
         },
 
@@ -1441,7 +1474,7 @@ Project "Beelzebub" {
             Source = function(_, dst) return _.SysrootFiles end,
 
             Action = function(_, dst, src)
-                sh.silent(TAR, "czf", dst, _.Opts_TAR, ".")
+                sh.silent(_.TAR, "czf", dst, _.Opts_TAR, ".")
             end,
         },
 

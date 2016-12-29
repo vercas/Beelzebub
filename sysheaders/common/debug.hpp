@@ -310,7 +310,7 @@ ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_N, ASSERTX_1)(__VA_ARGS__)
 
 //  And now the debug ones!
 
-#ifdef __BEELZEBUB__DEBUG
+#ifdef __BEELZEBUB__CONF_DEBUG
     #define fail(...) FAIL(__VA_ARGS__)
 
     #define assert(...) ASSERT(__VA_ARGS__)

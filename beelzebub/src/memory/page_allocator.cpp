@@ -352,7 +352,7 @@ Handle PageAllocationSpace::PopPage(const pgind_t ind)
 
 /*  Debug  */
 
-#ifdef __BEELZEBUB__DEBUG
+#ifdef __BEELZEBUB__CONF_DEBUG
 // TerminalWriteResult PageAllocationSpace::PrintStackToTerminal(TerminalBase * const term, const bool details)
 // {
 //     TerminalWriteResult tret;

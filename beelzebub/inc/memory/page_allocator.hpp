@@ -208,7 +208,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Debug  */
 
-#ifdef __BEELZEBUB__DEBUG
+#ifdef __BEELZEBUB__CONF_DEBUG
         __forceinline char const * GetStatusString() const
         {
             switch (this->Status)
@@ -427,7 +427,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Debug  */
 
-#ifdef __BEELZEBUB__DEBUG
+#ifdef __BEELZEBUB__CONF_DEBUG
         // __cold Terminals::TerminalWriteResult PrintStackToTerminal(Terminals::TerminalBase * const term, bool const details);
 #endif
 

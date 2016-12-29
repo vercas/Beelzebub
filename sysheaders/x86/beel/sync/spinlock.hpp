@@ -100,7 +100,7 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Destructor  */
 
-#ifdef __BEELZEBUB__DEBUG
+#ifdef __BEELZEBUB__CONF_DEBUG
         ~Spinlock();
 #endif
 
