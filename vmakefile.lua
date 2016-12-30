@@ -40,7 +40,6 @@ require "vmake"
     thorough explanation regarding other files.
 ]]
 
-
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Configurations
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
@@ -65,7 +64,9 @@ Configuration "profile" {
     Base = "release",
 }
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Architectures
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 Architecture "amd64" {
     Data = {
@@ -129,7 +130,9 @@ Architecture "x86" {
     Auxiliary = true,
 }
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Toolchain
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 local xcsDir, settXcDir = Path(os.getenv("CROSSCOMPILERS_DIR") or "/usr/local"), nil
 
@@ -182,7 +185,9 @@ GlobalData {
     end,
 }
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Tests
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 local availableTests = List {
     "MT",
@@ -263,7 +268,9 @@ CmdOpt "unit-tests" {
     end,
 }
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Component Choices
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 local availableDynamicAllocators = List {
     "streamflow", "ptmalloc3", "jemalloc", "none"
@@ -303,7 +310,9 @@ CmdOpt "userland-dynalloc" {
     end,
 }
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Code Generation Options
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 local availableApicModes = List {
     "legacy", "x2apic", "flexible"
@@ -375,7 +384,9 @@ CmdOpt "apic-mode" {
     end,
 }
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Dependency Management
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 local settMakeDeps = true
 
@@ -386,7 +397,9 @@ CmdOpt "no-make-deps" {
     Handler = function(_, val) settMakeDeps = false end,
 }
 
---  Options nad Parameters
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+--  Options and Parameters
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 GlobalData {
     Opts_GCC_Tests = function(_)
@@ -443,7 +456,9 @@ GlobalData {
     end,
 }
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Main File Locations
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 GlobalData {
     Sysroot                 = function(_) return _.outDir + "sysroot" end,
@@ -482,7 +497,9 @@ GlobalData {
     end,
 }
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Utilities
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 local dynAllocLibs = {
     STREAMFLOW = "streamflow",
@@ -745,7 +762,9 @@ local function ArchitecturalComponent(name)
     end
 end
 
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Projects
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 Project "Beelzebub" {
     Description = "Lord of Flies",
@@ -1529,16 +1548,12 @@ Project "Beelzebub" {
         },
     },
 
-    Rule "Create Directory" {
-        Shared = true,
-
-        Filter = function(_, dst) return dst == _.ObjectsDirectory or dst.IsDirectory end,
-
-        Action = function(_, dst, src)
-            fs.MkDir(dst)
-        end,
-    },
+    CreateMissingDirectoriesRule(true),
 }
+
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
+--  Wrap up
+--  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 Default "Beelzebub" "amd64" "debug"
 
