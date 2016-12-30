@@ -68,6 +68,8 @@ namespace Beelzebub { namespace Memory
 
         static bool Page1GB, NX, PCID;
 
+        static __thread paddr_t LastAlienPml4;
+
         //  End of the lower half address range.
         static constexpr vaddr_t const LowerHalfEnd              = 0x0000800000000000ULL;
         //  Start of the higher half address range.

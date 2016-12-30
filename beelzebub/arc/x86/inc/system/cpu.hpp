@@ -119,9 +119,6 @@ namespace Beelzebub { namespace System
      */
     struct CpuData : public CpuDataBase
     {
-        paddr_t LastAlienPml4;
-        //  Used to invalidate TLBs when dealing with alien mappings, smartly.
-
         Domain * DomainDescriptor = nullptr;
         Tss EmbeddedTss;
 

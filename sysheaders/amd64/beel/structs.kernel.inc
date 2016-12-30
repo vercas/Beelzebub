@@ -110,12 +110,10 @@ struc CpuData
 .LapicId:               RESD 1
 .Padding1:              RESD 1
 .SyscallStack:          RESQ 1
-.SyscallUserlandStack:  RESQ 1
 .SyscallRegisters:      RESB SyscallRegisters64.size
 .ActiveThread:          RESQ 1
 .ActiveProcess:         RESQ 1
 ;   Here be dragons.
-.LastAlienPml4:         RESQ 1
 .DomainDescriptor:      RESQ 1
 .Tss:                   RESB Tss.size
 .size:

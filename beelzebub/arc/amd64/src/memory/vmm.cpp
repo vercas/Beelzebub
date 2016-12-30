@@ -76,6 +76,7 @@ static __forceinline bool Is2MiBAligned(TInt val) { return (val & (LargePageSize
 bool VmmArc::Page1GB = false;
 bool VmmArc::NX = false;
 bool VmmArc::PCID = false;
+__thread paddr_t VmmArc::LastAlienPml4;
 
 static uintptr_t BootstrapKVasAddr;
 static size_t const BootstrapKVasPageCount = 3;
@@ -319,7 +320,7 @@ Handle Vmm::Initialize(Process * proc)
         //  snuggly together and drink hot cocoa.
 
         if (CpuDataSetUp)
-            Cpu::GetData()->LastAlienPml4 = pml4_paddr;
+            VmmArc::LastAlienPml4 = pml4_paddr;
     }
 
     return proc->Vas.Initialize(UserlandStart, UserlandEnd
@@ -381,7 +382,7 @@ static __hot __noinline Handle TranslateInternal(Process * proc
         pml2p = VmmArc::GetAlienPml2(vaddr);
         pml1p = VmmArc::GetAlienPml1(vaddr);
 
-        if (!CpuDataSetUp || proc->PagingTable != Cpu::GetData()->LastAlienPml4)
+        if (!CpuDataSetUp || proc->PagingTable != VmmArc::LastAlienPml4)
         {
             CpuInstructions::InvalidateTlb(pml4p);
             CpuInstructions::InvalidateTlb(pml3p);
@@ -391,7 +392,7 @@ static __hot __noinline Handle TranslateInternal(Process * proc
             //  Invalidate all!
 
             if (CpuDataSetUp)
-                Cpu::GetData()->LastAlienPml4 = proc->PagingTable;
+                VmmArc::LastAlienPml4 = proc->PagingTable;
         }
     }
     else
@@ -479,7 +480,7 @@ static __hot Handle MapPageInternal(Process * const proc
         pml2p = VmmArc::GetAlienPml2(vaddr);
         pml1p = VmmArc::GetAlienPml1(vaddr);
 
-        if (!CpuDataSetUp || proc->PagingTable != Cpu::GetData()->LastAlienPml4)
+        if (!CpuDataSetUp || proc->PagingTable != VmmArc::LastAlienPml4)
         {
             CpuInstructions::InvalidateTlb(pml4p);
             CpuInstructions::InvalidateTlb(pml3p);
@@ -489,7 +490,7 @@ static __hot Handle MapPageInternal(Process * const proc
             //  Invalidate all!
 
             if (CpuDataSetUp)
-                Cpu::GetData()->LastAlienPml4 = proc->PagingTable;
+                VmmArc::LastAlienPml4 = proc->PagingTable;
         }
     }
     else
