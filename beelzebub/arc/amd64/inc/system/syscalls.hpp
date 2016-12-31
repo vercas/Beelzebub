@@ -39,14 +39,16 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
+#include <beel/structs.kernel.hpp>
 
 namespace Beelzebub { namespace System
 {
     __extern void SyscallEntry_64();
     __extern void SyscallEntry_32();
 
+    __extern __thread uintptr_t SyscallStack;
     __extern __thread uintptr_t SyscallUserlandStack;
+    __extern __thread SyscallRegisters64 SyscallRegisters;
 
     /**
      *  <summary>Contains methods for interfacing with syscalls.</summary>

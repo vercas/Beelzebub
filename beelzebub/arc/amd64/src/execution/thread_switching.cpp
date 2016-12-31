@@ -37,9 +37,10 @@
     thorough explanation regarding other files.
 */
 
-#include <execution/thread.hpp>
-#include <system/cpu.hpp>
-#include <system/fpu.hpp>
+#include "execution/thread.hpp"
+#include "system/cpu.hpp"
+#include "system/fpu.hpp"
+#include "system/syscalls.hpp"
 
 #include <string.h>
 #include <debug.hpp>
@@ -90,7 +91,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     cpuData->ActiveThread = other;
     cpuData->ActiveProcess = otherProc;
     cpuData->EmbeddedTss.Rsp[0] = other->KernelStackTop;
-    cpuData->SyscallStack = other->KernelStackTop;
+    SyscallStack = other->KernelStackTop;
 
     //msg("B");
 

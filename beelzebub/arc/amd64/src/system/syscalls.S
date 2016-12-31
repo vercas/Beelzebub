@@ -59,8 +59,10 @@ SyscallEntry_64:
     swapgs
     //  Grab kernel GS base ASAP.
 
+    movq    %rax, %gs:(SyscallRegisters@tpoff + FIELDR(SyscallRegisters64, RAX))
+
     movq    %rsp, %gs:SyscallUserlandStack@tpoff
-    movq    %gs:(FIELDR(CpuData, SyscallStack)), %rsp
+    movq    %gs:SyscallStack@tpoff, %rsp
     //  Back up user stack pointer into core data and retrieve the kernel
     //  stack pointer, also ASAP.
 

@@ -157,9 +157,6 @@ namespace Beelzebub
         uint32_t LapicId;
         uint32_t Padding1;
 
-        uintptr_t SyscallStack;
-        SyscallRegisters64 SyscallRegisters;
-
         MONIKER(Thread) * ActiveThread;
         MONIKER(Process) * ActiveProcess;
     } __aligned(128);

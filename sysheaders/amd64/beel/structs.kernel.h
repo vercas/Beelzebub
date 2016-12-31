@@ -191,8 +191,6 @@ FIELDT(CpuData, SelfPointer         , uintptr_t         )
 FIELDT(CpuData, Index               , size_t            )
 FIELDT(CpuData, LapicId             , uint32_t          )
 FIELDT(CpuData, Padding1            , uint32_t          )
-FIELDT(CpuData, SyscallStack        , uintptr_t         )
-FIELDT(CpuData, SyscallRegisters    , SyscallRegisters64)
 FIELDT(CpuData, ActiveThread        , uintptr_t         )
 FIELDT(CpuData, ActiveProcess       , uintptr_t         )
 CpuData_size:
