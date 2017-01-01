@@ -292,7 +292,18 @@ comp_t strcasencmp(char const * src1, char const * src2, size_t len)
     return res;
 }
 
-char const * strstr(char const * haystack, char const * needle)
+char * strchr(char const * haystack, int needle)
+{
+    char c;
+
+    while ((c = *(haystack++)) != '\0')
+        if (c == needle)
+            return (char *)haystack - 1;
+
+    return nullptr;
+}
+
+char * strstr(char const * haystack, char const * needle)
 {
     size_t hLen = strlen(haystack), nLen = strlen(needle);
 
@@ -304,7 +315,7 @@ char const * strstr(char const * haystack, char const * needle)
 
     for (size_t i = 0; i <= lenDiff; ++i)
         if (memeq(haystack + i, needle, nLen))
-            return haystack + i;
+            return (char *)(haystack + i);
 
     return nullptr;
 }

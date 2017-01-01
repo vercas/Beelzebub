@@ -83,7 +83,8 @@ __shared_inline comp_t strncmp(char const * src1, char const * src2, size_t len)
 __shared_inline comp_t strcasecmp(char const * src1, char const * src2);
 __shared_inline comp_t strcasencmp(char const * src1, char const * src2, size_t len);
 
-__shared_inline char const * strstr(char const * haystack, char const * needle);
+__shared_inline char * strchr(char const * haystack, int needle);
+__shared_inline char * strstr(char const * haystack, char const * needle);
 
 __shared_inline char const * strstrex(char const * haystack, char const * needle, char const * seps);
 __shared_inline char const * strcasestrex(char const * haystack, char const * needle, char const * seps);
