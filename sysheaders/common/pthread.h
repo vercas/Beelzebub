@@ -84,6 +84,16 @@
         SpinlockUninterruptibleReset(&(m->Lock));
     }
 
+    static inline int pthread_mutexattr_init(pthread_mutexattr_t * attr)
+    {
+        return 0;
+    }
+
+    static inline int pthread_mutexattr_destroy(pthread_mutexattr_t * attr)
+    {
+        return 0;
+    }
+
     static inline int pthread_mutexattr_gettype(pthread_mutexattr_t const * attr, int * type)
     {
         *type = attr->Type;

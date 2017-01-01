@@ -39,15 +39,18 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
+#include <time.h>
 
-enum _SC_
+struct timeval
 {
-    _SC_NPROCESSORS_ONLN,
+    time_t      tv_sec;
+    suseconds_t tv_usec;
 };
 
-__shared int brk(void * addr);
+struct timezone
+{
+    int tz_minuteswest;
+    int tz_dsttime;
+};
 
-__shared void * sbrk(intptr_t increment);
-
-__shared long sysconf(int name);
+__shared int gettimeofday(struct timeval * tv, struct timezone * tz);

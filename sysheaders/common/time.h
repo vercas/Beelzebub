@@ -41,13 +41,6 @@
 
 #include <beel/metaprogramming.h>
 
-enum _SC_
-{
-    _SC_NPROCESSORS_ONLN,
-};
-
-__shared int brk(void * addr);
-
-__shared void * sbrk(intptr_t increment);
-
-__shared long sysconf(int name);
+typedef int64_t time_t;
+typedef int64_t clock_t;
+typedef int32_t suseconds_t;
