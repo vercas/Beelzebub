@@ -39,9 +39,9 @@
 
 #pragma once
 
-#include <synchronization/atomic.hpp>
-#include <cores.hpp>
-#include <system/cpu_instructions.hpp>
+#include <beel/sync/atomic.hpp>
+#include "cores.hpp"
+#include "system/cpu_instructions.hpp"
 
 namespace Beelzebub { namespace Synchronization
 {
