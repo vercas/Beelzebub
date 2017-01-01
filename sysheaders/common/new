@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
+#include <stdlib.h>
 
 namespace std
 {
@@ -53,41 +53,80 @@ namespace std
 #ifndef __BEELZEBUB__IN_KERNEL
     __returns_nonnull
 #endif
-__malloc void * operator new(std::size_t)
+__forceinline __malloc void * operator new(std::size_t size)
 #ifdef __BEELZEBUB__IN_KERNEL
-    noexcept;
+    noexcept
 #else
-    throw(std::bad_alloc);
+    throw(std::bad_alloc)
 #endif
+{
+    return malloc(size);
+}
 
 #ifndef __BEELZEBUB__IN_KERNEL
     __returns_nonnull
 #endif
-__malloc void * operator new[](std::size_t)
+__forceinline __malloc void * operator new[](std::size_t size)
 #ifdef __BEELZEBUB__IN_KERNEL
-    noexcept;
+    noexcept
 #else
-    throw(std::bad_alloc);
+    throw(std::bad_alloc)
 #endif
+{
+    return malloc(size);
+}
 
-void   operator delete(void *) noexcept;
-void   operator delete[](void *) noexcept;
+__forceinline void operator delete(void * ptr) noexcept
+{
+    free(ptr);
+}
+
+__forceinline void operator delete[](void * ptr) noexcept
+{
+    free(ptr);
+}
 
 #if __cplusplus >= 201402L
-void operator delete(void*, std::size_t) noexcept;
-void operator delete[](void*, std::size_t) noexcept;
+__forceinline void operator delete(void * ptr, std::size_t size) noexcept
+{
+    (void)size;
+
+    free(ptr);
+}
+
+__forceinline void operator delete[](void * ptr, std::size_t size) noexcept
+{
+    (void)size;
+
+    free(ptr);
+}
 #endif
 
-__malloc void * operator new     (std::size_t, std::nothrow_t const &) noexcept;
-__malloc void * operator new[]   (std::size_t, std::nothrow_t const &) noexcept;
-void   operator delete  (void *, std::nothrow_t const &) noexcept;
-void   operator delete[](void *, std::nothrow_t const &) noexcept;
+__forceinline __malloc void * operator new(std::size_t size, std::nothrow_t const &) noexcept
+{
+    return malloc(size);
+}
+
+__forceinline __malloc void * operator new[](std::size_t size, std::nothrow_t const &) noexcept
+{
+    return malloc(size);
+}
+
+__forceinline void operator delete(void * ptr, std::nothrow_t const &) noexcept
+{
+    free(ptr);
+}
+
+__forceinline void operator delete[](void * ptr, std::nothrow_t const &) noexcept
+{
+    free(ptr);
+}
 
 #if !defined(__BEELZEBUB__PLACEMENT_NEW)
     #define __BEELZEBUB__PLACEMENT_NEW
     
-    __returns_nonnull inline void * operator new     (std::size_t, void * p) noexcept { return p; }
-    __returns_nonnull inline void * operator new[]   (std::size_t, void * p) noexcept { return p; }
-    __forceinline void   operator delete  (void *, void *  ) noexcept { }
-    __forceinline void   operator delete[](void *, void *  ) noexcept { }
+    __returns_nonnull inline void * operator new  (std::size_t, void * p) noexcept { return p; }
+    __returns_nonnull inline void * operator new[](std::size_t, void * p) noexcept { return p; }
+    __forceinline void operator delete  (void *, void *) noexcept { }
+    __forceinline void operator delete[](void *, void *) noexcept { }
 #endif

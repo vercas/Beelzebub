@@ -37,11 +37,11 @@
     thorough explanation regarding other files.
 */
 
-#include <memory/object_allocator_pools_heap.hpp>
-#include <memory/vmm.hpp>
-#include <system/cpu.hpp>
-#include <kernel.hpp>
-#include <entry.h>
+#include "memory/object_allocator_pools_heap.hpp"
+#include "memory/vmm.hpp"
+#include "system/cpu.hpp"
+#include "kernel.hpp"
+#include "entry.h"
 
 #include <math.h>
 #include <debug.hpp>
