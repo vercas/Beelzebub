@@ -192,7 +192,7 @@ GlobalData {
 local availableTests = List {
     "MT",
     -- "STR",
-    --"OBJA",
+    -- "OBJA",
     --"METAP",
     --"EXCP",
     "APP",
@@ -276,7 +276,7 @@ local availableDynamicAllocators = List {
     "streamflow", "ptmalloc3", "jemalloc", "none"
 }
 
-local settKrnDynAlloc, settUsrDynAlloc = "NONE", "NONE"
+local settKrnDynAlloc, settUsrDynAlloc = "JEMALLOC", "NONE"
 
 CmdOpt "kernel-dynalloc" {
     Description = "The dynamic allocator used in the kernel; defaults to " .. settKrnDynAlloc .. ".",
@@ -460,6 +460,12 @@ GlobalData {
 --  Main File Locations
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
+local dynAllocLibs = {
+    STREAMFLOW = "streamflow",
+    PTMALLOC3 = "ptmalloc3",
+    JEMALLOC = "jemalloc",
+}
+
 GlobalData {
     Sysroot                 = function(_) return _.outDir + "sysroot" end,
     SysheadersPath          = function(_) return _.Sysroot + "usr/include" end,
@@ -500,12 +506,6 @@ GlobalData {
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 --  Utilities
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
-
-local dynAllocLibs = {
-    STREAMFLOW = "streamflow",
-    PTMALLOC3 = "ptmalloc3",
-    JEMALLOC = "jemalloc",
-}
 
 local function parseObjectExtension(path, header)
     if header then
@@ -1061,6 +1061,7 @@ Project "Beelzebub" {
                     "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
                     "-DJEMALLOC_MALLOC_THREAD_CLEANUP",
                     "-DJEMALLOC_PURGE_MADVISE_FREE",
+                    "-DJEMALLOC_NO_RENAME",
                 } + _.Opts_GCC_Common + _.Opts_Includes
                 + _.selArch.Data.Opts_GCC_Kernel
 
@@ -1117,7 +1118,17 @@ Project "Beelzebub" {
 
             Opts_STRIP = List { "-s" },
 
-            Libraries = function(_) return List { "common." .. _.selArch.Name, } end,
+            Libraries = function(_)
+                local res = List {
+                    "common." .. _.selArch.Name,
+                }
+
+                if settUsrDynAlloc ~= "NONE" then
+                    res:Append(dynAllocLibs[settUsrDynAlloc] .. ".userland")
+                end
+
+                return res;
+            end,
         },
 
         Directory = "libs/runtime",
@@ -1301,7 +1312,7 @@ Project "Beelzebub" {
                 }
 
                 if settKrnDynAlloc ~= "NONE" then
-                    res:Append(dynAllocLibs[settKrnDynAlloc])
+                    res:Append(dynAllocLibs[settKrnDynAlloc] .. ".kernel")
                 end
 
                 return res;
