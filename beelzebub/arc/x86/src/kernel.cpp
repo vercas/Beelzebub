@@ -649,7 +649,7 @@ void Beelzebub::Main()
 #endif
 
         MainInitializeExtraCpus();
-        MainElideLocks();
+        // MainElideLocks();
 
         MainInitializeRuntimeLibraries();
 
