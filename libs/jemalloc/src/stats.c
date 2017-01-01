@@ -1,6 +1,10 @@
 #define	JEMALLOC_STATS_C_
 #include "jemalloc/internal/jemalloc_internal.h"
 
+#ifdef __BEELZEBUB_KERNEL
+#include <beel/debug.funcs.h>
+#endif
+
 #define	CTL_GET(n, v, t) do {						\
 	size_t sz = sizeof(t);						\
 	xmallctl(n, v, &sz, NULL, 0);					\
@@ -398,9 +402,13 @@ stats_print(void (*write_cb)(void *, const char *), void *cbopaque,
 			    "mallctl(\"epoch\", ...)\n");
 			return;
 		}
+#ifdef __BEELZEBUB_KERNEL
+		CatchFire(__FILE__, __LINE__, NULL, "<jemalloc>: Failure in mallctl(\"epoch\", ...)\n");
+#else
 		malloc_write("<jemalloc>: Failure in mallctl(\"epoch\", "
 		    "...)\n");
 		abort();
+#endif
 	}
 
 	if (opts != NULL) {

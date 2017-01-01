@@ -82,6 +82,14 @@ void	ctl_prefork(tsdn_t *tsdn);
 void	ctl_postfork_parent(tsdn_t *tsdn);
 void	ctl_postfork_child(tsdn_t *tsdn);
 
+#ifdef __BEELZEBUB_KERNEL
+#define	xmallctl(name, oldp, oldlenp, newp, newlen) do {		\
+	if (je_mallctl(name, oldp, oldlenp, newp, newlen)		\
+	    != 0) {							\
+		CatchFireFormat(__FILE__, __LINE__, NULL, "<jemalloc>: Failure in xmallctl(\"%s\", ...)\n", name);	\
+	}								\
+} while (0)
+#else
 #define	xmallctl(name, oldp, oldlenp, newp, newlen) do {		\
 	if (je_mallctl(name, oldp, oldlenp, newp, newlen)		\
 	    != 0) {							\
@@ -91,7 +99,15 @@ void	ctl_postfork_child(tsdn_t *tsdn);
 		abort();						\
 	}								\
 } while (0)
+#endif
 
+#ifdef __BEELZEBUB_KERNEL
+#define	xmallctlnametomib(name, mibp, miblenp) do {			\
+	if (je_mallctlnametomib(name, mibp, miblenp) != 0) {		\
+		CatchFireFormat(__FILE__, __LINE__, NULL, "<jemalloc>: Failure in xmallctlnametomib(\"%s\", ...)\n", name);	\
+	}								\
+} while (0)
+#else
 #define	xmallctlnametomib(name, mibp, miblenp) do {			\
 	if (je_mallctlnametomib(name, mibp, miblenp) != 0) {		\
 		malloc_printf("<jemalloc>: Failure in "			\
@@ -99,7 +115,16 @@ void	ctl_postfork_child(tsdn_t *tsdn);
 		abort();						\
 	}								\
 } while (0)
+#endif
 
+#ifdef __BEELZEBUB_KERNEL
+#define	xmallctlbymib(mib, miblen, oldp, oldlenp, newp, newlen) do {	\
+	if (je_mallctlbymib(mib, miblen, oldp, oldlenp, newp,		\
+	    newlen) != 0) {						\
+		CatchFire(__FILE__, __LINE__, NULL, "<jemalloc>: Failure in xmallctlbymib()\n");	\
+	}								\
+} while (0)
+#else
 #define	xmallctlbymib(mib, miblen, oldp, oldlenp, newp, newlen) do {	\
 	if (je_mallctlbymib(mib, miblen, oldp, oldlenp, newp,		\
 	    newlen) != 0) {						\
@@ -108,6 +133,7 @@ void	ctl_postfork_child(tsdn_t *tsdn);
 		abort();						\
 	}								\
 } while (0)
+#endif
 
 #endif /* JEMALLOC_H_EXTERNS */
 /******************************************************************************/

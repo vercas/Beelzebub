@@ -1,5 +1,7 @@
 #include "jemalloc/internal/jemalloc_internal.h"
 
+#include <sys/time.h>
+
 #define	BILLION	UINT64_C(1000000000)
 
 void

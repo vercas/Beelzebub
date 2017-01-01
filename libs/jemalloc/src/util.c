@@ -27,6 +27,8 @@
 #define	JEMALLOC_UTIL_C_
 #include "jemalloc/internal/jemalloc_internal.h"
 
+#include <beel/debug.funcs.h>
+
 /******************************************************************************/
 /* Function prototypes for non-inline static functions. */
 
@@ -48,8 +50,9 @@ static char	*x2s(uintmax_t x, bool alt_form, bool uppercase, char *s,
 static void
 wrtmessage(void *cbopaque, const char *s)
 {
-
-#ifdef SYS_write
+#ifdef __BEELZEBUB
+	DebugMessage(s);
+#elif defined(SYS_write)
 	/*
 	 * Use syscall(2) rather than write(2) when possible in order to avoid
 	 * the possibility of memory allocation within libc.  This is necessary
