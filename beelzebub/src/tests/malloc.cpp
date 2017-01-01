@@ -43,8 +43,8 @@
 #include "cores.hpp"
 #include <new>
 
-#include <synchronization/atomic.hpp>
-#include <synchronization/spinlock.hpp>
+#include <beel/sync/atomic.hpp>
+#include <beel/sync/spinlock.hpp>
 #include <math.h>
 #include <debug.hpp>
 
