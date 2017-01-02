@@ -37,6 +37,18 @@ SECTIONS
         *(.rodata.str1.1)
     }
 
+    .eh_frame           : ONLY_IF_RO { KEEP (*(.eh_frame)) *(.eh_frame.*) }
+
+    /* Exception handling  */
+    .eh_frame           : ONLY_IF_RW { KEEP (*(.eh_frame)) *(.eh_frame.*) }
+    .gnu_extab          : ONLY_IF_RW { *(.gnu_extab) }
+    .gcc_except_table   : ONLY_IF_RW { *(.gcc_except_table .gcc_except_table.*) }
+    .exception_ranges   : ONLY_IF_RW { *(.exception_ranges .exception_ranges*) }
+
+    /* Thread Local Storage sections  */
+    .tdata              : { *(.tdata .tdata.* .gnu.linkonce.td.*) }
+    .tbss               : { *(.tbss .tbss.* .gnu.linkonce.tb.*) *(.tcommon) }
+
     .data ALIGN(0x1000) : {
         *(.data)
         . = ALIGN(16);
@@ -83,7 +95,6 @@ SECTIONS
     kernel_mapping_end = .;
 
     /DISCARD/ : {
-        *(.eh_frame)
         *(.comment)
     }
 }
