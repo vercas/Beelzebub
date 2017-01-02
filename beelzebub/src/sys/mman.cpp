@@ -92,8 +92,14 @@ failure:
 
 int munmap(void * addr, size_t length)
 {
-    (void)addr;
-    (void)length;
+    MSG_("munmap %Xp %Xs%n", addr, length);
+
+    Handle res = Vmm::FreePages(nullptr, reinterpret_cast<uintptr_t>(addr), length);
+
+    if unlikely(res != HandleResult::Okay)
+    {
+        return -1;
+    }
 
     return 0;
 }
@@ -104,6 +110,8 @@ void * mremap(void * old_address, size_t old_size, size_t new_size, int flags, .
     (void)old_size;
     (void)new_size;
     (void)flags;
+
+    FAIL();
 
     return nullptr;
 }
