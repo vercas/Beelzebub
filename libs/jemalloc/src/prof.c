@@ -1,4 +1,3 @@
-#ifdef JEMALLOC_PROF
 #define	JEMALLOC_PROF_C_
 #include "jemalloc/internal/jemalloc_internal.h"
 /******************************************************************************/
@@ -1409,7 +1408,11 @@ prof_open_maps(const char *format, ...)
 	va_start(ap, format);
 	malloc_vsnprintf(filename, sizeof(filename), format, ap);
 	va_end(ap);
+#ifndef __BEELZEBUB_KERNEL
 	mfd = open(filename, O_RDONLY);
+#else
+	CatchFireFormat(__FILE__, __LINE__, NULL, "<jemalloc>: Tried to open \"map\": %s%n", filename);
+#endif
 
 	return (mfd);
 }
@@ -2357,4 +2360,3 @@ prof_postfork_child(tsdn_t *tsdn)
 }
 
 /******************************************************************************/
-#endif

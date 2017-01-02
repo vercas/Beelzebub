@@ -41,14 +41,4 @@
 
 #include <beel/metaprogramming.h>
 
-__shared void * malloc(size_t);
-__shared void * calloc(size_t cnt, size_t size);
-__shared void * valloc(size_t);
-__shared void * memalign(size_t boundary, size_t size);
-__shared int posix_memalign(void * * memptr, size_t alignment, size_t size);
-__shared void * realloc(void *, size_t);
-__shared void free(void *);
-
-__shared char * getenv(char const * key);
-
-__shared __noreturn void abort(void);
+__extern void InitializeJemalloc(bool bsp);

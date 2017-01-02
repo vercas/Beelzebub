@@ -64,6 +64,10 @@
 #include "system/syscalls.hpp"
 #include "system/acpi.hpp"
 
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_JEMALLOC
+#include <beel/jemalloc.h>
+#endif
+
 #include "memory/vmm.arc.hpp"
 
 #include "ap_bootstrap.hpp"
@@ -607,6 +611,10 @@ void Beelzebub::Main()
         MainInitializeVirtualMemory();
         MainInitializeBootModules();
         MainInitializeCores();
+
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_JEMALLOC
+        InitializeJemalloc(true);
+#endif
 
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
         MainRunUnitTests();

@@ -119,7 +119,7 @@
 // #define JEMALLOC_STATS 
 
 /* JEMALLOC_PROF enables allocation profiling. */
-#undef JEMALLOC_PROF
+// #undef JEMALLOC_PROF
 
 /* Use libunwind for profile backtracing if defined. */
 /* #undef JEMALLOC_PROF_LIBUNWIND */

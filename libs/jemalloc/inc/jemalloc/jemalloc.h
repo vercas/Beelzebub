@@ -4,6 +4,10 @@
 extern "C" {
 #endif
 
+#ifndef PATH_MAX
+#define PATH_MAX (1024)
+#endif
+
 /* Defined if __attribute__((...)) syntax is supported. */
 #define	JEMALLOC_HAVE_ATTR
 

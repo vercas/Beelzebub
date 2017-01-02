@@ -1341,17 +1341,17 @@ malloc_init_hard_recursible(void)
 
 	ncpus = malloc_ncpus();
 
-#if (!defined(JEMALLOC_MUTEX_INIT_CB) && !defined(JEMALLOC_ZONE) \
-    && !defined(_WIN32) && !defined(__native_client__))
-	/* LinuxThreads' pthread_atfork() allocates. */
-	if (pthread_atfork(jemalloc_prefork, jemalloc_postfork_parent,
-	    jemalloc_postfork_child) != 0) {
-		malloc_write("<jemalloc>: Error in pthread_atfork()\n");
-		if (opt_abort)
-			abort();
-		return (true);
-	}
-#endif
+// #if (!defined(JEMALLOC_MUTEX_INIT_CB) && !defined(JEMALLOC_ZONE) \
+//     && !defined(_WIN32) && !defined(__native_client__))
+// 	/* LinuxThreads' pthread_atfork() allocates. */
+// 	if (pthread_atfork(jemalloc_prefork, jemalloc_postfork_parent,
+// 	    jemalloc_postfork_child) != 0) {
+// 		malloc_write("<jemalloc>: Error in pthread_atfork()\n");
+// 		if (opt_abort)
+// 			abort();
+// 		return (true);
+// 	}
+// #endif
 
 	return (false);
 }
@@ -2708,6 +2708,13 @@ jemalloc_constructor(void)
 }
 #endif
 
+#include <beel/jemalloc.h>
+
+void InitializeJemalloc(bool bsp)
+{
+	malloc_init();
+}
+
 #ifndef JEMALLOC_MUTEX_INIT_CB
 void
 jemalloc_prefork(void)
@@ -2734,7 +2741,7 @@ _malloc_prefork(void)
 	/* Acquire all mutexes in a safe order. */
 	ctl_prefork(tsd_tsdn(tsd));
 	malloc_mutex_prefork(tsd_tsdn(tsd), &arenas_lock);
-	prof_prefork0(tsd_tsdn(tsd));
+	// prof_prefork0(tsd_tsdn(tsd));
 	for (i = 0; i < 3; i++) {
 		for (j = 0; j < narenas; j++) {
 			if ((arena = arena_get(tsd_tsdn(tsd), j, false)) !=
@@ -2760,7 +2767,7 @@ _malloc_prefork(void)
 		if ((arena = arena_get(tsd_tsdn(tsd), i, false)) != NULL)
 			arena_prefork3(tsd_tsdn(tsd), arena);
 	}
-	prof_prefork1(tsd_tsdn(tsd));
+	// prof_prefork1(tsd_tsdn(tsd));
 }
 
 #ifndef JEMALLOC_MUTEX_INIT_CB
@@ -2792,7 +2799,7 @@ _malloc_postfork(void)
 		if ((arena = arena_get(tsd_tsdn(tsd), i, false)) != NULL)
 			arena_postfork_parent(tsd_tsdn(tsd), arena);
 	}
-	prof_postfork_parent(tsd_tsdn(tsd));
+	// prof_postfork_parent(tsd_tsdn(tsd));
 	malloc_mutex_postfork_parent(tsd_tsdn(tsd), &arenas_lock);
 	ctl_postfork_parent(tsd_tsdn(tsd));
 }
@@ -2817,7 +2824,7 @@ jemalloc_postfork_child(void)
 		if ((arena = arena_get(tsd_tsdn(tsd), i, false)) != NULL)
 			arena_postfork_child(tsd_tsdn(tsd), arena);
 	}
-	prof_postfork_child(tsd_tsdn(tsd));
+	// prof_postfork_child(tsd_tsdn(tsd));
 	malloc_mutex_postfork_child(tsd_tsdn(tsd), &arenas_lock);
 	ctl_postfork_child(tsd_tsdn(tsd));
 }
