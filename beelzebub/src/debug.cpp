@@ -38,7 +38,7 @@
 */
 
 #include <debug.hpp>
-#include <system/cpu.hpp>
+#include "cores.hpp"
 #include <beel/interrupt.state.hpp>
 
 using namespace Beelzebub;
@@ -63,8 +63,13 @@ static __cold __noreturn void Die()
 
     DEBUG_TERM_ << "Core " << Cpu::GetData()->Index << " is setting the system on fire." << EndLine;
 
-    ALLOCATE_MAIL_BROADCAST(mail, &Killer);
-    mail.Post(false);
+#if defined(__BEELZEBUB_SETTINGS_SMP)
+    if unlikely(Cores::IsReady())
+    {
+        ALLOCATE_MAIL_BROADCAST(mail, &Killer);
+        mail.Post(false);
+    }
+#endif
 
     //  Allow the CPU to rest.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
