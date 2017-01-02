@@ -81,3 +81,18 @@ typedef __uint128_t uint128_t;
     #define SIZE_OF_intptr_t 8
     #define SIZE_OF_uintptr_t 8
 #endif
+
+/****************
+    Constants
+****************/
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+namespace Beelzebub
+{
+    static constexpr size_t const LargePageSize = 0x200000;
+}
+#elif !defined(__ASSEMBLER__)
+#define __LARGE_PAGE_SIZE   ((size_t)0x200000)
+#else
+#define __LARGE_PAGE_SIZE   0x200000
+#endif
