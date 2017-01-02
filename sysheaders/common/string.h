@@ -88,3 +88,14 @@ __shared_inline char * strstr(char const * haystack, char const * needle);
 
 __shared_inline char const * strstrex(char const * haystack, char const * needle, char const * seps);
 __shared_inline char const * strcasestrex(char const * haystack, char const * needle, char const * seps);
+
+__shared char const * strerrorc(int errnum);
+__shared char * strerror(int errnum);
+
+#ifdef _GNU_SOURCE
+__shared char * strerror_r(int errnum, char * buf, size_t buflen);
+            /* GNU-specific */
+#else
+__shared int strerror_r(int errnum, char * buf, size_t buflen);
+            /* XSI-compliant */
+#endif

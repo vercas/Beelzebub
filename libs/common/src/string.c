@@ -373,3 +373,88 @@ char const * strcasestrex(char const * haystack, char const * needle, char const
 
     return nullptr;
 }
+
+#include <errno.h>
+
+char const * strerrorc(int errnum)
+{
+    switch (errnum)
+    {
+#define ERRNO_VAL(n, v, s) case n: return s;
+    ENUM_ERRNO(ERRNO_VAL)
+#undef ERRNO_VAL
+    default:
+        errno = EINVAL;
+        return NULL;
+    }
+}
+
+#ifdef _GNU_SOURCE
+char * strerror_r(int errnum, char * buf, size_t buflen)
+{
+    char const * errstr = strerrorc(errnum);
+
+    if (errstr != NULL)
+    {
+        char * end = strncpy(buf, errstr, buflen);
+
+        if unlikely(end > buf + buflen)
+            errno = ERANGE;
+    }
+    else
+    {
+        uint32_t val = (uint32_t)errnum;
+        char str[26] = "Unknown error 0x00000000";
+        str[25] = '\0';
+
+        for (size_t i = 0; i < 8; ++i)
+        {
+            uint8_t const nib = (val >> (i << 2)) & 0xF;
+
+            str[24 - i] = (nib > 9 ? 'A' : '0') + nib;
+        }
+
+        strncpy(buf, str, buflen);
+
+        if unlikely(buflen < 26)
+            errno = ERANGE;
+    }
+
+    return buf;
+}
+#else
+int strerror_r(int errnum, char * buf, size_t buflen)
+{
+    char const * errstr = strerrorc(errnum);
+
+    if (errstr != NULL)
+    {
+        char * const end = strncpy(buf, errstr, buflen);
+
+        if unlikely(end > buf + buflen)
+            return ERANGE;
+
+        return 0;
+    }
+    else
+    {
+        uint32_t val = (uint32_t)errnum;
+        char str[26] = "Unknown error 0x00000000";
+        str[25] = '\0';
+
+        for (size_t i = 0; i < 8; ++i)
+        {
+            uint8_t const nib = (val >> (i << 2)) & 0xF;
+
+            str[24 - i] = (nib > 9 ? 'A' : '0') + nib;
+        }
+
+        strncpy(buf, str, buflen);
+
+        if unlikely(buflen < 26)
+            return ERANGE;
+
+        return EINVAL;
+    }
+}
+#endif
