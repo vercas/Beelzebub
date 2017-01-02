@@ -849,6 +849,7 @@ static __hot Handle UnmapRecursively(RecursiveUnmapState * const state
     paddr_t paddr = nullpaddr;
     FrameSize fSize = FrameSize::_1GiB;
 
+retry:
     Handle res = TranslateInternal(state->Process, state->Address
         , [&paddr, &fSize](PmlCommonEntry * pE, int level)
         {
@@ -864,7 +865,17 @@ static __hot Handle UnmapRecursively(RecursiveUnmapState * const state
     HybridPageNode const newNode {state->Address, paddr, node};
 
     if unlikely(res != HandleResult::Okay)
-        goto bail;
+    {
+        if (res == HandleResult::PageUnmapped)
+        {
+            if ((state->Address += PageSize) >= state->EndAddress)
+                goto bail;
+
+            goto retry;
+        }
+        else
+            goto bail;
+    }
 
     node = &newNode;
     //  Yep, re-using a variable, evilishly.
@@ -893,7 +904,7 @@ bail:
 
     state->InterruptState.Restore();
 
-    if (state->Invalidate)
+    if likely(state->Invalidate && node != nullptr)
         Vmm::InvalidateChain(state->Process, node, state->Broadcast
             , state->CountReferences ? FreeAfterInvalidation : nullptr);
     //  Easy..?
