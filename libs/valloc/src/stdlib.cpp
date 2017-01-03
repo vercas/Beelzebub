@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2017 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,72 +37,50 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#define VALLOC_SOURCE
 
-#include <beel/metaprogramming.h>
+#include <valloc/interface.hpp>
+#include "stdlib.h"
+#include "string.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+using namespace Valloc;
 
-typedef struct InterruptState { void const * Value; } InterruptState;
-
-__forceinline __must_check bool InterruptStateIsEnabled()
+void * malloc(size_t size)
 {
-    uintptr_t flags;
-
-    asm volatile("pushf        \n\t"
-                 "pop %[flags] \n\t"
-                : [flags]"=r"(flags));
-    //  Push and pop don't change any flags. Yay!
-
-    return 0 != (flags & ((uintptr_t)1 << 9));
+    return AllocateMemory(size);
 }
 
-__forceinline InterruptState InterruptStateDisable()
+void * calloc(size_t cnt, size_t size)
 {
-    void const * cookie;
+    size_t const totalSize = cnt * size;
+    void * const ret = AllocateMemory(totalSize);
 
-    asm volatile("pushf      \n\t"
-                 "cli        \n\t"
-                 "pop %[dst] \n\t"
-                : [dst]"=r"(cookie)
-                :
-                : "memory");
+    if (VALLOC_LIKELY(ret != nullptr))
+        memset(ret, 0, totalSize);
 
-    InterruptState const res = { cookie };
-    return res;
+    return ret;
 }
 
-__forceinline InterruptState InterruptStateEnable()
+void * valloc(size_t size)
 {
-    void const * cookie;
-
-    asm volatile("pushf      \n\t"
-                 "sti        \n\t"
-                 "pop %[dst] \n\t"
-                : [dst]"=r"(cookie)
-                :
-                : "memory");
-
-    InterruptState const res = { cookie };
-    return res;
+    return AllocateAlignedMemory(size, VALLOC_PAGE_SIZE, 0);
 }
 
-__forceinline void InterruptStateRestore(InterruptState const state)
+void * memalign(size_t boundary, size_t size)
 {
-    asm volatile("push %[src] \n\t"
-                 "popf        \n\t"
-                :
-                : [src]"rm"(state.Value)
-                : "memory", "cc");
+    return AllocateAlignedMemory(size, boundary, 0);
 }
 
-__forceinline bool InterruptStateGetEnabled(InterruptState const state)
+// int posix_memalign(void * * memptr, size_t alignment, size_t size) { return je_posix_memalign(memptr, alignment, size); }
+
+void * realloc(void * ptr, size_t size)
 {
-    return 0 != ((uintptr_t)state.Value & ((uintptr_t)1 << 9));
+    return ResizeAllocation(ptr, size);
 }
 
-#ifdef __cplusplus
+void free(void * ptr)
+{
+    return DeallocateMemory(ptr);
 }
-#endif
+
+

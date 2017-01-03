@@ -65,7 +65,7 @@ struct TestStructure
     uint64_t Qwords[3];
     uint32_t Dwords[3];
     uint16_t Words[3];
-    uint16_t Bytes[3];
+    uint8_t Bytes[3];
     TestStructure * Next;
 };
 
@@ -133,6 +133,8 @@ void TestMalloc(bool const bsp)
         delete cur;
     }
 
+    cur = nullptr;
+
     MallocTestBarrier1.Reset();
     MallocTestBarrier3.Reach();
 
@@ -145,31 +147,48 @@ void TestMalloc(bool const bsp)
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
-        TestStructure * old = nullptr;
+    // retry:
+    //     TestStructure * old = nullptr;
 
-    retry:
-        if (Cache[i] != nullptr)
-        {
-            old = (Cache + i)->Xchg(old);
+    //     if (Cache[i] != nullptr)
+    //     {
+    //         old = (Cache + i)->Xchg(old);
 
-            if unlikely(old == nullptr)
-                goto retry;
-            //  If it became null in the meantime, retry.
+    //         if unlikely(old == nullptr)
+    //             goto retry;
+    //         //  If it became null in the meantime, retry.
 
-            delete old;
-        }
-        else
-        {
-            cur = getPtr();
+    //         MSG_("Deleting %Xp from array%n", old);
 
-            if unlikely(!(Cache + i)->CmpXchgStrong(old, cur))
-            {
-                //  If it became non-null in the meantime, free `cur` and retry.
+    //         delete old;
+    //     }
+    //     else
+    //     {
+    //         if (cur == nullptr)
+    //         {
+    //             cur = getPtr();
 
-                delete cur;
-                goto retry;
-            }
-        }
+    //             MSG_("Allocated %Xp temporary%n", cur);
+    //         }
+
+    //         if likely((Cache + i)->CmpXchgStrong(old, cur))
+    //         {
+    //             MSG_("Deleting %Xp from array%n", cur);
+
+    //             cur = nullptr;
+    //         }
+    //         else
+    //         {
+    //             //  If it became non-null in the meantime, retry.
+
+    //             goto retry;
+    //         }
+    //     }
+
+        cur = getPtr();
+        TestStructure * old = (Cache + i)->Xchg(cur);
+
+        delete old;
 
         i += coreIndex;
 

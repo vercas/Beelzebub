@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2017 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,70 +39,12 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
+#include <valloc/utils.hpp>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct InterruptState { void const * Value; } InterruptState;
-
-__forceinline __must_check bool InterruptStateIsEnabled()
+namespace Valloc
 {
-    uintptr_t flags;
-
-    asm volatile("pushf        \n\t"
-                 "pop %[flags] \n\t"
-                : [flags]"=r"(flags));
-    //  Push and pop don't change any flags. Yay!
-
-    return 0 != (flags & ((uintptr_t)1 << 9));
+    void * AllocateMemory(size_t size);
+    void * AllocateAlignedMemory(size_t size, size_t mul, size_t off);
+    void * ResizeAllocation(void * ptr, size_t size);
+    void DeallocateMemory(void * ptr, bool crash = true);
 }
-
-__forceinline InterruptState InterruptStateDisable()
-{
-    void const * cookie;
-
-    asm volatile("pushf      \n\t"
-                 "cli        \n\t"
-                 "pop %[dst] \n\t"
-                : [dst]"=r"(cookie)
-                :
-                : "memory");
-
-    InterruptState const res = { cookie };
-    return res;
-}
-
-__forceinline InterruptState InterruptStateEnable()
-{
-    void const * cookie;
-
-    asm volatile("pushf      \n\t"
-                 "sti        \n\t"
-                 "pop %[dst] \n\t"
-                : [dst]"=r"(cookie)
-                :
-                : "memory");
-
-    InterruptState const res = { cookie };
-    return res;
-}
-
-__forceinline void InterruptStateRestore(InterruptState const state)
-{
-    asm volatile("push %[src] \n\t"
-                 "popf        \n\t"
-                :
-                : [src]"rm"(state.Value)
-                : "memory", "cc");
-}
-
-__forceinline bool InterruptStateGetEnabled(InterruptState const state)
-{
-    return 0 != ((uintptr_t)state.Value & ((uintptr_t)1 << 9));
-}
-
-#ifdef __cplusplus
-}
-#endif

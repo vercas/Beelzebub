@@ -39,17 +39,34 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum PTHREAD_MUTEX
+{
+    PTHREAD_MUTEX_DEFAULT,
+    PTHREAD_MUTEX_NORMAL,
+    PTHREAD_MUTEX_ERRORCHECK,
+    PTHREAD_MUTEX_RECURSIVE,
+};
+
+typedef struct pthread_mutexattr_s
+{
+    enum PTHREAD_MUTEX Type;
+} pthread_mutexattr_t;
+
+#ifdef __cplusplus
+}
+#endif
+
 #ifdef __BEELZEBUB_KERNEL
 
     #include <beel/sync/spinlock.unint.h>
 
-    enum PTHREAD_MUTEX
-    {
-        PTHREAD_MUTEX_DEFAULT,
-        PTHREAD_MUTEX_NORMAL,
-        PTHREAD_MUTEX_ERRORCHECK,
-        PTHREAD_MUTEX_RECURSIVE,
-    };
+#ifdef __cplusplus
+extern "C" {
+#endif
 
     typedef struct pthread_mutex_s
     {
@@ -58,11 +75,6 @@
     } pthread_mutex_t;
 
     #define PTHREAD_MUTEX_INITIALIZER {{0}, {NULL}}
-
-    typedef struct pthread_mutexattr_s
-    {
-        enum PTHREAD_MUTEX Type;
-    } pthread_mutexattr_t;
 
     static inline void pthread_mutex_lock(pthread_mutex_t * const m)
     {
@@ -76,8 +88,8 @@
         SpinlockUninterruptibleRelease(&(m->Lock), m->Cookie);
     }
 
-    static inline int pthread_mutex_init(pthread_mutex_t * restrict const m
-                                        , pthread_mutexattr_t const * restrict const attr)
+    static inline int pthread_mutex_init(pthread_mutex_t * __restrict const m
+                                        , pthread_mutexattr_t const * __restrict const attr)
     {
         (void)attr;
         
@@ -86,11 +98,15 @@
 
     static inline int pthread_mutexattr_init(pthread_mutexattr_t * attr)
     {
+        (void)attr;
+
         return 0;
     }
 
     static inline int pthread_mutexattr_destroy(pthread_mutexattr_t * attr)
     {
+        (void)attr;
+
         return 0;
     }
 
@@ -110,9 +126,13 @@
             return 1;
         }
 
-        attr->Type = type;
+        attr->Type = (enum PTHREAD_MUTEX)type;
 
         return 0;
     }
+
+    #ifdef __cplusplus
+    }
+    #endif
 
 #endif

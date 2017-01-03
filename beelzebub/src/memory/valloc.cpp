@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2017 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,72 +37,62 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <valloc/platform.hpp>
+#include "memory/vmm.hpp"
+#include <debug.hpp>
 
-#include <beel/metaprogramming.h>
+using namespace Beelzebub;
+using namespace Beelzebub::Debug;
+using namespace Beelzebub::Memory;
+using namespace Valloc;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct InterruptState { void const * Value; } InterruptState;
-
-__forceinline __must_check bool InterruptStateIsEnabled()
+void Platform::AllocateMemory(void * & addr, size_t & size)
 {
-    uintptr_t flags;
+    uintptr_t vaddr = reinterpret_cast<uintptr_t>(addr);
 
-    asm volatile("pushf        \n\t"
-                 "pop %[flags] \n\t"
-                : [flags]"=r"(flags));
-    //  Push and pop don't change any flags. Yay!
+    Handle res = Vmm::AllocatePages(nullptr, size
+        , MemoryAllocationOptions::VirtualKernelHeap | MemoryAllocationOptions::AllocateOnDemand
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::Generic
+        , vaddr);
 
-    return 0 != (flags & ((uintptr_t)1 << 9));
+    // MSG_("Allocating memory for vAlloc: %Xp %Xs %H%n", vaddr, size, res);
+
+    if unlikely(res != HandleResult::Okay)
+    {
+        addr = nullptr;
+        size = 0;
+    }
+    else
+    {
+        addr = reinterpret_cast<void *>(vaddr);
+    }
 }
 
-__forceinline InterruptState InterruptStateDisable()
+void Platform::FreeMemory(void * addr, size_t size)
 {
-    void const * cookie;
+    // MSG_("Freeing memory for vAlloc: %Xp %Xs%n", addr, size);
 
-    asm volatile("pushf      \n\t"
-                 "cli        \n\t"
-                 "pop %[dst] \n\t"
-                : [dst]"=r"(cookie)
-                :
-                : "memory");
-
-    InterruptState const res = { cookie };
-    return res;
+    Vmm::FreePages(nullptr, reinterpret_cast<uintptr_t>(addr), size);
 }
 
-__forceinline InterruptState InterruptStateEnable()
+void Platform::ErrorMessage(char const * fmt, ...)
 {
-    void const * cookie;
+    va_list args;
 
-    asm volatile("pushf      \n\t"
-                 "sti        \n\t"
-                 "pop %[dst] \n\t"
-                : [dst]"=r"(cookie)
-                :
-                : "memory");
+    va_start(args, fmt);
 
-    InterruptState const res = { cookie };
-    return res;
+    if likely(DebugTerminal != nullptr)
+        withLock (MsgSpinlock)
+        {
+            DebugTerminal->Write(fmt, args);
+            DebugTerminal->WriteLine();
+        }
+
+    va_end(args);
 }
 
-__forceinline void InterruptStateRestore(InterruptState const state)
+void Platform::Abort(char const * file, size_t line)
 {
-    asm volatile("push %[src] \n\t"
-                 "popf        \n\t"
-                :
-                : [src]"rm"(state.Value)
-                : "memory", "cc");
+    CatchFire(file, line, nullptr, nullptr);
 }
-
-__forceinline bool InterruptStateGetEnabled(InterruptState const state)
-{
-    return 0 != ((uintptr_t)state.Value & ((uintptr_t)1 << 9));
-}
-
-#ifdef __cplusplus
-}
-#endif

@@ -273,10 +273,17 @@ CmdOpt "unit-tests" {
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 local availableDynamicAllocators = List {
-    "streamflow", "ptmalloc3", "jemalloc", "none"
+    "valloc", "streamflow", "ptmalloc3", "jemalloc", "none"
 }
 
-local settKrnDynAlloc, settUsrDynAlloc = "JEMALLOC", "NONE"
+local settKrnDynAlloc, settUsrDynAlloc = "VALLOC", "NONE"
+
+local dynAllocLibs = {
+    VALLOC = "valloc",
+    STREAMFLOW = "streamflow",
+    PTMALLOC3 = "ptmalloc3",
+    JEMALLOC = "jemalloc",
+}
 
 CmdOpt "kernel-dynalloc" {
     Description = "The dynamic allocator used in the kernel; defaults to " .. settKrnDynAlloc .. ".",
@@ -460,12 +467,6 @@ GlobalData {
 --  Main File Locations
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
-local dynAllocLibs = {
-    STREAMFLOW = "streamflow",
-    PTMALLOC3 = "ptmalloc3",
-    JEMALLOC = "jemalloc",
-}
-
 GlobalData {
     Sysroot                 = function(_) return _.outDir + "sysroot" end,
     SysheadersPath          = function(_) return _.Sysroot + "usr/include" end,
@@ -489,11 +490,13 @@ GlobalData {
         end
     end,
 
+    VallocKernelLibraryPath         = function(_) return _.Sysroot + "usr/lib/libvalloc.kernel.a" end,
+    VallocUserlandLibraryPath       = function(_) return _.Sysroot + "usr/lib/libvalloc.userland.a" end,
     StreamflowKernelLibraryPath     = function(_) return _.Sysroot + "usr/lib/libstreamflow.kernel.a" end,
     StreamflowUserlandLibraryPath   = function(_) return _.Sysroot + "usr/lib/libstreamflow.userland.a" end,
     JemallocKernelLibraryPath       = function(_) return _.Sysroot + "usr/lib/libjemalloc.kernel.a" end,
     JemallocUserlandLibraryPath     = function(_) return _.Sysroot + "usr/lib/libjemalloc.userland.a" end,
-    
+
     KernelDynamicAllocatorPath = function(_)
         return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settKrnDynAlloc] .. ".kernel.a")
     end,
@@ -1003,17 +1006,16 @@ Project "Beelzebub" {
         },
     },
 
-    ArchitecturalComponent "Streamflow - Kernel" {
+    ArchitecturalComponent "vAlloc - Kernel" {
         Data = {
             ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
 
             Opts_GCC = function(_)
                 local res = List {
                     "-fvisibility=hidden",
-                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers", "-Wno-int-to-pointer-cast", "-Wno-strict-aliasing",
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-O2", "-flto",
                     "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
-                    "-DRADIX_TREE",
                 } + _.Opts_GCC_Common + _.Opts_Includes
                 + _.selArch.Data.Opts_GCC_Kernel
 
@@ -1032,12 +1034,12 @@ Project "Beelzebub" {
             Opts_AR = List { "rcs" },
         },
 
-        Directory = "libs/streamflow",
+        Directory = "libs/valloc",
 
-        Output = function(_) return List { _.StreamflowKernelLibraryPath } end,
+        Output = function(_) return List { _.VallocKernelLibraryPath } end,
 
         Rule "Archive Objects" {
-            Filter = function(_, dst) return _.StreamflowKernelLibraryPath end,
+            Filter = function(_, dst) return _.VallocKernelLibraryPath end,
 
             Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
@@ -1047,53 +1049,97 @@ Project "Beelzebub" {
         },
     },
 
-    ArchitecturalComponent "jemalloc - Kernel" {
-        Data = {
-            ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
+    -- ArchitecturalComponent "Streamflow - Kernel" {
+    --     Data = {
+    --         ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
 
-            Opts_GCC = function(_)
-                local res = List {
-                    "-fvisibility=hidden",
-                    --"-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-Wno-int-to-pointer-cast", "-Wno-strict-aliasing",
-                    "-Wno-implicit-function-declaration", "-Wno-unused-parameter",
-                    "-O2", "-flto",
-                    "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
-                    "-DJEMALLOC_MALLOC_THREAD_CLEANUP",
-                    "-DJEMALLOC_PURGE_MADVISE_FREE",
-                    "-DJEMALLOC_NO_RENAME",
-                } + _.Opts_GCC_Common + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC_Kernel
+    --         Opts_GCC = function(_)
+    --             local res = List {
+    --                 "-fvisibility=hidden",
+    --                 "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers", "-Wno-int-to-pointer-cast", "-Wno-strict-aliasing",
+    --                 "-O2", "-flto",
+    --                 "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
+    --                 "-DRADIX_TREE",
+    --             } + _.Opts_GCC_Common + _.Opts_Includes
+    --             + _.selArch.Data.Opts_GCC_Kernel
 
-                if _.selArch.Name == "amd64" then
-                    res:Append("-mcmodel=kernel")
-                end
+    --             if _.selArch.Name == "amd64" then
+    --                 res:Append("-mcmodel=kernel")
+    --             end
 
-                return res
-            end,
+    --             return res
+    --         end,
 
-            Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
-            Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS     = function(_) return _.Opts_GCC end,
+    --         Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
+    --         Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+    --         Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
+    --         Opts_GAS     = function(_) return _.Opts_GCC end,
 
-            Opts_AR = List { "rcs" },
-        },
+    --         Opts_AR = List { "rcs" },
+    --     },
 
-        Directory = "libs/jemalloc",
+    --     Directory = "libs/streamflow",
 
-        Output = function(_) return List { _.JemallocKernelLibraryPath } end,
+    --     Output = function(_) return List { _.StreamflowKernelLibraryPath } end,
 
-        Rule "Archive Objects" {
-            Filter = function(_, dst) return _.JemallocKernelLibraryPath end,
+    --     Rule "Archive Objects" {
+    --         Filter = function(_, dst) return _.StreamflowKernelLibraryPath end,
 
-            Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
+    --         Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
-            end,
-        },
-    },
+    --         Action = function(_, dst, src)
+    --             sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
+    --         end,
+    --     },
+    -- },
+
+    -- ArchitecturalComponent "jemalloc - Kernel" {
+    --     Data = {
+    --         ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
+
+    --         Opts_GCC = function(_)
+    --             local res = List {
+    --                 "-fvisibility=hidden",
+    --                 --"-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
+    --                 "-Wno-int-to-pointer-cast", "-Wno-strict-aliasing",
+    --                 "-Wno-implicit-function-declaration", "-Wno-unused-parameter",
+    --                 "-O2", "-flto",
+    --                 "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
+    --                 "-DJEMALLOC_MALLOC_THREAD_CLEANUP",
+    --                 "-DJEMALLOC_PURGE_MADVISE_FREE",
+    --                 "-DJEMALLOC_NO_RENAME",
+    --             } + _.Opts_GCC_Common + _.Opts_Includes
+    --             + _.selArch.Data.Opts_GCC_Kernel
+
+    --             if _.selArch.Name == "amd64" then
+    --                 res:Append("-mcmodel=kernel")
+    --             end
+
+    --             return res
+    --         end,
+
+    --         Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
+    --         Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+    --         Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
+    --         Opts_GAS     = function(_) return _.Opts_GCC end,
+
+    --         Opts_AR = List { "rcs" },
+    --     },
+
+    --     Directory = "libs/jemalloc",
+
+    --     Output = function(_) return List { _.JemallocKernelLibraryPath } end,
+
+    --     Rule "Archive Objects" {
+    --         Filter = function(_, dst) return _.JemallocKernelLibraryPath end,
+
+    --         Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
+
+    --         Action = function(_, dst, src)
+    --             sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
+    --         end,
+    --     },
+    -- },
 
     ArchitecturalComponent "Runtime Library" {
         Data = {

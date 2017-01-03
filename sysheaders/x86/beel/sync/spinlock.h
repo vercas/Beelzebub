@@ -41,6 +41,10 @@
 
 #include <beel/metaprogramming.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef __BEELZEBUB_TICKETLOCK_T
 #define __BEELZEBUB_TICKETLOCK_T
     typedef union ticketlock_t
@@ -208,3 +212,7 @@ __forceinline void SpinlockReset(union ticketlock_t * const lock)
 
     COMPILER_MEMORY_BARRIER();
 }
+
+#ifdef __cplusplus
+}
+#endif
