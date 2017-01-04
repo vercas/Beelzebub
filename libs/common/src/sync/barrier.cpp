@@ -56,38 +56,14 @@ void Barrier::Reach()
         return;
     //  Quit early.
 
-    Atomic<size_t> cnt {total};
-    //  Excludes the current client.
+    size_t const step = this->Step.Load();
 
-    Atomic<size_t> * ptr = nullptr;
-
-    if (this->Left.CmpXchgStrong(ptr, &cnt))
+    if ((this->Left.FetchAdd(1)) == total)
     {
-        //  This client became the coordinator.
-
-        while (cnt.Load() != 0)
-            asm volatile ( "pause \n\t" );
-        //  Wait for the other clients to arrive.
-
-        this->Left.Store(nullptr);
-        //  Acknowledge the presence of the other clients.
-
-        while (cnt.Load() != total)
-            asm volatile ( "pause \n\t" );
-        //  Wait for all other clients to acknowledge.
+        this->Left.Store(0);
+        this->Step += 1;
     }
     else
-    {
-        //  Not a coordinator.
-
-        --(*ptr);
-        //  This client reached the barrier.
-
-        while (this->Left.Load() != nullptr)
+        while (this->Step.Load() == step)
             asm volatile ( "pause \n\t" );
-        //  Wait for acknowledgement from the coordinator.
-
-        ++(*ptr);
-        //  Acknowledge to the coordinator, and move on.
-    }
 }

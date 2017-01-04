@@ -48,7 +48,7 @@ namespace Beelzebub { namespace Synchronization
         /*  Constructor(s)  */
 
         Barrier() = default;
-        inline Barrier(size_t t) : Left( nullptr), Total(t) { }
+        inline Barrier(size_t t) : Left( 0), Step(0), Total(t) { }
 
         Barrier(Barrier const &) = delete;
         Barrier & operator =(Barrier const &) = delete;
@@ -61,13 +61,12 @@ namespace Beelzebub { namespace Synchronization
 
         inline void Reset(size_t total)
         {
-            this->Left.Store(nullptr);
+            this->Left.Store(0);
             this->Total.Store(total);
         }
 
         /*  Fields  */
 
-        Atomic<Atomic<size_t> *> Left;
-        Atomic<size_t> Total;
+        Atomic<size_t> Left, Step, Total;
     };
 }}
