@@ -40,8 +40,9 @@
 #define VALLOC_SOURCE
 
 #include <valloc/interface.hpp>
-#include "stdlib.h"
-#include "string.h"
+#include <valloc/platform.hpp>
+#include <stdlib.h>
+#include <string.h>
 
 using namespace Valloc;
 
@@ -63,7 +64,7 @@ void * calloc(size_t cnt, size_t size)
 
 void * valloc(size_t size)
 {
-    return AllocateAlignedMemory(size, VALLOC_PAGE_SIZE, 0);
+    return AllocateAlignedMemory(size, Platform::PageSize, 0);
 }
 
 void * memalign(size_t boundary, size_t size)

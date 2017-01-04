@@ -148,7 +148,7 @@ namespace Valloc
     {
         static inline Chunk * FromContents(void const * const ptr)
         {
-            return (Chunk *)PointerAdd(ptr, -sizeof(Chunk));
+            return (Chunk *)PointerSub(ptr, sizeof(Chunk));
         }
 
         VALLOC_ANONYMOUS union
@@ -192,9 +192,10 @@ namespace Valloc
         inline bool IsBusy() const { return this->Flags == ChunkFlags::None; }
         inline bool IsFree() const { return this->Flags == ChunkFlags::Free; }
 
-        inline void Print(PrintFunction f) const
+        inline void Print(PrintFunction f, bool indent = false) const
         {
-            return f("[Chunk " VF_PTR "->" VF_PTR " " VF_STR "; " VF_PTR "]"
+            return f(VF_STR "[Chunk " VF_PTR "->" VF_PTR " " VF_STR "; " VF_PTR "]"
+                , indent ? "\t" : ""
                 , this, this->GetNext()
                 , this->IsBusy() ? "B" : this->IsFree() ? "F" : "Q"
                 , this->PrevFree);
@@ -228,6 +229,11 @@ namespace Valloc
 
         }
 
+        inline Chunk * GetFirstChunk() const
+        {
+            return const_cast<Chunk *>(reinterpret_cast<Chunk const *>(PointerAdd(this, ARENA_SIZE)));
+        }
+
         inline void const * GetEnd() const
         {
             return reinterpret_cast<void const *>(reinterpret_cast<uintptr_t>(this) + this->Size);
@@ -248,6 +254,17 @@ namespace Valloc
         inline void Print(PrintFunction f) const
         {
             return f("[Arena " VF_PTR "->" VF_PTR "]", this, this->GetEnd());
+        }
+
+        inline void Dump(PrintFunction f) const
+        {
+            f("[Arena " VF_PTR "->" VF_PTR "; " VF_PTR " & " VF_PTR "; " VF_PTR " & " VF_PTR "]"
+                , this, this->GetEnd()
+                , this->Size, this->Free
+                , this->LastFree, this->Owner);
+
+            for (Chunk const * c = this->GetFirstChunk(); c < this->GetEnd(); c = c->GetNext())
+                c->Print(f, true);
         }
     }
 #if defined(VALLOC_CACHE_LINE_SIZE) && defined(VALLOC_CAN_ALIGN)

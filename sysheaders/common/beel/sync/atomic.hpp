@@ -389,7 +389,7 @@ namespace Beelzebub { namespace Synchronization
         /*  Constructors  */
      
         Atomic() = default;
-        inline constexpr Atomic(T const * const val) : InnerValue( val ) { }
+        inline constexpr Atomic(T * const val) : InnerValue( val ) { }
         Atomic(Atomic const &) = delete;
         Atomic & operator =(Atomic const &) = delete;
         Atomic & operator =(Atomic const &) volatile = delete;
@@ -401,20 +401,20 @@ namespace Beelzebub { namespace Synchronization
             return this->Load();
         }
 
-        inline T * operator =(T const * const val) volatile
+        inline T * operator =(T * const val) volatile
         {
             this->Store(val);
 
             return val;
         }
-        inline T * operator =(T const * const val)
+        inline T * operator =(T * const val)
         {
             this->Store(val);
 
             return val;
         }
 
-        inline void Store(T const * const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        inline void Store(T * const val, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             __atomic_store_n(&this->InnerValue, val, (int)mo);
         }

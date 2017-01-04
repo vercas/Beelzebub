@@ -37,16 +37,57 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <beel/sync/barrier.hpp>
 
-#include <valloc/utils.hpp>
+using namespace Beelzebub;
+using namespace Beelzebub::Synchronization;
 
-namespace Valloc
+/*********************
+    Barrier struct
+*********************/
+
+/*  Operations  */
+
+void Barrier::Reach()
 {
-    void * AllocateMemory(size_t size);
-    void * AllocateAlignedMemory(size_t size, size_t mul, size_t off);
-    void * ResizeAllocation(void * ptr, size_t size);
-    void DeallocateMemory(void * ptr, bool crash = true);
+    size_t const total = this->Total.Load() - 1;
 
-    void CollectMyGarbage();
+    if unlikely(total == 0)
+        return;
+    //  Quit early.
+
+    Atomic<size_t> cnt {total};
+    //  Excludes the current client.
+
+    Atomic<size_t> * ptr = nullptr;
+
+    if (this->Left.CmpXchgStrong(ptr, &cnt))
+    {
+        //  This client became the coordinator.
+
+        while (cnt.Load() != 0)
+            asm volatile ( "pause \n\t" );
+        //  Wait for the other clients to arrive.
+
+        this->Left.Store(nullptr);
+        //  Acknowledge the presence of the other clients.
+
+        while (cnt.Load() != total)
+            asm volatile ( "pause \n\t" );
+        //  Wait for all other clients to acknowledge.
+    }
+    else
+    {
+        //  Not a coordinator.
+
+        --(*ptr);
+        //  This client reached the barrier.
+
+        while (this->Left.Load() != nullptr)
+            asm volatile ( "pause \n\t" );
+        //  Wait for acknowledgement from the coordinator.
+
+        ++(*ptr);
+        //  Acknowledge to the coordinator, and move on.
+    }
 }

@@ -136,6 +136,12 @@ namespace Valloc
         return reinterpret_cast<T *>(reinterpret_cast<uintptr_t>(ptr) + off);
     }
 
+    template<typename T>
+    static inline constexpr T * PointerSub(T * const ptr, size_t const off)
+    {
+        return reinterpret_cast<T *>(reinterpret_cast<uintptr_t>(ptr) - off);
+    }
+
     template<typename TNum1, typename TNum2>
     static inline constexpr auto RoundUp(const TNum1 value, const TNum2 step)
         -> decltype(((value + step - 1) / step) * step)
@@ -146,6 +152,16 @@ namespace Valloc
     typedef void (* PrintFunction)(char const *, ...);
 }
 
-#define VALLOC_ABORT() Platform::Abort(__FILE__, __LINE__)
+#define VALLOC_ABORT() Platform::Abort(__FILE__, __LINE__, nullptr, nullptr)
+
+#define VALLOC_ABORT_MSG(...) Platform::Abort(__FILE__, __LINE__, nullptr, __VA_ARGS__)
+
+#define VALLOC_ASSERT(cond) [=](){ \
+    if (VALLOC_UNLIKELY(!(cond))) Platform::Abort(__FILE__, __LINE__, #cond, "Assertion failure."); \
+}()
+
+#define VALLOC_ASSERT_MSG(cond, ...) [=](){ \
+    if (VALLOC_UNLIKELY(!(cond))) Platform::Abort(__FILE__, __LINE__, #cond, __VA_ARGS__); \
+}()
 
 #endif

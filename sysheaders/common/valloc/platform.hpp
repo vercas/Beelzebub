@@ -79,7 +79,7 @@ namespace Valloc
         /*  Debug  */
 
         static void ErrorMessage(char const * fmt, ...);
-        static VALLOC_NORETURN void Abort(char const * file, size_t line);
+        static VALLOC_NORETURN void Abort(char const * file, size_t line, char const * cond, char const * fmt, ...);
 
         /*  Atomics  */
 

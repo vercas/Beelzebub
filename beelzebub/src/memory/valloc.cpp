@@ -37,6 +37,8 @@
     thorough explanation regarding other files.
 */
 
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+
 #include <valloc/platform.hpp>
 #include "memory/vmm.hpp"
 #include <debug.hpp>
@@ -92,7 +94,15 @@ void Platform::ErrorMessage(char const * fmt, ...)
     va_end(args);
 }
 
-void Platform::Abort(char const * file, size_t line)
+void Platform::Abort(char const * file, size_t line, char const * cond, char const * fmt, ...)
 {
-    CatchFire(file, line, nullptr, nullptr);
+    va_list args;
+
+    va_start(args, fmt);
+
+    CatchFireV(file, line, cond, fmt, args);
+
+    va_end(args);
 }
+
+#endif

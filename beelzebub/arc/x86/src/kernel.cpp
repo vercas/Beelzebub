@@ -632,27 +632,21 @@ void Beelzebub::Main()
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
         if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
         {
-            RwSpinlockTestBarrier1.Reset();
-            RwSpinlockTestBarrier2.Reset();
-            RwSpinlockTestBarrier3.Reset();
+            RwSpinlockTestBarrier.Reset(Cores::GetCount());
         }
 #endif
 
 #ifdef __BEELZEBUB__TEST_OBJA
         if (CHECK_TEST(OBJA))
         {
-            ObjectAllocatorTestBarrier1.Reset();
-            ObjectAllocatorTestBarrier2.Reset();
-            ObjectAllocatorTestBarrier3.Reset();
+            ObjectAllocatorTestBarrier.Reset(Cores::GetCount());
         }
 #endif
 
 #if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
         if (CHECK_TEST(MALLOC))
         {
-            MallocTestBarrier1.Reset();
-            MallocTestBarrier2.Reset();
-            MallocTestBarrier3.Reset();
+            MallocTestBarrier.Reset(Cores::GetCount());
         }
 #endif
 

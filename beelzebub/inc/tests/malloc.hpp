@@ -39,10 +39,8 @@
 
 #pragma once
 
-#include <synchronization/smp_barrier.hpp>
+#include <beel/sync/barrier.hpp>
 
-extern Beelzebub::Synchronization::SmpBarrier MallocTestBarrier1;
-extern Beelzebub::Synchronization::SmpBarrier MallocTestBarrier2;
-extern Beelzebub::Synchronization::SmpBarrier MallocTestBarrier3;
+extern Beelzebub::Synchronization::Barrier MallocTestBarrier;
 
 __startup void TestMalloc(bool const bsp);

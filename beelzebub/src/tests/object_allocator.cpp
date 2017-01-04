@@ -39,13 +39,12 @@
 
 #ifdef __BEELZEBUB__TEST_OBJA
 
-#include <tests/object_allocator.hpp>
-#include <memory/object_allocator_smp.hpp>
-#include <memory/pmm.hpp>
-#include <memory/vmm.hpp>
-#include <kernel.hpp>
+#include "tests/object_allocator.hpp"
+#include "memory/object_allocator_smp.hpp"
+#include "memory/object_allocator_pools_heap.hpp"
+#include "kernel.hpp"
 
-#include <system/cpu.hpp>
+#include "system/cpu.hpp"
 #include <math.h>
 #include <debug.hpp>
 
@@ -53,7 +52,8 @@
 #define REPETITION_COUNT_2 (REPETITION_COUNT   * REPETITION_COUNT + REPETITION_COUNT)
 #define REPETITION_COUNT_3 (REPETITION_COUNT_2 * REPETITION_COUNT + REPETITION_COUNT)
 
-#define __BEELZEBUB__TEST_OBJA_ASSERTIONS
+// #define __BEELZEBUB__TEST_OBJA_ASSERTIONS
+#define __BEELZEBUB__CONF_PROFILE
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
@@ -76,323 +76,323 @@ struct TestStructure
 static ObjectAllocatorSmp testAllocator;
 SpinlockUninterruptible<> syncer;
 
-bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;
-
-static __startup Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
-{
-    Handle res;
-    //  Intermediate results.
-
-    vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(pageCount * PageSize);
-
-    for (size_t i = 0; i < pageCount; ++i)
-    {
-        paddr_t const paddr = Pmm::AllocateFrame();
-        //  Test page.
-
-        assert_or(paddr != nullpaddr
-            , "Unable to allocate physical page #%us for an object pool!"
-            , i)
-        {
-            return res;
-            //  Maybe the test is built in release mode.
-        }
-
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable);
-
-        assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP; #%us) for an object pool (%us pages): %H."
-            , vaddr + i * PageSize, paddr, i, pageCount, res)
-        {
-            return res;
-            //  Again, maybe the test is built in release mode.
-        }
-    }
-
-    address = vaddr;
-
-    return res;
-}
-
-static __startup void FillPool(ObjectPoolBase volatile * volatile pool
-                             , size_t const objectSize
-                             , size_t const headerSize
-                             , obj_ind_t const objectCount)
-{
-    pool->Capacity = objectCount;
-    pool->FreeCount = objectCount;
+// bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;
+
+// static __startup Handle GetKernelHeapPages(size_t const pageCount, uintptr_t & address)
+// {
+//     Handle res;
+//     //  Intermediate results.
+
+//     vaddr_t const vaddr = Vmm::KernelHeapCursor.FetchAdd(pageCount * PageSize);
+
+//     for (size_t i = 0; i < pageCount; ++i)
+//     {
+//         paddr_t const paddr = Pmm::AllocateFrame();
+//         //  Test page.
+
+//         assert_or(paddr != nullpaddr
+//             , "Unable to allocate physical page #%us for an object pool!"
+//             , i)
+//         {
+//             return res;
+//             //  Maybe the test is built in release mode.
+//         }
+
+//         res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
+//             , MemoryFlags::Global | MemoryFlags::Writable);
+
+//         assert_or(res.IsOkayResult()
+//             , "Failed to map page at %Xp (%XP; #%us) for an object pool (%us pages): %H."
+//             , vaddr + i * PageSize, paddr, i, pageCount, res)
+//         {
+//             return res;
+//             //  Again, maybe the test is built in release mode.
+//         }
+//     }
+
+//     address = vaddr;
+
+//     return res;
+// }
+
+// static __startup void FillPool(ObjectPoolBase volatile * volatile pool
+//                              , size_t const objectSize
+//                              , size_t const headerSize
+//                              , obj_ind_t const objectCount)
+// {
+//     pool->Capacity = objectCount;
+//     pool->FreeCount = objectCount;
 
-    /*msg("<< Instanced object pool @%Xp with capacity %u4 (%us), "
-        "free count %u4, header size %us, object size %us. >>%n"
-        , pool, pool->Capacity, objectCount, pool->FreeCount
-        , headerSize, objectSize);//*/
-    COMPILER_MEMORY_BARRIER();
+//     /*msg("<< Instanced object pool @%Xp with capacity %u4 (%us), "
+//         "free count %u4, header size %us, object size %us. >>%n"
+//         , pool, pool->Capacity, objectCount, pool->FreeCount
+//         , headerSize, objectSize);//*/
+//     COMPILER_MEMORY_BARRIER();
 
-    uintptr_t cursor = (uintptr_t)pool + headerSize;
-    FreeObject * last = nullptr;
+//     uintptr_t cursor = (uintptr_t)pool + headerSize;
+//     FreeObject * last = nullptr;
 
-    /*msg("<< cursor=%Xp, cap=%u4, FC=%u4, FFO=%u4 >>%n"
-        , cursor, pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
+//     /*msg("<< cursor=%Xp, cap=%u4, FC=%u4, FFO=%u4 >>%n"
+//         , cursor, pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
 
-    for (obj_ind_t i = 0; i < objectCount; ++i, cursor += objectSize)
-    {
-        //  Note: `cursor` is incremented in the loop construct.
-        //  This loops just set the previous object's `Next` pointer to the
-        //  index of the current object. If there is no previous object,
-        //  the pool's first object is set to the index of the current object.
+//     for (obj_ind_t i = 0; i < objectCount; ++i, cursor += objectSize)
+//     {
+//         //  Note: `cursor` is incremented in the loop construct.
+//         //  This loops just set the previous object's `Next` pointer to the
+//         //  index of the current object. If there is no previous object,
+//         //  the pool's first object is set to the index of the current object.
 
-        FreeObject * const obj = (FreeObject *)cursor;
+//         FreeObject * const obj = (FreeObject *)cursor;
 
-        /*msg("<< FO @ %Xp; ", obj);//*/
+//         /*msg("<< FO @ %Xp; ", obj);//*/
 
-        if unlikely(last == nullptr)
-        {
-            /*msg("BEFORE cap=%u4, FC=%u4, FFO=%u4; "
-                , pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
+//         if unlikely(last == nullptr)
+//         {
+//             /*msg("BEFORE cap=%u4, FC=%u4, FFO=%u4; "
+//                 , pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
 
-            pool->FirstFreeObject = i;
+//             pool->FirstFreeObject = i;
 
-            /*msg("AFTER cap=%u4, FC=%u4, FFO=%u4 >>%n"
-                , pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
-        }
-        else
-        {
-            /*msg("BEFORE cap=%u4, FC=%u4, FFO=%u4; "
-                , pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
+//             /*msg("AFTER cap=%u4, FC=%u4, FFO=%u4 >>%n"
+//                 , pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
+//         }
+//         else
+//         {
+//             /*msg("BEFORE cap=%u4, FC=%u4, FFO=%u4; "
+//                 , pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
 
-            last->Next = i;
+//             last->Next = i;
 
-            /*msg("AFTER cap=%u4, FC=%u4, FFO=%u4 >>%n"
-                , pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
-        }
+//             /*msg("AFTER cap=%u4, FC=%u4, FFO=%u4 >>%n"
+//                 , pool->Capacity, pool->FreeCount, pool->FirstFreeObject);//*/
+//         }
 
-        last = obj;
-    }
+//         last = obj;
+//     }
 
-    //  After the loop is finished, `last` will point to the very last object
-    //  in the pool. `pool->Capacity - 1` will be the index of the last object.
+//     //  After the loop is finished, `last` will point to the very last object
+//     //  in the pool. `pool->Capacity - 1` will be the index of the last object.
 
-    pool->LastFreeObject = objectCount - 1;
-    last->Next = obj_ind_invalid;
+//     pool->LastFreeObject = objectCount - 1;
+//     last->Next = obj_ind_invalid;
 
-    /*msg("<< FFO=%u4, LFO=%u4, cursor=%Xp >>%n"
-        , pool->FirstFreeObject, pool->LastFreeObject, cursor);
-    msg("<< Instanced object pool @%Xp with capacity %us (%u4), "
-        "free count %u4. >>%n"
-        , pool, pool->Capacity, objectCount, pool->FreeCount);//*/
-    COMPILER_MEMORY_BARRIER();
-}
+//     /*msg("<< FFO=%u4, LFO=%u4, cursor=%Xp >>%n"
+//         , pool->FirstFreeObject, pool->LastFreeObject, cursor);
+//     msg("<< Instanced object pool @%Xp with capacity %us (%u4), "
+//         "free count %u4. >>%n"
+//         , pool, pool->Capacity, objectCount, pool->FreeCount);//*/
+//     COMPILER_MEMORY_BARRIER();
+// }
 
-__startup Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPoolBase * & result)
-{
-    askedToAcquire = true;
+// __startup Handle AcquirePoolTest(size_t objectSize, size_t headerSize, size_t minimumObjects, ObjectPoolBase * & result)
+// {
+//     askedToAcquire = true;
 
-    assert(headerSize >= sizeof(ObjectPoolBase)
-        , "The given header size (%us) apprats to be lower than the size of an "
-          "actual pool struct (%us)..?%n"
-        , headerSize, sizeof(ObjectPoolBase));
+//     assert(headerSize >= sizeof(ObjectPoolBase)
+//         , "The given header size (%us) apprats to be lower than the size of an "
+//           "actual pool struct (%us)..?%n"
+//         , headerSize, sizeof(ObjectPoolBase));
 
-    size_t const pageCount = RoundUp(objectSize * minimumObjects + headerSize, PageSize) / PageSize;
-    uintptr_t addr = 0;
+//     size_t const pageCount = RoundUp(objectSize * minimumObjects + headerSize, PageSize) / PageSize;
+//     uintptr_t addr = 0;
 
-    Handle res = GetKernelHeapPages(pageCount, addr);
+//     Handle res = GetKernelHeapPages(pageCount, addr);
 
-    if (!res.IsOkayResult())
-        return res;
+//     if (!res.IsOkayResult())
+//         return res;
 
-    ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)(uintptr_t)addr;
-    //  I use a local variable here so `result` isn't dereferenced every time.
+//     ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)(uintptr_t)addr;
+//     //  I use a local variable here so `result` isn't dereferenced every time.
 
-    new (const_cast<ObjectPoolBase *>(pool)) ObjectPoolBase();
-    //  Construct in place to initialize the fields.
+//     new (const_cast<ObjectPoolBase *>(pool)) ObjectPoolBase();
+//     //  Construct in place to initialize the fields.
 
-    size_t const objectCount = ((pageCount * PageSize) - headerSize) / objectSize;
-    //  TODO: Get rid of this division and make the loop below stop when the
-    //  cursor reaches the end of the page(s).
+//     size_t const objectCount = ((pageCount * PageSize) - headerSize) / objectSize;
+//     //  TODO: Get rid of this division and make the loop below stop when the
+//     //  cursor reaches the end of the page(s).
 
-    FillPool(pool, objectSize, headerSize, (obj_ind_t)objectCount);
+//     FillPool(pool, objectSize, headerSize, (obj_ind_t)objectCount);
 
-    //  The pool was constructed in place, so the rest of the fields should
-    //  be in a good state.
+//     //  The pool was constructed in place, so the rest of the fields should
+//     //  be in a good state.
 
-    result = const_cast<ObjectPoolBase *>(pool);
+//     result = const_cast<ObjectPoolBase *>(pool);
 
-    return HandleResult::Okay;
-}
+//     return HandleResult::Okay;
+// }
 
-__startup Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPoolBase * pool)
-{
-    if (!canEnlarge)
-        return HandleResult::UnsupportedOperation;
+// __startup Handle EnlargePoolTest(size_t objectSize, size_t headerSize, size_t minimumExtraObjects, ObjectPoolBase * pool)
+// {
+//     if (!canEnlarge)
+//         return HandleResult::UnsupportedOperation;
 
-    askedToEnlarge = true;
+//     askedToEnlarge = true;
 
-    /*msg("~~ ASKED TO ENLARGE POOL %Xp ~~%n"
-        , pool);//*/
+//     /*msg("~~ ASKED TO ENLARGE POOL %Xp ~~%n"
+//         , pool);//*/
 
-    size_t const oldPageCount = RoundUp(objectSize * pool->Capacity + headerSize, PageSize) / PageSize;
-    size_t newPageCount = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize) / PageSize;
+//     size_t const oldPageCount = RoundUp(objectSize * pool->Capacity + headerSize, PageSize) / PageSize;
+//     size_t newPageCount = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize) / PageSize;
 
-    ASSERT(newPageCount > oldPageCount
-        , "New page count (%us) should be larger than the old page count (%us) "
-          "of a pool that needs enlarging!%nIt appears that the previous capacity"
-          "is wrong.%n"
-        , newPageCount, oldPageCount);
+//     ASSERT(newPageCount > oldPageCount
+//         , "New page count (%us) should be larger than the old page count (%us) "
+//           "of a pool that needs enlarging!%nIt appears that the previous capacity"
+//           "is wrong.%n"
+//         , newPageCount, oldPageCount);
 
-    Handle res;
-    //  Intermediate results.
+//     Handle res;
+//     //  Intermediate results.
 
-    vaddr_t const vaddr = oldPageCount * PageSize + (vaddr_t)pool;
+//     vaddr_t const vaddr = oldPageCount * PageSize + (vaddr_t)pool;
 
-    vaddr_t oldPoolEnd = vaddr;
-    vaddr_t newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
+//     vaddr_t oldPoolEnd = vaddr;
+//     vaddr_t newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
 
-    /*msg("~~ FROM %Xp (%us pages) to %Xp (%us pages) ~~%n"
-        , oldPoolEnd, oldPageCount, newPoolEnd, newPageCount);//*/
+//     /*msg("~~ FROM %Xp (%us pages) to %Xp (%us pages) ~~%n"
+//         , oldPoolEnd, oldPageCount, newPoolEnd, newPageCount);//*/
 
-    // if unlikely(newPoolEnd > MemoryManagerAmd64::KernelHeapEnd)
-    // {
-    //     newPageCount -= (newPoolEnd - MemoryManagerAmd64::KernelHeapEnd) / PageSize;
-    //     newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
+//     // if unlikely(newPoolEnd > MemoryManagerAmd64::KernelHeapEnd)
+//     // {
+//     //     newPageCount -= (newPoolEnd - MemoryManagerAmd64::KernelHeapEnd) / PageSize;
+//     //     newPoolEnd = vaddr + (newPageCount - oldPageCount) * PageSize;
 
-    //     /*msg("~~ REDUCED END TO %Xp (%us pages) ~~%n", newPoolEnd, newPageCount);//*/
-    // }
+//     //     /*msg("~~ REDUCED END TO %Xp (%us pages) ~~%n", newPoolEnd, newPageCount);//*/
+//     // }
 
-    bool const swapped = Vmm::KernelHeapCursor.CmpXchgStrong(oldPoolEnd, newPoolEnd);
+//     bool const swapped = Vmm::KernelHeapCursor.CmpXchgStrong(oldPoolEnd, newPoolEnd);
 
-    ASSERT(swapped
-        , "Failed to compare-exchange the kernel heap cursor!");;
+//     ASSERT(swapped
+//         , "Failed to compare-exchange the kernel heap cursor!");;
 
-    vaddr_t curPageCount = oldPageCount;
+//     vaddr_t curPageCount = oldPageCount;
 
-    for (size_t i = 0; curPageCount < newPageCount; ++i, ++curPageCount)
-    {
-        paddr_t const paddr = Pmm::AllocateFrame();
-        //  Test page.
+//     for (size_t i = 0; curPageCount < newPageCount; ++i, ++curPageCount)
+//     {
+//         paddr_t const paddr = Pmm::AllocateFrame();
+//         //  Test page.
 
-        assert_or(paddr != nullpaddr
-            , "Unable to allocate physical page #%us for extending object pool "
-              "%Xp (%us, %us, %us, %us, %us)!"
-            , i, pool
-            , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount)
-        {
-            break;
-        }
+//         assert_or(paddr != nullpaddr
+//             , "Unable to allocate physical page #%us for extending object pool "
+//               "%Xp (%us, %us, %us, %us, %us)!"
+//             , i, pool
+//             , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount)
+//         {
+//             break;
+//         }
 
-        res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
-            , MemoryFlags::Global | MemoryFlags::Writable);
+//         res = Vmm::MapPage(&BootstrapProcess, vaddr + i * PageSize, paddr
+//             , MemoryFlags::Global | MemoryFlags::Writable);
 
-        assert_or(res.IsOkayResult()
-            , "Failed to map page at %Xp (%XP; #%us) for extending object pool "
-              "%Xp (%us, %us, %us, %us, %us): %H."
-            , vaddr + i * PageSize, paddr, i, pool
-            , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount
-            , res)
-        {
-            Pmm::FreeFrame(paddr);
-            //  This should succeed.
+//         assert_or(res.IsOkayResult()
+//             , "Failed to map page at %Xp (%XP; #%us) for extending object pool "
+//               "%Xp (%us, %us, %us, %us, %us): %H."
+//             , vaddr + i * PageSize, paddr, i, pool
+//             , objectSize, headerSize, minimumExtraObjects, oldPageCount, newPageCount
+//             , res)
+//         {
+//             Pmm::FreeFrame(paddr);
+//             //  This should succeed.
 
-            break;
-        }
-    }
+//             break;
+//         }
+//     }
 
-    if (curPageCount == oldPageCount)
-        return res;
-    //  Nothing was allocated.
+//     if (curPageCount == oldPageCount)
+//         return res;
+//     //  Nothing was allocated.
 
-    /*msg("~~ NEW PAGE COUNT IS %us ~~%n", curPageCount);//*/
+//     /*msg("~~ NEW PAGE COUNT IS %us ~~%n", curPageCount);//*/
 
-    obj_ind_t const oldObjectCount = pool->Capacity;
-    obj_ind_t const newObjectCount = ((curPageCount * PageSize) - headerSize) / objectSize;
+//     obj_ind_t const oldObjectCount = pool->Capacity;
+//     obj_ind_t const newObjectCount = ((curPageCount * PageSize) - headerSize) / objectSize;
 
-    /*msg("~~ OBJECTS INCREASED FROM %u4 to %u4 ~~%n", oldObjectCount, newObjectCount);//*/
+//     /*msg("~~ OBJECTS INCREASED FROM %u4 to %u4 ~~%n", oldObjectCount, newObjectCount);//*/
 
-    uintptr_t cursor = (uintptr_t)pool + headerSize + oldObjectCount * objectSize;
-    FreeObject * last = nullptr;
+//     uintptr_t cursor = (uintptr_t)pool + headerSize + oldObjectCount * objectSize;
+//     FreeObject * last = nullptr;
 
-    if (pool->FreeCount > 0)
-        last = pool->GetLastFreeObject(objectSize, headerSize);
+//     if (pool->FreeCount > 0)
+//         last = pool->GetLastFreeObject(objectSize, headerSize);
 
-    /*msg("~~ LAST FREE OBJECT @ %Xp (%u4 free objects) ~~%n"
-        , last, pool->FreeCount);//*/
+//     /*msg("~~ LAST FREE OBJECT @ %Xp (%u4 free objects) ~~%n"
+//         , last, pool->FreeCount);//*/
 
-    for (obj_ind_t i = oldObjectCount; i < newObjectCount; ++i, cursor += objectSize)
-    {
-        FreeObject * const obj = (FreeObject *)cursor;
+//     for (obj_ind_t i = oldObjectCount; i < newObjectCount; ++i, cursor += objectSize)
+//     {
+//         FreeObject * const obj = (FreeObject *)cursor;
 
-        if unlikely(last == nullptr)
-            pool->FirstFreeObject = i;
-        else
-            last->Next = i;
+//         if unlikely(last == nullptr)
+//             pool->FirstFreeObject = i;
+//         else
+//             last->Next = i;
 
-        last = obj;
-    }
+//         last = obj;
+//     }
 
-    //  After the loop is finished, `last` will point to the very last object
-    //  in the pool. `newObjectCount - 1` will be the index of the last object.
+//     //  After the loop is finished, `last` will point to the very last object
+//     //  in the pool. `newObjectCount - 1` will be the index of the last object.
 
-    pool->LastFreeObject = (obj_ind_t)newObjectCount - 1;
-    last->Next = obj_ind_invalid;
+//     pool->LastFreeObject = (obj_ind_t)newObjectCount - 1;
+//     last->Next = obj_ind_invalid;
 
-    pool->Capacity = newObjectCount;
-    pool->FreeCount += newObjectCount - oldObjectCount;
-    //  This is incremented because they could've been free objects prior to
-    //  enlarging the pool.
+//     pool->Capacity = newObjectCount;
+//     pool->FreeCount += newObjectCount - oldObjectCount;
+//     //  This is incremented because they could've been free objects prior to
+//     //  enlarging the pool.
 
-    return HandleResult::Okay;
-}
+//     return HandleResult::Okay;
+// }
 
-__startup Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * pool)
-{
-    askedToRemove = true;
+// __startup Handle ReleasePoolTest(size_t objectSize, size_t headerSize, ObjectPoolBase * pool)
+// {
+//     askedToRemove = true;
 
-    // msg_("~~ ASKED TO REMOVE POOL %Xp ~~%n"
-    //     , pool);
+//     // msg_("~~ ASKED TO REMOVE POOL %Xp ~~%n"
+//     //     , pool);
 
-    //  A nice procedure here is to unmap the pool's pages one-by-one, starting
-    //  from the highest. The kernel heap cursor will be pulled back if possible.
+//     //  A nice procedure here is to unmap the pool's pages one-by-one, starting
+//     //  from the highest. The kernel heap cursor will be pulled back if possible.
 
-    Handle res;
+//     Handle res;
 
-    bool decrementedHeapCursor = true;
-    //  Initial value is for simplifying the algorithm below.
+//     bool decrementedHeapCursor = true;
+//     //  Initial value is for simplifying the algorithm below.
 
-    size_t const pageCount = RoundUp(objectSize * pool->Capacity + headerSize, PageSize) / PageSize;
+//     size_t const pageCount = RoundUp(objectSize * pool->Capacity + headerSize, PageSize) / PageSize;
 
-    vaddr_t vaddr = (vaddr_t)pool + (pageCount - 1) * PageSize;
-    size_t i = pageCount;
+//     vaddr_t vaddr = (vaddr_t)pool + (pageCount - 1) * PageSize;
+//     size_t i = pageCount;
 
-    /*msg("~~ PC=%us, vaddr=%Xp ~~%n", pageCount, vaddr);//*/
+//     /*msg("~~ PC=%us, vaddr=%Xp ~~%n", pageCount, vaddr);//*/
 
-    for (/* nothing */; i > 0; --i, vaddr -= PageSize)
-    {
-        /*msg("~~ UNMAPPING %Xp FROM POOL %Xp;", vaddr, pool);//*/
+//     for (/* nothing */; i > 0; --i, vaddr -= PageSize)
+//     {
+//         /*msg("~~ UNMAPPING %Xp FROM POOL %Xp;", vaddr, pool);//*/
 
-        res = Vmm::UnmapPage(&BootstrapProcess, vaddr);
+//         res = Vmm::UnmapPage(&BootstrapProcess, vaddr);
 
-        assert_or(res.IsOkayResult()
-            , "Failed to unmap page #%us from pool %Xp.%n"
-            , i, pool)
-        {
-            break;
+//         assert_or(res.IsOkayResult()
+//             , "Failed to unmap page #%us from pool %Xp.%n"
+//             , i, pool)
+//         {
+//             break;
 
-            //  The rest of the function will attempt to adapt.
-        }
+//             //  The rest of the function will attempt to adapt.
+//         }
 
-        vaddr_t expectedCursor = vaddr + PageSize;
+//         vaddr_t expectedCursor = vaddr + PageSize;
 
-        if (decrementedHeapCursor)
-            decrementedHeapCursor = Vmm::KernelHeapCursor.CmpXchgStrong(expectedCursor, vaddr);
-    }
+//         if (decrementedHeapCursor)
+//             decrementedHeapCursor = Vmm::KernelHeapCursor.CmpXchgStrong(expectedCursor, vaddr);
+//     }
 
-    //  TODO: Salvage pool when it failed to remove all pages.
-    //if (i > 0 && i < pageCount)
+//     //  TODO: Salvage pool when it failed to remove all pages.
+//     //if (i > 0 && i < pageCount)
 
-    return i < pageCount
-        ? HandleResult::Okay // At least one page was freed so the pool needs removal...
-        : HandleResult::UnsupportedOperation;
-}
+//     return i < pageCount
+//         ? HandleResult::Okay // At least one page was freed so the pool needs removal...
+//         : HandleResult::UnsupportedOperation;
+// }
 
 /**************************
     Actual Testing Code
@@ -553,7 +553,7 @@ __startup Handle ThreePoolTest()
 
     for (size_t testCnt = 0; testCnt < 1000; ++testCnt)
     {
-        askedToAcquire = askedToRemove = askedToEnlarge = false;
+        // askedToAcquire = askedToRemove = askedToEnlarge = false;
 
         /*msg("~~ ACQUIRING FIRST OBJECT ~~%n");//*/
         COMPILER_MEMORY_BARRIER();
@@ -562,23 +562,23 @@ __startup Handle ThreePoolTest()
 
         COMPILER_MEMORY_BARRIER();
 
-        ASSERT(askedToAcquire
-            , "The allocator wasn't asked to acquire a pool when allocating a "
-              "(new) first object..?");
+        // ASSERT(askedToAcquire
+        //     , "The allocator wasn't asked to acquire a pool when allocating a "
+        //       "(new) first object..?");
 
         ASSERT(testAllocator.PoolCount == 1
             , "Test allocator should have exactly one pool now, not %us.%n"
             , testAllocator.PoolCount.Load());
 
-        /*msg("~~ STARTING MULTIPLE POOL TEST WITH cap %us (%u4), fc %us (%u4) ~~%n"
+        msg("~~ STARTING MULTIPLE POOL TEST WITH cap %us (%u4), fc %us (%u4) ~~%n"
             , testAllocator.GetCapacity(), testAllocator.FirstPool->Capacity
-            , testAllocator.GetFreeCount(), testAllocator.FirstPool->FreeCount);//*/
+            , testAllocator.GetFreeCount(), testAllocator.FirstPool->FreeCount);
         COMPILER_MEMORY_BARRIER();
 
         tOm->Next = nullptr;
         //  This field has to be initialized.
 
-        askedToAcquire = false;
+        // askedToAcquire = false;
 
         TestStructure * tOx = tOm, * tOy, * tOt;
         bool allocatedOnce = false;
@@ -598,13 +598,13 @@ __startup Handle ThreePoolTest()
                     , "Test allocator should have exactly %u4 pool now, not %us.%n"
                     , allocatedOnce ? 2u : 1u, testAllocator.PoolCount.Load());
 
-                ASSERT(!askedToAcquire
-                    , "The allocator asked to acquire a pool before it was full..?");
+                // ASSERT(!askedToAcquire
+                //     , "The allocator asked to acquire a pool before it was full..?");
 
-                ASSERT(!askedToEnlarge
-                    , "The allocator asked to enlarge a pool before it was full..?");
+                // ASSERT(!askedToEnlarge
+                //     , "The allocator asked to enlarge a pool before it was full..?");
 
-                canEnlarge = false;
+                // canEnlarge = false;
             }
             else if unlikely(i == 2)
             {
@@ -616,13 +616,13 @@ __startup Handle ThreePoolTest()
                     , "Test allocator should have exactly %u4 pool now, not %us.%n"
                     , allocatedOnce ? 2u : 1u, testAllocator.PoolCount.Load());
 
-                ASSERT(!askedToAcquire
-                    , "The allocator asked to acquire a pool before it was full..?");
+                // ASSERT(!askedToAcquire
+                //     , "The allocator asked to acquire a pool before it was full..?");
 
-                ASSERT(!askedToEnlarge
-                    , "The allocator asked to enlarge a pool before it was full..?");
+                // ASSERT(!askedToEnlarge
+                //     , "The allocator asked to enlarge a pool before it was full..?");
 
-                canEnlarge = false;
+                // canEnlarge = false;
 
                 /*msg("~~ NEXT POOL SHOULD BE ACQUIRED NAO! ~~%n");//*/
             }
@@ -665,17 +665,17 @@ __startup Handle ThreePoolTest()
 
                 /*msg("~~ i = %us ~~%n", i);//*/
 
-                ASSERT(askedToAcquire
-                    , "The allocator should have been asked to acquire a pool "
-                      "when the first one got full and couldn't enlarge.");
+                // ASSERT(askedToAcquire
+                //     , "The allocator should have been asked to acquire a pool "
+                //       "when the first one got full and couldn't enlarge.");
 
-                ASSERT(!askedToEnlarge
-                    , "The allocator apparently enlarged the first pool when it "
-                      "was full..?");
+                // ASSERT(!askedToEnlarge
+                //     , "The allocator apparently enlarged the first pool when it "
+                //       "was full..?");
 
                 capacity2 = testAllocator.GetCapacity();
 
-                askedToAcquire = false;
+                // askedToAcquire = false;
             }
         }
 
@@ -683,15 +683,15 @@ __startup Handle ThreePoolTest()
             , "The allocator's capacity should've changed from %us!"
             , capacity2);
 
-        ASSERT(askedToAcquire
-            , "The allocator should have been asked to acquire a pool "
-              "when the second one got full and couldn't enlarge.");
+        // ASSERT(askedToAcquire
+        //     , "The allocator should have been asked to acquire a pool "
+        //       "when the second one got full and couldn't enlarge.");
 
-        ASSERT(!askedToEnlarge
-            , "The allocator apparently enlarged the second pool when it "
-              "was full..?");
+        // ASSERT(!askedToEnlarge
+        //     , "The allocator apparently enlarged the second pool when it "
+        //       "was full..?");
 
-        askedToAcquire = false;
+        // askedToAcquire = false;
 
         ASSERT(testAllocator.PoolCount == 3
             , "Test allocator should have exactly three pools now, not %us.%n"
@@ -730,9 +730,9 @@ __startup Handle ThreePoolTest()
         /*msg("~~ FINISHED REMOVING LAST OBJECT ~~%n");//*/
         COMPILER_MEMORY_BARRIER();
 
-        ASSERT(askedToRemove
-            , "The allocator should have asked to remove a pool after "
-              "deallocating the last object!");
+        // ASSERT(askedToRemove
+        //     , "The allocator should have asked to remove a pool after "
+        //       "deallocating the last object!");
 
         ASSERT(testAllocator.GetFreeCount() == 0
             , "The test allocator should have a free count of 0, not %us!"
@@ -764,8 +764,7 @@ __startup Handle ObjectAllocatorParallelAcquireTest()
     ObjectAllocatorTestBarrier2.Reach();
     ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
 
-    /*msg_("Core #%us: Gunna allocate %us objects.%n"
-        , System::Cpu::GetData()->Index, objCount);//*/
+    msg_("Core #%us: Gunna allocate %us objects.%n", Cpu::GetData()->Index, objCount);
 
     ObjectAllocatorTestBarrier3.Reach();
     ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
@@ -834,8 +833,8 @@ Handle TestObjectAllocator(bool const bsp)
         pool that needs enlarging is allocated.
      */
 
-    // InterruptGuard<false> ig;
-    ASSERT(Interrupts::AreEnabled());
+    InterruptGuard<false> ig;
+    // ASSERT(InterruptState::IsEnabled());
 
     if likely(!bsp)
     {
@@ -850,26 +849,26 @@ Handle TestObjectAllocator(bool const bsp)
     }
     else
     {
-        askedToAcquire = askedToRemove = false;
-        canEnlarge = true;
+        // askedToAcquire = askedToRemove = false;
+        // canEnlarge = true;
 
         new (&testAllocator) ObjectAllocatorSmp(sizeof(TestStructure), __alignof(TestStructure)
-            , &AcquirePoolTest, &EnlargePoolTest, &ReleasePoolTest
+            , &AcquirePoolInKernelHeap, &EnlargePoolInKernelHeap, &ReleasePoolFromKernelHeap
             , PoolReleaseOptions::ReleaseAll, 0, SIZE_MAX);
 
-        /*msg("Test allocator (%Xp): Capacity = %Xs, Free Count = %Xs, Pool Count = %Xs;%n"
-            , &testAllocator
-            , testAllocator.Capacity.Load()
-            , testAllocator.FreeCount.Load()
-            , testAllocator.PoolCount.Load());//*/
+        // msg("Test allocator (%Xp): Capacity = %us, Free Count = %us, Pool Count = %us;%n"
+        //     , &testAllocator
+        //     , testAllocator.Capacity.Load()
+        //     , testAllocator.FreeCount.Load()
+        //     , testAllocator.PoolCount.Load());
 
         TESTALLOC3(TestStructure, 1)
 
-        ASSERT(askedToAcquire
-            , "The allocator wasn't asked to acquire a pool when allocating the "
-              "first object..?");
+        // ASSERT(askedToAcquire
+        //     , "The allocator wasn't asked to acquire a pool when allocating the "
+        //       "first object..?");
 
-        askedToAcquire = false;
+        // askedToAcquire = false;
 
         TESTALLOC3(TestStructure, 2)
         TESTALLOC3(TestStructure, 3)
@@ -890,11 +889,11 @@ Handle TestObjectAllocator(bool const bsp)
         TESTDIFF(2, 4)
         TESTDIFF(3, 4)
 
-        /*msg("Test allocator (%Xp): Capacity = %us, Free Count = %us, Pool Count = %us;%n"
-            , &testAllocator
-            , testAllocator.Capacity.Load()
-            , testAllocator.FreeCount.Load()
-            , testAllocator.PoolCount.Load());//*/
+        // msg("Test allocator (%Xp): Capacity = %us, Free Count = %us, Pool Count = %us;%n"
+        //     , &testAllocator
+        //     , testAllocator.Capacity.Load()
+        //     , testAllocator.FreeCount.Load()
+        //     , testAllocator.PoolCount.Load());
 
         ASSERT(testAllocator.PoolCount == 1
             , "Test allocator should have only one pool, not %us.%n"
@@ -907,17 +906,17 @@ Handle TestObjectAllocator(bool const bsp)
             , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
             , testAllocator.GetCapacity(), testAllocator.GetFreeCount());
 
-        ASSERT(!askedToAcquire
-            , "The allocator was asked to acquire a pool when it shouldn't have "
-              "filled any pools yet!");
+        // ASSERT(!askedToAcquire
+        //     , "The allocator was asked to acquire a pool when it shouldn't have "
+        //       "filled any pools yet!");
 
         res = ObjectAllocatorSpamTest();
 
         if (!res.IsOkayResult())
             return res;
 
-        askedToEnlarge = askedToAcquire = askedToRemove = false;
-        //  These may have occured already!
+        // askedToEnlarge = askedToAcquire = askedToRemove = false;
+        // //  These may have occured already!
 
         TestStructure * tOx = nullptr, * tOy = nullptr, * tOt = nullptr;
 
@@ -931,8 +930,8 @@ Handle TestObjectAllocator(bool const bsp)
                     , "Test allocator should only have one free object, not %us.%n"
                     , testAllocator.GetFreeCount());
 
-                ASSERT(!askedToEnlarge
-                    , "The allocator asked to enlarge a pool before it was full..?");
+                // ASSERT(!askedToEnlarge
+                //     , "The allocator asked to enlarge a pool before it was full..?");
             }
 
             res = testAllocator.AllocateObject(tOx);
@@ -956,13 +955,13 @@ Handle TestObjectAllocator(bool const bsp)
             tOx->Next = tOy;
         }
 
-        ASSERT(askedToEnlarge
-            , "The allocator should have asked to enlarge a pool after "
-              "allocating the last object!");
+        // ASSERT(askedToEnlarge
+        //     , "The allocator should have asked to enlarge a pool after "
+        //       "allocating the last object!");
 
-        ASSERT(!askedToAcquire
-            , "The allocator was asked to acquire a pool when it already has "
-              "asked to enlarge..??");
+        // ASSERT(!askedToAcquire
+        //     , "The allocator was asked to acquire a pool when it already has "
+        //       "asked to enlarge..??");
 
         //  Now let's allocate moar objects!
 
@@ -973,9 +972,9 @@ Handle TestObjectAllocator(bool const bsp)
 
         TESTREMOV3(13)
 
-        ASSERT(!askedToRemove
-            , "The allocator asked to remove a pool when objects should still be"
-              "left in it!");
+        // ASSERT(!askedToRemove
+        //     , "The allocator asked to remove a pool when objects should still be"
+        //       "left in it!");
 
         res = testAllocator.DeallocateObject(tO13);
         ASSERT(res.IsResult(HandleResult::ObjaAlreadyFree)
@@ -983,9 +982,9 @@ Handle TestObjectAllocator(bool const bsp)
               "\"already freed\": %H%n"
             , tO13, res);
 
-        ASSERT(!askedToRemove
-            , "The allocator asked to remove a pool when objects should still be"
-              "left in it!");
+        // ASSERT(!askedToRemove
+        //     , "The allocator asked to remove a pool when objects should still be"
+        //       "left in it!");
 
         TESTALLOC3(TestStructure, 15)
 
@@ -1000,8 +999,8 @@ Handle TestObjectAllocator(bool const bsp)
         TESTDIFF(12, 14) TESTDIFF(12, 2) TESTDIFF(12, 4) TESTDIFF(12, x) TESTDIFF(12, y)
         TESTDIFF(13, 14) TESTDIFF(13, 3) TESTDIFF(13, 4) TESTDIFF(13, x) TESTDIFF(13, y)
 
-        ASSERT(!askedToRemove
-            , "The allocator asked to remove a pool before it was empty..?");
+        // ASSERT(!askedToRemove
+        //     , "The allocator asked to remove a pool before it was empty..?");
 
         //  Let's try full removal.
 
@@ -1009,9 +1008,9 @@ Handle TestObjectAllocator(bool const bsp)
         TESTREMOV3(12) TESTREMOV3(11) TESTREMOV3(14) TESTREMOV3(15)
         //  Removing known objects.
 
-        ASSERT(!askedToRemove
-            , "The allocator asked to remove a pool when objects should still be"
-              "left in it!");
+        // ASSERT(!askedToRemove
+        //     , "The allocator asked to remove a pool when objects should still be"
+        //       "left in it!");
 
         //  This uses `y` and not `x` because the latter is removed last.
         while (tOy != nullptr)
@@ -1026,8 +1025,8 @@ Handle TestObjectAllocator(bool const bsp)
 
         //  Right now there should only be one object left in the pool: tOx.
 
-        ASSERT(!askedToRemove
-            , "The allocator asked to remove a pool when one object should be left in it!");
+        // ASSERT(!askedToRemove
+        //     , "The allocator asked to remove a pool when one object should be left in it!");
 
         ASSERT(testAllocator.GetCapacity() == testAllocator.FirstPool->Capacity
             , "The test allocator should have a capacity equal to its first "
@@ -1057,9 +1056,9 @@ Handle TestObjectAllocator(bool const bsp)
         /*msg("~~ FINISHED REMOVING LAST OBJECT ~~%n");//*/
         COMPILER_MEMORY_BARRIER();
 
-        ASSERT(askedToRemove
-            , "The allocator should have asked to remove a pool after "
-              "deallocating the last object!");
+        // ASSERT(askedToRemove
+        //     , "The allocator should have asked to remove a pool after "
+        //       "deallocating the last object!");
 
         ASSERT(testAllocator.GetCapacity() == 0
             , "The test allocator should have a capacity of 0, not %us!"
@@ -1079,10 +1078,10 @@ Handle TestObjectAllocator(bool const bsp)
 
         //  Now let's try getting three pools!
 
-        res = ThreePoolTest();
+        // res = ThreePoolTest();
 
-        if (!res.IsOkayResult())
-            return res;
+        // if (!res.IsOkayResult())
+        //     return res;
 
         //  Now parallel allocations should test that pool acquisition doesn't mess up.
 

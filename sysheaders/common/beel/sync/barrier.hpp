@@ -39,14 +39,35 @@
 
 #pragma once
 
-#include <valloc/utils.hpp>
+#include <beel/sync/atomic.hpp>
 
-namespace Valloc
+namespace Beelzebub { namespace Synchronization
 {
-    void * AllocateMemory(size_t size);
-    void * AllocateAlignedMemory(size_t size, size_t mul, size_t off);
-    void * ResizeAllocation(void * ptr, size_t size);
-    void DeallocateMemory(void * ptr, bool crash = true);
+    struct Barrier
+    {
+        /*  Constructor(s)  */
 
-    void CollectMyGarbage();
-}
+        Barrier() = default;
+        inline Barrier(size_t t) : Left( nullptr), Total(t) { }
+
+        Barrier(Barrier const &) = delete;
+        Barrier & operator =(Barrier const &) = delete;
+        Barrier(Barrier &&) = delete;
+        Barrier & operator =(Barrier &&) = delete;
+
+        /*  Operations  */
+
+        void Reach();
+
+        inline void Reset(size_t total)
+        {
+            this->Left.Store(nullptr);
+            this->Total.Store(total);
+        }
+
+        /*  Fields  */
+
+        Atomic<Atomic<size_t> *> Left;
+        Atomic<size_t> Total;
+    };
+}}
