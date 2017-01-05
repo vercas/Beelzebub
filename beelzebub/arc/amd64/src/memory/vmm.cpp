@@ -804,8 +804,9 @@ struct RecursiveUnmapState
     vaddr_t const EndAddress;
     Spinlock<> * const AlienLock;
     Spinlock<> * const HeapLock;
-    Beelzebub::InterruptState const InterruptState;
+    Beelzebub::InterruptState InterruptState;
     bool const NonLocal, Invalidate, Broadcast, CountReferences;
+    size_t Depth;
 };
 
 struct HybridPageNode : public Vmm::PageNode
@@ -885,11 +886,11 @@ retry:
     else
         next = RoundUp(state->Address + 1, LargePageSize);
 
-    if (next >= state->EndAddress)
+    state->Address = next;
+
+    if (next >= state->EndAddress || state->Depth++ < VmmArc::RecursiveUnmapDepth)
         goto bail;
     //  This means enough has been mapped!
-
-    state->Address = next;
 
     res = UnmapRecursively(state, node);
     //  Note: `node` = &newNode;
@@ -948,20 +949,33 @@ Handle Vmm::UnmapRange(Process * proc
             ? &(proc->LocalTablesLock)
             : &(Vmm::KernelHeapLock));
 
-    InterruptState int_cookie = InterruptState::Disable();
-
-    if (alienLock != nullptr)
-        alienLock->Acquire();
-    if (heapLock != nullptr)
-        heapLock->Acquire();
-
     RecursiveUnmapState state = {
-        proc, vaddr, endAddr, alienLock, heapLock, int_cookie
+        proc, vaddr, endAddr, alienLock, heapLock, {}
         , nonLocal, invalidate, broadcast
         , 0 == (opts & MemoryMapOptions::NoReferenceCounting)
+        , 0
     };
 
-    return UnmapRecursively(&state, nullptr);
+    Handle res;
+
+    do
+    {
+        state.InterruptState = InterruptState::Disable();
+
+        if (alienLock != nullptr)
+            alienLock->Acquire();
+        if (heapLock != nullptr)
+            heapLock->Acquire();
+
+        res = UnmapRecursively(&state, nullptr);
+
+        if (res != HandleResult::Okay)
+            return res;
+
+        state.Depth = 0;
+    } while (state.Address < state.EndAddress);
+
+    return res;
 }
 
 template<bool caller>

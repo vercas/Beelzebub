@@ -103,6 +103,8 @@ namespace Beelzebub { namespace Memory
         //  The pages in this 1-TiB range are automagically allocated due
         //  to the awesome fractal mapping! :D
 
+        static constexpr size_t const RecursiveUnmapDepth = 32;
+
         /*  Constructor(s)  */
 
     protected:
