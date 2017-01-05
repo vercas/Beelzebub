@@ -41,6 +41,7 @@
 
 #include "tests/malloc.hpp"
 #include "cores.hpp"
+#include "kernel.hpp"
 #include <new>
 
 #include <beel/sync/spinlock.hpp>
@@ -69,18 +70,21 @@ struct TestStructure
     uint8_t Bytes[3];
     TestStructure * Next;
 
-    uint64_t Dummy[100];
+    // uint64_t Dummy[100];
 };
 
-static constexpr size_t const RandomIterations = 1'00'000;
+static constexpr size_t const RandomIterations = 100'000;
 static constexpr size_t const CacheSize = 2048;
 static Atomic<TestStructure *> Cache[CacheSize];
+static constexpr size_t const SyncerCount = 10;
+static Atomic<TestStructure *> Syncers[SyncerCount];
 static __thread TestStructure * MyCache[CacheSize];
+static Atomic<size_t> RandomerCounter {0};
 //  There is no space on the stack for this one.
 
 void TestMalloc(bool const bsp)
 {
-    InterruptGuard<false> ig;
+    if (bsp) Scheduling = false;
 
     size_t coreIndex = Cpu::GetData()->Index;
 
@@ -107,7 +111,7 @@ void TestMalloc(bool const bsp)
 
     if (bsp) perfStart = CpuInstructions::Rdtsc();
 
-    TestStructure * cur = getPtr();
+    TestStructure * cur = getPtr(), * dummy = getPtr();
 
     for (size_t i = 0; i < CacheSize; ++i)
     {
@@ -125,7 +129,7 @@ void TestMalloc(bool const bsp)
     {
         MSG_("Filling took %us cycles: %us per slot.%n"
             , perfEnd - perfStart
-            , (perfEnd - perfStart + CacheSize / 2) / CacheSize);
+            , (perfEnd - perfStart + CacheSize / 2 + 1) / (CacheSize + 2));
 
         MSG_("First check.%n");
     }
@@ -203,30 +207,30 @@ void TestMalloc(bool const bsp)
 
     SYNC;
 
-    static Atomic<TestStructure *> Syncer (nullptr);
-
     if (bsp)
     {
         MSG_("Syncer.%n");
 
-        Syncer = getPtr();
+        for (size_t i = 0; i < SyncerCount; ++i)
+            Syncers[i] = getPtr();
     }
 
     SYNC;
 
     if (!bsp)
-    {
-        TestStructure * old = nullptr;
-
-        Syncer.Xchg(old);
-
-        if (old != nullptr)
+        for (size_t i = coreIndex - 1; i < SyncerCount; i += Cores::GetCount() - 1)
         {
-            MSG_("Core %us deletes %Xp.%n", coreIndex, old);
+            TestStructure * old = nullptr;
 
-            delete old;
+            (Syncers + i)->Xchg(&old);
+
+            if (old != nullptr)
+            {
+                MSG_("Core %us deletes %Xp.%n", coreIndex, old);
+
+                delete old;
+            }
         }
-    }
 
     SYNC;
 
@@ -237,23 +241,20 @@ void TestMalloc(bool const bsp)
 
         Valloc::CollectMyGarbage();
     }
+
+    SYNC;
 #endif
 
-    SYNC;
+    if (bsp) MSG_("Randomer 1!%n");
 
     SYNC;
 
-    if (bsp) MSG_("Randomer!%n");
-
-    SYNC;
+    perfStart = CpuInstructions::Rdtsc();
 
     coreIndex ^= 0x55U;
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
-        if ((j & 4095) == 0)
-            MSG_("[%us:%us]", coreIndex ^ 0x55U, j);
-
     retry:
         TestStructure * old = nullptr;
 
@@ -303,7 +304,92 @@ void TestMalloc(bool const bsp)
             i -= CacheSize;
     }
 
+    perfEnd = CpuInstructions::Rdtsc();
+
     coreIndex ^= 0x55U;
+
+    SYNC;
+
+    RandomerCounter += perfEnd - perfStart;
+
+    SYNC;
+
+    if (bsp)
+    {
+        size_t const itcnt = Cores::GetCount() * RandomIterations;
+
+        MSG_("%us cores did %us random malloc/free under random congestion in %us cycles; %us cycles per operation.%n"
+            , Cores::GetCount(), itcnt, RandomerCounter.Load(), (RandomerCounter + itcnt / 2) / itcnt);
+    }
+
+    SYNC;
+
+    if (bsp)
+        for (size_t i = 0; i < CacheSize; ++i)
+            if (Cache[i] == nullptr)
+                Cache[i] = getPtr();
+
+    if (cur != nullptr)
+        delete cur;
+
+    SYNC;
+
+    if (bsp)
+    {
+        MSG_("Randomer 2!%n");
+
+        RandomerCounter.Store(0);
+    }
+
+    SYNC;
+
+    perfStart = CpuInstructions::Rdtsc();
+
+    coreIndex ^= 0x55U;
+
+    for (size_t i = 0, j = 0; j < RandomIterations; ++j)
+    {
+        cur = getPtr();
+        TestStructure * old = (Cache + i)->Xchg(cur);
+
+        delete old;
+
+        i += coreIndex;
+
+        while (i >= CacheSize)
+            i -= CacheSize;
+    }
+
+    perfEnd = CpuInstructions::Rdtsc();
+
+    coreIndex ^= 0x55U;
+
+    SYNC;
+
+    RandomerCounter += perfEnd - perfStart;
+
+    SYNC;
+
+    if (bsp)
+    {
+        size_t const itcnt = Cores::GetCount() * RandomIterations;
+
+        MSG_("%us cores did %us random malloc/free under random congestion in %us cycles; %us cycles per operation.%n"
+            , Cores::GetCount(), itcnt, RandomerCounter.Load(), (RandomerCounter + itcnt / 2) / itcnt);
+    }
+
+    SYNC;
+
+    if (bsp) MSG_("Cleanup.%n");
+
+    SYNC;
+
+    if (bsp)
+        for (size_t i = 0; i < CacheSize; ++i)
+            if (Cache[i] != nullptr)
+                delete Cache[i];
+
+    delete dummy;
 
     SYNC;
 
@@ -311,21 +397,16 @@ void TestMalloc(bool const bsp)
 
     SYNC;
 
-    SYNC;
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+    if (bsp)
+        MSG_("Collecting.%n");
+
+    Valloc::CollectMyGarbage();
 
     SYNC;
+#endif
 
-    SYNC;
-
-    SYNC;
-
-    SYNC;
-
-    SYNC;
-
-    SYNC;
-
-    SYNC;
+    if (bsp) Scheduling = true;
 }
 
 #endif

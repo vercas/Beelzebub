@@ -48,7 +48,7 @@ using namespace Valloc;
 
 static __thread ThreadData TD;
 
-Lock GLock {};
+Lock GLock {}, PLock {};
 Arena * GList = nullptr;
 
 //  Eh.
@@ -105,7 +105,7 @@ static void DeallocateArena(Arena * const arena)
 
 static void RetireArena(Arena * arena)
 {
-    // Platform::ErrorMessage("Retiring arena " VF_PTR " of " VF_PTR, arena, &TD);
+    Platform::ErrorMessage("Retiring arena " VF_PTR " of " VF_PTR, arena, &TD);
 
     arena->Owner = nullptr;
 
@@ -145,6 +145,8 @@ again:
 
 static size_t FreeChunk(Arena * arena, Chunk * c, void const * const arenaEnd)
 {
+    arena->Free += c->Size;
+
     Chunk * const p = c->PrevFree, * const n = c->GetNext();
 
     if (p != nullptr && p->GetNext() == c)
@@ -176,7 +178,6 @@ static size_t FreeChunk(Arena * arena, Chunk * c, void const * const arenaEnd)
     }
     else
     {
-        c->Owner = arena;
         c->Flags = ChunkFlags::Free;
 
         if (n < arenaEnd && n->IsFree())
@@ -192,8 +193,6 @@ static size_t FreeChunk(Arena * arena, Chunk * c, void const * const arenaEnd)
         PatchPrevFree(c, c, arenaEnd);
     }
 
-    arena->Free += c->Size;
-
     return c->Size;
 }
 
@@ -205,21 +204,27 @@ static CollectionResult CollectGarbage(Arena * arena, size_t const target)
         return NoGarbage;
 
     void const * const arenaEnd = arena->GetEnd();
-    Chunk * first = arena->FreeList.Swap(nullptr);
-    Chunk * cur = first;
+    Chunk * cur = arena->FreeList.Swap(nullptr), * next;
 
-    Platform::ErrorMessage("Collecting garbage for " VF_PTR ": " VF_PTR
-        , arena, first);
+    // PLock.Acquire();
+    // Platform::ErrorMessage("Collecting garbage for " VF_PTR ": " VF_PTR
+    //     , arena, first);
 
-    // arena->Dump(Platform::ErrorMessage);
+    // // arena->Dump(Platform::ErrorMessage);
+    // for (Chunk const * c = first; c != nullptr; c = c->NextInList)
+    //     c->Print(Platform::ErrorMessage, true);
+    // PLock.Release();
 
     do
     {
         size_t const freeSize = FreeChunk(arena, cur, arenaEnd);
 
+        next = cur->NextInList;
+        cur->Owner = arena;
+
         if (VALLOC_LIKELY(target != 0) && freeSize >= target)
         {
-            if (VALLOC_LIKELY((cur = first = cur->NextInList) != nullptr))
+            if (VALLOC_LIKELY((cur = next) != nullptr))
             {
                 Chunk * last = nullptr;
 
@@ -227,12 +232,12 @@ static CollectionResult CollectGarbage(Arena * arena, size_t const target)
 
                 Chunk * top = arena->FreeList.Pointer;
 
-                do last->NextInList = top; while (!arena->FreeList.CAS(top, first));
+                do last->NextInList = top; while (!arena->FreeList.CAS(top, next));
             }
 
             return TargetReached;
         }
-    } while ((cur = cur->NextInList) != nullptr);
+    } while ((cur = next) != nullptr);
 
     return CollectedAll;
 }
@@ -334,7 +339,7 @@ with_new_arena:
         return nullptr;
 
     Chunk * const c = new (arena->LastFree) Chunk(arena, roundSize, false);
-    arena->LastFree = new (c->GetNext()) Chunk(arena, arena->Free - roundSize, true);
+    arena->LastFree = new (c->GetNext()) Chunk(arena, arena->Free -= roundSize, true);
 
     //  Normally, allocations are served at the end of free chunks.
     //  This means that the chunks after it don't need their PrevFree updated.
@@ -473,7 +478,7 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
 
 void Valloc::CollectMyGarbage()
 {
-    Arena * arena;
+    Arena * arena, * next;
 
     if (VALLOC_UNLIKELY((arena = TD.FirstArena) == nullptr))
         return;
@@ -483,6 +488,30 @@ void Valloc::CollectMyGarbage()
         VALLOC_ASSERT_MSG(reinterpret_cast<uintptr_t>(arena) % Platform::PageSize == 0
             , "Misaligned arena..? " VF_PTR, arena);
 
-        CollectGarbage(arena, 0);
-    } while ((arena = arena->Next) != nullptr);
+        // Platform::ErrorMessage("Forcefully collecting garbage of " VF_PTR " BY " VF_PTR, arena, &TD);
+
+        auto res = CollectGarbage(arena, 0);
+
+        switch (res)
+        {
+        case NoGarbage:
+            Platform::ErrorMessage("No garbage in " VF_PTR " of " VF_PTR, arena, &TD);
+            break;
+        case CollectedAll:
+            Platform::ErrorMessage("Collected all from " VF_PTR " of " VF_PTR, arena, &TD);
+            break;
+        case TargetReached:
+            Platform::ErrorMessage("WTF? - " VF_PTR " of " VF_PTR, arena, &TD);
+            break;
+        }
+
+        // PLock.Acquire();
+        // arena->Dump(Platform::ErrorMessage);
+        // PLock.Release();
+
+        next = arena->Next;
+
+        if (arena->IsEmpty())
+            DeallocateArena(arena);
+    } while ((arena = next) != nullptr);
 }
