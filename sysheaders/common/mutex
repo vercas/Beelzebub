@@ -47,17 +47,6 @@ namespace std
 {
     struct mutex
     {
-        struct LAC
-        {
-            typedef Beelzebub::Synchronization::SpinlockUninterruptible<false> L;
-            typedef Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie C;
-
-            L l;
-            C c;
-
-            LAC() = default;
-        };
-
         /*  Constructor(s)  */
 
         mutex() = default;
@@ -70,32 +59,41 @@ namespace std
 
         inline void lock()
         {
-            this->lac.c = this->lac.l.Acquire();
+            Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie const c = this->Lock.Acquire();
+
+            COMPILER_MEMORY_BARRIER();
+            
+            this->Cookie = c;
         }
 
         inline bool try_lock()
         {
-            LAC::C c;
+            Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie c;
 
-            bool const res = this->lac.l.TryAcquire(c);
+            bool const res = this->Lock.TryAcquire(c);
+
+            COMPILER_MEMORY_BARRIER();
 
             if (res)
-                this->lac.c = c;
+                this->Cookie = c;
 
             return res;
         }
 
         inline void unlock()
         {
-            LAC::C const c = this->lac.c;
+            Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie const c = this->Cookie;
 
-            this->lac.l.Release(c);
+            COMPILER_MEMORY_BARRIER();
+
+            this->Lock.Release(c);
         }
 
     private:
         /*  Fields  */
 
-        LAC lac;
+        Beelzebub::Synchronization::SpinlockUninterruptible<false> Lock;
+        Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie Cookie;
     };
 }
 
