@@ -53,57 +53,6 @@ namespace Valloc
         Pointers
     ***************/
 
-#ifdef VALLOC_POINTER_48BIT
-
-//     union SplitQword
-//     {
-//         uint64_t Whole;
-//         uint16_t Words[4];
-
-//         inline SplitQword(uint64_t const w, uint16_t const s)
-//             : Whole(w << 16)
-//         { (void)s; }
-
-//         inline SplitQword(uint16_t const s, uint64_t const w)
-//             : Whole(w & 0x0000FFFFFFFFFFFF)
-//         { (void)s; }
-
-//         inline uint64_t GetTop48()    const { return this->Whole >> 16; }
-//         inline uint64_t GetBottom48() const { return this->Whole & 0x0000FFFFFFFFFFFF; }
-
-//         inline SplitQword operator ^(SplitQword const other) const { return {this->Whole ^ other->Whole}; }
-//     };
-
-//     template<typename T>
-//     struct TopPointer
-//     {
-//         SplitQword Inner;
-
-//         inline TopPointer(T * const val)
-//             : Inner(reinterpret_cast<uint64_t>(val), 0)
-//         { }
-
-//         inline T * GetPointer() const { return reinterpret_cast<T *>(this->Inner.GetTop48()); }
-
-//         inline TopPointer operator ^(TopPointer const other) { return this->Inner ^ other.Inner; }
-//     }
-
-//     template<typename T>
-//     struct BottomPointer
-//     {
-//         SplitQword Inner;
-
-//         inline TopPointer(T * const val)
-//             : Inner(0, reinterpret_cast<uint64_t>(val))
-//         { }
-
-//         inline T * GetPointer() const { return reinterpret_cast<T *>(this->Inner.GetBottom48()); }
-
-//         inline BottomPointer operator ^(BottomPointer const other) { return this->Inner ^ other.Inner; }
-//     }
-
-#endif
-
     template<typename T>
     struct AtomicPointer
     {
@@ -288,8 +237,8 @@ namespace Valloc
         ThreadData * Owner;
         FreeChunk * LastFree;
 
-#ifdef VALLOC_SIZES_NONCONST
-        uintptr_t Padding0[VALLOC_CACHE_LINE_SIZE - 6 * sizeof(void *)];
+#ifdef VALLOC_CACHE_LINE_SIZE
+        uintptr_t Padding0[(VALLOC_CACHE_LINE_SIZE / sizeof(void *)) - 6];
 
         //  If possible, push the free list onto the next cache line.
         //  This allows accesses to it to not interfere with accesses to the
@@ -303,8 +252,8 @@ namespace Valloc
             , Size(s), Free(s - ARENA_SIZE)
             , Owner(o)
             , LastFree(reinterpret_cast<FreeChunk *>(PointerAdd(this, ARENA_SIZE)))
-#ifdef VALLOC_SIZES_NONCONST
-            , Padding0(0)
+#ifdef VALLOC_CACHE_LINE_SIZE
+            , Padding0()
 #endif
             , FreeList(nullptr)
         {

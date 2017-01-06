@@ -109,7 +109,9 @@ void TestMalloc(bool const bsp)
 
     uint64_t perfStart = 0, perfEnd = 0;
 
-    if (bsp) perfStart = CpuInstructions::Rdtsc();
+    SYNC;
+
+    perfStart = CpuInstructions::Rdtsc();
 
     TestStructure * cur = getPtr(), * dummy = getPtr();
 
@@ -121,18 +123,17 @@ void TestMalloc(bool const bsp)
             cur = getPtr();
     }
 
-    if (bsp) perfEnd = CpuInstructions::Rdtsc();
+    perfEnd = CpuInstructions::Rdtsc();
 
     SYNC;
 
-    if (bsp)
-    {
-        MSG_("Filling took %us cycles: %us per slot.%n"
-            , perfEnd - perfStart
-            , (perfEnd - perfStart + CacheSize / 2 + 1) / (CacheSize + 2));
+    MSG_("Core %us did filling in %us cycles: %us per slot.%n"
+        , coreIndex, perfEnd - perfStart
+        , (perfEnd - perfStart + CacheSize / 2 + 1) / (CacheSize + 2));
 
-        MSG_("First check.%n");
-    }
+    SYNC;
+
+    if (bsp) MSG_("First check.%n");
 
     for (size_t i = 0; i < CacheSize; ++i)
         ASSERT(cur != Cache[i]);
@@ -140,6 +141,8 @@ void TestMalloc(bool const bsp)
     SYNC;
 
     if (bsp) MSG_("Full diff check.%n");
+
+    SYNC;
 
     for (size_t i = coreIndex; i < CacheSize; i += Cores::GetCount())
         for (size_t j = i + 1; j < CacheSize; ++j)
@@ -158,28 +161,37 @@ void TestMalloc(bool const bsp)
 
     SYNC;
 
-    // if (bsp) MSG_("Realloc.%n");
+    if (bsp) MSG_("Realloc.%n");
 
-    // SYNC;
+    SYNC;
 
-    // if (bsp)
-    // {
-    //     void * ptr = malloc(10);
+    if (bsp)
+    {
+        void * ptr = malloc(10);
         
-    //     ASSERT((ptr = realloc(ptr, 20)) != nullptr);
-    //     ASSERT((ptr = realloc(ptr, 40)) != nullptr);
-    //     ASSERT((ptr = realloc(ptr, 80)) != nullptr);
-    //     ASSERT((ptr = realloc(ptr, 160)) != nullptr);
-    //     ASSERT((ptr = realloc(ptr, 320)) != nullptr);
-    //     ASSERT((ptr = realloc(ptr, 640)) != nullptr);
-    //     ASSERT((ptr = realloc(ptr, 1280)) != nullptr);
-    //     ASSERT((ptr = realloc(ptr, 160)) != nullptr);
-    //     ASSERT((ptr = realloc(ptr, 1)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 20)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 40)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 80)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 160)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 320)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 640)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 1280)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 1380)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 160)) != nullptr);
+        ASSERT((ptr = realloc(ptr, 1)) != nullptr);
 
-    //     free(ptr);
-    // }
+        free(ptr);
 
-    // SYNC;
+        ptr = realloc(nullptr, 100);
+        void * ptr2 = malloc(100);
+
+        ASSERT((ptr2 = realloc(ptr2, 1)) != nullptr);
+
+        ASSERT(realloc(ptr2, 0) == nullptr);
+        ASSERT(realloc(ptr, 0) == nullptr);
+    }
+
+    SYNC;
 
     if (bsp) MSG_("Individual stability 1.%n");
 

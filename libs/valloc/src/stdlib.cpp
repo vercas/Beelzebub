@@ -76,12 +76,22 @@ void * memalign(size_t boundary, size_t size)
 
 void * realloc(void * ptr, size_t size)
 {
-    return ResizeAllocation(ptr, size);
+    if (VALLOC_LIKELY(ptr != nullptr && size > 0))
+        return ResizeAllocation(ptr, size);
+    else if (ptr == nullptr)
+        return AllocateMemory(size);
+    else
+    {
+        DeallocateMemory(ptr);
+
+        return nullptr;
+    }
 }
 
 void free(void * ptr)
 {
-    return DeallocateMemory(ptr);
+    if (VALLOC_LIKELY(ptr != nullptr))
+        return DeallocateMemory(ptr);
 }
 
 
