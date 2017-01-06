@@ -45,7 +45,7 @@ namespace Valloc
 {
     void * AllocateMemory(size_t size);
     void * AllocateAlignedMemory(size_t size, size_t mul, size_t off);
-    void * ResizeAllocation(void * ptr, size_t size);
+    void * ResizeAllocation(void * ptr, size_t size, bool crash = true);
     void DeallocateMemory(void * ptr, bool crash = true);
 
     void CollectMyGarbage();

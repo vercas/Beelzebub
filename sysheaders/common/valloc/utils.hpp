@@ -48,7 +48,6 @@
     #define VALLOC_PAGE_SIZE            ((size_t)0x1000)
 
     #ifdef __BEELZEBUB__ARCH_AMD64
-        #define VALLOC_POINTER_48BIT
         #define VALLOC_LARGE_PAGE_SIZE  ((size_t)0x200000)
     #elif defined(__BEELZEBUB__ARCH_IA32)
         #define VALLOC_LARGE_PAGE_SIZE  ((size_t)0x400000)
@@ -68,21 +67,25 @@
     #define VALLOC_PLAT_GCC_AMD64
     #define VALLOC_PLAT_AMD64
     #define VALLOC_PLAT_X86
+    #define VALLOC_PLAT_64BIT
     #define VALLOC_PLAT_GCC
 #elif defined(_M_X64) || defined(_M_AMD64)
     #define VALLOC_PLAT_MSVC_AMD64
     #define VALLOC_PLAT_AMD64
     #define VALLOC_PLAT_X86
+    #define VALLOC_PLAT_64BIT
     #define VALLOC_PLAT_MSVC
 #elif defined(i386) || defined(__i386) || defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__)
     #define VALLOC_PLAT_GCC_IA32
     #define VALLOC_PLAT_IA32
     #define VALLOC_PLAT_X86
+    #define VALLOC_PLAT_32BIT
     #define VALLOC_PLAT_GCC
 #elif defined(_M_IX86)
     #define VALLOC_PLAT_MSVC_IA32
     #define VALLOC_PLAT_IA32
     #define VALLOC_PLAT_X86
+    #define VALLOC_PLAT_32BIT
     #define VALLOC_PLAT_MSVC
 #else
     #error "Unknown platform!"
@@ -147,6 +150,13 @@ namespace Valloc
         -> decltype(((value + step - 1) / step) * step)
     {
         return ((value + step - 1) / step) * step;
+    }
+
+    template<typename TNum1, typename TNum2>
+    static inline constexpr auto Minimum(const TNum1 & a, const TNum2 & b)
+        -> decltype((a < b) ? a : b)
+    {
+        return (a < b) ? a : b;
     }
 
     typedef void (* PrintFunction)(char const *, ...);

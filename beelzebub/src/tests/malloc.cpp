@@ -158,6 +158,29 @@ void TestMalloc(bool const bsp)
 
     SYNC;
 
+    // if (bsp) MSG_("Realloc.%n");
+
+    // SYNC;
+
+    // if (bsp)
+    // {
+    //     void * ptr = malloc(10);
+        
+    //     ASSERT((ptr = realloc(ptr, 20)) != nullptr);
+    //     ASSERT((ptr = realloc(ptr, 40)) != nullptr);
+    //     ASSERT((ptr = realloc(ptr, 80)) != nullptr);
+    //     ASSERT((ptr = realloc(ptr, 160)) != nullptr);
+    //     ASSERT((ptr = realloc(ptr, 320)) != nullptr);
+    //     ASSERT((ptr = realloc(ptr, 640)) != nullptr);
+    //     ASSERT((ptr = realloc(ptr, 1280)) != nullptr);
+    //     ASSERT((ptr = realloc(ptr, 160)) != nullptr);
+    //     ASSERT((ptr = realloc(ptr, 1)) != nullptr);
+
+    //     free(ptr);
+    // }
+
+    // SYNC;
+
     if (bsp) MSG_("Individual stability 1.%n");
 
     SYNC;
@@ -209,7 +232,7 @@ void TestMalloc(bool const bsp)
 
     if (bsp)
     {
-        MSG_("Syncer.%n");
+        MSG_("Syncers.%n");
 
         for (size_t i = 0; i < SyncerCount; ++i)
             Syncers[i] = getPtr();
@@ -249,9 +272,9 @@ void TestMalloc(bool const bsp)
 
     SYNC;
 
-    perfStart = CpuInstructions::Rdtsc();
-
     coreIndex ^= 0x55U;
+
+    perfStart = CpuInstructions::Rdtsc();
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
@@ -266,37 +289,19 @@ void TestMalloc(bool const bsp)
                 goto retry;
             //  If it became null in the meantime, retry.
 
-            // MSG_("Deleting %Xp from array%n", old);
-
             delete old;
         }
         else
         {
             if (cur == nullptr)
-            {
                 cur = getPtr();
 
-                // MSG_("Allocated %Xp temporary%n", cur);
-            }
-
             if likely((Cache + i)->CmpXchgStrong(old, cur))
-            {
-                // MSG_("Deleting %Xp from array%n", cur);
-
                 cur = nullptr;
-            }
             else
-            {
-                //  If it became non-null in the meantime, retry.
-
                 goto retry;
-            }
+            //  If it became non-null in the meantime, retry.
         }
-
-        // cur = getPtr();
-        // TestStructure * old = (Cache + i)->Xchg(cur);
-
-        // delete old;
 
         i += coreIndex;
 
@@ -343,9 +348,9 @@ void TestMalloc(bool const bsp)
 
     SYNC;
 
-    perfStart = CpuInstructions::Rdtsc();
-
     coreIndex ^= 0x55U;
+
+    perfStart = CpuInstructions::Rdtsc();
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
@@ -390,10 +395,6 @@ void TestMalloc(bool const bsp)
                 delete Cache[i];
 
     delete dummy;
-
-    SYNC;
-
-    if (bsp) MSG_("Done?%n");
 
     SYNC;
 

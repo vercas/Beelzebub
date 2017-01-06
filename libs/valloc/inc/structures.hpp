@@ -45,6 +45,8 @@ namespace Valloc
 {
     struct Arena;
     struct Chunk;
+    struct FreeChunk;
+    struct BusyChunk;
     struct ThreadData;
 
     /***************
@@ -103,6 +105,28 @@ namespace Valloc
 #endif
 
     template<typename T>
+    struct AtomicPointer
+    {
+        T * Pointer;
+
+        inline explicit AtomicPointer(T * const p)
+            : Pointer( p)
+        {
+            //  Eh.
+        }
+
+        inline T * Swap(T * const des)
+        {
+            return Platform::Swap<T *>(&(this->Pointer), des);
+        }
+
+        inline bool CAS(T * & exp, T * const des)
+        {
+            return Platform::CAS<T *>(&(this->Pointer), exp, des);
+        }
+    };
+
+    template<typename T>
     struct GenerationalPointer
     {
         T * Pointer;
@@ -155,26 +179,36 @@ namespace Valloc
         {
             Arena * Owner;
             Chunk * NextInList;
+            FreeChunk * PrevFree;
         };
 
-        Chunk * PrevFree;
+        Chunk * Prev;
         size_t Size;
         ChunkFlags Flags;
 
         inline explicit Chunk(Arena * const o)
             : Owner( o)
-            , PrevFree(nullptr)
+            , Prev(nullptr)
             , Size(0)
             , Flags(ChunkFlags::Free)
         {
 
         }
 
-        inline Chunk(Arena * const o, size_t const s, bool const f, Chunk * const p = nullptr)
+        inline Chunk(Arena * const o, Chunk * const p, size_t const s, ChunkFlags const f)
             : Owner( o)
-            , PrevFree(p)
+            , Prev(p)
             , Size(s)
-            , Flags(f ? ChunkFlags::Free : ChunkFlags::None)
+            , Flags(f)
+        {
+
+        }
+
+        inline Chunk(FreeChunk * const pf, Chunk * const p, size_t const s, ChunkFlags const f)
+            : PrevFree( pf)
+            , Prev(p)
+            , Size(s)
+            , Flags(f)
         {
 
         }
@@ -194,11 +228,47 @@ namespace Valloc
 
         inline void Print(PrintFunction f, bool indent = false) const
         {
-            return f(VF_STR "[Chunk " VF_PTR "->" VF_PTR " " VF_STR "; " VF_PTR "]"
+            return f(VF_STR "[Chunk " VF_PTR "<-" VF_PTR "->" VF_PTR " " VF_STR "; " VF_PTR "]"
                 , indent ? "\t" : ""
-                , this, this->GetNext()
+                , this, this->Prev, this->GetNext()
                 , this->IsBusy() ? "B" : this->IsFree() ? "F" : "Q"
-                , this->PrevFree);
+                , this->Owner);
+        }
+
+        inline FreeChunk * AsFree()
+        {
+            return reinterpret_cast<FreeChunk *>(this);
+        }
+    };
+
+    struct FreeChunk : public Chunk
+    {
+        FreeChunk * NextFree;
+
+        inline FreeChunk(FreeChunk * const pf, Chunk * const p, size_t const s, FreeChunk * const nf)
+            : Chunk( pf, p, s, ChunkFlags::Free)
+            , NextFree(nf)
+        {
+
+        }
+
+        inline void Print(PrintFunction f, bool indent = false) const
+        {
+            return f(VF_STR "[Chunk " VF_PTR "<-" VF_PTR "->" VF_PTR " " VF_STR "; " VF_PTR "; " VF_PTR "]"
+                , indent ? "\t" : ""
+                , this, this->Prev, this->GetNext()
+                , this->IsBusy() ? "B" : this->IsFree() ? "F" : "Q"
+                , this->Owner
+                , this->NextFree);
+        }
+    };
+
+    struct BusyChunk : public Chunk
+    {
+        inline BusyChunk(Arena * const o, Chunk * const p, size_t const s)
+            : Chunk( o, p, s, ChunkFlags::None)
+        {
+
         }
     };
 
@@ -213,18 +283,30 @@ namespace Valloc
 
     struct Arena
     {
-        GenerationalPointer<Chunk> FreeList;
-        size_t Size, Free;
         Arena * Prev, * Next;
+        size_t Size, Free;
         ThreadData * Owner;
-        Chunk * LastFree;
+        FreeChunk * LastFree;
+
+#ifdef VALLOC_SIZES_NONCONST
+        uintptr_t Padding0[VALLOC_CACHE_LINE_SIZE - 6 * sizeof(void *)];
+
+        //  If possible, push the free list onto the next cache line.
+        //  This allows accesses to it to not interfere with accesses to the
+        //  rest of the data.
+#endif
+
+        AtomicPointer<Chunk> FreeList;
 
         inline explicit Arena(ThreadData * const o, size_t const s)
-            : FreeList( nullptr)
+            : Prev( nullptr), Next(nullptr)
             , Size(s), Free(s - ARENA_SIZE)
-            , Prev(nullptr), Next(nullptr)
             , Owner(o)
-            , LastFree(reinterpret_cast<Chunk *>(PointerAdd(this, ARENA_SIZE)))
+            , LastFree(reinterpret_cast<FreeChunk *>(PointerAdd(this, ARENA_SIZE)))
+#ifdef VALLOC_SIZES_NONCONST
+            , Padding0(0)
+#endif
+            , FreeList(nullptr)
         {
 
         }
@@ -264,7 +346,10 @@ namespace Valloc
                 , this->LastFree, this->Owner);
 
             for (Chunk const * c = this->GetFirstChunk(); c < this->GetEnd(); c = c->GetNext())
-                c->Print(f, true);
+                if (c->Flags == ChunkFlags::Free)
+                    reinterpret_cast<FreeChunk const *>(c)->Print(f, true);
+                else
+                    c->Print(f, true);
         }
     }
 #if defined(VALLOC_CACHE_LINE_SIZE) && defined(VALLOC_CAN_ALIGN)

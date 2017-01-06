@@ -43,6 +43,7 @@
 #include "locks.hpp"
 #include <valloc/interface.hpp>
 #include <new>
+#include <string.h>
 
 using namespace Valloc;
 
@@ -123,74 +124,115 @@ static void RetireArena(Arena * arena)
     //  And such, the job is done.
 }
 
-//  Vital note: This skips the first chunk; starts from the next.
-static void PatchPrevFree(Chunk * c, Chunk * const free, void const * const arenaEnd)
-{
-    // Platform::ErrorMessage("Patch! " VF_PTR " " VF_PTR " " VF_PTR, c, free, arenaEnd);
-
-again:
-    c = c->GetNext();
-
-    if (c < arenaEnd)
-    {
-        c->PrevFree = free;
-
-        if (!c->IsFree())
-            goto again;
-        //  Will stop after the first free chunk.
-    }
-
-    //  Or once it reaches the end of the arena.
-}
-
-static size_t FreeChunk(Arena * arena, Chunk * c, void const * const arenaEnd)
+static size_t FreeThisChunk(Arena * arena, Chunk * c, void const * const arenaEnd)
 {
     arena->Free += c->Size;
 
-    Chunk * const p = c->PrevFree, * const n = c->GetNext();
+    FreeChunk * const p = c->Prev->AsFree(), * const n = c->GetNext()->AsFree();
+    Chunk * const nn = (n < arenaEnd) ? n->GetNext() : nullptr;
 
-    if (p != nullptr && p->GetNext() == c)
+    if (p != nullptr && p->IsFree())
     {
-        if (n < arenaEnd && n->IsFree())
+        //  Previous is free.
+
+        if (nn != nullptr && n->IsFree())
         {
             //  Surrounded on both sides by free chunks.
 
             p->Size += c->Size + n->Size;
             //  Must include both.
 
-            PatchPrevFree(p, p, arenaEnd);
+            if (nn < arenaEnd)
+                nn->Prev = p;
+            //  This concludes standard chunk linkage.
 
-            if (arena->LastFree == n)
+            if ((p->NextFree = n->NextFree) != nullptr)
+                //  If the next also had a next, its previous is my previous!
+                p->NextFree->PrevFree = p;
+            else if (VALLOC_LIKELY(arena->LastFree == n))
+                //  Push back the last free if the next one was the last.
                 arena->LastFree = p;
-            //  Push back the last free if the next one was the last.
         }
         else
         {
             //  Previous is free, next is not.
 
-            p->Size += c->Size;
+            if (nn != nullptr)
+                n->Prev = p;
+            //  Patch normal chunk linkage. Free chunk linkage stays intact.
 
-            //  No need to patch linkage, because everything already points to
-            //  the previous free chunk. No need to check the last free either.
+            p->Size += c->Size;
         }
 
         c = p;
     }
     else
     {
+        //  Previous is busy.
+
         c->Flags = ChunkFlags::Free;
 
-        if (n < arenaEnd && n->IsFree())
+        if (nn != nullptr && n->IsFree())
         {
+            //  Next is free.
             c->Size += n->Size;
 
-            if (arena->LastFree == n)
-                arena->LastFree = c;
-        }
-        else if (arena->LastFree < c)
-            arena->LastFree = c;
+            if (nn < arenaEnd)
+                nn->Prev = c;
 
-        PatchPrevFree(c, c, arenaEnd);
+            if ((c->PrevFree = n->PrevFree) != nullptr)
+                c->PrevFree->NextFree = c->AsFree();
+            //  Patch linkage with the previous free chunk, if any.
+
+            if ((c->AsFree()->NextFree = n->NextFree) != nullptr)
+                c->AsFree()->NextFree->PrevFree = c->AsFree();
+                //  Patch linkage with the next free chunk, if any.
+            else if (VALLOC_LIKELY(arena->LastFree == n))
+                //  Push back the last free if the next one was the last.
+                arena->LastFree = c->AsFree();
+        }
+        else if (arena->LastFree == nullptr)
+        {
+            //  Next is busy, and there's no free chunk. Happens.
+
+            c->PrevFree = nullptr;
+            c->AsFree()->NextFree = nullptr;
+
+            arena->LastFree = c->AsFree();
+        }
+        else
+        {
+            //  Next is busy, and there's a free chunk.
+
+            FreeChunk * lastFree = arena->LastFree;
+
+            if (lastFree > c)
+            {
+                //  So the last free chunk is after the current one.
+
+                FreeChunk * free;
+
+                do free = lastFree; while ((lastFree = lastFree->PrevFree) > c);
+                //  Find the closest free chunk after the current one.
+                //  This also stops at null if (hopefully) pointer comparison is
+                //  done unsigned.
+
+                if ((c->PrevFree = free->PrevFree) != nullptr)
+                    c->PrevFree->NextFree = c->AsFree();
+                //  Patch between current and previous, if any.
+
+                free->PrevFree = c->AsFree();
+                c->AsFree()->NextFree = free;
+                //  Patch between current and next, if any.
+            }
+            else
+            {
+                //  Last chunk if before this one, meaning this one is now the last.
+
+                arena->LastFree = lastFree->NextFree = c->AsFree();
+                c->PrevFree = lastFree;
+            }
+        }
     }
 
     return c->Size;
@@ -206,21 +248,11 @@ static CollectionResult CollectGarbage(Arena * arena, size_t const target)
     void const * const arenaEnd = arena->GetEnd();
     Chunk * cur = arena->FreeList.Swap(nullptr), * next;
 
-    // PLock.Acquire();
-    // Platform::ErrorMessage("Collecting garbage for " VF_PTR ": " VF_PTR
-    //     , arena, first);
-
-    // // arena->Dump(Platform::ErrorMessage);
-    // for (Chunk const * c = first; c != nullptr; c = c->NextInList)
-    //     c->Print(Platform::ErrorMessage, true);
-    // PLock.Release();
-
     do
     {
-        size_t const freeSize = FreeChunk(arena, cur, arenaEnd);
-
         next = cur->NextInList;
-        cur->Owner = arena;
+
+        size_t const freeSize = FreeThisChunk(arena, cur, arenaEnd);
 
         if (VALLOC_LIKELY(target != 0) && freeSize >= target)
         {
@@ -292,14 +324,16 @@ void * Valloc::AllocateMemory(size_t size)
 
                 c->Flags = ChunkFlags::None;
 
-                PatchPrevFree(c, c->PrevFree, arena->GetEnd());
+                if (c->PrevFree != nullptr)
+                    c->PrevFree->NextFree = c->AsFree()->NextFree;
 
-                if (arena->LastFree == c)
+                if (c->AsFree()->NextFree != nullptr)
+                    c->AsFree()->NextFree->PrevFree = c->PrevFree;
+                else if (VALLOC_LIKELY(arena->LastFree == c))
                     arena->LastFree = c->PrevFree;
                 //  Okey dokey?
 
-                // Platform::ErrorMessage("Repurposed " VF_PTR " (" VF_PTR ") from arena " VF_PTR " of " VF_PTR
-                //     , c, (uintptr_t)(c->Size), arena, &TD);
+                c->Owner = arena;
             }
             else
             {
@@ -308,22 +342,17 @@ void * Valloc::AllocateMemory(size_t size)
                 c->Size -= roundSize;
                 //  Reduce.
 
-                c = new (c->GetNext()) Chunk(arena, roundSize, false, c);
+                c = new (c->GetNext()) BusyChunk(arena, c, roundSize);
                 //  Create a new used chunk at the end of this free chunk.
 
-                // Platform::ErrorMessage("Sliced " VF_PTR " from " VF_PTR " (" VF_PTR ") in arena " VF_PTR " of " VF_PTR
-                //     , c, c->PrevFree, (uintptr_t)(c->PrevFree->Size), arena, &TD);
+                if (c->GetNext() < arena->GetEnd())
+                    c->GetNext()->Prev = c;
             }
 
             if ((arena->Free -= roundSize) == 0)
                 if (CollectGarbage(arena, roundSize) == NoGarbage)
                     RetireArena(arena);
             //  It's full. Will be retired if it contains no garbage.
-
-            // Platform::ErrorMessage("Allocated " VF_PTR " from arena " VF_PTR " of " VF_PTR
-            //     , c, arena, &TD);
-
-            // arena->Dump(Platform::ErrorMessage);
 
             return c->GetContents();
         } while ((c = c->PrevFree) != nullptr);
@@ -338,18 +367,14 @@ with_new_arena:
     if (VALLOC_UNLIKELY(arena == nullptr))
         return nullptr;
 
-    Chunk * const c = new (arena->LastFree) Chunk(arena, roundSize, false);
-    arena->LastFree = new (c->GetNext()) Chunk(arena, arena->Free -= roundSize, true);
+    Chunk * const c = new (arena->LastFree) BusyChunk(arena, nullptr, roundSize);
+    arena->LastFree = new (c->GetNext()) FreeChunk(nullptr, c, arena->Free -= roundSize, nullptr);
 
     //  Normally, allocations are served at the end of free chunks.
     //  This means that the chunks after it don't need their PrevFree updated.
     //  When an arena is freshly-allocated, it's served from the beginning, to
     //  avoid too many on-demand allocations. Will save a page at best, but still
     //  worth it.
-
-    // c->Print(Platform::ErrorMessage);
-    // c->GetNext()->Print(Platform::ErrorMessage);
-    // arena->Dump(Platform::ErrorMessage);
 
     return c->GetContents();
 }
@@ -359,15 +384,195 @@ void * Valloc::AllocateAlignedMemory(size_t size, size_t mul, size_t off)
 
 }
 
-void * Valloc::ResizeAllocation(void * ptr, size_t size)
+void * Valloc::ResizeAllocation(void * ptr, size_t size, bool crash)
 {
+//     Chunk * const c = Chunk::FromContents(ptr);
 
+//     VALLOC_ASSERT_MSG(reinterpret_cast<uintptr_t>(ptr) % Platform::CacheLineSize == sizeof(Chunk)
+//             , "Misaligned pointer: " VF_PTR, ptr);
+
+//     size_t const roundSize = RoundUp(size + sizeof(Chunk), Platform::CacheLineSize);
+//     ssize_t const sizeDiff = (ssize_t)(roundSize) - (ssize_t)(c->Size);
+
+//     if (sizeDiff == 0)
+//         return ptr;
+
+//     if (VALLOC_UNLIKELY(!c->IsBusy()))
+//     {
+//         Platform::ErrorMessage("Attempted to resize a " VF_STR " chunk: " VF_PTR
+//             , c->IsBusy() ? "busy" : c->IsFree() ? "free" : "queued"
+//             , c);
+
+//         if (crash)
+//             VALLOC_ABORT();
+//         else
+//             return nullptr;
+//     }
+
+//     Arena * const arena = c->Owner;
+//     ThreadData * owner = arena->Owner;
+
+//     if (VALLOC_LIKELY(owner == &TD))
+//     {
+//         Platform::ErrorMessage("Resizing " VF_PTR " from arena " VF_PTR " BY " VF_PTR "; " VF_PTR "->" VF_PTR
+//             , c, arena, owner, c->Size, roundSize);
+
+//     resize_my_own:
+//         //  Hardest case, resizing a chunk in an arena owned by this thread.
+
+//         Chunk * next = c->GetNext();
+//         void const * const arenaEnd = arena->GetEnd();
+
+//         if (next >= arenaEnd)
+//             goto allocate_new;
+
+//         if (VALLOC_LIKELY(sizeDiff > 0))
+//         {
+//             //  Enlarging?
+
+//             if (VALLOC_LIKELY(!next->IsFree() || (ssize_t)(next->Size) < sizeDiff))
+//                 goto allocate_new;
+//             //  Next one's not free? Not gonna bother checking the previous...
+//             //  Next one's too small? Ditto.
+
+//             c->Size = roundSize;
+
+//             arena->Free -= sizeDiff;
+
+//             if unlikely((ssize_t)(next->Size) == sizeDiff)
+//                 PatchPrevFree(c, c->PrevFree, arena->GetEnd());
+//             else
+//             {
+//                 next = new (c->GetNext()) Chunk(arena, next->Size - sizeDiff, true, c->PrevFree);
+//                 //  Reclaim the rest of the space.
+
+//                 PatchPrevFree(next, next, arena->GetEnd());
+//             }
+
+//             //  I think that's all..?
+//         }
+//         else
+//         {
+//             //  Shrinking? Two possibilities here.
+
+//             c->Size = roundSize;
+
+//             if (next->IsFree())
+//                 //  Extend the next one.
+//                 next = new (c->GetNext()) Chunk(arena, next->Size - sizeDiff, true, c->PrevFree);
+//             else
+//                 //  Or create a free chunk.
+//                 next = new (c->GetNext()) Chunk(arena, (size_t)(-sizeDiff), true, c->PrevFree);
+
+//             arena->Free -= sizeDiff;
+
+//             PatchPrevFree(next, next, arena->GetEnd());
+//         }
+
+//         return ptr;
+
+//     allocate_new:
+//         void * const other = Valloc::AllocateMemory(size);
+//         //  Allocate a new one locally.  
+
+//         memcpy(other, ptr, Minimum(size, c->Size - sizeof(Chunk)));
+//         //  Transfer the needed data.
+
+//         FreeThisChunk(arena, c, arena->GetEnd());
+
+//         // arena->Dump(Platform::ErrorMessage);
+
+//         if (arena->IsEmpty())
+//             DeallocateArena(arena);
+//         //  The new location may have been allocated in a different arena.
+
+//         return other;
+//     }
+//     else
+//     {
+//         Platform::ErrorMessage("Resizing " VF_PTR " from arena " VF_PTR " of " VF_PTR " BY " VF_PTR
+//             , c, arena, owner, &TD);
+
+//         bool locked = false;
+
+//     retry:
+//         //  It's important to note, that after the lock is acquired, the possible
+//         //  new owner cannot be this thread.
+
+//         if (VALLOC_LIKELY(owner != nullptr))
+//         {
+//             //  It's owned by another thread, so the chunk must simply be queued for
+//             //  freeing.
+
+//             if (VALLOC_UNLIKELY(locked))
+//                 GLock.Release();
+//             //  If the lock is taken, and this arena was taken by another thread,
+//             //  the lock is released and queuing proceeds normally.
+
+//             void * const other = Valloc::AllocateMemory(size);
+//             //  Allocate a new one locally.
+
+//             memcpy(other, ptr, Minimum(size, c->Size - sizeof(Chunk)));
+//             //  Transfer the needed data.
+
+//             c->Flags = ChunkFlags::Queued;
+
+//             Chunk * top = arena->FreeList.Pointer;
+
+//             do c->NextInList = top; while (!arena->FreeList.CAS(top, c));
+
+//             //  Queue up the old one for deleteion.
+
+//             return other;
+//         }
+//         else
+//         {
+//             //  It's global, it needs synchronization. It might even change owner in
+//             //  the meantime.
+
+//             if (VALLOC_LIKELY(locked))
+//             {
+//                 //  It has already been locked and has no owner.
+
+//                 arena->PopFromList();
+//                 if (GList == arena)
+//                     GList = arena->Next;
+//                 //  Patch linkage of global arenas.
+
+//                 arena->Owner = &TD;
+
+//                 GLock.Release();
+
+//                 //  Now the arena is not in the global list anymore, and is owned
+//                 //  by the current thread.
+
+//                 AddToMine(arena);
+//                 arena->Prev = nullptr;
+//                 //  Now it's in this thread's list, officially.
+
+//                 CollectGarbage(arena, 0);
+//                 //  Collect all the garbage that sneaked in.
+
+//                 goto resize_my_own;
+//             }
+//             else
+//             {
+//                 //  Not locked: The lock needs to be acquired first.
+
+//                 GLock.Acquire();
+//                 locked = true;
+
+//                 owner = arena->Owner;
+//                 //  Get the new owner, which cannot change now.
+
+//                 goto retry;
+//             }
+//         }
+//     }
 }
 
 void Valloc::DeallocateMemory(void * ptr, bool crash)
 {
-    (void)crash;
-
     Chunk * const c = Chunk::FromContents(ptr);
 
     VALLOC_ASSERT_MSG(reinterpret_cast<uintptr_t>(ptr) % Platform::CacheLineSize == sizeof(Chunk)
@@ -396,7 +601,7 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
     free_my_own:
         //  Easiest case, freeing a chunk in an arena owned by this thread.
 
-        FreeChunk(arena, c, arena->GetEnd());
+        FreeThisChunk(arena, c, arena->GetEnd());
 
         // arena->Dump(Platform::ErrorMessage);
 
@@ -411,18 +616,11 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
         bool locked = false;
 
     retry:
-        //  It's important to note, that after the lock is acquired, the possible
-        //  new owner cannot be this thread.
 
         if (VALLOC_LIKELY(owner != nullptr))
         {
-            //  It's owned by another thread, so the chunk must simply be queued for
-            //  freeing.
-
             if (VALLOC_UNLIKELY(locked))
                 GLock.Release();
-            //  If the lock is taken, and this arena was taken by another thread,
-            //  the lock is released and queuing proceeds normally.
 
             c->Flags = ChunkFlags::Queued;
 
@@ -432,43 +630,29 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
         }
         else
         {
-            //  It's global, it needs synchronization. It might even change owner in
-            //  the meantime.
-
             if (VALLOC_LIKELY(locked))
             {
-                //  It has already been locked and has no owner.
-
                 arena->PopFromList();
                 if (GList == arena)
                     GList = arena->Next;
-                //  Patch linkage of global arenas.
 
                 arena->Owner = &TD;
 
                 GLock.Release();
 
-                //  Now the arena is not in the global list anymore, and is owned
-                //  by the current thread.
-
                 AddToMine(arena);
                 arena->Prev = nullptr;
-                //  Now it's in this thread's list, officially.
 
                 CollectGarbage(arena, 0);
-                //  Collect all the garbage that sneaked in.
 
                 goto free_my_own;
             }
             else
             {
-                //  Not locked: The lock needs to be acquired first.
-
                 GLock.Acquire();
                 locked = true;
 
                 owner = arena->Owner;
-                //  Get the new owner, which cannot change now.
 
                 goto retry;
             }
@@ -488,8 +672,6 @@ void Valloc::CollectMyGarbage()
         VALLOC_ASSERT_MSG(reinterpret_cast<uintptr_t>(arena) % Platform::PageSize == 0
             , "Misaligned arena..? " VF_PTR, arena);
 
-        // Platform::ErrorMessage("Forcefully collecting garbage of " VF_PTR " BY " VF_PTR, arena, &TD);
-
         auto res = CollectGarbage(arena, 0);
 
         switch (res)
@@ -504,10 +686,6 @@ void Valloc::CollectMyGarbage()
             Platform::ErrorMessage("WTF? - " VF_PTR " of " VF_PTR, arena, &TD);
             break;
         }
-
-        // PLock.Acquire();
-        // arena->Dump(Platform::ErrorMessage);
-        // PLock.Release();
 
         next = arena->Next;
 
