@@ -52,7 +52,9 @@ static __thread ThreadData TD;
 Lock GLock {}, PLock {};
 Arena * GList = nullptr;
 
-//  Eh.
+/********************
+    Arena Linkage
+********************/
 
 static Arena * AddToMine(Arena * const arena)
 {
@@ -78,32 +80,6 @@ static Arena * RemoveFromMine(Arena * const arena)
     return arena;
 }
 
-static Arena * AllocateArena()
-{
-    void * addr = nullptr;
-    size_t size = Platform::LargePageSize;
-
-    Platform::AllocateMemory(addr, size);
-
-    if (VALLOC_UNLIKELY(addr == nullptr))
-        return nullptr;
-
-    if (VALLOC_UNLIKELY(size < Platform::PageSize))
-        Platform::FreeMemory(addr, size);
-    //  This is weird... Cannot continue.
-
-    // Platform::ErrorMessage("Allocated arena " VF_PTR " for " VF_PTR, addr, &TD);
-
-    return AddToMine(new (addr) Arena(&TD, size));
-}
-
-static void DeallocateArena(Arena * const arena)
-{
-    RemoveFromMine(arena);
-
-    Platform::FreeMemory(arena, arena->Size);
-}
-
 static void RetireArena(Arena * arena)
 {
     Platform::ErrorMessage("Retiring arena " VF_PTR " of " VF_PTR, arena, &TD);
@@ -123,6 +99,40 @@ static void RetireArena(Arena * arena)
 
     //  And such, the job is done.
 }
+
+/***************************
+    Arena (De)allocation
+***************************/
+
+static Arena * AllocateArena()
+{
+    void * addr = nullptr;
+    size_t size = Platform::LargePageSize;
+
+    Platform::AllocateMemory(addr, size);
+
+    if (VALLOC_UNLIKELY(addr == nullptr))
+        return nullptr;
+
+    if (VALLOC_UNLIKELY(size < Platform::PageSize))
+        Platform::FreeMemory(addr, size);
+    //  This is weird... Cannot continue.
+
+    Platform::ErrorMessage("Allocated arena " VF_PTR " for " VF_PTR, addr, &TD);
+
+    return AddToMine(new (addr) Arena(&TD, size));
+}
+
+static void DeallocateArena(Arena * const arena)
+{
+    RemoveFromMine(arena);
+
+    Platform::FreeMemory(arena, arena->Size);
+}
+
+/********************
+    Chunk Freeing
+********************/
 
 static void RelinkFreeChunk(Arena * arena, FreeChunk * c)
 {
@@ -259,6 +269,10 @@ static size_t FreeThisChunk(Arena * arena, Chunk * c, void const * const arenaEn
     return c->Size;
 }
 
+/*************************
+    Garbage Collection
+*************************/
+
 enum CollectionResult { NoGarbage, TargetReached, CollectedAll, };
 
 static CollectionResult CollectGarbage(Arena * arena, size_t const target)
@@ -294,6 +308,10 @@ static CollectionResult CollectGarbage(Arena * arena, size_t const target)
 
     return CollectedAll;
 }
+
+/*****************************
+    Valloc::AllocateMemory    >-------------------------------------------------
+*****************************/
 
 void * Valloc::AllocateMemory(size_t size)
 {
@@ -385,6 +403,10 @@ with_new_arena:
     return c->GetContents();
 }
 
+/*******************************
+    Valloc::DeallocateMemory    >-----------------------------------------------
+*******************************/
+
 void Valloc::DeallocateMemory(void * ptr, bool crash)
 {
     Chunk * const c = Chunk::FromContents(ptr);
@@ -474,10 +496,18 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
     }
 }
 
+/************************************
+    Valloc::AllocateAlignedMemory    >------------------------------------------
+************************************/
+
 void * Valloc::AllocateAlignedMemory(size_t size, size_t mul, size_t off)
 {
 
 }
+
+/*******************************
+    Valloc::ResizeAllocation    >-----------------------------------------------
+*******************************/
 
 void * Valloc::ResizeAllocation(void * ptr, size_t size, bool crash)
 {
@@ -564,8 +594,26 @@ void * Valloc::ResizeAllocation(void * ptr, size_t size, bool crash)
                 //  Push back the next free chunk.
                 RelinkFreeChunk(arena, new (c->GetNext()) FreeChunk(next->PrevFree, c, next->Size - sizeDiff, next->AsFree()->NextFree));
             else
-                //  Or create a free chunk.
-                IntroduceFreeChunk(arena, new (c->GetNext()) FreeChunk(nullptr, c, (size_t)(-sizeDiff), nullptr));
+            {
+                FreeChunk * const prev = c->Prev->AsFree();
+
+                if (prev->IsFree())
+                {
+                    //  Previous one is free, means linkage can be patched more efficiently.
+
+                    next = new (c->GetNext()) FreeChunk(prev, c, (size_t)(-sizeDiff), prev->NextFree);
+
+                    prev->NextFree = next->AsFree();
+
+                    if (next->AsFree()->NextFree != nullptr)
+                        next->AsFree()->NextFree->PrevFree = next->AsFree();
+                    else
+                        arena->LastFree = next->AsFree();
+                }
+                else
+                    //  Or properly introduce the free chunk, possibly more slowly...
+                    IntroduceFreeChunk(arena, new (c->GetNext()) FreeChunk(nullptr, c, (size_t)(-sizeDiff), nullptr));
+            }
         }
 
         return ptr;
@@ -664,6 +712,10 @@ void * Valloc::ResizeAllocation(void * ptr, size_t size, bool crash)
         }
     }
 }
+
+/*******************************
+    Valloc::CollectMyGarbage    >-----------------------------------------------
+*******************************/
 
 void Valloc::CollectMyGarbage()
 {
