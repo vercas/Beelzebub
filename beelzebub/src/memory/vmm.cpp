@@ -384,15 +384,13 @@ Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
 
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
-    Handle res;
-
-    if (endAddr <= Vmm::UserlandEnd)
-        res = proc->Vas.Free(vaddr, size);
-    else
-        res = KVas.Free(vaddr, size);
+    Handle res = UnmapRange(proc, vaddr, size);
 
     if unlikely(res != HandleResult::Okay)
         return res;
-    
-    return UnmapRange(proc, vaddr, size);
+
+    if (endAddr <= Vmm::UserlandEnd)
+        return proc->Vas.Free(vaddr, size);
+    else
+        return KVas.Free(vaddr, size);
 }
