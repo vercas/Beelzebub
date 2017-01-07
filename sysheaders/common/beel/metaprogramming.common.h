@@ -135,6 +135,14 @@
     //  Got this from http://stackoverflow.com/a/26408195
 #endif
 
+#define LINEVAR(name) MCATS(name, _, __LINE__)
+
+#ifdef __COUNTER__
+    #define ANONVAR(name) MCATS(name, _, __COUNTER__)
+#else
+    #define ANONVAR(name) LINEVAR(name)
+#endif
+
 /****************
     Constants
 ****************/
@@ -489,44 +497,6 @@
     #define ANNOTATE_LOCK_OPERATION_CHK ANNOTATE_LOCK_OPERATION(chk)
     #define ANNOTATE_LOCK_OPERATION_ACQ ANNOTATE_LOCK_OPERATION(acq)
     #define ANNOTATE_LOCK_OPERATION_REL ANNOTATE_LOCK_OPERATION(rel)
-#endif
-
-/******************
-    Scope Guard
-******************/
-
-#ifdef __BEELZEBUB__SOURCE_CXX
-    namespace Beelzebub
-    {
-        /// <summary>Guards a scope with a specified function.</summary>
-        template<typename TFunc>
-        struct ScopeGuard
-        {
-            /*  Constructor(s)  */
-
-            __forceinline ScopeGuard(TFunc const func) : Guard(func) { }
-
-            ScopeGuard(ScopeGuard const &) = delete;
-            ScopeGuard(ScopeGuard && other) = default;
-            ScopeGuard & operator =(ScopeGuard const &) = delete;
-            ScopeGuard & operator =(ScopeGuard &&) = default;
-
-            /*  Destructor  */
-
-            __forceinline ~ScopeGuard()
-            {
-                this->Guard();
-            }
-
-        private:
-            /*  Field(s)  */
-
-            TFunc const Guard;
-        };
-
-        template<typename TFunc>
-        __forceinline ScopeGuard<TFunc> MakeScopeGuard(TFunc const func) { return ScopeGuard<TFunc>(func); }
-    }
 #endif
 
 /******************
