@@ -192,6 +192,7 @@ GlobalData {
 local availableTests = List {
     "MT",
     -- "STR",
+    "PMM",
     -- "OBJA",
     --"METAP",
     --"EXCP",

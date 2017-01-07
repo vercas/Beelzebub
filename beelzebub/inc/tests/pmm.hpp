@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2017 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,78 +39,8 @@
 
 #pragma once
 
-#ifdef __BEELZEBUB__TEST_STACKINT
-#include "tests/stack_integrity.hpp"
-#endif
+#include <beel/sync/barrier.hpp>
 
-#ifdef __BEELZEBUB__TEST_METAP
-#include "tests/meta.hpp"
-#endif
+extern Beelzebub::Synchronization::Barrier PmmTestBarrier;
 
-#ifdef __BEELZEBUB__TEST_EXCP
-#include "tests/exceptions.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_STR
-#include "tests/string.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_TERMINAL
-#include "tests/terminal.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_OBJA
-#include "tests/object_allocator.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_AVL_TREE
-#include "tests/avl_tree.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_CMDO
-#include "tests/cmdo.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_FPU
-#include "tests/fpu.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_BIGINT
-#include "tests/bigint.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_LOCK_ELISION
-#include "tests/lock_elision.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_RW_SPINLOCK
-#include "tests/rw_spinlock.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_VAS
-#include "tests/vas.hpp"
-#endif
-
-#if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
-#include "tests/malloc.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
-#include "tests/interrupt_latency.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_KMOD
-#include "tests/kmod.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_TIMER
-#include "tests/timer.hpp"
-#endif
-
-#if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
-#include "tests/mailbox.hpp"
-#endif
-
-#ifdef __BEELZEBUB__TEST_PMM
-#include "tests/pmm.hpp"
-#endif
+__startup void TestPmm(bool const bsp);

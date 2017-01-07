@@ -631,23 +631,22 @@ void Beelzebub::Main()
 
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
         if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
-        {
             RwSpinlockTestBarrier.Reset(Cores::GetCount());
-        }
+#endif
+
+#ifdef __BEELZEBUB__TEST_PMM
+        if (CHECK_TEST(PMM))
+            PmmTestBarrier.Reset(Cores::GetCount());
 #endif
 
 #ifdef __BEELZEBUB__TEST_OBJA
         if (CHECK_TEST(OBJA))
-        {
             ObjectAllocatorTestBarrier.Reset(Cores::GetCount());
-        }
 #endif
 
 #if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
         if (CHECK_TEST(MALLOC))
-        {
             MallocTestBarrier.Reset(Cores::GetCount());
-        }
 #endif
 
         MainInitializeExtraCpus();
@@ -832,6 +831,19 @@ void Beelzebub::Main()
     }
 #endif
 
+#ifdef __BEELZEBUB__TEST_PMM
+    if (CHECK_TEST(PMM))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing physical memory manager.%n", Cpu::GetData()->Index);
+        
+        TestPmm(true);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished PMM test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
 #ifdef __BEELZEBUB__TEST_OBJA
     if (CHECK_TEST(OBJA))
     {
@@ -899,6 +911,19 @@ void Beelzebub::Secondary()
 
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
+#ifdef __BEELZEBUB__TEST_PMM
+    if (CHECK_TEST(PMM))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing physical memory manager.%n", Cpu::GetData()->Index);
+        
+        TestPmm(false);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished PMM test.%n", Cpu::GetData()->Index);
     }
 #endif
 
