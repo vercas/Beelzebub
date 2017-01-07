@@ -57,6 +57,10 @@
 
     #define VALLOC_STD_MUTEX
 
+    #ifndef __BEELZEBUB_KERNEL
+        #define VALLOC_USE_ERRNO
+    #endif
+
     #define VF_PTR "%Xp"
     #define VF_STR "%s"
 #else

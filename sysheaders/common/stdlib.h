@@ -41,13 +41,13 @@
 
 #include <beel/metaprogramming.h>
 
-__shared void * malloc(size_t);
-__shared void * calloc(size_t cnt, size_t size);
-__shared void * valloc(size_t);
-__shared void * memalign(size_t boundary, size_t size);
+__shared __hot __malloc void * malloc(size_t);
+__shared __malloc void * calloc(size_t cnt, size_t size);
+__shared __malloc void * valloc(size_t);
+__shared __malloc void * memalign(size_t boundary, size_t size);
 __shared int posix_memalign(void * * memptr, size_t alignment, size_t size);
 __shared void * realloc(void *, size_t);
-__shared void free(void *);
+__shared __hot void free(void *);
 
 __shared char * getenv(char const * key);
 
