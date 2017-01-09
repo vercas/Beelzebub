@@ -121,6 +121,7 @@ uint8_t Rtc::RawHours;
 uint8_t Rtc::RawDay;
 uint8_t Rtc::RawMonth;
 uint8_t Rtc::RawYear;
+uint8_t Rtc::RawCentury;
 
 /*  Reading  */
 
