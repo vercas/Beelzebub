@@ -71,8 +71,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Support  */
 
-        virtual __hot bool PreCheck(bool & lock, bool alloc) override;
-        virtual __hot Handle PostCheck() override;
+        virtual __hot Handle PreOp(bool & lock, bool alloc) override;
 
         /*  Fields  */
 

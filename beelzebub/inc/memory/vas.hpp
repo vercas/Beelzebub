@@ -94,15 +94,14 @@ namespace Beelzebub { namespace Memory
         __hot Handle AllocateNode(Utils::AvlTree<MemoryRegion>::Node * & node);
         __hot Handle RemoveNode(Utils::AvlTree<MemoryRegion>::Node * const node);
 
-        virtual __hot bool PreCheck(bool & lock, bool alloc);
-        virtual __hot Handle PostCheck();
+        virtual __hot Handle PreOp(bool & lock, bool alloc);
 
         __hot __forceinline bool ImplementsPreCheck()
         {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
 #pragma GCC diagnostic ignored "-Wpedantic"
-            return reinterpret_cast<void *>(this->*(&Vas::PreCheck)) != reinterpret_cast<void *>(&Vas::PreCheck);
+            return reinterpret_cast<void *>(this->*(&Vas::PreOp)) != reinterpret_cast<void *>(&Vas::PreOp);
 #pragma GCC diagnostic pop
         }
 

@@ -39,17 +39,24 @@
 
 #if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
 
-#include <tests/mailbox.hpp>
-#include <mailbox.hpp>
-#include <cores.hpp>
+#include "tests/mailbox.hpp"
+#include "mailbox.hpp"
+#include "cores.hpp"
+#include "kernel.hpp"
 
 #include <debug.hpp>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
+Barrier MailboxTestBarrier;
+
+#define SYNC MailboxTestBarrier.Reach()
+
 static constexpr size_t const PingPongCount = 200000;
+static constexpr size_t const SpamCount = 200000;
 
 struct PingPongState
 {
@@ -127,28 +134,69 @@ void Ponger(void * cookie)
     ping.Post(false);
 }
 
-void TestMailbox()
+static __startup void TestEmptyFunc2(void * cookie)
 {
-    ALLOCATE_MAIL_BROADCAST(m1, &TestFunc, reinterpret_cast<void *>(1));
-    m1.Post();
+    (void)cookie;
 
-    ALLOCATE_MAIL_BROADCAST(m2, &TestFunc, reinterpret_cast<void *>(2));
-    ALLOCATE_MAIL_BROADCAST(m3, &TestFunc, reinterpret_cast<void *>(3));
-    m2.Post();
-    m3.Post();
+    COMPILER_MEMORY_BARRIER();
+    //  This function will basically do nothing.
+}
 
-    PingPongState pps {{0}, 0xFFFFFFFFFFFFFFFFULL, 0, {0}, {false}, {false}};
+static __startup void TestEmptyFunc(void * cookie)
+{
+    return TestEmptyFunc2(cookie);
+}
 
-    withInterrupts (false)
-        Pinger(&pps);
+void TestMailbox(bool bsp)
+{
+    if (bsp)
+    {
+        Scheduling = false;
 
-    while (!pps.Done) CpuInstructions::DoNothing();
+        ALLOCATE_MAIL_BROADCAST(m1, &TestFunc, reinterpret_cast<void *>(1));
+        m1.Post();
 
-    uint64_t Avg = pps.Acc / pps.Pings;
+        ALLOCATE_MAIL_BROADCAST(m2, &TestFunc, reinterpret_cast<void *>(2));
+        ALLOCATE_MAIL_BROADCAST(m3, &TestFunc, reinterpret_cast<void *>(3));
+        m2.Post();
+        m3.Post();
 
-    DEBUG_TERM_
-        << "Direct mail latency: AVG "
-        << Avg << "; MIN " << pps.Min << "; MAX " << pps.Max << EndLine;
+        PingPongState pps {{0}, 0xFFFFFFFFFFFFFFFFULL, 0, {0}, {false}, {false}};
+
+        withInterrupts (false)
+            Pinger(&pps);
+
+        while (!pps.Done) CpuInstructions::DoNothing();
+
+        uint64_t Avg = pps.Acc / pps.Pings;
+
+        DEBUG_TERM_
+            << "Direct mail latency: AVG "
+            << Avg << "; MIN " << pps.Min << "; MAX " << pps.Max << EndLine;
+    }
+
+    SYNC;
+
+    uint64_t const perfStart = CpuInstructions::Rdtsc();
+
+    for (size_t i = 0; i < SpamCount; ++i)
+    {
+        ALLOCATE_MAIL_BROADCAST(m1, &TestEmptyFunc);
+        m1.Post();
+    }
+
+    uint64_t const perfEnd = CpuInstructions::Rdtsc();
+
+    SYNC;
+
+    if (bsp)
+    {
+        DEBUG_TERM_
+            << "Spam mail latency: AVG "
+            << ((perfEnd - perfStart) / (SpamCount * Cores::GetCount())) << EndLine;
+
+        Scheduling = true;
+    }
 }
 
 #endif

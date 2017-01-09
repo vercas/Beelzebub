@@ -6,6 +6,7 @@ local PROJ = false
 
 local FUNC_READELF = "rdelf"
 local FUNC_DISASSEMBLE = "dsasm"
+local FUNC_DISSY = "dissy"
 local FUNC_GRAB_XC = "grab-cross-compiler"
 local FUNC_GRAB_GENISOIMAGE = "grab-genisoimage"
 local FUNC_SETUP_LR = "setup-luarocks"
@@ -23,6 +24,8 @@ local funcs = {
     disassemble = FUNC_DISASSEMBLE,
     disasm = FUNC_DISASSEMBLE,
     dsasm = FUNC_DISASSEMBLE,
+
+    dissy = FUNC_DISSY,
 
     ["grab-cross-compiler"] = FUNC_GRAB_XC,
     ["grab-xc"] = FUNC_GRAB_XC,
@@ -52,6 +55,7 @@ end
 local modes = {
     [FUNC_READELF] = MODE_TARGET_PROJECT,
     [FUNC_DISASSEMBLE] = MODE_TARGET_PROJECT,
+    [FUNC_DISSY] = MODE_TARGET_PROJECT,
 }
 
 MODE = modes[FUNC]
@@ -155,6 +159,12 @@ if FUNC == FUNC_READELF then
 elseif FUNC == FUNC_DISASSEMBLE then
 
     shell("objdump", "-M", "intel", "-CdlSw", PROJ, "|", "less")
+
+--------------------------------------------------------------------------------
+
+elseif FUNC == FUNC_DISSY then
+
+    shell("dissy", PROJ)
 
 --------------------------------------------------------------------------------
 

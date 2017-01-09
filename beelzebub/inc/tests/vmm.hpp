@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2017 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,58 +37,10 @@
     thorough explanation regarding other files.
 */
 
-#include <memory/kernel.vas.hpp>
-#include <beel/interrupt.state.hpp>
-#include <cores.hpp>
+#pragma once
 
-#include <debug.hpp>
+#include <beel/sync/barrier.hpp>
 
-using namespace Beelzebub;
-using namespace Beelzebub::Memory;
-using namespace Beelzebub::Synchronization;
-using namespace Beelzebub::System;
-using namespace Beelzebub::Utils;
+extern Beelzebub::Synchronization::Barrier VmmTestBarrier;
 
-/**********************
-    KernelVas class
-**********************/
-
-/*  Support  */
-
-Handle KernelVas::PreOp(bool & lock, bool alloc)
-{
-    (void)lock;
-    (void)alloc;
-
-    if likely(this->Alloc.GetFreeCount() >= FreeDescriptorsThreshold)
-        return HandleResult::Okay;
-    else
-    {
-        //  Gotta lock.
-
-        uint32_t old = SpecialLockFree;
-        uint32_t const ind = likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex();
-
-        if unlikely(this->SpecialAllocationLocker.Load() == ind)
-            return HandleResult::Okay;
-
-        if (this->SpecialAllocationLocker.CmpXchgStrong(old, ind))
-        {
-            //  This core acquired the lock.
-
-            Handle res = this->Alloc.ForceExpand(FreeDescriptorsThreshold - this->Alloc.GetFreeCount());
-
-            this->SpecialAllocationLocker.Store(SpecialLockFree);
-
-            return res;
-        }
-        else
-        {
-            while (this->SpecialAllocationLocker.Load() != SpecialLockFree)
-                for (uint32_t i = 0; i <= ind; ++i)
-                    CpuInstructions::DoNothing();
-
-        return HandleResult::Okay;
-        }
-    }
-}
+__startup void TestVmm(bool const bsp);

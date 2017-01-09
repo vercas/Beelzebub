@@ -158,7 +158,7 @@ execute:
     return true;
 }
 
-static __hot void MailboxIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
+static __hot __realign_stack void MailboxIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     (void)state;
 
@@ -208,6 +208,13 @@ bool Mailbox::IsReady()
 
 /*  Operation  */
 
+// static __thread uintptr_t LocalEntryStorage[(sizeof(Beelzebub::MailboxEntryBase) + 64 * sizeof(Beelzebub::MailboxEntryLink) + sizeof(uintptr_t) - 1) / sizeof(uintptr_t)];
+
+// MailboxEntryBase * Mailbox::GetLocalEntry()
+// {
+//     return reinterpret_cast<MailboxEntryBase *>(&LocalEntryStorage);
+// }
+
 void Mailbox::Post(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll)
 {
     assert(entry != nullptr);
@@ -226,6 +233,7 @@ void Mailbox::Post(MailboxEntryBase * entry, TimeWaster waster, void * cookie, b
             auto thisCore = Cpu::GetData()->Index;  //  Index of this core.
 
             ALLOCATE_MAIL(newEntry, tgCnt, entry->Function, entry->Cookie);
+            newEntry.Flags = entry->Flags;
 
             for (unsigned int link = 0; link < tgCnt; ++link)
                 newEntry.Links[link] = MailboxEntryLink((link < thisCore) ? link : (link + 1));

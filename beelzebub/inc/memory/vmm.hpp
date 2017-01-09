@@ -58,9 +58,20 @@ namespace Beelzebub { namespace Memory
     public:
         /*  Types  */
 
-        struct InvalidationInfo;
+        struct RangeInvalidationInfo;
+        struct ChainInvalidationInfo;
 
-        typedef void (* AfterInvalidationFunc)(InvalidationInfo const *, bool);
+        typedef void (* AfterRangeInvalidationFunc)(RangeInvalidationInfo const *, bool);
+        typedef void (* AfterChainInvalidationFunc)(ChainInvalidationInfo const *, bool);
+
+        struct RangeInvalidationInfo
+        {
+            Execution::Process * const Proc;
+            void * const * const Addresses;
+            size_t const Count, Stride;
+            AfterRangeInvalidationFunc const After;
+            void * const Cookie;
+        };
 
         struct PageNode
         {
@@ -71,11 +82,11 @@ namespace Beelzebub { namespace Memory
             PageNode const * Next;
         };
 
-        struct InvalidationInfo
+        struct ChainInvalidationInfo
         {
             Execution::Process * const Proc;
             PageNode const * const Node;
-            AfterInvalidationFunc const After;
+            AfterChainInvalidationFunc const After;
             void * const Cookie;
         };
 
@@ -124,7 +135,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Page Management  */
 
-        static __hot __noinline Handle MapPage(Execution::Process * proc
+        static __hot __solid Handle MapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t paddr
             , FrameSize size
             , MemoryFlags const flags
@@ -138,12 +149,12 @@ namespace Beelzebub { namespace Memory
             return MapPage(proc, vaddr, paddr, FrameSize::_4KiB, flags, opts);
         }
 
-        static __hot __noinline Handle MapRange(Execution::Process * proc
+        static __hot __solid Handle MapRange(Execution::Process * proc
             , uintptr_t vaddr, paddr_t paddr, size_t size
             , MemoryFlags const flags
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
-        static __hot __noinline Handle UnmapPage(Execution::Process * proc
+        static __hot __solid Handle UnmapPage(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr, FrameSize & size
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
@@ -172,28 +183,33 @@ namespace Beelzebub { namespace Memory
             return UnmapPage(proc, vaddr, dummy1, dummy2, opts);
         }
 
-        static __hot __noinline Handle UnmapRange(Execution::Process * proc
+        static __hot __solid Handle UnmapRange(Execution::Process * proc
             , uintptr_t vaddr, size_t size
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
-        static __hot __noinline Handle InvalidateChain(Execution::Process * proc
-            , PageNode const * node, bool broadcast = true
-            , AfterInvalidationFunc after = nullptr, void * cookie = nullptr);
+        static __hot __solid Handle InvalidateRange(Execution::Process * proc
+            , void * const * const addresses, size_t count
+            , size_t stride = sizeof(void *), bool broadcast = true
+            , AfterRangeInvalidationFunc after = nullptr, void * cookie = nullptr);
 
-        static __hot __noinline Handle InvalidateChain(Execution::Process * proc
+        static __hot __solid Handle InvalidateChain(Execution::Process * proc
+            , PageNode const * node, bool broadcast = true
+            , AfterChainInvalidationFunc after = nullptr, void * cookie = nullptr);
+
+        static __hot __forceinline Handle InvalidateChain(Execution::Process * proc
             , PageNode const node, bool broadcast = true
-            , AfterInvalidationFunc after = nullptr, void * cookie = nullptr)
+            , AfterChainInvalidationFunc after = nullptr, void * cookie = nullptr)
         {
             return InvalidateChain(proc, &node, broadcast, after, cookie);
         }
 
-        static __hot __noinline Handle InvalidatePage(Execution::Process * proc
+        static __hot __forceinline Handle InvalidatePage(Execution::Process * proc
             , uintptr_t const vaddr, bool broadcast = true)
         {
             return InvalidateChain(proc, {vaddr}, broadcast);
         }
 
-        static __hot __noinline Handle Translate(Execution::Process * proc
+        static __hot __solid Handle Translate(Execution::Process * proc
             , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true);
 
         static __hot Handle HandlePageFault(Execution::Process * proc
@@ -201,22 +217,22 @@ namespace Beelzebub { namespace Memory
 
         /*  Allocation  */
 
-        static __hot __noinline Handle AllocatePages(Execution::Process * proc
+        static __hot __solid Handle AllocatePages(Execution::Process * proc
             , size_t const size, MemoryAllocationOptions const type
             , MemoryFlags const flags, MemoryContent content, uintptr_t & vaddr);
 
-        static __hot __noinline Handle FreePages(Execution::Process * proc
+        static __hot __solid Handle FreePages(Execution::Process * proc
             , uintptr_t const vaddr, size_t const size);
 
         /*  Flags  */
 
-        static __hot __noinline Handle CheckMemoryRegion(Execution::Process * proc
+        static __hot __solid Handle CheckMemoryRegion(Execution::Process * proc
             , uintptr_t addr, size_t size, MemoryCheckType type);
 
-        static __hot __noinline Handle GetPageFlags(Execution::Process * proc
+        static __hot __solid Handle GetPageFlags(Execution::Process * proc
             , uintptr_t const vaddr, MemoryFlags & flags, bool const lock = true);
 
-        static __hot __noinline Handle SetPageFlags(Execution::Process * proc
+        static __hot __solid Handle SetPageFlags(Execution::Process * proc
             , uintptr_t const vaddr, MemoryFlags const flags, bool const lock = true);
     };
 }}

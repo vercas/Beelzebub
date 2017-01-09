@@ -634,9 +634,19 @@ void Beelzebub::Main()
             RwSpinlockTestBarrier.Reset(Cores::GetCount());
 #endif
 
+#if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
+        if (CHECK_TEST(MAILBOX))
+            MailboxTestBarrier.Reset(Cores::GetCount());
+#endif
+
 #ifdef __BEELZEBUB__TEST_PMM
         if (CHECK_TEST(PMM))
             PmmTestBarrier.Reset(Cores::GetCount());
+#endif
+
+#ifdef __BEELZEBUB__TEST_VMM
+        if (CHECK_TEST(VMM))
+            VmmTestBarrier.Reset(Cores::GetCount());
 #endif
 
 #ifdef __BEELZEBUB__TEST_OBJA
@@ -715,16 +725,6 @@ void Beelzebub::Main()
             MainTerminal->WriteLine("[TEST] Generic timer...");
 
         TestTimer();
-    }
-#endif
-
-#if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
-    if (CHECK_TEST(MAILBOX))
-    {
-        withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Mailbox...");
-
-        TestMailbox();
     }
 #endif
 
@@ -823,11 +823,24 @@ void Beelzebub::Main()
     {
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);
-        
+
         TestRwSpinlock(true);
 
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
+#if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
+    if (CHECK_TEST(MAILBOX))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing mailbox.%n", Cpu::GetData()->Index);
+
+        TestMailbox(true);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished mailbox test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -836,11 +849,24 @@ void Beelzebub::Main()
     {
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Testing physical memory manager.%n", Cpu::GetData()->Index);
-        
+
         TestPmm(true);
 
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Finished PMM test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
+#ifdef __BEELZEBUB__TEST_VMM
+    if (CHECK_TEST(VMM))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing virtual memory manager.%n", Cpu::GetData()->Index);
+
+        TestVmm(true);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished VMM test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -849,7 +875,7 @@ void Beelzebub::Main()
     {
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
-        
+
         TestObjectAllocator(true);
 
         withLock (TerminalMessageLock)
@@ -862,7 +888,7 @@ void Beelzebub::Main()
     {
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Testing dynamic allocator.%n", Cpu::GetData()->Index);
-        
+
         TestMalloc(true);
 
         withLock (TerminalMessageLock)
@@ -914,6 +940,19 @@ void Beelzebub::Secondary()
     }
 #endif
 
+#if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
+    if (CHECK_TEST(MAILBOX))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing mailbox.%n", Cpu::GetData()->Index);
+
+        TestMailbox(false);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished mailbox test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
 #ifdef __BEELZEBUB__TEST_PMM
     if (CHECK_TEST(PMM))
     {
@@ -924,6 +963,19 @@ void Beelzebub::Secondary()
 
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Finished PMM test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
+#ifdef __BEELZEBUB__TEST_VMM
+    if (CHECK_TEST(VMM))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing virtual memory manager.%n", Cpu::GetData()->Index);
+        
+        TestVmm(false);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished VMM test.%n", Cpu::GetData()->Index);
     }
 #endif
 

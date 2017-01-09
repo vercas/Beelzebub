@@ -192,7 +192,8 @@ GlobalData {
 local availableTests = List {
     "MT",
     -- "STR",
-    "PMM",
+    -- "PMM",
+    "VMM",
     -- "OBJA",
     --"METAP",
     --"EXCP",
@@ -1330,7 +1331,7 @@ Project "Beelzebub" {
 
             Opts_GCC = function(_)
                 local res = List {
-                    "-fvisibility=hidden",
+                    "-fvisibility=hidden", "-fno-PIE", "-fno-PIC",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-O2", "-flto",
                     "-D__BEELZEBUB_KERNEL",

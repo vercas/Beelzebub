@@ -173,6 +173,7 @@
         #define __forceinline      inline  __attribute__((__always_inline__))
         #define __noinline         __attribute__((__noinline__))
         #define __noclone          __attribute__((__noclone__))
+        #define __solid            __attribute__((__noinline__, __noclone__))
 
         #define __const            __attribute__((__const__))
         #define __cold             __attribute__((__cold__))
@@ -189,6 +190,7 @@
         #define __nonnull(...)     __attribute__((__nonnull__(__VA_ARGS__)))
         #define __returns_nonnull  __attribute__((__returns_nonnull__))
         #define __malloc           __attribute__((__malloc__))
+        #define __realign_stack    __attribute__((__force_align_arg_pointer__))
 
         #define likely(expr)       (__builtin_expect(!!(expr), 1))
         #define unlikely(expr)     (__builtin_expect(!!(expr), 0))
@@ -223,6 +225,7 @@
         #define __forceinline      inline
         #define __noinline  
         #define __noclone  
+        #define __solid  
 
         #define __const  
         #define __cold  
@@ -239,6 +242,7 @@
         #define __nonnull(...)  
         #define __returns_nonnull  
         #define __malloc  
+        #define __realign_stack  
 
         #define likely(expr)       (expr)
         #define unlikely(expr)     (expr)
@@ -480,6 +484,13 @@
 
     #define PUT_IN_REGISTER(reg, val) register __typeof__((val)) reg asm(#reg) = (val)
     #define REGISTER_VARIABLE(reg) register uintptr_t reg asm(#reg)
+#endif
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+    #define PTR_ADD(P, V) (reinterpret_cast<decltype(P)>(reinterpret_cast<uintptr_t>(P) + (V)))
+    #define PTR_INC(P, V) ((P) = reinterpret_cast<decltype(P)>(reinterpret_cast<uintptr_t>(P) + (V)))
+#else
+    #define PTR_ADD(P, V) ((__typeof__(P))((uintptr_t)(P) + (V)))
 #endif
 
 /******************************

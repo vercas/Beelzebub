@@ -184,7 +184,7 @@ namespace Beelzebub { namespace Synchronization
             {
                 copy = {this->Value.Overall};
 
-                asm volatile ( "pause \n\t" : : : "memory" );
+                asm volatile ( "pause \n\t" );
             } while (copy.Tail != copy.Head);
         op_end:
 
@@ -205,7 +205,7 @@ namespace Beelzebub { namespace Synchronization
 
             while (copy.Tail != copy.Head)
             {
-                asm volatile ( "pause \n\t" : : : "memory" );
+                asm volatile ( "pause \n\t" );
 
                 copy = {this->Value.Overall};
             }
@@ -231,8 +231,10 @@ namespace Beelzebub { namespace Synchronization
                         : : "cc" );
             //  It's possible to address the upper word directly.
 
-            while (this->Value.Head != myTicket)
-                asm volatile ( "pause \n\t" : : : "memory" );
+            uint16_t diff;
+
+            while ((diff = myTicket - this->Value.Head) != 0)
+                do asm volatile ( "pause \n\t" ); while (--diff != 0);
         op_end:
 
             COMPILER_MEMORY_BARRIER();

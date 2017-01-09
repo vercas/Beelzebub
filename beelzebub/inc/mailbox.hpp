@@ -159,7 +159,9 @@ namespace Beelzebub
 
         /*  Operation  */
 
-        static void Post(MailboxEntryBase * entry, TimeWaster waster = nullptr, void * cookie = nullptr, bool poll = true);
+        // static MailboxEntryBase * GetLocalEntry();
+
+        static __solid void Post(MailboxEntryBase * entry, TimeWaster waster = nullptr, void * cookie = nullptr, bool poll = true);
 
         static inline void Post(MailboxEntryBase * entry, bool poll, TimeWaster waster = nullptr, void * cookie = nullptr)
         {
@@ -174,8 +176,9 @@ namespace Beelzebub
     };
 
 #define ALLOCATE_MAIL_4(name, dstcnt, func, cookie) \
-    __extension__ uint8_t MCATS(__, name, _buff)[sizeof(Beelzebub::MailboxEntryBase) + (dstcnt) * sizeof(Beelzebub::MailboxEntryLink)]; \
+    __extension__ void * MCATS(__, name, _buff)[(sizeof(Beelzebub::MailboxEntryBase) + (dstcnt) * sizeof(Beelzebub::MailboxEntryLink) + sizeof(void *) - 1) / sizeof(void *)]; \
     Beelzebub::MailboxEntryBase & name = *(new (reinterpret_cast<Beelzebub::MailboxEntryBase *>(&(MCATS(__, name, _buff)[0]))) Beelzebub::MailboxEntryBase((dstcnt), (func), (cookie)));
+    // Beelzebub::MailboxEntryBase & name = *(new (Beelzebub::Mailbox::GetLocalEntry()) Beelzebub::MailboxEntryBase((dstcnt), (func), (cookie)));;
 #define ALLOCATE_MAIL_3(name, dstcnt, func) ALLOCATE_MAIL_4(name, dstcnt, func, nullptr)
 #define ALLOCATE_MAIL_2(name, dstcnt) ALLOCATE_MAIL_3(name, dstcnt, nullptr)
 #define ALLOCATE_MAIL(name, ...) GET_MACRO3(__VA_ARGS__, ALLOCATE_MAIL_4, ALLOCATE_MAIL_3, ALLOCATE_MAIL_2)(name, __VA_ARGS__)

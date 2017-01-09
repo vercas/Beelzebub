@@ -48,6 +48,7 @@ namespace Valloc
     struct FreeChunk;
     struct BusyChunk;
     struct ThreadData;
+    struct Aligner;
 
     /***************
         Pointers
@@ -184,6 +185,11 @@ namespace Valloc
                 , this->Owner);
         }
 
+        inline BusyChunk * AsBusy()
+        {
+            return reinterpret_cast<BusyChunk *>(this);
+        }
+
         inline FreeChunk * AsFree()
         {
             return reinterpret_cast<FreeChunk *>(this);
@@ -236,9 +242,10 @@ namespace Valloc
         size_t Size, Free;
         ThreadData * Owner;
         FreeChunk * LastFree;
+        BusyChunk * LastBusy;
 
 #ifdef VALLOC_CACHE_LINE_SIZE
-        uintptr_t Padding0[(VALLOC_CACHE_LINE_SIZE / sizeof(void *)) - 6];
+        uintptr_t Padding0[(VALLOC_CACHE_LINE_SIZE / sizeof(void *)) - 7];
 
         //  If possible, push the free list onto the next cache line.
         //  This allows accesses to it to not interfere with accesses to the
@@ -252,6 +259,7 @@ namespace Valloc
             , Size(s), Free(s - ARENA_SIZE)
             , Owner(o)
             , LastFree(reinterpret_cast<FreeChunk *>(PointerAdd(this, ARENA_SIZE)))
+            , LastBusy(nullptr)
 #ifdef VALLOC_CACHE_LINE_SIZE
             , Padding0()
 #endif
@@ -273,14 +281,6 @@ namespace Valloc
         inline bool IsEmpty() const { return this->Free == this->Size - ARENA_SIZE; };
 
         inline bool FreeListEmpty() const { return this->FreeList.Pointer == nullptr; }
-
-        inline void PopFromList()
-        {
-            if (this->Prev != nullptr)
-                this->Prev->Next = this->Next;
-            if (this->Next != nullptr)
-                this->Next->Prev = this->Prev;
-        }
 
         inline void Print(PrintFunction f) const
         {
@@ -322,5 +322,24 @@ namespace Valloc
     struct ThreadData
     {
         Arena * FirstArena = nullptr;
+    };
+
+    struct Aligner
+    {
+        BusyChunk * Owner;
+        size_t Multiplier, Offset;
+        uintptr_t Checksum;
+
+        inline Aligner(BusyChunk * const owner, size_t const mul, size_t const off)
+            : Owner( owner), Multiplier(mul), Offset(off)
+            , Checksum(~(reinterpret_cast<uintptr_t>(owner) + mul + off))
+        {
+
+        }
+
+        inline bool IsValid() const
+        {
+            return ~(this->Checksum) == (reinterpret_cast<uintptr_t>(this->Owner) + this->Multiplier + this->Offset);
+        }
     };
 }

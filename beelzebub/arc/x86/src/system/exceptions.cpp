@@ -283,10 +283,20 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
 /**
  *  Interrupt handler for page faults.
  */
-void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
+void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
     auto pff = (PageFaultFlags)(state->ErrorCode);
+
+    // CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
+
+    // if (cpuData)
+    // {
+    //     if (cpuData->Index > 0)
+    //     {
+    //         ASSERTX(CR2 >= Vmm::KernelStart)(CR2)XEND;
+    //     }
+    // }
 
     Handle res {};
 

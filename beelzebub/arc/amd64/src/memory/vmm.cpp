@@ -797,6 +797,117 @@ Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
     return HandleResult::Okay;
 }
 
+/**************************
+    Iterative Unmapping    >----------------------------------------------------
+**************************/
+
+struct IterativeUnmapState
+{
+    Execution::Process * const Process;
+    vaddr_t Address;
+    vaddr_t const EndAddress;
+    Spinlock<> * const AlienLock;
+    Spinlock<> * const HeapLock;
+    Beelzebub::InterruptState InterruptState;
+    bool const NonLocal, Invalidate, Broadcast, CountReferences;
+};
+
+struct HybridPageEntry
+{
+    void const * VirtualAddress;
+    paddr_t PhysicalAddress;
+};
+
+static __hot __solid void FreeAfterRangeInvalidation(Vmm::RangeInvalidationInfo const * const inf
+    , bool caller)
+{
+    // if (!caller)
+    //     return;
+
+//     HybridPageEntry const * en = reinterpret_cast<HybridPageEntry const *>(inf->Addresses);
+
+//     for (size_t i = 0; i < inf->Count; ++i, ++en)
+//     {
+//         Handle res = Pmm::AdjustReferenceCount(en->PhysicalAddress, -1);
+
+// #ifdef __BEELZEBUB__CONF_DEBUG
+//         ASSERTX(res == HandleResult::Okay
+//             || res == HandleResult::PageReserved
+//             || res == HandleResult::PagesOutOfAllocatorRange)
+//             (res)XEND;
+// #endif
+//     }
+}
+
+static constexpr size_t const UnmapListMax = 512;
+static __thread HybridPageEntry UnmapList[UnmapListMax];
+//  Enough to clear one table at a time.
+
+static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
+{
+    Handle res;
+    size_t i;
+
+    for (i = 0; i < UnmapListMax && state->Address < state->EndAddress; ++i)
+    {
+        vaddr_t next;
+        paddr_t paddr = nullpaddr;
+        FrameSize fSize = FrameSize::_1GiB;
+
+    retry:
+        res = TranslateInternal(state->Process, state->Address
+            , [&paddr, &fSize](PmlCommonEntry * pE, int level)
+            {
+                paddr = pE->GetAddress();
+                fSize = level == 1 ? FrameSize::_4KiB : FrameSize::_2MiB;
+
+                *pE = PmlCommonEntry();
+                //  Null.
+
+                return HandleResult::Okay;
+            }, false, false, state->NonLocal);
+
+        if unlikely(res != HandleResult::Okay)
+        {
+            if (res == HandleResult::PageUnmapped && (state->Address += PageSize) < state->EndAddress)
+                goto retry;
+            else
+                break;
+            //  If the page is unmapped, check the next page, unless the region's covered.
+        }
+
+        if (fSize == FrameSize::_4KiB)
+            next = state->Address + PageSize;
+        else
+            next = RoundUp(state->Address + 1, LargePageSize);
+
+        UnmapList[i] = HybridPageEntry {reinterpret_cast<void const *>(state->Address), paddr};
+
+        state->Address = next;
+    }
+
+    if (state->AlienLock != nullptr)
+        state->AlienLock->Release();
+    if (state->HeapLock != nullptr)
+        state->HeapLock->Release();
+
+    state->InterruptState.Restore();
+
+    if likely(state->Invalidate && i > 0)
+        Vmm::InvalidateRange(state->Process
+            , reinterpret_cast<void * *>(UnmapList + 0)
+            , i, sizeof(HybridPageEntry)
+            , state->Broadcast
+            , state->CountReferences ? FreeAfterRangeInvalidation : nullptr);
+    //  Easy..?
+
+    return res;
+}
+
+/**************************
+    Recursive Unmapping    >----------------------------------------------------
+**************************/
+
 struct RecursiveUnmapState
 {
     Execution::Process * const Process;
@@ -822,7 +933,7 @@ struct HybridPageNode : public Vmm::PageNode
     }
 };
 
-static __hot void FreeAfterInvalidation(Vmm::InvalidationInfo const * const inf
+static __hot __solid void FreeAfterChainInvalidation(Vmm::ChainInvalidationInfo const * const inf
     , bool caller)
 {
     if (!caller)
@@ -907,10 +1018,13 @@ bail:
 
     if likely(state->Invalidate && node != nullptr)
         Vmm::InvalidateChain(state->Process, node, state->Broadcast
-            , state->CountReferences ? FreeAfterInvalidation : nullptr);
+            , state->CountReferences ? FreeAfterChainInvalidation : nullptr);
     //  Easy..?
 
 end:
+    (void)newNode;
+    (void)node;
+
     return res;
 }
 
@@ -949,39 +1063,111 @@ Handle Vmm::UnmapRange(Process * proc
             ? &(proc->LocalTablesLock)
             : &(Vmm::KernelHeapLock));
 
-    RecursiveUnmapState state = {
-        proc, vaddr, endAddr, alienLock, heapLock, {}
-        , nonLocal, invalidate, broadcast
-        , 0 == (opts & MemoryMapOptions::NoReferenceCounting)
-        , 0
-    };
-
     Handle res;
 
-    do
+    if likely(CpuDataSetUp)
     {
-        state.InterruptState = InterruptState::Disable();
+        IterativeUnmapState state {
+            proc, vaddr, endAddr, alienLock, heapLock, {}
+            , nonLocal, invalidate, broadcast
+            , 0 == (opts & MemoryMapOptions::NoReferenceCounting)
+        };
 
-        if (alienLock != nullptr)
-            alienLock->Acquire();
-        if (heapLock != nullptr)
-            heapLock->Acquire();
+        do
+        {
+            state.InterruptState = InterruptState::Disable();
 
-        res = UnmapRecursively(&state, nullptr);
+            if (alienLock != nullptr)
+                alienLock->Acquire();
+            if (heapLock != nullptr)
+                heapLock->Acquire();
 
-        if (res != HandleResult::Okay)
-            return res;
+            res = UnmapIteratively(&state);
 
-        state.Depth = 0;
-    } while (state.Address < state.EndAddress);
+            if (res != HandleResult::Okay)
+                return res;
+        } while (state.Address < state.EndAddress);
+    }
+    else
+    {
+        RecursiveUnmapState state {
+            proc, vaddr, endAddr, alienLock, heapLock, {}
+            , nonLocal, invalidate, broadcast
+            , 0 == (opts & MemoryMapOptions::NoReferenceCounting)
+            , 0
+        };
+
+        do
+        {
+            state.InterruptState = InterruptState::Disable();
+
+            if (alienLock != nullptr)
+                alienLock->Acquire();
+            if (heapLock != nullptr)
+                heapLock->Acquire();
+
+            res = UnmapRecursively(&state, nullptr);
+
+            if (res != HandleResult::Okay)
+                return res;
+
+            state.Depth = 0;
+        } while (state.Address < state.EndAddress);
+    }
 
     return res;
 }
 
+/***********************
+    Page Invaidation    >-------------------------------------------------------
+***********************/
+
 template<bool caller>
-static __hot void Invalidator(void * cookie)
+static __hot __solid void RangeInvalidator(void * cookie)
 {
-    Vmm::InvalidationInfo const * const inf = (Vmm::InvalidationInfo const *)cookie;
+    Vmm::RangeInvalidationInfo const * const inf = (Vmm::RangeInvalidationInfo const *)cookie;
+
+    void const * addr = inf->Addresses;
+
+    for (size_t i = 0; i < inf->Count; ++i, PTR_INC(addr, inf->Stride))
+    {
+        CpuInstructions::InvalidateTlb(addr);
+    }
+
+    if (inf->After != nullptr)
+        inf->After(inf, caller);
+
+    COMPILER_MEMORY_BARRIER();
+}
+
+Handle Vmm::InvalidateRange(Process * proc
+    , void * const * const addresses, size_t count, size_t stride, bool broadcast
+    , AfterRangeInvalidationFunc after, void * cookie)
+{
+    if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+
+    if (broadcast && (((uintptr_t)(*addresses) >= UserlandStart && (uintptr_t)(*addresses) < UserlandEnd && proc->ActiveCoreCount == 1 && !VmmArc::PCID) || unlikely(!Mailbox::IsReady())))
+        broadcast = false;
+
+    RangeInvalidationInfo info { proc, addresses, count, stride, after, cookie };
+
+    if (broadcast)
+    {
+        ALLOCATE_MAIL_BROADCAST(mail, &RangeInvalidator<false>, &info);
+        mail.SetAwait(true).Post(&RangeInvalidator<true>, &info);
+
+        //  Quite simple.
+    }
+    else
+        RangeInvalidator<true>(&info);
+
+    return HandleResult::Okay;
+}
+
+template<bool caller>
+static __hot void ChainInvalidator(void * cookie)
+{
+    Vmm::ChainInvalidationInfo const * const inf = (Vmm::ChainInvalidationInfo const *)cookie;
 
     Vmm::PageNode const * tmp = inf->Node;
 
@@ -992,27 +1178,29 @@ static __hot void Invalidator(void * cookie)
 
     if (inf->After != nullptr)
         inf->After(inf, caller);
+
+    COMPILER_MEMORY_BARRIER();
 }
 
 Handle Vmm::InvalidateChain(Process * proc, PageNode const * node, bool broadcast
-    , Vmm::AfterInvalidationFunc after, void * cookie)
+    , Vmm::AfterChainInvalidationFunc after, void * cookie)
 {
     if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
     if (broadcast && ((node->Address >= UserlandStart && node->Address < UserlandEnd && proc->ActiveCoreCount == 1 && !VmmArc::PCID) || unlikely(!Mailbox::IsReady())))
         broadcast = false;
 
-    InvalidationInfo info { proc, node, after, cookie };
+    ChainInvalidationInfo info { proc, node, after, cookie };
 
     if (broadcast)
     {
-        ALLOCATE_MAIL_BROADCAST(mail, &Invalidator<false>, &info);
-        mail.SetAwait(true).Post(&Invalidator<true>, &info);
+        ALLOCATE_MAIL_BROADCAST(mail, &ChainInvalidator<false>, &info);
+        mail.SetAwait(true).Post(&ChainInvalidator<true>, &info);
 
         //  Quite simple.
     }
     else
-        Invalidator<true>(&info);
+        ChainInvalidator<true>(&info);
 
     return HandleResult::Okay;
 }

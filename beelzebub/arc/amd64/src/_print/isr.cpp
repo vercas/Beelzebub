@@ -63,12 +63,21 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         "\tInstruction Pointer: %Xp%n"
         "\tFlags: %Xs%n"
         "\t----%n"
-        "\tRDI: %Xs%n"
         "\tRAX: %Xs%n"
         "\tRBX: %Xs%n"
         "\tRCX: %Xs%n"
         "\tRDX: %Xs%n"
         "\tRBP: %Xs%n"
+        "\tRDI: %Xs%n"
+        "\tRSI: %Xs%n"
+        "\tR8 : %Xs%n"
+        "\tR9 : %Xs%n"
+        "\tR10: %Xs%n"
+        "\tR11: %Xs%n"
+        "\tR12: %Xs%n"
+        "\tR13: %Xs%n"
+        "\tR14: %Xs%n"
+        "\tR15: %Xs%n"
         "\t----%n"
         //"\tVector: %u1%n"
         "\tError Code: %Xs%n"
@@ -79,12 +88,21 @@ TerminalWriteResult PrintToTerminal(TerminalBase * const term, IsrState const * 
         , val->RSP
         , val->RIP
         , val->RFLAGS
-        , val->RDI
         , val->RAX
         , val->RBX
         , val->RCX
         , val->RDX
         , val->RBP
+        , val->RDI
+        , val->RSI
+        , val->R8
+        , val->R9
+        , val->R10
+        , val->R11
+        , val->R12
+        , val->R13
+        , val->R14
+        , val->R15
         //, (uint8_t)val->Vector
         , val->ErrorCode);
 }

@@ -6,7 +6,7 @@
     aka Vercas
     http://vercas.com | https://github.com/vercas/Beelzebub
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy
+    Permission is hereby granted, Vmm::FreePages of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to
     deal with the Software without restriction, including without limitation the
     rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
@@ -37,9 +37,10 @@
     thorough explanation regarding other files.
 */
 
-#if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
+#if defined(__BEELZEBUB__TEST_VMM)
 
-#include "tests/malloc.hpp"
+#include "tests/vmm.hpp"
+#include "memory/vmm.hpp"
 #include "cores.hpp"
 #include "kernel.hpp"
 #include <new>
@@ -48,82 +49,88 @@
 #include <math.h>
 #include <debug.hpp>
 
-#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-#include <valloc/interface.hpp>
-#endif
+#define PRINT
 
 using namespace Beelzebub;
+using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
-Barrier MallocTestBarrier;
+Barrier VmmTestBarrier;
 
-#define SYNC MallocTestBarrier.Reach()
+#define SYNC VmmTestBarrier.Reach()
 
 static Spinlock<> DeleteLock {};
 
-struct TestStructure
-{
-    uint64_t Qwords[3];
-    uint32_t Dwords[3];
-    uint16_t Words[3];
-    uint8_t Bytes[3];
-    TestStructure * Next;
-
-    uint64_t Dummy[1000];
-    // uint8_t Padding[(2 << 20) - 4 * 64];
-};
-
-static constexpr size_t const RandomIterations = 100'000;
+static constexpr size_t const RandomIterations = 1'000;
 static constexpr size_t const CacheSize = 2048;
-static Atomic<TestStructure *> Cache[CacheSize];
+static Atomic<vaddr_t> Cache[CacheSize];
 static constexpr size_t const SyncerCount = 10;
-static Atomic<TestStructure *> Syncers[SyncerCount];
-static __thread TestStructure * MyCache[CacheSize];
+static Atomic<vaddr_t> Syncers[SyncerCount];
+static __thread vaddr_t MyCache[CacheSize];
+#ifdef PRINT
 static Atomic<size_t> RandomerCounter {0};
+#endif
 //  There is no space on the stack for this one.
 
-void TestMalloc(bool const bsp)
+void TestVmm(bool const bsp)
 {
     if (bsp) Scheduling = false;
 
     size_t coreIndex = Cpu::GetData()->Index;
 
-    auto getPtr = []()
+    auto getPtr = [](bool commit = true)
     {
-        TestStructure * testptr = nullptr;
+        vaddr_t testptr = nullpaddr;
 
-        ASSERT((testptr = new (std::nothrow) TestStructure()) != nullptr, "Null pointer.");
+        Handle res = Vmm::AllocatePages(nullptr
+            , 0x4000
+            , commit
+                ? (MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap)
+                : MemoryAllocationOptions::VirtualKernelHeap
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryContent::Generic
+            , testptr);
 
-#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-        ASSERTX(reinterpret_cast<uintptr_t>(testptr) % 64 == (4 * sizeof(void *))
-            , "Misaligned pointer.")
-            ("pointer", (void *)testptr)XEND;
-#endif
+        ASSERTX(res == HandleResult::Okay)(res)XEND;
+        ASSERTX(testptr >= Vmm::KernelStart
+            , "Returned address (%Xp) is not in the kernel heap..?", testptr)XEND;
 
         return testptr;
     };
 
+    auto delPtr = [](vaddr_t vaddr)
+    {
+        Handle res = Vmm::FreePages(nullptr, vaddr, 0x4000);
+
+        ASSERTX(res == HandleResult::Okay)(res)XEND;
+    };
+
+#ifdef PRINT
     if (bsp) MSG_("Filling array.%n");
+#endif
 
     SYNC;
 
+#ifdef PRINT
     uint64_t perfStart = 0, perfEnd = 0;
 
     SYNC;
 
     perfStart = CpuInstructions::Rdtsc();
+#endif
 
-    TestStructure * cur = getPtr(), * dummy = getPtr();
+    vaddr_t cur = getPtr(), dummy = getPtr();
 
     for (size_t i = 0; i < CacheSize; ++i)
     {
-        TestStructure * expected = nullptr;
+        vaddr_t expected = nullpaddr;
 
         if ((Cache + i)->CmpXchgStrong(expected, cur))
             cur = getPtr();
     }
 
+#ifdef PRINT
     perfEnd = CpuInstructions::Rdtsc();
 
     SYNC;
@@ -135,15 +142,18 @@ void TestMalloc(bool const bsp)
     SYNC;
 
     if (bsp) MSG_("First check.%n");
+#endif
 
     for (size_t i = 0; i < CacheSize; ++i)
         ASSERT(cur != Cache[i]);
 
     SYNC;
 
+#ifdef PRINT
     if (bsp) MSG_("Full diff check.%n");
 
     SYNC;
+#endif
 
     for (size_t i = coreIndex; i < CacheSize; i += Cores::GetCount())
         for (size_t j = i + 1; j < CacheSize; ++j)
@@ -153,164 +163,108 @@ void TestMalloc(bool const bsp)
 
     withLock (DeleteLock)
     {
-        MSG_("Core %us deletes %Xp.%n", coreIndex, cur);
+#ifdef PRINT
+        MSG_("Core %us frees %Xp.%n", coreIndex, cur);
+#endif
 
-        delete cur;
+        delPtr(cur);
     }
 
-    cur = nullptr;
+    cur = nullpaddr;
 
     SYNC;
 
-    if (bsp) MSG_("Realloc.%n");
-
-    SYNC;
-
-    if (bsp)
-    {
-        void * ptr = malloc(10);
-        
-        ASSERT((ptr = realloc(ptr, 20)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 40)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 80)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 160)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 320)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 640)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 1280)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 1380)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 160)) != nullptr);
-        ASSERT((ptr = realloc(ptr, 1)) != nullptr);
-
-        free(ptr);
-
-        ptr = realloc(nullptr, 100);
-        void * ptr2 = malloc(100);
-
-        ASSERT((ptr2 = realloc(ptr2, 1)) != nullptr);
-
-        ASSERT(realloc(ptr2, 0) == nullptr);
-        ASSERT(realloc(ptr, 0) == nullptr);
-    }
-
-    SYNC;
-
+#ifdef PRINT
     if (bsp) MSG_("Individual stability 1.%n");
 
     SYNC;
 
     perfStart = CpuInstructions::Rdtsc();
+#endif
 
     for (size_t i = 0; i < RandomIterations; ++i)
-        delete getPtr();
+        delPtr(getPtr(false));
 
+#ifdef PRINT
     perfEnd = CpuInstructions::Rdtsc();
 
-    MSG_("Core %us did %us malloc & free pairs in %us cycles; %us cycles per pair.%n"
+    MSG_("Core %us did %us Vmm::AllocatePages & Vmm::FreePages pairs in %us cycles; %us cycles per pair.%n"
         , coreIndex, RandomIterations, perfEnd - perfStart, (perfEnd - perfStart + RandomIterations / 2) / RandomIterations);
 
     SYNC;
 
     if (bsp) MSG_("Individual stability 2.%n");
+#endif
 
     for (size_t i = 0; i < CacheSize; ++i)
-        MyCache[i] = nullptr;
+        MyCache[i] = nullpaddr;
 
     SYNC;
 
+#ifdef PRINT
     perfStart = CpuInstructions::Rdtsc();
+#endif
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
-        if (MyCache[i] == nullptr)
+        if (MyCache[i] == nullpaddr)
             MyCache[i] = getPtr();
         else
         {
-            delete MyCache[i];
-            MyCache[i] = nullptr;
+            delPtr(MyCache[i]);
+            MyCache[i] = nullpaddr;
         }
 
         if (++i == CacheSize) i = 0;
     }
 
     for (size_t i = 0; i < CacheSize; ++i)
-        if (MyCache[i] != nullptr)
-            delete MyCache[i];
+        if (MyCache[i] != nullpaddr)
+            delPtr(MyCache[i]);
 
+#ifdef PRINT
     perfEnd = CpuInstructions::Rdtsc();
 
-    MSG_("Core %us did %us malloc & free in the same order in %us cycles; %us cycles per operation.%n"
+    MSG_("Core %us did %us Vmm::AllocatePages & Vmm::FreePages in the same order in %us cycles; %us cycles per operation.%n"
         , coreIndex, RandomIterations, perfEnd - perfStart, (perfEnd - perfStart + RandomIterations / 2) / RandomIterations);
+#endif
 
     SYNC;
 
-    if (bsp)
-    {
-        MSG_("Syncers.%n");
-
-        for (size_t i = 0; i < SyncerCount; ++i)
-            Syncers[i] = getPtr();
-    }
-
-    SYNC;
-
-    if (!bsp)
-        for (size_t i = coreIndex - 1; i < SyncerCount; i += Cores::GetCount() - 1)
-        {
-            TestStructure * old = nullptr;
-
-            (Syncers + i)->Xchg(&old);
-
-            if (old != nullptr)
-            {
-                MSG_("Core %us deletes %Xp.%n", coreIndex, old);
-
-                delete old;
-            }
-        }
-
-    SYNC;
-
-#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-    if (bsp)
-    {
-        MSG_("Collecting.%n");
-
-        Valloc::CollectMyGarbage();
-    }
+#ifdef PRINT
+    if (bsp) MSG_("Randomer 1!%n");
 
     SYNC;
 #endif
 
-    if (bsp) MSG_("Randomer 1!%n");
-
-    SYNC;
-
     coreIndex ^= 0x55U;
 
+#ifdef PRINT
     perfStart = CpuInstructions::Rdtsc();
+#endif
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
     retry:
-        TestStructure * old = nullptr;
+        vaddr_t old = nullpaddr;
 
-        if (Cache[i] != nullptr)
+        if (Cache[i] != nullpaddr)
         {
             old = (Cache + i)->Xchg(old);
 
-            if unlikely(old == nullptr)
+            if unlikely(old == nullpaddr)
                 goto retry;
             //  If it became null in the meantime, retry.
 
-            delete old;
+            delPtr(old);
         }
         else
         {
-            if (cur == nullptr)
+            if (cur == nullpaddr)
                 cur = getPtr();
 
             if likely((Cache + i)->CmpXchgStrong(old, cur))
-                cur = nullptr;
+                cur = nullpaddr;
             else
                 goto retry;
             //  If it became non-null in the meantime, retry.
@@ -322,12 +276,15 @@ void TestMalloc(bool const bsp)
             i -= CacheSize;
     }
 
+#ifdef PRINT
     perfEnd = CpuInstructions::Rdtsc();
+#endif
 
     coreIndex ^= 0x55U;
 
     SYNC;
 
+#ifdef PRINT
     RandomerCounter += perfEnd - perfStart;
 
     SYNC;
@@ -336,22 +293,24 @@ void TestMalloc(bool const bsp)
     {
         size_t const itcnt = Cores::GetCount() * RandomIterations;
 
-        MSG_("%us cores did %us random malloc/free under random congestion in %us cycles; %us cycles per operation.%n"
+        MSG_("%us cores did %us random Vmm::AllocatePages/Vmm::FreePages under random congestion in %us cycles; %us cycles per operation.%n"
             , Cores::GetCount(), itcnt, RandomerCounter.Load(), (RandomerCounter + itcnt / 2) / itcnt);
     }
 
     SYNC;
+#endif
 
     if (bsp)
         for (size_t i = 0; i < CacheSize; ++i)
-            if (Cache[i] == nullptr)
+            if (Cache[i] == nullpaddr)
                 Cache[i] = getPtr();
 
-    if (cur != nullptr)
-        delete cur;
+    if (cur != nullpaddr)
+        delPtr(cur);
 
     SYNC;
 
+#ifdef PRINT
     if (bsp)
     {
         MSG_("Randomer 2!%n");
@@ -360,17 +319,20 @@ void TestMalloc(bool const bsp)
     }
 
     SYNC;
+#endif
 
     coreIndex ^= 0x55U;
 
+#ifdef PRINT
     perfStart = CpuInstructions::Rdtsc();
+#endif
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
         cur = getPtr();
-        TestStructure * old = (Cache + i)->Xchg(cur);
+        vaddr_t old = (Cache + i)->Xchg(cur);
 
-        delete old;
+        delPtr(old);
 
         i += coreIndex;
 
@@ -378,12 +340,15 @@ void TestMalloc(bool const bsp)
             i -= CacheSize;
     }
 
+#ifdef PRINT
     perfEnd = CpuInstructions::Rdtsc();
+#endif
 
     coreIndex ^= 0x55U;
 
     SYNC;
 
+#ifdef PRINT
     RandomerCounter += perfEnd - perfStart;
 
     SYNC;
@@ -392,7 +357,7 @@ void TestMalloc(bool const bsp)
     {
         size_t const itcnt = Cores::GetCount() * RandomIterations;
 
-        MSG_("%us cores did %us random malloc/free under random congestion in %us cycles; %us cycles per operation.%n"
+        MSG_("%us cores did %us random Vmm::AllocatePages/Vmm::FreePages under random congestion in %us cycles; %us cycles per operation.%n"
             , Cores::GetCount(), itcnt, RandomerCounter.Load(), (RandomerCounter + itcnt / 2) / itcnt);
     }
 
@@ -401,24 +366,16 @@ void TestMalloc(bool const bsp)
     if (bsp) MSG_("Cleanup.%n");
 
     SYNC;
+#endif
 
     if (bsp)
         for (size_t i = 0; i < CacheSize; ++i)
-            if (Cache[i] != nullptr)
-                delete Cache[i];
+            if (Cache[i] != nullpaddr)
+                delPtr(Cache[i]);
 
-    delete dummy;
-
-    SYNC;
-
-#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-    if (bsp)
-        MSG_("Collecting.%n");
-
-    Valloc::CollectMyGarbage();
+    delPtr(dummy);
 
     SYNC;
-#endif
 
     if (bsp) Scheduling = true;
 }

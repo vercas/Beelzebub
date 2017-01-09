@@ -114,3 +114,7 @@
 #ifdef __BEELZEBUB__TEST_PMM
 #include "tests/pmm.hpp"
 #endif
+
+#ifdef __BEELZEBUB__TEST_VMM
+#include "tests/vmm.hpp"
+#endif

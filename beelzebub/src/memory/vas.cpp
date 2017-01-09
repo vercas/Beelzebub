@@ -122,24 +122,20 @@ struct OperationParameters
 
         InterruptState cookie;
 
-        bool runPostCheck = false;
-
         if (vas->ImplementsPreCheck())
-            runPostCheck = vas->PreCheck(lock, this->Allocation);
+        {
+            res = vas->PreOp(lock, this->Allocation);
+
+            if unlikely(res != HandleResult::Okay)
+                return res;
+            //  This does NOT go to the end.
+        }
 
         if likely(lock)
         {
             cookie = InterruptState::Disable();
 
             vas->Lock.AcquireAsWriter();
-        }
-
-        if (runPostCheck)
-        {
-            res = vas->PostCheck();
-
-            if unlikely(!res.IsOkayResult())
-                goto end;
         }
 
         if unlikely(this->Allocation && vaddr == nullvaddr)
@@ -704,16 +700,11 @@ Handle Vas::RemoveNode(AvlTree<MemoryRegion>::Node * const node)
     return this->Alloc.DeallocateObject(node);
 }
 
-bool Vas::PreCheck(bool & lock, bool alloc)
+Handle Vas::PreOp(bool & lock, bool alloc)
 {
     (void)lock;
     (void)alloc;
 
-    return false;
-}
-
-Handle Vas::PostCheck()
-{
     return HandleResult::Okay;
 }
 

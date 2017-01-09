@@ -68,7 +68,7 @@ namespace Beelzebub { namespace System
 
         static __forceinline void DoNothing()
         {
-            asm volatile ( "pause \n\t" : : : "memory" );
+            asm volatile ( "pause \n\t" );
         }
 
         /*  Caching and Paging  */

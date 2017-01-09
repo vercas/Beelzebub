@@ -386,7 +386,7 @@ Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
 
     Handle res = UnmapRange(proc, vaddr, size);
 
-    if unlikely(res != HandleResult::Okay)
+    if unlikely(res != HandleResult::Okay && res != HandleResult::PageUnmapped)
         return res;
 
     if (endAddr <= Vmm::UserlandEnd)

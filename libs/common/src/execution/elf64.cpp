@@ -240,13 +240,13 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
             return ElfValidationResult::SegmentOutOfBounds;
         //  These two account for double overflow as well.
 
-        if unlikely((phdr.VAddr % PageSize) != (phdr.Offset % PageSize))
-            return ElfValidationResult::SegmentNonCongruent;
-        //  This is required by the ABI.
-
         if (phdr.Type == ElfProgramHeaderType::Load)
         {
             //  Load segments' addresses need to be checked!
+
+            if unlikely((phdr.VAddr % PageSize) != (phdr.Offset % PageSize))
+                return ElfValidationResult::SegmentNonCongruent;
+            //  This is required by the ABI.
 
             if unlikely(segval != nullptr && !segval((uintptr_t)(phdr.VAddr), (size_t)(phdr.VSize), phdr.Flags, valdata))
                 return ElfValidationResult::SegmentRangeInvalid;

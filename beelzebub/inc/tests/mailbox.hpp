@@ -39,6 +39,8 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
+#include <beel/sync/barrier.hpp>
 
-__startup void TestMailbox();
+extern Beelzebub::Synchronization::Barrier MailboxTestBarrier;
+
+__startup void TestMailbox(bool bsp);

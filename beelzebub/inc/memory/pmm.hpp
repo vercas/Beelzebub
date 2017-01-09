@@ -58,7 +58,7 @@ namespace Beelzebub { namespace Memory
     public:
         /*  Frame operations  */
 
-        static __hot __noinline paddr_t AllocateFrame(FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any, uint32_t refCnt = 0);
+        static __hot __solid paddr_t AllocateFrame(FrameSize size = FrameSize::_4KiB, AddressMagnitude magn = AddressMagnitude::Any, uint32_t refCnt = 0);
 
         static __hot __forceinline paddr_t AllocateFrame(AddressMagnitude magn, FrameSize size = FrameSize::_4KiB, uint32_t refCnt = 0)
         { return AllocateFrame(size, magn, refCnt); }
@@ -69,10 +69,10 @@ namespace Beelzebub { namespace Memory
         static __hot __forceinline paddr_t AllocateFrame(uint32_t refCnt, AddressMagnitude magn, FrameSize size = FrameSize::_4KiB)
         { return AllocateFrame(size, magn, refCnt); }
 
-        static __hot __noinline Handle FreeFrame(paddr_t addr, bool ignoreRefCnt = true);
-        static __cold __noinline Handle ReserveRange(paddr_t start, size_t size, bool includeBusy = false);
+        static __hot __solid Handle FreeFrame(paddr_t addr, bool ignoreRefCnt = true);
+        static __cold __solid Handle ReserveRange(paddr_t start, size_t size, bool includeBusy = false);
 
-        static __hot __noinline Handle AdjustReferenceCount(paddr_t addr, uint32_t & newCnt, int32_t diff);
+        static __hot __solid Handle AdjustReferenceCount(paddr_t addr, uint32_t & newCnt, int32_t diff);
 
         static __forceinline __hot Handle AdjustReferenceCount(paddr_t addr, int32_t diff)
         {
