@@ -45,7 +45,7 @@
 #include "kernel.hpp"
 #include <new>
 
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <math.h>
 #include <debug.hpp>
 
@@ -60,7 +60,7 @@ Barrier PmmTestBarrier;
 
 #define SYNC PmmTestBarrier.Reach()
 
-static Spinlock<> DeleteLock {};
+static SmpLock DeleteLock {};
 
 static constexpr size_t const RandomIterations = 100'000;
 static constexpr size_t const CacheSize = 2048;

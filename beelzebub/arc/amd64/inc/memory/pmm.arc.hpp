@@ -41,7 +41,7 @@
 
 #include <beel/enums.kernel.hpp>
 #include <beel/structs.kernel.hpp>
-#include <beel/sync/spinlock.unint.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <math.h>
 
 namespace Beelzebub { namespace Memory
@@ -387,8 +387,8 @@ namespace Beelzebub { namespace Memory
         LargeFrameDescriptor * Map;
         //  Pointers to the allocation map within the space.
 
-        Synchronization::SpinlockUninterruptible<> LargeLocker;
-        Synchronization::SpinlockUninterruptible<> SplitLocker;
+        Synchronization::SmpLockUni LargeLocker;
+        Synchronization::SmpLockUni SplitLocker;
 
         uint32_t LargeFree;
         uint32_t SplitFree;
@@ -446,7 +446,7 @@ namespace Beelzebub { namespace Memory
 
         //  Used for mutual exclusion over the linking pointers of the
         //  allocation spaces.
-        Synchronization::SpinlockUninterruptible<> ChainLock;
+        Synchronization::SmpLockUni ChainLock;
 
         /*  Space Chaining  */
 

@@ -75,7 +75,7 @@ static __cold __noreturn void Die()
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 }
 
-SpinlockUninterruptible<> Debug::MsgSpinlock;
+SmpLockUni Debug::MsgSpinlock;
 
 //  Although the 'CatchFire' functions will brick the CPU,
 //  I still feel obliged to make them... Efficient...

@@ -43,7 +43,7 @@
 #include <beel/debug.funcs.h>
 
 #ifdef __BEELZEBUB_KERNEL
-#include <beel/sync/spinlock.unint.hpp>
+#include <beel/sync/smp.lock.hpp>
 #endif
 
 //  NOTE: debug_arch.hpp is included near the end.
@@ -110,7 +110,7 @@ namespace Beelzebub { namespace Debug
     extern Terminals::TerminalBase * DebugTerminal;
 
 #ifdef __BEELZEBUB_KERNEL
-    extern Synchronization::SpinlockUninterruptible<> MsgSpinlock;
+    extern Synchronization::SmpLockUni MsgSpinlock;
 #else
     __shared __cold __bland Terminals::TerminalBase * GetDebugTerminal();
 #endif

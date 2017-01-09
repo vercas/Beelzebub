@@ -288,7 +288,7 @@ Handle Vmm::Initialize(Process * proc)
         return HandleResult::OutOfMemory;
     //  Do the good deed.
 
-    Spinlock<> * alienLock = nullptr;
+    SmpLock * alienLock = nullptr;
 
     InterruptGuard<> intGuard;
     //  Guard the rest of the scope from interrupts.
@@ -297,7 +297,7 @@ Handle Vmm::Initialize(Process * proc)
         alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
     {   //  Lock-guarded.
-        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+        LockGuardFlexible<SmpLock > pml4Lg {alienLock};
 
         Alienate(proc);
         //  So it can be accessible.
@@ -366,12 +366,12 @@ static __hot __noinline Handle TranslateInternal(Process * proc
 {
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
-    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
+    SmpLock * alienLock = nullptr, * heapLock = nullptr;
 
     if (lockAlien && nonLocal && CpuDataSetUp)
         alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
-    LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+    LockGuardFlexible<SmpLock > pml4Lg {alienLock};
 
     if (nonLocal)
     {
@@ -406,7 +406,7 @@ static __hot __noinline Handle TranslateInternal(Process * proc
     if (lockHeap)
         heapLock = vaddr < VmmArc::LowerHalfEnd ? &proc->LocalTablesLock : &Vmm::KernelHeapLock;
 
-    LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+    LockGuardFlexible<SmpLock > heapLg {heapLock};
 
     if unlikely(!pml4p->operator[](VmmArc::GetPml4Index(vaddr)).GetPresent())
         return HandleResult::PageUnmapped;
@@ -464,12 +464,12 @@ static __hot Handle MapPageInternal(Process * const proc
 
     Pml4 * pml4p; Pml3 * pml3p; Pml2 * pml2p; Pml1 * pml1p;
 
-    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
+    SmpLock * alienLock = nullptr, * heapLock = nullptr;
 
     if (lockAlien && nonLocal && CpuDataSetUp)
         alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
 
-    LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
+    LockGuardFlexible<SmpLock > pml4Lg {alienLock};
 
     if (nonLocal)
     {
@@ -506,7 +506,7 @@ static __hot Handle MapPageInternal(Process * const proc
             ? &(proc->LocalTablesLock)
             : &(Vmm::KernelHeapLock));
 
-    LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+    LockGuardFlexible<SmpLock > heapLg {heapLock};
 
     ind = VmmArc::GetPml4Index(vaddr);
 
@@ -703,7 +703,7 @@ Handle Vmm::MapRange(Process * proc
 
     bool const nonLocal = (vaddr < VmmArc::LowerHalfEnd) && !Vmm::IsActive(proc);
 
-    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
+    SmpLock * alienLock = nullptr, * heapLock = nullptr;
 
     if (nonLocal && CpuDataSetUp)
         alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);
@@ -717,8 +717,8 @@ Handle Vmm::MapRange(Process * proc
     {
         //  THE SCOPE IS OPTIONALLY LOCK-GUARDED AS WELL!
 
-        LockGuardFlexible<Spinlock<> > pml4Lg {alienLock};
-        LockGuardFlexible<Spinlock<> > heapLg {heapLock};
+        LockGuardFlexible<SmpLock > pml4Lg {alienLock};
+        LockGuardFlexible<SmpLock > heapLg {heapLock};
 
         if ((vaddr & (LargePageSize - 1)) == (paddr & (LargePageSize - 1)))
         {
@@ -806,8 +806,8 @@ struct IterativeUnmapState
     Execution::Process * const Process;
     vaddr_t Address;
     vaddr_t const EndAddress;
-    Spinlock<> * const AlienLock;
-    Spinlock<> * const HeapLock;
+    SmpLock * const AlienLock;
+    SmpLock * const HeapLock;
     Beelzebub::InterruptState InterruptState;
     bool const NonLocal, Invalidate, Broadcast, CountReferences;
 };
@@ -821,22 +821,22 @@ struct HybridPageEntry
 static __hot __solid void FreeAfterRangeInvalidation(Vmm::RangeInvalidationInfo const * const inf
     , bool caller)
 {
-    // if (!caller)
-    //     return;
+    if (!caller)
+        return;
 
-//     HybridPageEntry const * en = reinterpret_cast<HybridPageEntry const *>(inf->Addresses);
+    HybridPageEntry const * en = reinterpret_cast<HybridPageEntry const *>(inf->Addresses);
 
-//     for (size_t i = 0; i < inf->Count; ++i, ++en)
-//     {
-//         Handle res = Pmm::AdjustReferenceCount(en->PhysicalAddress, -1);
+    for (size_t i = 0; i < inf->Count; ++i, ++en)
+    {
+        Handle res = Pmm::AdjustReferenceCount(en->PhysicalAddress, -1);
 
-// #ifdef __BEELZEBUB__CONF_DEBUG
-//         ASSERTX(res == HandleResult::Okay
-//             || res == HandleResult::PageReserved
-//             || res == HandleResult::PagesOutOfAllocatorRange)
-//             (res)XEND;
-// #endif
-//     }
+#ifdef __BEELZEBUB__CONF_DEBUG
+        ASSERTX(res == HandleResult::Okay
+            || res == HandleResult::PageReserved
+            || res == HandleResult::PagesOutOfAllocatorRange)
+            (res)XEND;
+#endif
+    }
 }
 
 static constexpr size_t const UnmapListMax = 512;
@@ -913,8 +913,8 @@ struct RecursiveUnmapState
     Execution::Process * const Process;
     vaddr_t Address;
     vaddr_t const EndAddress;
-    Spinlock<> * const AlienLock;
-    Spinlock<> * const HeapLock;
+    SmpLock * const AlienLock;
+    SmpLock * const HeapLock;
     Beelzebub::InterruptState InterruptState;
     bool const NonLocal, Invalidate, Broadcast, CountReferences;
     size_t Depth;
@@ -1053,7 +1053,7 @@ Handle Vmm::UnmapRange(Process * proc
     bool const invalidate = 0 == (opts & MemoryMapOptions::NoInvalidation);
     bool const broadcast = 0 == (opts & MemoryMapOptions::NoBroadcasting);
 
-    Spinlock<> * alienLock = nullptr, * heapLock = nullptr;
+    SmpLock * alienLock = nullptr, * heapLock = nullptr;
 
     if (nonLocal && CpuDataSetUp)
         alienLock = &(Cpu::GetProcess()->AlienPagingTablesLock);

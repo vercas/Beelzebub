@@ -70,7 +70,7 @@ static __forceinline bool Is2MiBAligned(TInt val) { return (val & (LargePageSize
 
 /*  Statics  */
 
-Spinlock<> Vmm::KernelHeapLock;
+SmpLock Vmm::KernelHeapLock;
 
 KernelVas Vmm::KVas;
 
@@ -308,7 +308,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
     {
         Handle res;             //  Intermediary result.
         vaddr_t ret = vaddr;    //  Just a quicker way...
-        Spinlock<> * heapLock;
+        SmpLock * heapLock;
 
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
         {
@@ -331,7 +331,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
         InterruptGuard<> intGuard;
         //  Guard the rest of the scope from interrupts.
 
-        LockGuard<Spinlock<> > heapLg {*heapLock};
+        LockGuard<SmpLock > heapLg {*heapLock};
         //  Note: this ain't flexible because heapLock ain't gonna be null.
 
         size_t offset;

@@ -42,7 +42,7 @@
 #include "system/interrupt_controllers/lapic.hpp"
 #include "system/cpu.hpp"
 #include "kernel.hpp"
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <string.h>
 
 using namespace Beelzebub;
@@ -95,7 +95,7 @@ static __hot void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
         END_OF_INTERRUPT();
 }
 
-static Spinlock<> InitLock {};
+static SmpLock InitLock {};
 static bool Initialized = false;
 
 /******************

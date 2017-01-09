@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <beel/sync/spinlock.unint.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <beel/sync/atomic.hpp>
 #include <beel/handles.h>
 
@@ -418,7 +418,7 @@ namespace Beelzebub { namespace Memory
         pgind_t * Stack;
         //  El stacko de páginas libres. Lmao.
 
-        Synchronization::SpinlockUninterruptible<> Locker;
+        Synchronization::SmpLockUni Locker;
 
     public:
 
@@ -477,7 +477,7 @@ namespace Beelzebub { namespace Memory
 
         //  Used for mutual exclusion over the linking pointers of the
         //  allocation spaces.
-        Synchronization::SpinlockUninterruptible<> ChainLock;
+        Synchronization::SmpLockUni ChainLock;
 
         /*  Space Chaining  */
 

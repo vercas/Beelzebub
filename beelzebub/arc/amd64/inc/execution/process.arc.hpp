@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace Execution

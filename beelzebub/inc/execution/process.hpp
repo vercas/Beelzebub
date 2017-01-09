@@ -43,7 +43,7 @@
 #include "memory/vas.hpp"
     
 #include <beel/structs.kernel.hpp>
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace Execution
@@ -94,9 +94,9 @@ namespace Beelzebub { namespace Execution
 
         /*  Memory  */
 
-        Synchronization::Spinlock<> LocalTablesLock;
+        Synchronization::SmpLock LocalTablesLock;
 
-        Synchronization::Spinlock<> AlienPagingTablesLock;
+        Synchronization::SmpLock AlienPagingTablesLock;
         paddr_t PagingTable;
 
         Memory::Vas Vas;

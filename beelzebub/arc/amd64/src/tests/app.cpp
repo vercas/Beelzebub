@@ -82,7 +82,7 @@ __startup Handle HandleLoadtest(uintptr_t const vaddr, size_t const size)
     return HandleResult::Okay;
 }
 
-Spinlock<> TestRegionLock;
+SmpLock TestRegionLock;
 
 void TestApplication()
 {

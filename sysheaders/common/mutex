@@ -41,7 +41,7 @@
 
 #ifdef __BEELZEBUB_KERNEL
 
-#include <beel/sync/spinlock.unint.hpp>
+#include <beel/sync/ticket.lock.unint.hpp>
 
 namespace std
 {
@@ -59,7 +59,7 @@ namespace std
 
         inline void lock()
         {
-            Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie const c = this->Lock.Acquire();
+            Beelzebub::Synchronization::TicketLockUninterruptible<false>::Cookie const c = this->Lock.Acquire();
 
             COMPILER_MEMORY_BARRIER();
             
@@ -68,7 +68,7 @@ namespace std
 
         inline bool try_lock()
         {
-            Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie c;
+            Beelzebub::Synchronization::TicketLockUninterruptible<false>::Cookie c;
 
             bool const res = this->Lock.TryAcquire(c);
 
@@ -82,7 +82,7 @@ namespace std
 
         inline void unlock()
         {
-            Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie const c = this->Cookie;
+            Beelzebub::Synchronization::TicketLockUninterruptible<false>::Cookie const c = this->Cookie;
 
             COMPILER_MEMORY_BARRIER();
 
@@ -92,8 +92,8 @@ namespace std
     private:
         /*  Fields  */
 
-        Beelzebub::Synchronization::SpinlockUninterruptible<false> Lock;
-        Beelzebub::Synchronization::SpinlockUninterruptible<false>::Cookie Cookie;
+        Beelzebub::Synchronization::TicketLockUninterruptible<false> Lock;
+        Beelzebub::Synchronization::TicketLockUninterruptible<false>::Cookie Cookie;
     };
 }
 

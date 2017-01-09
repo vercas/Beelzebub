@@ -49,10 +49,10 @@
     #endif
 
     #include <memory/object_allocator_pools.hpp>
-    #include <beel/sync/spinlock.hpp>
+    #include <beel/sync/smp.lock.hpp>
     #include <beel/sync/atomic.hpp>
 
-    #define OBJA_LOCK_TYPE Beelzebub::Synchronization::Spinlock<>
+    #define OBJA_LOCK_TYPE Beelzebub::Synchronization::SmpLock
     #define OBJA_COOK_TYPE Beelzebub::InterruptState
 
     namespace Beelzebub { namespace Memory

@@ -44,7 +44,7 @@
 #pragma once
 
 #include "memory/paging.hpp"
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <beel/handles.h>
 
 namespace Beelzebub { namespace Memory

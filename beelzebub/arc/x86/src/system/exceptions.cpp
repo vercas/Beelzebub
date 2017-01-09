@@ -68,7 +68,7 @@ using namespace Beelzebub::System;
 #define INSTRUCTION_POINTER (state->EIP)
 #endif
 
-static Synchronization::Spinlock<> PrintLock {};
+static Synchronization::SmpLock PrintLock {};
 
 /**
  *  Interrupt handler for miscellaneous interrupts that do not represent an exception.
@@ -87,7 +87,7 @@ void System::DivideErrorHandler(INTERRUPT_HANDLER_ARGS)
 {
     CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
 
-    Synchronization::LockGuard<Synchronization::Spinlock<> > lg {PrintLock};
+    Synchronization::LockGuard<Synchronization::SmpLock > lg {PrintLock};
 
     if (cpuData != nullptr)
         MSG("<< DIVIDE ERROR! core %us >>%n", cpuData->Index);
@@ -245,7 +245,7 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
 
-    Synchronization::LockGuard<Synchronization::Spinlock<> > lg {PrintLock};
+    Synchronization::LockGuard<Synchronization::SmpLock> lg {PrintLock};
 
     if (cpuData != nullptr)
         MSG("<< GP FAULT! core %us >>%n", cpuData->Index);

@@ -38,20 +38,19 @@
 */
 
 /**
- *  The `__must_check` attributes are there to make sure that the SpinlockUninterruptible
- *  is not used in place of a normal spinlock accidentally.
+ *  The `__must_check` attributes are there to make sure that the TicketLockUninterruptible
+ *  is not used in place of a normal ticket lock accidentally.
  */
 
 #pragma once
 
-#include <beel/sync/lock.guard.hpp>
 #include <beel/interrupt.state.hpp>
 
 namespace Beelzebub { namespace Synchronization
 {
 #ifndef __BEELZEBUB_SPINLOCK_T
 #define __BEELZEBUB_SPINLOCK_T
-    typedef union spinlock_t
+    typedef union ticketlock_t
     {
         uint32_t volatile Overall;
         __extension__ struct
@@ -60,39 +59,39 @@ namespace Beelzebub { namespace Synchronization
             uint16_t volatile Tail;
         };
 
-        spinlock_t() = default;
-        inline spinlock_t(uint32_t o) : Overall(o) { }
-        inline spinlock_t(uint16_t h, uint16_t t) : Head(h), Tail(t) { }
-    } spinlock_t;
+        ticketlock_t() = default;
+        inline ticketlock_t(uint32_t o) : Overall(o) { }
+        inline ticketlock_t(uint16_t h, uint16_t t) : Head(h), Tail(t) { }
+    } ticketlock_t;
 #endif
 
-    static_assert(sizeof(spinlock_t) == 4, "");
+    static_assert(sizeof(ticketlock_t) == 4, "");
 
     //  Lemme clarify here.
-    //  For non-SMP builds, SMP spinlocks are gonna be dummies.
-    //  For SMP builds, all spinlocks are implemented.
+    //  For non-SMP builds, SMP ticket locks are gonna be dummies.
+    //  For SMP builds, all ticket locks are implemented.
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
     /**
      *  Busy-waiting re-entrant synchronization primitive which
      *  prevents CPU interrupts on the locking CPU.
      */
-    template<bool SMP = true>
-    struct SpinlockUninterruptible { };
+    template<bool SMP>
+    struct TicketLockUninterruptible { };
 
     /**
      *  Busy-waiting re-entrant synchronization primitive which
      *  prevents CPU interrupts on the locking CPU.
      */
     template<>
-    struct SpinlockUninterruptible<false>
+    struct TicketLockUninterruptible<false>
 #else
     /**
      *  Busy-waiting re-entrant synchronization primitive which
      *  prevents CPU interrupts on the locking CPU.
      */
-    template<bool SMP = true>
-    struct SpinlockUninterruptible
+    template<bool SMP>
+    struct TicketLockUninterruptible
 #endif
     {
     public:
@@ -101,65 +100,65 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Constructor(s)  */
 
-        SpinlockUninterruptible() = default;
-        SpinlockUninterruptible(SpinlockUninterruptible const &) = delete;
-        SpinlockUninterruptible & operator =(SpinlockUninterruptible const &) = delete;
-        SpinlockUninterruptible(SpinlockUninterruptible &&) = delete;
-        SpinlockUninterruptible & operator =(SpinlockUninterruptible &&) = delete;
+        TicketLockUninterruptible() = default;
+        TicketLockUninterruptible(TicketLockUninterruptible const &) = delete;
+        TicketLockUninterruptible & operator =(TicketLockUninterruptible const &) = delete;
+        TicketLockUninterruptible(TicketLockUninterruptible &&) = delete;
+        TicketLockUninterruptible & operator =(TicketLockUninterruptible &&) = delete;
 
         /*  Destructor  */
 
 #ifdef __BEELZEBUB__CONF_DEBUG
-        ~SpinlockUninterruptible();
+        ~TicketLockUninterruptible();
 #endif
 
         /*  Operations  */
 
 #ifdef __BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS
         /**
-         *  Acquire the spinlock, if possible.
+         *  Acquire the ticket lock, if possible.
          */
         __noinline __must_check bool TryAcquire(Cookie & cookie) volatile;
 
         /**
-         *  Awaits for the spinlock to be freed.
+         *  Awaits for the ticket lock to be freed.
          *  Does not acquire the lock.
          */
         __noinline void Spin() const volatile;
 
         /**
-         *  Checks if the spinlock is free. If not, it awaits.
+         *  Checks if the ticket lock is free. If not, it awaits.
          *  Does not acquire the lock.
          */
         __noinline void Await() const volatile;
 
         /**
-         *  Acquire the spinlock, waiting if necessary.
+         *  Acquire the ticket lock, waiting if necessary.
          */
         __noinline __must_check Cookie Acquire() volatile;
 
         /**
-         *  Acquire the spinlock, waiting if necessary.
+         *  Acquire the ticket lock, waiting if necessary.
          */
         __noinline void SimplyAcquire() volatile;
 
         /**
-         *  Release the spinlock.
+         *  Release the ticket lock.
          */
         __noinline void Release(Cookie const cookie) volatile;
 
         /**
-         *  Release the spinlock.
+         *  Release the ticket lock.
          */
         __noinline void SimplyRelease() volatile;
 
         /**
-         *  Checks whether the spinlock is free or not.
+         *  Checks whether the ticket lock is free or not.
          */
         __noinline __must_check bool Check() const volatile;
 #else
         /**
-         *  Acquire the spinlock, if possible.
+         *  Acquire the ticket lock, if possible.
          */
         __forceinline __must_check bool TryAcquire(Cookie & cookie) volatile
         {
@@ -169,9 +168,9 @@ namespace Beelzebub { namespace Synchronization
 
         op_start:
             uint16_t const oldTail = this->Value.Tail;
-            spinlock_t cmp {oldTail, oldTail};
-            spinlock_t const newVal {oldTail, (uint16_t)(oldTail + 1)};
-            spinlock_t const cmpCpy = cmp;
+            ticketlock_t cmp {oldTail, oldTail};
+            ticketlock_t const newVal {oldTail, (uint16_t)(oldTail + 1)};
+            ticketlock_t const cmpCpy = cmp;
 
             asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
                         : [curVal]"+m"(this->Value), "+a"(cmp)
@@ -181,7 +180,7 @@ namespace Beelzebub { namespace Synchronization
             if likely(cmp.Overall == cmpCpy.Overall)
             {
                 cookie.Restore();
-                //  If the spinlock was already locked, restore interrupt state.
+                //  If the ticket lock was already locked, restore interrupt state.
 
                 return false;
             }
@@ -194,7 +193,7 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /**
-         *  Awaits for the spinlock to be freed.
+         *  Awaits for the ticket lock to be freed.
          *  Does not acquire the lock.
          */
         __forceinline void Spin() const volatile
@@ -202,7 +201,7 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            spinlock_t copy;
+            ticketlock_t copy;
 
             do
             {
@@ -217,7 +216,7 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /**
-         *  Checks if the spinlock is free. If not, it awaits.
+         *  Checks if the ticket lock is free. If not, it awaits.
          *  Does not acquire the lock.
          */
         __forceinline void Await() const volatile
@@ -225,7 +224,7 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            spinlock_t copy = {this->Value.Overall};
+            ticketlock_t copy = {this->Value.Overall};
 
             while (copy.Tail != copy.Head)
             {
@@ -240,7 +239,7 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /**
-         *  Acquire the spinlock, waiting if necessary.
+         *  Acquire the ticket lock, waiting if necessary.
          */
         __forceinline __must_check Cookie Acquire() volatile
         {
@@ -270,7 +269,7 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /**
-         *  Acquire the spinlock, waiting if necessary.
+         *  Acquire the ticket lock, waiting if necessary.
          */
         __forceinline void SimplyAcquire() volatile
         {
@@ -296,7 +295,7 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /**
-         *  Release the spinlock.
+         *  Release the ticket lock.
          */
         __forceinline void Release(Cookie const cookie) volatile
         {
@@ -315,7 +314,7 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /**
-         *  Release the spinlock.
+         *  Release the ticket lock.
          */
         __forceinline void SimplyRelease() volatile
         {
@@ -332,14 +331,14 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /**
-         *  Checks whether the spinlock is free or not.
+         *  Checks whether the ticket lock is free or not.
          */
         __forceinline __must_check bool Check() const volatile
         {
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            spinlock_t copy = {this->Value.Overall};
+            ticketlock_t copy = {this->Value.Overall};
 
             if (copy.Head != copy.Tail)
                 return false;
@@ -353,7 +352,7 @@ namespace Beelzebub { namespace Synchronization
 #endif
 
         /**
-         *  Reset the spinlock.
+         *  Reset the ticket lock.
          */
         __forceinline void Reset() volatile
         {
@@ -364,7 +363,7 @@ namespace Beelzebub { namespace Synchronization
 
     private:
 
-        spinlock_t Value;
+        ticketlock_t Value;
     };
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
@@ -373,7 +372,7 @@ namespace Beelzebub { namespace Synchronization
      *  prevents CPU interrupts on the locking CPU.
      */
     template<>
-    struct SpinlockUninterruptible<true>
+    struct TicketLockUninterruptible<true>
     {
     public:
 
@@ -382,9 +381,11 @@ namespace Beelzebub { namespace Synchronization
 
         /*  Constructor(s)  */
 
-        SpinlockUninterruptible() = default;
-        SpinlockUninterruptible(SpinlockUninterruptible const &) = delete;
-        SpinlockUninterruptible & operator =(SpinlockUninterruptible const &) = delete;
+        TicketLockUninterruptible() = default;
+        TicketLockUninterruptible(TicketLockUninterruptible const &) = delete;
+        TicketLockUninterruptible & operator =(TicketLockUninterruptible const &) = delete;
+        TicketLockUninterruptible(TicketLockUninterruptible &&) = delete;
+        TicketLockUninterruptible & operator =(TicketLockUninterruptible &&) = delete;
 
         /*  Operations  */
 
@@ -404,6 +405,3 @@ namespace Beelzebub { namespace Synchronization
     };
 #endif
 }}
-
-//  Very sad note: GCC doesn't support protecting additional pointers in
-//  the memory barrier. Nevertheless, I have added the feature.

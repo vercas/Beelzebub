@@ -49,7 +49,7 @@ lean & mean implementation without his aid.
 #include "cores.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
 #include "kernel.hpp"
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <string.h>
 
 using namespace Beelzebub;
@@ -62,7 +62,7 @@ using namespace Beelzebub::System::InterruptControllers;
 ****************/
 
 #ifdef __BEELZEBUB_SETTINGS_MANYCORE
-static Spinlock<> GlobalLock {};
+static SmpLock GlobalLock {};
 static MailboxEntryBase * volatile GlobalHead = nullptr;
 static MailboxEntryBase * GlobalTail = nullptr;
 static size_t GlobalGeneration = 0;
@@ -167,7 +167,7 @@ static __hot __realign_stack void MailboxIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
     END_OF_INTERRUPT();
 }
 
-static Spinlock<> InitLock {};
+static SmpLock InitLock {};
 static bool Initialized = false;
 static Atomic<size_t> InitializedCount {0};
 static bool FullyInitialized = false;

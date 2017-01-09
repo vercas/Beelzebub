@@ -44,7 +44,7 @@
 #include "kernel.hpp"
 #include <new>
 
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <math.h>
 #include <debug.hpp>
 
@@ -60,7 +60,7 @@ Barrier MallocTestBarrier;
 
 #define SYNC MallocTestBarrier.Reach()
 
-static Spinlock<> DeleteLock {};
+static SmpLock DeleteLock {};
 
 struct TestStructure
 {

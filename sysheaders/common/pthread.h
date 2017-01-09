@@ -62,7 +62,7 @@ typedef struct pthread_mutexattr_s
 
 #ifdef __BEELZEBUB_KERNEL
 
-    #include <beel/sync/spinlock.unint.h>
+    #include <beel/sync/smp.lock.unint.h>
 
 #ifdef __cplusplus
 extern "C" {

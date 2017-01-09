@@ -40,8 +40,8 @@
 #ifdef __BEELZEBUB__TEST_METAP
 
 #include <tests/meta.hpp>
-#include <synchronization/spinlock.hpp>
-#include <synchronization/spinlock_uninterruptible.hpp>
+#include <synchronization/smp.lock.hpp>
+#include <synchronization/smp.lock_uninterruptible.hpp>
 #include <beel/interrupt.state.hpp>
 
 #include <debug.hpp>
@@ -85,8 +85,8 @@ using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
-SpinlockUninterruptible<false> TestLock1;
-Spinlock<false> TestLock2;
+NonSmpLockUni<false> TestLock1;
+NonSmpLock<false> TestLock2;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"

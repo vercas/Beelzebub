@@ -74,7 +74,7 @@ struct TestStructure
 };
 
 static ObjectAllocatorSmp testAllocator;
-SpinlockUninterruptible<> syncer;
+SmpLockUni syncer;
 
 // bool askedToAcquire, askedToEnlarge, askedToRemove, canEnlarge;
 

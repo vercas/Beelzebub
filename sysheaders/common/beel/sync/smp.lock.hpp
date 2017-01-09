@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2017 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,21 +39,16 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
-
-#ifdef __BEELZEBUB__IN_KERNEL
-#include <beel/interrupt.state.hpp>
-#endif
-
-#ifdef __BEELZEBUB_KERNEL_MODULE
-#include <beel/kernel.module.hpp>
-#else
-#include <beel/syscalls.h>
-#endif
-
-#include <beel/sync/smp.lock.hpp>
-#include <beel/sync/rw.spinlock.hpp>
-#include <beel/sync/atomic.hpp>
 #include <beel/sync/lock.guard.hpp>
 
-#include <beel/terminals/base.hpp>
+//  TODO: Change lock types?
+#include <beel/sync/ticket.lock.hpp>
+#include <beel/sync/ticket.lock.unint.hpp>
+
+namespace Beelzebub { namespace Synchronization
+{
+    typedef TicketLock<true> SmpLock;
+    typedef TicketLockUninterruptible<true> SmpLockUni;
+    typedef TicketLock<false> NonSmpLock;
+    typedef TicketLockUninterruptible<false> NonSmpLockUni;
+}}

@@ -40,7 +40,7 @@
 #pragma once
 
 #include "system/interrupts.hpp"
-#include <beel/sync/spinlock.unint.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace System
@@ -178,8 +178,8 @@ namespace Beelzebub { namespace System
 
         Synchronization::Atomic<uint16_t> OutputCount;
 
-        Synchronization::SpinlockUninterruptible<> ReadLock;
-        Synchronization::SpinlockUninterruptible<> WriteLock;
+        Synchronization::SmpLockUni ReadLock;
+        Synchronization::SmpLockUni WriteLock;
     };
 
     extern ManagedSerialPort COM1;

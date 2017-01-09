@@ -37,26 +37,26 @@
     thorough explanation regarding other files.
 */
 
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/ticket.lock.unint.hpp>
 #include <debug.hpp>
 
 using namespace Beelzebub::Synchronization;
 
-/**********************
-    Spinlock struct
-**********************/
+/***************************************
+    TicketLockUninterruptible struct
+***************************************/
 
 #ifdef __BEELZEBUB__CONF_DEBUG
     /*  Destructor  */
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    Spinlock<false>::~Spinlock()
+    TicketLockUninterruptible<false>::~TicketLockUninterruptible()
     #else
     template<bool SMP>
-    Spinlock<SMP>::~Spinlock()
+    TicketLockUninterruptible<SMP>::~TicketLockUninterruptible()
     #endif
     {
-        assert(this->Check(), "Spinlock @ %Xp was destructed while busy!", this);
+        assert(this->Check(), "TicketLock (uninterruptible) @ %Xp was destructed while busy!", this);
 
         //this->Release();
     }//*/
@@ -66,64 +66,97 @@ using namespace Beelzebub::Synchronization;
     /*  Operations  */
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    bool Spinlock<false>::TryAcquire() volatile
+    bool TicketLockUninterruptible<false>::TryAcquire(InterruptState & cookie) volatile
     #else
     template<bool SMP>
-    bool Spinlock<SMP>::TryAcquire() volatile
+    bool TicketLockUninterruptible<SMP>::TryAcquire(InterruptState & cookie) volatile
     #endif
     {
+        cookie = InterruptState::Disable();
+
         uint16_t const oldTail = this->Value.Tail;
-        spinlock_t cmp {oldTail, oldTail};
-        spinlock_t const newVal {oldTail, (uint16_t)(oldTail + 1)};
-        spinlock_t const cmpCpy = cmp;
+        ticketlock_t cmp {oldTail, oldTail};
+        ticketlock_t const newVal {oldTail, (uint16_t)(oldTail + 1)};
+        ticketlock_t const cmpCpy = cmp;
 
         asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
                     : [curVal]"+m"(this->Value), "+a"(cmp)
                     : [newVal]"r"(newVal)
                     : "cc" );
 
-        return cmp.Overall == cmpCpy.Overall;
+        if likely(cmp.Overall == cmpCpy.Overall)
+            return true;
+        
+        cookie.Restore();
+        //  If the spinlock was already locked, restore interrupt state.
+
+        return false;
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    void Spinlock<false>::Spin() const volatile
+    void TicketLockUninterruptible<false>::Spin() const volatile
     #else
     template<bool SMP>
-    void Spinlock<SMP>::Spin() const volatile
+    void TicketLockUninterruptible<SMP>::Spin() const volatile
     #endif
     {
-        spinlock_t copy;
+        ticketlock_t copy;
 
         do
         {
             copy = {this->Value.Overall};
 
-            asm volatile ( "pause \n\t" : : : "memory" );
+            asm volatile ( "pause \n\t" );
         } while (copy.Tail != copy.Head);
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    void Spinlock<false>::Await() const volatile
+    void TicketLockUninterruptible<false>::Await() const volatile
     #else
     template<bool SMP>
-    void Spinlock<SMP>::Await() const volatile
+    void TicketLockUninterruptible<SMP>::Await() const volatile
     #endif
     {
-        spinlock_t copy = {this->Value.Overall};
+        ticketlock_t copy = {this->Value.Overall};
 
         while (copy.Tail != copy.Head)
         {
-            asm volatile ( "pause \n\t" : : : "memory" );
+            asm volatile ( "pause \n\t" );
 
             copy = {this->Value.Overall};
         }
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    void Spinlock<false>::Acquire() volatile
+    InterruptState TicketLockUninterruptible<false>::Acquire() volatile
     #else
     template<bool SMP>
-    void Spinlock<SMP>::Acquire() volatile
+    InterruptState TicketLockUninterruptible<SMP>::Acquire() volatile
+    #endif
+    {
+        uint16_t myTicket = 1;
+
+        InterruptState const cookie = InterruptState::Disable();
+
+        asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
+                    : [tail]"+m"(this->Value.Tail)
+                    , [ticket]"+r"(myTicket)
+                    : : "cc" );
+        //  It's possible to address the upper word directly.
+
+        uint16_t diff;
+
+        while ((diff = myTicket - this->Value.Head) != 0)
+            do asm volatile ( "pause \n\t" ); while (--diff != 0);
+
+        return cookie;
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    void TicketLockUninterruptible<false>::SimplyAcquire() volatile
+    #else
+    template<bool SMP>
+    void TicketLockUninterruptible<SMP>::SimplyAcquire() volatile
     #endif
     {
         uint16_t myTicket = 1;
@@ -135,14 +168,28 @@ using namespace Beelzebub::Synchronization;
         //  It's possible to address the upper word directly.
 
         while (this->Value.Head != myTicket)
-            asm volatile ( "pause \n\t" : : : "memory" );
+            asm volatile ( "pause \n\t" );
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    void Spinlock<false>::Release() volatile
+    void TicketLockUninterruptible<false>::Release(InterruptState const cookie) volatile
     #else
     template<bool SMP>
-    void Spinlock<SMP>::Release() volatile
+    void TicketLockUninterruptible<SMP>::Release(InterruptState const cookie) volatile
+    #endif
+    {
+        asm volatile( "lock addw $1, %[head] \n\t"
+                    : [head]"+m"(this->Value.Head)
+                    : : "cc" );
+
+        cookie.Restore();
+    }
+
+    #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
+    void TicketLockUninterruptible<false>::SimplyRelease() volatile
+    #else
+    template<bool SMP>
+    void TicketLockUninterruptible<SMP>::SimplyRelease() volatile
     #endif
     {
         asm volatile( "lock addw $1, %[head] \n\t"
@@ -151,13 +198,13 @@ using namespace Beelzebub::Synchronization;
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
-    bool Spinlock<false>::Check() const volatile
+    bool TicketLockUninterruptible<false>::Check() const volatile
     #else
     template<bool SMP>
-    bool Spinlock<SMP>::Check() const volatile
+    bool TicketLockUninterruptible<SMP>::Check() const volatile
     #endif
     {
-        spinlock_t copy = {this->Value.Overall};
+        ticketlock_t copy = {this->Value.Overall};
 
         return copy.Head == copy.Tail;
     }
@@ -165,6 +212,6 @@ using namespace Beelzebub::Synchronization;
 
 namespace Beelzebub { namespace Synchronization
 {
-    template struct Spinlock<true>;
-    template struct Spinlock<false>;
+    template struct TicketLockUninterruptible<true>;
+    template struct TicketLockUninterruptible<false>;
 }}

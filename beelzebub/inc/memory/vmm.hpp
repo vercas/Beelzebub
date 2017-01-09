@@ -92,7 +92,7 @@ namespace Beelzebub { namespace Memory
 
         /*  Statics  */
 
-        static Synchronization::Spinlock<> KernelHeapLock;
+        static Synchronization::SmpLock KernelHeapLock;
 
         static KernelVas KVas;
 

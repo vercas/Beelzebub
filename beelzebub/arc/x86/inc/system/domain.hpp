@@ -40,7 +40,7 @@
 #pragma once
 
 #include "system/gdt.hpp"
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -58,7 +58,7 @@ namespace Beelzebub { namespace System
         /*  Field(s)  */
 
         size_t Index;
-        Synchronization::Spinlock<> GdtLock;
+        Synchronization::SmpLock GdtLock;
         GdtRegister Gdt;
     };
 }}

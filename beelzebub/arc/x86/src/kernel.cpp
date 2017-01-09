@@ -92,8 +92,8 @@ using namespace Beelzebub::Utils;
 
 //SmpBarrier InitializationBarrier {};
 
-Spinlock<> InitializationLock;
-Spinlock<> TerminalMessageLock;
+SmpLock InitializationLock;
+SmpLock TerminalMessageLock;
 
 /*  System Globals  */
 

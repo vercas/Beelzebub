@@ -45,7 +45,7 @@
 #include "kernel.hpp"
 #include <new>
 
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <math.h>
 #include <debug.hpp>
 
@@ -60,7 +60,7 @@ Barrier VmmTestBarrier;
 
 #define SYNC VmmTestBarrier.Reach()
 
-static Spinlock<> DeleteLock {};
+static SmpLock DeleteLock {};
 
 static constexpr size_t const RandomIterations = 1'000;
 static constexpr size_t const CacheSize = 2048;
@@ -183,7 +183,7 @@ void TestVmm(bool const bsp)
 #endif
 
     for (size_t i = 0; i < RandomIterations; ++i)
-        delPtr(getPtr(false));
+        delPtr(getPtr());
 
 #ifdef PRINT
     perfEnd = CpuInstructions::Rdtsc();

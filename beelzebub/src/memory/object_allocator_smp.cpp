@@ -50,7 +50,7 @@
     using namespace Beelzebub;
     using namespace Beelzebub::Memory;
 
-    #define OBJA_LOCK_TYPE Beelzebub::Synchronization::SpinlockUninterruptible<>
+    #define OBJA_LOCK_TYPE Beelzebub::Synchronization::SmpLockUni
     #define OBJA_COOK_TYPE Beelzebub::InterruptState
 
     #define OBJA_POOL_TYPE      ObjectPoolSmp

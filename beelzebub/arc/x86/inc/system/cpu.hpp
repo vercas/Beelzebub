@@ -50,7 +50,7 @@
 #include "mailbox.hpp"
 
 #include <beel/sync/atomic.hpp>
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 
 #define REGFUNC1(regl, regu, type)                                   \
 static __forceinline type MCATS2(Get, regu)()                        \
@@ -129,7 +129,7 @@ namespace Beelzebub { namespace System
 
 #if defined(__BEELZEBUB_SETTINGS_SMP)
         MailboxEntryBase * MailHead = nullptr, * MailTail = nullptr;
-        Synchronization::Spinlock<> MailLock {};
+        Synchronization::SmpLock MailLock {};
         uint64_t MailGeneration = 0;
 #endif
     };

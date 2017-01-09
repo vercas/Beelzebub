@@ -42,14 +42,14 @@
 #include "system/msrs.hpp"
 #include "entry.h"
 
-#include <beel/sync/spinlock.hpp>
+#include <beel/sync/smp.lock.hpp>
 #include <beel/syscalls/memory.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Syscalls;
 using namespace Beelzebub::System;
 
-static Synchronization::Spinlock<> InitLock {};
+static Synchronization::SmpLock InitLock {};
 static bool Initialized = false;
 
 __thread uintptr_t System::SyscallStack;
