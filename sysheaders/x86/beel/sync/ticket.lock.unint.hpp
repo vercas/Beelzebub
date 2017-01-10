@@ -48,8 +48,8 @@
 
 namespace Beelzebub { namespace Synchronization
 {
-#ifndef __BEELZEBUB_SPINLOCK_T
-#define __BEELZEBUB_SPINLOCK_T
+#ifndef __BEELZEBUB_TICKETLOCK_CXX_T
+#define __BEELZEBUB_TICKETLOCK_CXX_T
     typedef union ticketlock_t
     {
         uint32_t volatile Overall;
@@ -118,44 +118,44 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the ticket lock, if possible.
          */
-        __noinline __must_check bool TryAcquire(Cookie & cookie) volatile;
+        __solid __must_check bool TryAcquire(Cookie & cookie) volatile;
 
         /**
          *  Awaits for the ticket lock to be freed.
          *  Does not acquire the lock.
          */
-        __noinline void Spin() const volatile;
+        __solid void Spin() const volatile;
 
         /**
          *  Checks if the ticket lock is free. If not, it awaits.
          *  Does not acquire the lock.
          */
-        __noinline void Await() const volatile;
+        __solid void Await() const volatile;
 
         /**
          *  Acquire the ticket lock, waiting if necessary.
          */
-        __noinline __must_check Cookie Acquire() volatile;
+        __solid __must_check Cookie Acquire() volatile;
 
         /**
          *  Acquire the ticket lock, waiting if necessary.
          */
-        __noinline void SimplyAcquire() volatile;
+        __solid void SimplyAcquire() volatile;
 
         /**
          *  Release the ticket lock.
          */
-        __noinline void Release(Cookie const cookie) volatile;
+        __solid void Release(Cookie const cookie) volatile;
 
         /**
          *  Release the ticket lock.
          */
-        __noinline void SimplyRelease() volatile;
+        __solid void SimplyRelease() volatile;
 
         /**
          *  Checks whether the ticket lock is free or not.
          */
-        __noinline __must_check bool Check() const volatile;
+        __solid __must_check bool Check() const volatile;
 #else
         /**
          *  Acquire the ticket lock, if possible.

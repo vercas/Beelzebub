@@ -71,21 +71,21 @@ extern "C" {
     typedef struct pthread_mutex_s
     {
         Spinlock Lock;
-        SpinlockUninterruptibleCookie Cookie;
+        SmpLockUniCookie Cookie;
     } pthread_mutex_t;
 
     #define PTHREAD_MUTEX_INITIALIZER {{0}, {NULL}}
 
     static inline void pthread_mutex_lock(pthread_mutex_t * const m)
     {
-        SpinlockUninterruptibleCookie const ck = SpinlockUninterruptibleAcquire(&(m->Lock));
+        SmpLockUniCookie const ck = SmpLockUniAcquire(&(m->Lock));
 
         m->Cookie = ck;
     }
 
     static inline void pthread_mutex_unlock(pthread_mutex_t * const m)
     {
-        SpinlockUninterruptibleRelease(&(m->Lock), m->Cookie);
+        SmpLockUniRelease(&(m->Lock), m->Cookie);
     }
 
     static inline int pthread_mutex_init(pthread_mutex_t * __restrict const m
@@ -93,7 +93,7 @@ extern "C" {
     {
         (void)attr;
         
-        SpinlockUninterruptibleReset(&(m->Lock));
+        SmpLockUniReset(&(m->Lock));
     }
 
     static inline int pthread_mutexattr_init(pthread_mutexattr_t * attr)
