@@ -68,7 +68,7 @@ static MailboxEntryBase * GlobalTail = nullptr;
 static size_t GlobalGeneration = 0;
 #endif
 
-static __hot bool ExecuteHead()
+static __hot __solid bool ExecuteHead()
 {
     CpuData * const data = Cpu::GetData();
 
@@ -306,9 +306,11 @@ void Mailbox::PostInternal(MailboxEntryBase * entry, TimeWaster waster, void * c
     if (waster != nullptr)
         waster(cookie);
 
-    while (entry->DestinationsLeft > 0)
+    unsigned int destLeft;
+
+    while ((destLeft = entry->DestinationsLeft) > 0)
         if (!(poll && ExecuteHead()))
-            CpuInstructions::DoNothing();
+            do CpuInstructions::DoNothing(); while (--destLeft > 0);
 }
 
 #ifdef __BEELZEBUB_SETTINGS_MANYCORE
@@ -343,9 +345,13 @@ void Mailbox::PostGlobal(MailboxEntryBase * entry, TimeWaster waster, void * coo
     if (waster != nullptr)
         waster(cookie);
 
-    while (entry->DestinationsLeft > 0)
-        if (!(poll && ExecuteHead()))
-            CpuInstructions::DoNothing();
+    {   //  Scope to contain the variable.
+        unsigned int destLeft;
+
+        while ((destLeft = entry->DestinationsLeft) > 0)
+            if (!(poll && ExecuteHead()))
+                do CpuInstructions::DoNothing(); while (--destLeft > 0);
+    }
 
     //  So, the mail had been handled by all destinations.
     //  Now it needs to become the head of the queue to be removed from it.
