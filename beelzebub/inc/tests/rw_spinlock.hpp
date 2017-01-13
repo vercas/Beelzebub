@@ -39,10 +39,8 @@
 
 #pragma once
 
-#include <synchronization/smp_barrier.hpp>
+#include <beel/sync/barrier.hpp>
 
-extern Beelzebub::Synchronization::SmpBarrier RwSpinlockTestBarrier1;
-extern Beelzebub::Synchronization::SmpBarrier RwSpinlockTestBarrier2;
-extern Beelzebub::Synchronization::SmpBarrier RwSpinlockTestBarrier3;
+extern Beelzebub::Synchronization::Barrier RwSpinlockTestBarrier;
 
 __startup void TestRwSpinlock(bool bsp);

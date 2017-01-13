@@ -39,48 +39,51 @@
 
 #ifdef __BEELZEBUB__TEST_RW_SPINLOCK
 
-#include <tests/rw_spinlock.hpp>
-#include <synchronization/rw_spinlock.hpp>
-#include <cores.hpp>
+#include "tests/rw_spinlock.hpp"
+#include "cores.hpp"
+#include "kernel.hpp"
+#include <beel/sync/rw.spinlock.hpp>
 
 #include <debug.hpp>
+
+#define PRINT
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-SmpBarrier RwSpinlockTestBarrier1 {};
-SmpBarrier RwSpinlockTestBarrier2 {};
-SmpBarrier RwSpinlockTestBarrier3 {};
+static constexpr size_t const WriterAcquisitionCount = 1'000'00;
 
-RwSpinlock tLock {};
+Barrier RwSpinlockTestBarrier;
+
+#define SYNC RwSpinlockTestBarrier.Reach()
+
+static RwSpinlock tLock {};
 
 void TestRwSpinlock(bool bsp)
 {
-    RwSpinlockTestBarrier1.Reach();
+    if (bsp) Scheduling = false;
+
+    SYNC;
 
     if (bsp) tLock.Reset();
 
-    RwSpinlockTestBarrier2.Reach();
-    RwSpinlockTestBarrier1.Reset();
+    SYNC;
 
     ASSERT(!tLock.HasWriter());
     ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
 
-    RwSpinlockTestBarrier3.Reach();
-    RwSpinlockTestBarrier2.Reset();
+    SYNC;
 
     if (bsp) tLock.AcquireAsWriter();
 
-    RwSpinlockTestBarrier1.Reach();
-    RwSpinlockTestBarrier3.Reset();
+    SYNC;
 
     ASSERT(tLock.HasWriter());
     ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
 
-    RwSpinlockTestBarrier2.Reach();
-    RwSpinlockTestBarrier1.Reset();
+    SYNC;
 
     if (bsp)
     {
@@ -101,14 +104,12 @@ void TestRwSpinlock(bool bsp)
         MSG("READER");
     }
 
-    RwSpinlockTestBarrier3.Reach();
-    RwSpinlockTestBarrier2.Reset();
+    SYNC;
 
     ASSERT(!tLock.HasWriter());
     ASSERT_EQ("%us", Cores::GetCount() - 1UL, tLock.GetReaderCount());
 
-    RwSpinlockTestBarrier1.Reach();
-    RwSpinlockTestBarrier3.Reset();
+    SYNC;
 
     if (Cpu::GetData()->Index == 1)
     {
@@ -122,20 +123,17 @@ void TestRwSpinlock(bool bsp)
         //  Allow the upgrade to occur.
     }
 
-    RwSpinlockTestBarrier2.Reach();
-    RwSpinlockTestBarrier1.Reset();
+    SYNC;
 
     ASSERT(tLock.HasWriter());
     ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
 
-    RwSpinlockTestBarrier3.Reach();
-    RwSpinlockTestBarrier2.Reset();
+    SYNC;
 
     ASSERT(!tLock.TryAcquireAsReader());
     //  All must fail, including the writer.
 
-    RwSpinlockTestBarrier1.Reach();
-    RwSpinlockTestBarrier3.Reset();
+    SYNC;
 
     if (Cpu::GetData()->Index == 1)
     {
@@ -147,27 +145,23 @@ void TestRwSpinlock(bool bsp)
         ASSERT(!tLock.TryAcquireAsWriter());
     }
 
-    RwSpinlockTestBarrier2.Reach();
-    RwSpinlockTestBarrier1.Reset();
+    SYNC;
 
     ASSERT(!tLock.HasWriter());
 
-    RwSpinlockTestBarrier3.Reach();
-    RwSpinlockTestBarrier2.Reset();
+    SYNC;
 
     if (Cpu::GetData()->Index == 1)
     {
         tLock.ReleaseAsReader();
     }
 
-    RwSpinlockTestBarrier1.Reach();
-    RwSpinlockTestBarrier3.Reset();
+    SYNC;
 
     ASSERT(!tLock.HasWriter());
     ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
 
-    RwSpinlockTestBarrier2.Reach();
-    RwSpinlockTestBarrier1.Reset();
+    SYNC;
 
     ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
 
@@ -185,23 +179,79 @@ void TestRwSpinlock(bool bsp)
 
     ASSERT_EQ("%us", 0UL, tLock.GetReaderCount());
 
-    RwSpinlockTestBarrier3.Reach();
-    RwSpinlockTestBarrier2.Reset();
+    SYNC;
 
-    // RwSpinlockTestBarrier1.Reach();
-    // RwSpinlockTestBarrier3.Reset();
+#ifdef PRINT
+    uint64_t perfStart = 0, perfEnd = 0;
 
-    // RwSpinlockTestBarrier2.Reach();
-    // RwSpinlockTestBarrier1.Reset();
+    perfStart = CpuInstructions::Rdtsc();
+#endif
 
-    // RwSpinlockTestBarrier3.Reach();
-    // RwSpinlockTestBarrier2.Reset();
+    for (size_t i = WriterAcquisitionCount; i > 0; --i)
+    {
+        tLock.AcquireAsWriter();
 
-    // RwSpinlockTestBarrier1.Reach();
-    // RwSpinlockTestBarrier3.Reset();
+        // for (size_t j = 3; j > 0; --j)
+        //     asm volatile ( "pause \n\t" );
 
-    // RwSpinlockTestBarrier2.Reach();
-    // RwSpinlockTestBarrier1.Reset();
+        tLock.ReleaseAsWriter();
+    }
+
+#ifdef PRINT
+    perfEnd = CpuInstructions::Rdtsc();
+
+    SYNC;
+
+    MSG_("Core %us did %us writer pairs in %us cycles: %us per pair.%n"
+        , Cpu::GetData()->Index, WriterAcquisitionCount, perfEnd - perfStart
+        , (perfEnd - perfStart + WriterAcquisitionCount / 2 + 1) / (WriterAcquisitionCount + 2));
+#endif
+
+    SYNC;
+
+#ifdef PRINT
+    perfStart = CpuInstructions::Rdtsc();
+#endif
+
+    if (bsp)
+        for (size_t i = WriterAcquisitionCount; i > 0; --i)
+        {
+            tLock.AcquireAsWriter();
+
+            // for (size_t j = 3; j > 0; --j)
+                asm volatile ( "pause \n\t" );
+
+            tLock.ReleaseAsWriter();
+        }
+    else
+        for (size_t i = WriterAcquisitionCount; i > 0; --i)
+        {
+            tLock.AcquireAsReader();
+
+            // for (size_t j = 3; j > 0; --j)
+                asm volatile ( "pause \n\t" );
+
+            tLock.ReleaseAsReader();
+        }
+
+#ifdef PRINT
+    perfEnd = CpuInstructions::Rdtsc();
+
+    SYNC;
+
+    if (bsp)
+        MSG_("Core %us did %us writer pairs in %us cycles: %us per pair.%n"
+            , Cpu::GetData()->Index, WriterAcquisitionCount, perfEnd - perfStart
+            , (perfEnd - perfStart + WriterAcquisitionCount / 2 + 1) / (WriterAcquisitionCount + 2));
+    else
+        MSG_("Core %us did %us reader pairs in %us cycles: %us per pair.%n"
+            , Cpu::GetData()->Index, WriterAcquisitionCount, perfEnd - perfStart
+            , (perfEnd - perfStart + WriterAcquisitionCount / 2 + 1) / (WriterAcquisitionCount + 2));
+#endif
+
+    SYNC;
+
+    if (bsp) Scheduling = true;
 }
 
 #endif
