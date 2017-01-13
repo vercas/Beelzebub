@@ -43,6 +43,7 @@
 #include "global_options.hpp"
 #include "utils/unit_tests.hpp"
 #include "lock_elision.hpp"
+#include "watchdog.hpp"
 
 #include "terminals/serial.hpp"
 #include "terminals/vbe.hpp"
@@ -634,6 +635,11 @@ void Beelzebub::Main()
             RwSpinlockTestBarrier.Reset(Cores::GetCount());
 #endif
 
+#if     defined(__BEELZEBUB__TEST_RW_TICKETLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
+        if (Cores::GetCount() > 1 && CHECK_TEST(RW_TICKETLOCK))
+            RwTicketLockTestBarrier.Reset(Cores::GetCount());
+#endif
+
 #if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
         if (CHECK_TEST(MAILBOX))
             MailboxTestBarrier.Reset(Cores::GetCount());
@@ -831,6 +837,19 @@ void Beelzebub::Main()
     }
 #endif
 
+#if     defined(__BEELZEBUB__TEST_RW_TICKETLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
+    if (Cores::GetCount() > 1 && CHECK_TEST(RW_TICKETLOCK))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing R/W ticket lock.%n", Cpu::GetData()->Index);
+
+        TestRwTicketLock(true);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished R/W ticket lock test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
 #if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
     if (CHECK_TEST(MAILBOX))
     {
@@ -927,6 +946,9 @@ void Beelzebub::Secondary()
     Mailbox::Initialize();
     //  And the mailbox. This one needs interrupts enabled.
 
+    Watchdog::Initialize();
+    //  Sadly needed.
+
 #ifdef __BEELZEBUB__TEST_RW_SPINLOCK
     if (CHECK_TEST(RW_SPINLOCK))
     {
@@ -937,6 +959,19 @@ void Beelzebub::Secondary()
 
         withLock (TerminalMessageLock)
             MainTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
+    }
+#endif
+
+#if     defined(__BEELZEBUB__TEST_RW_TICKETLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
+    if (Cores::GetCount() > 1 && CHECK_TEST(RW_TICKETLOCK))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing R/W ticket lock.%n", Cpu::GetData()->Index);
+
+        TestRwTicketLock(false);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished R/W ticket lock test.%n", Cpu::GetData()->Index);
     }
 #endif
 
