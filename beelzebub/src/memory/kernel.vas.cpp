@@ -81,11 +81,7 @@ Handle KernelVas::PreOp(bool & lock, bool alloc)
     (void)alloc;
 
     if unlikely(this->EnlargingCore == (likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex()))
-    {
-        MSG_("Core %us re-entered to enlarge the KVAS.%n", this->EnlargingCore);
-
         lock = false;
-    }
 
     return HandleResult::Okay;
 }
@@ -103,11 +99,11 @@ Handle KernelVas::PostOp(Handle oRes, bool lock, bool alloc)
 
         this->EnlargingCore = likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex();
 
-        MSG_("Core %us is enlarging the KVAS.%n", this->EnlargingCore);
+        // MSG_("Core %us is enlarging the KVAS.%n", this->EnlargingCore);
 
         Handle res = this->Alloc.ForceExpand(FreeDescriptorsThreshold - this->Alloc.GetFreeCount());
 
-        MSG_("Core %us finished enlarging the KVAS: %H%n", this->EnlargingCore, res);
+        // MSG_("Core %us finished enlarging the KVAS: %H%n", this->EnlargingCore, res);
 
         this->EnlargingCore = SpecialNoCore;
 

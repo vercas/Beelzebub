@@ -41,6 +41,7 @@
 #include "cores.hpp"
 #include "timer.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
+#include "utils/stack_walk.hpp"
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
@@ -52,10 +53,49 @@ using namespace Beelzebub::System::InterruptControllers;
 ****************/
 
 static Atomic<size_t> Assignee {0};
+static SmpLock PrintLock {};
 
 static __hot __realign_stack void WatchdogIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
-    MSG_("$%us:%Xp|%Xs$", Cpu::GetData()->Index, state->RIP, state->RAX);
+    withLock (PrintLock)
+    {
+        MSG("%n$%us:%Xp|%Xs$%n", Cpu::GetData()->Index, state->RIP, state->RAX);
+
+        uintptr_t stackPtr = state->RSP;
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+
+        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+        {
+            MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
+                , sizeof(size_t), stackPtr);
+
+            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+        }
+
+        bool odd;
+        for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+        {
+            MSG("%X2|%Xp|%Xs|%s"
+                , (uint16_t)(stackPtr - state->RSP)
+                , stackPtr
+                , *((size_t const *)stackPtr)
+                , odd ? "\r\n" : "\t");
+        }
+
+        if (odd) MSG("%n");
+
+        Utils::StackFrame stackFrame;
+
+        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+        {
+            do
+            {
+                MSG("[Func %Xp; Stack top %Xp + %us]%n"
+                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+
+            } while (stackFrame.LoadNext());
+        }
+    }
 
     END_OF_INTERRUPT();
 }

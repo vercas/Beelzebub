@@ -946,8 +946,8 @@ void Beelzebub::Secondary()
     Mailbox::Initialize();
     //  And the mailbox. This one needs interrupts enabled.
 
-    Watchdog::Initialize();
-    //  Sadly needed.
+    // Watchdog::Initialize();
+    // //  Sadly needed.
 
 #ifdef __BEELZEBUB__TEST_RW_SPINLOCK
     if (CHECK_TEST(RW_SPINLOCK))

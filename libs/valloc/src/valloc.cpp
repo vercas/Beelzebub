@@ -93,7 +93,7 @@ static Arena * RemoveFromMine(Arena * const arena)
 
 static void RetireArena(Arena * arena)
 {
-    Platform::ErrorMessage("Retiring arena " VF_PTR " of " VF_PTR, arena, &TD);
+    // Platform::ErrorMessage("Retiring arena " VF_PTR " of " VF_PTR, arena, &TD);
 
     RemoveFromMine(arena);
 
@@ -145,7 +145,7 @@ static Arena * AllocateArena()
         Platform::FreeMemory(addr, size);
     //  This is weird... Cannot continue.
 
-    Platform::ErrorMessage("Allocated arena " VF_PTR " for " VF_PTR, addr, &TD);
+    // Platform::ErrorMessage("Allocated arena " VF_PTR " for " VF_PTR, addr, &TD);
 
     return AddToMine(new (addr) Arena(&TD, size));
 }
@@ -181,7 +181,7 @@ static bool ExtendArena(Arena * arena)
             c->PrevFree->NextFree = c;
     }
 
-    Platform::ErrorMessage("Extended arena " VF_PTR " of " VF_PTR, arena, &TD);
+    // Platform::ErrorMessage("Extended arena " VF_PTR " of " VF_PTR, arena, &TD);
 
     return true;
 }
@@ -190,7 +190,7 @@ static void DeallocateArena(Arena * const arena)
 {
     RemoveFromMine(arena);
 
-    Platform::ErrorMessage("Deallocating arena " VF_PTR " of " VF_PTR, arena, &TD);
+    // Platform::ErrorMessage("Deallocating arena " VF_PTR " of " VF_PTR, arena, &TD);
 
     Platform::FreeMemory(arena, arena->Size);
 }
@@ -357,11 +357,17 @@ enum CollectionResult { NoGarbage, TargetReached, CollectedAll, };
 
 static CollectionResult CollectGarbage(Arena * arena, size_t const target, Chunk * & res)
 {
-    if (arena->FreeListEmpty())
+    auto oldPtr = arena->FreeList.Pointer;
+
+    // if (arena->FreeListEmpty())
+    if (oldPtr == nullptr)
         return NoGarbage;
 
     void const * const arenaEnd = arena->GetEnd();
     Chunk * cur = arena->FreeList.Swap(nullptr), * next;
+
+    VALLOC_ASSERT_MSG(cur != nullptr
+        , "FreeList was " VF_PTR ", now it's null?", oldPtr);
 
     do
     {

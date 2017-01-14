@@ -251,7 +251,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
     // MSG("Initializing KVAS.%n");
 
     res = KVas.Initialize(VmmArc::KernelHeapStart, VmmArc::KernelHeapEnd
-        , &AcquirePoolForVas, &EnlargePoolForVas, &ReleasePoolFromKernelHeap
+        , &AcquirePoolForVas, nullptr, &ReleasePoolFromKernelHeap
         , PoolReleaseOptions::NoRelease);
     //  Prepare the VAS for usage.
 
@@ -1317,7 +1317,7 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
         addr = 0;
         size = RoundUp(objectSize * minimumObjects + headerSize, PageSize);
 
-        MSG_("Core %us is allocating an object pool for the KVAS.%n", Cpu::GetData()->Index);
+        // MSG_("Core %us is allocating an object pool for the KVAS.%n", Cpu::GetData()->Index);
 
         Handle res = Vmm::AllocatePages(nullptr
             , size
@@ -1351,67 +1351,6 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
     //  be in a good state.
 
     result = const_cast<ObjectPoolBase *>(pool);
-
-    return HandleResult::Okay;
-}
-
-Handle Vmm::EnlargePoolForVas(size_t objectSize, size_t headerSize
-                            , size_t minimumExtraObjects, ObjectPoolBase * pool)
-{
-    size_t const oldSize = RoundUp(objectSize * pool->Capacity + headerSize, PageSize);
-    size_t const newSize = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize);
-
-    ASSERTX(newSize > oldSize
-        , "New size should be larger than the old size of a pool that needs enlarging!%n"
-          "It appears that the previous capacity is wrong.")
-        (newSize)(oldSize)XEND;
-
-    vaddr_t vaddr = oldSize + (vaddr_t)pool;
-    vaddr_t const oldEnd = vaddr;
-
-    Handle res = Vmm::AllocatePages(nullptr
-        , newSize - oldSize
-        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::VasDescriptors
-        , vaddr);
-
-    if likely(res != HandleResult::Okay)
-        return res;
-
-    assert(vaddr == oldEnd);
-
-    obj_ind_t const oldObjectCount = pool->Capacity;
-    obj_ind_t const newObjectCount = (newSize - headerSize) / objectSize;
-
-    uintptr_t cursor = (uintptr_t)pool + headerSize + oldObjectCount * objectSize;
-    FreeObject * last = nullptr;
-
-    if (pool->FreeCount > 0)
-        last = pool->GetLastFreeObject(objectSize, headerSize);
-
-    for (obj_ind_t i = oldObjectCount; i < newObjectCount; ++i, cursor += objectSize)
-    {
-        FreeObject * const obj = (FreeObject *)cursor;
-
-        if unlikely(last == nullptr)
-            pool->FirstFreeObject = i;
-        else
-            last->Next = i;
-
-        last = obj;
-    }
-
-    //  After the loop is finished, `last` will point to the very last object
-    //  in the pool. `newObjectCount - 1` will be the index of the last object.
-
-    pool->LastFreeObject = (obj_ind_t)newObjectCount - 1;
-    last->Next = obj_ind_invalid;
-
-    pool->Capacity = newObjectCount;
-    pool->FreeCount += newObjectCount - oldObjectCount;
-    //  This is incremented because they could've been free objects prior to
-    //  enlarging the pool.
 
     return HandleResult::Okay;
 }

@@ -63,7 +63,7 @@ Barrier VmmTestBarrier;
 
 static SmpLock DeleteLock {};
 
-static constexpr size_t const RandomIterations = 1'000;
+static constexpr size_t const RandomIterations = 10'000;
 static constexpr size_t const CacheSize = 2048;
 static Atomic<vaddr_t> Cache[CacheSize];
 static constexpr size_t const SyncerCount = 10;
@@ -238,7 +238,7 @@ void TestVmm(bool const bsp)
     SYNC;
 #endif
 
-    if (Watchdog::AmIInCharge()) for (;;) { }
+    // if (Watchdog::AmIInCharge()) for (;;) { }
 
     coreIndex ^= 0x55U;
 
@@ -248,7 +248,7 @@ void TestVmm(bool const bsp)
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
-        MSG_("@%us:%us:%us@", coreIndex ^ 0x55U, i, j);
+        // MSG_("@%us:%us:%us@", coreIndex ^ 0x55U, i, j);
 
     retry:
         vaddr_t old = nullpaddr;

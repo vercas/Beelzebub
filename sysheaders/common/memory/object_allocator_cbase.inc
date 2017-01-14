@@ -205,28 +205,29 @@ Handle OBJA_ALOC_TYPE::AllocateObject(void * & result, size_t estimatedLeft)
 
                 obj_ind_t const oldCapacity = current->Capacity;
 
-                this->EnlargePool(this->ObjectSize, this->HeaderSize, estimatedLeft, current);
-                //  Its return value is not really relevant right now. If it fails,
-                //  there's nothing to do... This method call already succeeded. Next one will
-                //  have to do something else.
-
-                if (current->Capacity != oldCapacity)
+                if unlikely(this->EnlargePool != nullptr)
                 {
-                    //  This means the pool was enlarged. Under no circumstances
-                    //  should it be shrunk.
+                    this->EnlargePool(this->ObjectSize, this->HeaderSize, estimatedLeft, current);
+                    //  Its return value is not really relevant right now. If it fails,
+                    //  there's nothing to do... This method call already succeeded. Next one will
+                    //  have to do something else.
 
-                    this->Capacity += current->Capacity - oldCapacity;
-                    this->FreeCount += current->FreeCount;
-                    //  The free count was 0 before enlarging.
+                    if (current->Capacity != oldCapacity)
+                    {
+                        //  This means the pool was enlarged. Under no circumstances
+                        //  should it be shrunk.
 
-                    //  Also, this part is done under a lock to prevent the ABA
-                    //  problem. Perhaps, between unlocking this pool and executing
-                    //  this block, the core/thread was interrupted long/often enough
-                    //  to allow another one to fill this pool to capacity.
-                    //  Thus, both increments above would have wrong values!
+                        this->Capacity += current->Capacity - oldCapacity;
+                        this->FreeCount += current->FreeCount;
+                        //  The free count was 0 before enlarging.
+
+                        //  Also, this part is done under a lock to prevent the ABA
+                        //  problem. Perhaps, between unlocking this pool and executing
+                        //  this block, the core/thread was interrupted long/often enough
+                        //  to allow another one to fill this pool to capacity.
+                        //  Thus, both increments above would have wrong values!
+                    }
                 }
-                /*else
-                    msg("~~ POOL %Xp WAS NOT ENLARGED! ~~%n", current);//*/
             }
 
             if (this->BusyBit < SIZE_MAX)

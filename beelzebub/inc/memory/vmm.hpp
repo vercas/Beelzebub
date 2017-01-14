@@ -112,10 +112,6 @@ namespace Beelzebub { namespace Memory
                                       , size_t minimumObjects
                                       , ObjectPoolBase * & result);
 
-        static Handle EnlargePoolForVas(size_t objectSize, size_t headerSize
-                                      , size_t minimumExtraObjects
-                                      , ObjectPoolBase * pool);
-
         /*  Constructor(s)  */
 
     protected:
