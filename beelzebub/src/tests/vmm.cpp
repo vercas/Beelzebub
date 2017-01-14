@@ -43,6 +43,7 @@
 #include "memory/vmm.hpp"
 #include "cores.hpp"
 #include "kernel.hpp"
+#include "watchdog.hpp"
 #include <new>
 
 #include <beel/sync/smp.lock.hpp>
@@ -237,6 +238,8 @@ void TestVmm(bool const bsp)
     SYNC;
 #endif
 
+    if (Watchdog::AmIInCharge()) for (;;) { }
+
     coreIndex ^= 0x55U;
 
 #ifdef PRINT
@@ -245,6 +248,8 @@ void TestVmm(bool const bsp)
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
+        MSG_("@%us:%us:%us@", coreIndex ^ 0x55U, i, j);
+
     retry:
         vaddr_t old = nullpaddr;
 

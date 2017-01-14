@@ -252,7 +252,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     res = KVas.Initialize(VmmArc::KernelHeapStart, VmmArc::KernelHeapEnd
         , &AcquirePoolForVas, &EnlargePoolForVas, &ReleasePoolFromKernelHeap
-        , PoolReleaseOptions::KeepOne);
+        , PoolReleaseOptions::NoRelease);
     //  Prepare the VAS for usage.
 
     ASSERTX(res.IsOkayResult(), "Failed to initialize the kernel VAS.")(res)XEND;
@@ -810,6 +810,9 @@ struct IterativeUnmapState
     SmpLock * const HeapLock;
     Beelzebub::InterruptState InterruptState;
     bool const NonLocal, Invalidate, Broadcast, CountReferences;
+    Vmm::PreUnmapFunc PreUnmap;
+    Vmm::PostUnmapFunc PostUnmap;
+    void * Cookie;
 };
 
 struct HybridPageEntry
@@ -818,27 +821,6 @@ struct HybridPageEntry
     paddr_t PhysicalAddress;
 };
 
-static __hot __solid void FreeAfterRangeInvalidation(Vmm::RangeInvalidationInfo const * const inf
-    , bool caller)
-{
-    if (!caller)
-        return;
-
-    HybridPageEntry const * en = reinterpret_cast<HybridPageEntry const *>(inf->Addresses);
-
-    for (size_t i = 0; i < inf->Count; ++i, ++en)
-    {
-        Handle res = Pmm::AdjustReferenceCount(en->PhysicalAddress, -1);
-
-#ifdef __BEELZEBUB__CONF_DEBUG
-        ASSERTX(res == HandleResult::Okay
-            || res == HandleResult::PageReserved
-            || res == HandleResult::PagesOutOfAllocatorRange)
-            (res)XEND;
-#endif
-    }
-}
-
 static constexpr size_t const UnmapListMax = 512;
 static __thread HybridPageEntry UnmapList[UnmapListMax];
 //  Enough to clear one table at a time.
@@ -846,6 +828,7 @@ static __thread HybridPageEntry UnmapList[UnmapListMax];
 static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
 {
     Handle res;
+    vaddr_t const iterationStart = state->Address;
     size_t i;
 
     for (i = 0; i < UnmapListMax && state->Address < state->EndAddress; ++i)
@@ -891,15 +874,40 @@ static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
     if (state->HeapLock != nullptr)
         state->HeapLock->Release();
 
+    if (state->PostUnmap)
+        res = state->PostUnmap(state->Process, iterationStart, state->Address - iterationStart
+            , res, state->Cookie);
+
     state->InterruptState.Restore();
 
-    if likely(state->Invalidate && i > 0)
-        Vmm::InvalidateRange(state->Process
-            , reinterpret_cast<void * *>(UnmapList + 0)
-            , i, sizeof(HybridPageEntry)
-            , state->Broadcast
-            , state->CountReferences ? FreeAfterRangeInvalidation : nullptr);
-    //  Easy..?
+    if (i > 0)
+    {
+        if likely(state->Invalidate)
+        {
+            Handle res2 = Vmm::InvalidateRange(state->Process
+                , reinterpret_cast<void * *>(UnmapList + 0)
+                , i, sizeof(HybridPageEntry)
+                , state->Broadcast);
+
+            if unlikely(res == HandleResult::Okay)
+                res = res2;
+        }
+
+        if likely(state->CountReferences)
+        {
+            do
+            {
+                Handle res2 = Pmm::AdjustReferenceCount(UnmapList[--i].PhysicalAddress, -1);
+
+        #ifdef __BEELZEBUB__CONF_DEBUG
+                ASSERTX(res2 == HandleResult::Okay
+                    || res2 == HandleResult::PageReserved
+                    || res2 == HandleResult::PagesOutOfAllocatorRange)
+                    (res2)XEND;
+        #endif
+            } while (i > 0);
+        }
+    }
 
     return res;
 }
@@ -917,6 +925,9 @@ struct RecursiveUnmapState
     SmpLock * const HeapLock;
     Beelzebub::InterruptState InterruptState;
     bool const NonLocal, Invalidate, Broadcast, CountReferences;
+    Vmm::PreUnmapFunc PreUnmap;
+    Vmm::PostUnmapFunc PostUnmap;
+    void * Cookie;
     size_t Depth;
 };
 
@@ -932,27 +943,6 @@ struct HybridPageNode : public Vmm::PageNode
         return static_cast<HybridPageNode const *>(this->Next);
     }
 };
-
-static __hot __solid void FreeAfterChainInvalidation(Vmm::ChainInvalidationInfo const * const inf
-    , bool caller)
-{
-    if (!caller)
-        return;
-
-    auto tmp = static_cast<HybridPageNode const *>(inf->Node);
-
-    do
-    {
-        assert(tmp->Frame != nullpaddr);
-
-        Handle res = Pmm::AdjustReferenceCount(tmp->Frame, -1);
-
-        assert(res == HandleResult::Okay
-            || res == HandleResult::PageReserved
-            || res == HandleResult::PagesOutOfAllocatorRange)
-            (res);
-    } while ((tmp = tmp->GetNext()) != nullptr);
-}
 
 static __hot Handle UnmapRecursively(RecursiveUnmapState * const state
     , HybridPageNode const * node)
@@ -1014,12 +1004,47 @@ bail:
     if (state->HeapLock != nullptr)
         state->HeapLock->Release();
 
+    if (state->PostUnmap)
+    {
+        vaddr_t start;
+        HybridPageNode const * tmp = node;
+
+        do start = node->Address; while ((tmp = tmp->GetNext()) != nullptr);
+
+        state->PostUnmap(state->Process, start, state->Address - start, res, state->Cookie);
+    }
+
     state->InterruptState.Restore();
 
-    if likely(state->Invalidate && node != nullptr)
-        Vmm::InvalidateChain(state->Process, node, state->Broadcast
-            , state->CountReferences ? FreeAfterChainInvalidation : nullptr);
-    //  Easy..?
+    if likely(node != nullptr)
+    {
+        if likely(state->Invalidate)
+        {
+            Handle res2 = Vmm::InvalidateChain(state->Process, node, state->Broadcast);
+
+            if unlikely(res == HandleResult::Okay)
+                res = res2;
+        }
+
+        if likely(state->CountReferences)
+        {
+            HybridPageNode const * tmp = node;
+
+            do
+            {
+                assert(tmp->Frame != nullpaddr);
+
+                Handle res2 = Pmm::AdjustReferenceCount(tmp->Frame, -1);
+
+        #ifdef __BEELZEBUB__CONF_DEBUG
+                ASSERTX(res2 == HandleResult::Okay
+                    || res2 == HandleResult::PageReserved
+                    || res2 == HandleResult::PagesOutOfAllocatorRange)
+                    (res2)XEND;
+        #endif
+            } while ((tmp = tmp->GetNext()) != nullptr);
+        }
+    }
 
 end:
     (void)newNode;
@@ -1030,7 +1055,8 @@ end:
 
 Handle Vmm::UnmapRange(Process * proc
     , uintptr_t vaddr, size_t size
-    , MemoryMapOptions opts)
+    , MemoryMapOptions opts
+    , PreUnmapFunc pre, PostUnmapFunc post, void * cookie)
 {
     if unlikely((vaddr + size > VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
              || (vaddr + size > VmmArc::LowerHalfEnd && vaddr < VmmArc::HigherHalfStart))
@@ -1071,11 +1097,14 @@ Handle Vmm::UnmapRange(Process * proc
             proc, vaddr, endAddr, alienLock, heapLock, {}
             , nonLocal, invalidate, broadcast
             , 0 == (opts & MemoryMapOptions::NoReferenceCounting)
+            , pre, post, cookie
         };
 
         do
         {
             state.InterruptState = InterruptState::Disable();
+
+            if (pre) pre(proc, state.Address, cookie);
 
             if (alienLock != nullptr)
                 alienLock->Acquire();
@@ -1094,12 +1123,15 @@ Handle Vmm::UnmapRange(Process * proc
             proc, vaddr, endAddr, alienLock, heapLock, {}
             , nonLocal, invalidate, broadcast
             , 0 == (opts & MemoryMapOptions::NoReferenceCounting)
+            , pre, post, cookie
             , 0
         };
 
         do
         {
             state.InterruptState = InterruptState::Disable();
+
+            if (pre) pre(proc, state.Address, cookie);
 
             if (alienLock != nullptr)
                 alienLock->Acquire();
@@ -1284,6 +1316,8 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
 
         addr = 0;
         size = RoundUp(objectSize * minimumObjects + headerSize, PageSize);
+
+        MSG_("Core %us is allocating an object pool for the KVAS.%n", Cpu::GetData()->Index);
 
         Handle res = Vmm::AllocatePages(nullptr
             , size

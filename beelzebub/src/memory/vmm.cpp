@@ -37,12 +37,13 @@
     thorough explanation regarding other files.
 */
 
-#include <memory/vmm.hpp>
-#include <memory/pmm.hpp>
+#include "memory/vmm.hpp"
+#include "memory/pmm.hpp"
 #include <memory/object_allocator_pools_heap.hpp>
 #include <beel/interrupt.state.hpp>
-#include <system/cpu.hpp>
-#include <kernel.hpp>
+#include "system/cpu.hpp"
+#include "kernel.hpp"
+#include "cores.hpp"
 
 #include <string.h>
 #include <math.h>
@@ -90,7 +91,7 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
         return HandleResult::Failed;
     //  The hit memory ought to be in either userland or the kernel heap.
 
-    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+    if (proc == nullptr) proc = likely(Cores::IsReady()) ? Cpu::GetProcess() : &BootstrapProcess;
 
     Handle res = HandleResult::Okay;
     Memory::Vas * const vas = (vaddr < Vmm::UserlandEnd) ? &(proc->Vas) : &KVas;
@@ -99,6 +100,13 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
 
     vaddr_t const vaddr_algn = RoundDown(vaddr, PageSize);
     MemoryRegion * reg;
+
+    if unlikely(vaddr >= Vmm::KernelStart)
+    {
+        ASSERTX(KVas.EnlargingCore != (likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex()))
+            ("me", (likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex()))
+            ("enlarger", KVas.EnlargingCore)XEND;
+    }
 
     vas->Lock.AcquireAsReader();
 
@@ -202,7 +210,7 @@ end:
 Handle Vmm::CheckMemoryRegion(Execution::Process * proc
     , uintptr_t addr, size_t size, MemoryCheckType type)
 {
-    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+    if (proc == nullptr) proc = likely(Cores::IsReady()) ? Cpu::GetProcess() : &BootstrapProcess;
 
     Memory::Vas * vas = &(proc->Vas);
 
@@ -291,7 +299,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
     , MemoryContent content
     , uintptr_t & vaddr)
 {
-    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+    if (proc == nullptr) proc = likely(Cores::IsReady()) ? Cpu::GetProcess() : &BootstrapProcess;
 
     if (MemoryAllocationOptions::AllocateOnDemand == (type & MemoryAllocationOptions::AllocateOnDemand)
         || 0 == (type & MemoryAllocationOptions::Commit))
@@ -382,15 +390,35 @@ Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
     if unlikely(!Is4KiBAligned(vaddr))
         return HandleResult::AlignmentFailure;
 
-    if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
+    if (proc == nullptr) proc = likely(Cores::IsReady()) ? Cpu::GetProcess() : &BootstrapProcess;
 
-    Handle res = UnmapRange(proc, vaddr, size);
+    Memory::Vas * vas = &(proc->Vas);
 
-    if unlikely(res != HandleResult::Okay && res != HandleResult::PageUnmapped)
-        return res;
-
-    if (endAddr <= Vmm::UserlandEnd)
-        return proc->Vas.Free(vaddr, size);
+    if (vaddr >= UserlandStart && vaddr < UserlandEnd)
+        vas = &(proc->Vas);
+    else if (vaddr >= KernelStart && vaddr < KernelEnd)
+        vas = &(Vmm::KVas);
     else
-        return KVas.Free(vaddr, size);
+        vas = nullptr;
+
+    return UnmapRange(proc, vaddr, size, MemoryMapOptions::None
+        , [](Process * proc, uintptr_t vaddr, void * cookie)
+        {
+            (void)proc;
+            (void)vaddr;
+
+            reinterpret_cast<Memory::Vas *>(cookie)->Lock.AcquireAsWriter();
+        }, [](Process * proc, uintptr_t vaddr, size_t size, Handle oRes, void * cookie)
+        {
+            (void)proc;
+
+            Handle res = reinterpret_cast<Memory::Vas *>(cookie)->Free(vaddr, size, false, false, false);
+            reinterpret_cast<Memory::Vas *>(cookie)->Lock.ReleaseAsWriter();
+
+            if unlikely(oRes != HandleResult::Okay && oRes != HandleResult::PageUnmapped)
+                return oRes;
+            else
+                return res;
+        }
+        , vas);
 }
