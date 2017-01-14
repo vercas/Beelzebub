@@ -62,7 +62,7 @@ typedef struct pthread_mutexattr_s
 
 #ifdef __BEELZEBUB_KERNEL
 
-    #include <beel/sync/smp.lock.unint.h>
+    #include <beel/sync/smp.lock.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,7 +70,7 @@ extern "C" {
 
     typedef struct pthread_mutex_s
     {
-        Spinlock Lock;
+        SmpLockUni Lock;
         SmpLockUniCookie Cookie;
     } pthread_mutex_t;
 

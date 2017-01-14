@@ -50,3 +50,19 @@ typedef TicketLock NonSmpLockUni;
 
 typedef TicketLockUniCookie SmpLockUniCookie;
 typedef TicketLockUniCookie NonSmpLockUniCookie;
+
+#define SmpLockTryAcquire       TicketLockTryAcquire
+#define SmpLockSpin             TicketLockSpin
+#define SmpLockAwait            TicketLockAwait
+#define SmpLockAcquire          TicketLockAcquire
+#define SmpLockRelease          TicketLockRelease
+#define SmpLockCheck            TicketLockCheck
+#define SmpLockReset            TicketLockReset
+
+#define SmpLockUniTryAcquire    TicketLockUniTryAcquire
+#define SmpLockUniSpin          TicketLockUniSpin
+#define SmpLockUniAwait         TicketLockUniAwait
+#define SmpLockUniAcquire       TicketLockUniAcquire
+#define SmpLockUniRelease       TicketLockUniRelease
+#define SmpLockUniCheck         TicketLockUniCheck
+#define SmpLockUniReset         TicketLockUniReset
