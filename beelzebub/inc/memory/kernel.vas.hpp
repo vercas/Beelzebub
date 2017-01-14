@@ -51,31 +51,31 @@ namespace Beelzebub { namespace Memory
     {
         /*  Statics  */
 
-        static constexpr uint32_t const SpecialLockFree = 0xFFFFFFFFU;
+        static constexpr size_t const SpecialNoCore = ~(0UL);
 
         static constexpr size_t const FreeDescriptorsThreshold = 4;
 
     public:
         /*  Constructors  */
 
-        inline KernelVas()
-            : Vas()
-            , SpecialAllocationLocker(SpecialLockFree)
-            , Bootstrapping(true)
-        {
-
-        }
+        KernelVas();
 
         KernelVas(KernelVas const &) = delete;
         KernelVas & operator =(KernelVas const &) = delete;
 
         /*  Support  */
 
+        // virtual __hot Handle AllocateNode(Utils::AvlTree<MemoryRegion>::Node * & node) override;
+        // virtual __hot Handle RemoveNode(Utils::AvlTree<MemoryRegion>::Node * const node) override;
+
         virtual __hot Handle PreOp(bool & lock, bool alloc) override;
+        virtual __hot Handle PostOp(Handle res, bool lock, bool alloc) override;
 
         /*  Fields  */
 
-        Synchronization::Atomic<uint32_t> SpecialAllocationLocker;
+        size_t EnlargingCore;
         bool Bootstrapping;
+
+        // Utils::AvlTree<MemoryRegion>::Node * PreallocatedDescriptors[FreeDescriptorsThreshold];
     };
 }}

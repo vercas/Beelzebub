@@ -53,42 +53,66 @@ using namespace Beelzebub::Utils;
     KernelVas class
 **********************/
 
+/*  Constructors  */
+
+KernelVas::KernelVas()
+    : Vas()
+    , EnlargingCore(SpecialNoCore)
+    , Bootstrapping(true)
+    // , PreallocatedDescriptors()
+{
+
+}
+
 /*  Support  */
 
+// Handle KernelVas::AllocateNode(AvlTree<MemoryRegion>::Node * & node)
+// {
+//     return this->Alloc.AllocateObject(node);
+// }
+
+// Handle KernelVas::RemoveNode(AvlTree<MemoryRegion>::Node * const node)
+// {
+//     return this->Alloc.DeallocateObject(node);
+// }
+
 Handle KernelVas::PreOp(bool & lock, bool alloc)
+{
+    (void)alloc;
+
+    if unlikely(this->EnlargingCore == (likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex()))
+    {
+        MSG_("Core %us re-entered to enlarge the KVAS.%n", this->EnlargingCore);
+
+        lock = false;
+    }
+
+    return HandleResult::Okay;
+}
+
+Handle KernelVas::PostOp(Handle oRes, bool lock, bool alloc)
 {
     (void)lock;
     (void)alloc;
 
     if likely(this->Alloc.GetFreeCount() >= FreeDescriptorsThreshold)
-        return HandleResult::Okay;
-    else
+        return oRes;
+    else if unlikely(this->EnlargingCore == SpecialNoCore)
     {
-        //  Gotta lock.
+        //  Gotta enlarge.
 
-        uint32_t old = SpecialLockFree;
-        uint32_t const ind = likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex();
+        this->EnlargingCore = likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex();
 
-        if unlikely(this->SpecialAllocationLocker.Load() == ind)
-            return HandleResult::Okay;
+        MSG_("Core %us is enlarging the KVAS.%n", this->EnlargingCore);
 
-        if (this->SpecialAllocationLocker.CmpXchgStrong(old, ind))
-        {
-            //  This core acquired the lock.
+        Handle res = this->Alloc.ForceExpand(FreeDescriptorsThreshold - this->Alloc.GetFreeCount());
 
-            Handle res = this->Alloc.ForceExpand(FreeDescriptorsThreshold - this->Alloc.GetFreeCount());
+        MSG_("Core %us finished enlarging the KVAS: %H%n", this->EnlargingCore, res);
 
-            this->SpecialAllocationLocker.Store(SpecialLockFree);
+        this->EnlargingCore = SpecialNoCore;
 
-            return res;
-        }
-        else
-        {
-            while (this->SpecialAllocationLocker.Load() != SpecialLockFree)
-                for (uint32_t i = 0; i <= ind; ++i)
-                    CpuInstructions::DoNothing();
-
-        return HandleResult::Okay;
-        }
+        return oRes == HandleResult::Okay ? res : oRes;
     }
+
+    return oRes;
 }

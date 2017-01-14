@@ -44,7 +44,7 @@
 #include <memory/object_allocator.hpp>
 
 #include <beel/utils/avl.tree.hpp>
-#include <beel/sync/rw.spinlock.hpp>
+#include <beel/sync/rw.ticket.lock.hpp>
 #include <beel/sync/atomic.hpp>
 
 namespace Beelzebub { namespace Memory
@@ -95,19 +95,25 @@ namespace Beelzebub { namespace Memory
         __hot Handle RemoveNode(Utils::AvlTree<MemoryRegion>::Node * const node);
 
         virtual __hot Handle PreOp(bool & lock, bool alloc);
+        virtual __hot Handle PostOp(Handle res, bool lock, bool alloc);
 
-        __hot __forceinline bool ImplementsPreCheck()
-        {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
 #pragma GCC diagnostic ignored "-Wpedantic"
+        __hot __forceinline bool ImplementsPreOp()
+        {
             return reinterpret_cast<void *>(this->*(&Vas::PreOp)) != reinterpret_cast<void *>(&Vas::PreOp);
-#pragma GCC diagnostic pop
         }
+
+        __hot __forceinline bool ImplementsPostOp()
+        {
+            return reinterpret_cast<void *>(this->*(&Vas::PostOp)) != reinterpret_cast<void *>(&Vas::PostOp);
+        }
+#pragma GCC diagnostic pop
 
         /*  Fields  */
 
-        Synchronization::RwSpinlock Lock;
+        Synchronization::RwTicketLock Lock;
 
         ObjectAllocator Alloc;
         Utils::AvlTree<MemoryRegion> Tree;

@@ -122,7 +122,7 @@ struct OperationParameters
 
         InterruptState cookie;
 
-        if (vas->ImplementsPreCheck())
+        if (vas->ImplementsPreOp())
         {
             res = vas->PreOp(lock, this->Allocation);
 
@@ -451,6 +451,9 @@ struct OperationParameters
         }
 
     end:
+        if (vas->ImplementsPostOp())
+            res = vas->PostOp(res, lock, this->Allocation);
+
         if likely(lock)
         {
             vas->Lock.ReleaseAsWriter();
@@ -702,6 +705,15 @@ Handle Vas::RemoveNode(AvlTree<MemoryRegion>::Node * const node)
 
 Handle Vas::PreOp(bool & lock, bool alloc)
 {
+    (void)lock;
+    (void)alloc;
+
+    return HandleResult::Okay;
+}
+
+Handle Vas::PostOp(Handle res, bool lock, bool alloc)
+{
+    (void)res;
     (void)lock;
     (void)alloc;
 
