@@ -206,6 +206,7 @@ namespace Beelzebub { namespace Synchronization
          *  <summary>Attempts to upgrade a reader to the writer.</summary>
          *  <return>True if the upgrade succeeded; false otherwise.</return>
          */
+        template<bool weak = false>
         inline __must_check bool UpgradeToWriter() volatile
         {
             COMPILER_MEMORY_BARRIER();

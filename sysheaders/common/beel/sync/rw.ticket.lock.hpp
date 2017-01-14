@@ -45,28 +45,17 @@ namespace Beelzebub { namespace Synchronization
 {
     union rwticketlock_t
     {
-        uint32_t U32;
-        uint16_t U16;
+        uint64_t Whole;
+        uint32_t LowerHalf;
+
         __extension__ struct
         {
-            uint8_t Writers, Readers, Users;
+            uint16_t WritersTail, ReadersTail, Head;
         };
     };
 
     struct RwTicketLock
     {
-        /*  Constants  */
-
-        static constexpr uint32_t const Wait = 1;
-        static constexpr uint32_t const Write = 2;
-        static constexpr uint32_t const Read = 4;
-
-        static constexpr uint32_t const ReadMask = ~(Wait | Write);
-
-        static constexpr uint32_t const WaitBit = 0;
-        static constexpr uint32_t const WriteBit = 1;
-        static constexpr uint32_t const ReadBit = 2;
-
         /*  Constructor(s)  */
 
         RwTicketLock() = default;
@@ -102,12 +91,12 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            uint32_t const me = this->Value.Users;
-            uint32_t const write = this->Value.Writers;
-            uint32_t const cmpnew = ((me + 1) << 16) + ((me + 1) << 8) + write;
-            uint32_t cmp = (me << 16) + (me << 8) + write;
+            uint64_t const me = this->Value.Head;
+            uint64_t const write = this->Value.WritersTail;
+            uint64_t const cmpnew = ((me + 1) << 32) + ((me + 1) << 16) + write;
+            uint64_t cmp = (me << 32) + (me << 16) + write;
 
-            if (!__atomic_compare_exchange_n(&(this->Value.U32), &cmp, cmpnew, true, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+            if (!__atomic_compare_exchange_n(&(this->Value.Whole), &cmp, cmpnew, true, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
                 return false;
         op_end:
 
@@ -125,14 +114,17 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            uint8_t const me = __atomic_fetch_add(&(this->Value.Users), 1, __ATOMIC_ACQUIRE);
+            uint16_t const me = __atomic_fetch_add(&(this->Value.Head), 1, __ATOMIC_ACQUIRE);
 
-            uint8_t diff;
+            uint16_t diff;
 
-            while ((diff = me - this->Value.Readers) != 0)
+            while ((diff = me - this->Value.ReadersTail) != 0)
                 do asm volatile ( "pause \n\t" ); while (--diff > 0);
 
-            ++this->Value.Readers;
+            COMPILER_MEMORY_BARRIER();
+
+            ++this->Value.ReadersTail;
+            //  This need not be atomic because the readers enter one-by-one.
         op_end:
 
             COMPILER_MEMORY_BARRIER();
@@ -148,12 +140,12 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            uint32_t const me = this->Value.Users;
-            uint32_t const read = this->Value.Readers << 8;
-            uint32_t const cmpnew = ((me + 1) << 16) + read + me;
-            uint32_t cmp = (me << 16) + read + me;
+            uint64_t const me = this->Value.Head;
+            uint64_t const read = this->Value.ReadersTail << 16;
+            uint64_t const cmpnew = ((me + 1) << 32) + read + me;
+            uint64_t cmp = (me << 32) + read + me;
 
-            if (!__atomic_compare_exchange_n(&(this->Value.U32), &cmp, cmpnew, true, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+            if (!__atomic_compare_exchange_n(&(this->Value.Whole), &cmp, cmpnew, true, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
                 return false;
         op_end:
 
@@ -171,11 +163,11 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            uint8_t const me = __atomic_fetch_add(&(this->Value.Users), 1, __ATOMIC_ACQUIRE);
+            uint16_t const me = __atomic_fetch_add(&(this->Value.Head), 1, __ATOMIC_ACQUIRE);
 
-            uint8_t diff;
+            uint16_t diff;
 
-            while ((diff = me - this->Value.Writers) != 0)
+            while ((diff = me - this->Value.WritersTail) != 0)
                 do asm volatile ( "pause \n\t" ); while (--diff > 0);
         op_end:
 
@@ -183,32 +175,47 @@ namespace Beelzebub { namespace Synchronization
             ANNOTATE_LOCK_OPERATION_ACQ;
         }
 
-        // /**
-        //  *  <summary>Attempts to upgrade a reader to the writer.</summary>
-        //  *  <return>True if the upgrade succeeded; false otherwise.</return>
-        //  */
-        // inline __must_check bool UpgradeToWriter() volatile
-        // {
-        //     COMPILER_MEMORY_BARRIER();
+        /**
+         *  <summary>Attempts to upgrade a reader to the writer.</summary>
+         *  <return>True if the upgrade succeeded; false otherwise.</return>
+         */
+        template<bool weak = false>
+        inline __must_check bool UpgradeToWriter() volatile
+        {
+            COMPILER_MEMORY_BARRIER();
 
-        // op_start:
-        //     if (this->Value.TestSet(WriteBit))
-        //         return false;
-        //     //  Fail if another writer is awaiting on this lock.
+        op_start:
+            do
+            {
+                rwticketlock_t const cur { this->Value.Whole };
 
-        //     this->Value -= Read;
-        //     //  Don't count this as a reader anymore.
+                if (cur.ReadersTail - cur.WritersTail != 1)
+                    return false;
+                //  Can't wait for other readers, another might be trying to
+                //  upgrade as well.
 
-        //     while (this->Value.Load() & ReadMask)
-        //         asm volatile ( "pause \n\t" );
-        //     //  Wait for readers to clear.
-        // op_end:
+                //  This can only work if this is the only reader.
 
-        //     COMPILER_MEMORY_BARRIER();
-        //     ANNOTATE_LOCK_OPERATION_ACQ;
+                rwticketlock_t old = cur;
+                rwticketlock_t const des {{cur.WritersTail, cur.ReadersTail - 1, cur.Head}};
 
-        //     return true;
-        // }
+                //  This succeeds if it can push back the readers tail.
+
+                if (!__atomic_compare_exchange_n(&(this->Value.Whole), &(old.Whole), des.Whole, weak, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+                {
+                    if (weak || old.Head == cur.Head)
+                        return false;
+                    else
+                        continue;
+                }
+            } while (!weak);
+        op_end:
+
+            COMPILER_MEMORY_BARRIER();
+            ANNOTATE_LOCK_OPERATION_ACQ;
+
+            return true;
+        }
 
         /*  Release Operations  */
 
@@ -220,7 +227,7 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            __atomic_add_fetch(&(this->Value.Writers), 1, __ATOMIC_RELEASE);
+            __atomic_add_fetch(&(this->Value.WritersTail), 1, __ATOMIC_RELEASE);
         op_end:
 
             COMPILER_MEMORY_BARRIER();
@@ -235,64 +242,62 @@ namespace Beelzebub { namespace Synchronization
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            rwticketlock_t temp { __atomic_load_n(&(this->Value.U32), __ATOMIC_RELAXED) };
+            rwticketlock_t temp { __atomic_load_n(&(this->Value.Whole), __ATOMIC_RELAXED) };
 
-            ++temp.Writers;
-            ++temp.Readers;
+            ++temp.WritersTail;
+            ++temp.ReadersTail;
 
-            __atomic_store_n(&(this->Value.U16), temp.U16, __ATOMIC_RELEASE);
+            __atomic_store_n(&(this->Value.LowerHalf), temp.LowerHalf, __ATOMIC_RELEASE);
         op_end:
 
             COMPILER_MEMORY_BARRIER();
             ANNOTATE_LOCK_OPERATION_REL;
         }
 
-        // /**
-        //  *  <summary>Downgrades the writer to a reader.</summary>
-        //  */
-        // inline void DowngradeToReader() volatile
-        // {
-        //     COMPILER_MEMORY_BARRIER();
+        /**
+         *  <summary>Downgrades the writer to a reader.</summary>
+         */
+        inline void DowngradeToReader() volatile
+        {
+            COMPILER_MEMORY_BARRIER();
 
-        // op_start:
-        //     this->Value += Read;
-        //     //  Count this as a reader first.
+        op_start:
+            ++this->Value.ReadersTail;
+            //  It's this simple, yes.
+        op_end:
 
-        //     this->Value &= ~Write;
-        //     //  De-register as writer.
-        // op_end:
-
-        //     COMPILER_MEMORY_BARRIER();
-        //     ANNOTATE_LOCK_OPERATION_REL;
-        // }
+            COMPILER_MEMORY_BARRIER();
+            ANNOTATE_LOCK_OPERATION_REL;
+        }
 
         /**
          *  <summary>Resets the lock.</summary>
          */
         __forceinline void Reset() volatile
         {
-            this->Value.U32 = 0;
+            this->Value.Whole = 0;
         }
 
         /*  Properties  */
 
-        // /**
-        //  *  <summary>Determines whether there is an active writer or an awaiting writer..</summary>
-        //  *  <return>True if there is an active/awaiting writer; otherwise false.</return>
-        //  */
-        // __forceinline __must_check bool HasWriter() const volatile
-        // {
-        //     return (this->Value.Load() & (Wait | Write)) != 0;
-        // }
+        /**
+         *  <summary>Determines whether there is an active writer or an awaiting writer..</summary>
+         *  <return>True if there is an active/awaiting writer; otherwise false.</return>
+         *  <remarks>Due to design, this method is inaccurate.</remarks>
+         */
+        __forceinline __must_check bool HasWriter() const volatile
+        {
+            return this->Value.Head > this->Value.ReadersTail;
+        }
 
-        // /**
-        //  *  <summary>Gets the number of active readers.</summary>
-        //  *  <return>The number of active readers.</return>
-        //  */
-        // __forceinline __must_check size_t GetReaderCount() const volatile
-        // {
-        //     return (this->Value.Load() & ReadMask) >> ReadBit;
-        // }
+        /**
+         *  <summary>Gets the number of active readers.</summary>
+         *  <return>The number of active readers.</return>
+         */
+        __forceinline __must_check size_t GetReaderCount() const volatile
+        {
+            return this->Value.ReadersTail - this->Value.WritersTail;
+        }
     #endif
 
     private:
