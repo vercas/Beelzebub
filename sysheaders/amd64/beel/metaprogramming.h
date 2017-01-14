@@ -41,7 +41,7 @@
 
 #include <beel/metaprogramming.x86.h>
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
 /*****************
     Some Types
 *****************/

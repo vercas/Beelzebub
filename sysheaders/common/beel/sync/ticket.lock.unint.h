@@ -37,11 +37,11 @@
     thorough explanation regarding other files.
 */
 
-#ifndef _BEEL_SYNC_TICKETLOCK_H
-#define _BEEL_SYNC_TICKETLOCK_H
+#ifndef _BEEL_SYNC_TICKETLOCK_UNI_H
+#define _BEEL_SYNC_TICKETLOCK_UNI_H
 //  Sue me.
 
-#include <beel/metaprogramming.h>
+#include <beel/interrupt.state.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,52 +51,54 @@ extern "C" {
 #define __BEELZEBUB_TICKETLOCK_C_T
     typedef union ticketlock_t
     {
-        uint32_t volatile Overall;
+        uint32_t Overall;
+
         struct
         {
-            uint16_t volatile Head;
-            uint16_t volatile Tail;
+            uint16_t Tail, Head;
         } HT;
     } TicketLock;
 #endif
+
+typedef InterruptState TicketLockUniCookie;
 
 #if defined(__BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS) && !defined(__TICKETLOCK_SOURCE)
     /**
      *  Acquire the ticket lock, if possible.
      */
-    __solid __must_check bool TicketLockTryAcquire(union ticketlock_t * const lock);
+    __solid __must_check bool TicketLockUniTryAcquire(union ticketlock_t * const lock, InterruptState * const cookie);
 
     /**
      *  Awaits for the ticket lock to be freed.
      *  Does not acquire the lock.
      */
-    __solid void TicketLockSpin(union ticketlock_t * const lock);
+    __solid void TicketLockUniSpin(union ticketlock_t * const lock);
 
     /**
      *  Checks if the ticket lock is free. If not, it awaits.
      *  Does not acquire the lock.
      */
-    __solid void TicketLockAwait(union ticketlock_t * const lock);
+    __solid void TicketLockUniAwait(union ticketlock_t * const lock);
 
     /**
      *  Acquire the ticket lock, waiting if necessary.
      */
-    __solid void TicketLockAcquire(union ticketlock_t * const lock);
+    __solid __must_check InterruptState TicketLockUniAcquire(union ticketlock_t * const lock);
 
     /**
      *  Release the ticket lock.
      */
-    __solid void TicketLockRelease(union ticketlock_t * const lock);
+    __solid void TicketLockUniRelease(union ticketlock_t * const lock, InterruptState const cookie);
 
     /**
      *  Checks whether the ticket lock is free or not.
      */
-    __solid __must_check bool TicketLockCheck(union ticketlock_t * const lock);
+    __solid __must_check bool TicketLockUniCheck(union ticketlock_t * const lock);
 
     /**
      *  Reset the ticket lock.
      */
-    __solid void TicketLockReset(union ticketlock_t * const lock);
+    __solid void TicketLockUniReset(union ticketlock_t * const lock);
 
 #else
 
@@ -112,25 +114,30 @@ extern "C" {
     /**
      *  Acquire the ticket lock, if possible.
      */
-    __forceinline __must_check bool TicketLockTryAcquire(union ticketlock_t * const lock)
+    __forceinline __must_check bool TicketLockUniTryAcquire(
+        union ticketlock_t * const lock, InterruptState * const cookie)
     {
+        *cookie = InterruptStateDisable();
+
         COMPILER_MEMORY_BARRIER();
 
     op_start:
-        asm volatile ( "" );   //  Complete dummy.
+        EMPTY_STATEMENT;
 
-        uint16_t const oldTail = lock->HT.Tail;
-        union ticketlock_t cmp = { .HT = {oldTail, oldTail} };
-        union ticketlock_t const newVal = { .HT = {oldTail, (uint16_t)(oldTail + 1)} };
-        union ticketlock_t const cmpCpy = cmp;
+        uint16_t const oldHead = lock->HT.Head;
 
-        asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
-                    : [curVal]"+m"(lock->Overall), "+a"(cmp)
-                    : [newVal]"r"(newVal)
-                    : "cc" );
+        FORCE_EVAL(oldHead);
 
-        if (cmp.Overall != cmpCpy.Overall)
+        union ticketlock_t cmp = { .HT = {oldHead, oldHead} };
+        union ticketlock_t const newVal = { .HT = {oldHead, (uint16_t)(oldHead + 1)} };
+
+        if (!__atomic_compare_exchange_n(&(lock->Overall), &(cmp.Overall), newVal.Overall, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+        {
+            InterruptStateRestore(*cookie);
+            //  If the ticket lock was already locked, restore interrupt state.
+
             return false;
+        }
     op_end:
 
         COMPILER_MEMORY_BARRIER();
@@ -143,18 +150,20 @@ extern "C" {
      *  Awaits for the ticket lock to be freed.
      *  Does not acquire the lock.
      */
-    __forceinline void TicketLockSpin(union ticketlock_t * const lock)
+    __forceinline void TicketLockUniSpin(union ticketlock_t * const lock)
     {
         COMPILER_MEMORY_BARRIER();
 
+    op_start:
+        EMPTY_STATEMENT;
+
         union ticketlock_t copy;
 
-    op_start:
         do
         {
             copy.Overall = lock->Overall;
 
-            asm volatile ( "pause \n\t" : : : "memory" );
+            DO_NOTHING();
         } while (copy.HT.Tail != copy.HT.Head);
     op_end:
 
@@ -166,18 +175,18 @@ extern "C" {
      *  Checks if the ticket lock is free. If not, it awaits.
      *  Does not acquire the lock.
      */
-    __forceinline void TicketLockAwait(union ticketlock_t * const lock)
+    __forceinline void TicketLockUniAwait(union ticketlock_t * const lock)
     {
-        union ticketlock_t copy;
-
         COMPILER_MEMORY_BARRIER();
 
     op_start:
-        copy = *lock;
+        EMPTY_STATEMENT;
+
+        union ticketlock_t copy = *lock;
 
         while (copy.HT.Tail != copy.HT.Head)
         {
-            asm volatile ( "pause \n\t" : : : "memory" );
+            DO_NOTHING();
 
             copy.Overall = lock->Overall;
         }
@@ -190,59 +199,59 @@ extern "C" {
     /**
      *  Acquire the ticket lock, waiting if necessary.
      */
-    __forceinline void TicketLockAcquire(union ticketlock_t * const lock)
+    __forceinline __must_check InterruptState TicketLockUniAcquire(
+        union ticketlock_t * const lock)
     {
-        uint16_t myTicket;
+        InterruptState const cookie = InterruptStateDisable();
 
         COMPILER_MEMORY_BARRIER();
 
     op_start:
-        myTicket = 1;
+        EMPTY_STATEMENT;
 
-        asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
-                    : [tail]"+m"(lock->HT.Tail)
-                    , [ticket]"+r"(myTicket)
-                    : : "cc" );
-        //  It's possible to address the upper word directly.
+        uint16_t const myTicket = __atomic_fetch_add(&(lock->HT.Head), 1, __ATOMIC_ACQUIRE);
 
         uint16_t diff;
 
-        while ((diff = myTicket - lock->HT.Head) != 0)
-            do asm volatile ( "pause \n\t" ); while (--diff != 0);
+        while ((diff = myTicket - lock->HT.Tail) != 0)
+            do DO_NOTHING(); while (--diff != 0);
     op_end:
 
         COMPILER_MEMORY_BARRIER();
         ANNOTATE_LOCK_OPERATION_ACQ;
+
+        return cookie;
     }
 
     /**
      *  Release the ticket lock.
      */
-    __forceinline void TicketLockRelease(union ticketlock_t * const lock)
+    __forceinline void TicketLockUniRelease(
+        union ticketlock_t * const lock, InterruptState const cookie)
     {
         COMPILER_MEMORY_BARRIER();
 
     op_start:
-        asm volatile( "lock addw $1, %[head] \n\t"
-                    : [head]"+m"(lock->HT.Head)
-                    : : "cc" );
+        ++lock->HT.Tail;
     op_end:
 
         COMPILER_MEMORY_BARRIER();
         ANNOTATE_LOCK_OPERATION_REL;
+
+        InterruptStateRestore(cookie);
     }
 
     /**
      *  Checks whether the ticket lock is free or not.
      */
-    __forceinline __must_check bool TicketLockCheck(union ticketlock_t * const lock)
+    __forceinline __must_check bool TicketLockUniCheck(union ticketlock_t * const lock)
     {
-        union ticketlock_t copy;
-
         COMPILER_MEMORY_BARRIER();
 
     op_start:
-        copy = *lock;
+        EMPTY_STATEMENT;
+
+        union ticketlock_t copy = *lock;
 
         if (copy.HT.Head != copy.HT.Tail)
             return false;
@@ -257,7 +266,7 @@ extern "C" {
     /**
      *  Reset the ticket lock.
      */
-    __forceinline void TicketLockReset(union ticketlock_t * const lock)
+    __forceinline void TicketLockUniReset(union ticketlock_t * const lock)
     {
         COMPILER_MEMORY_BARRIER();
 

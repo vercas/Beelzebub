@@ -72,7 +72,7 @@ using namespace Beelzebub::Synchronization;
         while (true)
         {
             while (this->Value.Load() & (Wait | Write))
-                asm volatile ( "pause \n\t" : : : "memory" );
+                DO_NOTHING();
             //  Wait if a writer exists.
 
             if ((this->Value.FetchAdd(Read) & (Wait | Write)) == 0)
@@ -120,7 +120,7 @@ using namespace Beelzebub::Synchronization;
             //  Set writer wait bit.
 
             while ((val = this->Value.Load()) > Wait)
-                asm volatile ( "pause \n\t" : : : "memory" );
+                DO_NOTHING();
             //  Wait for all the readers and writers to hold their horses.
         }
     }
@@ -135,7 +135,7 @@ using namespace Beelzebub::Synchronization;
         //  Don't count this as a reader anymore.
 
         while (this->Value.Load() & ReadMask)
-            asm volatile ( "pause \n\t" : : : "memory" );
+            DO_NOTHING();
         //  Wait for readers to clear.
 
         return true;

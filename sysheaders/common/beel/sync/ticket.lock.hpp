@@ -37,14 +37,9 @@
     thorough explanation regarding other files.
 */
 
-/**
- *  The `__must_check` attributes are there to make sure that the TicketLockUninterruptible
- *  is not used in place of a normal ticket lock accidentally.
- */
-
 #pragma once
 
-#include <beel/interrupt.state.hpp>
+#include <beel/metaprogramming.h>
 
 namespace Beelzebub { namespace Synchronization
 {
@@ -52,16 +47,16 @@ namespace Beelzebub { namespace Synchronization
 #define __BEELZEBUB_TICKETLOCK_CXX_T
     typedef union ticketlock_t
     {
-        uint32_t volatile Overall;
+        uint32_t Overall;
+
         __extension__ struct
         {
-            uint16_t volatile Head;
-            uint16_t volatile Tail;
+            uint16_t Tail, Head;
         };
 
         ticketlock_t() = default;
         inline ticketlock_t(uint32_t o) : Overall(o) { }
-        inline ticketlock_t(uint16_t h, uint16_t t) : Head(h), Tail(t) { }
+        inline ticketlock_t(uint16_t t, uint16_t h) : Tail(t), Head(h) { }
     } ticketlock_t;
 #endif
 
@@ -73,43 +68,40 @@ namespace Beelzebub { namespace Synchronization
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
     /**
-     *  Busy-waiting re-entrant synchronization primitive which
-     *  prevents CPU interrupts on the locking CPU.
+     *  Busy-waiting re-entrant synchronization primitive.
      */
     template<bool SMP>
-    struct TicketLockUninterruptible { };
+    struct TicketLock { };
 
     /**
-     *  Busy-waiting re-entrant synchronization primitive which
-     *  prevents CPU interrupts on the locking CPU.
+     *  Busy-waiting re-entrant synchronization primitive.
      */
     template<>
-    struct TicketLockUninterruptible<false>
+    struct TicketLock<false>
 #else
     /**
-     *  Busy-waiting re-entrant synchronization primitive which
-     *  prevents CPU interrupts on the locking CPU.
+     *  Busy-waiting re-entrant synchronization primitive.
      */
     template<bool SMP>
-    struct TicketLockUninterruptible
+    struct TicketLock
 #endif
     {
     public:
 
-        typedef InterruptState Cookie;
+        typedef void Cookie;
 
         /*  Constructor(s)  */
 
-        TicketLockUninterruptible() = default;
-        TicketLockUninterruptible(TicketLockUninterruptible const &) = delete;
-        TicketLockUninterruptible & operator =(TicketLockUninterruptible const &) = delete;
-        TicketLockUninterruptible(TicketLockUninterruptible &&) = delete;
-        TicketLockUninterruptible & operator =(TicketLockUninterruptible &&) = delete;
+        TicketLock() = default;
+        TicketLock(TicketLock const &) = delete;
+        TicketLock & operator =(TicketLock const &) = delete;
+        TicketLock(TicketLock &&) = delete;
+        TicketLock & operator =(TicketLock &&) = delete;
 
         /*  Destructor  */
 
 #ifdef __BEELZEBUB__CONF_DEBUG
-        ~TicketLockUninterruptible();
+        ~TicketLock();
 #endif
 
         /*  Operations  */
@@ -118,7 +110,7 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the ticket lock, if possible.
          */
-        __solid __must_check bool TryAcquire(Cookie & cookie) volatile;
+        __solid __must_check bool TryAcquire() volatile;
 
         /**
          *  Awaits for the ticket lock to be freed.
@@ -135,55 +127,37 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the ticket lock, waiting if necessary.
          */
-        __solid __must_check Cookie Acquire() volatile;
-
-        /**
-         *  Acquire the ticket lock, waiting if necessary.
-         */
-        __solid void SimplyAcquire() volatile;
+        __solid void Acquire() volatile;
 
         /**
          *  Release the ticket lock.
          */
-        __solid void Release(Cookie const cookie) volatile;
-
-        /**
-         *  Release the ticket lock.
-         */
-        __solid void SimplyRelease() volatile;
+        __solid void Release() volatile;
 
         /**
          *  Checks whether the ticket lock is free or not.
          */
         __solid __must_check bool Check() const volatile;
+
 #else
+
         /**
          *  Acquire the ticket lock, if possible.
          */
-        __forceinline __must_check bool TryAcquire(Cookie & cookie) volatile
+        __forceinline __must_check bool TryAcquire() volatile
         {
-            cookie = InterruptState::Disable();
-
             COMPILER_MEMORY_BARRIER();
-
+            
         op_start:
-            uint16_t const oldTail = this->Value.Tail;
-            ticketlock_t cmp {oldTail, oldTail};
-            ticketlock_t const newVal {oldTail, (uint16_t)(oldTail + 1)};
-            ticketlock_t const cmpCpy = cmp;
+            uint16_t const oldHead = this->Value.Head;
 
-            asm volatile( "lock cmpxchgl %[newVal], %[curVal] \n\t"
-                        : [curVal]"+m"(this->Value), "+a"(cmp)
-                        : [newVal]"r"(newVal)
-                        : "cc" );
+            FORCE_EVAL(oldHead);
 
-            if likely(cmp.Overall == cmpCpy.Overall)
-            {
-                cookie.Restore();
-                //  If the ticket lock was already locked, restore interrupt state.
+            ticketlock_t cmp {oldHead, oldHead};
+            ticketlock_t const newVal {oldHead, (uint16_t)(oldHead + 1)};
 
+            if (!__atomic_compare_exchange_n(&(this->Value.Overall), &(cmp.Overall), newVal.Overall, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
                 return false;
-            }
         op_end:
 
             COMPILER_MEMORY_BARRIER();
@@ -207,7 +181,7 @@ namespace Beelzebub { namespace Synchronization
             {
                 copy = {this->Value.Overall};
 
-                asm volatile ( "pause \n\t" );
+                DO_NOTHING();
             } while (copy.Tail != copy.Head);
         op_end:
 
@@ -228,7 +202,7 @@ namespace Beelzebub { namespace Synchronization
 
             while (copy.Tail != copy.Head)
             {
-                asm volatile ( "pause \n\t" );
+                DO_NOTHING();
 
                 copy = {this->Value.Overall};
             }
@@ -241,53 +215,17 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Acquire the ticket lock, waiting if necessary.
          */
-        __forceinline __must_check Cookie Acquire() volatile
-        {
-            Cookie const cookie = InterruptState::Disable();
-
-            COMPILER_MEMORY_BARRIER();
-
-        op_start:
-            uint16_t myTicket = 1;
-
-            asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
-                        : [tail]"+m"(this->Value.Tail)
-                        , [ticket]"+r"(myTicket)
-                        : : "cc" );
-            //  It's possible to address the upper word directly.
-
-            uint16_t diff;
-
-            while ((diff = myTicket - this->Value.Head) != 0)
-                do asm volatile ( "pause \n\t" ); while (--diff != 0);
-        op_end:
-
-            COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION_ACQ;
-
-            return cookie;
-        }
-
-        /**
-         *  Acquire the ticket lock, waiting if necessary.
-         */
-        __forceinline void SimplyAcquire() volatile
+        __forceinline void Acquire() volatile
         {
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            uint16_t myTicket = 1;
-
-            asm volatile( "lock xaddw %[ticket], %[tail] \n\t"
-                        : [tail]"+m"(this->Value.Tail)
-                        , [ticket]"+r"(myTicket)
-                        : : "cc" );
-            //  It's possible to address the upper word directly.
+            uint16_t const myTicket = __atomic_fetch_add(&(this->Value.Head), 1, __ATOMIC_ACQUIRE);
 
             uint16_t diff;
 
-            while ((diff = myTicket - this->Value.Head) != 0)
-                do asm volatile ( "pause \n\t" ); while (--diff != 0);
+            while ((diff = myTicket - this->Value.Tail) != 0)
+                do DO_NOTHING(); while (--diff != 0);
         op_end:
 
             COMPILER_MEMORY_BARRIER();
@@ -297,33 +235,12 @@ namespace Beelzebub { namespace Synchronization
         /**
          *  Release the ticket lock.
          */
-        __forceinline void Release(Cookie const cookie) volatile
+        __forceinline void Release() volatile
         {
             COMPILER_MEMORY_BARRIER();
 
         op_start:
-            asm volatile( "lock addw $1, %[head] \n\t"
-                        : [head]"+m"(this->Value.Head)
-                        : : "cc" );
-        op_end:
-
-            COMPILER_MEMORY_BARRIER();
-            ANNOTATE_LOCK_OPERATION_REL;
-
-            cookie.Restore();
-        }
-
-        /**
-         *  Release the ticket lock.
-         */
-        __forceinline void SimplyRelease() volatile
-        {
-            COMPILER_MEMORY_BARRIER();
-
-        op_start:
-            asm volatile( "lock addw $1, %[head] \n\t"
-                        : [head]"+m"(this->Value.Head)
-                        : : "cc" );
+            ++this->Value.Tail;
         op_end:
 
             COMPILER_MEMORY_BARRIER();
@@ -352,6 +269,17 @@ namespace Beelzebub { namespace Synchronization
 #endif
 
         /**
+         *  Acquire the ticket lock, waiting if necessary.
+         *  Includes a pointer in the memory barrier, if supported.
+         */
+        __forceinline void SimplyAcquire() volatile { this->Acquire(); }
+
+        /**
+         *  Release the ticket lock.
+         */
+        __forceinline void SimplyRelease() volatile { this->Release(); }
+
+        /**
          *  Reset the ticket lock.
          */
         __forceinline void Reset() volatile
@@ -363,45 +291,55 @@ namespace Beelzebub { namespace Synchronization
 
     private:
 
-        ticketlock_t Value;
+        ticketlock_t Value; 
     };
 
 #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
     /**
-     *  Busy-waiting re-entrant synchronization primitive which
-     *  prevents CPU interrupts on the locking CPU.
+     *  Busy-waiting re-entrant synchronization primitive.
      */
     template<>
-    struct TicketLockUninterruptible<true>
+    struct TicketLock<true>
     {
     public:
 
-        typedef InterruptState Cookie;
-        static constexpr Cookie const InvalidCookie = __int_cookie_invalid;
+        typedef void Cookie;
 
         /*  Constructor(s)  */
 
-        TicketLockUninterruptible() = default;
-        TicketLockUninterruptible(TicketLockUninterruptible const &) = delete;
-        TicketLockUninterruptible & operator =(TicketLockUninterruptible const &) = delete;
-        TicketLockUninterruptible(TicketLockUninterruptible &&) = delete;
-        TicketLockUninterruptible & operator =(TicketLockUninterruptible &&) = delete;
+        TicketLock() = default;
+        TicketLock(TicketLock const &) = delete;
+        TicketLock & operator =(TicketLock const &) = delete;
+        TicketLock(TicketLock &&) = delete;
+        TicketLock & operator =(TicketLock &&) = delete;
 
         /*  Operations  */
 
-        __forceinline __must_check bool TryAcquire(Cookie & cookie) const volatile
-        { cookie = InterruptState::Disable(); return true; }
+        __forceinline __must_check constexpr bool TryAcquire() const volatile
+        { return true; }
+
         __forceinline void Spin() const volatile { }
         __forceinline void Await() const volatile { }
-        __forceinline __must_check Cookie Acquire() const volatile
-        { return InterruptState::Disable(); }
+
+        __forceinline void Acquire() const volatile { }
         __forceinline void SimplyAcquire() const volatile { }
 
-        __forceinline void Release(Cookie const cookie) const volatile
-        { cookie.Restore(); }
+        __forceinline void Release() const volatile { }
         __forceinline void SimplyRelease() const volatile { }
-        __forceinline __must_check bool Check() const volatile
+
+        __forceinline __must_check constexpr bool Check() const volatile
         { return true; }
+
+        /*  Properties  */
+
+        __forceinline constexpr ticketlock_t GetValue() const volatile
+        { return (ticketlock_t)0; }
+
+        /*  Fields  */
+
+    private:
+
+        ticketlock_t Value; 
     };
 #endif
 }}

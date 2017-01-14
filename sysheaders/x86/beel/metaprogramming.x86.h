@@ -73,7 +73,7 @@
     #define __min_float  
 #endif
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
 /*****************
     Some Types
 *****************/
@@ -95,4 +95,12 @@ namespace Beelzebub
 #define __PAGE_SIZE         ((size_t)0x1000)
 #else
 #define __PAGE_SIZE         0x1000
+#endif
+
+/*******************************
+    Miscellaneous Assistance
+*******************************/
+
+#ifndef __BEELZEBUB__SOURCE_GAS
+    #define DO_NOTHING() asm volatile ( "pause \n\t" )
 #endif

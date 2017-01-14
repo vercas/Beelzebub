@@ -98,7 +98,7 @@ using namespace Beelzebub::Synchronization;
         {
             copy = {this->Value.Overall};
 
-            asm volatile ( "pause \n\t" : : : "memory" );
+            DO_NOTHING();
         } while (copy.Tail != copy.Head);
     }
 
@@ -113,7 +113,7 @@ using namespace Beelzebub::Synchronization;
 
         while (copy.Tail != copy.Head)
         {
-            asm volatile ( "pause \n\t" : : : "memory" );
+            DO_NOTHING();
 
             copy = {this->Value.Overall};
         }
@@ -135,7 +135,7 @@ using namespace Beelzebub::Synchronization;
         //  It's possible to address the upper word directly.
 
         while (this->Value.Head != myTicket)
-            asm volatile ( "pause \n\t" : : : "memory" );
+            DO_NOTHING();
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)

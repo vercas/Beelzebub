@@ -119,7 +119,7 @@ namespace Beelzebub { namespace Synchronization
             uint16_t diff;
 
             while ((diff = me - this->Value.ReadersTail) != 0)
-                do asm volatile ( "pause \n\t" ); while (--diff > 0);
+                do DO_NOTHING(); while (--diff > 0);
 
             COMPILER_MEMORY_BARRIER();
 
@@ -168,7 +168,7 @@ namespace Beelzebub { namespace Synchronization
             uint16_t diff;
 
             while ((diff = me - this->Value.WritersTail) != 0)
-                do asm volatile ( "pause \n\t" ); while (--diff > 0);
+                do DO_NOTHING(); while (--diff > 0);
         op_end:
 
             COMPILER_MEMORY_BARRIER();
@@ -347,7 +347,7 @@ namespace Beelzebub { namespace Synchronization
 
     private:
 
-        uint32_t ReaderCount;
+        uint64_t ReaderCount;
 #endif
     };
 }}

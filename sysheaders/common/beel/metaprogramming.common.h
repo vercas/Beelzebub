@@ -76,7 +76,7 @@
 #define GET_ARG3(_3, _2, _1) _1
 #define GET_ARG4(_4, _3, _2, _1) _1
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
     #define GET_MACRO2(_1, _2, NAME, ...) NAME
     #define GET_MACRO3(_1, _2, _3, NAME, ...) NAME
     #define GET_MACRO4(_1, _2, _3, _4, NAME, ...) NAME
@@ -104,7 +104,7 @@
 #define MCATS5(A, B, C, D, E) A##B##C##D##E
 #define MCATS6(A, B, C, D, E, F) A##B##C##D##E##F
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
     #define MCATS(...) GET_MACRO6(__VA_ARGS__, MCATS6, MCATS5, MCATS4, MCATS3, \
                                                MCATS2, MCATS1)(__VA_ARGS__)
     //  Macro conCATenate Symbols!
@@ -160,7 +160,7 @@
     Attributes
 *****************/
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
     #ifdef __BEELZEBUB__SOURCE_CXX
         #define __extern extern "C"
     #else
@@ -337,7 +337,7 @@
         typedef enum MCATS(name, _t) { macro(ENUMINST_VAL) } name;
 #endif
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
     //  Simple enumeration item with default value.
     #define ENUMINST_VAL1(name) name,
     #define ENUMINST_CASERETSTR1(name) case name: return #name;
@@ -423,7 +423,7 @@
     Some Types
 *****************/
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
     typedef  int8_t    Int8;
     typedef  int16_t   Int16;
     typedef  int32_t   Int32;
@@ -454,12 +454,16 @@
     Miscellaneous Assistance
 *******************************/
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
     #define COMPILER_MEMORY_BARRIER() asm volatile ( "" : : : "memory" )
 
     #define FORCE_ORDER(before, after) asm volatile ( ""                  \
                                                     : [out]"=m"(after )   \
                                                     : [in ] "m"(before) )
+
+    #define FORCE_EVAL(before) asm volatile ( "" : : "rm"(before) )
+
+    #define EMPTY_STATEMENT asm volatile ( "" )
 
     #define with(primExp)                                                   \
         for (bool MCATS(_go_, __LINE__) = true; MCATS(_go_, __LINE__); )    \
@@ -497,7 +501,7 @@
     Lock Elision Assistance
 ******************************/
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
     #define ANNOTATE_LOCK_OPERATION(opType) \
     asm volatile goto(".pushsection .locks." #opType ", \"a\", @progbits \n\t" \
                       _GAS_DATA_POINTER " %l0 \n\t" \
@@ -514,6 +518,6 @@
     More Stuffs
 ******************/
 
-#if !defined(__ASSEMBLER__)
+#ifndef __BEELZEBUB__SOURCE_GAS
     #define ASSUME(cond) __extension__ ({ if (!(cond)) { __unreachable_code; } })
 #endif

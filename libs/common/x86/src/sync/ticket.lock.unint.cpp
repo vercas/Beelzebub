@@ -106,7 +106,7 @@ using namespace Beelzebub::Synchronization;
         {
             copy = {this->Value.Overall};
 
-            asm volatile ( "pause \n\t" );
+            DO_NOTHING();
         } while (copy.Tail != copy.Head);
     }
 
@@ -121,7 +121,7 @@ using namespace Beelzebub::Synchronization;
 
         while (copy.Tail != copy.Head)
         {
-            asm volatile ( "pause \n\t" );
+            DO_NOTHING();
 
             copy = {this->Value.Overall};
         }
@@ -147,7 +147,7 @@ using namespace Beelzebub::Synchronization;
         uint16_t diff;
 
         while ((diff = myTicket - this->Value.Head) != 0)
-            do asm volatile ( "pause \n\t" ); while (--diff != 0);
+            do DO_NOTHING(); while (--diff != 0);
 
         return cookie;
     }
@@ -168,7 +168,7 @@ using namespace Beelzebub::Synchronization;
         //  It's possible to address the upper word directly.
 
         while (this->Value.Head != myTicket)
-            asm volatile ( "pause \n\t" );
+            DO_NOTHING();
     }
 
     #if   defined(__BEELZEBUB_SETTINGS_NO_SMP)
