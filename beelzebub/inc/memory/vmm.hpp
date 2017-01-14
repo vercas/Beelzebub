@@ -90,6 +90,11 @@ namespace Beelzebub { namespace Memory
             void * const Cookie;
         };
 
+        typedef void (* PreUnmapFunc)(Execution::Process * proc
+            , uintptr_t vaddr, void * cookie);
+        typedef Handle (* PostUnmapFunc)(Execution::Process * proc
+            , uintptr_t vaddr, size_t size, Handle oRes, void * cookie);
+
         /*  Statics  */
 
         static Synchronization::SmpLock KernelHeapLock;
@@ -185,7 +190,10 @@ namespace Beelzebub { namespace Memory
 
         static __hot __solid Handle UnmapRange(Execution::Process * proc
             , uintptr_t vaddr, size_t size
-            , MemoryMapOptions opts = MemoryMapOptions::None);
+            , MemoryMapOptions opts = MemoryMapOptions::None
+            , PreUnmapFunc pre = nullptr
+            , PostUnmapFunc post = nullptr
+            , void * cookie = nullptr);
 
         static __hot __solid Handle InvalidateRange(Execution::Process * proc
             , void * const * const addresses, size_t count
