@@ -382,11 +382,6 @@ Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
 {
     vaddr_t const endAddr = vaddr + size;
 
-    if unlikely(!((vaddr >= Vmm::UserlandStart && endAddr <= Vmm::UserlandEnd)
-               || (vaddr >= Vmm::KernelStart   && endAddr <= Vmm::KernelEnd  )))
-        return HandleResult::PageMapIllegalRange;
-    //  Cannot use this to free memory from elsewhere.
-
     if unlikely(!Is4KiBAligned(vaddr))
         return HandleResult::AlignmentFailure;
 
@@ -394,12 +389,11 @@ Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
 
     Memory::Vas * vas = &(proc->Vas);
 
-    if (vaddr >= UserlandStart && vaddr < UserlandEnd)
-        vas = &(proc->Vas);
-    else if (vaddr >= KernelStart && vaddr < KernelEnd)
+    if (vaddr >= KernelStart)
         vas = &(Vmm::KVas);
     else
-        vas = nullptr;
+        return HandleResult::PageMapIllegalRange;
+    //  Cannot use this to free memory from elsewhere.
 
     return UnmapRange(proc, vaddr, size, MemoryMapOptions::None
         , [](Process * proc, uintptr_t vaddr, void * cookie)
