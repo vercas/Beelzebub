@@ -929,6 +929,7 @@ struct RecursiveUnmapState
     Vmm::PostUnmapFunc PostUnmap;
     void * Cookie;
     size_t Depth;
+    vaddr_t RoundStart;
 };
 
 struct HybridPageNode : public Vmm::PageNode
@@ -1005,14 +1006,9 @@ bail:
         state->HeapLock->Release();
 
     if (state->PostUnmap)
-    {
-        vaddr_t start;
-        HybridPageNode const * tmp = node;
-
-        do start = node->Address; while ((tmp = tmp->GetNext()) != nullptr);
-
-        state->PostUnmap(state->Process, start, state->Address - start, res, state->Cookie);
-    }
+        state->PostUnmap(state->Process, state->RoundStart
+            , state->Address - state->RoundStart
+            , res, state->Cookie);
 
     state->InterruptState.Restore();
 
@@ -1125,6 +1121,7 @@ Handle Vmm::UnmapRange(Process * proc
             , 0 == (opts & MemoryMapOptions::NoReferenceCounting)
             , pre, post, cookie
             , 0
+            , vaddr
         };
 
         do
@@ -1137,6 +1134,8 @@ Handle Vmm::UnmapRange(Process * proc
                 alienLock->Acquire();
             if (heapLock != nullptr)
                 heapLock->Acquire();
+
+            state.RoundStart = state.Address;
 
             res = UnmapRecursively(&state, nullptr);
 
