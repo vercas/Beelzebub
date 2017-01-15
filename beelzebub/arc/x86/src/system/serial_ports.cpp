@@ -37,8 +37,9 @@
     thorough explanation regarding other files.
 */
 
-#include <system/serial_ports.hpp>
-#include <system/io_ports.hpp>
+#include "system/serial_ports.hpp"
+#include "system/io_ports.hpp"
+#include "kernel.hpp"
 #include <math.h>
 
 using namespace Beelzebub;
@@ -168,12 +169,14 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
 {
     (void)state;
 
-    //uint8_t reg = Io::In8(COM1.BasePort + 2);
+    // uint8_t reg = Io::In8(COM1.BasePort + 2);
 
-    //if (0 == (reg & 1))
-    //{
-        COM1.WriteNtString("COM1");
-    //}
+    // if (0 == (reg & 1))
+    // {
+    //     COM1.WriteNtString("COM1");
+    // }
+
+    MainTerminal->Write("SERIAL");
 
     END_OF_INTERRUPT();
 }
@@ -185,7 +188,7 @@ void ManagedSerialPort::Initialize()
     Io::Out8(this->BasePort + 1, 0x00);    // Disable all interrupts
 
     Io::Out8(this->BasePort + 3, 0x80);    // Enable DLAB (set baud rate divisor)
-    Io::Out8(this->BasePort + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+    Io::Out8(this->BasePort + 0, 0x01);    // Set divisor to 3 (lo byte) 38400 baud
     Io::Out8(this->BasePort + 1, 0x00);    //                  (hi byte)
 
     Io::Out8(this->BasePort + 3, 0x03);    // 8 bits, no parity, one stop bit
