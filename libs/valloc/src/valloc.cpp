@@ -97,10 +97,11 @@ static void RetireArena(Arena * arena)
 
     RemoveFromMine(arena);
 
-    arena->Owner = nullptr;
     arena->Prev = nullptr;
 
     GLock.Acquire();
+
+    arena->Owner = nullptr;
 
     if ((arena->Next = GList) != nullptr)
         GList->Prev = arena;
@@ -593,7 +594,7 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
                 AddToMine(arena);
                 arena->Prev = nullptr;
 
-                CollectGarbage(arena, 0);
+                // CollectGarbage(arena, 0);
 
                 goto free_my_own;
             }
@@ -807,7 +808,7 @@ void * Valloc::ResizeAllocation(void * ptr, size_t size, bool crash)
                 arena->Prev = nullptr;
                 //  Now it's in this thread's list, officially.
 
-                CollectGarbage(arena, 0);
+                // CollectGarbage(arena, 0);
                 //  Collect all the garbage that sneaked in.
 
                 goto resize_my_own;
