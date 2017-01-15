@@ -193,7 +193,7 @@ local availableTests = List {
     "MT",
     -- "STR",
     -- "PMM",
-    "VMM",
+    -- "VMM",
     -- "OBJA",
     --"METAP",
     --"EXCP",
