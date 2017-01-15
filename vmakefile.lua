@@ -454,6 +454,7 @@ GlobalData {
         local res = List {
             --"-fdollars-in-identifiers",
             "-pipe", "--sysroot=" .. tostring(_.Sysroot),
+            "-Wshadow",
         } + _.Opts_GCC_Precompiler
         + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
         + specialOptions

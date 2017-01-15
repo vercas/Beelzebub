@@ -343,11 +343,11 @@ ElfValidationResult Elf::LoadAndValidate32(Elf::SegmentMapper32Func segmap, Elf:
     auto phdr_count = this->GetH3()->ProgramHeaderTableEntryCount;
     auto phdrs = this->GetPhdrs_32();
 
-    size_t i = 0;
+    size_t j = 0;
 
-    for (/* nothing */; i < phdr_count; ++i)
+    for (/* nothing */; j < phdr_count; ++j)
     {
-        auto phdr = phdrs[i];
+        auto phdr = phdrs[j];
 
         if (phdr.Type != ElfProgramHeaderType::Load)
             continue;
@@ -364,29 +364,6 @@ ElfValidationResult Elf::LoadAndValidate32(Elf::SegmentMapper32Func segmap, Elf:
     }
 
     //  Reaching this point means all load segments were mapped successfully.
-
-    goto skipRollback;
-
-rollbackMapping:
-
-    //  Here all the mapped segments need to be unmapped. The unmapping
-    //  function will need to be tolerant.
-
-    while (i-- > 0)
-    {
-        auto phdr = phdrs[i];
-
-        if (phdr.Type != ElfProgramHeaderType::Load)
-            continue;
-
-        segunmap(this->GetLocationDifference(), phdr, lddata);
-        //  This could fail, but there's nothing to do if it does...
-    }
-
-    return res;
-
-skipRollback:
-    
     //  So, next step is performing relocations, if any.
 
     if (this->REL_32 != nullptr)
@@ -436,6 +413,24 @@ skipRollback:
     }
 
     return ElfValidationResult::Success;
+
+rollbackMapping:
+
+    //  Here all the mapped segments need to be unmapped. The unmapping
+    //  function will need to be tolerant.
+
+    while (j-- > 0)
+    {
+        auto phdr = phdrs[j];
+
+        if (phdr.Type != ElfProgramHeaderType::Load)
+            continue;
+
+        segunmap(this->GetLocationDifference(), phdr, lddata);
+        //  This could fail, but there's nothing to do if it does...
+    }
+
+    return res;
 }
 
 Elf::Symbol Elf::GetSymbol32(uint32_t index) const

@@ -181,7 +181,7 @@ rollbackMapping:
     {
         vaddr -= PageSize;
 
-        Handle res = Vmm::UnmapPage(proc, vaddr);
+        res = Vmm::UnmapPage(proc, vaddr);
 
         ASSERT(res.IsOkayResult()
             , "Failed to unmap page at %Xp for unrolling ELF segment %Xp: %H."

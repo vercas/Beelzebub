@@ -998,11 +998,11 @@ TerminalWriteResult TerminalBase::WriteHexDump(uintptr_t const start, size_t con
 
             uint16_t val = *(uint16_t *)(lStart + j);
 
-            for (size_t j = 0; j < 4; ++j)
+            for (size_t k = 0; k < 4; ++k)
             {
-                uint8_t nib = (val >> (j << 2)) & 0xF;
+                uint8_t nib = (val >> (k << 2)) & 0xF;
 
-                wordhexstr[j ^ 1] = (nib > 9 ? '7' : '0') + nib;
+                wordhexstr[k ^ 1] = (nib > 9 ? '7' : '0') + nib;
                 //  This may be THE smartest, though. It flips the last
                 //  bit, so bytes are big endian but the whole word is not.
             }
