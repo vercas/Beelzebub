@@ -100,11 +100,10 @@ VbeTerminal::VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32
     , Pitch(pit)
     , VideoMemory(mem)
     , BytesPerPixel(bytesPerPixel)
+    , Size({(int16_t)((int32_t)wid / (int32_t)FontWidth), (int16_t)((int32_t)hei / (int32_t)FontHeight)})
 {
-    TerminalCoordinates size = this->GetSize();
-
-    for (int x = 0; x < size.X; ++x)
-        for (int y = 0; y < size.Y; ++y)
+    for (int x = 0; x < this->Size.X; ++x)
+        for (int y = 0; y < this->Size.Y; ++y)
             this->WriteUtf8At(" ", x, y);
 }
 
@@ -112,20 +111,6 @@ VbeTerminal::VbeTerminal(const uintptr_t mem, uint16_t wid, uint16_t hei, uint32
 
 TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, const int16_t cy)
 {
-    /* TEMP */ uint32_t const colf = 0xFFDFE0E6;
-    /* TEMP */ uint32_t const colb = 0xFF262223;
-    /* TEMP */ uint32_t const cols = 0xFF121314;
-
-    size_t const w = FontWidth;
-    size_t const h = FontHeight;
-    size_t const x = cx * w;
-    size_t const y = cy * h;
-
-    size_t line = this->VideoMemory + y * this->Pitch + x * this->BytesPerPixel;
-    size_t const byteWidth = w / 8;
-
-    uint32_t i = 1U;   //  Number of bytes in this character.
-
     auto drawBackgroundPixel = [this](size_t x, size_t y, uint32_t * pixel, uint32_t colb, uint32_t cols)
     {
         if (x >= this->PreSplashWidth
@@ -145,6 +130,20 @@ TerminalWriteResult VbeTerminal::WriteUtf8At(char const * c, const int16_t cx, c
         if (colb != NOCOL)
             *pixel = colb;
     };
+
+    /* TEMP */ uint32_t const colf = 0xFFDFE0E6;
+    /* TEMP */ uint32_t const colb = 0xFF262223;
+    /* TEMP */ uint32_t const cols = 0xFF121314;
+
+    size_t const w = FontWidth;
+    size_t const h = FontHeight;
+    size_t const x = cx * w;
+    size_t const y = cy * h;
+
+    size_t line = this->VideoMemory + y * this->Pitch + x * this->BytesPerPixel;
+    size_t const byteWidth = w / 8;
+
+    uint32_t i = 1U;   //  Number of bytes in this character.
 
     if (*c == ' ')
         for (size_t ly = 0; ly < h; ++ly, line += this->Pitch)
@@ -187,7 +186,7 @@ skip_bitmap:
 
 TerminalCoordinates VbeTerminal::GetSize()
 {
-    return {(int16_t)((int32_t)this->Width / (int32_t)FontWidth), (int16_t)((int32_t)this->Height / (int32_t)FontHeight)};
+    return this->Size;
 }
 
 /*  Remapping  */
