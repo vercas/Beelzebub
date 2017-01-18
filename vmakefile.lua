@@ -190,15 +190,15 @@ GlobalData {
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 local availableTests = List {
-    "MT",
+    -- "MT",
     -- "STR",
     -- "PMM",
     -- "VMM",
     -- "OBJA",
     --"METAP",
     --"EXCP",
-    "APP",
-    "KMOD",
+    -- "APP",
+    -- "KMOD",
     -- "TIMER",
     -- "MAILBOX",
     --"STACKINT",
@@ -454,7 +454,7 @@ GlobalData {
         local res = List {
             --"-fdollars-in-identifiers",
             "-pipe", "--sysroot=" .. tostring(_.Sysroot),
-            "-Wshadow",
+            "-Wshadow", "-Wframe-larger-than=300",
         } + _.Opts_GCC_Precompiler
         + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
         + specialOptions
