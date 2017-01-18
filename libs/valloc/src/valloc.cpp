@@ -182,7 +182,7 @@ static bool ExtendArena(Arena * arena)
             c->PrevFree->NextFree = c;
     }
 
-    // Platform::ErrorMessage("Extended arena " VF_PTR " of " VF_PTR, arena, &TD);
+    Platform::ErrorMessage("Extended arena " VF_PTR " of " VF_PTR, arena, &TD);
 
     return true;
 }
@@ -421,6 +421,10 @@ void * Valloc::AllocateMemory(size_t size)
         VALLOC_ASSERT_MSG(reinterpret_cast<uintptr_t>(arena) % Platform::PageSize == 0
             , "Misaligned arena..? " VF_PTR, arena);
 
+        VALLOC_ASSERT_MSG(arena->Size > 0
+            , "Arena " VF_PTR " was destroyed prior to chunk allocation."
+            , arena);
+
         Chunk * c;
 
         if (VALLOC_UNLIKELY(arena->Free < roundSize))
@@ -429,10 +433,10 @@ void * Valloc::AllocateMemory(size_t size)
     try_chunks:
         for (c = arena->LastFree; c != nullptr; c = c->PrevFree)
         {
+        try_specific_chunk:
             VALLOC_ASSERT_MSG(c->IsFree()
                 , "Chunk " VF_PTR " from " VF_PTR " should be free.", c, arena);
 
-        try_specific_chunk:
             if (VALLOC_UNLIKELY(c->Size < roundSize))
                 continue;
             else if (c->Size == roundSize)
@@ -481,6 +485,10 @@ void * Valloc::AllocateMemory(size_t size)
                 , "About to return chunk " VF_PTR " from " VF_PTR " BY " VF_PTR " has a null owner."
                 , c, arena, &TD);
 
+            VALLOC_ASSERT_MSG(arena->Size > 0
+                , "Arena " VF_PTR " was destroyed after allocating chunk " VF_PTR
+                , arena, c);
+
             return c->GetContents();
         }
 
@@ -500,6 +508,8 @@ with_new_arena:
 
     if (VALLOC_UNLIKELY(arena == nullptr))
         return nullptr;
+
+    VALLOC_ASSERT_MSG(arena->Size > 0, "New arena " VF_PTR " seems to have a size of 0.", arena);
 
     Chunk * const c = arena->LastBusy = new (arena->LastFree) BusyChunk(arena, nullptr, roundSize);
     arena->LastFree = new (c->GetNext()) FreeChunk(nullptr, c, arena->Free -= roundSize, nullptr);
@@ -546,6 +556,10 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
         , c
         , c->IsBusy() ? "busy" : c->IsFree() ? "free" : "queued");
 
+    VALLOC_ASSERT_MSG(arena->Size > 0
+        , "Arena " VF_PTR " is destroyed before freeing chunk " VF_PTR
+        , arena, c);
+
     ThreadData * owner = arena->Owner;
 
     if (VALLOC_LIKELY(owner == &TD))
@@ -559,6 +573,10 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
         FreeThisChunk(arena, c, arena->GetEnd());
 
         // arena->Dump(Platform::ErrorMessage);
+
+        VALLOC_ASSERT_MSG(arena->Size > 0
+            , "Arena " VF_PTR " was destroyed after freeing chunk " VF_PTR
+            , arena, c);
 
         if (arena->IsEmpty())
             DeallocateArena(arena);
@@ -582,6 +600,10 @@ void Valloc::DeallocateMemory(void * ptr, bool crash)
             Chunk * top = arena->FreeList.Pointer;
 
             do c->NextInList = top; while (!arena->FreeList.CAS(top, c));
+
+            VALLOC_ASSERT_MSG(arena->Size > 0
+                , "Arena " VF_PTR " was destroyed after queuing chunk " VF_PTR
+                , arena, c);
         }
         else
         {
@@ -850,13 +872,13 @@ void Valloc::CollectMyGarbage()
         switch (res)
         {
         case NoGarbage:
-            Platform::ErrorMessage("No garbage in " VF_PTR " of " VF_PTR, arena, &TD);
+            // Platform::ErrorMessage("No garbage in " VF_PTR " of " VF_PTR, arena, &TD);
             break;
         case CollectedAll:
-            Platform::ErrorMessage("Collected all from " VF_PTR " of " VF_PTR, arena, &TD);
+            // Platform::ErrorMessage("Collected all from " VF_PTR " of " VF_PTR, arena, &TD);
             break;
         case TargetReached:
-            Platform::ErrorMessage("WTF? - " VF_PTR " of " VF_PTR, arena, &TD);
+            // Platform::ErrorMessage("WTF? - " VF_PTR " of " VF_PTR, arena, &TD);
             break;
         }
 
@@ -864,5 +886,27 @@ void Valloc::CollectMyGarbage()
 
         if (arena->IsEmpty())
             DeallocateArena(arena);
+    } while ((arena = next) != nullptr);
+}
+
+/**************************
+    Valloc::DumpMyState    >----------------------------------------------------
+**************************/
+
+void Valloc::DumpMyState()
+{
+    Arena * arena, * next;
+
+    if (VALLOC_UNLIKELY((arena = TD.FirstArena) == nullptr))
+        return;
+
+    do
+    {
+        VALLOC_ASSERT_MSG(reinterpret_cast<uintptr_t>(arena) % Platform::PageSize == 0
+            , "Misaligned arena..? " VF_PTR, arena);
+
+        arena->Dump(Platform::ErrorMessage);
+
+        next = arena->Next;
     } while ((arena = next) != nullptr);
 }

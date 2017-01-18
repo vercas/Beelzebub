@@ -49,4 +49,5 @@ namespace Valloc
     void DeallocateMemory(void * ptr, bool crash = true);
 
     void CollectMyGarbage();
+    void DumpMyState();
 }
