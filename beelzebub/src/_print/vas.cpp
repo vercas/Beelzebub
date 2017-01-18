@@ -38,6 +38,7 @@
 */
 
 #include "memory/vas.hpp"
+#include "memory/kernel.vas.hpp"
 #include <beel/interrupt.state.hpp>
 
 #include <debug.hpp>
@@ -85,5 +86,11 @@ namespace Beelzebub { namespace Terminals
         }
 
         return term;
+    }
+
+    template<>
+    TerminalBase & operator << <KernelVas *>(TerminalBase & term, KernelVas * const vas)
+    {
+        return term << static_cast<Vas *>(vas);
     }
 }}

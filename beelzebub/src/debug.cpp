@@ -38,8 +38,13 @@
 */
 
 #include <debug.hpp>
+#include "memory/vmm.hpp"
 #include "cores.hpp"
 #include <beel/interrupt.state.hpp>
+
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+#include <valloc/interface.hpp>
+#endif
 
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;
@@ -47,11 +52,22 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
+static SmpLock DataDumpLock;
+
 static __cold void Killer(void * cookie)
 {
     (void)cookie;
 
     DEBUG_TERM_ << "Core " << Cpu::GetData()->Index << " was ordered to catch fire." << EndLine;
+
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+    withLock (DataDumpLock)
+    {
+        DEBUG_TERM << "-------------------- vAlloc on core " << Cpu::GetData()->Index << " --------------------" << EndLine;
+
+        Valloc::DumpMyState();
+    }
+#endif
 
     //  Allow the CPU to rest. Interrupts are already disabled.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
@@ -70,6 +86,21 @@ static __cold __noreturn void Die()
         mail.Post(false);
     }
 #endif
+
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+    withLock (DataDumpLock)
+    {
+        DEBUG_TERM << "-------------------- vAlloc on core " << Cpu::GetData()->Index << " --------------------" << EndLine;
+        
+        Valloc::DumpMyState();
+    }
+#endif
+
+    withLock (DataDumpLock)
+    {
+        DEBUG_TERM   << "-------------------- KVAS --------------------" << EndLine
+                     << &(Memory::Vmm::KVas);
+    }
 
     //  Allow the CPU to rest.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
