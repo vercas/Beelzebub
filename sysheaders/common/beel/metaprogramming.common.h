@@ -174,6 +174,7 @@
         #define __noinline         __attribute__((__noinline__))
         #define __noclone          __attribute__((__noclone__))
         #define __solid            __attribute__((__noinline__, __noclone__))
+        #define __artificial       __forceinline __attribute__((__artificial__))
 
         #define __const            __attribute__((__const__))
         #define __cold             __attribute__((__cold__))
