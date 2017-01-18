@@ -186,13 +186,13 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
                 //  It's all CACA! It shouldn't be read, it should be written to using
                 //  a syscall.
         }
-        else
-        {
-            ASSERTX(0 != (reg->Flags & MemoryFlags::Writable)
-                , "Kernel should not request read-only pages allocated on demand!")XEND;
+        // else
+        // {
+        //     ASSERTX(0 != (reg->Flags & MemoryFlags::Writable)
+        //         , "Kernel should not request read-only pages allocated on demand!")XEND;
 
-            memset(reinterpret_cast<void *>(vaddr_algn), 0, PageSize);
-        }
+        //     memset(reinterpret_cast<void *>(vaddr_algn), 0, PageSize);
+        // }
     }
 
     return HandleResult::Okay;
