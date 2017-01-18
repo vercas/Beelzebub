@@ -37,8 +37,8 @@
     thorough explanation regarding other files.
 */
 
-#include <system/interrupts.hpp>
-#include <system/cpu.hpp>
+#include "system/interrupts.hpp"
+#include "system/cpu.hpp"
 
 #include <debug.hpp>
 
