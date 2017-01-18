@@ -40,6 +40,7 @@
 #if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
 
 #include "tests/malloc.hpp"
+#include "memory/vmm.hpp"
 #include "cores.hpp"
 #include "kernel.hpp"
 #include <new>
@@ -74,7 +75,7 @@ struct TestStructure
     // uint8_t Padding[(2 << 20) - 4 * 64];
 };
 
-static constexpr size_t const RandomIterations = 100'000;
+static constexpr size_t const RandomIterations = 1'000'000;
 static constexpr size_t const CacheSize = 2048;
 static Atomic<TestStructure *> Cache[CacheSize];
 static constexpr size_t const SyncerCount = 10;
@@ -88,6 +89,7 @@ void TestMalloc(bool const bsp)
     if (bsp) Scheduling = false;
 
     size_t coreIndex = Cpu::GetData()->Index;
+    TestStructure * dummy = nullptr;
 
     auto getPtr = []()
     {
@@ -104,6 +106,52 @@ void TestMalloc(bool const bsp)
         return testptr;
     };
 
+    SYNC;
+
+    if (bsp)
+    {
+        MSG_("Free pattern.%n");
+
+        dummy = getPtr();
+
+        TestStructure * ptrs[13];
+
+        for (size_t i = 0; i < 13; ++i)
+            ptrs[i] = getPtr();
+
+        delete ptrs[1];
+        //  Should be surrounded by busy chunks.
+
+        delete ptrs[3];
+        delete ptrs[4];
+        //  Next chunks is free.
+
+        delete ptrs[7];
+        delete ptrs[6];
+        //  Previous chunk is free.
+
+        delete ptrs[9];
+        delete ptrs[11];
+        delete ptrs[10];
+        //  Surrounding chunks are free.
+
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+        Valloc::DumpMyState();
+#endif
+
+        delete ptrs[0];
+        delete ptrs[2];
+        delete ptrs[5];
+        delete ptrs[8];
+        delete ptrs[12];
+
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+        Valloc::DumpMyState();
+#endif
+    }
+
+    SYNC;
+
     if (bsp) MSG_("Filling array.%n");
 
     SYNC;
@@ -112,9 +160,12 @@ void TestMalloc(bool const bsp)
 
     SYNC;
 
+    if (!bsp)
+        dummy = getPtr();
+
     perfStart = CpuInstructions::Rdtsc();
 
-    TestStructure * cur = getPtr(), * dummy = getPtr();
+    TestStructure * cur = getPtr();
 
     for (size_t i = 0; i < CacheSize; ++i)
     {
@@ -420,7 +471,12 @@ void TestMalloc(bool const bsp)
     SYNC;
 #endif
 
-    if (bsp) Scheduling = true;
+    if (bsp)
+    {
+        DEBUG_TERM_ << &(Memory::Vmm::KVas);
+
+        Scheduling = true;
+    }
 }
 
 #endif

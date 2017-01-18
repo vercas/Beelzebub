@@ -101,18 +101,6 @@ void kmain_bsp()
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
 void kmain_ap()
 {
-    Interrupts::Register.Activate();
-    //  Very important for detecting errors ASAP.
-
-    Vmm::Switch(nullptr, &BootstrapProcess);
-    //  Perfectly valid solution. Just to make sure.
-
-    ++BootstrapProcess.ActiveCoreCount;
-    //  Leave the process in a valid state.
-
-    Cores::Register();
-    //  Register the core with the core manager.
-
     return Beelzebub::Secondary();
 }
 #endif
@@ -448,6 +436,9 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
     //     , module->address
     //     , module->length, size);
 
+    ASSERTX(!PmmArc::MainAllocator->ContainsRange(module->address, module->length))
+        (module->address)(module->length)XEND;
+
     vaddr_t vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(&BootstrapProcess
@@ -509,145 +500,145 @@ Handle InitializeModules()
 
 #ifdef __BEELZEBUB__TEST_MT
 
-Thread tTa1;
-Thread tTa2;
-Thread tTa3;
+// Thread tTa1;
+// Thread tTa2;
+// Thread tTa3;
 
-Thread tTb1;
-Thread tTb2;
-Thread tTb3;
+// Thread tTb1;
+// Thread tTb2;
+// Thread tTb3;
 
-Process tPb;
+// Process tPb;
 
-__hot void * TestThreadEntryPoint(void * const arg)
-{
-    (void)arg;
+// __hot void * TestThreadEntryPoint(void * const arg)
+// {
+//     (void)arg;
 
-    char * const myChars = (char *)(uintptr_t)0x321000ULL;
+//     char * const myChars = (char *)(uintptr_t)0x321000ULL;
 
-    while (true)
-    {
-        Thread * activeThread = Cpu::GetThread();
-        char volatile specialChar = *myChars;
+//     while (true)
+//     {
+//         Thread * activeThread = Cpu::GetThread();
+//         char volatile specialChar = *myChars;
 
-        MSG_("Printing from thread %Xp! (%c)%n", activeThread, specialChar);
+//         MSG_("Printing from thread %Xp! (%c)%n", activeThread, specialChar);
 
-        while (true) CpuInstructions::Halt();
-    }
-}
+//         while (true) CpuInstructions::Halt();
+//     }
+// }
 
-__startup void InitializeTestThread(Thread * const t, Process * const p)
-{
-    new (t) Thread(p);
+// __startup void InitializeTestThread(Thread * const t, Process * const p)
+// {
+//     new (t) Thread(p);
 
-    Handle res;
+//     Handle res;
 
-    uintptr_t stackVaddr = nullvaddr;
+//     uintptr_t stackVaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
-        , 3 * PageSize
-        , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::ThreadStack
-        , stackVaddr);
+//     res = Vmm::AllocatePages(CpuDataSetUp ? Cpu::GetProcess() : &BootstrapProcess
+//         , 3 * PageSize
+//         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
+//         , MemoryFlags::Global | MemoryFlags::Writable
+//         , MemoryContent::ThreadStack
+//         , stackVaddr);
 
-    ASSERT(res.IsOkayResult()
-        , "Failed to allocate stack for test thread: %H."
-        , res);
+//     ASSERT(res.IsOkayResult()
+//         , "Failed to allocate stack for test thread: %H."
+//         , res);
 
-    t->KernelStackTop = stackVaddr + 3 * PageSize;
-    t->KernelStackBottom = stackVaddr;
+//     t->KernelStackTop = stackVaddr + 3 * PageSize;
+//     t->KernelStackBottom = stackVaddr;
 
-    t->EntryPoint = &TestThreadEntryPoint;
+//     t->EntryPoint = &TestThreadEntryPoint;
 
-    InitializeThreadState(t);
-    //  This sets up the thread so it goes directly to the entry point when switched to.
-}
+//     InitializeThreadState(t);
+//     //  This sets up the thread so it goes directly to the entry point when switched to.
+// }
 
-__startup char * AllocateTestPage(Process * const p)
-{
-    Handle res;
-    //  Intermediate results.
+// __startup char * AllocateTestPage(Process * const p)
+// {
+//     Handle res;
+//     //  Intermediate results.
 
-    vaddr_t const vaddr1 = 0x321000;
-    vaddr_t vaddr2 = nullvaddr;
-    paddr_t const paddr = Pmm::AllocateFrame();
-    //  Test page.
+//     vaddr_t const vaddr1 = 0x321000;
+//     vaddr_t vaddr2 = nullvaddr;
+//     paddr_t const paddr = Pmm::AllocateFrame();
+//     //  Test page.
 
-    ASSERT(paddr != nullpaddr
-        , "Unable to allocate a physical page for test page of process %Xp!"
-        , p);
+//     ASSERT(paddr != nullpaddr
+//         , "Unable to allocate a physical page for test page of process %Xp!"
+//         , p);
 
-    res = Vmm::AllocatePages(&BootstrapProcess
-        , 1 * PageSize
-        , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::Generic
-        , vaddr2);
+//     res = Vmm::AllocatePages(&BootstrapProcess
+//         , 1 * PageSize
+//         , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
+//         , MemoryFlags::Global | MemoryFlags::Writable
+//         , MemoryContent::Generic
+//         , vaddr2);
 
-    ASSERT(res.IsOkayResult()
-        , "Failed to reserve test page: %H."
-        , res);
+//     ASSERT(res.IsOkayResult()
+//         , "Failed to reserve test page: %H."
+//         , res);
 
-    res = Vmm::MapPage(p, vaddr1, paddr, MemoryFlags::Writable);
+//     res = Vmm::MapPage(p, vaddr1, paddr, MemoryFlags::Writable);
 
-    ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
-        , vaddr1, paddr
-        , res);
+//     ASSERT(res.IsOkayResult()
+//         , "Failed to map page at %Xp (%XP) as test page in owning process: %H."
+//         , vaddr1, paddr
+//         , res);
 
-    res = Vmm::MapPage(&BootstrapProcess, vaddr2, paddr
-        , MemoryFlags::Global | MemoryFlags::Writable);
+//     res = Vmm::MapPage(&BootstrapProcess, vaddr2, paddr
+//         , MemoryFlags::Global | MemoryFlags::Writable);
 
-    ASSERT(res.IsOkayResult()
-        , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
-        , vaddr2, paddr
-        , res);
+//     ASSERT(res.IsOkayResult()
+//         , "Failed to map page at %Xp (%XP) as test page with boostrap memory manager: %H."
+//         , vaddr2, paddr
+//         , res);
 
-    return (char *)(uintptr_t)vaddr2;
-}
+//     return (char *)(uintptr_t)vaddr2;
+// }
 
 void StartMultitaskingTest()
 {
-    new (&tPb) Process();
-    //  Initialize a new process for thread series B.
+    // new (&tPb) Process();
+    // //  Initialize a new process for thread series B.
 
-    Vmm::Initialize(&tPb);
+    // Vmm::Initialize(&tPb);
 
-    char * tCa = AllocateTestPage(&BootstrapProcess);
-    //  Allocate and map a page for process B.
+    // char * tCa = AllocateTestPage(&BootstrapProcess);
+    // //  Allocate and map a page for process B.
 
-    char * tCb = AllocateTestPage(&tPb);
-    //  Allocate and map a page for process B.
+    // char * tCb = AllocateTestPage(&tPb);
+    // //  Allocate and map a page for process B.
 
-    *tCa = 'A';
-    *tCb = 'B';
-    //  Assign different values.
+    // *tCa = 'A';
+    // *tCb = 'B';
+    // //  Assign different values.
 
-    InitializeTestThread(&tTa1, &BootstrapProcess);
-    InitializeTestThread(&tTa2, &BootstrapProcess);
-    InitializeTestThread(&tTa3, &BootstrapProcess);
-    //  Initialize thread series A under the bootstrap process.
+    // InitializeTestThread(&tTa1, &BootstrapProcess);
+    // InitializeTestThread(&tTa2, &BootstrapProcess);
+    // InitializeTestThread(&tTa3, &BootstrapProcess);
+    // //  Initialize thread series A under the bootstrap process.
 
-    InitializeTestThread(&tTb1, &tPb);
-    InitializeTestThread(&tTb2, &tPb);
-    InitializeTestThread(&tTb3, &tPb);
-    //  Initialize thread series B under their own process.
+    // InitializeTestThread(&tTb1, &tPb);
+    // InitializeTestThread(&tTb2, &tPb);
+    // InitializeTestThread(&tTb3, &tPb);
+    // //  Initialize thread series B under their own process.
 
-    withInterrupts (false)
-    {
-        // BootstrapThread.IntroduceNext(&tTb3);
-        BootstrapThread.IntroduceNext(&tTb2);
-        //  Threads B2 and B3 are at the end of the cycle.
+    // withInterrupts (false)
+    // {
+    //     // BootstrapThread.IntroduceNext(&tTb3);
+    //     BootstrapThread.IntroduceNext(&tTb2);
+    //     //  Threads B2 and B3 are at the end of the cycle.
 
-        BootstrapThread.IntroduceNext(&tTa3);
-        BootstrapThread.IntroduceNext(&tTb1);
-        //  Threads B1 and A3 are intertwined.
+    //     BootstrapThread.IntroduceNext(&tTa3);
+    //     BootstrapThread.IntroduceNext(&tTb1);
+    //     //  Threads B1 and A3 are intertwined.
 
-        BootstrapThread.IntroduceNext(&tTa2);
-        BootstrapThread.IntroduceNext(&tTa1);
-        //  Threads A1 and A2 are at the start, right after the bootstrap thread.
-    }
+    //     BootstrapThread.IntroduceNext(&tTa2);
+    //     BootstrapThread.IntroduceNext(&tTa1);
+    //     //  Threads A1 and A2 are at the start, right after the bootstrap thread.
+    // }
 
     #ifdef __BEELZEBUB__TEST_APP
     if (CHECK_TEST(APP))

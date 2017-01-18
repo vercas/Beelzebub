@@ -56,14 +56,15 @@
 #include "execution/extended_states.hpp"
 #include "execution/runtime64.hpp"
 
+#include "system/acpi.hpp"
+#include "system/debug.registers.hpp"
 #include "system/exceptions.hpp"
 #include "system/interrupt_controllers/pic.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
 #include "system/interrupt_controllers/ioapic.hpp"
+#include "system/syscalls.hpp"
 #include "system/timers/pit.hpp"
 #include "system/timers/apic.timer.hpp"
-#include "system/syscalls.hpp"
-#include "system/acpi.hpp"
 
 #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_JEMALLOC
 #include <beel/jemalloc.h>
@@ -78,6 +79,7 @@
 #include "_print/gdt.hpp"
 
 #include "all.tests.hpp"
+#include <beel/sync/barrier.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -93,8 +95,10 @@ using namespace Beelzebub::Utils;
 
 //SmpBarrier InitializationBarrier {};
 
-SmpLock InitializationLock;
-SmpLock TerminalMessageLock;
+static SmpLock InitializationLock;
+static SmpLock TerminalMessageLock;
+
+static Barrier InitBarrier;
 
 /*  System Globals  */
 
@@ -593,92 +597,99 @@ void Beelzebub::Main()
 
     Domain0.Gdt = GdtRegister::Retrieve();
 
-    withLock (InitializationLock)
-    {
-        //  First step is getting a simple terminal running for the most
-        //  basic of output. This should be x86-common.
-        MainTerminal = InitializeTerminalProto();
+    InitializationLock.Acquire();
 
-        MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
+    //  First step is getting a simple terminal running for the most
+    //  basic of output. This should be x86-common.
+    MainTerminal = InitializeTerminalProto();
 
-        Rtc::Read();
-        DEBUG_TERM << "Boot time: " << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
-            << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds << EndLine;
+    MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
 
-        MainParseKernelArguments();
-        MainInitializeInterrupts();
-        MainInitializePhysicalMemory();
-        MainInitializeAcpiTables();
-        MainInitializeVirtualMemory();
-        MainInitializeBootModules();
-        MainInitializeCores();
+    Rtc::Read();
+    DEBUG_TERM << "Boot time: " << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
+        << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds << EndLine;
+
+    MainParseKernelArguments();
+    MainInitializeInterrupts();
+    MainInitializePhysicalMemory();
+    MainInitializeAcpiTables();
+    MainInitializeVirtualMemory();
+    MainInitializeBootModules();
+    MainInitializeCores();
+
+    DebugRegisters::Initialize();
 
 #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_JEMALLOC
-        InitializeJemalloc(true);
+    InitializeJemalloc(true);
 #endif
 
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
-        MainRunUnitTests();
+    MainRunUnitTests();
 #endif
 
-        MainInitializeApic();
-        MainInitializeTimers();
+    MainInitializeApic();
+    MainInitializeTimers();
 
 #ifdef __BEELZEBUB_SETTINGS_SMP
-        MainInitializeMailbox();
+    MainInitializeMailbox();
 #endif
 
-        MainBootstrapThread();
+    MainBootstrapThread();
 
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
-        if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
-            RwSpinlockTestBarrier.Reset(Cores::GetCount());
+    if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
+        RwSpinlockTestBarrier.Reset(Cores::GetCount());
 #endif
 
 #if     defined(__BEELZEBUB__TEST_RW_TICKETLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
-        if (Cores::GetCount() > 1 && CHECK_TEST(RW_TICKETLOCK))
-            RwTicketLockTestBarrier.Reset(Cores::GetCount());
+    if (Cores::GetCount() > 1 && CHECK_TEST(RW_TICKETLOCK))
+        RwTicketLockTestBarrier.Reset(Cores::GetCount());
 #endif
 
 #if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
-        if (CHECK_TEST(MAILBOX))
-            MailboxTestBarrier.Reset(Cores::GetCount());
+    if (CHECK_TEST(MAILBOX))
+        MailboxTestBarrier.Reset(Cores::GetCount());
 #endif
 
 #ifdef __BEELZEBUB__TEST_PMM
-        if (CHECK_TEST(PMM))
-            PmmTestBarrier.Reset(Cores::GetCount());
+    if (CHECK_TEST(PMM))
+        PmmTestBarrier.Reset(Cores::GetCount());
 #endif
 
 #ifdef __BEELZEBUB__TEST_VMM
-        if (CHECK_TEST(VMM))
-            VmmTestBarrier.Reset(Cores::GetCount());
+    if (CHECK_TEST(VMM))
+        VmmTestBarrier.Reset(Cores::GetCount());
 #endif
 
 #ifdef __BEELZEBUB__TEST_OBJA
-        if (CHECK_TEST(OBJA))
-            ObjectAllocatorTestBarrier.Reset(Cores::GetCount());
+    if (CHECK_TEST(OBJA))
+        ObjectAllocatorTestBarrier.Reset(Cores::GetCount());
 #endif
 
 #if defined(__BEELZEBUB__TEST_MALLOC) && !defined(__BEELZEBUB_SETTINGS_KRNDYNALLOC_NONE)
-        if (CHECK_TEST(MALLOC))
-            MallocTestBarrier.Reset(Cores::GetCount());
+    if (CHECK_TEST(MALLOC))
+        MallocTestBarrier.Reset(Cores::GetCount());
 #endif
 
-        MainInitializeExtraCpus();
-        // MainElideLocks();
+    MainInitializeExtraCpus();
+    // MainElideLocks();
 
-        MainInitializeRuntimeLibraries();
+    MainInitializeRuntimeLibraries();
 
-        MainInitializeFpu();
-        MainInitializeSyscalls();
-        MainInitializeKernelModules();
+    MainInitializeFpu();
+    MainInitializeSyscalls();
+    MainInitializeKernelModules();
 
-        MainInitializeMainTerminal();
+    MainInitializeMainTerminal();
 
-        //  Permit other processors to initialize themselves.
-        MainTerminal->WriteLine("--  Initialization complete! --");
-    }
+    //  Permit other processors to initialize themselves.
+    MainTerminal->WriteLine("--  Initialization complete! --");
+    
+    InitBarrier.Reset(Cores::GetCount());
+
+    InitializationLock.Release();
+
+    InitBarrier.Reach();
 
     Scheduling = true;
 
@@ -924,8 +935,29 @@ void Beelzebub::Main()
 
 void Beelzebub::Secondary()
 {
+    InitializationLock.Acquire();
+
+    MSG_("Initializing AP... ");
+
+    Interrupts::Register.Activate();
+    //  Very important for detecting errors ASAP.
+
+    Vmm::Switch(nullptr, &BootstrapProcess);
+    //  Perfectly valid solution. Just to make sure.
+
+    ++BootstrapProcess.ActiveCoreCount;
+    //  Leave the process in a valid state.
+
+    Cores::Register();
+    //  Register the core with the core manager.
+
+    MSG_("#%us.%n", Cpu::GetData()->Index);
+
     Lapic::Initialize();
     //  Quickly get the local APIC initialized.
+
+    DebugRegisters::Initialize();
+    //  Debug registers are always handy.
 
     Syscall::Initialize();
     //  And syscalls.
@@ -934,7 +966,7 @@ void Beelzebub::Secondary()
     Timer::Initialize();
     //  And timers.
 
-    InitializationLock.Spin();
+    // InitializationLock.Spin();
     //  Wait for the system to initialize.
 
     Fpu::InitializeSecondary();
@@ -948,6 +980,10 @@ void Beelzebub::Secondary()
 
     // Watchdog::Initialize();
     // //  Sadly needed.
+
+    InitializationLock.Release();
+
+    InitBarrier.Reach();
 
 #ifdef __BEELZEBUB__TEST_RW_SPINLOCK
     if (CHECK_TEST(RW_SPINLOCK))

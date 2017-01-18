@@ -306,6 +306,8 @@ namespace Valloc
 #endif
     ;
 
+    static_assert(16 == offsetof(struct Arena, Size), "Offset mismatch.");
+
 // #ifdef VALLOC_POINTER_48BIT
 //     static_assert(sizeof(Chunk) == 2 * sizeof(void *), "Struct size mismatch.");
 //     static_assert(sizeof(size_t) == sizeof(uint32_t), "Standard type size mismatch.");
