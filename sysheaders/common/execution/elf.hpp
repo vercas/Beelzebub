@@ -941,27 +941,27 @@ namespace Beelzebub { namespace Execution
         /*  Methods  */
 
     private:
-        ElfValidationResult ValidateParseElf32(SegmentValidatorFunc segval, void * valdata);
-        ElfValidationResult ValidateParseElf64(SegmentValidatorFunc segval, void * valdata);
+        __solid ElfValidationResult ValidateParseElf32(SegmentValidatorFunc segval, void * valdata);
+        __solid ElfValidationResult ValidateParseElf64(SegmentValidatorFunc segval, void * valdata);
 
-        ElfValidationResult ValidateParseDt32(ElfDynamicEntry_32 const * dts);
-        ElfValidationResult ValidateParseDt64(ElfDynamicEntry_64 const * dts);
+        __solid ElfValidationResult ValidateParseDt32(ElfDynamicEntry_32 const * dts);
+        __solid ElfValidationResult ValidateParseDt64(ElfDynamicEntry_64 const * dts);
 
-        Symbol GetSymbol32(uint32_t index) const;
-        Symbol GetSymbol64(uint32_t index) const;
+        __solid Symbol GetSymbol32(uint32_t index) const;
+        __solid Symbol GetSymbol64(uint32_t index) const;
 
     public:
-        ElfValidationResult ValidateAndParse(HeaderValidatorFunc headerval, SegmentValidatorFunc segval, void * valdata);
-        ElfValidationResult Relocate(uintptr_t newAddress);
+        __solid ElfValidationResult ValidateAndParse(HeaderValidatorFunc headerval, SegmentValidatorFunc segval, void * valdata);
+        __solid ElfValidationResult Relocate(uintptr_t newAddress);
 
-        ElfValidationResult LoadAndValidate32(SegmentMapper32Func segmap, SegmentUnmapper32Func segunmap, SymbolResolverFunc symres, void * lddata) const;
-        ElfValidationResult LoadAndValidate64(SegmentMapper64Func segmap, SegmentUnmapper64Func segunmap, SymbolResolverFunc symres, void * lddata) const;
+        __solid ElfValidationResult LoadAndValidate32(SegmentMapper32Func segmap, SegmentUnmapper32Func segunmap, SymbolResolverFunc symres, void * lddata) const;
+        __solid ElfValidationResult LoadAndValidate64(SegmentMapper64Func segmap, SegmentUnmapper64Func segunmap, SymbolResolverFunc symres, void * lddata) const;
 
-        Symbol GetSymbol(uint32_t index) const;
-        Symbol GetSymbol(char const * name) const;
+        __solid Symbol GetSymbol(uint32_t index) const;
+        __solid Symbol GetSymbol(char const * name) const;
 
-        RangeLoadStatus CheckRangeLoaded32(uint32_t rStart, uint32_t rSize, RangeLoadOptions opts = RangeLoadOptions::None) const;
-        RangeLoadStatus CheckRangeLoaded64(uint64_t rStart, uint64_t rSize, RangeLoadOptions opts = RangeLoadOptions::None) const;
+        __solid RangeLoadStatus CheckRangeLoaded32(uint32_t rStart, uint32_t rSize, RangeLoadOptions opts = RangeLoadOptions::None) const;
+        __solid RangeLoadStatus CheckRangeLoaded64(uint64_t rStart, uint64_t rSize, RangeLoadOptions opts = RangeLoadOptions::None) const;
 
         /*  Properties  */
 
