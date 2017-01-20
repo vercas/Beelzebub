@@ -218,6 +218,7 @@ void ManagedSerialPort::Initialize()
     if ((this->Type = FindType(this->BasePort)) == SerialPortType::Disconnected)
         return;
 
+    Io::Out8(this->BasePort + 3, 0x03);    // Just make sure DLAB is clear.
     Io::Out8(this->BasePort + 1, 0x00);    // Disable all interrupts
 
     Io::Out8(this->BasePort + 3, 0x80);    // Enable DLAB (set baud rate divisor)
@@ -228,12 +229,12 @@ void ManagedSerialPort::Initialize()
 
     if (this->Type == SerialPortType::D16750)
     {
-        Io::Out8(this->BasePort + 2, 0xE7);    // Enable FIFO, clear them, with 64-byte FIFO
+        Io::Out8(this->BasePort + 2, 0x27);    // Enable FIFO, clear them, with 64-byte FIFO
 
         this->QueueSize = 64;
     }
     else
-        Io::Out8(this->BasePort + 2, 0xC7);    // Enable FIFO, clear them, with 16-byte FIFO
+        Io::Out8(this->BasePort + 2, 0x07);    // Enable FIFO, clear them, with 16-byte FIFO
 
     Io::Out8(this->BasePort + 4, 0x0B);    // IRQs enabled, RTS/DSR set
     Io::Out8(this->BasePort + 1, 0x0F);    // Enable some interrupts

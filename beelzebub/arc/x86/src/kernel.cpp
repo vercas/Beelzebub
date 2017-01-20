@@ -1105,10 +1105,13 @@ TerminalBase * InitializeTerminalProto()
     new (&COM4) ManagedSerialPort(0x02E8);
     COM4.Initialize();
 
-    //  Initializes the serial terminal.
-    new (&initialSerialTerminal) SerialTerminal(&COM1);
+    if (COM1.Type != SerialPortType::Disconnected)
+    {
+        //  Initializes the serial terminal.
+        new (&initialSerialTerminal) SerialTerminal(&COM1);
 
-    Beelzebub::Debug::DebugTerminal = &initialSerialTerminal;
+        Beelzebub::Debug::DebugTerminal = &initialSerialTerminal;
+    }
 
     auto mbi = (multiboot_info_t *)JG_INFO_ROOT_EX->multiboot_paddr;
 
