@@ -45,6 +45,16 @@
 
 namespace Beelzebub { namespace System
 {
+    enum class SerialPortType
+    {
+        Disconnected,
+        NS8250,
+        NS16450,
+        NS16550,
+        NS16550A,
+        D16750,
+    };
+
     /**
      * Represents a serial port.
      */
@@ -122,6 +132,7 @@ namespace Beelzebub { namespace System
         inline explicit constexpr ManagedSerialPort(const uint16_t basePort) 
             : BasePort( basePort)
             , QueueSize(16)
+            , Type()
             , OutputCount(0)
             , ReadLock()
             , WriteLock()
@@ -169,6 +180,8 @@ namespace Beelzebub { namespace System
 
         uint16_t const BasePort;
         size_t QueueSize;
+
+        SerialPortType Type;
 
     private:
 

@@ -40,6 +40,7 @@
 #include "system/serial_ports.hpp"
 #include "system/io_ports.hpp"
 #include "kernel.hpp"
+#include <beel/terminals/base.hpp>
 #include <math.h>
 
 using namespace Beelzebub;
@@ -183,8 +184,40 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
 
 /*  Construction  */
 
+static SerialPortType FindType(uint16_t const base)
+{
+    Io::Out8(base + 2, 0xE7);
+
+    uint8_t const flags = Io::In8(base + 2);
+
+    if (flags == 0xFF && Io::In8(base + 5) == 0xFF && Io::In8(base + 6) == 0xFF)
+        return SerialPortType::Disconnected;
+    //  Best I can do.
+    
+    if (0 != (flags & 0x40))
+        if (0 != (flags & 0x80))
+            if (0 != (flags & 0x20))
+                return SerialPortType::D16750;
+            else
+                return SerialPortType::NS16550A;
+        else
+            return SerialPortType::NS16550;
+    else
+    {
+        Io::Out8(base + 7, 0x42);
+
+        if (Io::In8(base + 7) == 0x42)
+            return SerialPortType::NS16450;
+        else
+            return SerialPortType::NS8250;
+    }
+}
+
 void ManagedSerialPort::Initialize()
 {
+    if ((this->Type = FindType(this->BasePort)) == SerialPortType::Disconnected)
+        return;
+
     Io::Out8(this->BasePort + 1, 0x00);    // Disable all interrupts
 
     Io::Out8(this->BasePort + 3, 0x80);    // Enable DLAB (set baud rate divisor)
@@ -193,7 +226,14 @@ void ManagedSerialPort::Initialize()
 
     Io::Out8(this->BasePort + 3, 0x03);    // 8 bits, no parity, one stop bit
 
-    Io::Out8(this->BasePort + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+    if (this->Type == SerialPortType::D16750)
+    {
+        Io::Out8(this->BasePort + 2, 0xE7);    // Enable FIFO, clear them, with 64-byte FIFO
+
+        this->QueueSize = 64;
+    }
+    else
+        Io::Out8(this->BasePort + 2, 0xC7);    // Enable FIFO, clear them, with 16-byte FIFO
 
     Io::Out8(this->BasePort + 4, 0x0B);    // IRQs enabled, RTS/DSR set
     Io::Out8(this->BasePort + 1, 0x0F);    // Enable some interrupts
@@ -356,3 +396,39 @@ void ManagedSerialPort::WriteBytes(void const * const src, size_t const cnt)
             this->OutputCount += j;
         }
 }
+
+/************************
+    TERMINAL PRINTING
+************************/
+
+namespace Beelzebub { namespace Terminals
+{
+    template<>
+    TerminalBase & operator << <ManagedSerialPort const *>(TerminalBase & term, ManagedSerialPort const * const sp)
+    {
+        term.WriteFormat("[Serial Port %X2 (%s) | Type: %s; IIR %X1; LSR %X1; MSR %X1]"
+            , sp->BasePort
+            , sp->BasePort == 0x03F8 ? "COM1"
+            : sp->BasePort == 0x02F8 ? "COM2"
+            : sp->BasePort == 0x03E8 ? "COM3"
+            : sp->BasePort == 0x02E8 ? "COM4"
+            : "UNKNOWN"
+            , sp->Type == SerialPortType::Disconnected ? "Disconnected"
+            : sp->Type == SerialPortType::D16750 ? "D16750"
+            : sp->Type == SerialPortType::NS16550A ? "NS16550A"
+            : sp->Type == SerialPortType::NS16550 ? "NS16550"
+            : sp->Type == SerialPortType::NS16450 ? "NS16450"
+            : "NS8250"
+            , Io::In8(sp->BasePort + 2)
+            , Io::In8(sp->BasePort + 5)
+            , Io::In8(sp->BasePort + 6));
+
+        return term;
+    }
+
+    template<>
+    TerminalBase & operator << <ManagedSerialPort *>(TerminalBase & term, ManagedSerialPort * const reg)
+    {
+        return term << const_cast<ManagedSerialPort const *>(reg);
+    }
+}}

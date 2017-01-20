@@ -62,6 +62,7 @@
 #include "system/interrupt_controllers/pic.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
 #include "system/interrupt_controllers/ioapic.hpp"
+#include "system/io_ports.hpp"
 #include "system/syscalls.hpp"
 #include "system/timers/pit.hpp"
 #include "system/timers/apic.timer.hpp"
@@ -1092,13 +1093,17 @@ TerminalBase * InitializeTerminalProto()
 {
     //  TODO: Properly retrieve these addresses.
 
-    //  Initializes COM1.
-    // COM1 = ManagedSerialPort(0x3F8);
-    new (&COM1) ManagedSerialPort(0x3F8);
+    new (&COM1) ManagedSerialPort(0x03F8);
     COM1.Initialize();
 
-    new (&COM2) ManagedSerialPort(0x2F8);
+    new (&COM2) ManagedSerialPort(0x02F8);
     COM2.Initialize();
+
+    new (&COM3) ManagedSerialPort(0x03E8);
+    COM3.Initialize();
+
+    new (&COM4) ManagedSerialPort(0x02E8);
+    COM4.Initialize();
 
     //  Initializes the serial terminal.
     new (&initialSerialTerminal) SerialTerminal(&COM1);
@@ -1112,6 +1117,8 @@ TerminalBase * InitializeTerminalProto()
 #ifdef __BEELZEBUB__CONF_RELEASE
     Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
 #endif
+
+    initialVbeTerminal << &COM1 << EndLine << &COM2 << EndLine << &COM3 << EndLine << &COM4 << EndLine;
 
     // msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
     //     , (uintptr_t)mbi->framebuffer_addr
