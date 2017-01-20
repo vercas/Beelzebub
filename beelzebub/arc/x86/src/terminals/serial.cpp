@@ -119,3 +119,11 @@ TerminalWriteResult SerialTerminal::WriteLine(const char * const str, size_t len
 
     return {HandleResult::Okay, (uint32_t)n, InvalidCoordinates};
 }
+
+Handle SerialTerminal::Flush()
+{
+    while (!this->Port->CanWrite())
+        DO_NOTHING();
+
+    return HandleResult::Okay;
+}

@@ -215,7 +215,7 @@ bool ManagedSerialPort::CanWrite()
     {
         //  Bit 5 of the line status register.
 
-        this->OutputCount.Store(0);
+        this->OutputCount = 0;
 
         return true;
     }
@@ -239,7 +239,7 @@ void ManagedSerialPort::Write(uint8_t const val, bool const wait)
     withLock (this->WriteLock)
     {
         if (wait)
-            while (this->OutputCount.Load() >= SerialPort::QueueSize
+            while (this->OutputCount >= this->QueueSize
                 && !this->CanWrite()) ;
         //  If the output count exceeds the queue size, I check whether I
         //  can write or not. If I can, the count is reset anyway.
@@ -275,10 +275,10 @@ size_t ManagedSerialPort::WriteNtString(char const * const str, size_t len)
     withLock (this->WriteLock)
         while (str[i] != 0 && likely(i < len))
         {
-            while (this->OutputCount.Load() >= SerialPort::QueueSize
+            while (this->OutputCount >= this->QueueSize
                 && !this->CanWrite()) ;
 
-            size_t const left = Minimum(len - i, SerialPort::QueueSize - this->OutputCount.Load());
+            size_t const left = Minimum(len - i, this->QueueSize - this->OutputCount);
             char const * const tmp = str + i;
 
             char c = tmp[j = 0];
@@ -311,7 +311,7 @@ size_t ManagedSerialPort::WriteUtf8Char(char const * str)
     withLock (this->WriteLock)
         if ((*str & 0x80) == 0)
         {
-            while (this->OutputCount.Load() >= SerialPort::QueueSize
+            while (this->OutputCount >= this->QueueSize
                 && !this->CanWrite()) ;
 
             Io::Out8(this->BasePort, *str);
@@ -326,7 +326,7 @@ size_t ManagedSerialPort::WriteUtf8Char(char const * str)
 
             while ((str[++i] & 0xC0) == 0x80) { }
 
-            while (this->OutputCount.Load() > SerialPort::QueueSize - i
+            while (this->OutputCount > this->QueueSize - i
                 && !this->CanWrite()) ;
 
             Io::Out8n(this->BasePort, str, i);
@@ -347,10 +347,10 @@ void ManagedSerialPort::WriteBytes(void const * const src, size_t const cnt)
     withLock (this->WriteLock)
         for (size_t i = 0, j; i < cnt; i += j)
         {
-            while (this->OutputCount.Load() >= SerialPort::QueueSize
+            while (this->OutputCount >= this->QueueSize
                 && !this->CanWrite()) { }
 
-            j = Minimum(SerialPort::QueueSize - this->OutputCount.Load(), cnt - i);
+            j = Minimum(this->QueueSize - this->OutputCount, cnt - i);
 
             Io::Out8n(p, (uint8_t const *)src + i, j);
             this->OutputCount += j;

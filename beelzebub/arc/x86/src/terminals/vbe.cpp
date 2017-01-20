@@ -182,6 +182,11 @@ skip_bitmap:
     return {HandleResult::Okay, i, {cx, cy}};
 }
 
+Handle VbeTerminal::Flush()
+{
+    return HandleResult::Okay;
+}
+
 /*  Positioning  */
 
 TerminalCoordinates VbeTerminal::GetSize()

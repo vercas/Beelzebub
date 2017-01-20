@@ -61,6 +61,8 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult Write(char const * const str, size_t len) override;
         virtual TerminalWriteResult WriteLine(char const * const str, size_t len) override;
 
+        virtual Handle Flush() override;
+
     private:
 
         System::ManagedSerialPort * Port;

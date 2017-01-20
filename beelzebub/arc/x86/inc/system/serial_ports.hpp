@@ -113,12 +113,6 @@ namespace Beelzebub { namespace System
     class ManagedSerialPort
     {
     public:
-
-        /*  Static fields  */
-
-        //  Size of the queue of the port.
-        static size_t const QueueSize = 16;
-
         /*  Static methods  */
 
         static void IrqHandler(INTERRUPT_HANDLER_ARGS);
@@ -126,7 +120,8 @@ namespace Beelzebub { namespace System
         /*  Construction  */
 
         inline explicit constexpr ManagedSerialPort(const uint16_t basePort) 
-            : BasePort(basePort)
+            : BasePort( basePort)
+            , QueueSize(16)
             , OutputCount(0)
             , ReadLock()
             , WriteLock()
@@ -173,10 +168,11 @@ namespace Beelzebub { namespace System
         /*  Fields  */
 
         uint16_t const BasePort;
+        size_t QueueSize;
 
     private:
 
-        Synchronization::Atomic<uint16_t> OutputCount;
+        uint16_t OutputCount;
 
         Synchronization::SmpLockUni ReadLock;
         Synchronization::SmpLockUni WriteLock;

@@ -65,6 +65,8 @@ namespace Beelzebub { namespace Terminals
 
         virtual TerminalWriteResult WriteUtf8At(char const * const c, int16_t const x, int16_t const y) override;
 
+        virtual Handle Flush() override;
+
         /*  Positioning  */
 
         virtual TerminalCoordinates GetSize() override;

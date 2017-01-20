@@ -145,7 +145,9 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult Write(char const * const str, size_t len = SIZE_MAX);
         virtual TerminalWriteResult Write(char const * const fmt, va_list args);
         virtual TerminalWriteResult WriteLine(char const * const str, size_t len = SIZE_MAX);
-        __noinline __noclone __min_float TerminalWriteResult WriteFormat(char const * const fmt, ...);
+        __solid __min_float TerminalWriteResult WriteFormat(char const * const fmt, ...);
+
+        virtual Handle Flush();
 
         /*  Positioning  */
 

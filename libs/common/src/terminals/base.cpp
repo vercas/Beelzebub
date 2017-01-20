@@ -569,6 +569,11 @@ TerminalWriteResult TerminalBase::WriteFormat(char const * const fmt, ...)
     return res;
 }
 
+Handle TerminalBase::Flush()
+{
+    return HandleResult::NotImplemented;
+}
+
 /*  Positioning  */
 
 Handle TerminalBase::SetCursorPosition(int16_t const x, int16_t const y)
