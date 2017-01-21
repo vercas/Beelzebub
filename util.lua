@@ -66,6 +66,7 @@ local projects = {
     testmod = ".vmake/amd64.debug/kmods/test/test.kmod",
     libruntime = ".vmake/amd64.debug/libs/runtime/libbeelzebub.amd64.so",
     libkmod = ".vmake/amd64.debug/libs/kmod/libbeelzebub.kmod.so",
+    jegudiel = ".vmake/amd64.debug/jegudiel/jegudiel.bin",
 }
 
 if MODE == MODE_TARGET_PROJECT then
