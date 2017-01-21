@@ -120,6 +120,7 @@ Architecture "x86" {
             "-ffreestanding", "-nostdlib", "-static-libgcc",
             "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
             "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
+            "-mno-bmi", "-mno-bmi2",
         },
 
         ISO = true,
@@ -866,6 +867,9 @@ Project "Beelzebub" {
                     "-m64", "-ffreestanding",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-mcmodel=kernel", "-static-libgcc",
+                    "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
+                    "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
+                    "-mno-bmi", "-mno-bmi2",
                     "-O0",
                 } + _.Opts_GCC_Precompiler + _.Opts_Includes
                 + specialOptions
