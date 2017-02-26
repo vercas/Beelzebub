@@ -44,13 +44,13 @@
 namespace Beelzebub { namespace Utils
 {
     template<typename TThis, typename TOther>
-    __public comp_t Compare(TThis const & a, TOther const & b);
+    __shared_cpp_inline comp_t Compare(TThis const & a, TOther const & b);
     template<typename TThis, typename TOther>
-    __public comp_t Compare(TThis const & a, TOther const && b);
+    __shared_cpp_inline comp_t Compare(TThis const & a, TOther const && b);
     template<typename TThis, typename TOther>
-    __public comp_t Compare(TThis const && a, TOther const & b);
+    __shared_cpp_inline comp_t Compare(TThis const && a, TOther const & b);
     template<typename TThis, typename TOther>
-    __public comp_t Compare(TThis const && a, TOther const && b);
+    __shared_cpp_inline comp_t Compare(TThis const && a, TOther const && b);
 
     #define COMP_IMPL_3(TThis, TOther, impl) \
         template<> \
@@ -69,6 +69,10 @@ namespace Beelzebub { namespace Utils
     #define COMP_IMPL_2(TThis, impl) COMP_IMPL_3(TThis, TThis, impl)
 
     #define COMP_IMPL(arg1, ...) GET_MACRO2(__VA_ARGS__, COMP_IMPL_3, COMP_IMPL_2)(arg1, __VA_ARGS__)
+
+    #define REVERSE_COMPARISON(a, b) return -Compare(b, a);
+
+    #define COMP_IMPL_REVERSE(TThis, TOther) COMP_IMPL_3(TThis, TOther, REVERSE_COMPARISON)
 
     #define COMP_FORWARD_ONE_WAY(TThis, TOther, TUnderThis, TUnderOther, propThis, propOther) \
         template<> \

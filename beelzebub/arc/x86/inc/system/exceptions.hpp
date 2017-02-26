@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <system/interrupts.hpp>
+#include "system/interrupts.hpp"
 
 namespace Beelzebub { namespace System
 {

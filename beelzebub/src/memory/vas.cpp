@@ -37,10 +37,16 @@
     thorough explanation regarding other files.
 */
 
-#include <memory/vas.hpp>
+// #define DEBUG_MEMORY_CORRUPTION
+
+#include "memory/vas.hpp"
 #include <beel/interrupt.state.hpp>
 
 #include <debug.hpp>
+
+#ifdef DEBUG_MEMORY_CORRUPTION
+#include "memory/vmm.hpp"
+#endif
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
@@ -275,10 +281,14 @@ struct OperationParameters
 
                         reg->Range.End = newEnd;
 
-                        reg->Next = next;
-                        if (next != nullptr)
+                        if ((reg->Next = next) != nullptr)
                             next->Prev = reg;
                         //  Patch linkage.
+
+#ifdef DEBUG_MEMORY_CORRUPTION
+                        ASSERTX(IS_CANONICAL(reg->Prev))("ptr", (void *)reg->Prev)XEND;
+                        ASSERTX(IS_CANONICAL(reg->Next))("ptr", (void *)reg->Next)XEND;
+#endif
                     }
                     else
                     {
@@ -298,11 +308,15 @@ struct OperationParameters
 
                             reg->Range.Start = newStart;
 
-                            reg->Prev = prev;
-                            if (prev != nullptr)
+                            if ((reg->Prev = prev) != nullptr)
                                 prev->Next = reg;
                             else
                                 vas->First = reg;
+
+#ifdef DEBUG_MEMORY_CORRUPTION
+                            ASSERTX(IS_CANONICAL(reg->Prev))("ptr", (void *)reg->Prev)XEND;
+                            ASSERTX(IS_CANONICAL(reg->Next))("ptr", (void *)reg->Next)XEND;
+#endif
                         }
                         else
                         {
@@ -312,6 +326,11 @@ struct OperationParameters
                             this->Repurpose(reg);
 
                             //  And linkage stays intact.
+
+#ifdef DEBUG_MEMORY_CORRUPTION
+                            ASSERTX(IS_CANONICAL(reg->Prev))("ptr", (void *)reg->Prev)XEND;
+                            ASSERTX(IS_CANONICAL(reg->Next))("ptr", (void *)reg->Next)XEND;
+#endif
                         }
                     }
                 }
@@ -334,6 +353,11 @@ struct OperationParameters
                         reg->Prev->Range.End = endAddr;
 
                         //  Linkage is intact.
+
+#ifdef DEBUG_MEMORY_CORRUPTION
+                        ASSERTX(IS_CANONICAL(reg->Prev))("ptr", (void *)reg->Prev)XEND;
+                        ASSERTX(IS_CANONICAL(reg->Next))("ptr", (void *)reg->Next)XEND;
+#endif
                     }
                     else
                     {
@@ -344,16 +368,20 @@ struct OperationParameters
 
                         if unlikely(!res.IsOkayResult()) goto end;
 
-                        newReg->Prev = reg->Prev;
                         newReg->Next = reg;
 
-                        if (reg->Prev != nullptr)
+                        if likely((newReg->Prev = reg->Prev) != nullptr)
                             reg->Prev->Next = newReg;
                         else
                             vas->First = newReg;
 
                         reg->Prev = newReg;
                         //  Patch linkage.
+
+#ifdef DEBUG_MEMORY_CORRUPTION
+                        ASSERTX(IS_CANONICAL(reg->Prev))("ptr", (void *)reg->Prev)XEND;
+                        ASSERTX(IS_CANONICAL(reg->Next))("ptr", (void *)reg->Next)XEND;
+#endif
                     }
                 }
             }
@@ -378,6 +406,11 @@ struct OperationParameters
                         reg->Next->Range.Start = vaddr;
 
                         //  Linkage is intact.
+
+#ifdef DEBUG_MEMORY_CORRUPTION
+                        ASSERTX(IS_CANONICAL(reg->Prev))("ptr", (void *)reg->Prev)XEND;
+                        ASSERTX(IS_CANONICAL(reg->Next))("ptr", (void *)reg->Next)XEND;
+#endif
                     }
                     else
                     {
@@ -389,13 +422,20 @@ struct OperationParameters
                         if unlikely(!res.IsOkayResult()) goto end;
 
                         newReg->Prev = reg;
-                        newReg->Next = reg->Next;
 
-                        if (reg->Next != nullptr)
+                        if ((newReg->Next = reg->Next) != nullptr)
                             reg->Next->Prev = newReg;
 
                         reg->Next = newReg;
                         //  Patch linkage.
+
+#ifdef DEBUG_MEMORY_CORRUPTION
+                        ASSERTX(IS_CANONICAL(reg->Prev))("ptr", (void *)reg->Prev)XEND;
+                        ASSERTX(IS_CANONICAL(reg->Next))("ptr", (void *)reg->Next)XEND;
+
+                        ASSERTX(IS_CANONICAL(newReg->Prev))("ptr", (void *)newReg->Prev)XEND;
+                        ASSERTX(IS_CANONICAL(newReg->Next))("ptr", (void *)newReg->Next)XEND;
+#endif
                     }
                 }
                 else
@@ -408,6 +448,9 @@ struct OperationParameters
                     vaddr_t const oldEnd = reg->Range.End;
                     MemoryAllocationOptions const oldHighGuard = reg->Type & MemoryAllocationOptions::GuardHigh;
 
+                    reg->Type &= ~MemoryAllocationOptions::GuardHigh;
+                    //  Remove high guard, if there was any.
+
                     reg->Range.End = vaddr;
 
                     MemoryRegion * newMidReg = nullptr, * newEndReg = nullptr;
@@ -419,19 +462,21 @@ struct OperationParameters
                     res = vas->Tree.Insert(MemoryRegion(
                         endAddr, oldEnd, reg->Flags, reg->Content
                         , (reg->Type & ~MemoryAllocationOptions::GuardLow) | oldHighGuard
+                        , newMidReg, reg->Next
                     ), newEndReg);
 
                     if unlikely(!res.IsOkayResult()) goto end;
 
-                    newMidReg->Prev = reg;
                     newMidReg->Next = newEndReg;
-                    newEndReg->Prev = newMidReg;
-                    newEndReg->Next = reg->Next;
+                    newMidReg->Prev = reg;
+                    //  Patch linkage of the middle region.
+
                     reg->Next = newMidReg;
+                    //  Solve linkage of the start region.
 
                     if (newEndReg->Next != nullptr)
                         newEndReg->Next->Prev = newEndReg;
-                    //  And linkage is patched.
+                    //  Finish linkage of end region.
                 }
             }
         }
@@ -688,7 +733,33 @@ Handle Vas::Modify(vaddr_t vaddr, size_t pageCnt
 
 MemoryRegion * Vas::FindRegion(vaddr_t vaddr)
 {
+#ifdef DEBUG_MEMORY_CORRUPTION
+    return this->Tree.FindPred([vaddr](AvlTree<MemoryRegion>::Node * node) -> comp_t
+    {
+        ASSERTX(IS_CANONICAL(node))("node", (void *)node)XEND;
+
+        if unlikely(!IS_CANONICAL(node->Left) || !IS_CANONICAL(node->Right))
+        {
+            paddr_t paddr;
+
+            Handle res = Vmm::Translate(nullptr, reinterpret_cast<uintptr_t>(node), paddr);
+
+            if (res == HandleResult::Okay)
+                MSG_("Faulty node %Xp translates to %Xp.%n", node, paddr);
+            else
+                MSG_("Failed to translate address of node %Xp: %H%n", node, res);
+
+            DEBUG_TERM_ << "Faulty node payload: " << node->Payload << Terminals::EndLine;
+
+            ASSERTX(IS_CANONICAL(node->Left ))("node", (void *)node)("left" , (void *)node->Left )XEND;
+            ASSERTX(IS_CANONICAL(node->Right))("node", (void *)node)("right", (void *)node->Right)XEND;
+        }
+
+        return Compare(node->Payload, vaddr);
+    });
+#else
     return this->Tree.Find<vaddr_t>(vaddr);
+#endif
 }
 
 /*  Support  */

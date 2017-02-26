@@ -39,50 +39,124 @@
 
 #ifdef __BEELZEBUB__TEST_STACKINT
 
-#include <tests/stack_integrity.hpp>
+#include "tests/stack_integrity.hpp"
+#include <beel/sync/smp.lock.hpp>
+#include "kernel.hpp"
 
 #include <debug.hpp>
 
-size_t const TestCount = 10000;
+using namespace Beelzebub;
+using namespace Beelzebub::Synchronization;
 
-uint32_t const TestSize = 2048; //  Should make 8 KiB of stack space.
-uint32_t GlobalSeed = 1;
+Barrier StackIntTestBarrier;
 
-uint32_t const HashStart = 2166136261;
-uint32_t const HashStep = 16777619;
-uint32_t HashValue = HashStart;
+#define SYNC StackIntTestBarrier.Reach()
 
-void TestStackIntegrity()
+static constexpr size_t const TestCount = 300'000;
+
+static constexpr uint32_t const TestSize = 2048; //  Should make 8 KiB of stack/thread-local/global space.
+
+static constexpr uint32_t const HashStart = 2166136261;
+static constexpr uint32_t const HashStep = 16777619;
+
+uint32_t TestGlobalRegion[TestSize];
+__thread uint32_t TestLocalRegion[TestSize];
+
+static SmpLock GlobalRegionLock;
+
+void TestStackIntegrity(bool bsp)
 {
     uint32_t TestRegion[TestSize];
+    uint32_t HashValue;
+    uint32_t GlobalSeed = 1;
+
+    if (bsp) Scheduling = false;
+
+    SYNC;
 
     for (size_t test = TestCount; test > 0; --test)
     {
         HashValue = HashStart;
 
-        for (uint32_t i = TestSize; i > 0; --i)
+        for (int i = TestSize - 1; i >= 0; --i)
         {
             HashValue ^= GlobalSeed + i;
             HashValue *= HashStep;
 
-            TestRegion[i - 1] = HashValue;
+            TestRegion[i] = HashValue;
         }
 
         HashValue = HashStart;
 
-        for (uint32_t i = TestSize; i > 0; --i)
+        for (int i = TestSize - 1; i >= 0; --i)
         {
             HashValue ^= GlobalSeed + i;
             HashValue *= HashStep;
 
-            ASSERT(TestRegion[i - 1] == HashValue
+            ASSERT(TestRegion[i] == HashValue
                 , "Stack value corrupted! %X4 @ %Xp.%n"
                   "Expected %X4, got %X4."
-                , i, &(TestRegion[i - 1]), HashValue, TestRegion[i - 1]);
+                , i, &(TestRegion[i]), HashValue, TestRegion[i]);
         }
 
         GlobalSeed += TestSize;
+        HashValue = HashStart;
+
+        for (int i = TestSize - 1; i >= 0; --i)
+        {
+            HashValue ^= GlobalSeed + i;
+            HashValue *= HashStep;
+
+            TestLocalRegion[i] = HashValue;
+        }
+
+        HashValue = HashStart;
+
+        for (int i = TestSize - 1; i >= 0; --i)
+        {
+            HashValue ^= GlobalSeed + i;
+            HashValue *= HashStep;
+
+            ASSERT(TestLocalRegion[i] == HashValue
+                , "Thread-local value corrupted! %X4 @ %Xp.%n"
+                  "Expected %X4, got %X4."
+                , i, &(TestLocalRegion[i]), HashValue, TestLocalRegion[i]);
+        }
+
+        GlobalSeed += TestSize;
+        HashValue = HashStart;
+
+        GlobalRegionLock.Acquire();
+
+        for (int i = TestSize - 1; i >= 0; --i)
+        {
+            HashValue ^= GlobalSeed + i;
+            HashValue *= HashStep;
+
+            TestGlobalRegion[i] = HashValue;
+        }
+
+        HashValue = HashStart;
+
+        for (int i = TestSize - 1; i >= 0; --i)
+        {
+            HashValue ^= GlobalSeed + i;
+            HashValue *= HashStep;
+
+            ASSERT(TestGlobalRegion[i] == HashValue
+                , "Global value corrupted! %X4 @ %Xp.%n"
+                  "Expected %X4, got %X4."
+                , i, &(TestGlobalRegion[i]), HashValue, TestGlobalRegion[i]);
+        }
+
+        GlobalRegionLock.Release();
+
+        GlobalSeed += TestSize;
     }
+
+    SYNC;
+
+    if (bsp) Scheduling = true;
 }
 
 #endif

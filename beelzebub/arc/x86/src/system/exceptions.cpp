@@ -245,38 +245,51 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
 
-    Synchronization::LockGuard<Synchronization::SmpLock> lg {PrintLock};
-
-    if (cpuData != nullptr)
-        MSG("<< GP FAULT! core %us >>%n", cpuData->Index);
-    else
-        MSG("<< GP FAULT! >>%n");
-
-    PrintToDebugTerminal(state);
-
-    uintptr_t stackPtr = state->RSP;
-    uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
-
-    if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+    withLock (Debug::MsgSpinlock)
     {
-        msg("Stack pointer was not a multiple of %us! (%Xp)%n"
-            , sizeof(size_t), stackPtr);
+        if (cpuData != nullptr)
+            MSG("<< GP FAULT! core %us >>%n", cpuData->Index);
+        else
+            MSG("<< GP FAULT! >>%n");
 
-        stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+        PrintToDebugTerminal(state);
+
+        uintptr_t stackPtr = state->RSP;
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+
+        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+        {
+            MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
+                , sizeof(size_t), stackPtr);
+
+            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+        }
+
+        bool odd;
+        for (odd = true; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+        {
+            MSG("%X2|%Xs|%s"
+                , (uint16_t)(stackPtr - state->RSP)
+                , *((size_t const *)stackPtr)
+                , odd ? "\t" : "\r\n");
+        }
+
+        if (odd) MSG("%n");
+
+        Utils::StackFrame stackFrame;
+
+        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+        {
+            do
+            {
+                MSG("[Func %Xp; Stack top %Xp + %us]%n"
+                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+
+            } while (stackFrame.LoadNext());
+        }
     }
 
-    bool odd;
-    for (odd = true; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
-    {
-        msg("%X2|%Xs|%s"
-            , (uint16_t)(stackPtr - state->RSP)
-            , *((size_t const *)stackPtr)
-            , odd ? "\t" : "\r\n");
-    }
-
-    if (odd) msg("%n");
-
-    FAIL("%n<<GENERAL PROTECTION FAULT @ %Xp (%Xs)>>"
+    FAIL("General protection fault @ %Xp (%Xs)"
         , INSTRUCTION_POINTER, state->ErrorCode);
 }
 

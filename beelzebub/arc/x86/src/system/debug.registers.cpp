@@ -295,7 +295,7 @@ bool DebugRegisters::AddBreakpoint(void * addr, size_t size, bool global
     BpAddData bad { addr, fnc, global, bc, bs, 0 };
 
     ALLOCATE_MAIL_BROADCAST(m1, &AddBpExternal, &bad);
-    m1.SetAwait(true).Post(&AddBpExternal, &bad);
+    m1.SetAwait(true).SetNonMaskable(true).Post(&AddBpExternal, &bad);
 
     return bad.additions == Cores::GetCount();
 }
@@ -308,7 +308,7 @@ bool DebugRegisters::RemoveBreakpoint(void * addr)
     BpRemData brd { addr, 0 };
 
     ALLOCATE_MAIL_BROADCAST(m1, &RemBpExternal, &brd);
-    m1.SetAwait(true).Post(&RemBpExternal, &brd);
+    m1.SetAwait(true).SetNonMaskable(true).Post(&RemBpExternal, &brd);
 
     return brd.removals == Cores::GetCount();
 }

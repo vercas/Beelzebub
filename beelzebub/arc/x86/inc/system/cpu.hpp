@@ -130,7 +130,12 @@ namespace Beelzebub { namespace System
 #if defined(__BEELZEBUB_SETTINGS_SMP)
         MailboxEntryBase * MailHead = nullptr, * MailTail = nullptr;
         Synchronization::SmpLock MailLock {};
+
+#ifdef __BEELZEBUB_SETTINGS_MANYCORE
         uint64_t MailGeneration = 0;
+#endif
+
+        Synchronization::Atomic<MailboxEntryBase *> MailNmTop { nullptr };
 #endif
     };
 

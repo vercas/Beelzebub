@@ -55,6 +55,8 @@ namespace Beelzebub
     {
         /*  Constructor(s)  */
 
+        inline MailboxEntryLink() : Next( nullptr), Core(0) { }
+
         inline MailboxEntryLink(uint32_t core)
             : Next( nullptr)
             , Core(core)
@@ -103,6 +105,7 @@ namespace Beelzebub
         /*  Properties  */
 
         BITFIELD_FLAG_RW(0, Await, size_t, this->Flags, , const, static)
+        BITFIELD_FLAG_RW(1, NonMaskable, size_t, this->Flags, , const, static)
 
         /*  Fields  */
 
@@ -111,7 +114,11 @@ namespace Beelzebub
         unsigned int DestinationCount; 
         Synchronization::Atomic<unsigned int> DestinationsLeft;
         size_t Flags;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
         __extension__ MailboxEntryLink Links[0];
+#pragma GCC diagnostic pop
     };
 
     static_assert(sizeof(MailboxEntryBase) == (2 * sizeof(void *) + 2 * sizeof(unsigned int) + sizeof(size_t)), "Struct size mismatch.");
@@ -123,6 +130,7 @@ namespace Beelzebub
 
         inline MailboxEntry(MailFunction func, void * cookie = nullptr)
             : MailboxEntryBase(N, func, cookie)
+            , Destinations()
         {
 
         }
@@ -167,12 +175,6 @@ namespace Beelzebub
         {
             return Post(entry, waster, cookie, poll);
         }
-
-    private:
-        static void PostInternal(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll, bool broadcast);
-#ifdef __BEELZEBUB_SETTINGS_MANYCORE
-        static void PostGlobal(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll);
-#endif
     };
 
 #define ALLOCATE_MAIL_4(name, dstcnt, func, cookie) \

@@ -65,7 +65,7 @@ namespace Beelzebub { namespace System
         /*  Static fields  */
 
         //  Size of the queue of the port.
-        static size_t const QueueSize = 16;
+        static size_t const QueueSize;
 
         /*  Static methods  */
 

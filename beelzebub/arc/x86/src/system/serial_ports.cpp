@@ -55,6 +55,10 @@ ManagedSerialPort Beelzebub::System::COM4 {0x02E8};
     SerialPort struct
 *************************/
 
+/*  Static fields  */
+
+size_t const SerialPort::QueueSize = 16;
+
 /*  Static methods  */
 
 void SerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
@@ -170,14 +174,10 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
 {
     (void)state;
 
-    // uint8_t reg = Io::In8(COM1.BasePort + 2);
+    uint8_t const iir = Io::In8(COM1.BasePort + 2);
 
-    // if (0 == (reg & 1))
-    // {
-    //     COM1.WriteNtString("COM1");
-    // }
-
-    MainTerminal->Write("SERIAL");
+    MainTerminal->WriteFormat("SERIAL%X1", iir);
+    MSG("SERIAL%X1", iir);
 
     END_OF_INTERRUPT();
 }
@@ -219,6 +219,8 @@ void ManagedSerialPort::Initialize()
         return;
 
     Io::Out8(this->BasePort + 3, 0x03);    // Just make sure DLAB is clear.
+
+    Io::Out8(this->BasePort + 1, 0x00);    // Eh...
     Io::Out8(this->BasePort + 1, 0x00);    // Disable all interrupts
 
     Io::Out8(this->BasePort + 3, 0x80);    // Enable DLAB (set baud rate divisor)
@@ -237,7 +239,18 @@ void ManagedSerialPort::Initialize()
         Io::Out8(this->BasePort + 2, 0x07);    // Enable FIFO, clear them, with 16-byte FIFO
 
     Io::Out8(this->BasePort + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+
+    Io::Out8(this->BasePort + 1, 0x00);    // Eh...
     Io::Out8(this->BasePort + 1, 0x0F);    // Enable some interrupts
+
+    (void)Io::In8(this->BasePort + 1);
+    (void)Io::In8(this->BasePort + 2);
+    //  Poke 'em.
+
+    if (this->Type == SerialPortType::D16750)
+        Io::Out8(this->BasePort + 2, 0x21);    // Eh?
+    else
+        Io::Out8(this->BasePort + 2, 0x01);    // Eh!
 
     this->OutputCount = 0;
 }
@@ -407,7 +420,7 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalBase & operator << <ManagedSerialPort const *>(TerminalBase & term, ManagedSerialPort const * const sp)
     {
-        term.WriteFormat("[Serial Port %X2 (%s) | Type: %s; IIR %X1; LSR %X1; MSR %X1]"
+        term.WriteFormat("[Serial Port %X2 (%s) | Type: %s; LSR %X1; MSR %X1]"
             , sp->BasePort
             , sp->BasePort == 0x03F8 ? "COM1"
             : sp->BasePort == 0x02F8 ? "COM2"
@@ -420,7 +433,6 @@ namespace Beelzebub { namespace Terminals
             : sp->Type == SerialPortType::NS16550 ? "NS16550"
             : sp->Type == SerialPortType::NS16450 ? "NS16450"
             : "NS8250"
-            , Io::In8(sp->BasePort + 2)
             , Io::In8(sp->BasePort + 5)
             , Io::In8(sp->BasePort + 6));
 

@@ -380,8 +380,6 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
 
 Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
 {
-    vaddr_t const endAddr = vaddr + size;
-
     if unlikely(!Is4KiBAligned(vaddr))
         return HandleResult::AlignmentFailure;
 
@@ -396,17 +394,17 @@ Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
     //  Cannot use this to free memory from elsewhere.
 
     return UnmapRange(proc, vaddr, size, MemoryMapOptions::None
-        , [](Process * proc, uintptr_t vaddr, void * cookie)
+        , [](Process * proc_, uintptr_t vaddr_, void * cookie)
         {
-            (void)proc;
-            (void)vaddr;
+            (void)proc_;
+            (void)vaddr_;
 
             reinterpret_cast<Memory::Vas *>(cookie)->Lock.AcquireAsWriter();
-        }, [](Process * proc, uintptr_t vaddr, size_t size, Handle oRes, void * cookie)
+        }, [](Process * proc_, uintptr_t vaddr_, size_t size_, Handle oRes, void * cookie)
         {
-            (void)proc;
+            (void)proc_;
 
-            Handle res = reinterpret_cast<Memory::Vas *>(cookie)->Free(vaddr, size, false, false, false);
+            Handle res = reinterpret_cast<Memory::Vas *>(cookie)->Free(vaddr_, size_, false, false, false);
             reinterpret_cast<Memory::Vas *>(cookie)->Lock.ReleaseAsWriter();
 
             if unlikely(oRes != HandleResult::Okay && oRes != HandleResult::PageUnmapped)

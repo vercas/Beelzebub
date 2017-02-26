@@ -39,6 +39,8 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
+#include <beel/sync/barrier.hpp>
 
-__startup void TestStackIntegrity();
+extern Beelzebub::Synchronization::Barrier StackIntTestBarrier;
+
+__startup void TestStackIntegrity(bool bsp);

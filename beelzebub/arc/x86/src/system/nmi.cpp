@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2017 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,78 +37,91 @@
     thorough explanation regarding other files.
 */
 
-#include <memory/kernel.vas.hpp>
-#include <beel/interrupt.state.hpp>
-#include "cores.hpp"
+#include "system/nmi.hpp"
+#include "system/interrupt_controllers/lapic.hpp"
 
 #include <debug.hpp>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
-using namespace Beelzebub::Utils;
+using namespace Beelzebub::System::InterruptControllers;
 
-/**********************
-    KernelVas class
-**********************/
+/****************
+    Nmi class
+****************/
 
-/*  Constructors  */
+/*  Statics  */
 
-KernelVas::KernelVas()
-    : Vas()
-    , EnlargingCore(SpecialNoCore)
-    , Bootstrapping(true)
-    // , PreallocatedDescriptors()
+Nmi::HandlerNode * Nmi::Handlers = nullptr;
+Nmi::EnderNode * Nmi::Enders = nullptr;
+
+/*  Initialization  */
+
+void Nmi::Initialize()
 {
-
+    Interrupts::Get(KnownExceptionVectors::NmiInterrupt).SetHandler(&Handler);
 }
 
-/*  Support  */
-
-// Handle KernelVas::AllocateNode(AvlTree<MemoryRegion>::Node * & node)
-// {
-//     return this->Alloc.AllocateObject(node);
-// }
-
-// Handle KernelVas::RemoveNode(AvlTree<MemoryRegion>::Node * const node)
-// {
-//     return this->Alloc.DeallocateObject(node);
-// }
-
-Handle KernelVas::PreOp(bool & lock, bool alloc)
+void Nmi::AddHandler(Nmi::HandlerNode * e)
 {
-    (void)alloc;
+    ASSERT(e->Function != nullptr);
 
-    if unlikely(this->EnlargingCore == (likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex()))
-        lock = false;
+    HandlerNode * * next = &Handlers;
 
-    return HandleResult::Okay;
+    while (*next != nullptr)
+        next = &((*next)->Next);
+
+    *next = e;
+
+    ASSERT(e->Next == nullptr);
 }
 
-Handle KernelVas::PostOp(Handle oRes, bool lock, bool alloc)
+void Nmi::AddEnder(Nmi::EnderNode * e, bool unique)
 {
-    (void)lock;
-    (void)alloc;
+    EnderNode * * next = &Enders;
 
-    if likely(this->Alloc.GetFreeCount() >= FreeDescriptorsThreshold)
-        return oRes;
-    else if unlikely(this->EnlargingCore == SpecialNoCore)
+    while (*next != nullptr)
     {
-        //  Gotta enlarge.
+        if unlikely(unique && (*next)->Function == e->Function)
+            return;
 
-        this->EnlargingCore = likely(Cores::IsReady()) ? Cpu::GetData()->Index : Cpu::ComputeIndex();
-
-        // MSG_("Core %us is enlarging the KVAS.%n", this->EnlargingCore);
-
-        Handle res = this->Alloc.ForceExpand(FreeDescriptorsThreshold - this->Alloc.GetFreeCount());
-
-        // MSG_("Core %us finished enlarging the KVAS: %H%n", this->EnlargingCore, res);
-
-        this->EnlargingCore = SpecialNoCore;
-
-        return oRes == HandleResult::Okay ? res : oRes;
+        next = &((*next)->Next);
     }
 
-    return oRes;
+    *next = e;
+}
+
+/*  Operation  */
+
+void Nmi::Broadcast()
+{
+    Lapic::SendIpi(LapicIcr(0)
+        .SetDeliveryMode(InterruptDeliveryModes::NMI)
+        .SetDestinationShorthand(IcrDestinationShorthand::AllExcludingSelf)
+        .SetAssert(true));
+}
+
+void Nmi::Send(uint32_t id)
+{
+    Lapic::SendIpi(LapicIcr(0)
+        .SetDeliveryMode(InterruptDeliveryModes::NMI)
+        .SetDestinationShorthand(IcrDestinationShorthand::None)
+        .SetAssert(true)
+        .SetDestination(id));
+}
+
+void Nmi::Handler(INTERRUPT_HANDLER_ARGS_FULL)
+{
+    for (HandlerNode * han = Handlers; han != nullptr; han = han->Next)
+    {
+        ASSERT(han->Function != nullptr);
+
+        han->Function(state, nullptr, handler, vector);
+    }
+
+    for (EnderNode * end = Enders; end != nullptr; end = end->Next)
+        end->Function(handler, vector);
+
+    END_OF_INTERRUPT();
 }

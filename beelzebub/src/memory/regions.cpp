@@ -109,6 +109,8 @@ namespace Beelzebub { namespace Utils
     COMP_IMPL(MemoryRange ,              vaddr_t, COMP_MRNG_VADR_IMPL)
     COMP_IMPL(MemoryRegion, AdjacentMemoryRegion, COMP_MREG_AMRE_IMPL)
 
+    COMP_IMPL_REVERSE(vaddr_t, MemoryRange)
+
     //  The ones above assume the ranges are valid!
 
     #define GET_REGION_RANGE(reg) reg.Range

@@ -424,6 +424,10 @@ namespace Beelzebub { namespace Synchronization
             return __atomic_load_n(&this->InnerValue, (int)mo);
         }
 
+        inline T * Xchg(decltype(nullptr) const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
+        {
+            return __atomic_exchange_n(&this->InnerValue, nullptr, (int)mo);
+        }
         inline T * Xchg(T * const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
             return __atomic_exchange_n(&this->InnerValue, other, (int)mo);

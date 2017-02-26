@@ -172,6 +172,11 @@ bits 64 ;   Then long mode directly.
 
     ;debugchar 'J'
 
+;     mov     ecx, 10000
+; .loop_j:
+;     pause
+;     loop    .loop_j
+
     mov     rax, ApInitializationLock1
     mov     rbx, ApInitializationLock2
     mov     rcx, ApInitializationLock3

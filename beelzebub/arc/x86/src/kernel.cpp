@@ -62,6 +62,7 @@
 #include "system/interrupt_controllers/pic.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
 #include "system/interrupt_controllers/ioapic.hpp"
+#include "system/nmi.hpp"
 #include "system/io_ports.hpp"
 #include "system/syscalls.hpp"
 #include "system/timers/pit.hpp"
@@ -637,6 +638,11 @@ void Beelzebub::Main()
 
     MainBootstrapThread();
 
+#ifdef __BEELZEBUB__TEST_STACKINT
+    if (CHECK_TEST(STACKINT))
+        StackIntTestBarrier.Reset(Cores::GetCount());
+#endif
+
 #if     defined(__BEELZEBUB__TEST_RW_SPINLOCK) && defined(__BEELZEBUB_SETTINGS_SMP)
     if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
         RwSpinlockTestBarrier.Reset(Cores::GetCount());
@@ -796,16 +802,6 @@ void Beelzebub::Main()
     }
 #endif
 
-#ifdef __BEELZEBUB__TEST_STACKINT
-    if (CHECK_TEST(STACKINT))
-    {
-        withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Stack integrity...");
-
-        TestStackIntegrity();
-    }
-#endif
-
 #ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
     if (CHECK_TEST(INT_LAT))
     {
@@ -833,6 +829,19 @@ void Beelzebub::Main()
             MainTerminal->WriteLine("[TEST] FPU and SSE...");
 
         TestFpu();
+    }
+#endif
+
+#ifdef __BEELZEBUB__TEST_STACKINT
+    if (CHECK_TEST(STACKINT))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing stack integrity.%n", Cpu::GetData()->Index);
+
+        TestStackIntegrity(true);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished stack integrity test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -938,34 +947,48 @@ void Beelzebub::Secondary()
 {
     InitializationLock.Acquire();
 
-    MSG_("Initializing AP... ");
+    MSG_("Initializing AP... %W");
 
     Interrupts::Register.Activate();
     //  Very important for detecting errors ASAP.
 
+    MSG_("Activated IDT... %W");
+
     Vmm::Switch(nullptr, &BootstrapProcess);
     //  Perfectly valid solution. Just to make sure.
+
+    MSG_("Switched to bootstrap process... %W");
 
     ++BootstrapProcess.ActiveCoreCount;
     //  Leave the process in a valid state.
 
+    MSG_("blergh... %W");
+
     Cores::Register();
     //  Register the core with the core manager.
 
-    MSG_("#%us.%n", Cpu::GetData()->Index);
+    MSG_("Registered core #%us... %W", Cpu::GetData()->Index);
 
     Lapic::Initialize();
     //  Quickly get the local APIC initialized.
 
+    MSG_("Initialized LAPIC... %W");
+
     DebugRegisters::Initialize();
     //  Debug registers are always handy.
+
+    MSG_("Initialized debug registers... %W");
 
     Syscall::Initialize();
     //  And syscalls.
 
+    MSG_("Initialized syscalls... %W");
+
     ApicTimer::Initialize(false);
     Timer::Initialize();
     //  And timers.
+
+    MSG_("Initialized timers... %W");
 
     // InitializationLock.Spin();
     //  Wait for the system to initialize.
@@ -973,11 +996,17 @@ void Beelzebub::Secondary()
     Fpu::InitializeSecondary();
     //  Meh...
 
+    MSG_("Initialized FPU... %W");
+
     Interrupts::Enable();
     //  Enable interrupts, this core is almost ready.
 
+    MSG_("Enabled interrupts... %W");
+
     Mailbox::Initialize();
     //  And the mailbox. This one needs interrupts enabled.
+
+    MSG_("Initialized mailbox!%n%W");
 
     // Watchdog::Initialize();
     // //  Sadly needed.
@@ -985,6 +1014,19 @@ void Beelzebub::Secondary()
     InitializationLock.Release();
 
     InitBarrier.Reach();
+
+#ifdef __BEELZEBUB__TEST_STACKINT
+    if (CHECK_TEST(STACKINT))
+    {
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Testing stack integrity.%n", Cpu::GetData()->Index);
+
+        TestStackIntegrity(false);
+
+        withLock (TerminalMessageLock)
+            MainTerminal->WriteFormat("Core %us: Finished stack integrity test.%n", Cpu::GetData()->Index);
+    }
+#endif
 
 #ifdef __BEELZEBUB__TEST_RW_SPINLOCK
     if (CHECK_TEST(RW_SPINLOCK))
@@ -1206,6 +1248,8 @@ Handle InitializeInterrupts()
     Pic::Subscribe(1, &keyboard_handler);
     Pic::Subscribe(3, &ManagedSerialPort::IrqHandler);
     Pic::Subscribe(4, &ManagedSerialPort::IrqHandler);
+
+    Nmi::Initialize();
 
     Interrupts::Register.Activate();
 

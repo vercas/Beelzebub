@@ -307,9 +307,7 @@ void TestMalloc(bool const bsp)
     if (!bsp)
         for (size_t i = coreIndex - 1; i < SyncerCount; i += Cores::GetCount() - 1)
         {
-            TestStructure * old = nullptr;
-
-            (Syncers + i)->Xchg(&old);
+            TestStructure * const old = (Syncers + i)->Xchg(nullptr);
 
             if (old != nullptr)
             {

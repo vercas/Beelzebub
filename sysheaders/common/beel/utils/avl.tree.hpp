@@ -239,6 +239,24 @@ namespace Beelzebub { namespace Utils
             //  These better be tail calls.
         }
 
+        template<typename TPred>
+        static TPayload * FindPred(TPred const pred, Node * node)
+        {
+            if unlikely(node == nullptr)
+                return nullptr;
+
+            comp_t const compRes = pred(node);
+
+            if (compRes == 0)
+                return &(node->Payload);
+            //  Found.
+
+            if (compRes > 0)
+                return FindPred<TPred>(pred, node->Left);
+            else
+                return FindPred<TPred>(pred, node->Right);
+        }
+
         template<typename TCover>
         static Handle InsertOrFind(TCover & cover, Node * & node, void * cookie)
         {
@@ -270,7 +288,12 @@ namespace Beelzebub { namespace Utils
             //  Then... Balance, if needed.
 
             if likely(res.IsOkayResult())
-                node = node->Balance();
+            {
+                Node * const replacement = node->Balance();
+
+                if (node != replacement)
+                    node = replacement;
+            }
 
             return res;
         }
@@ -307,7 +330,12 @@ namespace Beelzebub { namespace Utils
             //  Then... Balance, if needed.
 
             if likely(res.IsOkayResult())
-                node = node->Balance();
+            {
+                Node * const replacement = node->Balance();
+
+                if (node != replacement)
+                    node = replacement;
+            }
 
             return res;
         }
@@ -345,7 +373,12 @@ namespace Beelzebub { namespace Utils
             //  Then... Balance, if needed.
 
             if likely(res.IsOkayResult())
-                node = node->Balance();
+            {
+                Node * const replacement = node->Balance();
+
+                if (node != replacement)
+                    node = replacement;
+            }
 
             return res;
         }
@@ -375,7 +408,10 @@ namespace Beelzebub { namespace Utils
                 //  The left node's smaller than this one, so the minimum may
                 //  be its child!
 
-                node = node->Balance();
+                Node * const replacement = node->Balance();
+
+                if (node != replacement)
+                    node = replacement;
                 //  Are we AVL trees or are we not?
             }
 
@@ -458,8 +494,14 @@ namespace Beelzebub { namespace Utils
             }
 
             if likely(res != nullptr)
-                node = node->Balance();
-            //  No need to balance the tree when nothing was removed.
+            {
+                //  No need to balance the tree when nothing was removed.
+
+                Node * const replacement = node->Balance();
+
+                if (node != replacement)
+                    node = replacement;
+            }
 
             return res;
         }
@@ -513,7 +555,12 @@ namespace Beelzebub { namespace Utils
             }
 
             if likely(res)
-                node = node->Balance();
+            {
+                Node * const replacement = node->Balance();
+
+                if (node != replacement)
+                    node = replacement;
+            }
 
             return res;
         }
@@ -637,6 +684,12 @@ namespace Beelzebub { namespace Utils
             TKey dummy = key;
 
             return Find<TKey>(dummy, this->Root);
+        }
+
+        template<typename TPred>
+        TPayload * FindPred(TPred const pred)
+        {
+            return FindPred<TPred>(pred, this->Root);
         }
 
         template<typename TCover>

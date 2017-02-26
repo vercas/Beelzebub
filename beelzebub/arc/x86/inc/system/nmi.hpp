@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2017 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,62 +39,61 @@
 
 #pragma once
 
-#include <beel/metaprogramming.x86.h>
+#include "system/interrupts.hpp"
+#include <beel/sync/atomic.hpp>
 
-#ifndef __BEELZEBUB__SOURCE_GAS
-/*****************
-    Some Types
-*****************/
-
-typedef uint64_t paddr_t; //  Physical address.
-typedef uint64_t vaddr_t; //  Virtual (linear) address.
-typedef uint64_t psize_t; //  Physical size.
-typedef uint64_t vsize_t; //  Virtual (linear) address.
-typedef uint64_t pgind_t; //  Index of a memory page.
-typedef uint64_t  creg_t; //  Control register.
-
-typedef  int64_t ssize_t;
-
-typedef  __int128_t  int128_t;
-typedef __uint128_t uint128_t;
-
-#endif
-
-/*******************************
-    Miscellaneous Assistance
-*******************************/
-
-#define _GAS_DATA_POINTER " .quad "
-
-#undef EXTEND_POINTER
-#define EXTEND_POINTER(ptr) do {                \
-    if (0 != ((ptr) & 0x0000800000000000UL))    \
-        ptr |= 0xFFFF000000000000UL;            \
-} while (false)
-
-#define IS_CANONICAL(ptr) ((uint16_t)((reinterpret_cast<uintptr_t>(ptr) >> 48) + 1) <= 1)
-
-/***************************
-    Structure Assistance
-***************************/
-
-#if defined(__ASSEMBLER__)
-    #define SIZE_OF_size_t 8
-    #define SIZE_OF_intptr_t 8
-    #define SIZE_OF_uintptr_t 8
-#endif
-
-/****************
-    Constants
-****************/
-
-#ifdef __BEELZEBUB__SOURCE_CXX
-namespace Beelzebub
+namespace Beelzebub::System
 {
-    static constexpr size_t const LargePageSize = 0x200000;
+    /**
+     *  <summary>Represents an abstraction of the system's non-maskable interrupt vector.</summary>
+     */
+    class Nmi
+    {
+    public:
+        /*  Types  */
+
+        struct EnderNode
+        {
+            InterruptEnderFunction Function;
+            EnderNode * Next;
+
+            inline constexpr EnderNode(InterruptEnderFunction const fnc) : Function( fnc), Next(nullptr) { }
+        };
+
+        struct HandlerNode
+        {
+            InterruptHandlerFullFunction Function;
+            HandlerNode * Next;
+
+            inline constexpr HandlerNode(InterruptHandlerFullFunction const fnc) : Function( fnc), Next(nullptr) { }
+        };
+
+    private:
+        /*  Statics  */
+
+        static HandlerNode * Handlers;
+        static EnderNode * Enders;
+
+    protected:
+        /*  Constructor(s)  */
+
+        Nmi() = default;
+
+    public:
+        Nmi(Nmi const &) = delete;
+        Nmi & operator =(Nmi const &) = delete;
+
+        /*  Initialization  */
+
+        static __startup void Initialize();
+        static __startup void AddHandler(HandlerNode * e);
+        static __startup void AddEnder(EnderNode * e, bool unique);
+
+        /*  Operation  */
+
+        static __hot void Broadcast();
+        static __hot void Send(uint32_t id);
+
+        static __hot __realign_stack void Handler(INTERRUPT_HANDLER_ARGS_FULL);
+    };
 }
-#elif !defined(__ASSEMBLER__)
-#define __LARGE_PAGE_SIZE   ((size_t)0x200000)
-#else
-#define __LARGE_PAGE_SIZE   0x200000
-#endif

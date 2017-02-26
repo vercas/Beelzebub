@@ -502,6 +502,22 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
             {
                 TERMTRY1(this->Write("\r\n"), res, cnt);
             }
+            else if (c == 'F')  //  Flush
+            {
+                Handle const res2 = this->Flush();
+
+                if unlikely(res2 != HandleResult::Okay && res2 != HandleResult::NotImplemented)
+                    return {res2, cnt, res.End};
+            }
+            else if (c == 'W')  //  Flush & Wait
+            {
+                Handle const res2 = this->Flush();
+
+                for (size_t volatile i = 0; i < 10'000; ++i) DO_NOTHING();
+
+                if unlikely(res2 != HandleResult::Okay && res2 != HandleResult::NotImplemented)
+                    return {res2, cnt, res.End};
+            }
             else if (c == '%')
                 TERMTRY1(this->WriteUtf8("%"), res, cnt);
             else

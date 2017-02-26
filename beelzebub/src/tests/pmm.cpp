@@ -49,7 +49,7 @@
 #include <math.h>
 #include <debug.hpp>
 
-// #define PRINT
+#define PRINT
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
@@ -62,7 +62,7 @@ Barrier PmmTestBarrier;
 
 static SmpLock DeleteLock {};
 
-static constexpr size_t const RandomIterations = 100'000;
+static constexpr size_t const RandomIterations = 1'000'000;
 static constexpr size_t const CacheSize = 2048;
 static Atomic<paddr_t> Cache[CacheSize];
 static constexpr size_t const SyncerCount = 10;

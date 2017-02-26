@@ -154,6 +154,21 @@ namespace Beelzebub { namespace Memory
 
         }
 
+        inline constexpr MemoryRegion(vaddr_t start, vaddr_t end
+                                    , MemoryFlags flags
+                                    , MemoryContent content
+                                    , MemoryAllocationOptions type
+                                    , MemoryRegion * prev, MemoryRegion * next)
+            : Range({start, end})
+            , Flags(flags)
+            , Type(type)
+            , Content(content)
+            , Next(next)
+            , Prev(prev)
+        {
+
+        }
+
         /*  Properties  */
 
         inline bool IsValid() const

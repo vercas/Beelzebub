@@ -44,6 +44,7 @@
 #include "cores.hpp"
 #include "kernel.hpp"
 #include "watchdog.hpp"
+// #include "system/debug.registers.hpp"
 #include <new>
 
 #include <beel/sync/smp.lock.hpp>
@@ -73,6 +74,9 @@ static __thread vaddr_t MyCache[CacheSize];
 static Atomic<size_t> RandomerCounter {0};
 #endif
 //  There is no space on the stack for this one.
+
+static void TestVmmIntegrity(bool const bsp);
+// static __hot __realign_stack void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties bp);
 
 void TestVmm(bool const bsp)
 {
@@ -106,6 +110,19 @@ void TestVmm(bool const bsp)
 
         ASSERTX(res == HandleResult::Okay)(res)XEND;
     };
+
+    // SYNC;
+
+    // if (bsp)
+    // {
+    //     System::DebugRegisters::AddBreakpoint(&(Vmm::KVas.Tree.Root)
+    //         , 8, true, System::BreakpointCondition::DataWrite, &DumpStack);
+
+    //     // System::DebugRegisters::AddBreakpoint(&(Vmm::KVas.First)
+    //     //     , 8, true, System::BreakpointCondition::DataWrite, &DumpStack);
+    // }
+
+    SYNC;
 
 #ifdef PRINT
     if (bsp) MSG_("Filling array.%n");
@@ -380,9 +397,174 @@ void TestVmm(bool const bsp)
 
     delPtr(dummy);
 
+    // SYNC;
+
+    // if (bsp)
+    //     DEBUG_TERM_ << &(Memory::Vmm::KVas);
+
     SYNC;
 
-    if (bsp) Scheduling = true;
+    TestVmmIntegrity(bsp);
+
+    SYNC;
+
+#ifdef PRINT
+    if (bsp) MSG_("Done with VMM test.%n");
+
+    SYNC;
+#endif
+
+    if (bsp)
+    {
+        Scheduling = true;
+
+        // System::DebugRegisters::RemoveBreakpoint(&(Vmm::KVas.Tree.Root));
+        // // System::DebugRegisters::RemoveBreakpoint(&(Vmm::KVas.First));
+    }
 }
+
+static constexpr size_t const TestCount = 10'000, IterationCount = 10'000;
+
+static constexpr uint32_t const TestSize = 2048; //  Should make 8 KiB of stack/thread-local/global space.
+
+static constexpr uint32_t const HashStart = 2166136261;
+static constexpr uint32_t const HashStep = 16777619;
+
+void TestVmmIntegrity(bool const bsp)
+{
+    auto getPtr = []()
+    {
+        vaddr_t testptr = nullpaddr;
+
+        Handle res = Vmm::AllocatePages(nullptr
+            , RoundUp(TestSize * sizeof(uint32_t), PageSize)
+            , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualKernelHeap
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryContent::Generic
+            , testptr);
+
+        ASSERTX(res == HandleResult::Okay)(res)XEND;
+        ASSERTX(testptr >= Vmm::KernelStart
+            , "Returned address (%Xp) is not in the kernel heap..?", testptr)XEND;
+
+        return reinterpret_cast<uint32_t *>(testptr);
+    };
+
+    auto delPtr = [](uint32_t * vaddr)
+    {
+        Handle res = Vmm::FreePages(nullptr, reinterpret_cast<vaddr_t>(vaddr), RoundUp(TestSize * sizeof(uint32_t), PageSize));
+
+        ASSERTX(res == HandleResult::Okay)(res)XEND;
+    };
+
+    uint32_t HashValue;
+    uint32_t GlobalSeed = 1;
+
+// #ifdef PRINT
+//     if (bsp)
+//         MSG_("Hashing. KVas root is at offset %us.%n"
+//             , reinterpret_cast<size_t>(&(Vmm::KVas.Tree.Root)) - reinterpret_cast<size_t>(&(Vmm::KVas)));
+
+//     SYNC;
+// #endif
+
+    for (size_t test = TestCount; test > 0; --test)
+    {
+        uint32_t * testRegion = getPtr();
+
+        for (size_t iteration = IterationCount; iteration > 0; --iteration)
+        {
+            HashValue = HashStart;
+
+            for (int i = TestSize - 1; i >= 0; --i)
+            {
+                HashValue ^= GlobalSeed + i;
+                HashValue *= HashStep;
+
+                testRegion[i] = HashValue;
+            }
+
+            HashValue = HashStart;
+
+            for (int i = TestSize - 1; i >= 0; --i)
+            {
+                HashValue ^= GlobalSeed + i;
+                HashValue *= HashStep;
+
+                ASSERTX(testRegion[i] == HashValue
+                    , "AoD value corrupted! Expected %X4, got %X4."
+                    , HashValue, testRegion[i])
+                    (i)("address", (void *)&(testRegion[i]))(test)(iteration)XEND;
+            }
+
+            GlobalSeed += TestSize;
+        }
+
+        delPtr(testRegion);
+    }
+}
+
+// #include "utils/stack_walk.hpp"
+// #include "_print/isr.hpp"
+
+// void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties bp)
+// {
+//     void * val = *reinterpret_cast<void * *>(address);
+
+//     MSG_("Kernel VAS root node changed to %Xp.%n", val);
+
+//     if (IS_CANONICAL(val))
+//         goto end;
+
+//     withLock (Debug::MsgSpinlock)
+//     {
+//         DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
+
+//         MSG("Breakpoint Address: %Xp%n", address);
+//         MSG("Value at Address: %Xp%n", val);
+
+//         PrintToDebugTerminal(state);
+
+//         uintptr_t stackPtr = state->RSP;
+//         uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+
+//         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+//         {
+//             MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
+//                 , sizeof(size_t), stackPtr);
+
+//             stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+//         }
+
+//         bool odd;
+//         for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+//         {
+//             MSG("%X2|%Xp|%Xs|%s"
+//                 , (uint16_t)(stackPtr - state->RSP)
+//                 , stackPtr
+//                 , *((size_t const *)stackPtr)
+//                 , odd ? "\r\n" : "\t");
+//         }
+
+//         if (odd) MSG("%n");
+
+//         Utils::StackFrame stackFrame;
+
+//         if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+//         {
+//             do
+//             {
+//                 MSG("[Func %Xp; Stack top %Xp + %us]%n"
+//                     , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+
+//             } while (stackFrame.LoadNext());
+//         }
+
+//         DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
+//     }
+
+// end:
+//     END_OF_INTERRUPT();
+// }
 
 #endif

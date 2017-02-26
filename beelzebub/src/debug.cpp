@@ -83,27 +83,34 @@ static __cold __noreturn void Die()
     if unlikely(Cores::IsReady())
     {
         ALLOCATE_MAIL_BROADCAST(mail, &Killer);
-        mail.Post(false);
-    }
-#endif
+        mail.Post(false, [](void * cookie)
+        {
+            (void)cookie;
 
 #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-    withLock (DataDumpLock)
-    {
-        DEBUG_TERM << "-------------------- vAlloc on core " << Cpu::GetData()->Index << " --------------------" << EndLine;
-        
-        Valloc::DumpMyState();
+            withLock (DataDumpLock)
+            {
+                DEBUG_TERM << "-------------------- vAlloc on core " << Cpu::GetData()->Index << " --------------------" << EndLine;
+
+                Valloc::DumpMyState();
+            }
+#endif
+
+            withLock (DataDumpLock)
+            {
+                DEBUG_TERM   << "-------------------- KVAS --------------------" << EndLine
+                             << "Root node: " << (void *)(Memory::Vmm::KVas.Tree.Root) << EndLine
+                             << "First node: " << (void *)(Memory::Vmm::KVas.First) << EndLine
+                             << &(Memory::Vmm::KVas);
+            }
+
+            //  Allow the CPU to rest.
+            while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+        });
     }
 #endif
 
-    withLock (DataDumpLock)
-    {
-        DEBUG_TERM   << "-------------------- KVAS --------------------" << EndLine
-                     << &(Memory::Vmm::KVas);
-    }
-
-    //  Allow the CPU to rest.
-    while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+    __unreachable_code;
 }
 
 SmpLockUni Debug::MsgSpinlock;

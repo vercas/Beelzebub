@@ -40,13 +40,12 @@
 #include "watchdog.hpp"
 #include "cores.hpp"
 #include "timer.hpp"
-#include "system/interrupt_controllers/lapic.hpp"
+#include "system/nmi.hpp"
 #include "utils/stack_walk.hpp"
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
-using namespace Beelzebub::System::InterruptControllers;
 
 /****************
     Internals
@@ -55,8 +54,17 @@ using namespace Beelzebub::System::InterruptControllers;
 static Atomic<size_t> Assignee {0};
 static SmpLock PrintLock {};
 
-static __hot __realign_stack void WatchdogIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
+static Atomic<size_t> Left {0};
+
+static __hot void WatchdogNmiHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
+    (void)ender;
+    (void)handler;
+    (void)vector;
+
+    if (Left.Load() == 0)
+        return;
+
     withLock (PrintLock)
     {
         MSG("%n$%us:%Xp|%Xs$%n", Cpu::GetData()->Index, state->RIP, state->RAX);
@@ -97,8 +105,10 @@ static __hot __realign_stack void WatchdogIsrHandler(INTERRUPT_HANDLER_ARGS_FULL
         }
     }
 
-    END_OF_INTERRUPT();
+    --Left;
 }
+
+static Nmi::HandlerNode NmiEntry { &WatchdogNmiHandler };
 
 static __hot void WatchdogTimerHandler(IsrState * const state, void * cookie)
 {
@@ -107,10 +117,8 @@ static __hot void WatchdogTimerHandler(IsrState * const state, void * cookie)
 
     MSG_("&%us&", Cpu::GetData()->Index);
 
-    Lapic::SendIpi(LapicIcr(0)
-        .SetDeliveryMode(InterruptDeliveryModes::NMI)
-        .SetDestinationShorthand(IcrDestinationShorthand::AllExcludingSelf)
-        .SetAssert(true));
+    Left.Store(Cores::GetCount());
+    Nmi::Broadcast();
 
     Timer::Enqueue(1secs_l, WatchdogTimerHandler);
 }
@@ -130,7 +138,7 @@ bool Watchdog::Initialize()
     if (!Assignee.CmpXchgStrong(expected, Cpu::GetData()->Index))
         return false;
 
-    Interrupts::Get(KnownExceptionVectors::NmiInterrupt).SetHandler(&WatchdogIsrHandler).SetEnder(&Lapic::IrqEnder);
+    Nmi::AddHandler(&NmiEntry);
 
     Timer::Enqueue(1secs_l, WatchdogTimerHandler);
 
