@@ -426,6 +426,8 @@ namespace Beelzebub { namespace Synchronization
 
         inline T * Xchg(decltype(nullptr) const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile
         {
+            (void)other;
+
             return __atomic_exchange_n(&this->InnerValue, nullptr, (int)mo);
         }
         inline T * Xchg(T * const other, MemoryOrder const mo = MemoryOrder::SeqCst) volatile

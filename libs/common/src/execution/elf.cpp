@@ -73,7 +73,7 @@ ENUM_TO_STRING_EX2(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, Beelzebub::Exe
 
 /*  Now to implement some << operator magic.  */
 
-namespace Beelzebub { namespace Terminals
+namespace Beelzebub::Terminals
 {
     /*  First, the enums  */
 
@@ -340,7 +340,7 @@ namespace Beelzebub { namespace Terminals
                         << *(value.GetH3()) << EndLine;
         }
     }
-}}
+}
 
 /****************
     ELF class

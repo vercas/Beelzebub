@@ -41,6 +41,8 @@
 
 using namespace Beelzebub;
 
+ENUM_TO_STRING_EX2(FrameSize, ENUM_FRAMESIZE, Beelzebub)
+
 ENUM_TO_STRING_EX2(MemoryContent, ENUM_MEMORYCONTENT, Beelzebub)
 
 bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
@@ -66,3 +68,26 @@ bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
 }
 
 ENUM_TO_STRING_EX2(ExceptionType, ENUM_EXCEPTIONTYPE, Beelzebub)
+
+/************************
+    Terminal Printing
+************************/
+
+#include <beel/terminals/base.hpp>
+
+/*  Now to implement some << operator magic.  */
+
+namespace Beelzebub::Terminals
+{
+    /*  First, the enums  */
+
+    #define SPAWN_ENUM(eName) \
+    template<> \
+    TerminalBase & operator << <eName>(TerminalBase & term, eName const value) \
+    { \
+        return term << (__underlying_type(eName))(value) << " (" << EnumToString(value) << ")"; \
+    }
+
+    SPAWN_ENUM(FrameSize)
+    SPAWN_ENUM(ExceptionType)
+}

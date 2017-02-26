@@ -119,10 +119,18 @@ Handle Pmm::ReserveRange(paddr_t start, size_t size, bool includeBusy)
 
 Handle Pmm::AdjustReferenceCount(paddr_t addr, uint32_t & newCnt, int32_t diff)
 {
-    if unlikely(addr == nullpaddr)
+    if unlikely(addr == nullpaddr || diff == 0)
         return HandleResult::ArgumentOutOfRange;
 
     return PmmArc::MainAllocator->Mingle(addr, newCnt, diff, false);
+}
+
+Handle Pmm::GetFrameInfo(paddr_t addr, FrameSize & size, uint32_t & refCnt)
+{
+    if unlikely(addr == nullpaddr)
+        return HandleResult::ArgumentOutOfRange;
+
+    return PmmArc::MainAllocator->GetFrameInfo(addr, size, refCnt);
 }
 
 /*******************
@@ -700,6 +708,180 @@ Handle FrameAllocationSpace::ReserveRange(paddr_t start, psize_t size, bool incl
     //  TODO
 }
 
+Handle FrameAllocationSpace::GetFrameInfo(paddr_t addr, FrameSize & size, uint32_t & refCnt)
+{
+    if (addr < this->AllocationStart || addr >= this->AllocationEnd)
+        return HandleResult::PagesOutOfAllocatorRange;
+    //  Easy-peasy.
+
+    uint32_t lIndex = (uint32_t)((addr - this->AllocationStart) >> 21UL);
+    LargeFrameDescriptor * lDesc = this->Map + lIndex;
+    uint16_t sIndex = (uint16_t)((addr & 0x1FF000) >> 12);
+    SmallFrameDescriptor * sDesc = lDesc->SubDescriptors + sIndex;
+
+    //  This only serves as a good starting point under conditions of low
+    //  contention over this individual page.
+
+    switch (lDesc->Status)
+    {
+    case FrameStatus::Free:
+        size = FrameSize::_2MiB;
+        refCnt = 0;
+
+        return HandleResult::PageFree;
+
+    case FrameStatus::Used:
+        break;
+        //  Will move onto the next phase, which is under a lock.
+
+    case FrameStatus::Split:
+    case FrameStatus::Full:
+        goto do_small_frame;
+
+    case FrameStatus::Reserved:
+        size = FrameSize::_2MiB;
+        refCnt = lDesc->ReferenceCount;
+
+        return HandleResult::PageReserved;
+
+    default:
+        assert_or(false
+            , "Unknown status for large frame @%XP: %u2"
+            , addr, lDesc->Status)
+        {
+            return HandleResult::IntegrityFailure;
+        }
+    }
+
+do_large_frame:
+    //  A large frame is quite easy to deal with. They are chained in a
+    //  singly-linked list. This is done under a lock to be sure.
+
+    withLock (this->LargeLocker)
+    {
+        //  Yes, technically, since the previous checks, it could've changed
+        //  from used to any other status.
+
+        switch (lDesc->Status)
+        {
+        case FrameStatus::Free:
+            size = FrameSize::_2MiB;
+            refCnt = 0;
+
+            return HandleResult::PageFree;
+
+        case FrameStatus::Used:
+            size = FrameSize::_2MiB;
+            refCnt = lDesc->ReferenceCount;
+
+            return HandleResult::PageInUse;
+
+        case FrameStatus::Split:
+        case FrameStatus::Full:
+            break;
+            //  Simply leave the switch statement and continue execution.
+
+        case FrameStatus::Reserved:
+            size = FrameSize::_2MiB;
+            refCnt = lDesc->ReferenceCount;
+
+            return HandleResult::PageReserved;
+
+        default:
+            assert_or(false
+                , "Unknown status for large frame @%XP: %u2"
+                , addr, lDesc->Status)
+            {
+                return HandleResult::IntegrityFailure;
+            }
+        }
+    }
+
+do_small_frame:
+    //  Reaching this point means the large frame is split, therefore the given
+    //  address refers to a small frame.
+
+    withLock (this->SplitLocker)
+    {
+        //  Yes, the check needs to be performed again. It COULD have changed
+        //  since the previous check.
+
+        switch (lDesc->Status)
+        {
+        case FrameStatus::Free:
+            size = FrameSize::_2MiB;
+            refCnt = 0;
+
+            return HandleResult::PageFree;
+
+        case FrameStatus::Used:
+            goto do_large_frame;
+
+        case FrameStatus::Split:
+        case FrameStatus::Full:
+            break;
+            //  Simply leave the switch statement and continue execution.
+
+        case FrameStatus::Reserved:
+            size = FrameSize::_2MiB;
+            refCnt = lDesc->ReferenceCount;
+
+            return HandleResult::PageReserved;
+
+        default:
+            assert_or(false
+                , "Unknown status for large frame @%XP: %u2"
+                , addr, lDesc->Status)
+            {
+                return HandleResult::IntegrityFailure;
+            }
+        }
+
+        size = FrameSize::_4KiB;
+        //  Guaranteed now.
+
+        if unlikely(sIndex == 0)
+        {
+            //  The first index is always reserved. No exceptions. Also, this is
+            //  done under the lock because the large frame has to actually be split
+            //  for this failure condition.
+
+            refCnt = -1;
+
+            return HandleResult::PageReserved;
+        }
+
+        switch (sDesc->Status)
+        {
+        case FrameStatus::Free:
+            refCnt = 0;
+
+            return HandleResult::PageFree;
+
+        case FrameStatus::Used:
+            refCnt = sDesc->ReferenceCount;
+
+            return HandleResult::PageInUse;
+
+        case FrameStatus::Reserved:
+            refCnt = sDesc->ReferenceCount;
+
+            return HandleResult::PageReserved;
+
+        default:
+            assert_or(false
+                , "Unknown status for small frame @%XP: %u2"
+                , addr, lDesc->Status)
+            {
+                return HandleResult::IntegrityFailure;
+            }
+        }
+    }
+
+    //  Should never be reached.
+    return HandleResult::IntegrityFailure;
+}
+
 /***************************
     FrameAllocator class
 ***************************/
@@ -768,7 +950,7 @@ Handle FrameAllocator::Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, boo
     {
         res = space->Mingle(addr, newCnt, diff, ignoreRefCnt);
 
-        if (!res.IsResult(HandleResult::PagesOutOfAllocatorRange))
+        if (res != HandleResult::PagesOutOfAllocatorRange)
             return res;
 
         space = space->Next;
@@ -786,7 +968,25 @@ Handle FrameAllocator::ReserveRange(paddr_t start, psize_t size, bool includeBus
     {
         res = space->ReserveRange(start, size, includeBusy);
 
-        if (!res.IsResult(HandleResult::PagesOutOfAllocatorRange))
+        if (res != HandleResult::PagesOutOfAllocatorRange)
+            return res;
+
+        space = space->Next;
+    }
+
+    return HandleResult::PagesOutOfAllocatorRange;
+}
+
+Handle FrameAllocator::GetFrameInfo(paddr_t addr, FrameSize & size, uint32_t & refCnt)
+{
+    Handle res;
+    FrameAllocationSpace * space = this->FirstSpace;
+
+    while (space != nullptr)
+    {
+        res = space->GetFrameInfo(addr, size, refCnt);
+
+        if (res != HandleResult::PagesOutOfAllocatorRange)
             return res;
 
         space = space->Next;

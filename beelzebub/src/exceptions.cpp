@@ -96,15 +96,6 @@ namespace Beelzebub { namespace Terminals
 {
     /*  First, the enums  */
 
-    #define SPAWN_ENUM(eName) \
-    template<> \
-    TerminalBase & operator << <eName>(TerminalBase & term, eName const value) \
-    { \
-        return term << (__underlying_type(eName))(value) << " (" << EnumToString(value) << ")"; \
-    }
-
-    SPAWN_ENUM(ExceptionType)
-
     template<>
     TerminalBase & operator << <MemoryAccessType>(TerminalBase & term, MemoryAccessType const value)
     {

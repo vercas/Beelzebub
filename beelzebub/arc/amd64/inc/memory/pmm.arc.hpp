@@ -376,6 +376,8 @@ namespace Beelzebub { namespace Memory
         __hot Handle Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
         __cold Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy);
 
+        Handle GetFrameInfo(paddr_t addr, FrameSize & size, uint32_t & refCnt);
+
         inline bool ContainsRange(paddr_t start, psize_t size) const
         {
             return ( start         >= this->AllocationStart)
@@ -438,6 +440,8 @@ namespace Beelzebub { namespace Memory
 
         __hot Handle Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt);
         __cold Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy);
+
+        Handle GetFrameInfo(paddr_t addr, FrameSize & size, uint32_t & refCnt);
 
         bool ContainsRange(paddr_t start, psize_t size);
         __hot FrameAllocationSpace * GetSpace(paddr_t paddr);

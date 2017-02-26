@@ -74,11 +74,13 @@ namespace Beelzebub { namespace Memory
 
         static __hot __solid Handle AdjustReferenceCount(paddr_t addr, uint32_t & newCnt, int32_t diff);
 
-        static __forceinline __hot Handle AdjustReferenceCount(paddr_t addr, int32_t diff)
+        static __hot __forceinline Handle AdjustReferenceCount(paddr_t addr, int32_t diff)
         {
             uint32_t dummy;
 
             return AdjustReferenceCount(addr, dummy, diff);
         }
+
+        static __solid Handle GetFrameInfo(paddr_t addr, FrameSize & size, uint32_t & refCnt);
     };
 }}

@@ -423,12 +423,14 @@ void TestVmm(bool const bsp)
     }
 }
 
+#include "memory/pmm.hpp"
+
 static constexpr size_t const TestCount = 10'000, IterationCount = 10'000;
 
 static constexpr uint32_t const TestSize = 2048; //  Should make 8 KiB of stack/thread-local/global space.
 
-static constexpr uint32_t const HashStart = 2166136261;
-static constexpr uint32_t const HashStep = 16777619;
+static constexpr uint32_t const HashStart = 2166136251;
+static constexpr uint32_t const HashStep = 16707613;
 
 void TestVmmIntegrity(bool const bsp)
 {
@@ -457,7 +459,7 @@ void TestVmmIntegrity(bool const bsp)
         ASSERTX(res == HandleResult::Okay)(res)XEND;
     };
 
-    uint32_t HashValue;
+    uint32_t HashValue, OldHashValue;
     uint32_t GlobalSeed = 1;
 
 // #ifdef PRINT
@@ -484,17 +486,39 @@ void TestVmmIntegrity(bool const bsp)
                 testRegion[i] = HashValue;
             }
 
-            HashValue = HashStart;
+            OldHashValue = HashValue = HashStart;
 
             for (int i = TestSize - 1; i >= 0; --i)
             {
                 HashValue ^= GlobalSeed + i;
                 HashValue *= HashStep;
 
-                ASSERTX(testRegion[i] == HashValue
-                    , "AoD value corrupted! Expected %X4, got %X4."
-                    , HashValue, testRegion[i])
-                    (i)("address", (void *)&(testRegion[i]))(test)(iteration)XEND;
+                ASSERTX((OldHashValue ^ (GlobalSeed + i)) * HashStep == HashValue)
+                    (OldHashValue)(GlobalSeed)(i)(HashStep)(HashValue)
+                    (GlobalSeed + i)(OldHashValue ^ (GlobalSeed + i))
+                    ((OldHashValue ^ (GlobalSeed + i)) * HashStep)XEND;
+
+                if unlikely(testRegion[i] != HashValue)
+                {
+                    paddr_t paddr;
+                    FrameSize size;
+                    uint32_t refCnt;
+
+                    Handle res = Vmm::Translate(nullptr, reinterpret_cast<uintptr_t>(testRegion + i), paddr);
+
+                    if unlikely(res != HandleResult::Okay)
+                        MSG_("Failed to translate address of faulty slot %Xp: %H%n", testRegion + i, res);
+                    else
+                        res = Pmm::GetFrameInfo(paddr, size, refCnt);
+
+                    ASSERTX(testRegion[i] == HashValue
+                        , "AoD value corrupted! Expected %X4, got %X4."
+                        , HashValue, testRegion[i])
+                        (i)("address", (void *)&(testRegion[i]))(test)(iteration)
+                        (paddr)(res)(size)(refCnt)XEND;
+                }
+
+                OldHashValue = HashValue;
             }
 
             GlobalSeed += TestSize;

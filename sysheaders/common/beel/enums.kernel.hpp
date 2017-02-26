@@ -50,16 +50,18 @@ namespace Beelzebub
     /**
      *  Represents possible page/frame sizes.
      */
-    enum class FrameSize : uint8_t
-    {
-        _4KiB = 1,
-        _64KiB = 2,
-        _2MiB = 3,
-        _4MiB = 4,
-        _1GiB = 5,
-    };
+    #define ENUM_FRAMESIZE(ENUMINST) \
+        ENUMINST(_4KiB , 1) \
+        ENUMINST(_64KiB, 2) \
+        ENUMINST(_2MiB , 3) \
+        ENUMINST(_4MiB , 4) \
+        ENUMINST(_1GiB , 5)
 
-    ENUMOPS_LITE(FrameSize, uint8_t)
+    ENUMDECL(FrameSize, ENUM_FRAMESIZE, LITE, uint8_t)
+
+#ifdef __BEELZEBUB_KERNEL
+    ENUM_TO_STRING_DECL(FrameSize, ENUM_FRAMESIZE);
+#endif
 
     /**
      *  Represents possible magnitudes of addresses (number of significant bits in their numeric value).
