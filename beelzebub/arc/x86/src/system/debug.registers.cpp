@@ -120,8 +120,19 @@ static __hot __realign_stack void DebugHandler(INTERRUPT_HANDLER_ARGS_FULL)
             asm volatile ( "mov %%dr7, %0 \n\t" : "=rm"(dr7.Value) );
 
             BreakpointProperties bp = dr7.GetProperties(i);
+            BreakpointProperties const nbp { bp.Condition, bp.Size, false, false };
 
-            return Handlers[i](state, ender, handler, vector, bpAddr, bp);
+            dr7.SetProperties(i, nbp);
+            asm volatile ( "mov %0, %%dr7 \n\t" : : "r"(dr7.Value) );
+            //  Temporarily disable this specific breakpoint.
+
+            Handlers[i](state, ender, handler, vector, bpAddr, bp);
+
+            dr7.SetProperties(i, bp);
+            asm volatile ( "mov %0, %%dr7 \n\t" : : "r"(dr7.Value) );
+            //  And restore this breakpoint to what the handler says.
+
+            return;
         }
 
     FAIL("Debug interrupt triggered for unknown reasons; DR6=%Xs", dr6);
@@ -179,7 +190,7 @@ static bool AddBpInternal(BpAddData * bad)
 
         Handlers[i] = bad->fnc;
 
-        MSG_("Core %us added breakpoint #%us at %Xp.%n", Cpu::GetData()->Index, i, bad->addr);
+        // MSG_("Core %us added breakpoint #%us at %Xp.%n", Cpu::GetData()->Index, i, bad->addr);
 
         asm volatile ( "mov %0, %%dr7 \n\t" : : "r"(dr7.Value) );
 
@@ -228,7 +239,7 @@ static bool RemBpInternal(BpRemData * brd)
 
         Handlers[i] = nullptr;
 
-        MSG_("Core %us removed breakpoint #%us at %Xp.%n", Cpu::GetData()->Index, i, brd->addr);
+        // MSG_("Core %us removed breakpoint #%us at %Xp.%n", Cpu::GetData()->Index, i, brd->addr);
 
         asm volatile ( "mov %0, %%dr7 \n\t" : : "r"(dr7.Value) );
 

@@ -170,6 +170,8 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
 
     vas->Lock.ReleaseAsReader();
 
+    // MSG_("Allocated on demand page %XP at %Xp.%n", paddr, vaddr_algn);
+
     if likely(res == HandleResult::Okay)
     {
         if likely(vaddr < KernelStart)

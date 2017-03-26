@@ -356,13 +356,7 @@ namespace Beelzebub
         inline void * GetPage() const
         {
             if (this->IsType(HandleType::Page))
-            {
-                uint64_t ptr = (this->Value & IndexBits) >> IndexOffset;
-
-                EXTEND_POINTER(ptr);
-
-                return reinterpret_cast<void *>(ptr);
-            }
+                return reinterpret_cast<void *>(GetExtendedPointer((this->Value & IndexBits) >> IndexOffset));
             else
                 return nullptr;
         }
@@ -503,20 +497,12 @@ namespace Beelzebub
 
         inline T * GetPointer() const
         {
-            uint64_t ptr64 = (this->Value & (PointerMask >> OFFSET)) << OFFSET;
-
-            EXTEND_POINTER(ptr64);
-
-            return reinterpret_cast<T *>(ptr64);
+            return reinterpret_cast<T *>(GetExtendedPointer((this->Value & (PointerMask >> OFFSET)) << OFFSET));
         }
 
         inline HandlePointer const & GetPointer(T * & val) const
         {
-            uint64_t ptr64 = (this->Value & (PointerMask >> OFFSET)) << OFFSET;
-
-            EXTEND_POINTER(ptr64);
-
-            val = reinterpret_cast<T *>(ptr64);
+            val = reinterpret_cast<T *>(GetExtendedPointer((this->Value & (PointerMask >> OFFSET)) << OFFSET));
 
             return *this;
         }

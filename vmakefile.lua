@@ -194,7 +194,7 @@ local availableTests = List {
     -- "MT",
     -- "STR",
     -- "PMM",
-    -- "VMM",
+    "VMM",
     -- "OBJA",
     --"METAP",
     --"EXCP",
@@ -202,7 +202,7 @@ local availableTests = List {
     -- "KMOD",
     -- "TIMER",
     -- "MAILBOX",
-    --"STACKINT",
+    -- "STACKINT",
     -- "AVL_TREE",
     --"TERMINAL",
     --"CMDO",
@@ -515,259 +515,10 @@ GlobalData {
 --  Utilities
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
-local function parseObjectExtension(path, header)
-    if header then
-        return tostring(path):match("^(.+)%.gch$")
-    else
-        local part1, part2 = tostring(path):match("^(.+)%.([^%.]+)%.o$")
-
-        if not part1 then
-            return nil, nil
-        end
-
-        local arch = GetArchitecture(part2)
-
-        if arch then
-            return part1, arch
-        else
-            return part1 .. "." .. part2, nil
-        end
-    end
-end
-
-local function checkObjectExtension(path, ext, header)
-    local part1, part2 = tostring(path):match(header and "^(.+)%.([^%.]+)%.gch$"
-                                                     or  "^(.+)%.([^%.]+)%.o$")
-
-    if not part1 then
-        return false
-    end
-
-    if GetArchitecture(part2) then
-        return part1:sub(-#ext - 1) == "." .. ext
-    else
-        return part2 == ext
-    end
-end
-
---  Templates
-
-local function sourceArchitecturalCode(_, dst)
-    local file, arch, src, res = parseObjectExtension(dst, false)
-
-    if arch then
-        src = _.ArchitecturesDirectory + arch.Name + "src" + Path(file):Skip(_.ObjectsDirectory)
-    else
-        src = _.CommonDirectory + "src" + Path(file):Skip(_.ObjectsDirectory)
-    end
-
-    if settMakeDeps then
-        res = ParseGccDependencies(dst, src, true) + List { dst:GetParent() }
-    else
-        res = List { src, dst:GetParent() }
-    end
-
-    if _.PrecompiledCppHeader then
-        res:Append(_.PrecompiledCppHeaderPath .. ".gch")
-    end
-
-    return res
-end
-
-local function sourceArchitecturalHeader(_, dst)
-    local file, src, res = parseObjectExtension(dst, true), nil
-    file = Path(file):Skip(_.PchDirectory)
-
-    for arch in _.selArch:Hierarchy() do
-        local pth = _.ArchitecturesDirectory + arch.Name + "inc" + file
-
-        if fs.GetInfo(pth) then
-            src = pth
-
-            break
-        end
-    end
-
-    if not src then
-        src = _.comp.Directory + "inc" + file
-    end
-
-    if settMakeDeps then
-        res = ParseGccDependencies(dst, src, true) + List { dst:GetParent() }
-    else
-        res = List { src, dst:GetParent() }
-    end
-
-    return res
-end
-
 local function gzipSingleFile(_, dst, src)
     local tmp = dst:TrimEnd(3)  --  3 = #".gz"
     fs.Copy(tmp, src[1])
     sh.silent(_.GZIP, "-f", "-9", tmp)
-end
-
-local function ArchitecturalComponent(name)
-    local comp = Component(name)({
-        Rule "Compile C" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "c", false) end,
-
-            Source = sourceArchitecturalCode,
-
-            Action = function(_, dst, src)
-                sh.silent(_.CC, _.Opts_C, "-x", "c", "-c", src[1], "-o", dst)
-            end,
-        },
-
-        Rule "Compile C++" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "cpp", false) end,
-
-            Source = sourceArchitecturalCode,
-
-            Action = function(_, dst, src)
-                sh.silent(_.CXX, _.Opts_CXX, "-x", "c++", "-c", src[1], "-o", dst)
-            end,
-        },
-
-        Rule "Assemble w/ NASM" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "asm", false) end,
-
-            Source = sourceArchitecturalCode,
-
-            Action = function(_, dst, src)
-                sh.silent(_.AS, _.Opts_NASM, src[1], "-o", dst)
-            end,
-        },
-
-        Rule "Assemble w/ GAS" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "S", false) end,
-
-            Source = sourceArchitecturalCode,
-
-            Action = function(_, dst, src)
-                sh.silent(_.GAS, _.Opts_GAS, "-x", "assembler-with-cpp", "-c", src[1], "-o", dst)
-            end,
-        },
-
-        Rule "Precompile C Header" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "h", true) end,
-
-            Source = sourceArchitecturalHeader,
-
-            Action = function(_, dst, src)
-                sh.silent(_.CC, _.Opts_C, "-x", "c-header", "-c", src[1], "-o", dst)
-            end,
-        },
-
-        Rule "Precompile C++ Header" {
-            Filter = function(_, dst) return checkObjectExtension(dst, "hpp", true) end,
-
-            Source = sourceArchitecturalHeader,
-
-            Action = function(_, dst, src)
-                sh.silent(_.CXX, _.Opts_CXX, "-x", "c++-header", "-c", src[1], "-o", dst)
-            end,
-        },
-
-        ExcuseMissingFilesRule { "h", "hpp", "inc", "hh" },
-    })
-
-    local data = {
-        CommonDirectory = function(_) return _.comp.Directory end,
-
-        ArchitecturesDirectory = function(_) return _.comp.Directory end,
-
-        IncludeDirectories = function(_)
-            local res = List { }
-
-            if _.PrecompiledCHeader or _.PrecompiledCppHeader then
-                res:Append(_.PchDirectory)
-            end
-
-            res:Append(_.comp.Directory + "inc")
-
-            for arch in _.selArch:Hierarchy() do
-                res:Append(_.ArchitecturesDirectory + arch.Name + "inc")
-            end
-
-            return res
-        end,
-
-        Opts_Includes_Base = function(_)
-            return _.IncludeDirectories:Select(function(val) return "-I" .. tostring(val) end)
-        end,
-
-        Opts_Includes_Nasm_Base = function(_)
-            return _.Opts_Includes_Base
-                :Select(function(dir) return dir .. "/" end)
-                :Append("-I" .. tostring(_.SysheadersPath) .. "/")
-        end,
-
-        Opts_Includes      = function(_) return _.Opts_Includes_Base      end,
-        Opts_Includes_Nasm = function(_) return _.Opts_Includes_Nasm_Base end,
-
-        Opts_Libraries = function(_)
-            return _.Libraries:Select(function(val)
-                return "-l" .. val
-            end)
-        end,
-
-        Libraries = List { },   --  Default to none.
-
-        ObjectsDirectory = function(_) return _.outDir + _.comp.Directory end,
-
-        Objects = function(_)
-            local comSrcDir = _.CommonDirectory + "src"
-
-            local objects = fs.ListDir(comSrcDir)
-                :Where(function(val) return val:EndsWith(".c", ".cpp", ".asm", ".S") end)
-                :Select(function(val)
-                    return _.ObjectsDirectory + val:Skip(comSrcDir) .. ".o"
-                end)
-
-            for arch in _.selArch:Hierarchy() do
-                local arcSrcDir = _.ArchitecturesDirectory + arch.Name + "src"
-                local suffix = "." .. arch.Name .. ".o"
-
-                if fs.GetInfo(arcSrcDir) then
-                    objects:AppendMany(fs.ListDir(arcSrcDir)
-                        :Where(function(val) return val:EndsWith(".c", ".cpp", ".asm", ".S") end)
-                        :Select(function(val)
-                            return _.ObjectsDirectory + val:Skip(arcSrcDir) .. suffix
-                        end))
-                end
-            end
-
-            return objects
-        end,
-
-        PchDirectory = function(_) return _.outDir + _.comp.Directory + ".pch" end,
-
-        PrecompiledCHeaderPath   = function(_) return _.PchDirectory + _.PrecompiledCHeader   end,
-        PrecompiledCppHeaderPath = function(_) return _.PchDirectory + _.PrecompiledCppHeader end,
-    }
-
-    return function(tab)
-        for k, v in pairs(tab) do
-            if k == "Data" then
-                for dk, dv in pairs(v) do
-                    data[dk] = dv
-                end
-
-                v = data
-            end
-
-            if type(k) == "string" then
-                comp[k] = v
-            end
-        end
-
-        for i = 1, #tab do
-            comp:AddMember(tab[i])
-        end
-
-        return comp
-    end
 end
 
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
@@ -940,8 +691,15 @@ Project "Beelzebub" {
         ExcuseMissingFilesRule { "h", "hpp", "inc", "hh" },
     },
 
-    ArchitecturalComponent "Common Library" {
+    ManagedComponent "Common Library" {
+        Languages = { "C", "C++", "GAS", "NASM", },
+        Target = "Static Library",
+        ExcuseHeaders = true,
+
         Data = {
+            SourcesSubdirectory     = "src",
+            HeadersSubdirectory     = "inc",
+
             Opts_GCC = function(_)
                 local res = List {
                     "-fvisibility=hidden",
@@ -957,9 +715,9 @@ Project "Beelzebub" {
                 return res
             end,
 
-            Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", "-O2", "-flto", } end,
+            Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", "-O0", "-flto", } end,
             Opts_CXX_CRT = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_CXX     = function(_) return _.Opts_CXX_CRT + List { "-O2", "-flto", } end,
+            Opts_CXX     = function(_) return _.Opts_CXX_CRT + List { "-O0", "-flto", } end,
             Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
             Opts_GAS_CRT = function(_) return _.Opts_GCC end,
             Opts_GAS     = function(_) return _.Opts_GAS_CRT + List { "-flto", } end,
@@ -972,16 +730,7 @@ Project "Beelzebub" {
         Dependencies = "System Headers",
 
         Output = function(_) return List { _.CommonLibraryPath } + _.CrtFiles end,
-
-        Rule "Archive Objects" {
-            Filter = function(_, dst) return _.CommonLibraryPath end,
-
-            Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
-
-            Action = function(_, dst, src)
-                sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
-            end,
-        },
+        --  First one is the output archive/binary for the ManagedComponent.
 
         Rule "C Runtime Objects" {
             Filter = function(_, dst) return _.CrtFiles:Contains(dst) end,
@@ -1014,15 +763,22 @@ Project "Beelzebub" {
         },
     },
 
-    ArchitecturalComponent "vAlloc - Kernel" {
+    ManagedComponent "vAlloc - Kernel" {
+        Languages = { "C++", },
+        Target = "Static Library",
+        ExcuseHeaders = true,
+
         Data = {
+            SourcesSubdirectory     = "src",
+            HeadersSubdirectory     = "inc",
+
             ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
 
             Opts_GCC = function(_)
                 local res = List {
                     "-fvisibility=hidden",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O2", "-flto",
+                    "-O0", "-flto",
                     "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
                 } + _.Opts_GCC_Common + _.Opts_Includes
                 + _.selArch.Data.Opts_GCC_Kernel
@@ -1034,10 +790,7 @@ Project "Beelzebub" {
                 return res
             end,
 
-            Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS     = function(_) return _.Opts_GCC end,
 
             Opts_AR = List { "rcs" },
         },
@@ -1045,16 +798,6 @@ Project "Beelzebub" {
         Directory = "libs/valloc",
 
         Output = function(_) return List { _.VallocKernelLibraryPath } end,
-
-        Rule "Archive Objects" {
-            Filter = function(_, dst) return _.VallocKernelLibraryPath end,
-
-            Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
-
-            Action = function(_, dst, src)
-                sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
-            end,
-        },
     },
 
     -- ArchitecturalComponent "Streamflow - Kernel" {
@@ -1149,16 +892,25 @@ Project "Beelzebub" {
     --     },
     -- },
 
-    ArchitecturalComponent "Runtime Library" {
+    ManagedComponent "Runtime Library" {
+        Languages = { "C", "C++", "GAS", "NASM", },
+        Target = "Dynamic Library",
+        ExcuseHeaders = true,
+
         Data = {
-            BinaryPath = function(_) return _.ObjectsDirectory + _.RuntimeLibraryPath:GetName() end,
+            SourcesSubdirectory     = "src",
+            HeadersSubdirectory     = "inc",
+
+            Opts_Includes_Nasm = function(_)
+                return _.Opts_Includes_Nasm_Base:Append("-I" .. tostring(_.SysheadersPath) .. "/")
+            end,
 
             Opts_GCC = function(_)
                 return List {
                     "-fvisibility=hidden", "-fPIC",
                     "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O3", "-flto",
+                    "-O0", "-flto",
                     "-D__BEELZEBUB_DYNAMIC_LIBRARY",
                 } + _.Opts_GCC_Common + _.Opts_Includes
             end,
@@ -1168,7 +920,8 @@ Project "Beelzebub" {
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
             Opts_GAS  = function(_) return _.Opts_GCC end,
 
-            Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
+            LD      = function(_) return _.LO end,
+            Opts_LD = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 
             Opts_STRIP = List { "-s" },
 
@@ -1183,6 +936,16 @@ Project "Beelzebub" {
 
                 return res;
             end,
+
+            BinaryPath = function(_) return _.ObjectsDirectory + _.RuntimeLibraryPath:GetName() end,
+
+            BinaryDependencies = function(_)
+                local res = List {
+                    _.CommonLibraryPath,
+                } + _.CrtFiles
+
+                return res
+            end,
         },
 
         Directory = "libs/runtime",
@@ -1190,19 +953,6 @@ Project "Beelzebub" {
         Dependencies = "System Headers",
 
         Output = function(_) return _.RuntimeLibraryPath end,
-
-        Rule "Link-Optimize Binary" {
-            Filter = function(_, dst) return _.BinaryPath end,
-
-            Source = function(_, dst)
-                return _.Objects + _.CrtFiles
-                    + List { _.CommonLibraryPath, dst:GetParent() }
-            end,
-
-            Action = function(_, dst, src)
-                sh.silent(_.LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
-            end,
-        },
 
         Rule "Strip Binary" {
             Filter = function(_, dst) return _.RuntimeLibraryPath end,
@@ -1217,28 +967,30 @@ Project "Beelzebub" {
         },
     },
 
-    ArchitecturalComponent "Kernel Module Library" {
-        Data = {
-            BinaryPath = function(_) return _.ObjectsDirectory + _.KernelModuleLibraryPath:GetName() end,
+    ManagedComponent "Kernel Module Library" {
+        Languages = { "C++", },
+        Target = "Dynamic Library",
+        ExcuseHeaders = true,
 
+        Data = {
             Opts_GCC = function(_)
                 return List {
                     "-fvisibility=hidden", "-fPIC",
                     "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O2", "-flto",
+                    "-O0", "-flto",
                     "-D__BEELZEBUB_DYNAMIC_LIBRARY",
                 } + _.Opts_GCC_Common + _.Opts_Includes
             end,
 
-            Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
 
-            Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
+            LD      = function(_) return _.LO end,
+            Opts_LD = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 
             Opts_STRIP = List { "-s" },
+
+            BinaryPath = function(_) return _.ObjectsDirectory + _.KernelModuleLibraryPath:GetName() end,
         },
 
         Directory = "libs/kmod",
@@ -1246,16 +998,6 @@ Project "Beelzebub" {
         Dependencies = "System Headers",
 
         Output = function(_) return _.KernelModuleLibraryPath end,
-
-        Rule "Link-Optimize Binary" {
-            Filter = function(_, dst) return _.BinaryPath end,
-
-            Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
-
-            Action = function(_, dst, src)
-                sh.silent(_.LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
-            end,
-        },
 
         Rule "Strip Binary" {
             Filter = function(_, dst) return _.KernelModuleLibraryPath end,
@@ -1270,27 +1012,37 @@ Project "Beelzebub" {
         },
     },
 
-    ArchitecturalComponent "Loadtest Application" {
-        Data = {
-            BinaryPath = function(_) return _.ObjectsDirectory + _.LoadtestAppPath:GetName() end,
+    ManagedComponent "Loadtest Application" {
+        Languages = { "C++", },
+        Target = "Executable",
+        ExcuseHeaders = true,
 
+        Data = {
             Opts_GCC = function(_)
                 return List {
                     "-fvisibility=hidden",
                     "-Wall", "-Wsystem-headers",
-                    "-O2", "-flto",
+                    "-O0", "-flto",
                     "-D__BEELZEBUB_APPLICATION",
                 } + _.Opts_GCC_Common + _.Opts_Includes
             end,
 
-            Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
 
-            Opts_LO = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } + _.Opts_GCC end,
+            LD      = function(_) return _.LO end,
+            Opts_LD = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } + _.Opts_GCC end,
 
             Opts_STRIP = List { "-s" },
+
+            BinaryPath = function(_) return _.ObjectsDirectory + _.LoadtestAppPath:GetName() end,
+
+            BinaryDependencies = function(_)
+                local res = List {
+                    _.RuntimeLibraryPath,
+                }
+
+                return res
+            end,
         },
 
         Directory = "apps/loadtest",
@@ -1298,19 +1050,6 @@ Project "Beelzebub" {
         Dependencies = "System Headers",
 
         Output = function(_) return _.LoadtestAppPath end,
-
-        Rule "Link-optimize Binary" {
-            Filter = function(_, dst) return _.BinaryPath end,
-
-            Source = function(_, dst)
-                return _.Objects
-                    + List { _.RuntimeLibraryPath, dst:GetParent() }
-            end,
-
-            Action = function(_, dst, src)
-                sh.silent(_.LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
-            end,
-        },
 
         Rule "Strip Binary" {
             Filter = function(_, dst) return _.LoadtestAppPath end,
@@ -1325,21 +1064,27 @@ Project "Beelzebub" {
         },
     },
 
-    ArchitecturalComponent "Kernel" {
-        Data = {
-            ArchitecturesDirectory = function(_) return _.comp.Directory + "arc" end,
-            BinaryPath             = function(_) return _.ObjectsDirectory + _.KernelPath:GetName() end,
-            LinkerScript           = function(_) return _.ArchitecturesDirectory + _.selArch.Name + "link.ld" end,
+    ManagedComponent "Kernel" {
+        Languages = { "C", "C++", "GAS", "NASM", },
+        Target = "Executable",
+        ExcuseHeaders = true,
 
-            PrecompiledCppHeader = "common.hpp",
+        Data = {
+            ArchitecturesDirectory  = function(_) return _.comp.Directory + "arc" end,
+            SourcesSubdirectory     = "src",
+            HeadersSubdirectory     = "inc",
 
             Opts_Includes = function(_) return List { "-Iacpica/include", } + _.Opts_Includes_Base end,
+
+            Opts_Includes_Nasm = function(_)
+                return _.Opts_Includes_Nasm_Base:Append("-I" .. tostring(_.SysheadersPath) .. "/")
+            end,
 
             Opts_GCC = function(_)
                 local res = List {
                     "-fvisibility=hidden", "-fno-PIE", "-fno-PIC",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O2", "-flto",
+                    "-O0", "-flto",
                     "-D__BEELZEBUB_KERNEL",
                 } + _.Opts_GCC_Common + _.Opts_Includes
                 + _.selArch.Data.Opts_GCC_Kernel
@@ -1356,7 +1101,8 @@ Project "Beelzebub" {
             Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
             Opts_GAS  = function(_) return _.Opts_GCC end,
 
-            Opts_LO = function(_) return _.Opts_GCC + List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } end,
+            LD      = function(_) return _.LO end,
+            Opts_LD = function(_) return _.Opts_GCC + List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } end,
 
             Opts_STRIP = List { "-s", "-K", "jegudiel_header" },
 
@@ -1371,6 +1117,23 @@ Project "Beelzebub" {
 
                 return res;
             end,
+
+            BinaryPath              = function(_) return _.ObjectsDirectory + _.KernelPath:GetName() end,
+            LinkerScript            = function(_) return _.ArchitecturesDirectory + _.selArch.Name + "link.ld" end,
+
+            PrecompiledCppHeader = "common.hpp",
+
+            BinaryDependencies = function(_)
+                local res = List {
+                    _.CommonLibraryPath,
+                }
+
+                if settKrnDynAlloc ~= "NONE" then
+                    res:Append(_.KernelDynamicAllocatorPath)
+                end
+
+                return res
+            end,
         },
 
         Directory = "beelzebub",
@@ -1378,29 +1141,6 @@ Project "Beelzebub" {
         Dependencies = "System Headers",
 
         Output = function(_) return _.KernelPath end,
-
-        Rule "Link-Optimize Binary" {
-            Filter = function(_, dst) return _.BinaryPath end,
-
-            Source = function(_, dst)
-                local res = _.Objects
-                    + List {
-                        _.LinkerScript,
-                        _.CommonLibraryPath,
-                        dst:GetParent(),
-                    }
-
-                if settKrnDynAlloc ~= "NONE" then
-                    res:Append(_.KernelDynamicAllocatorPath)
-                end
-
-                return res;
-            end,
-
-            Action = function(_, dst, src)
-                sh.silent(_.LO, _.Opts_LO, "-T", _.LinkerScript, "-o", dst, _.Objects, _.Opts_Libraries)
-            end,
-        },
 
         Rule "Strip Binary" {
             Filter = function(_, dst) return _.KernelPath end,
@@ -1415,15 +1155,17 @@ Project "Beelzebub" {
         },
     },
 
-    ArchitecturalComponent "Test Kernel Module" {
-        Data = {
-            BinaryPath = function(_) return _.ObjectsDirectory + _.TestKernelModulePath:GetName() end,
+    ManagedComponent "Test Kernel Module" {
+        Languages = { "C++", },
+        Target = "Dynamic Library",
+        ExcuseHeaders = true,
 
+        Data = {
             Opts_GCC = function(_)
                 local res = List {
                     "-fvisibility=hidden", "-fPIC",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O2", "-flto",
+                    "-O0", "-flto",
                     "-D__BEELZEBUB_KERNEL_MODULE",
                 } + _.Opts_GCC_Common + _.Opts_Includes
                 + _.selArch.Data.Opts_GCC_Kernel
@@ -1431,16 +1173,24 @@ Project "Beelzebub" {
                 return res
             end,
 
-            Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
             Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
 
-            Opts_LO = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
+            LD      = function(_) return _.LO end,
+            Opts_LD = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
 
             Opts_STRIP = List { "-s" },
 
             Libraries = function(_) return List { "beelzebub.kmod", } end,
+
+            BinaryPath = function(_) return _.ObjectsDirectory + _.TestKernelModulePath:GetName() end,
+
+            BinaryDependencies = function(_)
+                local res = List {
+                    _.KernelModuleLibraryPath,
+                }
+
+                return res
+            end,
         },
 
         Directory = "kmods/test",
@@ -1448,19 +1198,6 @@ Project "Beelzebub" {
         Dependencies = "System Headers",
 
         Output = function(_) return _.TestKernelModulePath end,
-
-        Rule "Link-Optimize Binary" {
-            Filter = function(_, dst) return _.BinaryPath end,
-
-            Source = function(_, dst)
-                return _.Objects + _.CrtFiles
-                    + List { _.KernelModuleLibraryPath, dst:GetParent() }
-            end,
-
-            Action = function(_, dst, src)
-                sh.silent(_.LO, _.Opts_LO, "-o", dst, _.Objects, _.Opts_Libraries)
-            end,
-        },
 
         Rule "Strip Binary" {
             Filter = function(_, dst) return _.TestKernelModulePath end,

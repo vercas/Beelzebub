@@ -611,6 +611,8 @@ void Beelzebub::Main()
     DEBUG_TERM << "Boot time: " << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
         << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds << EndLine;
 
+    // MSG("Stack pointer in Beelzebub::Main is %Xp.%n", GetCurrentStackPointer());
+
     MainParseKernelArguments();
     MainInitializeInterrupts();
     MainInitializePhysicalMemory();
@@ -701,6 +703,8 @@ void Beelzebub::Main()
     Scheduling = true;
 
     Interrupts::Enable();
+
+    // MSG_("Stack pointer in Beelzebub::Main post init is %Xp.%n", GetCurrentStackPointer());
 
 #ifdef __BEELZEBUB__TEST_METAP
     if (CHECK_TEST(METAP))

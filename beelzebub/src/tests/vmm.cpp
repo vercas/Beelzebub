@@ -44,7 +44,7 @@
 #include "cores.hpp"
 #include "kernel.hpp"
 #include "watchdog.hpp"
-// #include "system/debug.registers.hpp"
+#include "system/debug.registers.hpp"
 #include <new>
 
 #include <beel/sync/smp.lock.hpp>
@@ -52,6 +52,7 @@
 #include <debug.hpp>
 
 #define PRINT
+// #define CROSS_INTEGRITY_TEST_ENABLE
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
@@ -59,8 +60,10 @@ using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
 Barrier VmmTestBarrier;
+// static Barrier VmmCrossTestBarrier;
 
 #define SYNC VmmTestBarrier.Reach()
+// #define CROSS_SYNC VmmCrossTestBarrier.Reach()
 
 static SmpLock DeleteLock {};
 
@@ -75,8 +78,15 @@ static Atomic<size_t> RandomerCounter {0};
 #endif
 //  There is no space on the stack for this one.
 
-static void TestVmmIntegrity(bool const bsp);
-// static __hot __realign_stack void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties bp);
+#ifdef CROSS_INTEGRITY_TEST_ENABLE
+// static Atomic<int> CrossEntry;
+static Atomic<uint32_t *> CrossTestRegion;
+
+static __solid void TestVmmCrossIntegrity(bool const bsp);
+#endif
+
+static __solid void TestVmmIntegrity(bool const bsp);
+static __hot void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties & bp);
 
 void TestVmm(bool const bsp)
 {
@@ -397,10 +407,47 @@ void TestVmm(bool const bsp)
 
     delPtr(dummy);
 
-    // SYNC;
+#ifdef CROSS_INTEGRITY_TEST_ENABLE
+    SYNC;
 
-    // if (bsp)
-    //     DEBUG_TERM_ << &(Memory::Vmm::KVas);
+    if (Cores::GetCount() > 1)
+    {
+        if (bsp)
+        {
+            // VmmCrossTestBarrier.Reset(2);
+
+            // CrossEntry.Store(0);
+
+    #ifdef PRINT
+            MSG_("Cross integrity test.%n");
+    #endif
+        }
+
+        SYNC;
+
+        // int blergh = 0;
+
+        if (bsp)
+            TestVmmCrossIntegrity(true);
+        else //if (CrossEntry.CmpXchgStrong(blergh, 1))
+            TestVmmCrossIntegrity(false);
+
+        //  Yes, exactly two cores will execute that function.
+    }
+    #ifdef PRINT
+    else
+        MSG_("Skipping VMM cross integrity test.%n");
+    #endif
+#endif
+
+    SYNC;
+
+    if (bsp)
+    {
+        // DEBUG_TERM_ << &(Memory::Vmm::KVas);
+
+        MSG_("VMM integrity test.%n");
+    }
 
     SYNC;
 
@@ -425,15 +472,20 @@ void TestVmm(bool const bsp)
 
 #include "memory/pmm.hpp"
 
-static constexpr size_t const TestCount = 10'000, IterationCount = 10'000;
+static constexpr size_t const TestCount = 10'000, CrossTestCount = 200, IterationCount = 10'000;
 
 static constexpr uint32_t const TestSize = 2048; //  Should make 8 KiB of stack/thread-local/global space.
 
 static constexpr uint32_t const HashStart = 2166136251;
 static constexpr uint32_t const HashStep = 16707613;
 
-void TestVmmIntegrity(bool const bsp)
+static __thread uint32_t ExpectedTop;
+
+#ifdef CROSS_INTEGRITY_TEST_ENABLE
+void TestVmmCrossIntegrity(bool const bsp)
 {
+    // MSG_("Stack pointer in TestVmmIntegrity is %Xp.%n", GetCurrentStackPointer());
+
     auto getPtr = []()
     {
         vaddr_t testptr = nullpaddr;
@@ -449,6 +501,9 @@ void TestVmmIntegrity(bool const bsp)
         ASSERTX(testptr >= Vmm::KernelStart
             , "Returned address (%Xp) is not in the kernel heap..?", testptr)XEND;
 
+        // System::DebugRegisters::AddBreakpoint(reinterpret_cast<uint32_t *>(testptr) + TestSize - 1
+        //     , 4, true, System::BreakpointCondition::DataWrite, &DumpStack);
+
         return reinterpret_cast<uint32_t *>(testptr);
     };
 
@@ -457,6 +512,168 @@ void TestVmmIntegrity(bool const bsp)
         Handle res = Vmm::FreePages(nullptr, reinterpret_cast<vaddr_t>(vaddr), RoundUp(TestSize * sizeof(uint32_t), PageSize));
 
         ASSERTX(res == HandleResult::Okay)(res)XEND;
+
+        // System::DebugRegisters::RemoveBreakpoint(vaddr + TestSize - 1);
+    };
+
+    if (bsp)
+        CrossTestRegion.Store(nullptr);
+
+    // CROSS_SYNC;
+    SYNC;
+
+    uint32_t HashValue, OldHashValue;
+    uint32_t GlobalSeed = 1;
+
+// #ifdef PRINT
+//     if (bsp)
+//         MSG_("Hashing. KVas root is at offset %us.%n"
+//             , reinterpret_cast<size_t>(&(Vmm::KVas.Tree.Root)) - reinterpret_cast<size_t>(&(Vmm::KVas)));
+
+//     SYNC;
+// #endif
+
+    for (size_t test = CrossTestCount; test > 0; --test)
+    {
+        uint32_t * testRegion;
+
+        if (bsp)
+            for (size_t i = Cores::GetCount(); i > 1; --i)
+            {
+                CrossTestRegion.Store(getPtr());
+
+                if (i > 2)
+                    while (CrossTestRegion.Load() != nullptr)
+                        DO_NOTHING();
+                //  Meh.
+            }
+        else
+            while ((testRegion = CrossTestRegion.Xchg(nullptr)) == nullptr)
+                DO_NOTHING();
+
+        // CROSS_SYNC;
+        SYNC;
+
+        if (!bsp)
+            for (size_t iteration = IterationCount; iteration > 0; --iteration)
+            {
+                HashValue = HashStart;
+
+                // MSG_("# Write #");
+
+                for (int i = TestSize - 1; i >= 0; --i)
+                {
+                    HashValue ^= GlobalSeed + i;
+                    HashValue *= HashStep;
+
+                    // if unlikely(i == TestSize - 1)
+                    //     ExpectedTop = HashValue;
+
+                    testRegion[i] = HashValue;
+                }
+
+                OldHashValue = HashValue = HashStart;
+
+                // MSG_("# Read #");
+
+                for (int i = TestSize - 1; i >= 0; --i)
+                {
+                    HashValue ^= GlobalSeed + i;
+                    HashValue *= HashStep;
+
+                    ASSERTX((OldHashValue ^ (GlobalSeed + i)) * HashStep == HashValue)
+                        (OldHashValue)(GlobalSeed)(i)(HashStep)(HashValue)
+                        (GlobalSeed + i)(OldHashValue ^ (GlobalSeed + i))
+                        ((OldHashValue ^ (GlobalSeed + i)) * HashStep)XEND;
+
+                    if unlikely(testRegion[i] != HashValue)
+                    {
+                        paddr_t paddr;
+                        FrameSize size;
+                        uint32_t refCnt;
+
+                        Handle res = Vmm::Translate(nullptr, reinterpret_cast<uintptr_t>(testRegion + i), paddr);
+
+                        if unlikely(res != HandleResult::Okay)
+                            MSG_("Failed to translate address of faulty slot %Xp: %H%n", testRegion + i, res);
+                        else
+                            res = Pmm::GetFrameInfo(paddr, size, refCnt);
+
+                        ASSERTX(testRegion[i] == HashValue
+                            , "AoD value corrupted! Expected %X4, got %X4."
+                            , HashValue, testRegion[i])
+                            (i)("address", (void *)&(testRegion[i]))(test)(iteration)
+                            (paddr)(res)(size)(refCnt)XEND;
+                    }
+
+                    OldHashValue = HashValue;
+                }
+
+                GlobalSeed += TestSize;
+            }
+
+        // CROSS_SYNC;
+        SYNC;
+
+        // if (!bsp)
+        //     delPtr(testRegion);
+
+        if (bsp)
+            for (size_t i = Cores::GetCount(); i > 1; --i)
+            {
+                while (CrossTestRegion.Load() == nullptr)
+                    DO_NOTHING();
+
+                delPtr(CrossTestRegion.Xchg(nullptr));
+            }
+        else
+        {
+            uint32_t * old;
+
+            do old = nullptr; while (!CrossTestRegion.CmpXchgStrong(old, testRegion));
+        }
+
+        // CROSS_SYNC;
+        SYNC;
+
+        if (bsp && test % 20 == 0)
+            MSG("%us... ", test);
+    }
+}
+#endif
+
+void TestVmmIntegrity(bool const bsp)
+{
+    // MSG_("Stack pointer in TestVmmIntegrity is %Xp.%n", GetCurrentStackPointer());
+
+    auto getPtr = []()
+    {
+        vaddr_t testptr = nullpaddr;
+
+        Handle res = Vmm::AllocatePages(nullptr
+            , RoundUp(TestSize * sizeof(uint32_t), PageSize)
+            , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualKernelHeap
+            , MemoryFlags::Global | MemoryFlags::Writable
+            , MemoryContent::Generic
+            , testptr);
+
+        ASSERTX(res == HandleResult::Okay)(res)XEND;
+        ASSERTX(testptr >= Vmm::KernelStart
+            , "Returned address (%Xp) is not in the kernel heap..?", testptr)XEND;
+
+        // System::DebugRegisters::AddBreakpoint(reinterpret_cast<uint32_t *>(testptr) + TestSize - 1
+        //     , 4, true, System::BreakpointCondition::DataWrite, &DumpStack);
+
+        return reinterpret_cast<uint32_t *>(testptr);
+    };
+
+    auto delPtr = [](uint32_t * vaddr)
+    {
+        Handle res = Vmm::FreePages(nullptr, reinterpret_cast<vaddr_t>(vaddr), RoundUp(TestSize * sizeof(uint32_t), PageSize));
+
+        ASSERTX(res == HandleResult::Okay)(res)XEND;
+
+        // System::DebugRegisters::RemoveBreakpoint(vaddr + TestSize - 1);
     };
 
     uint32_t HashValue, OldHashValue;
@@ -478,15 +695,22 @@ void TestVmmIntegrity(bool const bsp)
         {
             HashValue = HashStart;
 
+            // MSG_("# Write #");
+
             for (int i = TestSize - 1; i >= 0; --i)
             {
                 HashValue ^= GlobalSeed + i;
                 HashValue *= HashStep;
 
+                // if unlikely(i == TestSize - 1)
+                //     ExpectedTop = HashValue;
+
                 testRegion[i] = HashValue;
             }
 
             OldHashValue = HashValue = HashStart;
+
+            // MSG_("# Read #");
 
             for (int i = TestSize - 1; i >= 0; --i)
             {
@@ -525,70 +749,78 @@ void TestVmmIntegrity(bool const bsp)
         }
 
         delPtr(testRegion);
+
+        // if (test % 100 == 0)
+        //     MSG_("%us:%us... ", Cpu::GetData()->Index, test);
     }
 }
 
-// #include "utils/stack_walk.hpp"
-// #include "_print/isr.hpp"
+#include "utils/stack_walk.hpp"
+#include "_print/isr.hpp"
 
-// void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties bp)
-// {
-//     void * val = *reinterpret_cast<void * *>(address);
+void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties & bp)
+{
+    (void)bp;
 
-//     MSG_("Kernel VAS root node changed to %Xp.%n", val);
+    uint32_t val = *reinterpret_cast<uint32_t *>(address);
 
-//     if (IS_CANONICAL(val))
-//         goto end;
+    if (val == ExpectedTop)
+    {
+        // MSG_("@ Value is as expected: %X4 @", val);
 
-//     withLock (Debug::MsgSpinlock)
-//     {
-//         DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
+        goto end;
+    }
 
-//         MSG("Breakpoint Address: %Xp%n", address);
-//         MSG("Value at Address: %Xp%n", val);
+    withLock (Debug::MsgSpinlock)
+    {
+        DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
 
-//         PrintToDebugTerminal(state);
+        MSG("Breakpoint Address: %Xp%n", address);
+        MSG("Value at Address: %X4%n", val);
+        MSG("Expected: %X4%n", ExpectedTop);
 
-//         uintptr_t stackPtr = state->RSP;
-//         uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+        PrintToDebugTerminal(state);
 
-//         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
-//         {
-//             MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
-//                 , sizeof(size_t), stackPtr);
+        uintptr_t stackPtr = state->RSP;
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
 
-//             stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
-//         }
+        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+        {
+            MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
+                , sizeof(size_t), stackPtr);
 
-//         bool odd;
-//         for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
-//         {
-//             MSG("%X2|%Xp|%Xs|%s"
-//                 , (uint16_t)(stackPtr - state->RSP)
-//                 , stackPtr
-//                 , *((size_t const *)stackPtr)
-//                 , odd ? "\r\n" : "\t");
-//         }
+            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+        }
 
-//         if (odd) MSG("%n");
+        bool odd;
+        for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+        {
+            MSG("%X2|%Xp|%Xs|%s"
+                , (uint16_t)(stackPtr - state->RSP)
+                , stackPtr
+                , *((size_t const *)stackPtr)
+                , odd ? "\r\n" : "\t");
+        }
 
-//         Utils::StackFrame stackFrame;
+        if (odd) MSG("%n");
 
-//         if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
-//         {
-//             do
-//             {
-//                 MSG("[Func %Xp; Stack top %Xp + %us]%n"
-//                     , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+        Utils::StackFrame stackFrame;
 
-//             } while (stackFrame.LoadNext());
-//         }
+        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+        {
+            do
+            {
+                MSG("[Func %Xp; Stack top %Xp + %us]%n"
+                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
 
-//         DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
-//     }
+            } while (stackFrame.LoadNext());
+        }
 
-// end:
-//     END_OF_INTERRUPT();
-// }
+        DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
+    }
+
+end:
+    END_OF_INTERRUPT();
+}
 
 #endif

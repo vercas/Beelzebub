@@ -37,20 +37,21 @@
     thorough explanation regarding other files.
 */
 
-#include <system/exceptions.hpp>
-#include <memory/vmm.hpp>
-#include <memory/vmm.arc.hpp>
-#include <system/cpu.hpp>
-#include <system/fpu.hpp>
-#include <kernel.hpp>
-#include <entry.h>
-#include <system/serial_ports.hpp>
-#include <execution/extended_states.hpp>
+#include "system/exceptions.hpp"
+#include "memory/vmm.hpp"
+#include "memory/vmm.arc.hpp"
+#include "system/cpu.hpp"
+#include "system/fpu.hpp"
+#include "kernel.hpp"
+#include "cores.hpp"
+#include "entry.h"
+#include "system/serial_ports.hpp"
+#include "execution/extended_states.hpp"
 
-#include <_print/paging.hpp>
-#include <_print/isr.hpp>
+#include "_print/paging.hpp"
+#include "_print/isr.hpp"
 
-#include <utils/stack_walk.hpp>
+#include "utils/stack_walk.hpp"
 
 #include <math.h>
 #include <debug.hpp>
@@ -300,6 +301,10 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
     vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
     auto pff = (PageFaultFlags)(state->ErrorCode);
+
+    Cores::AssertCoreRegistration();
+
+    // MSG_("! Page fault at %Xp: %X1; RIP %Xp !", CR2, pff, INSTRUCTION_POINTER);
 
     // CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
 

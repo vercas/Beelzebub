@@ -51,8 +51,10 @@ using namespace Beelzebub::Debug;
 using namespace Beelzebub::Memory;
 using namespace Valloc;
 
-static __hot __realign_stack void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties bp)
+static __hot void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties & bp)
 {
+    (void)bp;
+
     size_t val = *reinterpret_cast<size_t *>(address);
 
     if (val == (2 << 20))

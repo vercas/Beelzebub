@@ -64,15 +64,48 @@ typedef __uint128_t uint128_t;
     Miscellaneous Assistance
 *******************************/
 
-#define _GAS_DATA_POINTER " .quad "
+#ifndef __BEELZEBUB__SOURCE_GAS
+    #define _GAS_DATA_POINTER " .quad "
 
-#undef EXTEND_POINTER
-#define EXTEND_POINTER(ptr) do {                \
-    if (0 != ((ptr) & 0x0000800000000000UL))    \
-        ptr |= 0xFFFF000000000000UL;            \
-} while (false)
+    #undef EXTEND_POINTER
+    #define EXTEND_POINTER(ptr) __extension__ ({    \
+        (0 != ((ptr) & 0x0000800000000000UL))       \
+            ? (ptr) |= 0xFFFF000000000000UL         \
+            : (ptr);                                \
+    })
 
-#define IS_CANONICAL(ptr) ((uint16_t)((reinterpret_cast<uintptr_t>(ptr) >> 48) + 1) <= 1)
+    #undef GET_EXTENDED_POINTER
+    #define GET_EXTENDED_POINTER(ptr) __extension__ ({                              \
+        uintptr_t const LINEVAR(__tmp_ptr) = REINTERPRET_CAST(uintptr_t, (ptr));    \
+        (0 != (LINEVAR(__tmp_ptr) & 0x0000800000000000UL))                          \
+            ? LINEVAR(__tmp_ptr) | 0xFFFF000000000000UL                             \
+            : LINEVAR( __tmp_ptr);                                                  \
+    })
+
+    #define IS_CANONICAL(ptr) ((uint16_t)((REINTERPRET_CAST(uintptr_t, (ptr)) >> 48) + 1) <= 1)
+
+    #define GET_CURRENT_STACK_POINTER() __extension__ ({                                \
+        uintptr_t LINEVAR(__tmp_stk_ptr);                                               \
+        asm volatile ("movq %%rsp, %[res] \n\t" : [res]"=rm"(LINEVAR(__tmp_stk_ptr)));  \
+        LINEVAR(__tmp_stk_ptr);                                                         \
+    })
+#endif
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+    namespace Beelzebub
+    {
+        template<typename T>
+        static __forceinline uintptr_t GetExtendedPointer(T const ptr)
+        {
+            return GET_EXTENDED_POINTER(ptr);
+        }
+
+        static __forceinline uintptr_t GetCurrentStackPointer()
+        {
+            return GET_CURRENT_STACK_POINTER();
+        }
+    }
+#endif
 
 /***************************
     Structure Assistance

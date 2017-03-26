@@ -72,6 +72,10 @@ namespace Beelzebub
 
         static __startup void Register();
 
+#ifdef __BEELZEBUB__CONF_DEBUG
+        static void AssertCoreRegistration();
+#endif
+
         /*  Properties  */
 
         static __hot __forceinline size_t GetCount()

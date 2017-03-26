@@ -46,6 +46,8 @@
 #include <math.h>
 #include <string.h>
 
+#include <debug.hpp>
+
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
@@ -200,6 +202,26 @@ void Cores::Register()
     #endif
     }
 }
+
+#ifdef __BEELZEBUB__CONF_DEBUG
+void Cores::AssertCoreRegistration()
+{
+    uint64_t const addr = Msrs::Read(Msr::IA32_GS_BASE).Qword;
+
+    ASSERT((addr - DatasBase) % DataSize == TlsSize, "Misaligned core data!")
+        ("address", Terminals::Hexadecimal, addr)
+        (DatasBase)(DataSize)(TlsSize)
+        ("actual", (addr - DatasBase) % DataSize);
+
+    ASSERT(addr >= DatasBase, "Core data before base address!")
+        ("address", Terminals::Hexadecimal, addr)
+        (DatasBase);
+
+    ASSERT(addr < (DatasBase + (GetCount() * DataSize)), "Core data beyond end!")
+        ("address", Terminals::Hexadecimal, addr)
+        ("end", DatasBase + (GetCount() * DataSize));
+}
+#endif
 
 CpuData * Cores::Get(size_t const index)
 {

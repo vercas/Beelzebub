@@ -52,43 +52,51 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
-static SmpLock DataDumpLock;
+#if defined(__BEELZEBUB_SETTINGS_SMP)
+static Atomic<bool> DeathCanary {false};
 
 static __cold void Killer(void * cookie)
 {
     (void)cookie;
 
-    DEBUG_TERM_ << "Core " << Cpu::GetData()->Index << " was ordered to catch fire." << EndLine;
+    DEBUG_TERM_ << "Core " << Decimal << Cpu::GetData()->Index << " was ordered to catch fire." << EndLine;
 
-#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-    withLock (DataDumpLock)
+    #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+    withLock (MsgSpinlock)
     {
         DEBUG_TERM << "-------------------- vAlloc on core " << Cpu::GetData()->Index << " --------------------" << EndLine;
 
         Valloc::DumpMyState();
     }
-#endif
+    #endif
 
     //  Allow the CPU to rest. Interrupts are already disabled.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 }
+#endif
 
 static __cold __noreturn void Die()
 {
-    Interrupts::Disable();
-
-    DEBUG_TERM_ << "Core " << Cpu::GetData()->Index << " is setting the system on fire." << EndLine;
-
 #if defined(__BEELZEBUB_SETTINGS_SMP)
+    if (DeathCanary.Xchg(true))
+        while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+    //  If the system was killed already, just do nothing.
+
+    DEBUG_TERM_ << "Core " << Decimal << Cpu::GetData()->Index << " is setting the system on fire." << EndLine;
+
     if unlikely(Cores::IsReady())
     {
         ALLOCATE_MAIL_BROADCAST(mail, &Killer);
-        mail.Post(false, [](void * cookie)
+        mail.SetNonMaskable(true).Post(false, [](void * cookie)
         {
             (void)cookie;
 
+#else
+    DEBUG_TERM_ << "System is set on fire." << EndLine;
+#endif
+
 #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-            withLock (DataDumpLock)
+            withLock (MsgSpinlock)
             {
                 DEBUG_TERM << "-------------------- vAlloc on core " << Cpu::GetData()->Index << " --------------------" << EndLine;
 
@@ -96,7 +104,7 @@ static __cold __noreturn void Die()
             }
 #endif
 
-            withLock (DataDumpLock)
+            withLock (MsgSpinlock)
             {
                 DEBUG_TERM   << "-------------------- KVAS --------------------" << EndLine
                              << "Root node: " << (void *)(Memory::Vmm::KVas.Tree.Root) << EndLine
@@ -106,6 +114,7 @@ static __cold __noreturn void Die()
 
             //  Allow the CPU to rest.
             while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
+#if defined(__BEELZEBUB_SETTINGS_SMP)
         });
     }
 #endif
@@ -179,7 +188,15 @@ void Debug::CatchFireV(char const * const file
 bool AssertHelper::RealityCheck()
 {
     if (this->State++ == 0)
+    {
+        (void)MsgSpinlock.Acquire();
+        //  The returned cookie is explicitly discarded!
+
         return true;
+    }
+
+    MsgSpinlock.SimplyRelease();
+    //  Interrupt state is **not restored**!
 
     Die();
 

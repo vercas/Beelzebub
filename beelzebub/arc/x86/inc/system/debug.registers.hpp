@@ -65,7 +65,7 @@ namespace Beelzebub { namespace System
         inline bool IsEnabled() const { return this->Global || this->Local; }
     };
 
-    typedef void (*BreakpointFunction)(INTERRUPT_HANDLER_ARGS_FULL, void * address, BreakpointProperties bp);
+    typedef void (*BreakpointFunction)(INTERRUPT_HANDLER_ARGS_FULL, void * address, BreakpointProperties & bp);
 
     /**
      *  <summary>Represents an abstraction of the system's debug registers.</summary>

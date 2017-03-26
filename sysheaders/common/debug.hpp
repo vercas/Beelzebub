@@ -159,7 +159,7 @@ namespace Beelzebub { namespace Debug
                                  , char const * fmt, ...);
 
         template<typename T>
-        inline AssertHelper & DumpParameter(char const * name, T const val)
+        inline AssertHelper & DumpParameter(char const * name, T const val, Terminals::TerminalModifier mod = nullptr)
         {
             if unlikely(!this->WroteParameters)
             {
@@ -168,7 +168,12 @@ namespace Beelzebub { namespace Debug
                 this->WroteParameters = true;
             }
 
-            this->Term << '\t' << name << ": " << val << Terminals::EndLine;
+            this->Term << '\t' << name << ": ";
+
+            if (mod != nullptr)
+                this->Term << mod;
+
+            this->Term << val << Terminals::EndLine;
 
             return *this;
         }
@@ -194,14 +199,17 @@ namespace Beelzebub { namespace Debug
 #define AssertHelperAlpha_1(x) AssertHelperAlpha_2(#x, x)
 #define AssertHelperBeta_1(x) AssertHelperBeta_2(#x, x)
 
-#define AssertHelperAlpha_2(name, x) AssertHelperOmega(Beta, name, x)
-#define AssertHelperBeta_2(name, x) AssertHelperOmega(Alpha, name, x)
+#define AssertHelperAlpha_2(name, x) AssertHelperOmega(Beta, name, x, nullptr)
+#define AssertHelperBeta_2(name, x) AssertHelperOmega(Alpha, name, x, nullptr)
 
-#define AssertHelperAlpha(...) GET_MACRO2(__VA_ARGS__, AssertHelperAlpha_2, AssertHelperAlpha_1)(__VA_ARGS__)
-#define AssertHelperBeta(...)  GET_MACRO2(__VA_ARGS__, AssertHelperBeta_2 , AssertHelperBeta_1 )(__VA_ARGS__)
+#define AssertHelperAlpha_3(name, mod, x) AssertHelperOmega(Beta, name, x, mod)
+#define AssertHelperBeta_3(name, mod, x) AssertHelperOmega(Alpha, name, x, mod)
 
-#define AssertHelperOmega(next, name, x) \
-    AssertHelperAlpha.DumpParameter(name, (x)).AssertHelper##next
+#define AssertHelperAlpha(...) GET_MACRO3(__VA_ARGS__, AssertHelperAlpha_3, AssertHelperAlpha_2, AssertHelperAlpha_1)(__VA_ARGS__)
+#define AssertHelperBeta(...)  GET_MACRO3(__VA_ARGS__, AssertHelperBeta_3, AssertHelperBeta_2 , AssertHelperBeta_1 )(__VA_ARGS__)
+
+#define AssertHelperOmega(next, name, x, mod) \
+    AssertHelperAlpha.DumpParameter(name, (x), (mod)).AssertHelper##next
 
 #define ASSERT_1(cond) \
     if unlikely(!(cond)) \

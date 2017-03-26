@@ -122,7 +122,7 @@ namespace Beelzebub { namespace System
                          : "=a" (a), "=d" (d)
                          : "c" (reg) );
 
-            return {{d, a}};
+            return {{a, d}};
         }
 
         static __forceinline uint64_t Read64(const Msr reg)

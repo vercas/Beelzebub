@@ -455,6 +455,12 @@
     Miscellaneous Assistance
 *******************************/
 
+#ifdef __BEELZEBUB__SOURCE_C
+    #define REINTERPRET_CAST(type, val) ((type)(val))
+#elif defined(__BEELZEBUB__SOURCE_CXX)
+    #define REINTERPRET_CAST(type, val) (reinterpret_cast<type>(val))
+#endif
+
 #ifndef __BEELZEBUB__SOURCE_GAS
     #define COMPILER_MEMORY_BARRIER() asm volatile ( "" : : : "memory" )
 
@@ -485,7 +491,8 @@
         #define onKernel if (false)
     #endif
 
-    #define EXTEND_POINTER(ptr) do { } while (false)
+    #define EXTEND_POINTER(ptr) __extension__ ({ ptr; })
+    #define GET_EXTENDED_POINTER(ptr) __extension__ ({ ptr; })
 
     #define PUT_IN_REGISTER(reg, val) register __typeof__((val)) reg asm(#reg) = (val)
     #define REGISTER_VARIABLE(reg) register uintptr_t reg asm(#reg)
