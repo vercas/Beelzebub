@@ -20,7 +20,7 @@ then
 	
 	if [ $RES != 0 ]
 	then
-		$PRECMD wget "https://dl.dropboxusercontent.com/u/1217587/genisoimage"
+		$PRECMD wget "https://www.dropbox.com/s/auy4n5zc7hwpm41/genisoimage?dl=1"
 	fi
 
 	chmod +x genisoimage
