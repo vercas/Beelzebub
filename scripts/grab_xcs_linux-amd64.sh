@@ -22,7 +22,7 @@ then
 	
 	if [ $RES != 0 ]
 	then
-		$PRECMD wget "https://dl.dropboxusercontent.com/u/1217587/gcc-x86_64-beelzebub.tar.xz" -O $TMP
+		$PRECMD wget "https://www.dropbox.com/s/zzmjcsd4d8wdiym/gcc-x86_64-beelzebub.tar.xz?dl=1" -O $TMP
 	fi
 
 	$PRECMD tar --no-same-owner -xJf $TMP
