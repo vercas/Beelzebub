@@ -22,6 +22,7 @@ addons:
 before_install:
 - lua util.lua grab-cross-compiler
 - genisoimage --version || lua util.lua grab-genisoimage
+- luarocks --help
 - lua util.lua setup-luarocks
 
 before_script:
