@@ -46,19 +46,19 @@ require "vmake"
 
 Configuration "debug" {
     Data = {
-        Opts_GCC = List { "-fno-omit-frame-pointer", "-g3" }
+        Opts_GCC = List "-fno-omit-frame-pointer -g3",
     },
 }
 
 Configuration "release" {
     Data = {
-        Opts_GCC = List { }
+        Opts_GCC = List { },
     },
 }
 
 Configuration "profile" {
     Data = {
-        Opts_GCC = List { }
+        Opts_GCC = List { },
     },
 
     Base = "release",
@@ -70,21 +70,11 @@ Configuration "profile" {
 
 Architecture "amd64" {
     Data = {
-        GccTargetName = "x86_64",
+        GccTargetName   = "x86_64",
 
-        Opts_GCC = function(_)
-            return List {
-                "-m64",
-            } + _.Opts_GCC_x86
-        end,
-
-        Opts_GCC_Kernel = function(_)
-            return List {
-                "-mno-red-zone", "-mtls-gs",
-            } + _.Opts_GCC_Kernel_x86
-        end,
-
-        Opts_NASM = List { "-f", "elf64" },
+        Opts_GCC        = LST "-m64 !Opts_GCC_x86",
+        Opts_GCC_Kernel = LST "-mno-red-zone -mtls-gs !Opts_GCC_Kernel_x86",
+        Opts_NASM       = List "-f elf64",
     },
 
     Description = "64-bit x86",
@@ -94,15 +84,9 @@ Architecture "amd64" {
 
 Architecture "ia32" {
     Data = {
-        Opts_GCC = function(_)
-            return List {
-                "-m32",
-            } + _.Opts_GCC_x86
-        end,
-
-        Opts_GCC_Kernel = function(_) return _.Opts_GCC_Kernel_x86 end,
-
-        Opts_NASM = List { "-f", "elf32" },
+        Opts_GCC        = LST "-m32 !Opts_GCC_x86",
+        Opts_GCC_Kernel = LST "!Opts_GCC_Kernel_x86",
+        Opts_NASM       = List "-f elf32",
     },
 
     Description = "32-bit x86",
@@ -112,20 +96,17 @@ Architecture "ia32" {
 
 Architecture "x86" {
     Data = {
-        Opts_GCC_x86 = List {
-            "-mtls-direct-seg-refs",
-        },
-
-        Opts_GCC_Kernel_x86 = List {
-            "-ffreestanding", "-nostdlib", "-static-libgcc",
-            "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
-            "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
-            "-mno-bmi", "-mno-bmi2",
-        },
+        Opts_GCC_x86        = List "-mtls-direct-seg-refs",
+        Opts_GCC_Kernel_x86 = List [[
+            -ffreestanding -nostdlib -static-libgcc
+            -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2
+            -mno-sse3 -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3
+            -mno-bmi -mno-bmi2
+        ]],
 
         ISO = true,
 
-        CrtFiles = List { "crt0.o", "crti.o", "crtn.o" },
+        CrtFiles = List "crt0.o crti.o crtn.o",
     },
 
     Auxiliary = true,
@@ -135,9 +116,9 @@ Architecture "x86" {
 --  Toolchain
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
-local xcsDir, settXcDir = Path(os.getenv("CROSSCOMPILERS_DIR") or "/usr/local"), nil
+local xcsDir, settXcDir = Path(env.CROSSCOMPILERS_DIR or "/usr/local"), nil
 
-local MISC_TOOLS_DIR = os.getenv("MISC_TOOLS_DIR")
+local MISC_TOOLS_DIR = env.MISC_TOOLS_DIR
 
 CmdOpt "xc-dir" {
     Description = "The directory containing the cross-compiler's binaries for the"
@@ -150,31 +131,31 @@ CmdOpt "xc-dir" {
     Type = "string",
     Display = "directory",
 
-    Handler = function(_, val)
+    Handler = function(val)
         settXcDir = val
     end,
 }
 
 GlobalData {
-    XCDirectory = function(_)
-        return settXcDir or (xcsDir + ("gcc-" .. _.selArch.Data.GccTargetName .. "-beelzebub/bin"))
+    XCDirectory = function()
+        return settXcDir or (xcsDir + ("gcc-" .. selArch.Data.GccTargetName .. "-beelzebub/bin"))
     end,
 
-    CC    = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-gcc"    end,
-    CXX   = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-g++"    end,
-    GAS   = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-gcc"    end,
-    LO    = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-gcc"    end,
-    LD    = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-ld"     end,
-    AR    = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-gcc-ar" end,
-    STRIP = function(_) return _.XCDirectory + _.selArch.Data.GccTargetName .. "-beelzebub-strip"  end,
+    CC    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
+    CXX   = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-g++'",
+    GAS   = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
+    LO    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
+    LD    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-ld'",
+    AR    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc-ar'",
+    STRIP = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-strip'",
     AS    = "nasm",
     TAR   = "tar",
     GZIP  = "gzip",
 
-    MKISO = function(_)
-        if os.execute("mkisofs --version > /dev/null 2> /dev/null") then
+    MKISO = function()
+        if _G.os.execute("mkisofs --version > /dev/null 2> /dev/null") then
             return "mkisofs"
-        elseif os.execute("genisoimage --version > /dev/null 2> /dev/null") then
+        elseif _G.os.execute("genisoimage --version > /dev/null 2> /dev/null") then
             return "genisoimage"
         elseif MISC_TOOLS_DIR then
             --  Or maybe it comes from an external source?
@@ -225,7 +206,7 @@ CmdOpt "tests" "t" {
     Type = "string",
     Many = true,
 
-    Handler = function(_, val)
+    Handler = function(val)
         if val == "all" then
             availableTests:ForEach(function(testName)
                 settSelTests:AppendUnique(testName)
@@ -256,7 +237,7 @@ CmdOpt "unit-tests" {
     Type = "string",
     Display = "boolean|quiet",
 
-    Handler = function(_, val)
+    Handler = function(val)
         local bVal = toboolean(val)
 
         if bVal == nil then
@@ -283,10 +264,10 @@ local availableDynamicAllocators = List {
 local settKrnDynAlloc, settUsrDynAlloc = "VALLOC", "NONE"
 
 local dynAllocLibs = {
-    VALLOC = "valloc",
-    STREAMFLOW = "streamflow",
-    PTMALLOC3 = "ptmalloc3",
-    JEMALLOC = "jemalloc",
+    VALLOC      = "valloc",
+    STREAMFLOW  = "streamflow",
+    PTMALLOC3   = "ptmalloc3",
+    JEMALLOC    = "jemalloc",
 }
 
 CmdOpt "kernel-dynalloc" {
@@ -295,7 +276,7 @@ CmdOpt "kernel-dynalloc" {
     Type = "string",
     Display = availableDynamicAllocators:Print("|"),
 
-    Handler = function(_, val)
+    Handler = function(val)
         if not availableDynamicAllocators:Contains(string.lower(val)) then
             error("Invalid value given to \"kernel-dynalloc\" command-line option: \""
                 .. val .. "\".")
@@ -311,7 +292,7 @@ CmdOpt "userland-dynalloc" {
     Type = "string",
     Display = availableDynamicAllocators:Print("|"),
 
-    Handler = function(_, val)
+    Handler = function(val)
         if not availableDynamicAllocators:Contains(string.lower(val)) then
             error("Invalid value given to \"userland-dynalloc\" command-line option: \""
                 .. val .. "\".")
@@ -338,7 +319,7 @@ CmdOpt "march" {
 
     Type = "string",
 
-    Handler = function(_, val)
+    Handler = function(val)
         if val == "" then
             error("Value given to \"march\" command-line option must be non-empty.")
         end
@@ -352,7 +333,7 @@ CmdOpt "mtune" {
 
     Type = "string",
 
-    Handler = function(_, val)
+    Handler = function(val)
         if val == "" then
             error("Value given to \"mtune\" command-line option must be non-empty.")
         end
@@ -367,7 +348,7 @@ CmdOpt "smp" {
 
     Type = "boolean",
 
-    Handler = function(_, val) settSmp = val end,
+    Handler = function(val) settSmp = val end,
 }
 
 CmdOpt "inline-spinlocks" {
@@ -376,7 +357,7 @@ CmdOpt "inline-spinlocks" {
 
     Type = "boolean",
 
-    Handler = function(_, val) settInlineSpinlocks = val end,
+    Handler = function(val) settInlineSpinlocks = val end,
 }
 
 CmdOpt "apic-mode" {
@@ -385,7 +366,7 @@ CmdOpt "apic-mode" {
     Type = "string",
     Display = availableApicModes:Print("|"),
 
-    Handler = function(_, val)
+    Handler = function(val)
         if not availableApicModes:Contains(string.lower(val)) then
             error("Invalid value given to \"apic-mode\" command-line option: \""
                 .. val .. "\".")
@@ -405,7 +386,13 @@ CmdOpt "no-make-deps" {
     Description = "Indicates that GNU Make dependency files are not to be"
              .. "\ngenerated by GCC, G++ or GAS.",
 
-    Handler = function(_, val) settMakeDeps = false end,
+    Handler = function(val) settMakeDeps = false end,
+}
+
+GlobalData {
+    UseMakeDependencies = function()
+        return settMakeDeps
+    end,
 }
 
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
@@ -413,17 +400,17 @@ CmdOpt "no-make-deps" {
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 GlobalData {
-    Opts_GCC_Tests = function(_)
+    Opts_GCC_Tests = function()
         return settSelTests:Select(function(val)
             return "-D__BEELZEBUB__TEST_" .. val
         end)
     end,
 
-    Opts_GCC_Precompiler = function(_)
+    Opts_GCC_Precompiler = function()
         local res = List {
             "-D__BEELZEBUB",
-            "-D__BEELZEBUB__ARCH=" .. _.selArch.Name,
-            "-D__BEELZEBUB__CONF=" .. _.selConf.Name,
+            "-D__BEELZEBUB__ARCH=" .. selArch.Name,
+            "-D__BEELZEBUB__CONF=" .. selConf.Name,
             "-D__BEELZEBUB_SETTINGS_APIC_MODE=" .. settApicMode,
             "-D__BEELZEBUB_SETTINGS_APIC_MODE_" .. settApicMode,
             "-D__BEELZEBUB_SETTINGS_KRNDYNALLOC=" .. settKrnDynAlloc,
@@ -434,14 +421,14 @@ GlobalData {
             settSmp             and "-D__BEELZEBUB_SETTINGS_SMP"                or "-D__BEELZEBUB_SETTINGS_NO_SMP",
             settInlineSpinlocks and "-D__BEELZEBUB_SETTINGS_INLINE_SPINLOCKS"   or "-D__BEELZEBUB_SETTINGS_NO_INLINE_SPINLOCKS",
             settUnitTests       and "-D__BEELZEBUB_SETTINGS_UNIT_TESTS"         or "-D__BEELZEBUB_SETTINGS_NO_UNIT_TESTS"
-        } + _.Opts_GCC_Tests
+        } + Opts_GCC_Tests
 
-        for arch in _.selArch:Hierarchy() do
-            res:Append("-D__BEELZEBUB__ARCH_" .. string.upper(arch.Name))
+        for arch in selArch:Hierarchy() do
+            res:Append("-D__BEELZEBUB__ARCH_" .. _G.string.upper(arch.Name))
         end
 
-        for conf in _.selConf:Hierarchy() do
-            res:Append("-D__BEELZEBUB__CONF_" .. string.upper(conf.Name))
+        for conf in selConf:Hierarchy() do
+            res:Append("-D__BEELZEBUB__CONF_" .. _G.string.upper(conf.Name))
         end
 
         if settUnitTests == "quiet" then
@@ -451,13 +438,13 @@ GlobalData {
         return res
     end,
 
-    Opts_GCC_Common = function(_)
+    Opts_GCC_Common = function()
         local res = List {
             --"-fdollars-in-identifiers",
-            "-pipe", "--sysroot=" .. tostring(_.Sysroot),
+            "-pipe", "--sysroot=" .. Sysroot,
             "-Wshadow", "-Wframe-larger-than=300",
-        } + _.Opts_GCC_Precompiler
-        + _.selArch.Data.Opts_GCC + _.selConf.Data.Opts_GCC
+        } + Opts_GCC_Precompiler
+        + selArch.Data.Opts_GCC + selConf.Data.Opts_GCC
         + specialOptions
 
         if settMakeDeps then
@@ -473,41 +460,41 @@ GlobalData {
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
 GlobalData {
-    Sysroot                 = function(_) return _.outDir + "sysroot" end,
-    SysheadersPath          = function(_) return _.Sysroot + "usr/include" end,
-    JegudielPath            = function(_) return _.outDir + "jegudiel.bin" end,
-    CommonLibraryPath       = function(_) return _.Sysroot + ("usr/lib/libcommon." .. _.selArch.Name .. ".a") end,
-    RuntimeLibraryPath      = function(_) return _.Sysroot + ("usr/lib/libbeelzebub." .. _.selArch.Name .. ".so") end,
-    KernelModuleLibraryPath = function(_) return _.Sysroot + "usr/lib/libbeelzebub.kmod.so" end,
-    TestKernelModulePath    = function(_) return _.Sysroot + "kmods/test.kmod" end,
-    KernelPath              = function(_) return _.outDir + "beelzebub.bin" end,
-    LoadtestAppPath         = function(_) return _.Sysroot + "apps/loadtest.exe" end,
+    Sysroot                 = DAT "outDir + 'sysroot'",
+    SysheadersPath          = DAT "Sysroot + 'usr/include'",
+    JegudielPath            = DAT "outDir  + 'jegudiel.bin'",
+    CommonLibraryPath       = DAT "Sysroot + 'usr/lib/libcommon.'    .. selArch.Name .. '.a'",
+    RuntimeLibraryPath      = DAT "Sysroot + 'usr/lib/libbeelzebub.' .. selArch.Name .. '.so'",
+    KernelModuleLibraryPath = DAT "Sysroot + 'usr/lib/libbeelzebub.kmod.so'",
+    TestKernelModulePath    = DAT "Sysroot + 'kmods/test.kmod'",
+    KernelPath              = DAT "outDir  + 'beelzebub.bin'",
+    LoadtestAppPath         = DAT "Sysroot + 'apps/loadtest.exe'",
 
-    CrtFiles = function(_)
-        return _.selArch.Data.CrtFiles:Select(function(val)
-            return _.Sysroot + "usr/lib" + val
+    CrtFiles = function()
+        return selArch.Data.CrtFiles:Select(function(val)
+            return Sysroot + "usr/lib" + val
         end)
     end,
 
-    IsoFile = function(_)
-        if _.selArch.Base.Data.ISO then
-            return _.outDir + ("beelzebub." .. _.selArch.Name .. "." .. _.selConf.Name .. ".iso")
+    IsoFile = function()
+        if selArch.Base.Data.ISO then
+            return outDir + ("beelzebub." .. selArch.Name .. "." .. selConf.Name .. ".iso")
         end
     end,
 
-    VallocKernelLibraryPath         = function(_) return _.Sysroot + "usr/lib/libvalloc.kernel.a" end,
-    VallocUserlandLibraryPath       = function(_) return _.Sysroot + "usr/lib/libvalloc.userland.a" end,
-    StreamflowKernelLibraryPath     = function(_) return _.Sysroot + "usr/lib/libstreamflow.kernel.a" end,
-    StreamflowUserlandLibraryPath   = function(_) return _.Sysroot + "usr/lib/libstreamflow.userland.a" end,
-    JemallocKernelLibraryPath       = function(_) return _.Sysroot + "usr/lib/libjemalloc.kernel.a" end,
-    JemallocUserlandLibraryPath     = function(_) return _.Sysroot + "usr/lib/libjemalloc.userland.a" end,
+    VallocKernelLibraryPath         = DAT "Sysroot + 'usr/lib/libvalloc.kernel.a'",
+    VallocUserlandLibraryPath       = DAT "Sysroot + 'usr/lib/libvalloc.userland.a'",
+    StreamflowKernelLibraryPath     = DAT "Sysroot + 'usr/lib/libstreamflow.kernel.a'",
+    StreamflowUserlandLibraryPath   = DAT "Sysroot + 'usr/lib/libstreamflow.userland.a'",
+    JemallocKernelLibraryPath       = DAT "Sysroot + 'usr/lib/libjemalloc.kernel.a'",
+    JemallocUserlandLibraryPath     = DAT "Sysroot + 'usr/lib/libjemalloc.userland.a'",
 
-    KernelDynamicAllocatorPath = function(_)
-        return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settKrnDynAlloc] .. ".kernel.a")
+    KernelDynamicAllocatorPath = function()
+        return Sysroot + ("usr/lib/lib" .. dynAllocLibs[settKrnDynAlloc] .. ".kernel.a")
     end,
 
-    UserlandDynamicAllocatorPath = function(_)
-        return _.Sysroot + ("usr/lib/lib" .. dynAllocLibs[settUsrDynAlloc] .. ".userland.a")
+    UserlandDynamicAllocatorPath = function()
+        return Sysroot + ("usr/lib/lib" .. dynAllocLibs[settUsrDynAlloc] .. ".userland.a")
     end,
 }
 
@@ -515,10 +502,10 @@ GlobalData {
 --  Utilities
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
 
-local function gzipSingleFile(_, dst, src)
+local function gzipSingleFile(dst, src)
     local tmp = dst:TrimEnd(3)  --  3 = #".gz"
     fs.Copy(tmp, src[1])
-    sh.silent(_.GZIP, "-f", "-9", tmp)
+    sh.silent(GZIP, "-f", "-9", tmp)
 end
 
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
@@ -528,9 +515,9 @@ end
 Project "Beelzebub" {
     Description = "Lord of Flies",
 
-    Output = function(_)
-        if _.selArch.Base.Data.ISO then
-            return _.IsoFile
+    Output = function()
+        if selArch.Base.Data.ISO then
+            return IsoFile
         else
             error("TODO")
         end
@@ -538,11 +525,11 @@ Project "Beelzebub" {
 
     Component "System Headers" {
         Data = {
-            Headers = function(_)
-                local files = fs.ListDir(_.comp.Directory + "common")
+            Headers = function()
+                local files = fs.ListDir(comp.Directory + "common")
 
-                for arch in _.selArch:Hierarchy() do
-                    files:AppendMany(fs.ListDir(_.comp.Directory + arch.Name))
+                for arch in selArch:Hierarchy() do
+                    files:AppendMany(fs.ListDir(comp.Directory + arch.Name))
                 end
 
                 files = files:Where(function(val)
@@ -555,35 +542,35 @@ Project "Beelzebub" {
 
         Directory = "sysheaders",
 
-        Output = function(_)
-            local files = _.Headers:Select(function(val)
-                return _.SysheadersPath + val:SkipDirs(2)
+        Output = function()
+            local files = Headers:Select(function(val)
+                return SysheadersPath + val:SkipDirs(2)
             end)
 
             return files
         end,
 
         Rule "Copy Header" {
-            Filter = function(_, dst)
-                return dst:StartsWith(_.SysheadersPath) and not dst.IsDirectory
+            Filter = function(dst)
+                return dst:StartsWith(SysheadersPath) and not dst.IsDirectory
             end,
 
-            Source = function(_, dst)
+            Source = function(dst)
                 local parent = dst:GetParent()
-                dst = dst:Skip(_.SysheadersPath)
+                dst = dst:Skip(SysheadersPath)
 
-                for arch in _.selArch:Hierarchy() do
-                    local src = _.comp.Directory + arch.Name + dst
+                for arch in selArch:Hierarchy() do
+                    local src = comp.Directory + arch.Name + dst
 
                     if fs.GetInfo(src) then
                         return List { src, parent }
                     end
                 end
 
-                return List { _.comp.Directory + "common" + dst, parent }
+                return List { comp.Directory + "common" + dst, parent }
             end,
 
-            Action = function(_, dst, src)
+            Action = function(dst, src)
                 fs.Copy(dst, src[1])
             end,
         },
@@ -591,101 +578,89 @@ Project "Beelzebub" {
 
     Component "Jegudiel" {
         Data = {
-            SourceDirectory = function(_) return _.comp.Directory + "src" end,
+            SourceDirectory     = DAT "comp.Directory + 'src'",
 
-            ObjectsDirectory = function(_) return _.outDir + "jegudiel" end,
-            BinaryPath = function(_) return _.ObjectsDirectory + "jegudiel.bin" end,
+            ObjectsDirectory    = DAT "outDir + 'jegudiel'",
+            BinaryPath          = DAT "ObjectsDirectory + 'jegudiel.bin'",
 
-            Objects = function(_)
-                return fs.ListDir(_.SourceDirectory)
+            Objects = function()
+                return fs.ListDir(SourceDirectory)
                     :Where(function(val) return val:EndsWith(".c", ".s") end)
                     :Select(function(val)
-                        return _.ObjectsDirectory + val:Skip(_.SourceDirectory) .. ".o"
+                        return ObjectsDirectory + val:Skip(SourceDirectory) .. ".o"
                     end)
             end,
 
-            LinkerScript = function(_) return _.comp.Directory + "link.ld" end,
+            LinkerScript        = DAT "comp.Directory + 'link.ld'",
 
-            Opts_Includes = function(_)
+            Opts_Includes = function()
                 return List {
-                    "-I" .. tostring(_.comp.Directory + "inc"),
-                    "-Isysheaders/" .. _.selArch.Name, --  Harcoded but meh...
+                    "-I" .. (comp.Directory + "inc"),
+                    "-Isysheaders/" .. selArch.Name, --  Harcoded but meh...
                 }
             end,
 
-            Opts_C = function(_)
-                return List {
-                    "-m64", "-ffreestanding",
-                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-mcmodel=kernel", "-static-libgcc",
-                    "-mno-aes", "-mno-mmx", "-mno-pclmul", "-mno-sse", "-mno-sse2",
-                    "-mno-sse3", "-mno-sse4", "-mno-sse4a", "-mno-fma4", "-mno-ssse3",
-                    "-mno-bmi", "-mno-bmi2",
-                    "-O0",
-                } + _.Opts_GCC_Precompiler + _.Opts_Includes
-                + specialOptions
+            Opts_C = function()
+                return List [[-m64 -ffreestanding
+                    -Wall -Wextra -Wpedantic
+                    -Wsystem-headers -mcmodel=kernel -static-libgcc
+                    -mno-aes -mno-mmx -mno-pclmul -mno-sse -mno-sse2 -mno-sse3
+                    -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 -mno-bmi -mno-bmi2
+                    -O0
+                ]] + Opts_GCC_Precompiler + Opts_Includes
+                   + specialOptions
             end,
 
-            Opts_NASM = List { "-f", "elf64" },
-
-            Opts_LD = List { "-z", "max-page-size=0x1000" },
-
-            Opts_STRIP = List { "-s", "-K", "multiboot_header" },
+            Opts_NASM       = List "-f elf64",
+            Opts_LD         = List "-z max-page-size=0x1000",
+            Opts_STRIP      = List "-s -K multiboot_header",
         },
 
         Directory = "jegudiel",
 
         Dependencies = "System Headers",
 
-        Output = function(_) return _.outDir + "jegudiel.bin" end,
+        Output = DAT "JegudielPath",
 
         Rule "Link Binary" {
-            Filter = function(_, dst) return _.BinaryPath end,
+            Filter = FLT "BinaryPath",
 
-            Source = function(_, dst)
-                return _.Objects + List { _.LinkerScript, dst:GetParent() }
+            Source = function(dst)
+                return Objects + List { LinkerScript, dst:GetParent() }
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.LD, _.Opts_LD, "-T", _.LinkerScript, "-o", dst, _.Objects)
-            end,
+            Action = ACT "!LD !Opts_LD -T !LinkerScript -o !dst !Objects",
         },
 
         Rule "Strip Binary" {
-            Filter = function(_, dst) return _.comp.Output end,
+            Filter = FLT "JegudielPath",
 
-            Source = function(_, dst)
-                return List {_.BinaryPath, dst:GetParent() }
+            Source = function(dst)
+                return List {BinaryPath, dst:GetParent() }
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
-            end,
+            Action = ACT "!STRIP !Opts_STRIP -o !dst !BinaryPath",
         },
 
         Rule "Compile C" {
-            Filter = function(_, dst) return dst:EndsWith(".c.o") end,
+            Filter = function(dst) return dst:EndsWith(".c.o") end,
 
-            Source = function(_, dst)
-                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), dst:GetParent() }
+            Source = function(dst)
+                return List { SourceDirectory + dst:Skip(ObjectsDirectory):TrimEnd(2), dst:GetParent() }
                 --  2 = #".o"
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.CC, _.Opts_C, "-c", src[1], "-o", dst)
-            end,
+            Action = ACT "!CC !Opts_C -x c -c !src[1] -o !dst",
         },
 
         Rule "Assemble" {
-            Filter = function(_, dst) return dst:EndsWith(".s.o") end,
+            Filter = function(dst) return dst:EndsWith(".s.o") end,
 
-            Source = function(_, dst)
-                return List { _.SourceDirectory + dst:Skip(_.ObjectsDirectory):TrimEnd(2), dst:GetParent() }
+            Source = function(dst)
+                return List { SourceDirectory + dst:Skip(ObjectsDirectory):TrimEnd(2), dst:GetParent() }
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.AS, _.Opts_NASM, src[1], "-o", dst)
-            end,
+            Action = ACT "!AS !Opts_NASM !src[1] -o !dst",
         },
 
         ExcuseMissingFilesRule { "h", "hpp", "inc", "hh" },
@@ -700,47 +675,47 @@ Project "Beelzebub" {
             SourcesSubdirectory     = "src",
             HeadersSubdirectory     = "inc",
 
-            Opts_GCC = function(_)
-                local res = List {
-                    "-fvisibility=hidden",
-                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-D__BEELZEBUB_STATIC_LIBRARY",
-                } + _.Opts_GCC_Common + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC_Kernel
+            Opts_GCC = function()
+                local res = List [[
+                    -fvisibility=hidden
+                    -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -D__BEELZEBUB_STATIC_LIBRARY
+                ]] + Opts_GCC_Common + Opts_Includes
+                   + selArch.Data.Opts_GCC_Kernel
 
-                if _.selArch.Name == "amd64" then
+                if selArch.Name == "amd64" then
                     res:Append("-mcmodel=large")
                 end
 
                 return res
             end,
 
-            Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", "-O0", "-flto", } end,
-            Opts_CXX_CRT = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_CXX     = function(_) return _.Opts_CXX_CRT + List { "-O0", "-flto", } end,
-            Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS_CRT = function(_) return _.Opts_GCC end,
-            Opts_GAS     = function(_) return _.Opts_GAS_CRT + List { "-flto", } end,
+            Opts_C          = LST "!Opts_GCC -std=gnu99 -O0 -flto",
+            Opts_CXX_CRT    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_CXX        = LST "!Opts_CXX_CRT -O0 -flto",
+            Opts_NASM       = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
+            Opts_GAS_CRT    = LST "!Opts_GCC",
+            Opts_GAS        = LST "!Opts_GAS_CRT -flto",
 
-            Opts_AR = List { "rcs" },
+            Opts_AR         = List "rcs",
         },
 
         Directory = "libs/common",
 
         Dependencies = "System Headers",
 
-        Output = function(_) return List { _.CommonLibraryPath } + _.CrtFiles end,
+        Output = function() return List { CommonLibraryPath } + CrtFiles end,
         --  First one is the output archive/binary for the ManagedComponent.
 
         Rule "C Runtime Objects" {
-            Filter = function(_, dst) return _.CrtFiles:Contains(dst) end,
+            Filter = function(dst) return CrtFiles:Contains(dst) end,
 
-            Source = function(_, dst)
+            Source = function(dst)
                 local crtName = dst:GetName():TrimEnd(2)
                 --  2 = #".o"
 
-                for arch in _.selArch:Hierarchy() do
-                    local archCrtBase = _.ArchitecturesDirectory + arch.Name + "crt" + crtName
+                for arch in selArch:Hierarchy() do
+                    local archCrtBase = ArchitecturesDirectory + arch.Name + "crt" + crtName
                     local cpp, gas = archCrtBase .. ".cpp", archCrtBase .. ".S"
 
                     if fs.GetInfo(cpp) then
@@ -753,11 +728,11 @@ Project "Beelzebub" {
                 error("Unable to find source of CRT file \"" .. tostring(crtName) .. "\".")
             end,
 
-            Action = function(_, dst, src)
+            Action = function(dst, src)
                 if src[1]:EndsWith(".cpp") then
-                    sh.silent(_.CXX, _.Opts_CXX_CRT, "-MD", "-MP", "-c", src[1], "-o", dst)
+                    sh.silent(CXX, Opts_CXX_CRT, "-MD", "-MP", "-c", src[1], "-o", dst)
                 else
-                    sh.silent(_.GAS, _.Opts_GAS_CRT, "-c", src[1], "-o", dst)
+                    sh.silent(GAS, Opts_GAS_CRT, "-c", src[1], "-o", dst)
                 end
             end,
         },
@@ -772,83 +747,82 @@ Project "Beelzebub" {
             SourcesSubdirectory     = "src",
             HeadersSubdirectory     = "inc",
 
-            ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
+            ObjectsDirectory        = DAT "outDir + (comp.Directory .. '.kernel')",
 
-            Opts_GCC = function(_)
+            Opts_GCC = function()
                 local res = List {
                     "-fvisibility=hidden",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
                     "-O0", "-flto",
                     "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
-                } + _.Opts_GCC_Common + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC_Kernel
+                } + Opts_GCC_Common + Opts_Includes
+                + selArch.Data.Opts_GCC_Kernel
 
-                if _.selArch.Name == "amd64" then
+                if selArch.Name == "amd64" then
                     res:Append("-mcmodel=kernel")
                 end
 
                 return res
             end,
 
-            Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-
-            Opts_AR = List { "rcs" },
+            Opts_CXX        = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_AR         = List "rcs",
         },
 
         Directory = "libs/valloc",
 
-        Output = function(_) return List { _.VallocKernelLibraryPath } end,
+        Output = function() return List { VallocKernelLibraryPath } end,
     },
 
     -- ArchitecturalComponent "Streamflow - Kernel" {
     --     Data = {
-    --         ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
+    --         ObjectsDirectory = function() return outDir + (comp.Directory .. ".kernel") end,
 
-    --         Opts_GCC = function(_)
+    --         Opts_GCC = function()
     --             local res = List {
     --                 "-fvisibility=hidden",
     --                 "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers", "-Wno-int-to-pointer-cast", "-Wno-strict-aliasing",
     --                 "-O2", "-flto",
     --                 "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
     --                 "-DRADIX_TREE",
-    --             } + _.Opts_GCC_Common + _.Opts_Includes
-    --             + _.selArch.Data.Opts_GCC_Kernel
+    --             } + Opts_GCC_Common + Opts_Includes
+    --             + selArch.Data.Opts_GCC_Kernel
 
-    --             if _.selArch.Name == "amd64" then
+    --             if selArch.Name == "amd64" then
     --                 res:Append("-mcmodel=kernel")
     --             end
 
     --             return res
     --         end,
 
-    --         Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
-    --         Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-    --         Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-    --         Opts_GAS     = function(_) return _.Opts_GCC end,
+    --         Opts_C       = function() return Opts_GCC + List { "-std=gnu99", } end,
+    --         Opts_CXX     = function() return Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+    --         Opts_NASM    = function() return Opts_GCC_Precompiler + Opts_Includes_Nasm + selArch.Data.Opts_NASM end,
+    --         Opts_GAS     = function() return Opts_GCC end,
 
     --         Opts_AR = List { "rcs" },
     --     },
 
     --     Directory = "libs/streamflow",
 
-    --     Output = function(_) return List { _.StreamflowKernelLibraryPath } end,
+    --     Output = function() return List { StreamflowKernelLibraryPath } end,
 
     --     Rule "Archive Objects" {
-    --         Filter = function(_, dst) return _.StreamflowKernelLibraryPath end,
+    --         Filter = FLT "StreamflowKernelLibraryPath",
 
-    --         Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
+    --         Source = function(dst) return Objects + List { dst:GetParent() } end,
 
-    --         Action = function(_, dst, src)
-    --             sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
+    --         Action = function(dst, src)
+    --             sh.silent(AR, Opts_AR, dst, Objects)
     --         end,
     --     },
     -- },
 
     -- ArchitecturalComponent "jemalloc - Kernel" {
     --     Data = {
-    --         ObjectsDirectory = function(_) return _.outDir + (_.comp.Directory .. ".kernel") end,
+    --         ObjectsDirectory = function() return outDir + (comp.Directory .. ".kernel") end,
 
-    --         Opts_GCC = function(_)
+    --         Opts_GCC = function()
     --             local res = List {
     --                 "-fvisibility=hidden",
     --                 --"-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
@@ -859,35 +833,35 @@ Project "Beelzebub" {
     --                 "-DJEMALLOC_MALLOC_THREAD_CLEANUP",
     --                 "-DJEMALLOC_PURGE_MADVISE_FREE",
     --                 "-DJEMALLOC_NO_RENAME",
-    --             } + _.Opts_GCC_Common + _.Opts_Includes
-    --             + _.selArch.Data.Opts_GCC_Kernel
+    --             } + Opts_GCC_Common + Opts_Includes
+    --             + selArch.Data.Opts_GCC_Kernel
 
-    --             if _.selArch.Name == "amd64" then
+    --             if selArch.Name == "amd64" then
     --                 res:Append("-mcmodel=kernel")
     --             end
 
     --             return res
     --         end,
 
-    --         Opts_C       = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
-    --         Opts_CXX     = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-    --         Opts_NASM    = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-    --         Opts_GAS     = function(_) return _.Opts_GCC end,
+    --         Opts_C       = function() return Opts_GCC + List { "-std=gnu99", } end,
+    --         Opts_CXX     = function() return Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+    --         Opts_NASM    = function() return Opts_GCC_Precompiler + Opts_Includes_Nasm + selArch.Data.Opts_NASM end,
+    --         Opts_GAS     = function() return Opts_GCC end,
 
     --         Opts_AR = List { "rcs" },
     --     },
 
     --     Directory = "libs/jemalloc",
 
-    --     Output = function(_) return List { _.JemallocKernelLibraryPath } end,
+    --     Output = function() return List { JemallocKernelLibraryPath } end,
 
     --     Rule "Archive Objects" {
-    --         Filter = function(_, dst) return _.JemallocKernelLibraryPath end,
+    --         Filter = FLT "JemallocKernelLibraryPath",
 
-    --         Source = function(_, dst) return _.Objects + List { dst:GetParent() } end,
+    --         Source = function(dst) return Objects + List { dst:GetParent() } end,
 
-    --         Action = function(_, dst, src)
-    --             sh.silent(_.AR, _.Opts_AR, dst, _.Objects)
+    --         Action = function(dst, src)
+    --             sh.silent(AR, Opts_AR, dst, Objects)
     --         end,
     --     },
     -- },
@@ -901,33 +875,32 @@ Project "Beelzebub" {
             SourcesSubdirectory     = "src",
             HeadersSubdirectory     = "inc",
 
-            Opts_Includes_Nasm = function(_)
-                return _.Opts_Includes_Nasm_Base:Append("-I" .. tostring(_.SysheadersPath) .. "/")
+            Opts_Includes_Nasm = function()
+                return Opts_Includes_Nasm_Base:Append("-I" .. tostring(SysheadersPath) .. "/")
             end,
 
-            Opts_GCC = function(_)
-                return List {
-                    "-fvisibility=hidden", "-fPIC",
-                    "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
-                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O0", "-flto",
-                    "-D__BEELZEBUB_DYNAMIC_LIBRARY",
-                } + _.Opts_GCC_Common + _.Opts_Includes
+            Opts_GCC = function()
+                return List [[
+                    -fvisibility=hidden -fPIC
+                    -ffreestanding -nodefaultlibs -static-libgcc
+                    -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -O0 -flto
+                    -D__BEELZEBUB_DYNAMIC_LIBRARY
+                ]] + Opts_GCC_Common + Opts_Includes
             end,
 
-            Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
-            Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
+            Opts_C      = LST "!Opts_GCC -std=gnu99",
+            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_NASM   = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
+            Opts_GAS    = LST "!Opts_GCC",
 
-            LD      = function(_) return _.LO end,
-            Opts_LD = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
+            LD          = DAT "LO",
+            Opts_LD     = LST "-fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic !Opts_GCC",
+            Opts_STRIP  = List "-s",
 
-            Opts_STRIP = List { "-s" },
-
-            Libraries = function(_)
+            Libraries = function()
                 local res = List {
-                    "common." .. _.selArch.Name,
+                    "common." .. selArch.Name,
                 }
 
                 if settUsrDynAlloc ~= "NONE" then
@@ -937,12 +910,12 @@ Project "Beelzebub" {
                 return res;
             end,
 
-            BinaryPath = function(_) return _.ObjectsDirectory + _.RuntimeLibraryPath:GetName() end,
+            BinaryPath  = DAT "ObjectsDirectory + RuntimeLibraryPath:GetName()",
 
-            BinaryDependencies = function(_)
+            BinaryDependencies = function()
                 local res = List {
-                    _.CommonLibraryPath,
-                } + _.CrtFiles
+                    CommonLibraryPath,
+                } + CrtFiles
 
                 return res
             end,
@@ -952,18 +925,16 @@ Project "Beelzebub" {
 
         Dependencies = "System Headers",
 
-        Output = function(_) return _.RuntimeLibraryPath end,
+        Output = DAT "RuntimeLibraryPath",
 
         Rule "Strip Binary" {
-            Filter = function(_, dst) return _.RuntimeLibraryPath end,
+            Filter = FLT "RuntimeLibraryPath",
 
-            Source = function(_, dst)
-                return List { _.BinaryPath, dst:GetParent() }
+            Source = function(dst)
+                return List { BinaryPath, dst:GetParent() }
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
-            end,
+            Action = ACT "!STRIP !Opts_STRIP -o !dst !BinaryPath",
         },
     },
 
@@ -973,42 +944,40 @@ Project "Beelzebub" {
         ExcuseHeaders = true,
 
         Data = {
-            Opts_GCC = function(_)
-                return List {
-                    "-fvisibility=hidden", "-fPIC",
-                    "-ffreestanding", "-nodefaultlibs", "-static-libgcc",
-                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O0", "-flto",
-                    "-D__BEELZEBUB_DYNAMIC_LIBRARY",
-                } + _.Opts_GCC_Common + _.Opts_Includes
+            Opts_GCC = function()
+                return List [[
+                    -fvisibility=hidden -fPIC
+                    -ffreestanding -nodefaultlibs -static-libgcc
+                    -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -O0 -flto
+                    -D__BEELZEBUB_DYNAMIC_LIBRARY
+                ]] + Opts_GCC_Common + Opts_Includes
             end,
 
-            Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
 
-            LD      = function(_) return _.LO end,
-            Opts_LD = function(_) return List { "-shared", "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
+            LD          = DAT "LO",
+            Opts_LD     = LST "-shared -fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic !Opts_GCC",
 
-            Opts_STRIP = List { "-s" },
+            Opts_STRIP  = List "-s",
 
-            BinaryPath = function(_) return _.ObjectsDirectory + _.KernelModuleLibraryPath:GetName() end,
+            BinaryPath  = DAT "ObjectsDirectory + KernelModuleLibraryPath:GetName()",
         },
 
         Directory = "libs/kmod",
 
         Dependencies = "System Headers",
 
-        Output = function(_) return _.KernelModuleLibraryPath end,
+        Output = DAT "KernelModuleLibraryPath",
 
         Rule "Strip Binary" {
-            Filter = function(_, dst) return _.KernelModuleLibraryPath end,
+            Filter = FLT "KernelModuleLibraryPath",
 
-            Source = function(_, dst)
-                return List { _.BinaryPath, dst:GetParent() }
+            Source = function(dst)
+                return List { BinaryPath, dst:GetParent() }
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
-            end,
+            Action = ACT "!STRIP !Opts_STRIP -o !dst !BinaryPath",
         },
     },
 
@@ -1018,27 +987,27 @@ Project "Beelzebub" {
         ExcuseHeaders = true,
 
         Data = {
-            Opts_GCC = function(_)
-                return List {
-                    "-fvisibility=hidden",
-                    "-Wall", "-Wsystem-headers",
-                    "-O0", "-flto",
-                    "-D__BEELZEBUB_APPLICATION",
-                } + _.Opts_GCC_Common + _.Opts_Includes
+            Opts_GCC = function()
+                return List [[
+                    -fvisibility=hidden
+                    -Wall -Wsystem-headers
+                    -O0 -flto
+                    -D__BEELZEBUB_APPLICATION
+                ]] + Opts_GCC_Common + Opts_Includes
             end,
 
-            Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
 
-            LD      = function(_) return _.LO end,
-            Opts_LD = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } + _.Opts_GCC end,
+            LD          = DAT "LO",
+            Opts_LD     = LST "-fuse-linker-plugin -Wl,-z,max-page-size=0x1000 !Opts_GCC",
 
-            Opts_STRIP = List { "-s" },
+            Opts_STRIP  = List "-s",
 
-            BinaryPath = function(_) return _.ObjectsDirectory + _.LoadtestAppPath:GetName() end,
+            BinaryPath  = DAT "ObjectsDirectory + LoadtestAppPath:GetName()",
 
-            BinaryDependencies = function(_)
+            BinaryDependencies = function()
                 local res = List {
-                    _.RuntimeLibraryPath,
+                    RuntimeLibraryPath,
                 }
 
                 return res
@@ -1049,18 +1018,16 @@ Project "Beelzebub" {
 
         Dependencies = "System Headers",
 
-        Output = function(_) return _.LoadtestAppPath end,
+        Output = DAT "LoadtestAppPath",
 
         Rule "Strip Binary" {
-            Filter = function(_, dst) return _.LoadtestAppPath end,
+            Filter = FLT "LoadtestAppPath",
 
-            Source = function(_, dst)
-                return List { _.BinaryPath, dst:GetParent() }
+            Source = function(dst)
+                return List { BinaryPath, dst:GetParent() }
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
-            end,
+            Action = ACT "!STRIP !Opts_STRIP -o !dst !BinaryPath",
         },
     },
 
@@ -1070,45 +1037,45 @@ Project "Beelzebub" {
         ExcuseHeaders = true,
 
         Data = {
-            ArchitecturesDirectory  = function(_) return _.comp.Directory + "arc" end,
+            ArchitecturesDirectory  = DAT "comp.Directory + 'arc'",
             SourcesSubdirectory     = "src",
             HeadersSubdirectory     = "inc",
 
-            Opts_Includes = function(_) return List { "-Iacpica/include", } + _.Opts_Includes_Base end,
+            Opts_Includes           = LST "-Iacpica/include !Opts_Includes_Base",
 
-            Opts_Includes_Nasm = function(_)
-                return _.Opts_Includes_Nasm_Base:Append("-I" .. tostring(_.SysheadersPath) .. "/")
+            Opts_Includes_Nasm = function()
+                return Opts_Includes_Nasm_Base:Append(("-I" .. SysheadersPath) .. "/")
             end,
 
-            Opts_GCC = function(_)
-                local res = List {
-                    "-fvisibility=hidden", "-fno-PIE", "-fno-PIC",
-                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O0", "-flto",
-                    "-D__BEELZEBUB_KERNEL",
-                } + _.Opts_GCC_Common + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC_Kernel
+            Opts_GCC = function()
+                local res = List [[
+                    -fvisibility=hidden -fno-PIE -fno-PIC
+                    -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -O0 -flto
+                    -D__BEELZEBUB_KERNEL
+                ]] + Opts_GCC_Common + Opts_Includes
+                   + selArch.Data.Opts_GCC_Kernel
 
-                if _.selArch.Name == "amd64" then
+                if selArch.Name == "amd64" then
                     res:Append("-mcmodel=kernel")
                 end
 
                 return res
             end,
 
-            Opts_C    = function(_) return _.Opts_GCC + List { "-std=gnu99", } end,
-            Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
-            Opts_NASM = function(_) return _.Opts_GCC_Precompiler + _.Opts_Includes_Nasm + _.selArch.Data.Opts_NASM end,
-            Opts_GAS  = function(_) return _.Opts_GCC end,
+            Opts_C      = LST "!Opts_GCC -std=gnu99",
+            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_NASM   = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
+            Opts_GAS    = LST "!Opts_GCC",
 
-            LD      = function(_) return _.LO end,
-            Opts_LD = function(_) return _.Opts_GCC + List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", } end,
+            LD          = DAT "LO",
+            Opts_LD     = LST "!Opts_GCC -fuse-linker-plugin -Wl,-z,max-page-size=0x1000",
 
-            Opts_STRIP = List { "-s", "-K", "jegudiel_header" },
+            Opts_STRIP  = List "-s -K jegudiel_header",
 
-            Libraries = function(_)
+            Libraries = function()
                 local res = List {
-                    "common." .. _.selArch.Name,
+                    "common." .. selArch.Name,
                 }
 
                 if settKrnDynAlloc ~= "NONE" then
@@ -1118,18 +1085,18 @@ Project "Beelzebub" {
                 return res;
             end,
 
-            BinaryPath              = function(_) return _.ObjectsDirectory + _.KernelPath:GetName() end,
-            LinkerScript            = function(_) return _.ArchitecturesDirectory + _.selArch.Name + "link.ld" end,
+            BinaryPath      = DAT "ObjectsDirectory + KernelPath:GetName()",
+            LinkerScript    = DAT "ArchitecturesDirectory + selArch.Name + 'link.ld'",
 
             PrecompiledCppHeader = "common.hpp",
 
-            BinaryDependencies = function(_)
+            BinaryDependencies = function()
                 local res = List {
-                    _.CommonLibraryPath,
+                    CommonLibraryPath,
                 }
 
                 if settKrnDynAlloc ~= "NONE" then
-                    res:Append(_.KernelDynamicAllocatorPath)
+                    res:Append(KernelDynamicAllocatorPath)
                 end
 
                 return res
@@ -1140,18 +1107,16 @@ Project "Beelzebub" {
 
         Dependencies = "System Headers",
 
-        Output = function(_) return _.KernelPath end,
+        Output = DAT "KernelPath",
 
         Rule "Strip Binary" {
-            Filter = function(_, dst) return _.KernelPath end,
+            Filter = FLT "KernelPath",
 
-            Source = function(_, dst)
-                return List { _.BinaryPath, dst:GetParent() }
+            Source = function(dst)
+                return List { BinaryPath, dst:GetParent() }
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
-            end,
+            Action = ACT "!STRIP !Opts_STRIP -o !dst !BinaryPath",
         },
     },
 
@@ -1161,32 +1126,32 @@ Project "Beelzebub" {
         ExcuseHeaders = true,
 
         Data = {
-            Opts_GCC = function(_)
-                local res = List {
-                    "-fvisibility=hidden", "-fPIC",
-                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O0", "-flto",
-                    "-D__BEELZEBUB_KERNEL_MODULE",
-                } + _.Opts_GCC_Common + _.Opts_Includes
-                + _.selArch.Data.Opts_GCC_Kernel
+            Opts_GCC = function()
+                local res = List [[
+                    -fvisibility=hidden -fPIC
+                    -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -O0 -flto
+                    -D__BEELZEBUB_KERNEL_MODULE
+                ]] + Opts_GCC_Common + Opts_Includes
+                   + selArch.Data.Opts_GCC_Kernel
 
                 return res
             end,
 
-            Opts_CXX  = function(_) return _.Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
 
-            LD      = function(_) return _.LO end,
-            Opts_LD = function(_) return List { "-fuse-linker-plugin", "-Wl,-z,max-page-size=0x1000", "-Wl,-Bsymbolic", } + _.Opts_GCC end,
+            LD          = DAT "LO",
+            Opts_LD     = LST "-fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic !Opts_GCC",
 
-            Opts_STRIP = List { "-s" },
+            Opts_STRIP  = List "-s",
 
-            Libraries = function(_) return List { "beelzebub.kmod", } end,
+            Libraries   = List "beelzebub.kmod",
 
-            BinaryPath = function(_) return _.ObjectsDirectory + _.TestKernelModulePath:GetName() end,
+            BinaryPath  = DAT "ObjectsDirectory + TestKernelModulePath:GetName()",
 
-            BinaryDependencies = function(_)
+            BinaryDependencies = function()
                 local res = List {
-                    _.KernelModuleLibraryPath,
+                    KernelModuleLibraryPath,
                 }
 
                 return res
@@ -1197,80 +1162,71 @@ Project "Beelzebub" {
 
         Dependencies = "System Headers",
 
-        Output = function(_) return _.TestKernelModulePath end,
+        Output = DAT "TestKernelModulePath",
 
         Rule "Strip Binary" {
-            Filter = function(_, dst) return _.TestKernelModulePath end,
+            Filter = FLT "TestKernelModulePath",
 
-            Source = function(_, dst)
-                return List { _.BinaryPath, dst:GetParent() }
+            Source = function(dst)
+                return List { BinaryPath, dst:GetParent() }
             end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.STRIP, _.Opts_STRIP, "-o", dst, _.BinaryPath)
-            end,
+            Action = ACT "!STRIP !Opts_STRIP -o !dst !BinaryPath",
         },
     },
 
     Component "ISO Image" {
         Data = {
-            SysrootFiles = function(_)
+            SysrootFiles = function()
                 local res
 
-                if fs.GetInfo(_.Sysroot) then
-                    res = fs.ListDir(_.Sysroot):Append(_.Sysroot)
+                if fs.GetInfo(Sysroot) then
+                    res = fs.ListDir(Sysroot):Append(Sysroot)
                 else
                     res = List { }
                 end
 
-                res:AppendUnique(_.LoadtestAppPath)
-                res:AppendUnique(_.TestKernelModulePath)
+                res:AppendUnique(LoadtestAppPath)
+                res:AppendUnique(TestKernelModulePath)
 
                 return res
             end,
 
-            Opts_TAR = function(_)
-                return List {
-                    "--owner=root", "--group=root",
-                    "-C", _.Sysroot,
-                    "--exclude=*.d",
-                    "--exclude=libcommon.*.a",
-                }
-            end,
+            Opts_TAR = LST "--owner=root --group=root -C !Sysroot --exclude=*.d --exclude=libcommon.*.a",
 
-            IsoDirectory = function(_) return _.outDir + "iso" end,
-            IsoBootPath = function(_) return _.IsoDirectory + "boot" end,
-            IsoGrubDirectory = function(_) return _.IsoBootPath + "grub" end,
-            IsoJegudielPath = function(_) return _.IsoBootPath + "jegudiel.bin.gz" end,
-            IsoInitRdPath = function(_) return _.IsoBootPath + "initrd.tar.gz" end,
-            IsoKernelPath = function(_) return _.IsoBootPath + ("beelzebub." .. _.selArch.Name .. ".bin.gz") end,
-            IsoEltoritoPath = function(_) return _.IsoGrubDirectory + "stage2_eltorito" end,
-            IsoGrubfontPath = function(_) return _.IsoGrubDirectory + "font.pf2" end,
-            IsoGrubconfPath = function(_) return _.IsoGrubDirectory + "grub.cfg" end,
+            IsoDirectory        = DAT "outDir + 'iso'",
+            IsoBootPath         = DAT "IsoDirectory + 'boot'",
+            IsoGrubDirectory    = DAT "IsoBootPath + 'grub'",
+            IsoJegudielPath     = DAT "IsoBootPath + 'jegudiel.bin.gz'",
+            IsoInitRdPath       = DAT "IsoBootPath + 'initrd.tar.gz'",
+            IsoKernelPath       = DAT "IsoBootPath + ('beelzebub.' .. selArch.Name .. '.bin.gz')",
+            IsoEltoritoPath     = DAT "IsoGrubDirectory + 'stage2_eltorito'",
+            IsoGrubfontPath     = DAT "IsoGrubDirectory + 'font.pf2'",
+            IsoGrubconfPath     = DAT "IsoGrubDirectory + 'grub.cfg'",
 
-            IsoSources = function(_, dst)
+            IsoSources = function(dst)
                 local res = List {
-                    _.IsoKernelPath,
-                    _.IsoInitRdPath,
-                    _.IsoEltoritoPath,
-                    _.IsoGrubfontPath,
-                    _.IsoGrubconfPath,
+                    IsoKernelPath,
+                    IsoInitRdPath,
+                    IsoEltoritoPath,
+                    IsoGrubfontPath,
+                    IsoGrubconfPath,
 
-                    _.TestKernelModulePath,
-                    _.LoadtestAppPath,
+                    TestKernelModulePath,
+                    LoadtestAppPath,
                 }
 
-                if _.selArch.Name == "amd64" then
-                    res:Append(_.IsoJegudielPath)
+                if selArch.Name == "amd64" then
+                    res:Append(IsoJegudielPath)
                 end
 
                 return res
             end,
 
-            SourceGrub2 = function(_) return _.comp.Directory + "grub2" end,
-            SourceEltorito = function(_) return _.SourceGrub2 + "stage2_eltorito" end,
-            SourceGrubfont = function(_) return _.SourceGrub2 + "font.pf2" end,
-            SourceGrubconf = function(_) return _.SourceGrub2 + ("grub." .. _.selArch.Name .. ".cfg") end,
+            SourceGrub2     = DAT "comp.Directory + 'grub2'",
+            SourceEltorito  = DAT "SourceGrub2 + 'stage2_eltorito'",
+            SourceGrubfont  = DAT "SourceGrub2 + 'font.pf2'",
+            SourceGrubconf  = DAT "SourceGrub2 + ('grub.' .. selArch.Name .. '.cfg')",
         },
 
         Directory = "image",
@@ -1279,71 +1235,67 @@ Project "Beelzebub" {
             "System Headers"
         },
 
-        Output = function(_) return _.IsoFile end,
+        Output = DAT "IsoFile",
 
         Rule "Make ISO" {
-            Filter = function(_, dst) return _.IsoFile end,
-            Source = function(_, dst) return _.IsoSources end,
+            Filter = FLT "IsoFile",
+            Source = function(dst) return IsoSources end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.MKISO, "-R", "-b", _.IsoEltoritoPath:Skip(_.IsoDirectory), "-no-emul-boot", "-boot-load-size", 4, "-boot-info-table", "-o", _.IsoFile, _.IsoDirectory)
-            end,
+            Action = ACT "!MKISO -R -b !IsoEltoritoPath:Skip(!IsoDirectory) -no-emul-boot -boot-load-size 4 -boot-info-table -o !IsoFile !IsoDirectory",
         },
 
         Rule "Archive Sysroot" {
-            Filter = function(_, dst) return _.IsoInitRdPath end,
-            Source = function(_, dst) return _.SysrootFiles end,
+            Filter = FLT "IsoInitRdPath",
+            Source = function(dst) return SysrootFiles end,
 
-            Action = function(_, dst, src)
-                sh.silent(_.TAR, "czf", dst, _.Opts_TAR, ".")
-            end,
+            Action = ACT "!TAR czf !dst !Opts_TAR .",
         },
 
         Rule "GZip Jegudiel" {
-            Filter = function(_, dst) return _.IsoJegudielPath end,
+            Filter = FLT "IsoJegudielPath",
             
-            Source = function(_, dst)
-                return List { _.JegudielPath, dst:GetParent() }
+            Source = function(dst)
+                return List { JegudielPath, dst:GetParent() }
             end,
 
             Action = gzipSingleFile,
         },
 
         Rule "GZip Beelzebub" {
-            Filter = function(_, dst) return _.IsoKernelPath end,
+            Filter = FLT "IsoKernelPath",
             
-            Source = function(_, dst)
-                return List { _.KernelPath, dst:GetParent() }
+            Source = function(dst)
+                return List { KernelPath, dst:GetParent() }
             end,
 
             Action = gzipSingleFile,
         },
 
         Rule "Copy GRUB El Torito" {
-            Filter = function(_, dst) return _.IsoEltoritoPath end,
+            Filter = FLT "IsoEltoritoPath",
             
-            Source = function(_, dst)
-                return List { _.SourceEltorito, dst:GetParent() }
+            Source = function(dst)
+                return List { SourceEltorito, dst:GetParent() }
             end,
 
             Action = CopySingleFileAction,
         },
 
         Rule "Copy GRUB Font" {
-            Filter = function(_, dst) return _.IsoGrubfontPath end,
+            Filter = FLT "IsoGrubfontPath",
             
-            Source = function(_, dst)
-                return List { _.SourceGrubfont, dst:GetParent() }
+            Source = function(dst)
+                return List { SourceGrubfont, dst:GetParent() }
             end,
 
             Action = CopySingleFileAction,
         },
 
         Rule "Copy GRUB Configuration" {
-            Filter = function(_, dst) return _.IsoGrubconfPath end,
+            Filter = FLT "IsoGrubconfPath",
             
-            Source = function(_, dst)
-                return List { _.SourceGrubconf, dst:GetParent() }
+            Source = function(dst)
+                return List { SourceGrubconf, dst:GetParent() }
             end,
 
             Action = CopySingleFileAction,
