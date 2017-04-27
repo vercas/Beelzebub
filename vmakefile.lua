@@ -949,6 +949,8 @@ Project "Beelzebub" {
             Opts_STRIP  = List "-s",
 
             BinaryPath  = DAT "ObjectsDirectory + KernelModuleLibraryPath:GetName()",
+
+            BinaryDependencies = DAT "CrtFiles",
         },
 
         Directory = "libs/kmod",
