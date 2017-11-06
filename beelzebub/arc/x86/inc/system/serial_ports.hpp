@@ -143,6 +143,9 @@ namespace Beelzebub { namespace System
         //  Prepares the serial port for nominal operation.
         void Initialize();
 
+        //  Prepares the serial port for receiving interrupts.
+        void EnableInterrupts();
+
         /*  I/O  */
 
         //  True if the serial port can be read from.

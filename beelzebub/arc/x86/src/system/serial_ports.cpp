@@ -179,6 +179,8 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
     MainTerminal->WriteFormat("SERIAL%X1", iir);
     MSG("SERIAL%X1", iir);
 
+    for (;;);
+
     END_OF_INTERRUPT();
 }
 
@@ -238,14 +240,8 @@ void ManagedSerialPort::Initialize()
     else
         Io::Out8(this->BasePort + 2, 0x07);    // Enable FIFO, clear them, with 16-byte FIFO
 
-    Io::Out8(this->BasePort + 4, 0x0B);    // IRQs enabled, RTS/DSR set
-
-    Io::Out8(this->BasePort + 1, 0x00);    // Eh...
-    Io::Out8(this->BasePort + 1, 0x0F);    // Enable some interrupts
-
-    (void)Io::In8(this->BasePort + 1);
-    (void)Io::In8(this->BasePort + 2);
-    //  Poke 'em.
+    Io::Out8(this->BasePort + 4, 0x03);    // IRQs disabled, RTS/DSR set
+    Io::Out8(this->BasePort + 1, 0x00);    // Tell it, no IRQs.
 
     if (this->Type == SerialPortType::D16750)
         Io::Out8(this->BasePort + 2, 0x21);    // Eh?
@@ -253,6 +249,26 @@ void ManagedSerialPort::Initialize()
         Io::Out8(this->BasePort + 2, 0x01);    // Eh!
 
     this->OutputCount = 0;
+}
+
+void ManagedSerialPort::EnableInterrupts()
+{
+    Io::Out8(this->BasePort + 1, 0x0F);    // Enable some interrupts
+
+    // uint8_t iir = Io::In8(this->BasePort + 2);
+
+    (void)Io::In8(this->BasePort + 0);
+    (void)Io::In8(this->BasePort + 2);
+    (void)Io::In8(this->BasePort + 5);
+    (void)Io::In8(this->BasePort + 6);
+    //  Poke some registers. To clear interrupts.
+
+    Io::Out8(this->BasePort + 4, 0x0F);    // IRQs enabled, RTS/DSR set
+
+    // char buf[] = "INIT 000";
+    // for (size_t i = 7; iir > 0 && i >= 5; --i, iir /= 10) buf[i] = '0' + iir % 10;
+
+    // this->WriteNtString(buf, 8);
 }
 
 /*  I/O  */
