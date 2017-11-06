@@ -40,6 +40,8 @@
 #include <debug.hpp>
 #include "memory/vmm.hpp"
 #include "cores.hpp"
+#include "system/serial_ports.hpp"
+#include "system/io_ports.hpp"
 #include <beel/interrupt.state.hpp>
 
 #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
@@ -83,6 +85,11 @@ static __cold __noreturn void Die()
     //  If the system was killed already, just do nothing.
 
     DEBUG_TERM_ << "Core " << Decimal << Cpu::GetData()->Index << " is setting the system on fire." << EndLine;
+
+    uint8_t comStates[8];
+    for (int i = 0; i < 8; ++i) comStates[i] = Io::In8(COM1.BasePort + i);
+
+    MSG_("%X1 %c %X1 %X1 %X1 %X1 %X1 %X1 %X1", comStates[0], comStates[0], comStates[1], comStates[2], comStates[3], comStates[4], comStates[5], comStates[6], comStates[7]);
 
     if unlikely(Cores::IsReady())
     {

@@ -237,23 +237,27 @@ void ManagedSerialPort::Initialize()
 
         this->QueueSize = 64;
     }
-    else
+    else if (this->Type != SerialPortType::NS8250)
         Io::Out8(this->BasePort + 2, 0x07);    // Enable FIFO, clear them, with 16-byte FIFO
+    else
+        this->QueueSize = 1;                   // Ancient chip, has no FIFO.
 
     Io::Out8(this->BasePort + 4, 0x03);    // IRQs disabled, RTS/DSR set
     Io::Out8(this->BasePort + 1, 0x00);    // Tell it, no IRQs.
 
-    if (this->Type == SerialPortType::D16750)
-        Io::Out8(this->BasePort + 2, 0x21);    // Eh?
-    else
-        Io::Out8(this->BasePort + 2, 0x01);    // Eh!
+    // if (this->Type == SerialPortType::D16750)
+    //     Io::Out8(this->BasePort + 2, 0x21);    // Eh?
+    // else
+    //     Io::Out8(this->BasePort + 2, 0x01);    // Eh!
 
     this->OutputCount = 0;
 }
 
 void ManagedSerialPort::EnableInterrupts()
 {
-    Io::Out8(this->BasePort + 1, 0x0F);    // Enable some interrupts
+    Io::Out8(this->BasePort + 1, 0x00);
+    Io::Out8(this->BasePort + 1, 0x00);
+    //  Some book says this works around some bug. :(
 
     // uint8_t iir = Io::In8(this->BasePort + 2);
 
@@ -263,12 +267,15 @@ void ManagedSerialPort::EnableInterrupts()
     (void)Io::In8(this->BasePort + 6);
     //  Poke some registers. To clear interrupts.
 
-    Io::Out8(this->BasePort + 4, 0x0F);    // IRQs enabled, RTS/DSR set
+    Io::Out8(this->BasePort + 4, 0x0B);    // IRQs enabled, RTS/DSR set
 
     // char buf[] = "INIT 000";
     // for (size_t i = 7; iir > 0 && i >= 5; --i, iir /= 10) buf[i] = '0' + iir % 10;
 
     // this->WriteNtString(buf, 8);
+
+    Io::Out8(this->BasePort + 1, 0x01);    // Enable data receipt interrupts.
+    Io::Out8(this->BasePort + 1, 0x01);    // Enable data receipt interrupts.
 }
 
 /*  I/O  */
