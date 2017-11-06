@@ -79,10 +79,10 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
 
         /*  Subscription  */
 
-        static bool Subscribe(uint8_t const irq, InterruptHandlerPartialFunction const handler, bool const unmask = false);
-        static bool Subscribe(uint8_t const irq, InterruptHandlerFullFunction const handler, bool const unmask = false);
+        static bool Subscribe(uint8_t const irq, InterruptHandlerPartialFunction const handler, bool const unmask = true);
+        static bool Subscribe(uint8_t const irq, InterruptHandlerFullFunction const handler, bool const unmask = true);
         
-        static bool Unsubscribe(uint8_t const irq, bool const mask = false);
+        static bool Unsubscribe(uint8_t const irq, bool const mask = true);
         static bool IsSubscribed(uint8_t const irq);
 
         /*  Masking  */
