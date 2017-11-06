@@ -42,6 +42,7 @@
 #include "cores.hpp"
 #include "system/serial_ports.hpp"
 #include "system/io_ports.hpp"
+#include "system/interrupt_controllers/pic.hpp"
 #include <beel/interrupt.state.hpp>
 
 #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
@@ -51,6 +52,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Debug;
 using namespace Beelzebub::System;
+using namespace Beelzebub::System::InterruptControllers;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
@@ -89,7 +91,17 @@ static __cold __noreturn void Die()
     uint8_t comStates[8];
     for (int i = 0; i < 8; ++i) comStates[i] = Io::In8(COM1.BasePort + i);
 
-    MSG_("%X1 %c %X1 %X1 %X1 %X1 %X1 %X1 %X1", comStates[0], comStates[0], comStates[1], comStates[2], comStates[3], comStates[4], comStates[5], comStates[6], comStates[7]);
+    MSG_("%X1 %c %X1 %X1 %X1 %X1 %X1 %X1 %X1%n", comStates[0], comStates[0], comStates[1], comStates[2], comStates[3], comStates[4], comStates[5], comStates[6], comStates[7]);
+
+    Io::Out8(Pic::MasterCommandPort, 0x0A);
+    Io::Out8(Pic::SlaveCommandPort, 0x0A);
+    uint8_t const irrM = Io::In8(Pic::MasterCommandPort), irrS = Io::In8(Pic::SlaveCommandPort);
+
+    Io::Out8(Pic::MasterCommandPort, 0x0B);
+    Io::Out8(Pic::SlaveCommandPort, 0x0B);
+    uint8_t const isrM = Io::In8(Pic::MasterCommandPort), isrS = Io::In8(Pic::SlaveCommandPort);
+
+    MSG_("IRR: %X1 %X1; ISR: %X1 %X1%n", irrM, irrS, isrM, isrS);
 
     if unlikely(Cores::IsReady())
     {

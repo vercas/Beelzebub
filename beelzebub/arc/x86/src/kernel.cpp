@@ -1257,24 +1257,8 @@ Handle InitializeInterrupts()
 
     Interrupts::Register.Activate();
 
-    uint8_t const iir1 = Io::In8(COM1.BasePort + 2), iir2 = Io::In8(COM2.BasePort + 2);
-
     if (COM1.Type != SerialPortType::Disconnected) COM1.EnableInterrupts();
     if (COM2.Type != SerialPortType::Disconnected) COM2.EnableInterrupts();
-
-    for (size_t volatile i = 100000; i > 0; --i) { }
-
-    uint8_t const iir3 = Io::In8(COM1.BasePort + 2), iir4 = Io::In8(COM2.BasePort + 2);
-
-    Io::Out8(Pic::MasterCommandPort, 0x0A);
-    Io::Out8(Pic::SlaveCommandPort, 0x0A);
-    uint8_t const irrM = Io::In8(Pic::MasterCommandPort), irrS = Io::In8(Pic::SlaveCommandPort);
-
-    Io::Out8(Pic::MasterCommandPort, 0x0B);
-    Io::Out8(Pic::SlaveCommandPort, 0x0B);
-    uint8_t const isrM = Io::In8(Pic::MasterCommandPort), isrS = Io::In8(Pic::SlaveCommandPort);
-
-    MainTerminal->WriteFormat("IIRs: %X1 %X1 %X1 %X1; IRR: %X1 %X1; ISR: %X1 %X1", iir1, iir2, iir3, iir4, irrM, irrS, isrM, isrS);
 
     return HandleResult::Okay;
 }
