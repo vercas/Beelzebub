@@ -52,7 +52,7 @@ typedef RingBufferConcurrent::PopCookie PopCookie;
 
 /*  Statics  */
 
-PopCookie const RingBufferConcurrent::InvalidCookie { nullptr, 0, 0 };
+PopCookie const RingBufferConcurrent::InvalidCookie { nullptr, nullptr, 0, 0 };
 
 /*  Operations  */
 
@@ -155,7 +155,9 @@ PopCookie RingBufferConcurrent::TryBeginPop(size_t max, size_t min)
     //  There's another consumer working with data - this one would have to wait
     //  when ending the pop.
 
-    size_t const bufEnd = Minimum(myHH, myTH + this->Capacity);
+    size_t const relTS = myTS % this->Capacity;
+
+    size_t const bufEnd = Minimum(myHH, myTH + this->Capacity - relTS);
     size_t cpycnt = bufEnd - myTS;
 
     if (cpycnt < min)
@@ -167,7 +169,7 @@ PopCookie RingBufferConcurrent::TryBeginPop(size_t max, size_t min)
         return InvalidCookie;
     //  Well, this phaild.
 
-    return { this->Buffer + (myTS % this->Capacity), cpycnt, myTS };
+    return { this, this->Buffer + relTS, cpycnt, myTS };
 }
 
 PopCookie RingBufferConcurrent::BeginPop(size_t max, size_t min)
@@ -193,7 +195,7 @@ PopCookie RingBufferConcurrent::BeginPop(size_t max, size_t min)
     if (!__atomic_compare_exchange_n(&(this->TailSoft), &myTS, myTS + cpycnt, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
         return InvalidCookie;
 
-    return { this->Buffer + (myTS % this->Capacity), cpycnt, myTS };
+    return { this, this->Buffer + (myTS % this->Capacity), cpycnt, myTS };
 }
 
 PopCookie RingBufferConcurrent::WaitBeginPop(size_t max, size_t min)
@@ -223,13 +225,13 @@ loop:
     }
     while (!__atomic_compare_exchange_n(&(this->TailSoft), &myTS, myTS + cpycnt, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED));
 
-    return { this->Buffer + (myTS % this->Capacity), cpycnt, myTS };
+    return { this, this->Buffer + (myTS % this->Capacity), cpycnt, myTS };
 }
 
-void RingBufferConcurrent::EndPop(PopCookie const & cookie)
+void RingBufferConcurrent::EndPop(PopCookie const * cookie)
 {
-    while (__atomic_load_n(&(this->TailHard), __ATOMIC_RELAXED) != cookie.Tail)
+    while (__atomic_load_n(&(this->TailHard), __ATOMIC_RELAXED) != cookie->Tail)
         DO_NOTHING();
 
-    __atomic_store_n(&(this->TailHard), cookie.Tail + cookie.Count, __ATOMIC_RELEASE);
+    __atomic_store_n(&(this->TailHard), cookie->Tail + cookie->Count, __ATOMIC_RELEASE);
 }

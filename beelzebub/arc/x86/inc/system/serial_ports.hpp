@@ -42,6 +42,7 @@
 #include "system/interrupts.hpp"
 #include <beel/sync/smp.lock.hpp>
 #include <beel/sync/atomic.hpp>
+#include <beel/utils/ring.buffer.concurrent.hpp>
 
 namespace Beelzebub { namespace System
 {
@@ -129,16 +130,7 @@ namespace Beelzebub { namespace System
 
         /*  Construction  */
 
-        inline explicit constexpr ManagedSerialPort(const uint16_t basePort) 
-            : BasePort( basePort)
-            , QueueSize(16)
-            , Type()
-            , OutputCount(0)
-            , ReadLock()
-            , WriteLock()
-        {
-
-        }
+        explicit ManagedSerialPort(uint16_t const basePort);
 
         //  Prepares the serial port for nominal operation.
         void Initialize();
@@ -167,7 +159,7 @@ namespace Beelzebub { namespace System
         //  given amount of characters, and returns the number of characters
         //  read, including the null-terminator if read. This method awaits
         //  for reading to be permitted.
-        size_t ReadNtString(char * const buffer, const size_t size);
+        size_t ReadNtString(char * const buffer, size_t const size);
 
         //  Writes a null-terminated string to the serial port.
         //  This method awaits.
@@ -177,7 +169,7 @@ namespace Beelzebub { namespace System
         //  This method awaits.
         size_t WriteUtf8Char(char const * str);
 
-        void WriteBytes(void const * const src, size_t const cnt);
+        void WriteBytes(void const * const src, size_t cnt);
 
         /*  Fields  */
 
@@ -191,7 +183,12 @@ namespace Beelzebub { namespace System
         uint16_t OutputCount;
 
         Synchronization::SmpLockUni ReadLock;
-        Synchronization::SmpLockUni WriteLock;
+        Synchronization::SmpLock WriteLock;
+
+        Utils::RingBufferConcurrent Queue;
+        uint8_t Buffer[1024];
+
+        Synchronization::Atomic<int> ImmediateStatus;
     };
 
     extern ManagedSerialPort COM1;

@@ -40,11 +40,13 @@
 #include "system/serial_ports.hpp"
 #include "system/io_ports.hpp"
 #include "kernel.hpp"
+#include <beel/interrupt.state.hpp>
 #include <beel/terminals/base.hpp>
 #include <math.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::System;
+using namespace Beelzebub::Utils;
 
 ManagedSerialPort Beelzebub::System::COM1 {0x03F8};
 ManagedSerialPort Beelzebub::System::COM2 {0x02F8};
@@ -176,15 +178,66 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
 
     uint8_t const iir = Io::In8(COM1.BasePort + 2);
 
-    MainTerminal->WriteFormat("SERIAL%X1", iir);
-    MSG("SERIAL%X1", iir);
+    if (0 == (iir & 1) && COM1.ImmediateStatus == 0)
+    {
+        uint8_t const cause = (iir & 0xE) >> 1;
 
-    for (;;);
+        if (cause == 1)
+        {
+            //  Needs more data!
+
+            if (COM1.WriteLock.TryAcquire())
+            {
+                with (RingBufferConcurrent::PopCookie const cookie = COM1.Queue.TryBeginPop(COM1.QueueSize))
+                {
+                    if (cookie.IsValid())
+                    {
+                        Io::Out8n(COM1.BasePort, cookie.Array, cookie.Count);
+                        // MainTerminal->Write('S');
+                    }
+                    // else
+                    //     MainTerminal->Write('O');
+                    //  Failing this check means another consumer obtained data.
+                }
+
+                COM1.WriteLock.Release();
+            }
+            // else
+            // {
+            //     MainTerminal->Write('X');
+            //     MSG("SCHEISSE%X1", iir);
+            // }
+
+            //  Failure to lock here means that this interrupt was delivered late
+            //  for some reason, and a producer took initiative to output data.
+        }
+        // else
+        // {
+        //     MainTerminal->Write('C');
+        //     MSG("SERIAL%X1", iir);
+        // }
+    }
+    // else
+    //     MainTerminal->Write('?');
 
     END_OF_INTERRUPT();
 }
 
 /*  Construction  */
+
+ManagedSerialPort::ManagedSerialPort(uint16_t const basePort) 
+    : BasePort( basePort)
+    , QueueSize(16)
+    , Type()
+    , OutputCount(0)
+    , ReadLock()
+    , WriteLock()
+    , Queue(this->Buffer, 1024)
+    , Buffer()
+    , ImmediateStatus(2)
+{
+
+}
 
 static SerialPortType FindType(uint16_t const base)
 {
@@ -274,8 +327,8 @@ void ManagedSerialPort::EnableInterrupts()
 
     // this->WriteNtString(buf, 8);
 
-    Io::Out8(this->BasePort + 1, 0x01);    // Enable data receipt interrupts.
-    Io::Out8(this->BasePort + 1, 0x01);    // Enable data receipt interrupts.
+    Io::Out8(this->BasePort + 1, 0x03);    // Enable data receipt interrupts.
+    Io::Out8(this->BasePort + 1, 0x03);    // Enable data receipt interrupts.
 }
 
 /*  I/O  */
@@ -344,94 +397,156 @@ size_t ManagedSerialPort::ReadNtString(char * const buffer, size_t const size)
 
 size_t ManagedSerialPort::WriteNtString(char const * const str, size_t len)
 {
-    size_t i = 0, j, u = 0;
-    uint16_t const p = this->BasePort;
+    size_t i = 0, u = 0;
 
     //  `u` is the number of unicode characters encountered.
 
-    withLock (this->WriteLock)
-        while (str[i] != 0 && likely(i < len))
-        {
-            while (this->OutputCount >= this->QueueSize
-                && !this->CanWrite()) ;
+    for (char c; (c = str[i]) != 0 && i < len; ++i)
+        if likely((c & 0xC0) != 0x80)
+            ++u;
+    //  Upper bit is 0 means this is a one-byte character.
+    //  If upper bit is 1, the one before must be 1 as well for this to
+    //  be the start of a multibyte character.
 
-            size_t const left = Minimum(len - i, this->QueueSize - this->OutputCount);
-            char const * const tmp = str + i;
-
-            char c = tmp[j = 0];
-
-            do
-            {
-                if likely((c & 0xC0) != 0x80)
-                    ++u;
-                //  Upper bit is 0 means this is a one-byte character.
-                //  If upper bit is 1, the one before must be 1 as well for this to
-                //  be the start of a multibyte character.
-
-                ++j;
-            } while ((c = tmp[j]) != 0 && likely(j < left));
-
-            Io::Out8n(p, tmp, j);
-
-            this->OutputCount += j;
-            i += j;
-        }
+    this->WriteBytes(str, i);
 
     return u;
+
+    // size_t i = 0, j, u = 0;
+    // uint16_t const p = this->BasePort;
+
+    // //  `u` is the number of unicode characters encountered.
+
+    // withLock (this->WriteLock)
+    //     while (str[i] != 0 && likely(i < len))
+    //     {
+    //         while (this->OutputCount >= this->QueueSize
+    //             && !this->CanWrite()) ;
+
+    //         size_t const left = Minimum(len - i, this->QueueSize - this->OutputCount);
+    //         char const * const tmp = str + i;
+
+    //         char c = tmp[j = 0];
+
+    //         do
+    //         {
+    //             if likely((c & 0xC0) != 0x80)
+    //                 ++u;
+    //             //  Upper bit is 0 means this is a one-byte character.
+    //             //  If upper bit is 1, the one before must be 1 as well for this to
+    //             //  be the start of a multibyte character.
+
+    //             ++j;
+    //         } while ((c = tmp[j]) != 0 && likely(j < left));
+
+    //         Io::Out8n(p, tmp, j);
+
+    //         this->OutputCount += j;
+    //         i += j;
+    //     }
+
+    // return u;
 }
 
 size_t ManagedSerialPort::WriteUtf8Char(char const * str)
 {
     if (*str == 0)
         return 0;
+    else if ((str[0] & 0x80) == 0)
+    {
+        this->WriteBytes(str, 1);
 
-    withLock (this->WriteLock)
-        if ((*str & 0x80) == 0)
-        {
-            while (this->OutputCount >= this->QueueSize
-                && !this->CanWrite()) ;
+        return 1;
+    }
+    else
+    {
+        size_t i = 0;
 
-            Io::Out8(this->BasePort, *str);
-            ++this->OutputCount;
+        while ((str[++i] & 0xC0) == 0x80) { /* nothing */ }
 
-            return 1;
-            //  This is a one-byte character.
-        }
-        else
-        {
-            size_t i = 0;
+        this->WriteBytes(str, i);
 
-            while ((str[++i] & 0xC0) == 0x80) { }
+        return i;
+    }
 
-            while (this->OutputCount > this->QueueSize - i
-                && !this->CanWrite()) ;
+    // withLock (this->WriteLock)
+    //     if ((*str & 0x80) == 0)
+    //     {
+    //         while (this->OutputCount >= this->QueueSize
+    //             && !this->CanWrite()) ;
 
-            Io::Out8n(this->BasePort, str, i);
+    //         Io::Out8(this->BasePort, *str);
+    //         ++this->OutputCount;
 
-            this->OutputCount += i;
+    //         return 1;
+    //         //  This is a one-byte character.
+    //     }
+    //     else
+    //     {
+    //         size_t i = 0;
 
-            return i;
-            //  Returns the number of bytes in this UTF-8 character.
-        }
+    //         while ((str[++i] & 0xC0) == 0x80) { }
 
-    return ~0;  //  Not reached.
+    //         while (this->OutputCount > this->QueueSize - i
+    //             && !this->CanWrite()) ;
+
+    //         Io::Out8n(this->BasePort, str, i);
+
+    //         this->OutputCount += i;
+
+    //         return i;
+    //         //  Returns the number of bytes in this UTF-8 character.
+    //     }
+
+    // return ~0;  //  Not reached.
 }
 
-void ManagedSerialPort::WriteBytes(void const * const src, size_t const cnt)
+void ManagedSerialPort::WriteBytes(void const * src, size_t cnt)
 {
-    uint16_t const p = this->BasePort;
+    InterruptGuard<> ig;
 
-    withLock (this->WriteLock)
-        for (size_t i = 0, j; i < cnt; i += j)
+    if (this->ImmediateStatus == 0)
+        for (size_t i = 0; (i = this->Queue.TryPush((uint8_t const *)src + i, cnt)) < cnt; cnt -= i, PTR_ADD(src, i))
         {
-            while (this->OutputCount >= this->QueueSize
-                && !this->CanWrite()) { }
+            //  Not enough data could be pushed. Maybe no core is available to consume.
 
-            j = Minimum(this->QueueSize - this->OutputCount, cnt - i);
+            if (0 == (Io::In8(this->BasePort + 5) & 0x20))
+                continue;
+            //  The output FIFO is NOT empty...
 
-            Io::Out8n(p, (uint8_t const *)src + i, j);
-            this->OutputCount += j;
+            if (!this->WriteLock.TryAcquire())
+                continue;
+            //  Another core is in the process of writing.
+
+            if (0 == (Io::In8(this->BasePort + 5) & 0x20))
+                goto next;
+            //  UART FIFO is, once again, not empty. The lock may be released.
+
+            with (RingBufferConcurrent::PopCookie const cookie = this->Queue.TryBeginPop(this->QueueSize))
+            {
+                if (cookie.IsValid())
+                    Io::Out8n(this->BasePort, cookie.Array, cookie.Count);
+                //  Failing this check means another consumer obtained data.
+            }
+
+        next:
+            this->WriteLock.Release();
         }
+    else if (this->ImmediateStatus == 1)
+        while (!this->Queue.IsEmpty())
+            DO_NOTHING();
+    else if (this->ImmediateStatus == 2)
+        withLock (this->WriteLock)
+            for (size_t i = 0, j; i < cnt; i += j)
+            {
+                while (this->OutputCount >= this->QueueSize && !this->CanWrite())
+                    DO_NOTHING();
+
+                j = Minimum(this->QueueSize - this->OutputCount, cnt - i);
+
+                Io::Out8n(this->BasePort, (uint8_t const *)src + i, j);
+                this->OutputCount += j;
+            }
 }
 
 /************************

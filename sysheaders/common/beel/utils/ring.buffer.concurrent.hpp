@@ -58,25 +58,42 @@ namespace Beelzebub { namespace Utils
 
         struct PopCookie
         {
+            friend class RingBufferConcurrent;
+
             /*  Properties  */
 
             inline uint8_t * GetEnd() const { return this->Array + this->Count; }
-            inline bool IsValid() const { return this->Array != nullptr; }
+            inline bool IsValid() const { return this->Queue != nullptr; }
+            inline bool IsInvalid() const { return this->Queue == nullptr; }
 
         private:
             /*  Constructor  */
 
-            PopCookie(uint8_t * arr, size_t cnt, size_t tail) : Array(arr), Count(cnt), Tail(tail) { }
-
-            friend class RingBufferConcurrent;
+            inline PopCookie(RingBufferConcurrent * queue, uint8_t * arr, size_t cnt, size_t tail)
+                : Queue( queue)
+                , Array(arr)
+                , Count(cnt)
+                , Tail(tail)
+            { }
 
         public:
+            /*  Destructor  */
+
+            inline ~PopCookie()
+            {
+                if likely(this->Queue != nullptr)
+                    this->Queue->EndPop(this);
+            }
+
             /*  Fields  */
 
+            RingBufferConcurrent * const Queue;
             uint8_t * const Array;
             size_t const Count;
             size_t const Tail;
         };
+
+        friend struct PopCookie;
 
     private:
         /*  Statics  */
@@ -97,8 +114,8 @@ namespace Beelzebub { namespace Utils
 
         inline bool IsEmpty() const
         {
-            size_t const ts = __atomic_load_n(&(this->TailSoft), __ATOMIC_ACQUIRE);
-            size_t const hs = __atomic_load_n(&(this->HeadSoft), __ATOMIC_RELEASE);
+            size_t const ts = __atomic_load_n(&(this->TailSoft), __ATOMIC_RELAXED);
+            size_t const hs = __atomic_load_n(&(this->HeadSoft), __ATOMIC_RELAXED);
             //  The specified memory orders force the order of the two memory loads.
             //  This just makes it more likely to get an accurate negative result
             //  under contention.
@@ -114,9 +131,10 @@ namespace Beelzebub { namespace Utils
         PopCookie TryBeginPop(size_t max, size_t min = 1);
         PopCookie BeginPop(size_t max, size_t min = 1);
         PopCookie WaitBeginPop(size_t max, size_t min = 1);
-        void EndPop(PopCookie const & cookie);
 
     private:
+        void EndPop(PopCookie const * cookie);
+
         /*  Fields  */
 
         size_t TailHard, HeadHard, TailSoft, HeadSoft;
