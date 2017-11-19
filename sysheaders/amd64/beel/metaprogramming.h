@@ -46,10 +46,12 @@
     Some Types
 *****************/
 
-typedef uint64_t paddr_t; //  Physical address.
-typedef uint64_t vaddr_t; //  Virtual (linear) address.
-typedef uint64_t psize_t; //  Physical size.
-typedef uint64_t vsize_t; //  Virtual (linear) address.
+typedef union paddr_u { uint64_t Value; } paddr_t;
+typedef union psize_u { uint64_t Value; } psize_t;
+
+typedef union vaddr_u { uint64_t Value; void const * Pointer } vaddr_t;
+typedef union vsize_u { uint64_t Value; } vsize_t;
+
 typedef uint64_t pgind_t; //  Index of a memory page.
 typedef uint64_t  creg_t; //  Control register.
 
@@ -58,6 +60,27 @@ typedef  int64_t ssize_t;
 typedef  __int128_t  int128_t;
 typedef __uint128_t uint128_t;
 
+#ifdef __BEELZEBUB__SOURCE_CXX
+
+#define COMP_OP(TYP) \
+__forceinline bool operator == (TYP a, TYP b) { return a.Value == b.Value; } \
+__forceinline bool operator != (TYP a, TYP b) { return a.Value != b.Value; } \
+__forceinline bool operator  < (TYP a, TYP b) { return a.Value  < b.Value; } \
+__forceinline bool operator <= (TYP a, TYP b) { return a.Value <= b.Value; } \
+__forceinline bool operator  > (TYP a, TYP b) { return a.Value  > b.Value; } \
+__forceinline bool operator >= (TYP a, TYP b) { return a.Value >= b.Value; }
+
+COMP_OP(paddr_t) COMP_OP(psize_t) COMP_OP(vaddr_t) COMP_OP(vsize_t)
+#undef COMP_OP
+
+#define ARIT_OP(Ta, Ts) \
+__forceinline bool operator +  (Ta a, Ts s) { return {a.Value + b.Value}; } \
+__forceinline bool operator -  (Ta a, Ts s) { return {a.Value - b.Value}; }
+
+ARIT_OP(paddr_t, psize_t) ARIT_OP(vaddr_t, vsize_t)
+#undef ARIT_OP
+
+#endif
 #endif
 
 /*******************************
