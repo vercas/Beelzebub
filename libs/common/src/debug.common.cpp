@@ -43,6 +43,8 @@ using namespace Beelzebub;
 using namespace Beelzebub::Debug;
 using namespace Beelzebub::Terminals;
 
+// bool PrintMemoryOps = false;
+
 TerminalBase * Debug::DebugTerminal;
 
 void Debug::CatchFireFormat(const char * const file

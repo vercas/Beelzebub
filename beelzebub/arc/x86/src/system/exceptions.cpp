@@ -302,7 +302,7 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
     vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
     auto pff = (PageFaultFlags)(state->ErrorCode);
 
-    Cores::AssertCoreRegistration();
+    // Cores::AssertCoreRegistration();
 
     // MSG_("! Page fault at %Xp: %X1; RIP %Xp !", CR2, pff, INSTRUCTION_POINTER);
 

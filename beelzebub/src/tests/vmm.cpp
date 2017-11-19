@@ -447,6 +447,8 @@ void TestVmm(bool const bsp)
         // DEBUG_TERM_ << &(Memory::Vmm::KVas);
 
         MSG_("VMM integrity test.%n");
+
+        // ::PrintMemoryOps = true;
     }
 
     SYNC;
@@ -456,7 +458,12 @@ void TestVmm(bool const bsp)
     SYNC;
 
 #ifdef PRINT
-    if (bsp) MSG_("Done with VMM test.%n");
+    if (bsp)
+    {
+        MSG_("Done with VMM test.%n");
+
+        // ::PrintMemoryOps = false;
+    }
 
     SYNC;
 #endif
@@ -667,7 +674,7 @@ void TestVmmIntegrity(bool const bsp)
         return reinterpret_cast<uint32_t *>(testptr);
     };
 
-    auto delPtr = [](uint32_t * vaddr)
+    auto delPtr = [](uint32_t volatile * vaddr)
     {
         Handle res = Vmm::FreePages(nullptr, reinterpret_cast<vaddr_t>(vaddr), RoundUp(TestSize * sizeof(uint32_t), PageSize));
 
@@ -689,11 +696,13 @@ void TestVmmIntegrity(bool const bsp)
 
     for (size_t test = TestCount; test > 0; --test)
     {
-        uint32_t * testRegion = getPtr();
+        uint32_t volatile * testRegion = getPtr();
+        paddr_t origPaddr = nullpaddr;
 
         for (size_t iteration = IterationCount; iteration > 0; --iteration)
         {
             HashValue = HashStart;
+            // int j = 0;
 
             // MSG_("# Write #");
 
@@ -706,7 +715,20 @@ void TestVmmIntegrity(bool const bsp)
                 //     ExpectedTop = HashValue;
 
                 testRegion[i] = HashValue;
+
+                if unlikely(i == TestSize - 1 && iteration == IterationCount)
+                {
+                    paddr_t paddr;
+                    Handle res = Vmm::Translate(nullptr, reinterpret_cast<uintptr_t>(testRegion + i), paddr);
+
+                    if unlikely(res != HandleResult::Okay)
+                        MSG_("Failed to translate address of first slot %Xp: %H; Value is %X4%n", testRegion + i, res, testRegion[i]);
+                    else
+                        origPaddr = paddr;
+                }
             }
+
+            // ASSERTX(j == 2048)(j)XEND;
 
             OldHashValue = HashValue = HashStart;
 
@@ -729,6 +751,8 @@ void TestVmmIntegrity(bool const bsp)
                     uint32_t refCnt;
 
                     Handle res = Vmm::Translate(nullptr, reinterpret_cast<uintptr_t>(testRegion + i), paddr);
+
+                    ASSERTX(paddr == origPaddr)(paddr)(origPaddr)(i)(test)(iteration)XEND;
 
                     if unlikely(res != HandleResult::Okay)
                         MSG_("Failed to translate address of faulty slot %Xp: %H%n", testRegion + i, res);

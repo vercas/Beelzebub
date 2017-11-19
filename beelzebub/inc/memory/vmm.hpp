@@ -67,7 +67,7 @@ namespace Beelzebub { namespace Memory
         struct RangeInvalidationInfo
         {
             Execution::Process * const Proc;
-            void * const * const Addresses;
+            void const * const * const Addresses;
             size_t const Count, Stride;
             AfterRangeInvalidationFunc const After;
             void * const Cookie;
@@ -192,7 +192,7 @@ namespace Beelzebub { namespace Memory
             , void * cookie = nullptr);
 
         static __hot __solid Handle InvalidateRange(Execution::Process * proc
-            , void * const * const addresses, size_t count
+            , void const * const * const addresses, size_t count
             , size_t stride = sizeof(void *), bool broadcast = true
             , AfterRangeInvalidationFunc after = nullptr, void * cookie = nullptr);
 

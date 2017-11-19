@@ -46,6 +46,8 @@
 #include <beel/sync/smp.lock.hpp>
 #endif
 
+// extern bool PrintMemoryOps;
+
 //  NOTE: debug_arch.hpp is included near the end.
 
 #define DEBUG_TERM if (Beelzebub::Debug::DebugTerminal != nullptr) \

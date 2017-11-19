@@ -821,7 +821,7 @@ struct HybridPageEntry
     paddr_t PhysicalAddress;
 };
 
-static constexpr size_t const UnmapListMax = 512;
+static constexpr int const UnmapListMax = 512;
 static __thread HybridPageEntry UnmapList[UnmapListMax];
 //  Enough to clear one table at a time.
 
@@ -829,7 +829,7 @@ static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
 {
     Handle res;
     vaddr_t const iterationStart = state->Address;
-    size_t i;
+    int i;
 
     for (i = 0; i < UnmapListMax && state->Address < state->EndAddress; ++i)
     {
@@ -838,6 +838,10 @@ static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
         FrameSize fSize = FrameSize::_1GiB;
 
     retry:
+        // if (::PrintMemoryOps)
+        //     MSG_("Translating page %Xp...%n"
+        //         , state->Address);
+
         res = TranslateInternal(state->Process, state->Address
             , [&paddr, &fSize](PmlCommonEntry * pE, int level)
             {
@@ -866,6 +870,11 @@ static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
 
         UnmapList[i] = HybridPageEntry {reinterpret_cast<void const *>(state->Address), paddr};
 
+        // if (::PrintMemoryOps)
+        //     MSG_("Unmap list item %i4: %Xp -> %XP%n"
+        //         , i, UnmapList[i].VirtualAddress
+        //         , UnmapList[i].PhysicalAddress);
+
         state->Address = next;
     }
 
@@ -885,7 +894,7 @@ static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
         if likely(state->Invalidate)
         {
             Handle res2 = Vmm::InvalidateRange(state->Process
-                , reinterpret_cast<void * *>(UnmapList + 0)
+                , reinterpret_cast<void const * const *>(UnmapList + offsetof(HybridPageEntry, VirtualAddress))
                 , i, sizeof(HybridPageEntry)
                 , state->Broadcast);
 
@@ -1085,6 +1094,10 @@ Handle Vmm::UnmapRange(Process * proc
             ? &(proc->LocalTablesLock)
             : &(Vmm::KernelHeapLock));
 
+    // if (::PrintMemoryOps)
+    //     MSG_("Unmapping range %Xp-%Xp.%n"
+    //         , vaddr, vaddr + size);
+
     Handle res;
 
     if likely(CpuDataSetUp)
@@ -1158,11 +1171,17 @@ static __hot __solid void RangeInvalidator(void * cookie)
 {
     Vmm::RangeInvalidationInfo const * const inf = (Vmm::RangeInvalidationInfo const *)cookie;
 
-    void const * addr = inf->Addresses;
+    void const * const * addr = inf->Addresses;
 
     for (size_t i = 0; i < inf->Count; ++i, PTR_INC(addr, inf->Stride))
     {
-        CpuInstructions::InvalidateTlb(addr);
+        // if (::PrintMemoryOps)
+        //     MSG_("Invalidating address %Xp on core %us (%s).%n"
+        //         , *addr
+        //         , Cpu::GetData()->Index
+        //         , caller ? "caller" : "NOT caller");
+
+        CpuInstructions::InvalidateTlb(*addr);
     }
 
     if (inf->After != nullptr)
@@ -1172,7 +1191,7 @@ static __hot __solid void RangeInvalidator(void * cookie)
 }
 
 Handle Vmm::InvalidateRange(Process * proc
-    , void * const * const addresses, size_t count, size_t stride, bool broadcast
+    , void const * const * const addresses, size_t count, size_t stride, bool broadcast
     , AfterRangeInvalidationFunc after, void * cookie)
 {
     if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
