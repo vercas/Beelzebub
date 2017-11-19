@@ -46,21 +46,34 @@
     Some Types
 *****************/
 
+#ifdef __BEELZEBUB__SOURCE_CXX
+namespace Beelzebub
+{
+#endif
+
 typedef union paddr_u { uint64_t Value; } paddr_t;
 typedef union psize_u { uint64_t Value; } psize_t;
 
-typedef union vaddr_u { uint64_t Value; void const * Pointer } vaddr_t;
+typedef union vaddr_u { uint64_t Value; void const * Pointer; } vaddr_t;
 typedef union vsize_u { uint64_t Value; } vsize_t;
 
 typedef uint64_t pgind_t; //  Index of a memory page.
 typedef uint64_t  creg_t; //  Control register.
 
-typedef  int64_t ssize_t;
-
 typedef  __int128_t  int128_t;
 typedef __uint128_t uint128_t;
 
 #ifdef __BEELZEBUB__SOURCE_CXX
+
+union PageSize_t
+{
+    uint64_t Value;
+
+    operator psize_t() const { return { this->Value }; }
+    operator vsize_t() const { return { this->Value }; }
+
+    operator uint64_t() const { return this->Value; }
+};
 
 #define COMP_OP(TYP) \
 __forceinline bool operator == (TYP a, TYP b) { return a.Value == b.Value; } \
@@ -74,13 +87,17 @@ COMP_OP(paddr_t) COMP_OP(psize_t) COMP_OP(vaddr_t) COMP_OP(vsize_t)
 #undef COMP_OP
 
 #define ARIT_OP(Ta, Ts) \
-__forceinline bool operator +  (Ta a, Ts s) { return {a.Value + b.Value}; } \
-__forceinline bool operator -  (Ta a, Ts s) { return {a.Value - b.Value}; }
+__forceinline Ta operator +  (Ta a, Ts s) { return { a.Value + s.Value }; } \
+__forceinline Ta operator -  (Ta a, Ts s) { return { a.Value - s.Value }; } \
+__forceinline Ts operator -  (Ta a, Ta b) { return { a.Value - b.Value }; }
 
 ARIT_OP(paddr_t, psize_t) ARIT_OP(vaddr_t, vsize_t)
 #undef ARIT_OP
 
+}   //  namespace Beelzebub
 #endif
+
+typedef  int64_t ssize_t;
 #endif
 
 /*******************************
