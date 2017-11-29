@@ -70,7 +70,7 @@ namespace Beelzebub { namespace Memory
         { return AllocateFrame(size, magn, refCnt); }
 
         static __hot __solid Handle FreeFrame(paddr_t addr, bool ignoreRefCnt = true);
-        static __cold __solid Handle ReserveRange(paddr_t start, size_t size, bool includeBusy = false);
+        static __cold __solid Handle ReserveRange(paddr_t start, psize_t size, bool includeBusy = false);
 
         static __hot __solid Handle AdjustReferenceCount(paddr_t addr, uint32_t & newCnt, int32_t diff);
 

@@ -60,10 +60,10 @@ using namespace Beelzebub::System;
 ****************/
 
 template<typename TInt>
-static __forceinline bool Is4KiBAligned(TInt val) { return (val & (     PageSize - 1)) == 0; }
+static __forceinline bool Is4KiBAligned(TInt val) { return (val.Value & (     PageSize.Value - 1)) == 0; }
 
 template<typename TInt>
-static __forceinline bool Is2MiBAligned(TInt val) { return (val & (LargePageSize - 1)) == 0; }
+static __forceinline bool Is2MiBAligned(TInt val) { return (val.Value & (LargePageSize.Value - 1)) == 0; }
 
 /****************
     Vmm class
@@ -78,7 +78,7 @@ KernelVas Vmm::KVas;
 /*  Page Management  */
 
 Handle Vmm::HandlePageFault(Execution::Process * proc
-    , uintptr_t const vaddr, PageFaultFlags const flags)
+    , vaddr_t const vaddr, PageFaultFlags const flags)
 {
     //  Assumes interrupts are disabled upon call.
 
@@ -180,11 +180,11 @@ Handle Vmm::HandlePageFault(Execution::Process * proc
             //  be TERMINATED.
 
             if (0 != (reg->Flags & MemoryFlags::Writable))
-                memset(reinterpret_cast<void *>(vaddr_algn), 0, PageSize);
+                memset(vaddr_algn, 0, PageSize);
                 //  This is allowed.
             else
                 withWriteProtect (false)
-                    memset(reinterpret_cast<void *>(vaddr_algn), 0xCA, PageSize);
+                    memset(vaddr_algn, 0xCA, PageSize);
                 //  It's all CACA! It shouldn't be read, it should be written to using
                 //  a syscall.
         }
@@ -210,7 +210,7 @@ end:
 /*  Flags  */
 
 Handle Vmm::CheckMemoryRegion(Execution::Process * proc
-    , uintptr_t addr, size_t size, MemoryCheckType type)
+    , vaddr_t addr, vsize_t size, MemoryCheckType type)
 {
     if (proc == nullptr) proc = likely(Cores::IsReady()) ? Cpu::GetProcess() : &BootstrapProcess;
 
@@ -227,7 +227,7 @@ Handle Vmm::CheckMemoryRegion(Execution::Process * proc
 
     Handle res = HandleResult::Okay;
 
-    PointerAndSize const chkrng = {addr, size};
+    PointerAndSize const chkrng { addr.Value, size.Value };
     MemoryFlags const mandatoryFlags = 
         (  0 != (type & MemoryCheckType::Writable) ? MemoryFlags::Writable : MemoryFlags::None)
         | (0 != (type & MemoryCheckType::Userland) ? MemoryFlags::Userland : MemoryFlags::None);
@@ -259,8 +259,8 @@ Handle Vmm::CheckMemoryRegion(Execution::Process * proc
         //  Regions which are reserved cannot be accessed like this.
     }
 
-    if unlikely((0 != (reg->Type & MemoryAllocationOptions::GuardLow ) && DoRangesIntersect(chkrng, {reg->Range.Start         , PageSize}))
-             || (0 != (reg->Type & MemoryAllocationOptions::GuardHigh) && DoRangesIntersect(chkrng, {reg->Range.End - PageSize, PageSize})))
+    if unlikely((0 != (reg->Type & MemoryAllocationOptions::GuardLow ) && DoRangesIntersect(chkrng, { (reg->Range.Start         ).Value, PageSize.Value }))
+             || (0 != (reg->Type & MemoryAllocationOptions::GuardHigh) && DoRangesIntersect(chkrng, { (reg->Range.End - PageSize).Value, PageSize.Value })))
         RETURN(PageGuard);
     //  Thie region overlaps a guard page.
 
@@ -278,7 +278,7 @@ Handle Vmm::CheckMemoryRegion(Execution::Process * proc
 next_region:
     if unlikely(vaddr_end > reg->Range.End)
     {
-        size_t const diff = reg->Range.End - addr;
+        vsize_t const diff = reg->Range.End - addr;
 
         addr += diff;   //  Equivalent to addr = reg->Range.End
         size -= diff;
@@ -295,11 +295,11 @@ end:
 
 /*  Allocation  */
 
-Handle Vmm::AllocatePages(Process * proc, size_t const size
+Handle Vmm::AllocatePages(Process * proc, vsize_t const size
     , MemoryAllocationOptions const type
     , MemoryFlags const flags
     , MemoryContent content
-    , uintptr_t & vaddr)
+    , vaddr_t & vaddr)
 {
     if (proc == nullptr) proc = likely(Cores::IsReady()) ? Cpu::GetProcess() : &BootstrapProcess;
 
@@ -344,8 +344,8 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
         LockGuard<SmpLock > heapLg {*heapLock};
         //  Note: this ain't flexible because heapLock ain't gonna be null.
 
-        size_t offset;
-        for (offset = 0; offset < size; offset += PageSize)
+        vsize_t offset { 0 };
+        for (; offset < size; offset += PageSize)
         {
             paddr_t const paddr = Pmm::AllocateFrame();
 
@@ -361,7 +361,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
 
         if likely(0 != (type & MemoryAllocationOptions::VirtualUser))
             withWriteProtect (false)
-                memset(reinterpret_cast<void *>(ret), 0xCA, size);
+                memset(ret, 0xCA, size);
 
         return HandleResult::Okay;
 
@@ -380,7 +380,7 @@ Handle Vmm::AllocatePages(Process * proc, size_t const size
     FAIL("Odd memory allocation options given: %Xs", (size_t)type);
 }
 
-Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
+Handle Vmm::FreePages(Process * proc, vaddr_t const vaddr, vsize_t const size)
 {
     if unlikely(!Is4KiBAligned(vaddr))
         return HandleResult::AlignmentFailure;
@@ -396,13 +396,13 @@ Handle Vmm::FreePages(Process * proc, uintptr_t const vaddr, size_t const size)
     //  Cannot use this to free memory from elsewhere.
 
     return UnmapRange(proc, vaddr, size, MemoryMapOptions::None
-        , [](Process * proc_, uintptr_t vaddr_, void * cookie)
+        , [](Process * proc_, vaddr_t vaddr_, void * cookie)
         {
             (void)proc_;
             (void)vaddr_;
 
             reinterpret_cast<Memory::Vas *>(cookie)->Lock.AcquireAsWriter();
-        }, [](Process * proc_, uintptr_t vaddr_, size_t size_, Handle oRes, void * cookie)
+        }, [](Process * proc_, vaddr_t vaddr_, vsize_t size_, Handle oRes, void * cookie)
         {
             (void)proc_;
 

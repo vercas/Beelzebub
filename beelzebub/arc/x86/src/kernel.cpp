@@ -1308,7 +1308,9 @@ Handle InitializeApic()
         , "Failed to obtain LAPIC physical address.")
         (res);
 
-    res = Vmm::MapPage(&BootstrapProcess, Lapic::VirtualAddress, lapicPaddr
+    res = Vmm::MapPage(&BootstrapProcess
+        , Lapic::VirtualAddress
+        , lapicPaddr
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryMapOptions::NoReferenceCounting);
 
@@ -1423,8 +1425,8 @@ Handle InitializeProcessingUnits()
     Handle res;
     size_t apCount = 0;
 
-    paddr_t const bootstrapPaddr = 0x1000;
-    vaddr_t const bootstrapVaddr = 0x1000;
+    paddr_t const bootstrapPaddr { 0x1000 };
+    vaddr_t const bootstrapVaddr { 0x1000 };
     //  This's gonna be for AP bootstrappin' code.
 
     res = Vmm::MapPage(&BootstrapProcess, bootstrapVaddr, bootstrapPaddr
@@ -1451,7 +1453,7 @@ Handle InitializeProcessingUnits()
 
     KernelGdtPointer = GdtRegister::Retrieve();
 
-    BREAKPOINT_SET_AUX((int volatile *)((uintptr_t)&ApBreakpointCookie - (uintptr_t)&ApBootstrapBegin + bootstrapVaddr));
+    BREAKPOINT_SET_AUX((int volatile *)((uintptr_t)&ApBreakpointCookie - (uintptr_t)&ApBootstrapBegin + bootstrapVaddr.Value));
     InterruptState const int_cookie = InterruptState::Enable();
 
     // MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
@@ -1533,7 +1535,7 @@ Handle InitializeAp(uint32_t const lapicId
     vaddr_t vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
-        , CpuStackSize
+        , vsize_t(CpuStackSize)
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable
@@ -1549,7 +1551,7 @@ Handle InitializeAp(uint32_t const lapicId
         return res;
     }
 
-    ApStackTopPointer = vaddr + CpuStackSize;
+    ApStackTopPointer = vaddr + vsize_t(CpuStackSize);
     ApInitializationLock1 = ApInitializationLock2 = ApInitializationLock3 = 1;
 
     LapicIcr initIcr = LapicIcr(0)

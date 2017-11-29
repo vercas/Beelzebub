@@ -143,7 +143,7 @@ copyIntoPool:
         size_t const copyCnt = Minimum(pool->Capacity - pool->Size, left);
         char * const dst = reinterpret_cast<char *>(pool) + sizeof(CharPool) + pool->Size;
 
-        memcpy(dst, str + written, copyCnt);
+        ::memcpy(dst, str + written, copyCnt);
 
         pool->Size += copyCnt;
         written += copyCnt;
@@ -273,7 +273,7 @@ void CacheTerminal::Clear()
 
     while (pool != nullptr)
     {
-        memset(const_cast<char *>(pool->GetString()), 0, pool->Size);
+        ::memset(const_cast<char *>(pool->GetString()), 0, pool->Size);
         pool->Size = 0;
 
         pool = pool->Next;

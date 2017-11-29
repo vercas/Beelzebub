@@ -319,7 +319,7 @@ Handle CommandLineOptionParser::ParseOption(CommandLineOptionSpecification & opt
             {
                 //  One-letter short option means more can be grouped together.
 
-                if (memchr(this->InputString + i + 1, opt.ShortForm[0], len - 1) == nullptr)
+                if (::memchr(this->InputString + i + 1, opt.ShortForm[0], len - 1) == nullptr)
                     continue;
                 //  Flag not found.
             }

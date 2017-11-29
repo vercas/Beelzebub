@@ -147,7 +147,7 @@ namespace Beelzebub { namespace Memory
                             , bool    const userAccessible
                             , bool    const global
                             , bool    const xd)
-            : Value((paddr & AddressBits)
+            : Value((paddr.Value & AddressBits)
                   | (present        ? PresentBit  : 0ULL)
                   | (writable       ? WritableBit : 0ULL)
                   | (userAccessible ? UserlandBit : 0ULL)
@@ -172,7 +172,7 @@ namespace Beelzebub { namespace Memory
                             , bool    const pat1
                             , bool    const pat2
                             , bool    const xd)
-            : Value((paddr & AddressBits)
+            : Value((paddr.Value & AddressBits)
                   | (present        ? PresentBit  : 0ULL)
                   | (writable       ? WritableBit : 0ULL)
                   | (userAccessible ? UserlandBit : 0ULL)

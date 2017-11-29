@@ -53,8 +53,8 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
 {
     (void)data;
 
-    vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
-    vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
+    uintptr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize.Value);
+    uintptr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize.Value);
 
     // DEBUG_TERM  << "Requesting memory for segment: " << (void *)segVaddr << " - " << (void *)segVaddrEnd << Terminals::EndLine
     //             << "loc = " << (void *)loc << Terminals::EndLine
@@ -84,7 +84,7 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
 
         return false;
     }
-    else if unlikely((vaddr_t)resPtr != segVaddr)
+    else if unlikely((uintptr_t)resPtr != segVaddr)
     {
         DEBUG_TERM  << "Failed to allocate memory for " << phdr
                     << " at the requested location; was given " << resPtr
@@ -107,8 +107,8 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
     {
         //  Segment is writable, normal memcpy will do.
 
-        memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
-            ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
+        ::memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
+            , reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
     }
 
     if (phdr.VSize > phdr.PSize)
@@ -120,14 +120,14 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
             res = MemoryFill(reinterpret_cast<uintptr_t>(loc + phdr.VAddr + phdr.PSize)
                 , 0, phdr.VSize - phdr.PSize);
 
-            if unlikely(!res.IsOkayResult())
+            if unlikely(res != HandleResult::Okay)
                 return false;
         }
         else
         {
             //  Segment is writable, normal memcpy will do.
 
-            memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
+            ::memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
                 , 0, phdr.VSize - phdr.PSize);
         }
     }
@@ -139,8 +139,8 @@ bool Execution::UnmapSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, 
 {
     (void)data;
 
-    vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
-    vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
+    uintptr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize.Value);
+    uintptr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize.Value);
 
     if (segVaddrEnd <= segVaddr)
         return false;
@@ -148,5 +148,5 @@ bool Execution::UnmapSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, 
 
     Handle res = MemoryRelease(segVaddr, segVaddrEnd - segVaddr, MemoryReleaseOptions::None);
 
-    return res.IsOkayResult();
+    return res == HandleResult::Okay;
 }

@@ -47,29 +47,48 @@ namespace Beelzebub
 
 #ifdef __BEELZEBUB__ARCH_X86
 template<typename TNum1, typename TNum2>
-__forceinline __const constexpr auto RoundUp(const TNum1 value, const TNum2 step) -> decltype(((value + step - 1) / step) * step)
+__forceinline __const constexpr auto RoundUp(const TNum1 value, const TNum2 step)
+    -> decltype(((value + step - 1) / step) * step)
 {
     return ((value + step - 1) / step) * step;
 }
 #else
 template<typename TNum1, typename TNum2>
-__forceinline __const constexpr auto RoundUp(const TNum1 value, const TNum2 step) -> decltype(value + ((step - (value % step)) % step))
+__forceinline __const constexpr auto RoundUp(const TNum1 value, const TNum2 step)
+    -> decltype(value + ((step - (value % step)) % step))
 {
     return value + ((step - (value % step)) % step);
 }
 #endif
 
 template<typename TNum1, typename TNum2>
-__forceinline __const constexpr auto RoundDown(const TNum1 value, const TNum2 step) -> decltype(value - (value & step))
+__forceinline __const constexpr auto RoundDown(const TNum1 value, const TNum2 step)
+    -> decltype(value - (value & step))
 {
     return value - (value % step);
 }
 
 template<typename TNum1, typename TNum2>
-__forceinline __const constexpr auto RoundUpDiff(const TNum1 value, const TNum2 step) -> decltype((step - (value % step)) % step)
+__forceinline __const constexpr auto RoundUpDiff(const TNum1 value, const TNum2 step)
+    -> decltype((step - (value % step)) % step)
 {
     return (step - (value % step)) % step;
 }
+
+/*  Rounding specialization  */
+
+#define SPEC_1(Ta, Tb) \
+__forceinline __const constexpr Ta RoundUp(Ta const value, Tb const step) \
+{ return Ta(RoundUp(value.Value, step.Value)); } \
+__forceinline __const constexpr Ta RoundDown(Ta const value, Tb const step) \
+{ return Ta(RoundDown(value.Value, step.Value)); }
+
+SPEC_1(paddr_t, psize_t) SPEC_1(vaddr_t, vsize_t)
+SPEC_1(psize_t, psize_t) SPEC_1(vsize_t, vsize_t)
+SPEC_1(paddr_t, PageSize_t) SPEC_1(vaddr_t, PageSize_t)
+SPEC_1(psize_t, PageSize_t) SPEC_1(vsize_t, PageSize_t)
+
+#undef SPEC_1
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"

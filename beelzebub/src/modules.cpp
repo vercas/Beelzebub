@@ -104,7 +104,7 @@ Handle Modules::Load(uintptr_t start, size_t len)
 
     //  So, the ELF file is parsed.
 
-    size_t const size = RoundUp(kmod->Image.GetSizeInMemory(), PageSize);
+    vsize_t const size = RoundUp(vsize_t(kmod->Image.GetSizeInMemory()), PageSize);
     vaddr_t base = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
@@ -120,7 +120,7 @@ Handle Modules::Load(uintptr_t start, size_t len)
 
     //  Space is reserved for it.
 
-    evRes = kmod->Image.Relocate(base);
+    evRes = kmod->Image.Relocate(base.Value);
 
     if (evRes != ElfValidationResult::Success)
         return HandleResult::ImageRelocationFailure;

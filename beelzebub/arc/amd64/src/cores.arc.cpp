@@ -57,8 +57,8 @@ using namespace Beelzebub::System;
     Internals
 ****************/
 
-static size_t DataSize, TlsSize;
-static uintptr_t DatasBase;
+static vsize_t DataSize, TlsSize;
+static vaddr_t DatasBase;
 
 static Atomic<size_t> RegistrationCounter {0};
 
@@ -91,16 +91,16 @@ Handle Cores::Initialize(size_t const count)
     {
         auto & phdrTls = KernelImage::Elf.TLS_64;
 
-        TlsSize = RoundUp(phdrTls->VSize, phdrTls->Alignment);
-        DataSize = RoundUp(TlsSize + sizeof(CpuData), Maximum(__alignof(CpuData), phdrTls->Alignment));
+        TlsSize = vsize_t(RoundUp(phdrTls->VSize, phdrTls->Alignment));
+        DataSize = vsize_t(RoundUp(TlsSize + SizeOf<CpuData>, Maximum(AlignOf<CpuData>, vsize_t(phdrTls->Alignment))));
     }
     else
     {
-        TlsSize = 0;
-        DataSize = RoundUp(sizeof(CpuData), __alignof(CpuData));
+        TlsSize = vsize_t(0);
+        DataSize = RoundUp(SizeOf<CpuData>, AlignOf<CpuData>);
     }
 
-    size_t const size = RoundUp(count * DataSize, PageSize);
+    vsize_t const size = RoundUp(count * DataSize, PageSize);
 
     Handle res = Vmm::AllocatePages(nullptr
         , size
@@ -133,11 +133,11 @@ void Cores::Register()
     if (index == Count - 1)
         Ready = true;
 
-    uint8_t * const loc = reinterpret_cast<uint8_t *>(DatasBase + index * DataSize);
+    vaddr_t const loc { DatasBase + index * DataSize };
 
     //  First, initialize the kernel's CPU data structure.
 
-    CpuData * const data = reinterpret_cast<CpuData *>(loc + TlsSize);
+    CpuData * const data = reinterpret_cast<CpuData *>((loc + TlsSize).Value);
     new (data) CpuData();
 
     data->Index = index;
@@ -168,7 +168,7 @@ void Cores::Register()
     //  Doesn't matter if a core lags behind here. It only needs its own TSS to
     //  be included.
 
-    Gdt * gdt = data->DomainDescriptor->Gdt.Pointer;
+    Gdt * const gdt = data->DomainDescriptor->Gdt.Pointer;
     //  Pointer to the merry GDT.
 
     GdtTss64Entry & tssEntry = gdt->GetTss64(data->TssSegment);
@@ -192,9 +192,9 @@ void Cores::Register()
     {
         auto & phdrTls = *(KernelImage::Elf.TLS_64);
 
-        void * const loc2 = mempcpy(loc, reinterpret_cast<void *>(KernelImage::Elf.Start + phdrTls.Offset), phdrTls.PSize);
+        void * const loc2 = mempcpy(loc, reinterpret_cast<void const *>(KernelImage::Elf.Start + phdrTls.Offset), (size_t)phdrTls.PSize);
 
-        memset(loc2, 0, phdrTls.VSize - phdrTls.PSize);
+        ::memset(loc2, 0, phdrTls.VSize - phdrTls.PSize);
 
     #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_STREAMFLOW
         //  TODO: Unhax this thing.
@@ -206,7 +206,7 @@ void Cores::Register()
 #ifdef __BEELZEBUB__CONF_DEBUG
 void Cores::AssertCoreRegistration()
 {
-    uint64_t const addr = Msrs::Read(Msr::IA32_GS_BASE).Qword;
+    vaddr_t const addr { Msrs::Read(Msr::IA32_GS_BASE).Qword };
 
     ASSERT((addr - DatasBase) % DataSize == TlsSize, "Misaligned core data!")
         ("address", Terminals::Hexadecimal, addr)
@@ -217,7 +217,7 @@ void Cores::AssertCoreRegistration()
         ("address", Terminals::Hexadecimal, addr)
         (DatasBase);
 
-    ASSERT(addr < (DatasBase + (GetCount() * DataSize)), "Core data beyond end!")
+    ASSERT(addr < (DatasBase + GetCount() * DataSize), "Core data beyond end!")
         ("address", Terminals::Hexadecimal, addr)
         ("end", DatasBase + (GetCount() * DataSize));
 }
@@ -227,7 +227,7 @@ CpuData * Cores::Get(size_t const index)
 {
     assert(index < Count)(index)(Count);
 
-    return reinterpret_cast<CpuData *>(DatasBase + index * DataSize + TlsSize);
+    return reinterpret_cast<CpuData *>((DatasBase + index * DataSize + TlsSize).Value);
 }
 
 /****************
@@ -247,7 +247,7 @@ void CreateStacks(CpuData * const data)
     vaddr_t vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
-        , DoubleFaultStackSize
+        , vsize_t(DoubleFaultStackSize)
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable
@@ -259,14 +259,14 @@ void CreateStacks(CpuData * const data)
         , data->Index
         , res)XEND;
 
-    data->EmbeddedTss.Ist[0] = vaddr + DoubleFaultStackSize;
+    data->EmbeddedTss.Ist[0] = vaddr.Value + DoubleFaultStackSize;
 
     //  Then, the #PF stack.
 
     vaddr = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
-        , PageFaultStackSize
+        , vsize_t(PageFaultStackSize)
         , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
         | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
         , MemoryFlags::Global | MemoryFlags::Writable
@@ -278,5 +278,5 @@ void CreateStacks(CpuData * const data)
         , data->Index
         , res)XEND;
 
-    data->EmbeddedTss.Ist[1] = vaddr + PageFaultStackSize;
+    data->EmbeddedTss.Ist[1] = vaddr.Value + PageFaultStackSize;
 }

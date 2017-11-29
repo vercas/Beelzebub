@@ -73,8 +73,8 @@ Handle Beelzebub::SyscallCommon(void * arg0, void * arg1, void * arg2
                     return HandleResult::ArgumentOutOfRange;
 
                 Handle res = Vmm::CheckMemoryRegion(nullptr
-                    , reinterpret_cast<uintptr_t>(arg0)
-                    , reinterpret_cast<size_t>(arg1)
+                    , vaddr_t(arg0)
+                    , vsize_t(reinterpret_cast<uintptr_t>(arg1))
                     , MemoryCheckType::Userland | MemoryCheckType::Readable);
 
                 assert_or(res.IsOkayResult()
@@ -92,7 +92,7 @@ Handle Beelzebub::SyscallCommon(void * arg0, void * arg1, void * arg2
                     //  The 3rd argument must be in the userland memory region and 4-byte aligned.
 
                     res = Vmm::CheckMemoryRegion(nullptr
-                        , reinterpret_cast<uintptr_t>(arg2), 4
+                        , vaddr_t(arg2), vsize_t(sizeof(uint32_t))
                         , MemoryCheckType::Userland | MemoryCheckType::Writable);
 
                     if unlikely(!res.IsOkayResult())

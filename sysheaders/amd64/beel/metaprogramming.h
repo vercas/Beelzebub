@@ -39,6 +39,20 @@
 
 #pragma once
 
+#ifndef __ASSEMBLER__
+#include <stdint.h>
+
+/*****************
+    Some Types
+*****************/
+
+typedef uint64_t paddr_inner_t;
+typedef uint64_t psize_inner_t;
+typedef uint64_t vaddr_inner_t;
+typedef uint64_t vsize_inner_t;
+typedef uint64_t page_size_inner_t;
+#endif
+
 #include <beel/metaprogramming.x86.h>
 
 #ifndef __BEELZEBUB__SOURCE_GAS
@@ -51,53 +65,16 @@ namespace Beelzebub
 {
 #endif
 
-typedef union paddr_u { uint64_t Value; } paddr_t;
-typedef union psize_u { uint64_t Value; } psize_t;
-
-typedef union vaddr_u { uint64_t Value; void const * Pointer; } vaddr_t;
-typedef union vsize_u { uint64_t Value; } vsize_t;
-
-typedef uint64_t pgind_t; //  Index of a memory page.
 typedef uint64_t  creg_t; //  Control register.
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+}   //  namespace Beelzebub
+#endif
+typedef  int64_t ssize_t;
 
 typedef  __int128_t  int128_t;
 typedef __uint128_t uint128_t;
 
-#ifdef __BEELZEBUB__SOURCE_CXX
-
-union PageSize_t
-{
-    uint64_t Value;
-
-    operator psize_t() const { return { this->Value }; }
-    operator vsize_t() const { return { this->Value }; }
-
-    operator uint64_t() const { return this->Value; }
-};
-
-#define COMP_OP(TYP) \
-__forceinline bool operator == (TYP a, TYP b) { return a.Value == b.Value; } \
-__forceinline bool operator != (TYP a, TYP b) { return a.Value != b.Value; } \
-__forceinline bool operator  < (TYP a, TYP b) { return a.Value  < b.Value; } \
-__forceinline bool operator <= (TYP a, TYP b) { return a.Value <= b.Value; } \
-__forceinline bool operator  > (TYP a, TYP b) { return a.Value  > b.Value; } \
-__forceinline bool operator >= (TYP a, TYP b) { return a.Value >= b.Value; }
-
-COMP_OP(paddr_t) COMP_OP(psize_t) COMP_OP(vaddr_t) COMP_OP(vsize_t)
-#undef COMP_OP
-
-#define ARIT_OP(Ta, Ts) \
-__forceinline Ta operator +  (Ta a, Ts s) { return { a.Value + s.Value }; } \
-__forceinline Ta operator -  (Ta a, Ts s) { return { a.Value - s.Value }; } \
-__forceinline Ts operator -  (Ta a, Ta b) { return { a.Value - b.Value }; }
-
-ARIT_OP(paddr_t, psize_t) ARIT_OP(vaddr_t, vsize_t)
-#undef ARIT_OP
-
-}   //  namespace Beelzebub
-#endif
-
-typedef  int64_t ssize_t;
 #endif
 
 /*******************************
@@ -132,19 +109,19 @@ typedef  int64_t ssize_t;
 #endif
 
 #ifdef __BEELZEBUB__SOURCE_CXX
-    namespace Beelzebub
+namespace Beelzebub
+{
+    template<typename T>
+    static __forceinline uintptr_t GetExtendedPointer(T const ptr)
     {
-        template<typename T>
-        static __forceinline uintptr_t GetExtendedPointer(T const ptr)
-        {
-            return GET_EXTENDED_POINTER(ptr);
-        }
-
-        static __forceinline uintptr_t GetCurrentStackPointer()
-        {
-            return GET_CURRENT_STACK_POINTER();
-        }
+        return GET_EXTENDED_POINTER(ptr);
     }
+
+    static __forceinline uintptr_t GetCurrentStackPointer()
+    {
+        return GET_CURRENT_STACK_POINTER();
+    }
+}
 #endif
 
 /***************************
@@ -164,10 +141,13 @@ typedef  int64_t ssize_t;
 #ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub
 {
-    static constexpr size_t const LargePageSize = 0x200000;
+    static constexpr PageSize_t const PageSize { 0x1000 };
+    static constexpr PageSize_t const LargePageSize { 0x200000 };
 }
 #elif !defined(__ASSEMBLER__)
+#define __PAGE_SIZE         ((size_t)0x1000)
 #define __LARGE_PAGE_SIZE   ((size_t)0x200000)
 #else
+#define __PAGE_SIZE         0x1000
 #define __LARGE_PAGE_SIZE   0x200000
 #endif

@@ -148,7 +148,7 @@ bool TarHeader::IsInDirectory(char const * dir, bool includeSelf) const
 
     size_t const dirlen = strnlen(dir, 99);
 
-    bool startsEqual = memeq(myName, dir, dirlen);
+    bool startsEqual = ::memeq(myName, dir, dirlen);
 
     return dir[dirlen - 1] == '/' ? startsEqual : (startsEqual && *(myName++ + dirlen) == '/')
         && (includeSelf || myName[dirlen] != '\0');

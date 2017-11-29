@@ -99,3 +99,42 @@ __shared char * strerror_r(int errnum, char * buf, size_t buflen);
 __shared int strerror_r(int errnum, char * buf, size_t buflen);
             /* XSI-compliant */
 #endif
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+namespace Beelzebub
+{
+
+#define OPS1A(Ta, Tb, Tl) \
+__forceinline bool memeq(const Ta src1, const Tb src2, Tl len) \
+{ return ::memeq((void const *)src1, (void const *)src2, (size_t)len); } \
+__forceinline comp_t memcmp(const Ta src1, const Tb src2, Tl len) \
+{ return ::memcmp((void const *)src1, (void const *)src2, (size_t)len); } \
+__forceinline void * memcpy(Ta dst, const Tb src, Tl len) \
+{ return ::memcpy((void *)dst, (void const *)src, (size_t)len); } \
+__forceinline void * memmove(Ta dst, const Tb src, Tl len) \
+{ return ::memmove((void *)dst, (void const *)src, (size_t)len); } \
+__forceinline void * mempcpy(Ta dst, const Tb src, Tl len) \
+{ return ::mempcpy((void *)dst, (void const *)src, (size_t)len); } \
+__forceinline void * mempmove(Ta dst, const Tb src, Tl len) \
+{ return ::mempmove((void *)dst, (void const *)src, (size_t)len); }
+
+#define OPS1B(Ta, Tl) \
+__forceinline void * memchr(const Ta src, int val, Tl len) \
+{ return ::memchr((void const *)src, val, (size_t)len); } \
+__forceinline void * memset(Ta dst, int const val, Tl len) \
+{ return ::memset((void *)dst, val, (size_t)len); }
+
+OPS1A(vaddr_t, vaddr_t, size_t) OPS1B(vaddr_t, size_t)
+OPS1A(void *, vaddr_t, size_t) OPS1A(vaddr_t, void *, size_t)
+
+OPS1A(vaddr_t, vaddr_t, vsize_t) OPS1B(vaddr_t, vsize_t)
+OPS1A(void *, vaddr_t, vsize_t) OPS1A(vaddr_t, void *, vsize_t)
+OPS1B(void *, vsize_t)
+
+OPS1A(vaddr_t, vaddr_t, PageSize_t) OPS1B(vaddr_t, PageSize_t)
+OPS1A(void *, vaddr_t, PageSize_t) OPS1A(vaddr_t, void *, PageSize_t)
+OPS1B(void *, PageSize_t)
+#undef OPS1A
+#undef OPS1B
+}
+#endif

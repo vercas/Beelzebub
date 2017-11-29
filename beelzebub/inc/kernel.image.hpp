@@ -64,6 +64,6 @@ namespace Beelzebub
 
         /*  Methods  */
 
-        static Handle Initialize(vaddr_t const vaddr, size_t const size);
+        static Handle Initialize(vaddr_t const vaddr, vsize_t const size);
     };
 }

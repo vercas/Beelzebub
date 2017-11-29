@@ -148,8 +148,8 @@
 ****************/
 
 #ifdef __BEELZEBUB__SOURCE_CXX
-    #define nullpaddr ((paddr_t)(uintptr_t)nullptr)
-    #define nullvaddr ((vaddr_t)(uintptr_t)nullptr)
+    #define nullpaddr (paddr_t{ 0 })
+    #define nullvaddr (vaddr_t{ nullptr })
 #else
     #define nullptr   ((void *) 0)
     #define nullpaddr ((paddr_t)0)
@@ -425,30 +425,172 @@
 *****************/
 
 #ifndef __BEELZEBUB__SOURCE_GAS
-    typedef  int8_t    Int8;
-    typedef  int16_t   Int16;
-    typedef  int32_t   Int32;
-    typedef  int64_t   Int64;
+#ifdef __BEELZEBUB__SOURCE_CXX
+namespace Beelzebub
+{
+#endif
 
-    typedef  int8_t   SInt8;
-    typedef  int16_t  SInt16;
-    typedef  int32_t  SInt32;
-    typedef  int64_t  SInt64;
+typedef union paddr_u
+{
+    paddr_inner_t Value;
 
-    typedef uint8_t   UInt8;
-    typedef uint16_t  UInt16;
-    typedef uint32_t  UInt32;
-    typedef uint64_t  UInt64;
+    #ifdef __BEELZEBUB__SOURCE_CXX
+        __artificial explicit constexpr paddr_u() : Value() { }
+        __artificial explicit constexpr paddr_u(paddr_inner_t val) : Value(val) { }
 
-    typedef  intptr_t  IntPtr;
-    typedef uintptr_t UIntPtr;
+        __artificial explicit operator paddr_inner_t() const { return this->Value; }
+    #endif
+} paddr_t;
 
-    //  I think these names are great... I just like to have 'em here.
+typedef union psize_u
+{
+    psize_inner_t Value;
 
-    /*  Some funnction types...  */
+    #ifdef __BEELZEBUB__SOURCE_CXX
+        __artificial explicit constexpr psize_u() : Value() { }
+        __artificial explicit constexpr psize_u(psize_inner_t val) : Value(val) { }
 
-    typedef bool (* PredicateFunction0)(void);
-    typedef void (* ActionFunction0)(void);
+        __artificial explicit operator psize_inner_t() const { return this->Value; }
+    #endif
+} psize_t;
+
+typedef union vaddr_u
+{
+    vaddr_inner_t Value;
+    void const * Pointer;
+
+    #ifdef __BEELZEBUB__SOURCE_CXX
+        __artificial explicit constexpr vaddr_u() : Value() { }
+        __artificial explicit constexpr vaddr_u(vaddr_inner_t val) : Value(val) { }
+        __artificial explicit constexpr vaddr_u(void const * ptr) : Pointer(ptr) { }
+
+        __artificial explicit operator vaddr_inner_t() const { return this->Value; }
+        __artificial explicit operator void const *() const { return this->Pointer; }
+        __artificial explicit operator void *() const { return const_cast<void *>(this->Pointer); }
+    #endif
+} vaddr_t;
+
+typedef union vsize_u
+{
+    vsize_inner_t Value;
+
+    #ifdef __BEELZEBUB__SOURCE_CXX
+        __artificial explicit constexpr vsize_u() : Value() { }
+        __artificial explicit constexpr vsize_u(vsize_inner_t val) : Value(val) { }
+
+        __artificial explicit operator vsize_inner_t() const { return this->Value; }
+    #endif
+} vsize_t;
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+    typedef union PageSize_u
+    {
+        page_size_inner_t Value;
+
+        __artificial explicit constexpr PageSize_u(page_size_inner_t const val) : Value(val) { }
+
+        __artificial operator psize_t() const { return psize_t { this->Value }; }
+        __artificial operator vsize_t() const { return vsize_t { this->Value }; }
+
+        __artificial explicit operator page_size_inner_t() const { return this->Value; }
+    } PageSize_t;
+
+    #define CMP_OP(TYP, OP) \
+        __artificial constexpr bool operator OP (TYP a, TYP b) { return a.Value OP b.Value; }
+    #define CMP_OP2(Ta, Tb, OP) \
+        __artificial constexpr bool operator OP (Ta a, Tb b) { return a.Value OP b; } \
+        __artificial constexpr bool operator OP (Tb a, Ta b) { return a OP b.Value; }
+    #define ARI_OP(Tr, Ta, Tb, OP) \
+        __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a.Value OP b.Value }; }
+    #define EQU_OP(Tt, To, OP) \
+        __artificial constexpr Tt & operator MCATS(OP, =) (Tt & t, To const o) { t.Value MCATS(OP, =) o.Value; return t; }
+
+    #define CMP_OPS(TYP, INN) \
+        CMP_OP(TYP, ==) CMP_OP2(TYP, INN, ==) CMP_OP(TYP, !=) CMP_OP2(TYP, INN, !=) \
+        CMP_OP(TYP,  <) CMP_OP2(TYP, INN,  <) CMP_OP(TYP, <=) CMP_OP2(TYP, INN, <=) \
+        CMP_OP(TYP,  >) CMP_OP2(TYP, INN,  >) CMP_OP(TYP, >=) CMP_OP2(TYP, INN, >=)
+
+    CMP_OPS(paddr_t, paddr_inner_t) CMP_OPS(psize_t, psize_inner_t)
+    CMP_OPS(vaddr_t, vaddr_inner_t) CMP_OPS(vsize_t, vsize_inner_t)
+    #undef CMP_OPS
+
+    #define ARI_OPS(Ta, Ts) \
+        ARI_OP(Ta, Ta, Ts, +) ARI_OP(Ta, Ts, Ta, +) \
+        ARI_OP(Ta, Ta, Ts, -) ARI_OP(Ts, Ta, Ta, -) \
+        ARI_OP(Ts, Ts, Ts, +) ARI_OP(Ts, Ts, Ts, -) \
+        ARI_OP(Ts, Ta, Ts, %) ARI_OP(Ts, Ts, Ts, %) \
+        EQU_OP(Ta, Ts, +) EQU_OP(Ta, Ts, -) EQU_OP(Ts, Ts, +) EQU_OP(Ts, Ts, -)
+
+    ARI_OPS(paddr_t, psize_t) ARI_OPS(vaddr_t, vsize_t)
+    #undef ARI_OPS
+
+    #define ARI_PS_OPS(Ta, Ts) \
+        ARI_OP(Ta, Ta, PageSize_t, +) ARI_OP(Ta, Ta, PageSize_t, -) \
+        ARI_OP(Ts, Ts, PageSize_t, +) ARI_OP(Ts, Ts, PageSize_t, -) \
+        ARI_OP(Ts, Ta, PageSize_t, %) ARI_OP(Ts, Ts, PageSize_t, %) \
+        EQU_OP(Ta, PageSize_t, +) EQU_OP(Ta, PageSize_t, -) \
+        EQU_OP(Ts, PageSize_t, +) EQU_OP(Ts, PageSize_t, -)
+
+    ARI_PS_OPS(paddr_t, psize_t) ARI_PS_OPS(vaddr_t, vsize_t)
+    #undef ARI_PS_OPS
+
+    #undef CMP_OP
+    #undef CMP_OP2
+    #undef ARI_OP
+    #undef EQU_OP
+
+    #define ARI_OP1(Tr, Ta, Tb, OP) \
+        __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a.Value OP b }; }
+    #define ARI_OP2(Tr, Ta, Tb, OP) \
+        __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a OP b.Value }; }
+
+    #define ARI_SCALE_OPS(Ts) \
+        ARI_OP1(Ts, Ts, size_t, *) ARI_OP2(Ts, size_t, Ts, *) \
+        ARI_OP1(Ts, Ts, size_t, /) ARI_OP2(Ts, size_t, Ts, /) \
+        ARI_OP1(Ts, Ts, size_t, %) ARI_OP2(Ts, size_t, Ts, %)
+
+    ARI_SCALE_OPS(psize_t) ARI_SCALE_OPS(vsize_t) ARI_SCALE_OPS(PageSize_t)
+    #undef ARI_SCALE_OPS
+
+    #undef ARI_OP1
+    #undef ARI_OP2
+
+    template<typename T>
+    static constexpr vsize_t const SizeOf { sizeof(T) };
+
+    template<typename T>
+    static constexpr vsize_t const AlignOf { __alignof(T) };
+
+    __artificial operator vsize_t(psize_t const val) { return { val.Value }; }
+    __artificial operator psize_t(vsize_t const val) { return { val.Value }; }
+
+}   //  namespace Beelzebub
+#endif
+
+// typedef  int8_t    Int8;
+// typedef  int16_t   Int16;
+// typedef  int32_t   Int32;
+// typedef  int64_t   Int64;
+
+// typedef  int8_t   SInt8;
+// typedef  int16_t  SInt16;
+// typedef  int32_t  SInt32;
+// typedef  int64_t  SInt64;
+
+// typedef uint8_t   UInt8;
+// typedef uint16_t  UInt16;
+// typedef uint32_t  UInt32;
+// typedef uint64_t  UInt64;
+
+// typedef  intptr_t  IntPtr;
+// typedef uintptr_t UIntPtr;
+
+//  I think these names are great... I just like to have 'em here.
+
+/*  Some funnction types...  */
+
+typedef bool (* PredicateFunction0)(void);
+typedef void (* ActionFunction0)(void);
 #endif
 
 /*******************************

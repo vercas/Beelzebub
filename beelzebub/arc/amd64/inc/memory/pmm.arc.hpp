@@ -318,7 +318,7 @@ namespace Beelzebub { namespace Memory
     static_assert(sizeof(FrameDescriptor) == 6, "Frame descriptor size mismatch.");
     static_assert(sizeof(SmallFrameDescriptor) == 8, "Small frame descriptor size mismatch.");
     static_assert(sizeof(SplitFrameExtra) <= sizeof(SmallFrameDescriptor), "Split frame extras should not be larger than a small frame descriptor.");
-    static_assert(512 * sizeof(SmallFrameDescriptor) <= PageSize, "512 small frame descriptors should fit in a small page.");
+    static_assert(512 * sizeof(SmallFrameDescriptor) <= PageSize.Value, "512 small frame descriptors should fit in a small page.");
     static_assert(sizeof(LargeFrameDescriptor) == 16 + sizeof(void *), "Large frame descriptor size mismatch.");
 
     /**
@@ -358,7 +358,7 @@ namespace Beelzebub { namespace Memory
         PROP(psize_t, FreeSize)             //  Number of bytes in unallocated pages.
         PROP(psize_t, ReservedSize)         //  Number of bytes in reserved pages.
 
-        PROP(psize_t, LargeFrameCount)      //  Total number of large frames in this space.
+        PROP( size_t, LargeFrameCount)      //  Total number of large frames in this space.
 
     public:
 

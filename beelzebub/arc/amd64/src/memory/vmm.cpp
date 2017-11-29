@@ -62,10 +62,10 @@ using namespace Beelzebub::System;
 ****************/
 
 template<typename TInt>
-static __forceinline bool Is4KiBAligned(TInt val) { return (val & (     PageSize - 1)) == 0; }
+static __forceinline bool Is4KiBAligned(TInt val) { return (val.Value & (     PageSize.Value - 1)) == 0; }
 
 template<typename TInt>
-static __forceinline bool Is2MiBAligned(TInt val) { return (val & (LargePageSize - 1)) == 0; }
+static __forceinline bool Is2MiBAligned(TInt val) { return (val.Value & (LargePageSize.Value - 1)) == 0; }
 
 /****************
     Vmm class
@@ -78,7 +78,7 @@ bool VmmArc::NX = false;
 bool VmmArc::PCID = false;
 __thread paddr_t VmmArc::LastAlienPml4;
 
-static uintptr_t BootstrapKVasAddr;
+static vaddr_t BootstrapKVasAddr;
 static size_t const BootstrapKVasPageCount = 3;
 
 inline void Alienate(Process * proc)
@@ -90,7 +90,7 @@ inline void Alienate(Process * proc)
 
 /*  Statics  */
 
-vaddr_t Vmm::UserlandStart = 1ULL << 21;    //  2 MiB
+vaddr_t Vmm::UserlandStart { 1ULL << 21 };    //  2 MiB
 vaddr_t Vmm::UserlandEnd = VmmArc::LowerHalfEnd;
 vaddr_t Vmm::KernelStart = VmmArc::KernelHeapStart;
 vaddr_t Vmm::KernelEnd = VmmArc::KernelHeapEnd;
@@ -106,7 +106,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     paddr_t const pml4_paddr = bootstrapProc->PagingTable;
 
-    Pml4 & newPml4 = *((Pml4 *)pml4_paddr);
+    Pml4 & newPml4 = *((Pml4 *)pml4_paddr.Value);
     //  Cheap.
 
     Cr3 cr3 = Cpu::GetCr3();
@@ -121,12 +121,12 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     for (uint16_t i = 256; i < VmmArc::AlienFractalIndex; ++i)
     {
-        paddr_t pml3_paddr = Pmm::AllocateFrame(1);
+        paddr_t const pml3_paddr = Pmm::AllocateFrame(1);
 
         if unlikely(pml3_paddr == nullpaddr)
             return HandleResult::OutOfMemory;
 
-        memset((void *)pml3_paddr, 0, PageSize);
+        memset((void *)pml3_paddr.Value, 0, PageSize);
         //  Clear again.
 
         newPml4[i] = Pml4Entry(pml3_paddr, true, true, true, false);
@@ -149,9 +149,11 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     do
     {
-        if ((vaddr_t)cur < VmmArc::HigherHalfStart && pendingLinksMapping)
+        if (vaddr_t(cur) < VmmArc::HigherHalfStart && pendingLinksMapping)
         {
-            res = Vmm::MapPage(bootstrapProc, curLoc, RoundDown((paddr_t)cur, PageSize)
+            res = Vmm::MapPage(bootstrapProc
+                , curLoc
+                , RoundDown(paddr_t(reinterpret_cast<uintptr_t>(cur)), PageSize)
                 , MemoryFlags::Global | MemoryFlags::Writable
                 , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
             //  Global because it's shared by processes, and writable for hotplug.
@@ -172,11 +174,13 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         }
 
         paddr_t const pasStart = cur->GetMemoryStart();
-        size_t controlStructuresSize = RoundUp(cur->GetControlAreaSize(), PageSize);
+        vsize_t controlStructuresSize { RoundUp(cur->GetControlAreaSize().Value, PageSize.Value) };
         //  Size of control pages.
 
         res = Vmm::MapRange(bootstrapProc
-            , curLoc, pasStart, RoundUp(controlStructuresSize, PageSize)
+            , curLoc
+            , pasStart
+            , RoundUp(controlStructuresSize, PageSize)
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
 
@@ -189,7 +193,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         //  Failure is fatal.
 
         withLock (cur->LargeLocker)
-            cur->Map = reinterpret_cast<LargeFrameDescriptor *>(curLoc);
+            cur->Map = reinterpret_cast<LargeFrameDescriptor *>(curLoc.Value);
 
         curLoc += controlStructuresSize;
 
@@ -197,8 +201,9 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
         {
             LargeFrameDescriptor * lDesc = cur->Map + i;
 
-            res = Vmm::MapPage(bootstrapProc, curLoc
-                , reinterpret_cast<paddr_t>(lDesc->SubDescriptors)
+            res = Vmm::MapPage(bootstrapProc
+                , curLoc
+                , paddr_t(reinterpret_cast<uintptr_t>(lDesc->SubDescriptors))
                 , MemoryFlags::Global | MemoryFlags::Writable
                 , MemoryMapOptions::NoLocking | MemoryMapOptions::NoReferenceCounting);
 
@@ -210,7 +215,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
                 , res)XEND;
 
             withLock (cur->SplitLocker)
-                lDesc->SubDescriptors = reinterpret_cast<SmallFrameDescriptor *>(curLoc);
+                lDesc->SubDescriptors = reinterpret_cast<SmallFrameDescriptor *>(curLoc.Value);
         }
 
     } while ((cur = cur->Next) != nullptr);
@@ -358,7 +363,7 @@ bool Vmm::IsAlien(Process * proc)
 
 template<typename cbk_t>
 static __hot __noinline Handle TranslateInternal(Process * proc
-    , uintptr_t const vaddr
+    , vaddr_t const vaddr
     , cbk_t cbk
     , bool const lockHeap
     , bool const lockAlien
@@ -432,7 +437,7 @@ static __hot __noinline Handle TranslateInternal(Process * proc
 
 template<typename cbk_t>
 static __hot inline Handle TryTranslate(Process * proc
-    , uintptr_t const vaddr
+    , vaddr_t const vaddr
     , cbk_t cbk
     , bool const lockHeap)
 {
@@ -453,7 +458,7 @@ static __hot inline Handle TryTranslate(Process * proc
 }
 
 static __hot Handle MapPageInternal(Process * const proc
-    , uintptr_t const vaddr, paddr_t paddr
+    , vaddr_t const vaddr, paddr_t paddr
     , FrameSize const size
     , MemoryFlags const flags
     , bool const lockHeap
@@ -617,7 +622,7 @@ do_pml2e:
         return HandleResult::PageMapped;
 }
 
-Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
+Handle Vmm::MapPage(Process * proc, vaddr_t const vaddr, paddr_t paddr
     , FrameSize size, MemoryFlags const flags, MemoryMapOptions opts)
 {
     if unlikely((vaddr >= VmmArc::FractalStart && vaddr < VmmArc::FractalEnd     )
@@ -680,7 +685,7 @@ Handle Vmm::MapPage(Process * proc, uintptr_t const vaddr, paddr_t paddr
 }
 
 Handle Vmm::MapRange(Process * proc
-    , uintptr_t vaddr, paddr_t paddr, size_t size
+    , vaddr_t vaddr, paddr_t paddr, vsize_t size
     , MemoryFlags const flags
     , MemoryMapOptions opts)
 {
@@ -720,7 +725,7 @@ Handle Vmm::MapRange(Process * proc
         LockGuardFlexible<SmpLock > pml4Lg {alienLock};
         LockGuardFlexible<SmpLock > heapLg {heapLock};
 
-        if ((vaddr & (LargePageSize - 1)) == (paddr & (LargePageSize - 1)))
+        if ((vaddr.Value & (LargePageSize.Value - 1)) == (paddr.Value & (LargePageSize.Value - 1)))
         {
             //  Wow, so the alignment matches. This means 2-MiB mappings can be used!
             //  First, map the small pages until a 2-MiB aligned address is reached.
@@ -768,7 +773,7 @@ Handle Vmm::MapRange(Process * proc
     return HandleResult::Okay;
 }
 
-Handle Vmm::UnmapPage(Process * proc, uintptr_t const vaddr
+Handle Vmm::UnmapPage(Process * proc, vaddr_t const vaddr
     , paddr_t & paddr, FrameSize & size, MemoryMapOptions opts)
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
@@ -817,7 +822,7 @@ struct IterativeUnmapState
 
 struct HybridPageEntry
 {
-    void const * VirtualAddress;
+    vaddr_t VirtualAddress;
     paddr_t PhysicalAddress;
 };
 
@@ -866,9 +871,9 @@ static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
         if (fSize == FrameSize::_4KiB)
             next = state->Address + PageSize;
         else
-            next = RoundUp(state->Address + 1, LargePageSize);
+            next = RoundUp(state->Address + vsize_t(1), LargePageSize);
 
-        UnmapList[i] = HybridPageEntry {reinterpret_cast<void const *>(state->Address), paddr};
+        UnmapList[i] = HybridPageEntry { state->Address, paddr };
 
         // if (::PrintMemoryOps)
         //     MSG_("Unmap list item %i4: %Xp -> %XP%n"
@@ -894,7 +899,7 @@ static __hot Handle UnmapIteratively(IterativeUnmapState * const state)
         if likely(state->Invalidate)
         {
             Handle res2 = Vmm::InvalidateRange(state->Process
-                , reinterpret_cast<void const * const *>(UnmapList + offsetof(HybridPageEntry, VirtualAddress))
+                , reinterpret_cast<vaddr_t const *>(UnmapList + offsetof(HybridPageEntry, VirtualAddress))
                 , i, sizeof(HybridPageEntry)
                 , state->Broadcast);
 
@@ -995,7 +1000,7 @@ retry:
     if (fSize == FrameSize::_4KiB)
         next = state->Address + PageSize;
     else
-        next = RoundUp(state->Address + 1, LargePageSize);
+        next = RoundUp(state->Address + vsize_t(1), LargePageSize);
 
     state->Address = next;
 
@@ -1059,7 +1064,7 @@ end:
 }
 
 Handle Vmm::UnmapRange(Process * proc
-    , uintptr_t vaddr, size_t size
+    , vaddr_t vaddr, vsize_t size
     , MemoryMapOptions opts
     , PreUnmapFunc pre, PostUnmapFunc post, void * cookie)
 {
@@ -1171,7 +1176,7 @@ static __hot __solid void RangeInvalidator(void * cookie)
 {
     Vmm::RangeInvalidationInfo const * const inf = (Vmm::RangeInvalidationInfo const *)cookie;
 
-    void const * const * addr = inf->Addresses;
+    vaddr_t const * addr = inf->Addresses;
 
     for (size_t i = 0; i < inf->Count; ++i, PTR_INC(addr, inf->Stride))
     {
@@ -1191,12 +1196,12 @@ static __hot __solid void RangeInvalidator(void * cookie)
 }
 
 Handle Vmm::InvalidateRange(Process * proc
-    , void const * const * const addresses, size_t count, size_t stride, bool broadcast
+    , vaddr_t const * const addresses, size_t count, size_t stride, bool broadcast
     , AfterRangeInvalidationFunc after, void * cookie)
 {
     if unlikely(proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
 
-    if (broadcast && (((uintptr_t)(*addresses) >= UserlandStart && (uintptr_t)(*addresses) < UserlandEnd && proc->ActiveCoreCount == 1 && !VmmArc::PCID) || unlikely(!Mailbox::IsReady())))
+    if (broadcast && ((*addresses >= UserlandStart && *addresses < UserlandEnd && proc->ActiveCoreCount == 1 && !VmmArc::PCID) || unlikely(!Mailbox::IsReady())))
         broadcast = false;
 
     RangeInvalidationInfo info { proc, addresses, count, stride, after, cookie };
@@ -1223,7 +1228,7 @@ static __hot void ChainInvalidator(void * cookie)
 
     do
     {
-        CpuInstructions::InvalidateTlb(reinterpret_cast<void const *>(tmp->Address));
+        CpuInstructions::InvalidateTlb(tmp->Address);
     } while ((tmp = tmp->Next) != nullptr);
 
     if (inf->After != nullptr)
@@ -1255,7 +1260,7 @@ Handle Vmm::InvalidateChain(Process * proc, PageNode const * node, bool broadcas
     return HandleResult::Okay;
 }
 
-Handle Vmm::Translate(Execution::Process * proc, uintptr_t const vaddr, paddr_t & paddr, bool const lock)
+Handle Vmm::Translate(Execution::Process * proc, vaddr_t const vaddr, paddr_t & paddr, bool const lock)
 {
     return TryTranslate(proc, vaddr, [&paddr](PmlCommonEntry * pE, int level)
     {
@@ -1269,7 +1274,7 @@ Handle Vmm::Translate(Execution::Process * proc, uintptr_t const vaddr, paddr_t 
 
 /*  Flags  */
 
-Handle Vmm::GetPageFlags(Process * proc, uintptr_t const vaddr
+Handle Vmm::GetPageFlags(Process * proc, vaddr_t const vaddr
     , MemoryFlags & flags, bool const lock)
 {
     return TryTranslate(proc, vaddr, [&flags](PmlCommonEntry * pE, int level)
@@ -1290,7 +1295,7 @@ Handle Vmm::GetPageFlags(Process * proc, uintptr_t const vaddr
     }, lock);
 }
 
-Handle Vmm::SetPageFlags(Process * proc, uintptr_t const vaddr
+Handle Vmm::SetPageFlags(Process * proc, vaddr_t const vaddr
     , MemoryFlags const flags, bool const lock)
 {
     if (proc == nullptr) proc = likely(CpuDataSetUp) ? Cpu::GetProcess() : &BootstrapProcess;
@@ -1322,8 +1327,8 @@ Handle Vmm::SetPageFlags(Process * proc, uintptr_t const vaddr
 Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
                             , size_t minimumObjects, ObjectPoolBase * & result)
 {
-    uintptr_t addr;
-    size_t size;
+    vaddr_t addr;
+    vsize_t size;
 
     if likely(!KVas.Bootstrapping)
     {
@@ -1332,8 +1337,8 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
               "actual pool struct..?")
             (headerSize)(sizeof(ObjectPoolBase));
 
-        addr = 0;
-        size = RoundUp(objectSize * minimumObjects + headerSize, PageSize);
+        addr = nullvaddr;
+        size = RoundUp(vsize_t(objectSize * minimumObjects + headerSize), PageSize);
 
         // MSG_("Core %us is allocating an object pool for the KVAS.%n", Cpu::GetData()->Index);
 
@@ -1350,16 +1355,16 @@ Handle Vmm::AcquirePoolForVas(size_t objectSize, size_t headerSize
     else
     {
         addr = BootstrapKVasAddr;
-        size = BootstrapKVasPageCount * PageSize;
+        size = vsize_t(BootstrapKVasPageCount * PageSize.Value);
     }
 
-    ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)(uintptr_t)addr;
+    ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)addr.Pointer;
     //  I use a local variable here so `result` isn't dereferenced every time.
 
     new (const_cast<ObjectPoolBase *>(pool)) ObjectPoolBase();
     //  Construct in place to initialize the fields.
 
-    size_t const objectCount = (size - headerSize) / objectSize;
+    size_t const objectCount = (size.Value - headerSize) / objectSize;
     //  TODO: Get rid of this division and make the loop below stop when the
     //  cursor reaches the end of the page(s).
 

@@ -107,9 +107,9 @@ namespace Beelzebub { namespace System
     //  A bit of configuration:
     enum StackSizes : size_t
     {
-          PageFaultStackSize = 1 * PageSize,
-        DoubleFaultStackSize = 1 * PageSize,
-                CpuStackSize = 3 * PageSize,
+          PageFaultStackSize = 1 * PageSize.Value,
+        DoubleFaultStackSize = 1 * PageSize.Value,
+                CpuStackSize = 3 * PageSize.Value,
     };
 
     typedef uint16_t   seg_t; //  Segment register.

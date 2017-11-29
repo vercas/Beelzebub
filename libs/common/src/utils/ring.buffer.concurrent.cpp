@@ -87,7 +87,7 @@ size_t RingBufferConcurrent::TryPush(uint8_t const * elems, size_t count, size_t
 
     size_t const cpycnt = newHS - myHS;
 
-    memcpy(this->Buffer + (myHH % this->Capacity), elems, cpycnt);
+    ::memcpy(this->Buffer + (myHH % this->Capacity), elems, cpycnt);
 
     __atomic_store_n(&(this->HeadHard), newHS, __ATOMIC_RELEASE);
 
@@ -117,7 +117,7 @@ void RingBufferConcurrent::Push(uint8_t const * elems, size_t count)
         }
 
         size_t const cpycnt = Minimum(bufEnd - hss, count, this->Capacity - start);
-        memcpy(this->Buffer + start, elems, cpycnt);
+        ::memcpy(this->Buffer + start, elems, cpycnt);
 
         elems += cpycnt; count -= cpycnt; start += cpycnt; hss += cpycnt;
         //  This is... less than ideal.

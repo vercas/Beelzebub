@@ -52,7 +52,7 @@ void * mmap(void * const addr, size_t const length, int const prot
     Handle res;
     MemoryFlags f = MemoryFlags::Global;
     MemoryAllocationOptions o = MemoryAllocationOptions::VirtualKernelHeap;
-    uintptr_t vaddr = reinterpret_cast<uintptr_t>(addr);
+    vaddr_t vaddr { addr };
 
     // if unlikely(fd != -1)
     //     goto failure;
@@ -60,9 +60,9 @@ void * mmap(void * const addr, size_t const length, int const prot
         goto failure;
     if unlikely(0 != (flags & MAP_SHARED))
         goto failure;
-    if unlikely(length % PageSize != 0)
+    if unlikely(length % PageSize.Value != 0)
         goto failure;
-    if unlikely(vaddr % PageSize != 0)
+    if unlikely(vaddr % PageSize != vsize_t(0))
         goto failure;
 
     if (0 != (prot & PROT_WRITE))
@@ -79,12 +79,12 @@ void * mmap(void * const addr, size_t const length, int const prot
         o |= MemoryAllocationOptions::Reserve;
     }
 
-    res = Vmm::AllocatePages(nullptr, length, o, f, MemoryContent::Generic, vaddr);
+    res = Vmm::AllocatePages(nullptr, vsize_t(length), o, f, MemoryContent::Generic, vaddr);
 
     if unlikely(res != HandleResult::Okay)
         goto failure;
 
-    return reinterpret_cast<void *>(vaddr);
+    return const_cast<void *>(vaddr.Pointer);
 
 failure:
     return MAP_FAILED;
@@ -94,12 +94,10 @@ int munmap(void * addr, size_t length)
 {
     MSG_("munmap %Xp %Xs%n", addr, length);
 
-    Handle res = Vmm::FreePages(nullptr, reinterpret_cast<uintptr_t>(addr), length);
+    Handle res = Vmm::FreePages(nullptr, vaddr_t(addr), vsize_t(length));
 
     if unlikely(res != HandleResult::Okay)
-    {
         return -1;
-    }
 
     return 0;
 }

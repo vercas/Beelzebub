@@ -56,8 +56,8 @@ using namespace Beelzebub::System;
 
 bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
 {
-    vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
-    vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
+    vaddr_t const segVaddr    { loc + RoundDown(phdr.VAddr, PageSize.Value) };
+    vaddr_t const segVaddrEnd { loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize.Value) };
 
     if (segVaddrEnd <= segVaddr || segVaddr < Vmm::UserlandStart || segVaddrEnd > Vmm::KernelEnd)
         return false;
@@ -106,7 +106,7 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
             pageFlags |= MemoryFlags::Writable;
 
         res = Vmm::AllocatePages(proc
-            , RoundUp(phdr.VSize, PageSize)
+            , RoundUp(vsize_t(phdr.VSize), PageSize)
             , MemoryAllocationOptions::Commit  | MemoryAllocationOptions::VirtualUser
             | MemoryAllocationOptions::Permanent
             , pageFlags
@@ -115,23 +115,23 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
 
         assert_or(res.IsOkayResult()
             , "Failed to allocate writable ELF segment %Xp at %Xp (%us pages): %H."
-            , &phdr, vaddr, (phdr.VSize + PageSize - 1) / PageSize, res)
+            , &phdr, vaddr, (phdr.VSize + PageSize.Value - 1) / PageSize.Value, res)
         {
             return false;
         }
 
-        memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
-            ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
+        ::memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
+            , reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
 
         if (phdr.VSize > phdr.PSize)
-            memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
+            ::memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
                 , 0, phdr.VSize - phdr.PSize);
     }
     else
     {
         res = Vmm::AllocatePages(proc
-            , RoundUp(phdr.VSize, PageSize)
-            , MemoryAllocationOptions::Used    | MemoryAllocationOptions::VirtualUser
+            , RoundUp(vsize_t(phdr.VSize), PageSize)
+            , MemoryAllocationOptions::Used | MemoryAllocationOptions::VirtualUser
             | MemoryAllocationOptions::Permanent
             , pageFlags
             , MemoryContent::Runtime
@@ -139,12 +139,12 @@ bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 c
 
         assert_or(res.IsOkayResult()
             , "Failed to allocate non-writable ELF segment %Xp at %Xp (%us pages): %H."
-            , &phdr, vaddr, (phdr.VSize + PageSize - 1) / PageSize, res)
+            , &phdr, vaddr, (phdr.VSize + PageSize.Value - 1) / PageSize.Value, res)
         {
             return false;
         }
 
-        vaddr_t imgVaddr = img + RoundDown(phdr.Offset, PageSize);
+        vaddr_t imgVaddr { img + RoundDown(phdr.Offset, PageSize.Value) };
 
         for (/* nothing */; vaddr < segVaddrEnd; vaddr += PageSize, imgVaddr += PageSize)
         {
@@ -188,15 +188,15 @@ rollbackMapping:
             , vaddr, &phdr, res);
     } while (vaddr > segVaddr);
 
-    Vmm::FreePages(proc, segVaddr, (phdr.VSize + PageSize - 1) / PageSize);
+    Vmm::FreePages(proc, segVaddr, vsize_t(phdr.VSize + PageSize.Value - 1));
 
     return false;
 }
 
 bool Execution::UnmapSegment64(uintptr_t loc, ElfProgramHeader_64 const & phdr, void * data)
 {
-    vaddr_t const segVaddr    = loc + RoundDown(phdr.VAddr, PageSize);
-    vaddr_t const segVaddrEnd = loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize);
+    vaddr_t const segVaddr    { loc + RoundDown(phdr.VAddr, PageSize.Value) };
+    vaddr_t const segVaddrEnd { loc + RoundUp  (phdr.VAddr + phdr.VSize, PageSize.Value) };
 
     if (segVaddrEnd <= segVaddr || segVaddr < Vmm::UserlandStart || segVaddrEnd > Vmm::KernelEnd)
         return false;

@@ -44,7 +44,7 @@ using namespace Beelzebub::Syscalls;
 
 Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions opts)
 {
-    if unlikely(addr % PageSize != 0 || size % PageSize != 0)
+    if unlikely(addr % PageSize.Value != 0 || size % PageSize.Value != 0)
         return HandleResult::AlignmentFailure;
     //  The kernel will also perform this check.
 
@@ -59,7 +59,7 @@ Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions
 
 Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts)
 {
-    if unlikely(addr % PageSize != 0 || size % PageSize != 0)
+    if unlikely(addr % PageSize.Value != 0 || size % PageSize.Value != 0)
         return HandleResult::AlignmentFailure;
     //  Ditto.
 

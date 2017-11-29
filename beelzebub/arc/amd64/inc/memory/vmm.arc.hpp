@@ -57,23 +57,23 @@ namespace Beelzebub { namespace Memory
     public:
         /*  Statics  */
 
-        static constexpr vaddr_t const IsaDmaStart         = 0xFFFF800000000000ULL;
-        static constexpr vsize_t const IsaDmaLength        = 1ULL << 24;  //  16 MiB
+        static constexpr vaddr_t const IsaDmaStart         { 0xFFFF800000000000ULL };
+        static constexpr vsize_t const IsaDmaLength        { 1ULL << 24 };  //  16 MiB
         static constexpr vaddr_t const IsaDmaEnd           = IsaDmaStart + IsaDmaLength;
 
         static constexpr vaddr_t const KernelHeapStart     = IsaDmaEnd;
-        static constexpr vaddr_t const KernelHeapEnd       = 0xFFFFFE0000000000ULL;
+        static constexpr vaddr_t const KernelHeapEnd       { 0xFFFFFE0000000000ULL };
         static constexpr vsize_t const KernelHeapLength    = KernelHeapEnd - KernelHeapStart;
-        static constexpr vsize_t const KernelHeapPageCount = KernelHeapLength >> 12;
+        static constexpr vsize_t const KernelHeapPageCount { KernelHeapLength.Value >> 12 };
 
         static bool Page1GB, NX, PCID;
 
         static __thread paddr_t LastAlienPml4;
 
         //  End of the lower half address range.
-        static constexpr vaddr_t const LowerHalfEnd              = 0x0000800000000000ULL;
+        static constexpr vaddr_t const LowerHalfEnd              { 0x0000800000000000ULL };
         //  Start of the higher half address range.
-        static constexpr vaddr_t const HigherHalfStart           = 0xFFFF800000000000ULL;
+        static constexpr vaddr_t const HigherHalfStart           { 0xFFFF800000000000ULL };
 
         //  Right below the kernel.
         static constexpr uint16_t const LocalFractalIndex = 510;
@@ -81,25 +81,25 @@ namespace Beelzebub { namespace Memory
         static constexpr uint16_t const AlienFractalIndex = 509;
 
         //  Start of the active PML4 tables.
-        static constexpr vaddr_t const LocalPml1Base = 0xFFFF000000000000ULL + ((vaddr_t)LocalFractalIndex << 39);
+        static constexpr vaddr_t const LocalPml1Base = vaddr_t(0xFFFF000000000000ULL) + vsize_t((uint64_t)LocalFractalIndex << 39);
         //  Start of the active PML3 tables (PDPTs).
-        static constexpr vaddr_t const LocalPml2Base = LocalPml1Base         + ((vaddr_t)LocalFractalIndex << 30);
+        static constexpr vaddr_t const LocalPml2Base = LocalPml1Base                  + vsize_t((uint64_t)LocalFractalIndex << 30);
         //  Start of the active PML2 tables (PDs).
-        static constexpr vaddr_t const LocalPml3Base = LocalPml2Base         + ((vaddr_t)LocalFractalIndex << 21);
+        static constexpr vaddr_t const LocalPml3Base = LocalPml2Base                  + vsize_t((uint64_t)LocalFractalIndex << 21);
         //  Start of the active PML1 tables (PTs).
-        static constexpr vaddr_t const LocalPml4Base = LocalPml3Base         + ((vaddr_t)LocalFractalIndex << 12);
+        static constexpr vaddr_t const LocalPml4Base = LocalPml3Base                  + vsize_t((uint64_t)LocalFractalIndex << 12);
 
         //  Start of the temporary PML4 tables.
-        static constexpr vaddr_t const AlienPml1Base = 0xFFFF000000000000ULL + ((vaddr_t)AlienFractalIndex << 39);
+        static constexpr vaddr_t const AlienPml1Base = vaddr_t(0xFFFF000000000000ULL) + vsize_t((uint64_t)AlienFractalIndex << 39);
         //  Start of the active PML3 tables (PDPTs).
-        static constexpr vaddr_t const AlienPml2Base = AlienPml1Base         + ((vaddr_t)LocalFractalIndex << 30);
+        static constexpr vaddr_t const AlienPml2Base = AlienPml1Base                  + vsize_t((uint64_t)LocalFractalIndex << 30);
         //  Start of the active PML2 tables (PDs).
-        static constexpr vaddr_t const AlienPml3Base = AlienPml2Base         + ((vaddr_t)LocalFractalIndex << 21);
+        static constexpr vaddr_t const AlienPml3Base = AlienPml2Base                  + vsize_t((uint64_t)LocalFractalIndex << 21);
         //  Start of the active PML1 tables (PTs).
-        static constexpr vaddr_t const AlienPml4Base = LocalPml3Base         + ((vaddr_t)AlienFractalIndex << 12);
+        static constexpr vaddr_t const AlienPml4Base = LocalPml3Base                  + vsize_t((uint64_t)AlienFractalIndex << 12);
 
         static constexpr vaddr_t const FractalStart = AlienPml1Base;
-        static constexpr vaddr_t const FractalEnd   = FractalStart + (2ULL << 39);
+        static constexpr vaddr_t const FractalEnd   = FractalStart + vsize_t(2ULL << 39);
         //  The pages in this 1-TiB range are automagically allocated due
         //  to the awesome fractal mapping! :D
 
@@ -118,28 +118,28 @@ namespace Beelzebub { namespace Memory
 
         static __forceinline uint16_t GetPml4Index(vaddr_t const addr)
         {
-            return (uint16_t)((addr >> 39) & 511);
+            return (uint16_t)((addr.Value >> 39) & 511);
         }
 
         static __forceinline uint16_t GetPml3Index(vaddr_t const addr)
         {
-            return (uint16_t)((addr >> 30) & 511);
+            return (uint16_t)((addr.Value >> 30) & 511);
         }
 
         static __forceinline uint16_t GetPml2Index(vaddr_t const addr)
         {
-            return (uint16_t)((addr >> 21) & 511);
+            return (uint16_t)((addr.Value >> 21) & 511);
         }
 
         static __forceinline uint16_t GetPml1Index(vaddr_t const addr)
         {
-            return (uint16_t)((addr >> 12) & 511);
+            return (uint16_t)((addr.Value >> 12) & 511);
         }
 
         //  Local Map.
 
-        static __forceinline Pml4 * GetLocalPml4()          { return (Pml4 *)LocalPml4Base; }
-        static __forceinline Pml4 * GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base; }
+        static __forceinline Pml4 * GetLocalPml4()          { return (Pml4 *)LocalPml4Base.Value; }
+        static __forceinline Pml4 * GetLocalPml4Ex(vaddr_t) { return (Pml4 *)LocalPml4Base.Value; }
         static __forceinline Pml4Entry & GetLocalPml4Entry(vaddr_t const addr)
         {
             return (*GetLocalPml4())[GetPml4Index(addr)];
@@ -147,7 +147,7 @@ namespace Beelzebub { namespace Memory
 
         static __forceinline Pml3 * GetLocalPml3(vaddr_t const addr)
         {
-            return (Pml3 *)(LocalPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
+            return (Pml3 *)(LocalPml3Base.Value + ((addr.Value >> 27) & 0x00000000001FF000ULL));
         }
         static __forceinline Pml3Entry & GetLocalPml3Entry(vaddr_t const addr)
         {
@@ -156,7 +156,7 @@ namespace Beelzebub { namespace Memory
 
         static __forceinline Pml2 * GetLocalPml2(vaddr_t const addr)
         {
-            return (Pml2 *)(LocalPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
+            return (Pml2 *)(LocalPml2Base.Value + ((addr.Value >> 18) & 0x000000003FFFF000ULL));
         }
         static __forceinline Pml2Entry & GetLocalPml2Entry(vaddr_t const addr)
         {
@@ -165,7 +165,7 @@ namespace Beelzebub { namespace Memory
 
         static __forceinline Pml1 * GetLocalPml1(vaddr_t const addr)
         {
-            return (Pml1 *)(LocalPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
+            return (Pml1 *)(LocalPml1Base.Value + ((addr.Value >>  9) & 0x0000007FFFFFF000ULL));
         }
         static __forceinline Pml1Entry & GetLocalPml1Entry(vaddr_t const addr)
         {
@@ -174,8 +174,8 @@ namespace Beelzebub { namespace Memory
 
         //  Alien Map.
 
-        static __forceinline Pml4 * GetAlienPml4()          { return (Pml4 *)AlienPml4Base; }
-        static __forceinline Pml4 * GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base; }
+        static __forceinline Pml4 * GetAlienPml4()          { return (Pml4 *)AlienPml4Base.Value; }
+        static __forceinline Pml4 * GetAlienPml4Ex(vaddr_t) { return (Pml4 *)AlienPml4Base.Value; }
         static __forceinline Pml4Entry & GetAlienPml4Entry(vaddr_t const addr)
         {
             return (*GetAlienPml4())[GetPml4Index(addr)];
@@ -183,7 +183,7 @@ namespace Beelzebub { namespace Memory
 
         static __forceinline Pml3 * GetAlienPml3(vaddr_t const addr)
         {
-            return (Pml3 *)(AlienPml3Base + ((addr >> 27) & 0x00000000001FF000ULL));
+            return (Pml3 *)(AlienPml3Base.Value + ((addr.Value >> 27) & 0x00000000001FF000ULL));
         }
         static __forceinline Pml3Entry & GetAlienPml3Entry(vaddr_t const addr)
         {
@@ -192,7 +192,7 @@ namespace Beelzebub { namespace Memory
 
         static __forceinline Pml2 * GetAlienPml2(vaddr_t const addr)
         {
-            return (Pml2 *)(AlienPml2Base + ((addr >> 18) & 0x000000003FFFF000ULL));
+            return (Pml2 *)(AlienPml2Base.Value + ((addr.Value >> 18) & 0x000000003FFFF000ULL));
         }
         static __forceinline Pml2Entry & GetAlienPml2Entry(vaddr_t const addr)
         {
@@ -201,7 +201,7 @@ namespace Beelzebub { namespace Memory
 
         static __forceinline Pml1 * GetAlienPml1(vaddr_t const addr)
         {
-            return (Pml1 *)(AlienPml1Base + ((addr >>  9) & 0x0000007FFFFFF000ULL));
+            return (Pml1 *)(AlienPml1Base.Value + ((addr.Value >>  9) & 0x0000007FFFFFF000ULL));
         }
         static __forceinline Pml1Entry & GetAlienPml1Entry(vaddr_t const addr)
         {

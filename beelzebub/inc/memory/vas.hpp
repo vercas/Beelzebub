@@ -77,14 +77,14 @@ namespace Beelzebub { namespace Memory
 
         /*  Operations  */
 
-        __hot Handle Allocate(vaddr_t & vaddr, size_t size
+        __hot Handle Allocate(vaddr_t & vaddr, vsize_t size
             , MemoryFlags flags, MemoryContent content
             , MemoryAllocationOptions type, bool lock = true);
 
-        __hot Handle Free(vaddr_t vaddr, size_t size
+        __hot Handle Free(vaddr_t vaddr, vsize_t size
             , bool sparse = false, bool tolerant = false, bool lock = true);
         
-        __hot Handle Modify(vaddr_t vaddr, size_t pageCnt
+        __hot Handle Modify(vaddr_t vaddr, vsize_t size
             , MemoryFlags flags, bool lock = true);
 
         __hot MemoryRegion * FindRegion(vaddr_t vaddr);

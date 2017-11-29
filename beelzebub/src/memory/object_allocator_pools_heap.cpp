@@ -104,8 +104,8 @@ Handle Memory::AcquirePoolInKernelHeap(size_t objectSize
           "actual pool struct..?")
         (headerSize)(sizeof(ObjectPoolBase));
 
-    size_t const size = RoundUp(objectSize * minimumObjects + headerSize, PageSize);
-    uintptr_t addr = 0;
+    vsize_t const size { RoundUp(objectSize * minimumObjects + headerSize, PageSize.Value) };
+    vaddr_t addr { nullptr };
 
     Handle res = Vmm::AllocatePages(nullptr
         , size
@@ -114,16 +114,16 @@ Handle Memory::AcquirePoolInKernelHeap(size_t objectSize
         , MemoryContent::Generic
         , addr);
 
-    if (!res.IsOkayResult())
+    if (res != HandleResult::Okay)
         return res;
 
-    ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)(uintptr_t)addr;
+    ObjectPoolBase volatile * volatile pool = (ObjectPoolBase *)addr.Pointer;
     //  I use a local variable here so `result` isn't dereferenced every time.
 
     new (const_cast<ObjectPoolBase *>(pool)) ObjectPoolBase();
     //  Construct in place to initialize the fields.
 
-    size_t const objectCount = (size - headerSize) / objectSize;
+    size_t const objectCount = (size.Value - headerSize) / objectSize;
     //  TODO: Get rid of this division and make the loop below stop when the
     //  cursor reaches the end of the page(s).
 
@@ -142,15 +142,15 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
                                      , size_t minimumExtraObjects
                                      , ObjectPoolBase * pool)
 {
-    size_t const oldSize = RoundUp(objectSize * pool->Capacity + headerSize, PageSize);
-    size_t const newSize = RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize);
+    vsize_t const oldSize { RoundUp(objectSize * pool->Capacity + headerSize, PageSize.Value) };
+    vsize_t const newSize { RoundUp(objectSize * (pool->Capacity + minimumExtraObjects) + headerSize, PageSize.Value) };
 
     ASSERTX(newSize > oldSize
         , "New size should be larger than the old size of a pool that needs enlarging!%n"
           "It appears that the previous capacity is wrong.")
         (newSize)(oldSize)XEND;
 
-    vaddr_t vaddr = oldSize + (vaddr_t)pool;
+    vaddr_t vaddr = vaddr_t(pool) + oldSize;
     vaddr_t const oldEnd = vaddr;
 
     Handle res = Vmm::AllocatePages(nullptr
@@ -160,13 +160,13 @@ Handle Memory::EnlargePoolInKernelHeap(size_t objectSize
         , MemoryContent::Generic
         , vaddr);
 
-    if likely(!res.IsOkayResult())
+    if likely(res != HandleResult::Okay)
         return res;
 
     assert(vaddr == oldEnd);
 
     obj_ind_t const oldObjectCount = pool->Capacity;
-    obj_ind_t const newObjectCount = (newSize - headerSize) / objectSize;
+    obj_ind_t const newObjectCount = (newSize.Value - headerSize) / objectSize;
 
     uintptr_t cursor = (uintptr_t)pool + headerSize + oldObjectCount * objectSize;
     FreeObject * last = nullptr;
@@ -205,12 +205,12 @@ Handle Memory::ReleasePoolFromKernelHeap(size_t objectSize
                                        , ObjectPoolBase * pool)
 {
     Handle res = Vmm::FreePages(nullptr
-        , reinterpret_cast<uintptr_t>(pool)
-        , RoundUp(objectSize * pool->Capacity + headerSize, PageSize));
+        , vaddr_t(pool)
+        , vsize_t(RoundUp(objectSize * pool->Capacity + headerSize, PageSize.Value)));
 
     assert(res.IsOkayResult(), "Failed to unmap object pool.")
         ("pool", (void *)pool)
-        ("size", RoundUp(objectSize * pool->Capacity + headerSize, PageSize))
+        ("size", RoundUp(objectSize * pool->Capacity + headerSize, PageSize.Value))
         (res);
 
     return res;

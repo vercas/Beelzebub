@@ -78,7 +78,7 @@ bool System::TurnIntoNoOp(void * start, void * end, bool useJump)
             return false;
         //  It failed.
 
-        memset(reinterpret_cast<void *>(loc + size), 0xCC, diff - size);
+        ::memset(reinterpret_cast<void *>(loc + size), 0xCC, diff - size);
 
         return true;
     }
@@ -104,15 +104,15 @@ bool System::TurnIntoNoOp(void * start, void * end, bool useJump)
             return true;
 
         case 6:
-            memcpy(reinterpret_cast<void *>(loc), Nop7, 7);
+            ::memcpy(reinterpret_cast<void *>(loc), Nop7, 7);
             return true;
 
         case 5:
-            memcpy(reinterpret_cast<void *>(loc), Nop6, 6);
+            ::memcpy(reinterpret_cast<void *>(loc), Nop6, 6);
             return true;
 
         case 4:
-            memcpy(reinterpret_cast<void *>(loc), Nop5, 5);
+            ::memcpy(reinterpret_cast<void *>(loc), Nop5, 5);
             return true;
 
         case 3:
@@ -120,7 +120,7 @@ bool System::TurnIntoNoOp(void * start, void * end, bool useJump)
             return true;
 
         case 2:
-            memcpy(reinterpret_cast<void *>(loc), Nop3, 3);
+            ::memcpy(reinterpret_cast<void *>(loc), Nop3, 3);
             return true;
 
         case 1:

@@ -77,7 +77,7 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
     {
         __extension__ uint32_t bck[size1];  //  A backup.
 
-        memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
+        ::memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
         //  Meh.
 
         return BigIntMul(dst, dstSize, &(bck[0]), size1, src2, size2, maxSize, cin);
@@ -86,7 +86,7 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
     {
         __extension__ uint32_t bck[size2];  //  A backup.
 
-        memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
+        ::memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
         //  Meh.
 
         return BigIntMul(dst, dstSize, src1, size1, &(bck[0]), size2, maxSize, cin);
@@ -113,7 +113,7 @@ bool Beelzebub::Utils::BigIntMul(uint32_t       * dst , uint32_t & dstSize
 
     //  Now `src1` is the shortest number.
 
-    memset(&(dst[0]), 0, limit * sizeof(uint32_t));
+    ::memset(&(dst[0]), 0, limit * sizeof(uint32_t));
 
     dst[0] = cin ? 1U : 0U;
     //  First dword is the carry in.
@@ -167,7 +167,7 @@ void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
         sizeQ = Maximum(size1, size2);
 
         __extension__ uint32_t bck[sizeQ];
-        memset(&(bck[0]), 0, sizeQ * sizeof(uint32_t));
+        ::memset(&(bck[0]), 0, sizeQ * sizeof(uint32_t));
 
         return BigIntDiv(&(bck[0]), sizeQ, remn, sizeR, src1, size1, src2, size2);
     }
@@ -176,21 +176,21 @@ void Beelzebub::Utils::BigIntDiv(uint32_t       * quot, uint32_t sizeQ
         sizeR = Maximum(size1, size2);
 
         __extension__ uint32_t bck[sizeR];
-        memset(&(bck[0]), 0, sizeR * sizeof(uint32_t));
+        ::memset(&(bck[0]), 0, sizeR * sizeof(uint32_t));
 
         return BigIntDiv(quot, sizeQ, &(bck[0]), sizeR, src1, size1, src2, size2);
     }
     else if (src1 == quot || src1 == remn)
     {
         __extension__ uint32_t bck[size1];
-        memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
+        ::memcpy(&(bck[0]), src1, size1 * sizeof(uint32_t));
 
         return BigIntDiv(quot, sizeQ, remn, sizeR, &(bck[0]), size1, src2, size2);
     }
     else if (src2 == quot || src2 == remn)
     {
         __extension__ uint32_t bck[size2];
-        memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
+        ::memcpy(&(bck[0]), src2, size2 * sizeof(uint32_t));
 
         return BigIntDiv(quot, sizeQ, remn, sizeR, src1, size1, &(bck[0]), size2);
     }
@@ -214,7 +214,7 @@ static __noinline void BigIntAnd2(uint32_t       * dst, uint32_t sizeD
         dst[i] &= src[i];
 
     if (sizeD > sizeS)
-        memset(dst + sizeS, 0, (sizeD - sizeS) * sizeof(uint32_t));
+        ::memset(dst + sizeS, 0, (sizeD - sizeS) * sizeof(uint32_t));
         //  The rest becomes 0, as if ANDed with 0.
 }
 
@@ -233,7 +233,7 @@ void Beelzebub::Utils::BigIntAnd(uint32_t       * dst , uint32_t sizeD
         dst[i] = src1[i] & src2[i];
 
     if (sizeD > limit)
-        memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+        ::memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
     //  The rest becomes 0.
 }
 
@@ -293,7 +293,7 @@ void Beelzebub::Utils::BigIntOr (uint32_t       * dst , uint32_t sizeD
     //  the longest (other) source.
 
     if (sizeD > limit)
-        memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+        ::memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
     //  The rest becomes 0.
 }
 
@@ -353,7 +353,7 @@ void Beelzebub::Utils::BigIntXor(uint32_t       * dst , uint32_t sizeD
     //  the longest (other) source.
 
     if (sizeD > limit)
-        memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
+        ::memset(dst + limit, 0, (sizeD - limit) * sizeof(uint32_t));
     //  The rest becomes 0.
 }
 
@@ -382,7 +382,7 @@ bool Beelzebub::Utils::BigIntShL(uint32_t       * dst, uint32_t & sizeD
     {
         //  This will shift more positions than available.
 
-        memset(dst, 0, (sizeD = sizeM) * sizeof(uint32_t));
+        ::memset(dst, 0, (sizeD = sizeM) * sizeof(uint32_t));
         //  Means all that's left is zeros.
 
         return true;
@@ -415,7 +415,7 @@ bool Beelzebub::Utils::BigIntShL(uint32_t       * dst, uint32_t & sizeD
             //  This has to be done in order, because overflow propagates towards
             //  more significant bits/dwords.
 
-            memset(dst, 0, amntMov * sizeof(uint32_t));
+            ::memset(dst, 0, amntMov * sizeof(uint32_t));
 
             //  No carry in accounted for.
         }
@@ -450,7 +450,7 @@ bool Beelzebub::Utils::BigIntShR(uint32_t       * dst, uint32_t & sizeD
     if unlikely(src == dst)
     {
         __extension__ uint32_t bck[sizeS];
-        memcpy(&(bck[0]), src, sizeS * sizeof(uint32_t));
+        ::memcpy(&(bck[0]), src, sizeS * sizeof(uint32_t));
 
         return BigIntShR(dst, sizeD, &(bck[0]), sizeS, amnt);
     }
@@ -611,7 +611,7 @@ bool Beelzebub::Utils::BigIntGetPow10(uint32_t * dst, uint32_t & sizeD
     sizeD = 1;
     //  Starting lightly.
 
-    memset(dst + 1, 0, (sizeM - 1) * sizeof(uint32_t));
+    ::memset(dst + 1, 0, (sizeM - 1) * sizeof(uint32_t));
     //  Just making sure.
      
     size_t exponentBig = 0;

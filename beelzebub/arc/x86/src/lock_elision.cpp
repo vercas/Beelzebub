@@ -75,8 +75,8 @@ Handle Beelzebub::ElideLocks()
     //  Step 1 is backing up the flags of all the pages, and making them
     //  writable, if they were not already.
 
-    size_t const kernel_size = RoundUp(reinterpret_cast<uintptr_t>(&kernel_mapping_end) - reinterpret_cast<uintptr_t>(&kernel_mapping_start), PageSize);
-    size_t const kernel_page_count = kernel_size / PageSize;
+    size_t const kernel_size = RoundUp(reinterpret_cast<uintptr_t>(&kernel_mapping_end) - reinterpret_cast<uintptr_t>(&kernel_mapping_start), PageSize.Value);
+    size_t const kernel_page_count = kernel_size / PageSize.Value;
 
     msg("Kernel start @ %Xp, end @ %Xp, size %us, page count %us."
         , &kernel_mapping_start, &kernel_mapping_end
@@ -86,7 +86,7 @@ Handle Beelzebub::ElideLocks()
 
     for (size_t pageInd = 0; pageInd < kernel_page_count; ++pageInd)
     {
-        vaddr_t const vaddr = reinterpret_cast<vaddr_t>(&kernel_mapping_start) + pageInd * PageSize;
+        vaddr_t const vaddr = reinterpret_cast<vaddr_t>(&kernel_mapping_start) + pageInd * PageSize.Value;
 
         res = Vmm::GetPageFlags(&BootstrapProcess, vaddr, flags[pageInd]);
 

@@ -92,13 +92,13 @@ void CpuId::Initialize()
     Execute(0x80000001U, this->ExtendedSignature, this->FeatureFlagsExtendedB
                        , this->FeatureFlagsExtendedC, this->FeatureIntegers[2]);
 
-    if      (memeq(this->VendorString.Characters, "GenuineIntel", 12))
+    if      (::memeq(this->VendorString.Characters, "GenuineIntel", 12))
     {
         this->Vendor = CpuVendor::Intel;
 
         this->InitializeIntel();
     }
-    else if (memeq(this->VendorString.Characters, "AuthenticAMD", 12))
+    else if (::memeq(this->VendorString.Characters, "AuthenticAMD", 12))
     {
         this->Vendor = CpuVendor::Amd;
 

@@ -48,11 +48,20 @@ namespace Beelzebub
         //  These are ordered by size, descending.
 
         paddr_t PhysicalAddress;
-        void * Address;
+        vaddr_t Address;
         //  Physical address may be larger (PAE).
 
         MemoryLocationFlags PageFlags;
         MemoryAccessType AccessType;
+
+        inline MemoryAccessViolationData()
+            : PhysicalAddress( 0)
+            , Address(nullptr)
+            , PageFlags()
+            , AccessType()
+        {
+
+        }
     };
 
     struct UnitTestFailureData
@@ -72,5 +81,14 @@ namespace Beelzebub
             MemoryAccessViolationData MemoryAccessViolation;
             UnitTestFailureData UnitTestFailure;
         };
+
+        inline Exception()
+            : Type(ExceptionType::None)
+            , InstructionPointer()
+            , StackPointer()
+            , MemoryAccessViolation()
+        {
+
+        }
     };
 }

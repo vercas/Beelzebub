@@ -80,14 +80,14 @@ Handle Runtime64::Initialize()
 
     FileBoundaries bnd = InitRd::GetFileBoundaries(file);
 
-    if (bnd.Start == 0 || bnd.Size == 0)
+    if (bnd.Start == nullvaddr || bnd.Size == vsize_t(0))
         return HandleResult::IntegrityFailure;
 
     //  Now to finally do the mappin'.
     
     if (bnd.Start % PageSize == 0 && bnd.AlignedSize % PageSize == 0)
     {
-        for (size_t offset = 0; offset < bnd.Size; offset += PageSize)
+        for (vsize_t offset { 0 }; offset < bnd.Size; offset += PageSize)
         {
             Handle res = Vmm::SetPageFlags(&BootstrapProcess, bnd.Start + offset
                 , MemoryFlags::Global | MemoryFlags::Userland);
@@ -99,12 +99,12 @@ Handle Runtime64::Initialize()
                 ("page", bnd.Start + offset)(res)XEND;
         }
 
-        new (&Template) Elf(reinterpret_cast<void *>(bnd.Start), bnd.Size);
+        new (&Template) Elf(bnd.Start, bnd.Size);
     }
     else
     {
         vaddr_t vaddr = nullvaddr;
-        size_t const size = bnd.Size;
+        vsize_t const size { bnd.Size };
 
         Handle res = Vmm::AllocatePages(&BootstrapProcess
             , RoundUp(size, PageSize)
@@ -118,9 +118,9 @@ Handle Runtime64::Initialize()
             (res)XEND;
 
         withWriteProtect (false)
-            memcpy(reinterpret_cast<void *>(vaddr), reinterpret_cast<void *>(bnd.Start), size);
+            memcpy(vaddr, bnd.Start, size);
 
-        new (&Template) Elf(reinterpret_cast<void *>(vaddr), size);
+        new (&Template) Elf(vaddr, size);
     }
 
     ElfValidationResult evRes = Template.ValidateAndParse(&HeaderValidator, nullptr, nullptr);

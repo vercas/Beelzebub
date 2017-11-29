@@ -43,7 +43,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::System;
 
 GdtRegister KernelGdtPointer {0, nullptr};
-uintptr_t ApStackTopPointer = nullpaddr;
+uintptr_t ApStackTopPointer = 0;
 
 uint32_t volatile ApInitializationLock1 = 0;
 uint32_t volatile ApInitializationLock2 = 0;

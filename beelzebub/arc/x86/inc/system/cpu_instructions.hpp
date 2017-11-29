@@ -86,6 +86,11 @@ namespace Beelzebub { namespace System
             asm volatile ( "invlpg %0 \n\t" : : "m"(*p) );
         }
 
+        static __artificial void InvalidateTlb(vaddr_t const addr)
+        {
+            return InvalidateTlb(addr.Pointer);
+        }
+
         static __artificial void FlushCache(void const * const addr)
         {
             struct _64_bytes { uint8_t x[64]; } const * const p

@@ -139,7 +139,7 @@ namespace Beelzebub { namespace Terminals
     {
         return term
             << "\tAddress: " << value->Address << EndLine
-            << "\tFrame: " << reinterpret_cast<void *>(value->PhysicalAddress) << EndLine
+            << "\tFrame: " << value->PhysicalAddress << EndLine
             << "\tAccess type: " << value->AccessType << EndLine
             << "\tPage flags: " << value->PageFlags << EndLine;
     }

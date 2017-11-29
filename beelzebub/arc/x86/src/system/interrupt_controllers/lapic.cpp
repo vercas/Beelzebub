@@ -78,7 +78,7 @@ __thread bool Lapic::X2ApicMode = false;
 /*  Addresses  */
 
 paddr_t Lapic::PhysicalAddress = nullpaddr;
-vaddr_t const volatile Lapic::VirtualAddress = 0xFFFFFFFFFFFFF000;
+vaddr_t const Lapic::VirtualAddress { 0xFFFFFFFFFFFFF000 };
 
 /*  Ender  */
 

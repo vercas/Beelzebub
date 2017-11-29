@@ -1228,6 +1228,34 @@ namespace Beelzebub { namespace Terminals
     }
     
     template<>
+    TerminalBase & operator << <paddr_t>(TerminalBase & term, paddr_t const value)
+    {
+        uintptr_t const val = value.Value;
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        term.WriteHex64(val, term.FormatState.NumericUppercase);
+#else
+        term.WriteHex32(val, term.FormatState.NumericUppercase);
+#endif
+
+        return term;
+    }
+    
+    template<>
+    TerminalBase & operator << <vaddr_t>(TerminalBase & term, vaddr_t const value)
+    {
+        uintptr_t const val = value.Value;
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+        term.WriteHex64(val, term.FormatState.NumericUppercase);
+#else
+        term.WriteHex32(val, term.FormatState.NumericUppercase);
+#endif
+
+        return term;
+    }
+    
+    template<>
     TerminalBase & operator << <float>(TerminalBase & term, float const value)
     {
         term.WriteHexFloat(value, term.FormatState.NumericUppercase);

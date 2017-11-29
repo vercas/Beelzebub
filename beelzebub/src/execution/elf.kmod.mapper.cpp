@@ -56,11 +56,11 @@ bool Execution::MapKmodSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_
 
     withWriteProtect (false)
     {
-        memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
-            ,  reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
+        ::memcpy(reinterpret_cast<void *>(loc + phdr.VAddr )
+            , reinterpret_cast<void *>(img + phdr.Offset), phdr.PSize);
 
         if (phdr.VSize > phdr.PSize)
-            memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
+            ::memset(reinterpret_cast<void *>(loc + phdr.VAddr + phdr.PSize)
                 , 0, phdr.VSize - phdr.PSize);
     }
 

@@ -935,6 +935,7 @@ namespace Beelzebub { namespace Execution
         Elf(void const * addr, size_t size);
 
         inline Elf(uintptr_t addr, size_t size) : Elf(reinterpret_cast<void const *>(addr), size) { }
+        inline Elf(vaddr_t addr, vsize_t size) : Elf(addr.Pointer, size.Value) { }
 
         Elf() = default;
 

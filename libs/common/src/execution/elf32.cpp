@@ -240,7 +240,7 @@ ElfValidationResult Elf::ValidateParseElf32(Elf::SegmentValidatorFunc segval, vo
             return ElfValidationResult::SegmentOutOfBounds;
         //  These two account for double overflow as well.
 
-        if unlikely((phdr.VAddr % PageSize) != (phdr.Offset % PageSize))
+        if unlikely((phdr.VAddr % PageSize.Value) != (phdr.Offset % PageSize.Value))
             return ElfValidationResult::SegmentNonCongruent;
         //  This is required by the ABI.
 

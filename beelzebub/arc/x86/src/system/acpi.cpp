@@ -77,9 +77,9 @@ size_t Acpi::LapicCount = 0;
 size_t Acpi::PresentLapicCount = 0;
 size_t Acpi::IoapicCount = 0;
 
-uintptr_t Acpi::RangeBottom = 0;
-uintptr_t Acpi::RangeTop = 0;
-uintptr_t Acpi::VirtualBase = 0;
+paddr_t Acpi::RangeBottom = nullvaddr;
+paddr_t Acpi::RangeTop = nullvaddr;
+vaddr_t Acpi::VirtualBase = nullvaddr;
 
 /*  Initialization  */
 
@@ -128,7 +128,7 @@ Handle Acpi::Remap()
     RangeBottom = RoundDown(RangeBottom, PageSize);
     RangeTop = RoundUp(RangeTop, PageSize);
 
-    size_t const size = RangeTop - RangeBottom;
+    vsize_t const size = vsize_t(RangeTop - RangeBottom);
 
     Handle res = Vmm::AllocatePages(nullptr
         , size

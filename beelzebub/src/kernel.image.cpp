@@ -60,9 +60,9 @@ Execution::Elf KernelImage::Elf;
 
 /*  Methods  */
 
-Handle KernelImage::Initialize(vaddr_t const vaddr, size_t const size)
+Handle KernelImage::Initialize(vaddr_t const vaddr, vsize_t const size)
 {
-    new (&KernelImage::Elf) Execution::Elf(reinterpret_cast<void *>(vaddr), size);
+    new (&KernelImage::Elf) Execution::Elf(vaddr.Pointer, size.Value);
 
     ElfValidationResult evRes = KernelImage::Elf.ValidateAndParse(&HeaderValidator, nullptr, nullptr);
 

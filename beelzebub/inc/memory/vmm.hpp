@@ -67,7 +67,7 @@ namespace Beelzebub { namespace Memory
         struct RangeInvalidationInfo
         {
             Execution::Process * const Proc;
-            void const * const * const Addresses;
+            vaddr_t const * const Addresses;
             size_t const Count, Stride;
             AfterRangeInvalidationFunc const After;
             void * const Cookie;
@@ -91,9 +91,9 @@ namespace Beelzebub { namespace Memory
         };
 
         typedef void (* PreUnmapFunc)(Execution::Process * proc
-            , uintptr_t vaddr, void * cookie);
+            , vaddr_t vaddr, void * cookie);
         typedef Handle (* PostUnmapFunc)(Execution::Process * proc
-            , uintptr_t vaddr, size_t size, Handle oRes, void * cookie);
+            , vaddr_t vaddr, vsize_t size, Handle oRes, void * cookie);
 
         /*  Statics  */
 
@@ -137,13 +137,13 @@ namespace Beelzebub { namespace Memory
         /*  Page Management  */
 
         static __hot __solid Handle MapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t paddr
+            , vaddr_t const vaddr, paddr_t paddr
             , FrameSize size
             , MemoryFlags const flags
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
         static __hot __forceinline Handle MapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t paddr
+            , vaddr_t const vaddr, paddr_t paddr
             , MemoryFlags const flags
             , MemoryMapOptions opts = MemoryMapOptions::None)
         {
@@ -151,16 +151,16 @@ namespace Beelzebub { namespace Memory
         }
 
         static __hot __solid Handle MapRange(Execution::Process * proc
-            , uintptr_t vaddr, paddr_t paddr, size_t size
+            , vaddr_t vaddr, paddr_t paddr, vsize_t size
             , MemoryFlags const flags
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
         static __hot __solid Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t & paddr, FrameSize & size
+            , vaddr_t const vaddr, paddr_t & paddr, FrameSize & size
             , MemoryMapOptions opts = MemoryMapOptions::None);
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t & paddr, MemoryMapOptions opts = MemoryMapOptions::None)
+            , vaddr_t const vaddr, paddr_t & paddr, MemoryMapOptions opts = MemoryMapOptions::None)
         {
             FrameSize dummy;
 
@@ -168,7 +168,7 @@ namespace Beelzebub { namespace Memory
         }
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, FrameSize & size, MemoryMapOptions opts = MemoryMapOptions::None)
+            , vaddr_t const vaddr, FrameSize & size, MemoryMapOptions opts = MemoryMapOptions::None)
         {
             paddr_t dummy;
 
@@ -176,7 +176,7 @@ namespace Beelzebub { namespace Memory
         }
 
         static __hot __forceinline Handle UnmapPage(Execution::Process * proc
-            , uintptr_t const vaddr, MemoryMapOptions opts = MemoryMapOptions::None)
+            , vaddr_t const vaddr, MemoryMapOptions opts = MemoryMapOptions::None)
         {
             paddr_t dummy1;
             FrameSize dummy2;
@@ -185,14 +185,14 @@ namespace Beelzebub { namespace Memory
         }
 
         static __hot __solid Handle UnmapRange(Execution::Process * proc
-            , uintptr_t vaddr, size_t size
+            , vaddr_t vaddr, vsize_t size
             , MemoryMapOptions opts = MemoryMapOptions::None
             , PreUnmapFunc pre = nullptr
             , PostUnmapFunc post = nullptr
             , void * cookie = nullptr);
 
         static __hot __solid Handle InvalidateRange(Execution::Process * proc
-            , void const * const * const addresses, size_t count
+            , vaddr_t const * const addresses, size_t count
             , size_t stride = sizeof(void *), bool broadcast = true
             , AfterRangeInvalidationFunc after = nullptr, void * cookie = nullptr);
 
@@ -208,35 +208,35 @@ namespace Beelzebub { namespace Memory
         }
 
         static __hot __forceinline Handle InvalidatePage(Execution::Process * proc
-            , uintptr_t const vaddr, bool broadcast = true)
+            , vaddr_t const vaddr, bool broadcast = true)
         {
-            return InvalidateChain(proc, {vaddr}, broadcast);
+            return InvalidateChain(proc, PageNode(vaddr), broadcast);
         }
 
         static __hot __solid Handle Translate(Execution::Process * proc
-            , uintptr_t const vaddr, paddr_t & paddr, bool const lock = true);
+            , vaddr_t const vaddr, paddr_t & paddr, bool const lock = true);
 
         static __hot Handle HandlePageFault(Execution::Process * proc
-            , uintptr_t const vaddr, PageFaultFlags const flags);
+            , vaddr_t const vaddr, PageFaultFlags const flags);
 
         /*  Allocation  */
 
         static __hot __solid Handle AllocatePages(Execution::Process * proc
-            , size_t const size, MemoryAllocationOptions const type
-            , MemoryFlags const flags, MemoryContent content, uintptr_t & vaddr);
+            , vsize_t const size, MemoryAllocationOptions const type
+            , MemoryFlags const flags, MemoryContent content, vaddr_t & vaddr);
 
         static __hot __solid Handle FreePages(Execution::Process * proc
-            , uintptr_t const vaddr, size_t const size);
+            , vaddr_t const vaddr, vsize_t const size);
 
         /*  Flags  */
 
         static __hot __solid Handle CheckMemoryRegion(Execution::Process * proc
-            , uintptr_t addr, size_t size, MemoryCheckType type);
+            , vaddr_t addr, vsize_t size, MemoryCheckType type);
 
         static __hot __solid Handle GetPageFlags(Execution::Process * proc
-            , uintptr_t const vaddr, MemoryFlags & flags, bool const lock = true);
+            , vaddr_t const vaddr, MemoryFlags & flags, bool const lock = true);
 
         static __hot __solid Handle SetPageFlags(Execution::Process * proc
-            , uintptr_t const vaddr, MemoryFlags const flags, bool const lock = true);
+            , vaddr_t const vaddr, MemoryFlags const flags, bool const lock = true);
     };
 }}

@@ -390,7 +390,7 @@ namespace Beelzebub { namespace Utils
         //  may be needed, which are much faster when using same-case comparisons.
 
         #define CHECKSTR(strval, boolval)                           \
-            if (memeq(buf, strval, i) && i == sizeof(strval) - 1)   \
+            if (::memeq(buf, strval, i) && i == sizeof(strval) - 1)   \
                 val = boolval;                                      \
             else
         //  Yes, this is highly unorthodox. Blimey.

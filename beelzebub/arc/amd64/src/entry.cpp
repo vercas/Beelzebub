@@ -188,7 +188,7 @@ Handle ParseKernelArguments()
  */
 Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
                                  , size_t cnt
-                                 , uintptr_t freeStart
+                                 , paddr_t freeStart
                                  , Domain * domain)
 {
     Handle res; //  Used for intermediary results.
@@ -200,7 +200,7 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
     //  A power of two.
     //  Moreover, this code doesn't need to be lightning-fast. :L
 
-    uint64_t start = RoundUp(freeStart, PageSize), end = 0;
+    paddr_t start = RoundUp(freeStart, PageSize), end = nullpaddr;
     jg_info_mmap_t * firstMap = nullptr, * lastMap = nullptr;
 
     for (size_t i = 0; i < cnt; i++)
@@ -208,13 +208,13 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
         jg_info_mmap_t * m = map + i;
         //  Current map.
 
-        if ((m->address + m->length) <= freeStart || !m->available)
+        if (paddr_t(m->address + m->length) <= freeStart || !m->available)
             continue;
 
         if (firstMap == nullptr)
             firstMap = m;
 
-        uint64_t mEnd = m->address + m->length;
+        paddr_t mEnd { m->address + m->length };
 
         if (mEnd > end)
         {
@@ -257,15 +257,15 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
     //  SPACE CREATION
 
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
-        if (m->available != 0 && m->length >= (2 * PageSize))
+        if (m->available != 0 && m->length >= (2 * PageSize.Value))
         {
-            if (m->address < start && (m->address + m->length) > start)
+            if (m->address < start.Value && (m->address + m->length) > start.Value)
                 //  Means this entry crosses the start of free memory.
                 //CreateAllocationSpace(start, m->address + m->length, domain);
-                PmmArc::CreateAllocationSpace(start, m->address + m->length);
+                PmmArc::CreateAllocationSpace(start, paddr_t(m->address + m->length));
             else
                 //CreateAllocationSpace(m->address, m->address + m->length, domain);
-                PmmArc::CreateAllocationSpace(m->address, m->address + m->length);
+                PmmArc::CreateAllocationSpace(paddr_t(m->address), paddr_t(m->address + m->length));
         }
 
     //  PAGE RESERVATION
@@ -273,7 +273,7 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
     for (jg_info_mmap_t * m = firstMap; m <= lastMap; m++)
         if (m->available == 0)
         {
-            res = Pmm::ReserveRange(m->address, m->length);
+            res = Pmm::ReserveRange(paddr_t(m->address), psize_t(m->length));
 
             assert(res.IsOkayResult() || res.IsResult(HandleResult::PagesOutOfAllocatorRange)
                 , "Failed to reserve page range %XP-%XP: %H."
@@ -300,7 +300,7 @@ Handle InitializePhysicalMemory()
     BootstrapCpuid.PrintToTerminal(DebugTerminal);
     msg("%n");
 
-    res = InitializePhysicalAllocator(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, JG_INFO_ROOT_EX->free_paddr, &Domain0);
+    res = InitializePhysicalAllocator(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, paddr_t(JG_INFO_ROOT_EX->free_paddr), &Domain0);
 
     ASSERT(res.IsOkayResult()
         , "Failed to initialize the physical memory allocator for domain 0: %H.%n"
@@ -332,7 +332,7 @@ Handle InitializeVirtualMemory()
     if (pml4_paddr == nullpaddr)
         return HandleResult::OutOfMemory;
 
-    memset((void *)pml4_paddr, 0, PageSize);
+    memset((void *)(pml4_paddr.Value), 0, PageSize.Value);
     //  Clear it all out!
 
     new (&BootstrapProcess) Process(0, pml4_paddr);
@@ -351,13 +351,13 @@ Handle InitializeVirtualMemory()
     //  Now mapping the lower 16 MiB.
 
     res = Vmm::MapRange(&BootstrapProcess
-        , VmmArc::IsaDmaStart, 0, VmmArc::IsaDmaLength
+        , VmmArc::IsaDmaStart, nullpaddr, VmmArc::IsaDmaLength
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryMapOptions::NoReferenceCounting);
 
     ASSERT(res.IsOkayResult()
         , "Failed to map range at %Xp (%XP) for ISA DMA: %H."
-        , VmmArc::IsaDmaStart, 0
+        , VmmArc::IsaDmaStart, nullpaddr
         , res);
 
     //  TODO: Management for ISA DMA.
@@ -374,7 +374,7 @@ void RemapTerminal(TerminalBase * const terminal)
     if (terminal->Capabilities->Type == TerminalType::PixelMatrix)
     {
         VbeTerminal * const term = (VbeTerminal *)terminal;
-        size_t const size = RoundUp((size_t)term->Pitch * (size_t)term->Height, PageSize);
+        vsize_t const size { RoundUp((size_t)term->Pitch * (size_t)term->Height, PageSize.Value) };
         //  Yes, the size is aligned with page boundaries.
 
         if (term->VideoMemory >= VmmArc::KernelHeapStart
@@ -396,7 +396,7 @@ void RemapTerminal(TerminalBase * const terminal)
             , size, res);
 
         res = Vmm::MapRange(&BootstrapProcess
-            , vaddr, term->VideoMemory, size
+            , vaddr, paddr_t(term->VideoMemory), size
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryMapOptions::NoReferenceCounting);
 
@@ -404,7 +404,7 @@ void RemapTerminal(TerminalBase * const terminal)
             , "Failed to map range at %Xp to %XP (%Xs bytes) for VBE framebuffer: %H."
             , vaddr, term->VideoMemory, size, res);
 
-        term->VideoMemory = vaddr;
+        term->VideoMemory = vaddr.Value;
     }
 
     //  TODO: Make a VGA text terminal and also handle it here.
@@ -423,7 +423,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
 {
     Handle res;
 
-    size_t const size = RoundUp(module->length, PageSize);
+    vsize_t const size = RoundUp(vsize_t(module->length), PageSize);
 
     // msg("Module #%us:%n"
     //     "\tName: (%X2) %s%n"
@@ -436,7 +436,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
     //     , module->address
     //     , module->length, size);
 
-    ASSERTX(!PmmArc::MainAllocator->ContainsRange(module->address, module->length))
+    ASSERTX(!PmmArc::MainAllocator->ContainsRange(paddr_t(module->address), psize_t(module->length)))
         (module->address)(module->length)XEND;
 
     vaddr_t vaddr = nullvaddr;
@@ -455,7 +455,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
         , res);
 
     res = Vmm::MapRange(&BootstrapProcess
-        , vaddr, module->address, size
+        , vaddr, paddr_t(module->address), size
         , MemoryFlags::Global
         , MemoryMapOptions::NoReferenceCounting);
 

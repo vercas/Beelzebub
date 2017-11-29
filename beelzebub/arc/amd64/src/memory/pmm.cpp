@@ -55,11 +55,11 @@ using namespace Beelzebub::System;
     Utilitary functions
 **************************/
 
-static __hot void SplitLargeFrame(LargeFrameDescriptor * desc, psize_t cnt = LargeFrameDescriptor::SubDescriptorsCount)
+static __hot void SplitLargeFrame(LargeFrameDescriptor * desc, uint16_t cnt = LargeFrameDescriptor::SubDescriptorsCount)
 {
     auto extra = new (desc->GetExtras()) SplitFrameExtra();
 
-    size_t i = 1;
+    int i = 1;
     uint16_t * lastNextIndex = &(extra->NextFree);
 
     for (/* nothing */; i <= cnt; ++i)
@@ -112,7 +112,7 @@ Handle Pmm::FreeFrame(paddr_t addr, bool ignoreRefCnt)
     return PmmArc::MainAllocator->Mingle(addr, dummy, 0, ignoreRefCnt);
 }
 
-Handle Pmm::ReserveRange(paddr_t start, size_t size, bool includeBusy)
+Handle Pmm::ReserveRange(paddr_t start, psize_t size, bool includeBusy)
 {
     return PmmArc::MainAllocator->ReserveRange(start, size, includeBusy);
 }
@@ -157,12 +157,12 @@ Handle PmmArc::CreateAllocationSpace(paddr_t start, paddr_t end)
         //  the next allocation space.
         // MSG_("preppended &&%n");
 
-        if (reinterpret_cast<paddr_t>(PmmArc::AllocationSpace + 2) > PmmArc::TempSpaceLimit)
+        if (paddr_t((uintptr_t)(PmmArc::AllocationSpace + 2)) > PmmArc::TempSpaceLimit)
         {
             //  So, this new allocation space structure would go beyond the
             //  limit of the temporary space... Not good.
 
-            PmmArc::AllocationSpace = reinterpret_cast<FrameAllocationSpace *>(start);
+            PmmArc::AllocationSpace = reinterpret_cast<FrameAllocationSpace *>(start.Value);
             PmmArc::TempSpaceLimit = (start += PageSize);
             //  The sensible solution here is to make a new temporary space!
             //  Oh, and push forward the start of this allocation space.
@@ -180,7 +180,7 @@ Handle PmmArc::CreateAllocationSpace(paddr_t start, paddr_t end)
         //  given space is used to hold all the structures.
         // MSG_("bootstraps &&%n");
 
-        PmmArc::MainAllocator = reinterpret_cast<FrameAllocator *>(start);
+        PmmArc::MainAllocator = reinterpret_cast<FrameAllocator *>(start.Value);
         PmmArc::AllocationSpace = reinterpret_cast<FrameAllocationSpace *>(reinterpret_cast<uintptr_t>(PmmArc::MainAllocator + 1));
 
         PmmArc::TempSpaceLimit = start + PageSize;
@@ -195,21 +195,21 @@ Handle PmmArc::CreateAllocationSpace(paddr_t start, paddr_t end)
 
 void PmmArc::Remap(FrameAllocator * & alloc, vaddr_t const oldVaddr, vaddr_t const newVaddr)
 {
-    vaddr_t const allocAddr   = reinterpret_cast<vaddr_t>(alloc);
+    vaddr_t const allocAddr { alloc };
     vaddr_t const oldVaddrEnd = oldVaddr + PageSize;
 
     if (allocAddr >= oldVaddr && allocAddr < oldVaddrEnd)
-        alloc = reinterpret_cast<FrameAllocator *>((allocAddr - oldVaddr) + newVaddr);
+        alloc = reinterpret_cast<FrameAllocator *>(((allocAddr - oldVaddr) + newVaddr).Value);
 
     withLock (alloc->ChainLock)
     {
-        vaddr_t const firstAddr   = reinterpret_cast<vaddr_t>(alloc->FirstSpace);
-        vaddr_t const lastAddr    = reinterpret_cast<vaddr_t>(alloc->LastSpace);
+        vaddr_t const firstAddr { alloc->FirstSpace };
+        vaddr_t const lastAddr  { alloc->LastSpace };
 
         if (firstAddr != nullvaddr && firstAddr >= oldVaddr && firstAddr < oldVaddrEnd)
-            alloc->FirstSpace = reinterpret_cast<FrameAllocationSpace *>((firstAddr - oldVaddr) + newVaddr);
+            alloc->FirstSpace = reinterpret_cast<FrameAllocationSpace *>(((firstAddr - oldVaddr) + newVaddr).Value);
         if (lastAddr != nullvaddr && lastAddr >= oldVaddr && lastAddr < oldVaddrEnd)
-            alloc->LastSpace = reinterpret_cast<FrameAllocationSpace *>((lastAddr - oldVaddr) + newVaddr);
+            alloc->LastSpace = reinterpret_cast<FrameAllocationSpace *>(((lastAddr - oldVaddr) + newVaddr).Value);
 
         //  Now makin' sure all the pointers are aligned.
 
@@ -217,14 +217,14 @@ void PmmArc::Remap(FrameAllocator * & alloc, vaddr_t const oldVaddr, vaddr_t con
 
         while (cur != nullptr)
         {
-            vaddr_t const nextAddr = reinterpret_cast<vaddr_t>(cur->Next);
-            vaddr_t const prevAddr = reinterpret_cast<vaddr_t>(cur->Previous);
+            vaddr_t const nextAddr = vaddr_t(cur->Next);
+            vaddr_t const prevAddr = vaddr_t(cur->Previous);
 
             if (nextAddr != nullvaddr && nextAddr >= oldVaddr && nextAddr < oldVaddrEnd)
-                cur->Next = reinterpret_cast<FrameAllocationSpace *>((nextAddr - oldVaddr) + newVaddr);
+                cur->Next = reinterpret_cast<FrameAllocationSpace *>(((nextAddr - oldVaddr) + newVaddr).Value);
 
             if (prevAddr != nullvaddr && prevAddr >= oldVaddr && prevAddr < oldVaddrEnd)
-                cur->Previous = reinterpret_cast<FrameAllocationSpace *>((prevAddr - oldVaddr) + newVaddr);
+                cur->Previous = reinterpret_cast<FrameAllocationSpace *>(((prevAddr - oldVaddr) + newVaddr).Value);
 
             cur = cur->Previous;
         }
@@ -242,7 +242,7 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
     , MemoryEnd(phys_end)
     , Size(phys_end - phys_start)
     , ReservedSize(0)
-    , Map(reinterpret_cast<LargeFrameDescriptor *>(phys_start))
+    , Map(reinterpret_cast<LargeFrameDescriptor *>(phys_start.Value))
     , LargeLocker()
     , SplitLocker()
     , LargeFree(LargeFrameDescriptor::NullIndex)
@@ -250,7 +250,7 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
     , Next(nullptr)
     , Previous(nullptr)
 {
-    paddr_t const algn_end = RoundDown(phys_end, 2 << 20);
+    paddr_t const algn_end { RoundDown(phys_end.Value, 2 << 20) };
     //  Round down the end to a two-megabyte address.
 
     paddr_t ctrl_end = phys_start, alloc_start = algn_end;
@@ -262,10 +262,10 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
     //  ~almost~ as much of the space as possible to be used. This could be tuned
     //  later to attempt to place the control structures at the end too.
 
-    for (psize_t i = 1UL << 31; i > 0; i >>= 1)
+    for (size_t i = 1UL << 31; i > 0; i >>= 1)
     {
-        paddr_t new_ctrl_end = ctrl_end + i * sizeof(LargeFrameDescriptor)
-            , new_alloc_start = alloc_start - (i << 21);
+        paddr_t new_ctrl_end = ctrl_end + psize_t(i * sizeof(LargeFrameDescriptor))
+            , new_alloc_start = alloc_start - psize_t(i << 21);
 
         if (new_alloc_start > alloc_start)
             continue;
@@ -289,7 +289,7 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
         , "Failed to squeeze any frames in allocation space.")
         (phys_start)(phys_end)XEND;
 
-    ASSERTX(alloc_start + (frameCount << 21) == algn_end
+    ASSERTX(alloc_start + psize_t(frameCount << 21) == algn_end
         , "Sanity failure: %XP + %Xs != %XP??"
         , alloc_start, frameCount << 21, algn_end)XEND;
     //  Just checking sanity.
@@ -298,7 +298,7 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
     this->AllocationEnd   = algn_end;
     this->AllocableSize   = algn_end - alloc_start;
 
-    this->ControlAreaSize = frameCount * sizeof(LargeFrameDescriptor);
+    this->ControlAreaSize = psize_t(frameCount * sizeof(LargeFrameDescriptor));
     this->FreeSize        = this->AllocableSize;
 
     this->LargeFrameCount = frameCount;
@@ -311,7 +311,7 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
         //  Construct the pseudo-stack of free large frames.
 
         auto desc = new (this->Map + i) LargeFrameDescriptor();
-        desc->SubDescriptors = reinterpret_cast<SmallFrameDescriptor *>(alloc_start + (i << 21));
+        desc->SubDescriptors = reinterpret_cast<SmallFrameDescriptor *>(alloc_start.Value + (i << 21));
 
         lastNextIndex = &(desc->NextIndex);
     }
@@ -321,15 +321,15 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
     //  So, it's almost ready. There may be a stray frame at the end that can be
     //  used partially. Enough space for another descriptor is also necessary.
 
-    if unlikely(alloc_start - ctrl_end >= sizeof(LargeFrameDescriptor) && phys_end - algn_end >= (3 * PageSize))
+    if unlikely(alloc_start - ctrl_end >= psize_t(sizeof(LargeFrameDescriptor)) && phys_end - algn_end >= psize_t(3 * PageSize.Value))
     {
         this->AllocationEnd = phys_end;
         this->AllocableSize = phys_end - alloc_start;
 
-        this->ControlAreaSize += sizeof(LargeFrameDescriptor);
+        this->ControlAreaSize += psize_t(sizeof(LargeFrameDescriptor));
         this->FreeSize        += phys_end - algn_end - PageSize;
 
-        SplitLargeFrame(new (this->Map + frameCount) LargeFrameDescriptor(), (phys_end - algn_end) / PageSize - 2);
+        SplitLargeFrame(new (this->Map + frameCount) LargeFrameDescriptor(), (phys_end - algn_end).Value / PageSize.Value - 2);
 
         this->SplitFree = frameCount;
 
@@ -419,7 +419,7 @@ paddr_t FrameAllocationSpace::AllocateFrame(FrameSize size, uint32_t refCnt)
 
         // MSG_("   Returning address %XP **%n", this->AllocationStart + (lIndex << 21) + (sIndex << 12));
 
-        return this->AllocationStart + (lIndex << 21) + (sIndex << 12);
+        return this->AllocationStart + psize_t(lIndex << 21) + psize_t(sIndex << 12);
     }
 
 grab_large_page:
@@ -435,7 +435,7 @@ grab_large_page:
         lDesc = this->Map + lIndex;
 
         this->LargeFree = lDesc->NextIndex;
-        paddr = this->AllocationStart + (lIndex << 21);
+        paddr = this->AllocationStart + psize_t(lIndex << 21);
 
         if (size == FrameSize::_2MiB)
         {
@@ -470,7 +470,7 @@ grab_large_page:
             this->Map[next].GetExtras()->PrevIndex = lIndex;
     }
 
-    return this->AllocationStart + (lIndex << 21) + (sIndex << 12);
+    return this->AllocationStart + psize_t(lIndex << 21) + psize_t(sIndex << 12);
 }
 
 Handle FrameAllocationSpace::Mingle(paddr_t addr, uint32_t & newCnt, int32_t diff, bool ignoreRefCnt)
@@ -479,9 +479,9 @@ Handle FrameAllocationSpace::Mingle(paddr_t addr, uint32_t & newCnt, int32_t dif
         return HandleResult::PagesOutOfAllocatorRange;
     //  Easy-peasy.
 
-    uint32_t lIndex = (uint32_t)((addr - this->AllocationStart) >> 21UL);
+    uint32_t lIndex = (uint32_t)((addr - this->AllocationStart).Value >> 21UL);
     LargeFrameDescriptor * lDesc = this->Map + lIndex;
-    uint16_t sIndex = (uint16_t)((addr & 0x1FF000) >> 12);
+    uint16_t sIndex = (uint16_t)((addr.Value & 0x1FF000) >> 12);
     SmallFrameDescriptor * sDesc = lDesc->SubDescriptors + sIndex;
 
     auto test = [&newCnt, ignoreRefCnt, diff](FrameDescriptor * desc)
@@ -714,9 +714,9 @@ Handle FrameAllocationSpace::GetFrameInfo(paddr_t addr, FrameSize & size, uint32
         return HandleResult::PagesOutOfAllocatorRange;
     //  Easy-peasy.
 
-    uint32_t lIndex = (uint32_t)((addr - this->AllocationStart) >> 21UL);
+    uint32_t lIndex = (uint32_t)((addr - this->AllocationStart).Value >> 21UL);
     LargeFrameDescriptor * lDesc = this->Map + lIndex;
-    uint16_t sIndex = (uint16_t)((addr & 0x1FF000) >> 12);
+    uint16_t sIndex = (uint16_t)((addr.Value & 0x1FF000) >> 12);
     SmallFrameDescriptor * sDesc = lDesc->SubDescriptors + sIndex;
 
     //  This only serves as a good starting point under conditions of low
@@ -1016,7 +1016,7 @@ FrameAllocationSpace * FrameAllocator::GetSpace(paddr_t paddr)
 
     while (space != nullptr)
     {
-        if (space->ContainsRange(paddr, 1))
+        if (space->ContainsRange(paddr, psize_t(1)))
             return space;
 
         space = space->Next;

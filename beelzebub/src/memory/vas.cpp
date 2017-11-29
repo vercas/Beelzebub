@@ -68,7 +68,7 @@ struct OperationParameters
 {
     /*  Constructor(s)  */
 
-    inline OperationParameters(Memory::Vas * vas, vaddr_t vaddr, size_t size
+    inline OperationParameters(Memory::Vas * vas, vaddr_t vaddr, vsize_t size
                              , bool sparse, bool tolerant, bool allocation)
         : Vas( vas)
         , StartAddress(vaddr)
@@ -101,10 +101,10 @@ struct OperationParameters
     Memory::Vas * const Vas;
 
     vaddr_t const StartAddress;
-    size_t const StartSize;
+    vsize_t const StartSize;
 
     vaddr_t Address;
-    size_t Size;
+    vsize_t Size;
 
     bool const Sparse, Tolerant, Allocation;
 
@@ -119,7 +119,7 @@ struct OperationParameters
 
         Handle res = HandleResult::Okay;
         vaddr_t const vaddr = this->Address;
-        size_t const size = this->Size;
+        vsize_t const size = this->Size;
         vaddr_t const endAddr = vaddr + size;
 
         MemoryRegion * reg;
@@ -258,8 +258,8 @@ struct OperationParameters
                             newEnd = reg->Next->Range.End;
                             next = reg->Next->Next;
 
-                            res = vas->Tree.Remove<vaddr_t>(newEnd - 1);
-                            if unlikely(!res.IsOkayResult()) goto end;
+                            res = vas->Tree.Remove<vaddr_t>(newEnd - vsize_t(1));
+                            if unlikely(res != HandleResult::Okay) goto end;
                         }
                         else
                         {
@@ -274,7 +274,7 @@ struct OperationParameters
                         reg = reg->Prev;    //  Variable is repurposed.
 
                         res = vas->Tree.Remove<vaddr_t>(vaddr);
-                        if unlikely(!res.IsOkayResult()) goto end;
+                        if unlikely(res != HandleResult::Okay) goto end;
                         //  This removes old `reg`.
 
                         //  Now there's room to expand the previous descriptor, which is in `reg`.
@@ -302,7 +302,7 @@ struct OperationParameters
                             reg = reg->Next;    //  Variable is repurposed.
 
                             res = vas->Tree.Remove<vaddr_t>(vaddr);
-                            if unlikely(!res.IsOkayResult()) goto end;
+                            if unlikely(res != HandleResult::Okay) goto end;
 
                             //  Now there's room to expand the next descriptor.
 
@@ -366,7 +366,7 @@ struct OperationParameters
                         MemoryRegion * newReg = nullptr;
                         res = this->Spawn(oldStart, endAddr, newReg);
 
-                        if unlikely(!res.IsOkayResult()) goto end;
+                        if unlikely(res != HandleResult::Okay) goto end;
 
                         newReg->Next = reg;
 
@@ -419,7 +419,7 @@ struct OperationParameters
                         MemoryRegion * newReg = nullptr;
                         res = this->Spawn(vaddr, oldEnd, newReg);
 
-                        if unlikely(!res.IsOkayResult()) goto end;
+                        if unlikely(res != HandleResult::Okay) goto end;
 
                         newReg->Prev = reg;
 
@@ -457,7 +457,7 @@ struct OperationParameters
 
                     res = this->Spawn(vaddr, endAddr, newMidReg);
 
-                    if unlikely(!res.IsOkayResult()) goto end;
+                    if unlikely(res != HandleResult::Okay) goto end;
 
                     res = vas->Tree.Insert(MemoryRegion(
                         endAddr, oldEnd, reg->Flags, reg->Content
@@ -465,7 +465,7 @@ struct OperationParameters
                         , newMidReg, reg->Next
                     ), newEndReg);
 
-                    if unlikely(!res.IsOkayResult()) goto end;
+                    if unlikely(res != HandleResult::Okay) goto end;
 
                     newMidReg->Next = newEndReg;
                     newMidReg->Prev = reg;
@@ -534,7 +534,7 @@ Handle Vas::Initialize(vaddr_t start, vaddr_t end
 
 /*  Operations  */
 
-Handle Vas::Allocate(vaddr_t & vaddr, size_t size
+Handle Vas::Allocate(vaddr_t & vaddr, vsize_t size
     , MemoryFlags flags, MemoryContent content
     , MemoryAllocationOptions type, bool lock)
 {
@@ -543,17 +543,17 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t size
 
     Handle res;
 
-    size_t const lowOffset  = 0 != (type & MemoryAllocationOptions::GuardLow ) ? PageSize : 0;
-    size_t const highOffset = 0 != (type & MemoryAllocationOptions::GuardHigh) ? PageSize : 0;
+    vsize_t const lowOffset  { 0 != (type & MemoryAllocationOptions::GuardLow ) ? PageSize.Value : 0 };
+    vsize_t const highOffset { 0 != (type & MemoryAllocationOptions::GuardHigh) ? PageSize.Value : 0 };
 
     vaddr_t const effectiveAddress = vaddr == nullvaddr ? nullvaddr : (vaddr - lowOffset);
-    size_t const effectiveSize = size + lowOffset + highOffset;
+    vsize_t const effectiveSize = size + lowOffset + highOffset;
 
     struct AllocateOperation : public OperationParameters
     {
         /*  Constructor(s)  */
 
-        inline AllocateOperation(Memory::Vas * vas, vaddr_t vaddr, size_t size
+        inline AllocateOperation(Memory::Vas * vas, vaddr_t vaddr, vsize_t size
                                , MemoryFlags flags, MemoryContent content, MemoryAllocationOptions type)
             : OperationParameters(vas, vaddr, size, false, false, true)
             , Flags(flags)
@@ -638,13 +638,13 @@ Handle Vas::Allocate(vaddr_t & vaddr, size_t size
     return res;
 }
 
-Handle Vas::Free(vaddr_t vaddr, size_t size, bool sparse, bool tolerant, bool lock)
+Handle Vas::Free(vaddr_t vaddr, vsize_t size, bool sparse, bool tolerant, bool lock)
 {
     struct FreeOperation : public OperationParameters
     {
         /*  Constructor(s)  */
 
-        inline FreeOperation(Memory::Vas * vas, vaddr_t vaddr, size_t size
+        inline FreeOperation(Memory::Vas * vas, vaddr_t vaddr, vsize_t size
                                     , bool sparse, bool tolerant)
             : OperationParameters(vas, vaddr, size, sparse, tolerant, false)
         {
@@ -697,11 +697,11 @@ Handle Vas::Free(vaddr_t vaddr, size_t size, bool sparse, bool tolerant, bool lo
     return manip.Execute(lock);
 }
 
-Handle Vas::Modify(vaddr_t vaddr, size_t pageCnt
+Handle Vas::Modify(vaddr_t vaddr, vsize_t size
     , MemoryFlags flags, bool lock)
 {
     (void)vaddr;
-    (void)pageCnt;
+    (void)size;
     (void)flags;
 
     if unlikely(this->First == nullptr)

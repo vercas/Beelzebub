@@ -55,7 +55,7 @@ typedef TreeType::Node NodeType;
 
 /*  Statics  */
 
-MemoryRange const MemoryRange::Invalid {1337, 42};
+MemoryRange const MemoryRange::Invalid { vaddr_t(1337), vaddr_t(42) };
 
 /*  Operators  */
 
@@ -64,7 +64,7 @@ MemoryRange MemoryRange::operator & (MemoryRange const & other) const
     if (this->End <= other.Start || other.End <= this->Start)
         return Invalid;
 
-    return {Maximum(this->Start, other.Start), Minimum(this->End, other.End)};
+    return { vaddr_t(Maximum(this->Start, other.Start)), vaddr_t(Minimum(this->End, other.End)) };
 }
 
 MemoryRange MemoryRange::operator | (MemoryRange const & other) const
@@ -72,7 +72,7 @@ MemoryRange MemoryRange::operator | (MemoryRange const & other) const
     if (this->End < other.Start || other.End < this->Start)
         return Invalid;
 
-    return {Minimum(this->Start, other.Start), Maximum(this->End, other.End)};
+    return { vaddr_t(Minimum(this->Start, other.Start)), vaddr_t(Maximum(this->End, other.End)) };
 }
 
 /******************

@@ -45,8 +45,8 @@ namespace Beelzebub
 {
     struct FileBoundaries
     {
-        uintptr_t Start;
-        size_t Size, AlignedSize;
+        vaddr_t Start;
+        vsize_t Size, AlignedSize;
     };
 
     /**
@@ -70,7 +70,7 @@ namespace Beelzebub
 
         /*  Methods  */
 
-        static Handle Initialize(vaddr_t vaddr, size_t size);
+        static Handle Initialize(vaddr_t vaddr, vsize_t size);
 
         /*  Items  */
 

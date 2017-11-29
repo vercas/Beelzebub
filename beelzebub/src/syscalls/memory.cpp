@@ -48,17 +48,20 @@ using namespace Beelzebub;
 using namespace Beelzebub::Memory;
 using namespace Beelzebub::Syscalls;
 
-static constexpr size_t const ChunkSize = 1 * 1 << 20;  //  1 MiB.
+static constexpr vsize_t const ChunkSize { 1 * 1 << 20 };  //  1 MiB.
 
-Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions opts)
+Handle Syscalls::MemoryRequest(uintptr_t const _addr, size_t const _size, MemoryRequestOptions opts)
 {
-    if unlikely(addr != 0 && (addr < Vmm::UserlandStart || addr >= Vmm::UserlandEnd))
+    vaddr_t addr { _addr };
+    vsize_t const size { _size };
+
+    if unlikely(addr != nullvaddr && (addr < Vmm::UserlandStart || addr >= Vmm::UserlandEnd))
         return HandleResult::ArgumentOutOfRange;
 
     if unlikely(addr % PageSize != 0 || size % PageSize != 0)
         return HandleResult::AlignmentFailure;
 
-    uintptr_t const end = addr + size;
+    vaddr_t const end = addr + size;
 
     if unlikely(end < addr || end > Vmm::UserlandEnd)
         return HandleResult::ArgumentOutOfRange;
@@ -91,12 +94,15 @@ Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions
     if unlikely(!res.IsOkayResult())
         return res;
 
-    return Handle(HandleType::Page, (uint64_t)reinterpret_cast<uintptr_t>(addr), false);
+    return Handle(HandleType::Page, addr.Value, false);
 }
 
-Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts)
+Handle Syscalls::MemoryRelease(uintptr_t const _addr, size_t const _size, MemoryReleaseOptions opts)
 {
     (void)opts;
+
+    vaddr_t const addr { _addr };
+    vsize_t const size { _size };
 
     if unlikely(addr != 0 && (addr < Vmm::UserlandStart || addr >= Vmm::UserlandEnd))
         return HandleResult::ArgumentOutOfRange;
@@ -104,7 +110,7 @@ Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions
     if unlikely(addr % PageSize != 0 || size % PageSize != 0)
         return HandleResult::AlignmentFailure;
 
-    uintptr_t const end = addr + size;
+    vaddr_t const end = addr + size;
 
     if unlikely(end < addr || end > Vmm::UserlandEnd)
         return HandleResult::ArgumentOutOfRange;
@@ -112,8 +118,11 @@ Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions
     return Vmm::FreePages(nullptr, addr, size);
 }
 
-Handle Syscalls::MemoryCopy(uintptr_t const dst, uintptr_t const src, size_t const len)
+Handle Syscalls::MemoryCopy(uintptr_t const _dst, uintptr_t const _src, size_t const _len)
 {
+    vaddr_t const dst { _dst }, src { _src };
+    vsize_t const len { _len };
+
     if unlikely(dst == src || len == 0)
         return HandleResult::Okay;
 
@@ -150,15 +159,13 @@ Handle Syscalls::MemoryCopy(uintptr_t const dst, uintptr_t const src, size_t con
 
     __try
     {
-        for (size_t chunk = 0; chunk < len; chunk += ChunkSize)
+        for (vsize_t chunk { 0 }; chunk < len; chunk += ChunkSize)
         {
-            size_t const curChunk = Minimum(ChunkSize, len - chunk);
+            vsize_t const curChunk = Minimum(ChunkSize, len - chunk);
 
             withInterrupts (false)
             withWriteProtect (false)
-                memmove(reinterpret_cast<void *>(dst + chunk)
-                    , reinterpret_cast<void const *>(src + chunk)
-                    , curChunk);
+                memmove(dst + chunk, src + chunk, curChunk);
         }
     }
     __catch ()
@@ -169,8 +176,11 @@ Handle Syscalls::MemoryCopy(uintptr_t const dst, uintptr_t const src, size_t con
     return HandleResult::Okay;
 }
 
-Handle Syscalls::MemoryFill(uintptr_t const dst, uint8_t const val, size_t const len)
+Handle Syscalls::MemoryFill(uintptr_t const _dst, uint8_t const val, size_t const _len)
 {
+    vaddr_t const dst { _dst };
+    vsize_t const len { _len };
+
     if unlikely(len == 0)
         return HandleResult::Okay;
 
@@ -195,13 +205,13 @@ Handle Syscalls::MemoryFill(uintptr_t const dst, uint8_t const val, size_t const
 
     __try
     {
-        for (size_t chunk = 0; chunk < len; chunk += ChunkSize)
+        for (vsize_t chunk { 0 }; chunk < len; chunk += ChunkSize)
         {
-            size_t const curChunk = Minimum(ChunkSize, len - chunk);
+            vsize_t const curChunk = Minimum(ChunkSize, len - chunk);
 
             withInterrupts (false)
             withWriteProtect (false)
-                memset(reinterpret_cast<void *>(dst + chunk), val, curChunk);
+                memset(dst + chunk, val, curChunk);
             //  TODO: Exception handling, maybe?
         }
     }

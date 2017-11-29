@@ -46,7 +46,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
 
-static TarHeader * TarStart = nullptr;
+static TarHeader const * TarStart = nullptr;
 static void * TarEnd = nullptr;
 
 typedef HandlePointer<TarHeader, HandleType::InitRdFile,      9> InitRdFileHandle;
@@ -62,14 +62,14 @@ bool InitRd::Loaded = false;
 
 /*  Methods  */
 
-Handle InitRd::Initialize(vaddr_t vaddr, size_t size)
+Handle InitRd::Initialize(vaddr_t vaddr, vsize_t size)
 {
-    TarStart = reinterpret_cast<TarHeader *>(vaddr);
-    TarEnd = reinterpret_cast<void *>(vaddr + size);
+    TarStart = reinterpret_cast<TarHeader const *>(vaddr.Pointer);
+    TarEnd = const_cast<void *>((vaddr + size).Pointer);
 
     for (TarHeader const * cursor = TarStart; cursor != nullptr; cursor = cursor->GetNext())
     {
-        if (reinterpret_cast<uintptr_t>(cursor + 1) > vaddr + size)
+        if (vaddr_t(cursor + 1) > vaddr + size)
             return HandleResult::IntegrityFailure;
         //  It appears the tape archive is malformed.
 
@@ -110,15 +110,15 @@ Handle InitRd::FindItem(char const * name)
 FileBoundaries InitRd::GetFileBoundaries(Handle file)
 {
     if unlikely(!file.IsType(HandleType::InitRdFile))
-        return {0, 0, 0};
+        return { nullvaddr, vsize_t(0), vsize_t(0) };
 
     InitRdFileHandle hptr = file;
     TarHeader const * thdr = hptr.GetPointer();
 
     if (hptr.GetData() != (thdr->GetChecksum() & InitRdFileHandle::DataMask))
-        return {0, 0, 0};
+        return { nullvaddr, vsize_t(0), vsize_t(0) };
 
-    size_t const size = thdr->GetSize();
+    vsize_t const size { thdr->GetSize() };
 
-    return {reinterpret_cast<uintptr_t>(thdr + 1), size, RoundUp(size, sizeof(TarHeader))};
+    return { vaddr_t(thdr + 1), size, RoundUp(size, SizeOf<TarHeader>) };
 }

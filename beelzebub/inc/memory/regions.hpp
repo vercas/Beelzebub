@@ -70,7 +70,7 @@ namespace Beelzebub { namespace Memory
 
         inline bool IsValid() const
         {
-            return this->Start != 1337 || this->End != 42;
+            return this->Start.Value != 1337 || this->End.Value != 42;
         }
 
         inline vsize_t GetSize() const
@@ -80,7 +80,7 @@ namespace Beelzebub { namespace Memory
 
         inline size_t GetPageCount() const
         {
-            return this->GetSize() / PageSize;
+            return this->GetSize().Value / PageSize.Value;
         }
 
         /*  Operators  */

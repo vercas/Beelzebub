@@ -70,7 +70,7 @@ static __hot void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System:
         PrintToDebugTerminal(state);
 
         uintptr_t stackPtr = state->RSP;
-        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
         {
@@ -113,9 +113,10 @@ end:
 
 void Platform::AllocateMemory(void * & addr, size_t & size)
 {
-    uintptr_t vaddr = reinterpret_cast<uintptr_t>(addr);
+    vaddr_t vaddr { addr };
 
-    Handle res = Vmm::AllocatePages(nullptr, size
+    Handle res = Vmm::AllocatePages(nullptr
+        , vsize_t(size)
         , MemoryAllocationOptions::VirtualKernelHeap | MemoryAllocationOptions::AllocateOnDemand
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::Generic
@@ -130,9 +131,9 @@ void Platform::AllocateMemory(void * & addr, size_t & size)
     }
     else
     {
-        addr = reinterpret_cast<void *>(vaddr);
+        addr = const_cast<void *>(vaddr.Pointer);
 
-        System::DebugRegisters::AddBreakpoint(reinterpret_cast<void *>(vaddr + 16)
+        System::DebugRegisters::AddBreakpoint((vaddr + vsize_t(16)).Pointer
             , 8, true, System::BreakpointCondition::DataWrite, &DumpStack);
     }
 }
@@ -141,9 +142,9 @@ void Platform::FreeMemory(void * addr, size_t size)
 {
     // MSG_("Freeing memory for vAlloc: %Xp %Xs%n", addr, size);
 
-    Vmm::FreePages(nullptr, reinterpret_cast<uintptr_t>(addr), size);
+    Vmm::FreePages(nullptr, vaddr_t(addr), vsize_t(size));
 
-    System::DebugRegisters::RemoveBreakpoint(reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(addr) + 16));
+    System::DebugRegisters::RemoveBreakpoint((vaddr_t(addr) + vsize_t(16)).Pointer);
 }
 
 void Platform::ErrorMessage(char const * fmt, ...)

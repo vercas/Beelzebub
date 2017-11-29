@@ -87,9 +87,9 @@ namespace Beelzebub { namespace System
 
         /*  Operation  */
 
-        static __solid bool AddBreakpoint(void * addr, size_t size, bool global
+        static __solid bool AddBreakpoint(void const * addr, size_t size, bool global
             , BreakpointCondition bc, BreakpointFunction fnc);
-        static __solid bool RemoveBreakpoint(void * addr);
+        static __solid bool RemoveBreakpoint(void const * addr);
 
         /*  Properties  */
 

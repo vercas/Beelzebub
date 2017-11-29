@@ -68,7 +68,7 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         /*  Addresses  */
 
         static paddr_t PhysicalAddress;
-        static vaddr_t const volatile VirtualAddress;
+        static vaddr_t const VirtualAddress;
         //  Very last page - why not?
 
         /*  Ender  */

@@ -281,8 +281,8 @@ namespace Beelzebub { namespace System
          *  Creates a new IA32_EFER structure with the given flags.
          */
         inline Ia32Efer(bool const syscallEnable
-                                     , bool const longModeEnable
-                                     , bool const nonExecuteEnable)
+                      , bool const longModeEnable
+                      , bool const nonExecuteEnable)
         {
             this->Value = (syscallEnable    ? SyscallEnableBit    : 0)
                         | (longModeEnable   ? LongModeEnableBit   : 0)

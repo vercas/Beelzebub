@@ -244,7 +244,7 @@ ElfValidationResult Elf::ValidateParseElf64(Elf::SegmentValidatorFunc segval, vo
         {
             //  Load segments' addresses need to be checked!
 
-            if unlikely((phdr.VAddr % PageSize) != (phdr.Offset % PageSize))
+            if unlikely((phdr.VAddr % PageSize.Value) != (phdr.Offset % PageSize.Value))
                 return ElfValidationResult::SegmentNonCongruent;
             //  This is required by the ABI.
 

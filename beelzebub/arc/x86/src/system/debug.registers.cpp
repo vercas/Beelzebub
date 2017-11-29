@@ -143,7 +143,7 @@ static bool Initialized = false;
 
 struct BpAddData
 {
-    void * addr;
+    void const * addr;
     BreakpointFunction fnc;
     bool global;
     BreakpointCondition bc;
@@ -153,7 +153,7 @@ struct BpAddData
 
 struct BpRemData
 {
-    void * addr;
+    void const * addr;
     size_t removals;
 };
 
@@ -286,7 +286,7 @@ void DebugRegisters::Initialize()
 
 /*  Operation  */
 
-bool DebugRegisters::AddBreakpoint(void * addr, size_t size, bool global
+bool DebugRegisters::AddBreakpoint(void const * addr, size_t size, bool global
     , BreakpointCondition bc, BreakpointFunction fnc)
 {
     if (BreakpointCount == 4)
@@ -311,7 +311,7 @@ bool DebugRegisters::AddBreakpoint(void * addr, size_t size, bool global
     return bad.additions == Cores::GetCount();
 }
 
-bool DebugRegisters::RemoveBreakpoint(void * addr)
+bool DebugRegisters::RemoveBreakpoint(void const * addr)
 {
     if (BreakpointCount == 0)
         return false;

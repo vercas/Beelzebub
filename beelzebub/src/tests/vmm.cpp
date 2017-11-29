@@ -69,9 +69,9 @@ static SmpLock DeleteLock {};
 
 static constexpr size_t const RandomIterations = 10'000;
 static constexpr size_t const CacheSize = 2048;
-static Atomic<vaddr_t> Cache[CacheSize];
+static Atomic<void const *> Cache[CacheSize];
 static constexpr size_t const SyncerCount = 10;
-static Atomic<vaddr_t> Syncers[SyncerCount];
+static Atomic<void const *> Syncers[SyncerCount];
 static __thread vaddr_t MyCache[CacheSize];
 #ifdef PRINT
 static Atomic<size_t> RandomerCounter {0};
@@ -96,10 +96,10 @@ void TestVmm(bool const bsp)
 
     auto getPtr = [](bool commit = true)
     {
-        vaddr_t testptr = nullpaddr;
+        vaddr_t testptr = nullvaddr;
 
         Handle res = Vmm::AllocatePages(nullptr
-            , 0x4000
+            , vsize_t(0x4000)
             , commit
                 ? (MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap)
                 : MemoryAllocationOptions::VirtualKernelHeap
@@ -116,7 +116,7 @@ void TestVmm(bool const bsp)
 
     auto delPtr = [](vaddr_t vaddr)
     {
-        Handle res = Vmm::FreePages(nullptr, vaddr, 0x4000);
+        Handle res = Vmm::FreePages(nullptr, vaddr, vsize_t(0x4000));
 
         ASSERTX(res == HandleResult::Okay)(res)XEND;
     };
@@ -152,9 +152,9 @@ void TestVmm(bool const bsp)
 
     for (size_t i = 0; i < CacheSize; ++i)
     {
-        vaddr_t expected = nullpaddr;
+        void const * expected = nullptr;
 
-        if ((Cache + i)->CmpXchgStrong(expected, cur))
+        if ((Cache + i)->CmpXchgStrong(expected, cur.Pointer))
             cur = getPtr();
     }
 
@@ -173,7 +173,7 @@ void TestVmm(bool const bsp)
 #endif
 
     for (size_t i = 0; i < CacheSize; ++i)
-        ASSERT(cur != Cache[i]);
+        ASSERT(cur.Pointer != Cache[i]);
 
     SYNC;
 
@@ -198,7 +198,7 @@ void TestVmm(bool const bsp)
         delPtr(cur);
     }
 
-    cur = nullpaddr;
+    cur = nullvaddr;
 
     SYNC;
 
@@ -225,7 +225,7 @@ void TestVmm(bool const bsp)
 #endif
 
     for (size_t i = 0; i < CacheSize; ++i)
-        MyCache[i] = nullpaddr;
+        MyCache[i] = nullvaddr;
 
     SYNC;
 
@@ -235,19 +235,19 @@ void TestVmm(bool const bsp)
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
-        if (MyCache[i] == nullpaddr)
+        if (MyCache[i] == nullvaddr)
             MyCache[i] = getPtr();
         else
         {
             delPtr(MyCache[i]);
-            MyCache[i] = nullpaddr;
+            MyCache[i] = nullvaddr;
         }
 
         if (++i == CacheSize) i = 0;
     }
 
     for (size_t i = 0; i < CacheSize; ++i)
-        if (MyCache[i] != nullpaddr)
+        if (MyCache[i] != nullvaddr)
             delPtr(MyCache[i]);
 
 #ifdef PRINT
@@ -278,25 +278,25 @@ void TestVmm(bool const bsp)
         // MSG_("@%us:%us:%us@", coreIndex ^ 0x55U, i, j);
 
     retry:
-        vaddr_t old = nullpaddr;
+        void const * old = nullptr;
 
-        if (Cache[i] != nullpaddr)
+        if (Cache[i] != nullptr)
         {
             old = (Cache + i)->Xchg(old);
 
-            if unlikely(old == nullpaddr)
+            if unlikely(old == nullptr)
                 goto retry;
             //  If it became null in the meantime, retry.
 
-            delPtr(old);
+            delPtr(vaddr_t(old));
         }
         else
         {
-            if (cur == nullpaddr)
+            if (cur == nullvaddr)
                 cur = getPtr();
 
-            if likely((Cache + i)->CmpXchgStrong(old, cur))
-                cur = nullpaddr;
+            if likely((Cache + i)->CmpXchgStrong(old, cur.Pointer))
+                cur = nullvaddr;
             else
                 goto retry;
             //  If it became non-null in the meantime, retry.
@@ -334,10 +334,10 @@ void TestVmm(bool const bsp)
 
     if (bsp)
         for (size_t i = 0; i < CacheSize; ++i)
-            if (Cache[i] == nullpaddr)
-                Cache[i] = getPtr();
+            if (Cache[i] == nullptr)
+                Cache[i] = getPtr().Pointer;
 
-    if (cur != nullpaddr)
+    if (cur != nullvaddr)
         delPtr(cur);
 
     SYNC;
@@ -362,7 +362,7 @@ void TestVmm(bool const bsp)
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
         cur = getPtr();
-        vaddr_t old = (Cache + i)->Xchg(cur);
+        vaddr_t old { (Cache + i)->Xchg(cur.Pointer) };
 
         delPtr(old);
 
@@ -402,8 +402,8 @@ void TestVmm(bool const bsp)
 
     if (bsp)
         for (size_t i = 0; i < CacheSize; ++i)
-            if (Cache[i] != nullpaddr)
-                delPtr(Cache[i]);
+            if (Cache[i] != nullptr)
+                delPtr(vaddr_t(Cache[i]));
 
     delPtr(dummy);
 
@@ -479,7 +479,7 @@ void TestVmm(bool const bsp)
 
 #include "memory/pmm.hpp"
 
-static constexpr size_t const TestCount = 10'000, CrossTestCount = 200, IterationCount = 10'000;
+static constexpr size_t const TestCount = 1'000, CrossTestCount = 200, IterationCount = 1'000;
 
 static constexpr uint32_t const TestSize = 2048; //  Should make 8 KiB of stack/thread-local/global space.
 
@@ -495,10 +495,10 @@ void TestVmmCrossIntegrity(bool const bsp)
 
     auto getPtr = []()
     {
-        vaddr_t testptr = nullpaddr;
+        vaddr_t testptr = nullvaddr;
 
         Handle res = Vmm::AllocatePages(nullptr
-            , RoundUp(TestSize * sizeof(uint32_t), PageSize)
+            , RoundUp(vsize_t(TestSize * sizeof(uint32_t)), PageSize)
             , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualKernelHeap
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryContent::Generic
@@ -511,12 +511,13 @@ void TestVmmCrossIntegrity(bool const bsp)
         // System::DebugRegisters::AddBreakpoint(reinterpret_cast<uint32_t *>(testptr) + TestSize - 1
         //     , 4, true, System::BreakpointCondition::DataWrite, &DumpStack);
 
-        return reinterpret_cast<uint32_t *>(testptr);
+        return reinterpret_cast<uint32_t *>(const_cast<void *>(testptr.Pointer));
     };
 
     auto delPtr = [](uint32_t * vaddr)
     {
-        Handle res = Vmm::FreePages(nullptr, reinterpret_cast<vaddr_t>(vaddr), RoundUp(TestSize * sizeof(uint32_t), PageSize));
+        Handle res = Vmm::FreePages(nullptr, vaddr_t(vaddr)
+            , RoundUp(vsize_t(TestSize * sizeof(uint32_t)), PageSize));
 
         ASSERTX(res == HandleResult::Okay)(res)XEND;
 
@@ -655,10 +656,10 @@ void TestVmmIntegrity(bool const bsp)
 
     auto getPtr = []()
     {
-        vaddr_t testptr = nullpaddr;
+        vaddr_t testptr = nullvaddr;
 
         Handle res = Vmm::AllocatePages(nullptr
-            , RoundUp(TestSize * sizeof(uint32_t), PageSize)
+            , RoundUp(vsize_t(TestSize * sizeof(uint32_t)), PageSize)
             , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualKernelHeap
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryContent::Generic
@@ -671,12 +672,13 @@ void TestVmmIntegrity(bool const bsp)
         // System::DebugRegisters::AddBreakpoint(reinterpret_cast<uint32_t *>(testptr) + TestSize - 1
         //     , 4, true, System::BreakpointCondition::DataWrite, &DumpStack);
 
-        return reinterpret_cast<uint32_t *>(testptr);
+        return reinterpret_cast<uint32_t volatile *>(const_cast<void volatile *>(testptr.Pointer));
     };
 
     auto delPtr = [](uint32_t volatile * vaddr)
     {
-        Handle res = Vmm::FreePages(nullptr, reinterpret_cast<vaddr_t>(vaddr), RoundUp(TestSize * sizeof(uint32_t), PageSize));
+        Handle res = Vmm::FreePages(nullptr, vaddr_t((void const *)vaddr)
+            , RoundUp(vsize_t(TestSize * sizeof(uint32_t)), PageSize));
 
         ASSERTX(res == HandleResult::Okay)(res)XEND;
 
@@ -719,7 +721,8 @@ void TestVmmIntegrity(bool const bsp)
                 if unlikely(i == TestSize - 1 && iteration == IterationCount)
                 {
                     paddr_t paddr;
-                    Handle res = Vmm::Translate(nullptr, reinterpret_cast<uintptr_t>(testRegion + i), paddr);
+                    Handle res = Vmm::Translate(nullptr
+                        , vaddr_t(const_cast<uint32_t *>(testRegion + i)), paddr);
 
                     if unlikely(res != HandleResult::Okay)
                         MSG_("Failed to translate address of first slot %Xp: %H; Value is %X4%n", testRegion + i, res, testRegion[i]);
@@ -750,7 +753,8 @@ void TestVmmIntegrity(bool const bsp)
                     FrameSize size;
                     uint32_t refCnt;
 
-                    Handle res = Vmm::Translate(nullptr, reinterpret_cast<uintptr_t>(testRegion + i), paddr);
+                    Handle res = Vmm::Translate(nullptr
+                        , vaddr_t(const_cast<uint32_t *>(testRegion + i)), paddr);
 
                     ASSERTX(paddr == origPaddr)(paddr)(origPaddr)(i)(test)(iteration)XEND;
 
@@ -806,7 +810,7 @@ void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointPr
         PrintToDebugTerminal(state);
 
         uintptr_t stackPtr = state->RSP;
-        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
         {
