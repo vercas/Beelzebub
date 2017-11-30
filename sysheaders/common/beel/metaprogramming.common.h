@@ -477,8 +477,11 @@ typedef union vsize_u
     #ifdef __BEELZEBUB__SOURCE_CXX
         __artificial explicit constexpr vsize_u() : Value() { }
         __artificial explicit constexpr vsize_u(vsize_inner_t val) : Value(val) { }
+        __artificial explicit constexpr vsize_u(psize_t const val) : Value(val.Value) { }
 
         __artificial explicit operator vsize_inner_t() const { return this->Value; }
+
+        __artificial operator psize_t() const { return psize_t { this->Value }; }
     #endif
 } vsize_t;
 
@@ -492,7 +495,7 @@ typedef union vsize_u
         __artificial operator psize_t() const { return psize_t { this->Value }; }
         __artificial operator vsize_t() const { return vsize_t { this->Value }; }
 
-        __artificial explicit operator page_size_inner_t() const { return this->Value; }
+        __artificial operator page_size_inner_t() const { return this->Value; }
     } PageSize_t;
 
     #define CMP_OP(TYP, OP) \
@@ -560,9 +563,6 @@ typedef union vsize_u
 
     template<typename T>
     static constexpr vsize_t const AlignOf { __alignof(T) };
-
-    __artificial operator vsize_t(psize_t const val) { return { val.Value }; }
-    __artificial operator psize_t(vsize_t const val) { return { val.Value }; }
 
 }   //  namespace Beelzebub
 #endif

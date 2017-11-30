@@ -128,7 +128,7 @@ Handle Acpi::Remap()
     RangeBottom = RoundDown(RangeBottom, PageSize);
     RangeTop = RoundUp(RangeTop, PageSize);
 
-    vsize_t const size = vsize_t(RangeTop - RangeBottom);
+    vsize_t const size { RangeTop - RangeBottom };
 
     Handle res = Vmm::AllocatePages(nullptr
         , size
@@ -147,7 +147,9 @@ Handle Acpi::Remap()
     }
 
     res = Vmm::MapRange(nullptr
-        , VirtualBase, RangeBottom, size
+        , VirtualBase
+        , RangeBottom
+        , size
         , MemoryFlags::Global
         , MemoryMapOptions::NoReferenceCounting);
 
@@ -161,7 +163,7 @@ Handle Acpi::Remap()
         return res;
     }
 
-    RsdpPointer = RsdpPtr(reinterpret_cast<acpi_table_rsdp *>(reinterpret_cast<uintptr_t>(RsdpPointer.GetInvariantValue()) + VmmArc::IsaDmaStart));
+    RsdpPointer = RsdpPtr(reinterpret_cast<acpi_table_rsdp *>(reinterpret_cast<uintptr_t>(RsdpPointer.GetInvariantValue()) + VmmArc::IsaDmaStart.Value));
 
     #define REMAP(ptr) \
     ptr = reinterpret_cast<decltype(ptr)>(reinterpret_cast<uintptr_t>(ptr) - RangeBottom + VirtualBase);
@@ -184,7 +186,7 @@ Handle Acpi::FindRsdp()
 
     for (uintptr_t location = RoundDown(RsdpStart, 16); location < RsdpEnd; location += 16)
     {
-        if (!memeq((void *)location, ACPI_SIG_RSDP, 8))
+        if (!::memeq((void *)location, ACPI_SIG_RSDP, 8))
             continue;
         //  Doesn't start with the RSDP signature? SHOO!!1!
 
@@ -240,7 +242,7 @@ Handle Acpi::FindRsdtXsdt()
 
         XsdtPointer = (acpi_table_xsdt *)rsdp.GetVersion2()->XsdtPhysicalAddress;
 
-        assert_or(memeq(XsdtPointer->Header.Signature, ACPI_SIG_XSDT, ACPI_NAME_SIZE)
+        assert_or(::memeq(XsdtPointer->Header.Signature, ACPI_SIG_XSDT, ACPI_NAME_SIZE)
             , "XSDT signature doesn't appear to be valid..? (\"%S\")%n"
             , ACPI_NAME_SIZE, XsdtPointer->Header.Signature)
         {
@@ -282,7 +284,7 @@ find_rsdt:
     if (RsdtPointer == nullptr)
         return HandleResult::NotFound;
 
-    assert_or(memeq(RsdtPointer->Header.Signature, ACPI_SIG_RSDT, ACPI_NAME_SIZE)
+    assert_or(::memeq(RsdtPointer->Header.Signature, ACPI_SIG_RSDT, ACPI_NAME_SIZE)
         , "RSDT signature doesn't appear to be valid..? (\"%S\")%n"
         , ACPI_NAME_SIZE, RsdtPointer->Header.Signature)
     {
@@ -390,7 +392,7 @@ Handle Acpi::FindSystemDescriptorTables()
 
 Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTableSource const src)
 {
-    auto headerPtr = (acpi_table_header *)paddr;
+    auto headerPtr = (acpi_table_header *)paddr.Value;
 
     uint8_t sumXsdt = Checksum8(headerPtr, headerPtr->Length);
 
@@ -408,11 +410,11 @@ Handle Acpi::HandleSystemDescriptorTable(paddr_t const paddr, SystemDescriptorTa
         , (src == SystemDescriptorTableSource::Xsdt) ? ACPI_SIG_XSDT : ACPI_SIG_RSDT);//*/
 
     ConsiderAddress(paddr);
-    ConsiderAddress(paddr + headerPtr->Length);
+    ConsiderAddress(paddr + psize_t(headerPtr->Length));
 
-    if (memeq(headerPtr->Signature, ACPI_SIG_MADT, ACPI_NAME_SIZE))
+    if (::memeq(headerPtr->Signature, ACPI_SIG_MADT, ACPI_NAME_SIZE))
         return Acpi::HandleMadt(paddr, src);
-    else if (memeq(headerPtr->Signature, ACPI_SIG_SRAT, ACPI_NAME_SIZE))
+    else if (::memeq(headerPtr->Signature, ACPI_SIG_SRAT, ACPI_NAME_SIZE))
         return Acpi::HandleSrat(paddr, src);
     // else
     //     MSG("$ Found unknown ACPI table: %S%n", ACPI_NAME_SIZE, headerPtr->Signature);
@@ -440,8 +442,8 @@ Handle Acpi::HandleMadt(paddr_t const paddr, SystemDescriptorTableSource const s
     MadtPaddr = paddr;
     MadtSrc = src;
 
-    uintptr_t madtEnd = paddr + Acpi::MadtPointer->Header.Length;
-    uintptr_t e = paddr + sizeof(*Acpi::MadtPointer);
+    uintptr_t madtEnd = paddr.Value + Acpi::MadtPointer->Header.Length;
+    uintptr_t e = paddr.Value + sizeof(*Acpi::MadtPointer);
     for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
     {
         switch (((acpi_subtable_header *)e)->Type)

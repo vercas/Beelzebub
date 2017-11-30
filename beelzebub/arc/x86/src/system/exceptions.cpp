@@ -299,7 +299,7 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
  */
 void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
 {
-    vaddr_t CR2 = (vaddr_t)Cpu::GetCr2();
+    vaddr_t CR2 { Cpu::GetCr2() };
     auto pff = (PageFaultFlags)(state->ErrorCode);
 
     // Cores::AssertCoreRegistration();
@@ -565,7 +565,7 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
             else
                 activeThread->Exception.MemoryAccessViolation.AccessType = MemoryAccessType::Read;
 
-            activeThread->Exception.MemoryAccessViolation.Address = reinterpret_cast<void *>(CR2);
+            activeThread->Exception.MemoryAccessViolation.Address = CR2;
         }
     }
 }

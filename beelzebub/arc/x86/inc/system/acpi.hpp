@@ -113,8 +113,8 @@ namespace Beelzebub { namespace System
         static size_t IoapicCount;
 
     private:
-        static uintptr_t RangeBottom, RangeTop;
-        static uintptr_t VirtualBase;
+        static paddr_t RangeBottom, RangeTop;
+        static vaddr_t VirtualBase;
 
         /*  Constructor(s)  */
 
@@ -145,7 +145,7 @@ namespace Beelzebub { namespace System
 
         /*  Utilities  */
 
-        static void ConsiderAddress(uintptr_t const addr)
+        static void ConsiderAddress(paddr_t const addr)
         {
             if unlikely(RangeTop == 0)
                 RangeTop = RangeBottom = addr;
@@ -156,7 +156,7 @@ namespace Beelzebub { namespace System
         }
 
         static void ConsiderAddress(void * const addr)
-        { return ConsiderAddress(reinterpret_cast<uintptr_t>(addr)); }
+        { return ConsiderAddress(paddr_t(reinterpret_cast<uintptr_t>(addr))); }
 
     public:
         static __startup Handle FindLapicPaddr(paddr_t & paddr);
