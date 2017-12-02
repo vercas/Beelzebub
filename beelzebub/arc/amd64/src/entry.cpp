@@ -351,7 +351,7 @@ Handle InitializeVirtualMemory()
     //  Now mapping the lower 16 MiB.
 
     res = Vmm::MapRange(&BootstrapProcess
-        , VmmArc::IsaDmaStart, nullpaddr, VmmArc::IsaDmaLength
+        , vaddr_t(VmmArc::IsaDmaStart), nullpaddr, vsize_t(VmmArc::IsaDmaLength)
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryMapOptions::NoReferenceCounting);
 

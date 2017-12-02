@@ -78,6 +78,29 @@ bool VmmArc::NX = false;
 bool VmmArc::PCID = false;
 __thread paddr_t VmmArc::LastAlienPml4;
 
+
+// vaddr_t const VmmArc::LowerHalfEnd    { 0x0000800000000000ULL };
+// vaddr_t const VmmArc::HigherHalfStart { 0xFFFF800000000000ULL };
+
+// uint16_t const VmmArc::LocalFractalIndex = 510;
+// uint16_t const VmmArc::AlienFractalIndex = 509;
+
+// vaddr_t const VmmArc::LocalPml1Base { 0xFFFF000000000000ULL + (uint64_t)LocalFractalIndex << 39 };
+// vaddr_t const VmmArc::LocalPml2Base = LocalPml1Base + vsize_t((uint64_t)LocalFractalIndex << 30);
+// vaddr_t const VmmArc::LocalPml3Base = LocalPml2Base + vsize_t((uint64_t)LocalFractalIndex << 21);
+// vaddr_t const VmmArc::LocalPml4Base = LocalPml3Base + vsize_t((uint64_t)LocalFractalIndex << 12);
+
+// vaddr_t const VmmArc::AlienPml1Base { 0xFFFF000000000000ULL + (uint64_t)AlienFractalIndex << 39 };
+// vaddr_t const VmmArc::AlienPml2Base = AlienPml1Base + vsize_t((uint64_t)LocalFractalIndex << 30);
+// vaddr_t const VmmArc::AlienPml3Base = AlienPml2Base + vsize_t((uint64_t)LocalFractalIndex << 21);
+// vaddr_t const VmmArc::AlienPml4Base = LocalPml3Base + vsize_t((uint64_t)AlienFractalIndex << 12);
+
+// vaddr_t const VmmArc::FractalStart = AlienPml1Base;
+// vaddr_t const VmmArc::FractalEnd   = FractalStart + vsize_t(2ULL << 39);
+
+// size_t const VmmArc::RecursiveUnmapDepth = 32;
+
+
 static vaddr_t BootstrapKVasAddr;
 static size_t const BootstrapKVasPageCount = 3;
 
@@ -91,9 +114,9 @@ inline void Alienate(Process * proc)
 /*  Statics  */
 
 vaddr_t Vmm::UserlandStart { 1ULL << 21 };    //  2 MiB
-vaddr_t Vmm::UserlandEnd = VmmArc::LowerHalfEnd;
-vaddr_t Vmm::KernelStart = VmmArc::KernelHeapStart;
-vaddr_t Vmm::KernelEnd = VmmArc::KernelHeapEnd;
+vaddr_t Vmm::UserlandEnd { VmmArc::LowerHalfEnd };
+vaddr_t Vmm::KernelStart { VmmArc::KernelHeapStart };
+vaddr_t Vmm::KernelEnd { VmmArc::KernelHeapEnd };
 
 /*  Initialization  */
 
@@ -144,7 +167,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     FrameAllocationSpace * cur = PmmArc::MainAllocator->FirstSpace;
     bool pendingLinksMapping = true;
-    vaddr_t curLoc = VmmArc::KernelHeapStart; //  Used for serial allocation.
+    vaddr_t curLoc { VmmArc::KernelHeapStart }; //  Used for serial allocation.
     Handle res; //  Temporary result.
 
     do
@@ -255,7 +278,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     // MSG("Initializing KVAS.%n");
 
-    res = KVas.Initialize(VmmArc::KernelHeapStart, VmmArc::KernelHeapEnd
+    res = KVas.Initialize(vaddr_t(VmmArc::KernelHeapStart), vaddr_t(VmmArc::KernelHeapEnd)
         , &AcquirePoolForVas, nullptr, &ReleasePoolFromKernelHeap
         , PoolReleaseOptions::NoRelease);
     //  Prepare the VAS for usage.
@@ -264,7 +287,7 @@ Handle Vmm::Bootstrap(Process * const bootstrapProc)
 
     // MSG("Allocating VMM bootstrap region in KVAS.%n");
 
-    vaddr_t khs = VmmArc::KernelHeapStart;
+    vaddr_t khs { VmmArc::KernelHeapStart };
 
     res = KVas.Allocate(khs
         , curLoc - khs

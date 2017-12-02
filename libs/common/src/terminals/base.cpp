@@ -915,6 +915,28 @@ TerminalWriteResult TerminalBase::WriteHex64(uint64_t const val, bool const uppe
     return this->Write(str);
 }
 
+TerminalWriteResult TerminalBase::WriteHexVar(uint64_t val, bool const upper)
+{
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    char const alphaBase = (upper ? 'A' : 'a') - 10;
+
+    char str[17];
+    str[16] = '\0';
+    char * ptr = str + 15;
+
+    do
+    {
+        uint8_t const nib = val & 0xF;
+        val >>= 4;
+        
+        *ptr-- = (nib > 9 ? alphaBase : '0') + nib;
+    } while (val > 0);
+
+    return this->Write(ptr);
+}
+
 TerminalWriteResult TerminalBase::WriteHexFloat(float const val, bool const upper)
 {
     union { float fVal; uint32_t iVal; } value = {val};
@@ -1226,35 +1248,55 @@ namespace Beelzebub { namespace Terminals
 
         return term;
     }
-    
+
     template<>
     TerminalBase & operator << <paddr_t>(TerminalBase & term, paddr_t const value)
     {
-        uintptr_t const val = value.Value;
-
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-        term.WriteHex64(val, term.FormatState.NumericUppercase);
+        term.WriteHex64(value.Value, term.FormatState.NumericUppercase);
 #else
-        term.WriteHex32(val, term.FormatState.NumericUppercase);
+        term.WriteHex32(value.Value, term.FormatState.NumericUppercase);
 #endif
 
         return term;
     }
-    
+
     template<>
     TerminalBase & operator << <vaddr_t>(TerminalBase & term, vaddr_t const value)
     {
-        uintptr_t const val = value.Value;
-
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-        term.WriteHex64(val, term.FormatState.NumericUppercase);
+        term.WriteHex64(value.Value, term.FormatState.NumericUppercase);
 #else
-        term.WriteHex32(val, term.FormatState.NumericUppercase);
+        term.WriteHex32(value.Value, term.FormatState.NumericUppercase);
 #endif
 
         return term;
     }
-    
+
+    template<>
+    TerminalBase & operator << <psize_t>(TerminalBase & term, psize_t const value)
+    {
+        term.WriteHexVar(value.Value, term.FormatState.NumericUppercase);
+
+        return term;
+    }
+
+    template<>
+    TerminalBase & operator << <vsize_t>(TerminalBase & term, vsize_t const value)
+    {
+        term.WriteHexVar(value.Value, term.FormatState.NumericUppercase);
+
+        return term;
+    }
+
+    template<>
+    TerminalBase & operator << <PageSize_t>(TerminalBase & term, PageSize_t const value)
+    {
+        term.WriteHexVar(value.Value, term.FormatState.NumericUppercase);
+
+        return term;
+    }
+
     template<>
     TerminalBase & operator << <float>(TerminalBase & term, float const value)
     {

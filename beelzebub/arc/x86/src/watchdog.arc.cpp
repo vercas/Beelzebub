@@ -70,7 +70,7 @@ static __hot void WatchdogNmiHandler(INTERRUPT_HANDLER_ARGS_FULL)
         MSG("%n$%us:%Xp|%Xs$%n", Cpu::GetData()->Index, state->RIP, state->RAX);
 
         uintptr_t stackPtr = state->RSP;
-        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
         {

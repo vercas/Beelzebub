@@ -159,7 +159,7 @@ uint32_t Lapic::ReadRegister(LapicRegister const reg)
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_LEGACY)
     COMPILER_MEMORY_BARRIER();
 
-    return *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress));
+    return *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress.Value));
 #endif
 }
 
@@ -181,7 +181,7 @@ void Lapic::WriteRegister(LapicRegister const reg, uint32_t const value)
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_LEGACY)
     COMPILER_MEMORY_BARRIER();
 
-    *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress)) = value;
+    *((uint32_t *)(((uintptr_t)(uint16_t)reg << 4) + VirtualAddress.Value)) = value;
 
     COMPILER_MEMORY_BARRIER();
 #endif
@@ -224,16 +224,16 @@ void Lapic::SendIpi(LapicIcr icr)
         COMPILER_MEMORY_BARRIER();
 
         //breakpoint();
-        low = *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress));
+        low = *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress.Value));
     } while (0 != (low & LapicIcr::DeliveryStatusBit));
 
     COMPILER_MEMORY_BARRIER();
 
-    *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterHigh << 4) + VirtualAddress)) = icr.High;
+    *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterHigh << 4) + VirtualAddress.Value)) = icr.High;
 
     COMPILER_MEMORY_BARRIER();
 
-    *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress)) = icr.Low;
+    *((uint32_t *)(((uintptr_t)(uint16_t)LapicRegister::InterruptCommandRegisterLow  << 4) + VirtualAddress.Value)) = icr.Low;
 
     COMPILER_MEMORY_BARRIER();
 #endif

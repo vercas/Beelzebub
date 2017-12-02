@@ -164,7 +164,7 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
 
         if (i < timersCount)
         {
-            memmove(&(MyTimers[i + 1]), &(MyTimers[i]), (timersCount - i) * sizeof(TimerEntry));
+            ::memmove(&(MyTimers[i + 1]), &(MyTimers[i]), (timersCount - i) * sizeof(TimerEntry));
             //  Shift forward the elements after the insertion point.
 
             MyTimers[i + 1].Time -= diff;

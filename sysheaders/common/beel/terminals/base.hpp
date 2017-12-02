@@ -183,6 +183,7 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult WriteHex32(uint32_t const val, bool const upper = true);
         virtual TerminalWriteResult WriteHex48(uint64_t const val, bool const upper = true);
         virtual TerminalWriteResult WriteHex64(uint64_t const val, bool const upper = true);
+        virtual TerminalWriteResult WriteHexVar(uint64_t const val, bool const upper = true);
 
         virtual __min_float TerminalWriteResult WriteHexFloat(float const val, bool const upper = true);
         virtual __min_float TerminalWriteResult WriteHexDouble(double const val, bool const upper = true);

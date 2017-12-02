@@ -312,7 +312,7 @@ local availableApicModes = List {
 
 local specialOptions = List { }
 local settApicMode = "FLEXIBLE"
-local settSmp, settInlineSpinlocks = true, true
+local settSmp, settInlineSpinlocks, settUnopt = true, true, false
 
 CmdOpt "march" {
     Description = "Specifies an `-march=` option to pass on to GCC on compilation.",
@@ -374,6 +374,14 @@ CmdOpt "apic-mode" {
 
         settApicMode = string.upper(val)
     end,
+}
+
+CmdOpt "unoptimize" {
+    Description = "Specifies whether the generated code is unoptimized, or not.",
+
+    Type = "boolean",
+
+    Handler = function(val) settUnopt = val end,
 }
 
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
@@ -677,9 +685,15 @@ Project "Beelzebub" {
                 return res
             end,
 
-            Opts_C          = LST "!Opts_GCC -std=gnu99 -O0 -flto",
+            Opts_Opti = function()
+                return List {
+                    settUnopt and "-O0" or "-O2",
+                }
+            end,
+
+            Opts_C          = LST "!Opts_GCC !Opts_Opti -std=gnu99 -flto",
             Opts_CXX_CRT    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
-            Opts_CXX        = LST "!Opts_CXX_CRT -O0 -flto",
+            Opts_CXX        = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions -flto",
             Opts_NASM       = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
             Opts_GAS_CRT    = LST "!Opts_GCC",
             Opts_GAS        = LST "!Opts_GAS_CRT -flto",
@@ -740,7 +754,7 @@ Project "Beelzebub" {
                 local res = List {
                     "-fvisibility=hidden",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-O0", "-flto",
+                    "-flto", settUnopt and "-O0" or "-O2",
                     "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
                 } + Opts_GCC_Common + Opts_Includes
                 + selArch.Data.Opts_GCC_Kernel
@@ -871,18 +885,24 @@ Project "Beelzebub" {
                     -fvisibility=hidden -fPIC
                     -ffreestanding -nodefaultlibs -static-libgcc
                     -Wall -Wextra -Wpedantic -Wsystem-headers
-                    -O0 -flto
+                    -flto
                     -D__BEELZEBUB_DYNAMIC_LIBRARY
                 ]] + Opts_GCC_Common + Opts_Includes
             end,
 
-            Opts_C      = LST "!Opts_GCC -std=gnu99",
-            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_Opti = function()
+                return List {
+                    settUnopt and "-O0" or "-O2",
+                }
+            end,
+
+            Opts_C      = LST "!Opts_GCC !Opts_Opti -std=gnu99",
+            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions",
             Opts_NASM   = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
             Opts_GAS    = LST "!Opts_GCC",
 
             LD          = DAT "LO",
-            Opts_LD     = LST "-fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic !Opts_GCC",
+            Opts_LD     = LST "-fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic !Opts_GCC !Opts_Opti",
             Opts_STRIP  = List "-s",
 
             Libraries = function()
@@ -944,7 +964,7 @@ Project "Beelzebub" {
             Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
 
             LD          = DAT "LO",
-            Opts_LD     = LST "-shared -fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic !Opts_GCC",
+            Opts_LD     = LST "-shared !Opts_GCC -fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic",
 
             Opts_STRIP  = List "-s",
 
@@ -980,15 +1000,21 @@ Project "Beelzebub" {
                 return List [[
                     -fvisibility=hidden
                     -Wall -Wsystem-headers
-                    -O0 -flto
+                    -flto
                     -D__BEELZEBUB_APPLICATION
                 ]] + Opts_GCC_Common + Opts_Includes
             end,
 
-            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_Opti = function()
+                return List {
+                    settUnopt and "-O0" or "-O2",
+                }
+            end,
+
+            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions",
 
             LD          = DAT "LO",
-            Opts_LD     = LST "-fuse-linker-plugin -Wl,-z,max-page-size=0x1000 !Opts_GCC",
+            Opts_LD     = LST "!Opts_GCC !Opts_Opti -fuse-linker-plugin -Wl,-z,max-page-size=0x1000",
 
             Opts_STRIP  = List "-s",
 
@@ -1040,7 +1066,7 @@ Project "Beelzebub" {
                 local res = List [[
                     -fvisibility=hidden -fno-PIE -fno-PIC
                     -Wall -Wextra -Wpedantic -Wsystem-headers
-                    -O0 -flto
+                    -flto
                     -D__BEELZEBUB_KERNEL
                 ]] + Opts_GCC_Common + Opts_Includes
                    + selArch.Data.Opts_GCC_Kernel
@@ -1052,13 +1078,19 @@ Project "Beelzebub" {
                 return res
             end,
 
-            Opts_C      = LST "!Opts_GCC -std=gnu99",
-            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_Opti = function()
+                return List {
+                    settUnopt and "-O0" or "-O2",
+                }
+            end,
+
+            Opts_C      = LST "!Opts_GCC !Opts_Opti -std=gnu99",
+            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions",
             Opts_NASM   = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
             Opts_GAS    = LST "!Opts_GCC",
 
             LD          = DAT "LO",
-            Opts_LD     = LST "!Opts_GCC -fuse-linker-plugin -Wl,-z,max-page-size=0x1000",
+            Opts_LD     = LST "!Opts_GCC !Opts_Opti -fuse-linker-plugin -Wl,-z,max-page-size=0x1000",
 
             Opts_STRIP  = List "-s -K jegudiel_header",
 
@@ -1119,7 +1151,7 @@ Project "Beelzebub" {
                 local res = List [[
                     -fvisibility=hidden -fPIC
                     -Wall -Wextra -Wpedantic -Wsystem-headers
-                    -O0 -flto
+                    -flto
                     -D__BEELZEBUB_KERNEL_MODULE
                 ]] + Opts_GCC_Common + Opts_Includes
                    + selArch.Data.Opts_GCC_Kernel
@@ -1127,10 +1159,16 @@ Project "Beelzebub" {
                 return res
             end,
 
-            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_Opti = function()
+                return List {
+                    settUnopt and "-O0" or "-O2",
+                }
+            end,
+
+            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions",
 
             LD          = DAT "LO",
-            Opts_LD     = LST "-fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic !Opts_GCC",
+            Opts_LD     = LST "!Opts_GCC !Opts_Opti -fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic",
 
             Opts_STRIP  = List "-s",
 

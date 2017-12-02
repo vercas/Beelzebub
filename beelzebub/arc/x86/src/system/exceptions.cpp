@@ -98,7 +98,7 @@ void System::DivideErrorHandler(INTERRUPT_HANDLER_ARGS)
     PrintToDebugTerminal(state);
 
     uintptr_t stackPtr = state->RSP;
-    uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+    uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
     if ((stackPtr & (sizeof(size_t) - 1)) != 0)
     {
@@ -256,7 +256,7 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
         PrintToDebugTerminal(state);
 
         uintptr_t stackPtr = state->RSP;
-        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
         {
@@ -434,10 +434,10 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
     #if   defined(__BEELZEBUB__ARCH_AMD64)
             if (CR2 >= VmmArc::FractalStart && CR2 <= VmmArc::FractalEnd)
             {
-                vaddr_t vaddr = (CR2 - VmmArc::LocalPml1Base) << 9;
+                vaddr_t vaddr { (CR2.Value - VmmArc::LocalPml1Base) << 9 };
 
-                if (0 != (vaddr & 0x0000800000000000ULL))
-                    vaddr |= 0xFFFF000000000000ULL;
+                if (0 != (vaddr.Value & 0x0000800000000000ULL))
+                    vaddr.Value |= 0xFFFF000000000000ULL;
 
                 uint16_t vind1 = VmmArc::GetPml1Index(CR2)
                        , vind2 = VmmArc::GetPml2Index(CR2)
@@ -462,7 +462,7 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
             PrintToDebugTerminal(state);
 
             uintptr_t stackPtr = state->RSP;
-            uintptr_t const stackEnd = RoundUp(stackPtr, PageSize);
+            uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
             if ((stackPtr & (sizeof(size_t) - 1)) != 0)
             {

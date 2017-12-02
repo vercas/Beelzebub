@@ -77,8 +77,8 @@ size_t Acpi::LapicCount = 0;
 size_t Acpi::PresentLapicCount = 0;
 size_t Acpi::IoapicCount = 0;
 
-paddr_t Acpi::RangeBottom = nullvaddr;
-paddr_t Acpi::RangeTop = nullvaddr;
+paddr_t Acpi::RangeBottom = nullpaddr;
+paddr_t Acpi::RangeTop = nullpaddr;
 vaddr_t Acpi::VirtualBase = nullvaddr;
 
 /*  Initialization  */
@@ -141,7 +141,7 @@ Handle Acpi::Remap()
         , "Failed to reserve %Xs bytes of kernel heap space for ACPI tables: %H."
         , size, res)
     {
-        VirtualBase = 0;
+        VirtualBase = nullvaddr;
 
         return res;
     }
@@ -158,15 +158,15 @@ Handle Acpi::Remap()
         , VirtualBase, RangeBottom, size
         , res)
     {
-        VirtualBase = 0;
+        VirtualBase = nullvaddr;
 
         return res;
     }
 
-    RsdpPointer = RsdpPtr(reinterpret_cast<acpi_table_rsdp *>(reinterpret_cast<uintptr_t>(RsdpPointer.GetInvariantValue()) + VmmArc::IsaDmaStart.Value));
+    RsdpPointer = RsdpPtr(reinterpret_cast<acpi_table_rsdp *>(reinterpret_cast<uintptr_t>(RsdpPointer.GetInvariantValue()) + VmmArc::IsaDmaStart));
 
     #define REMAP(ptr) \
-    ptr = reinterpret_cast<decltype(ptr)>(reinterpret_cast<uintptr_t>(ptr) - RangeBottom + VirtualBase);
+    ptr = reinterpret_cast<decltype(ptr)>(reinterpret_cast<uintptr_t>(ptr) - RangeBottom.Value + VirtualBase.Value);
 
     REMAP(RsdtPointer)
     REMAP(XsdtPointer)
@@ -272,7 +272,7 @@ Handle Acpi::FindRsdtXsdt()
         //  survival.
 
         ConsiderAddress(XsdtPointer);
-        ConsiderAddress((uintptr_t)XsdtPointer + XsdtPointer->Header.Length);
+        ConsiderAddress(paddr_t((uintptr_t)XsdtPointer + XsdtPointer->Header.Length));
 
         //  Yes, this falls through and finds the RSDT even if an XSDT was found.
     }
@@ -312,7 +312,7 @@ find_rsdt:
     }
 
     ConsiderAddress(RsdtPointer);
-    ConsiderAddress((uintptr_t)RsdtPointer + RsdtPointer->Header.Length);
+    ConsiderAddress(paddr_t((uintptr_t)RsdtPointer + RsdtPointer->Header.Length));
     
     return HandleResult::Okay;
 }

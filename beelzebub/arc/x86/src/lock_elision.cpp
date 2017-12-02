@@ -86,7 +86,7 @@ Handle Beelzebub::ElideLocks()
 
     for (size_t pageInd = 0; pageInd < kernel_page_count; ++pageInd)
     {
-        vaddr_t const vaddr = reinterpret_cast<vaddr_t>(&kernel_mapping_start) + pageInd * PageSize.Value;
+        vaddr_t const vaddr = vaddr_t(&kernel_mapping_start) + pageInd * PageSize;
 
         res = Vmm::GetPageFlags(&BootstrapProcess, vaddr, flags[pageInd]);
 
@@ -135,7 +135,7 @@ Handle Beelzebub::ElideLocks()
 
     for (size_t pageInd = 0; pageInd < kernel_page_count; ++pageInd)
     {
-        vaddr_t const vaddr = reinterpret_cast<vaddr_t>(&kernel_mapping_start) + pageInd * PageSize;
+        vaddr_t const vaddr = vaddr_t(&kernel_mapping_start) + pageInd * PageSize;
 
         res = Vmm::SetPageFlags(&BootstrapProcess, vaddr, flags[pageInd]);
 

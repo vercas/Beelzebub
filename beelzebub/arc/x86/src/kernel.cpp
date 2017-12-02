@@ -1551,7 +1551,7 @@ Handle InitializeAp(uint32_t const lapicId
         return res;
     }
 
-    ApStackTopPointer = vaddr + vsize_t(CpuStackSize);
+    ApStackTopPointer = vaddr.Value + CpuStackSize;
     ApInitializationLock1 = ApInitializationLock2 = ApInitializationLock3 = 1;
 
     LapicIcr initIcr = LapicIcr(0)
