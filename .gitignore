@@ -241,3 +241,6 @@ ToUSB.bat
 
 Build.bat
 CleanBuild.bat
+
+scripts/StartBochs.bat
+scripts/StartBochs.bat
