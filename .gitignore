@@ -211,10 +211,12 @@ BochsLog.txt
 .sync/
 *~
 *.sublime-workspace
-BOCHS.bat
-QEMU.bat
-start_vmware.bat
-start_vmware.ps1
+/BOCHS.bat
+/QEMU.bat
+/start_vmware.bat
+/start_vmware.ps1
+/scripts/StartBochs.bat
+/start_virtualbox.bat
 
 /image/grub/
 /include_
@@ -241,6 +243,3 @@ ToUSB.bat
 
 Build.bat
 CleanBuild.bat
-
-scripts/StartBochs.bat
-scripts/StartBochs.bat
