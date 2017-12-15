@@ -1056,7 +1056,7 @@ Project "Beelzebub" {
             SourcesSubdirectory     = "src",
             HeadersSubdirectory     = "inc",
 
-            Opts_Includes           = LST "-Iacpica/include !Opts_Includes_Base",
+            Opts_Includes           = LST "-Iacpica/source/include !Opts_Includes_Base",
 
             Opts_Includes_Nasm = function()
                 return Opts_Includes_Nasm_Base:Append(("-I" .. SysheadersPath) .. "/")
