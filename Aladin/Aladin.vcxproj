@@ -20,9 +20,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Aladin.cpp" />
+    <ClCompile Include="src\imgui.cpp" />
+    <ClCompile Include="src\imgui_demo.cpp" />
+    <ClCompile Include="src\imgui_draw.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\Aladin.h" />
+    <ClInclude Include="inc\imconfig.h" />
+    <ClInclude Include="inc\imgui.h" />
+    <ClInclude Include="inc\imgui_internal.h" />
+    <ClInclude Include="inc\stb_rect_pack.h" />
+    <ClInclude Include="inc\stb_textedit.h" />
+    <ClInclude Include="inc\stb_truetype.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
