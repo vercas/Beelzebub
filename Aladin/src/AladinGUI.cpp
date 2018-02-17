@@ -76,6 +76,20 @@ void Loop(float Dt) {
 			ImGui::EndMenu();
 		}
 
+		ImGui::Separator();
+
+		if (ShowConsole)
+			if (ImGui::BeginMenu("Console")) {
+				ImGui::SetWindowFocus("Console");
+				ImGui::EndMenu();
+			}
+
+		if (ShowMemEdit)
+			if (ImGui::BeginMenu("Memory Editor")) {
+				ImGui::SetWindowFocus("Memory Editor");
+				ImGui::EndMenu();
+			}
+
 		ImGui::EndMainMenuBar();
 	}
 
