@@ -24,6 +24,7 @@
     <ClCompile Include="src\AladinRender.cpp" />
     <ClCompile Include="src\AladinWidgets.cpp" />
     <ClCompile Include="src\AladinWidgets_Console.cpp" />
+    <ClCompile Include="src\djinn.cpp" />
     <ClCompile Include="src\imgui.cpp" />
     <ClCompile Include="src\imgui_demo.cpp" />
     <ClCompile Include="src\imgui_draw.cpp" />
