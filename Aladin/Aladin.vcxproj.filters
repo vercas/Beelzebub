@@ -68,5 +68,8 @@
     <ClInclude Include="inc\imgui_memory_editor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\djinn.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
