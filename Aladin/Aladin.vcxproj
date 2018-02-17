@@ -20,12 +20,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Aladin.cpp" />
+    <ClCompile Include="src\AladinRender.cpp" />
     <ClCompile Include="src\imgui.cpp" />
     <ClCompile Include="src\imgui_demo.cpp" />
     <ClCompile Include="src\imgui_draw.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\Aladin.h" />
+    <ClInclude Include="inc\AladinRender.h" />
     <ClInclude Include="inc\imconfig.h" />
     <ClInclude Include="inc\imgui.h" />
     <ClInclude Include="inc\imgui_internal.h" />

@@ -37,7 +37,7 @@
 //#define IMGUI_USE_BGRA_PACKED_COLOR
 
 //---- Implement STB libraries in a namespace to avoid linkage conflicts (defaults to global namespace)
-//#define IMGUI_STB_NAMESPACE     ImGuiStb
+#define IMGUI_STB_NAMESPACE     ImGui
 
 //---- Define constructor and implicit cast operators to convert back<>forth from your math types and ImVec2/ImVec4.
 // This will be inlined as part of ImVec2 and ImVec4 class declarations.
@@ -52,7 +52,7 @@
 */
 
 //---- Use 32-bit vertex indices (instead of default 16-bit) to allow meshes with more than 64K vertices. Render function needs to support it.
-//#define ImDrawIdx unsigned int
+#define ImDrawIdx unsigned int
 
 //---- Tip: You can add extra functions within the ImGui:: namespace, here or in your own headers files.
 /*
