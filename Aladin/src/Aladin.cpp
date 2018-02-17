@@ -1,9 +1,7 @@
 //#define GLFW_INCLUDE_GLEXT
 #include <GLFW\glfw3.h>
-#include <imgui.h>
 #include <Aladin.h>
 #include <AladinRender.h>
-#include <stdio.h>
 
 GLFWwindow* Window;
 int Width, FramebufferWidth;
@@ -129,6 +127,10 @@ void InitGUI() {
 	ImGui::CreateContext();
 	ImGui::StyleColorsDark();
 
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 0);
+	ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 0);
+
 	ImGuiIO& IO = ImGui::GetIO();
 	IO.KeyMap[ImGuiKey_Tab] = GLFW_KEY_TAB;
 	IO.KeyMap[ImGuiKey_LeftArrow] = GLFW_KEY_LEFT;
@@ -201,4 +203,31 @@ void AladinUpdateEnd(float Dt) {
 	ImGui::Render();
 	ImGui_Draw(ImGui::GetDrawData());
 	glfwSwapBuffers(Window);
+}
+
+///////////////////////////////////////////////////////////////// Convenience functions below this line, TODO: move to another file
+
+// TODO: Better implementation; https://github.com/vercas/Beelzebub/blob/master/libs/common/src/cmd_options.cpp#L72
+char** AladinSplitString(char* Str, const char* Delim) {
+	char** Ret = NULL;
+	int Count = 0;
+
+	char* Duplicate = strdup(Str);
+	char* P = strtok(Duplicate, Delim);
+	while (P != NULL) {
+		Count++;
+		P = strtok(NULL, Delim);
+	}
+	free(Duplicate);
+
+	Ret = (char**)calloc(Count + 1, sizeof(char*));
+	Count = 0;
+
+	P = strtok(Str, Delim);
+	while (P != NULL) {
+		Ret[Count++] = P;
+		P = strtok(NULL, Delim);
+	}
+
+	return Ret;
 }
