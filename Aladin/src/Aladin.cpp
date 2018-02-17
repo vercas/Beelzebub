@@ -18,13 +18,8 @@ int main(int argc, const char* argv[]) {
 	}
 
 	// TODO: Fetch desktop resolution and create something less gay
-	Width = 800;
-	Height = 600;
-
-	glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_NATIVE_CONTEXT_API);
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+	Width = 1200;
+	Height = 800;
 
 	Window = glfwCreateWindow(Width, Height, "Aladin", NULL, NULL);
 	if (!Window) {
@@ -32,6 +27,7 @@ int main(int argc, const char* argv[]) {
 		glfwTerminate();
 		return -1;
 	}
+	//glfwMaximizeWindow(Window);
 	glfwMakeContextCurrent(Window);
 
 	alInit();
@@ -205,11 +201,4 @@ void AladinUpdateEnd(float Dt) {
 	ImGui::Render();
 	ImGui_Draw(ImGui::GetDrawData());
 	glfwSwapBuffers(Window);
-}
-
-void Initialize() {
-}
-
-void Loop(float Dt) {
-	ImGui::ShowDemoWindow();
 }
