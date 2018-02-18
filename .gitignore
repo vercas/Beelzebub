@@ -209,6 +209,8 @@ BochsLog.txt
 # vStuff
 .vmake/
 .sync/
+.stfolder/
+.stversions/
 *~
 *.sublime-workspace
 /BOCHS.bat

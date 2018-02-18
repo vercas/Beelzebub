@@ -4,7 +4,7 @@
         {
             "name": "Beelzebub",
             "path": ".",
-            "folder_exclude_patterns": ["build", ".vs", ".vmake", ".git"],
+            "folder_exclude_patterns": ["build", ".vs", ".vmake", ".git", ".stfolder", ".stversions"],
         }
     ],
     "build_systems":
