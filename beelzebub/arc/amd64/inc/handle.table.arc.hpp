@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,20 +39,55 @@
 
 #pragma once
 
-#include <cmd_options.hpp>
-#include <global_options.h>
+#include "handle.table.hpp"
 
 namespace Beelzebub
 {
-    extern CommandLineOptionSpecification CMDO_Term;
-    extern CommandLineOptionSpecification CMDO_Tests;
-    extern CommandLineOptionSpecification CMDO_Debugger;
-    extern CommandLineOptionSpecification CMDO_UnitTests;
-    extern CommandLineOptionSpecification CMDO_SmpEnable;
+    struct HandleReferenceNode
+    {
+        HandleReferenceNode * Next;
+        handle_t LocalIndex;
+        uint16_t ProcessId;
+    };
 
-    extern CommandLineOptionSpecification * CommandLineOptionsHead;
+    struct HandleTableEntryArc : HandleTableEntry
+    {
+        HandleReferenceNode * ReferenceList;
 
-    __startup Handle InstanceGlobalOptions();
+        inline HandleTableEntryArc(uint16_t refcnt, uint16_t pcid, handle_t lind)
+            : HandleTableEntry { refcnt, pcid, lind }
+            , ReferenceList(nullptr)
+        {
 
-    __startup Handle InitializeTestFlags();
+        }
+    };
+
+    /**
+     *  An architecture-specific interface to the kernel's handle table.
+     */
+    class HandleTableArc
+    {
+    public:
+        /*  Statics  */
+
+        static HandleTableEntryArc * Table;
+        static handle_t GlobalFreeIndex;
+        static handle_t Maximum, Cursor;
+
+        static handle_t FreeListThreshold;
+        static handle_t FreeListRemovalCount;
+
+    protected:
+        /*  Constructor(s)  */
+
+        HandleTableArc() = default;
+
+    public:
+        HandleTableArc(HandleTableArc const &) = delete;
+        HandleTableArc & operator =(HandleTableArc const &) = delete;
+
+        /*  Garbage Collection  */
+
+        static __startup void CollectLocalFreeList(handle_t count = FreeListRemovalCount);
+    };
 }

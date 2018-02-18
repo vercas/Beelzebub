@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,20 +39,24 @@
 
 #pragma once
 
-#include <cmd_options.hpp>
-#include <global_options.h>
+#include <beel/terminals/base.hpp>
 
-namespace Beelzebub
+namespace Beelzebub { namespace Terminals
 {
-    extern CommandLineOptionSpecification CMDO_Term;
-    extern CommandLineOptionSpecification CMDO_Tests;
-    extern CommandLineOptionSpecification CMDO_Debugger;
-    extern CommandLineOptionSpecification CMDO_UnitTests;
-    extern CommandLineOptionSpecification CMDO_SmpEnable;
+    class DjinnTerminal : public TerminalBase
+    {
+    public:
 
-    extern CommandLineOptionSpecification * CommandLineOptionsHead;
+        /*  Constructors  */
 
-    __startup Handle InstanceGlobalOptions();
+        DjinnTerminal();
 
-    __startup Handle InitializeTestFlags();
-}
+        /*  Writing  */
+
+        virtual TerminalWriteResult WriteUtf8(char const * const c) override;
+        virtual TerminalWriteResult Write(char const * const str, size_t len) override;
+        virtual TerminalWriteResult WriteLine(char const * const str, size_t len) override;
+
+        virtual Handle Flush() override;
+    };
+}}

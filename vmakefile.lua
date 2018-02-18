@@ -438,6 +438,7 @@ GlobalData {
             --"-fdollars-in-identifiers",
             "-pipe", "--sysroot=" .. Sysroot,
             "-Wshadow", "-Wframe-larger-than=300",
+            --"-no-integrated-cpp", "-Btoolchain",
         } + Opts_GCC_Precompiler
         + selArch.Data.Opts_GCC + selConf.Data.Opts_GCC
         + specialOptions
@@ -461,6 +462,7 @@ GlobalData {
     CommonLibraryPath       = DAT "Sysroot + 'usr/lib/libcommon.'    .. selArch.Name .. '.a'",
     RuntimeLibraryPath      = DAT "Sysroot + 'usr/lib/libbeelzebub.' .. selArch.Name .. '.so'",
     KernelModuleLibraryPath = DAT "Sysroot + 'usr/lib/libbeelzebub.kmod.so'",
+    DjinnLibraryPath        = DAT "Sysroot + 'usr/lib/libdjinn.a'",
     TestKernelModulePath    = DAT "Sysroot + 'kmods/test.kmod'",
     KernelPath              = DAT "outDir  + 'beelzebub.bin'",
     LoadtestAppPath         = DAT "Sysroot + 'apps/loadtest.exe'",
@@ -772,7 +774,7 @@ Project "Beelzebub" {
 
         Directory = "libs/valloc",
 
-        Output = function() return List { VallocKernelLibraryPath } end,
+        Output = DAT "VallocKernelLibraryPath",
     },
 
     -- ArchitecturalComponent "Streamflow - Kernel" {
@@ -990,6 +992,40 @@ Project "Beelzebub" {
         },
     },
 
+    ManagedComponent "Djinn Library" {
+        Languages = { "C++", },
+        Target = "Static Library",
+        ExcuseHeaders = true,
+
+        Data = {
+            SourcesSubdirectory     = "src",
+            HeadersSubdirectory     = "inc",
+
+            Opts_GCC = function()
+                local res = List {
+                    "-fvisibility=hidden",
+                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
+                    "-flto", "-Os",
+                    "-D_DJINN",
+                } + Opts_GCC_Common + Opts_Includes
+                + selArch.Data.Opts_GCC_Kernel
+
+                if selArch.Name == "amd64" then
+                    res:Append("-mcmodel=kernel")
+                end
+
+                return res
+            end,
+
+            Opts_CXX        = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_AR         = List "rcs",
+        },
+
+        Directory = "libs/djinn",
+
+        Output = DAT "DjinnLibraryPath",
+    },
+
     ManagedComponent "Loadtest Application" {
         Languages = { "C++", },
         Target = "Executable",
@@ -1097,6 +1133,7 @@ Project "Beelzebub" {
             Libraries = function()
                 local res = List {
                     "common." .. selArch.Name,
+                    "djinn",
                 }
 
                 if settKrnDynAlloc ~= "NONE" then
@@ -1114,6 +1151,7 @@ Project "Beelzebub" {
             BinaryDependencies = function()
                 local res = List {
                     CommonLibraryPath,
+                    DjinnLibraryPath,
                 }
 
                 if settKrnDynAlloc ~= "NONE" then

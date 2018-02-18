@@ -80,6 +80,8 @@ __shared_inline char * strnpbrk(char const * haystack, char const * needle, size
 __shared_inline comp_t strcmp(char const * src1, char const * src2);
 __shared_inline comp_t strncmp(char const * src1, char const * src2, size_t len);
 
+static inline bool streq(char const * src1, char const * src2) { return strcmp(src1, src2) == 0; }
+
 __shared_inline comp_t strcasecmp(char const * src1, char const * src2);
 __shared_inline comp_t strcasencmp(char const * src1, char const * src2, size_t len);
 

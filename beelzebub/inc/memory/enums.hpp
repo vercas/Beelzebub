@@ -86,7 +86,7 @@ namespace Beelzebub { namespace Memory
         UniquenessMask       = 0x0000000F,
     };
 
-    ENUMOPS(MemoryAllocationOptions, uint32_t)
+    __ENUMOPS(MemoryAllocationOptions, uint32_t)
 
     /**
      *  Represents the flags related to a page fault.
@@ -100,5 +100,5 @@ namespace Beelzebub { namespace Memory
         Execute     = 0x10,
     };
 
-    ENUMOPS(PageFaultFlags, uint8_t)
+    __ENUMOPS(PageFaultFlags, uint8_t)
 }}

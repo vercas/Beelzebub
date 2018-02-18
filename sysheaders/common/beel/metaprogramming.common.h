@@ -186,6 +186,7 @@
         #define __unused           __attribute__((__unused__))
         #define __weak             __attribute__((__weak__))
         #define __alias(sym)       __attribute__((__alias__(#sym), __weak__, __used__))
+        #define __symbol(sym)      __asm__(#sym)
         #define __must_check       __attribute__((__warn_unused_result__))
         #define __restrict         __restrict__
         #define __nonnull(...)     __attribute__((__nonnull__(__VA_ARGS__)))
@@ -214,15 +215,19 @@
         #define __startup          __attribute__((__section__(".text.startup"), __cold__, __noinline__, __optimize__("Os")))
         #define __userland         __attribute__((__section__(".text.userland"), __used__))
 
-        #define __shared            __extern __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__, __noinline__, __noclone__))
-        #define __shared_inline     __extern __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__))
-        #define __shared_cpp        __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__, __noinline__, __noclone__))
-        #define __shared_cpp_inline __attribute__((__used__, __optimize__(3), __visibility__("default"), __externally_visible__))
+        #define __shared            __extern __attribute__((__used__, __visibility__("default"), __externally_visible__, __noinline__, __noclone__))
+        #define __shared_inline     __extern __attribute__((__used__, __visibility__("default"), __externally_visible__))
+        #define __shared_cpp        __attribute__((__used__, __visibility__("default"), __externally_visible__, __noinline__, __noclone__))
+        #define __shared_cpp_inline __attribute__((__used__, __visibility__("default"), __externally_visible__))
 
         #define __public           __attribute__((__visibility__("default")))
         #define __protected        __attribute__((__visibility__("protected")))
         #define __internal         __attribute__((__visibility__("internal")))
+
+        #define __deprecated(txt)  __attribute__((__deprecated__(txt)))
     #else
+        #error Unsupported compiler!
+
         #define __forceinline      inline
         #define __noinline  
         #define __noclone  
@@ -290,103 +295,151 @@
     __forceinline void   operator delete[](void *, void *  ) { }
 #endif
 
+/************************
+    Naming Assistance
+************************/
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+    #define __NAMESPACE_BEGIN        namespace Beelzebub {
+    #define __NAMESPACE_END          }
+
+    #define __EXTERN_C_BEGIN         extern "C" {
+    #define __EXTERN_C_END           }
+
+    #define __NAMESPACED(ns, name)   Beelzebub::name
+#else
+    #define __NAMESPACE_BEGIN  
+    #define __NAMESPACE_END  
+
+    #define __EXTERN_C_BEGIN  
+    #define __EXTERN_C_END  
+
+    #define __NAMESPACED(ns, name)   ns ## name
+#endif
+
+//#define __BE(name) __NAMESPACED(Be, name)
+
 /****************************
     Enumarator Assistance
 ****************************/
 
 #ifdef __BEELZEBUB__SOURCE_CXX
-    #define ENUMOPS_LITE2(T, U)                                                          \
-    __forceinline bool operator == (U   a, T b) { return               a  == (U )(b);  } \
-    __forceinline bool operator != (U   a, T b) { return               a  != (U )(b);  } \
-    __forceinline bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
-    __forceinline bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
+    #define __ENUMOPS_LITE2(T, U)                                                           \
+        __artificial bool operator == (U   a, T b) { return               a  == (U )(b);  } \
+        __artificial bool operator != (U   a, T b) { return               a  != (U )(b);  } \
+        __artificial bool operator == (T   a, U b) { return         (U  )(a) ==      b ;  } \
+        __artificial bool operator != (T   a, U b) { return         (U  )(a) !=      b ;  }
 
-    #define ENUMOPS_FULL2(T, U)                                                          \
-    __forceinline  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
-    __forceinline  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
-    __forceinline  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
-    __forceinline  T   operator &  (T   a, U b) { return (T  )(  (U  )(a) &       b ); } \
-    __forceinline  T   operator ^  (T   a, T b) { return (T  )(  (U  )(a) ^  (U )(b)); } \
-    __forceinline  T & operator |= (T & a, T b) { return (T &)(  (U &)(a) |= (U )(b)); } \
-    __forceinline  T & operator &= (T & a, T b) { return (T &)(  (U &)(a) &= (U )(b)); } \
-    __forceinline  T & operator ^= (T & a, T b) { return (T &)(  (U &)(a) ^= (U )(b)); } \
-    ENUMOPS_LITE2(T, U)
+    #define __ENUMOPS_FULL2(T, U)                                                           \
+        __artificial  T   operator ~  (T   a     ) { return (T  )(~((U  )(a))          ); } \
+        __artificial  T   operator |  (T   a, T b) { return (T  )(  (U  )(a) |  (U )(b)); } \
+        __artificial  T   operator &  (T   a, T b) { return (T  )(  (U  )(a) &  (U )(b)); } \
+        __artificial  T   operator &  (T   a, U b) { return (T  )(  (U  )(a) &       b ); } \
+        __artificial  T   operator ^  (T   a, T b) { return (T  )(  (U  )(a) ^  (U )(b)); } \
+        __artificial  T & operator |= (T & a, T b) { return (T &)(  (U &)(a) |= (U )(b)); } \
+        __artificial  T & operator &= (T & a, T b) { return (T &)(  (U &)(a) &= (U )(b)); } \
+        __artificial  T & operator ^= (T & a, T b) { return (T &)(  (U &)(a) ^= (U )(b)); } \
+        __ENUMOPS_LITE2(T, U)
 
-    #define ENUMOPS_LITE1(T) ENUMOPS_LITE2(T, __underlying_type(T))
-    #define ENUMOPS_FULL1(T) ENUMOPS_FULL2(T, __underlying_type(T))
+    #define __ENUMOPS_LITE1(T) __ENUMOPS_LITE2(T, __underlying_type(T))
+    #define __ENUMOPS_FULL1(T) __ENUMOPS_FULL2(T, __underlying_type(T))
     //  All nice and dandy, but it uses a GCC extension for type traits because
     //  the type_traits.h header is unavailable.
 
-    #define ENUMOPS_LITE(...) GET_MACRO2(__VA_ARGS__, ENUMOPS_LITE2, ENUMOPS_LITE1)(__VA_ARGS__)
-    #define ENUMOPS_FULL(...) GET_MACRO2(__VA_ARGS__, ENUMOPS_FULL2, ENUMOPS_FULL1)(__VA_ARGS__)
+    #define __ENUMOPS_LITE(...) GET_MACRO2(__VA_ARGS__, __ENUMOPS_LITE2, __ENUMOPS_LITE1)(__VA_ARGS__)
+    #define __ENUMOPS_FULL(...) GET_MACRO2(__VA_ARGS__, __ENUMOPS_FULL2, __ENUMOPS_FULL1)(__VA_ARGS__)
 
-    #define ENUMOPS(...) ENUMOPS_FULL(__VA_ARGS__)
+    #define __ENUMOPS(...) __ENUMOPS_FULL(__VA_ARGS__)
 
     //  Why? For the glory of C++, of course.
 
-    #define ENUMDECL3(name, macro, type)          \
-        enum class name { macro(ENUMINST_VAL) };  \
-        MCATS(ENUMOPS_, type)(name)
+    #define __ENUMDECL2(name, macro) \
+        enum class name { macro(__ENUMINST_VAL) };
 
-    #define ENUMDECL4(name, macro, type, inner)           \
-        enum class name : inner { macro(ENUMINST_VAL) };  \
-        MCATS(ENUMOPS_, type)(name)
+    #define __ENUMDECL3(name, macro, type)          \
+        enum class name { macro(__ENUMINST_VAL) };  \
+        MCATS(__ENUMOPS_, type)(name)
 
-    #define ENUMDECL(name, macro, ...) GET_MACRO2(__VA_ARGS__, ENUMDECL4, ENUMDECL3)(name, macro, __VA_ARGS__)
+    #define __ENUMDECL4(name, macro, type, inner)           \
+        enum class name : inner { macro(__ENUMINST_VAL) };  \
+        MCATS(__ENUMOPS_, type)(name, inner)
+
+    #define __ENUMDECL(name, ...) \
+        GET_MACRO3(__VA_ARGS__, __ENUMDECL4, __ENUMDECL3, __ENUMDECL2)(name, __VA_ARGS__)
+
+    #define __PUB_ENUM(name, ...) \
+        namespace Beelzebub { __ENUMDECL(name, __VA_ARGS__) } \
+        using MCATS(Be, name) = Beelzebub::name;
 #elif !defined(__ASSEMBLER__)
-    #define ENUMDECL(name, macro, ...)  \
-        typedef enum MCATS(name, _t) { macro(ENUMINST_VAL) } name;
+    #define __ENUMDECL(name, macro, ...)  \
+        typedef enum MCATS(name, _t) { macro(__ENUMINST_VAL) } name;
+
+    #define __PUB_ENUM(name, macro, ...)  \
+        typedef enum MCATS(Be, name, _t) { macro(__ENUMINST_VAL) } MCATS(Be, name);
 #endif
 
 #ifndef __BEELZEBUB__SOURCE_GAS
     //  Simple enumeration item with default value.
-    #define ENUMINST_VAL1(name) name,
-    #define ENUMINST_CASERETSTR1(name) case name: return #name;
+    #define __ENUMINST_VAL1(name) name,
+    #define __ENUMINST_CASERETSTR1(name) case name: return #name;
 
     //  Enumeration item with given value.
-    #define ENUMINST_VAL2(name, num) name = num,
-    #define ENUMINST_CASERETSTR2(name, num) case num: return #name;
+    #define __ENUMINST_VAL2(name, num) name = num,
+    #define __ENUMINST_CASERETSTR2(name, num) case num: return #name;
 
     //  Enumeration item with given value and string representation.
-    #define ENUMINST_VAL3(name, num, str) name = num,
-    #define ENUMINST_CASERETSTR3(name, num, str) case num: return str;
+    #define __ENUMINST_VAL3(name, num, str) name = num,
+    #define __ENUMINST_CASERETSTR3(name, num, str) case num: return str;
 
     //  Enumeration item with different names on C and C++, but same value and string
     //  representation on both.
 
     #ifdef __BEELZEBUB__SOURCE_CXX
-        #define ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
+        #define __ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
     #else
-        #define ENUMINST_VAL4(cppname, cname, num, str) cname = num,
+        #define __ENUMINST_VAL4(cppname, cname, num, str) cname = num,
     #endif
 
-    #define ENUMINST_CASERETSTR4(cppname, cname, num, str) case num: return str;
+    #define __ENUMINST_CASERETSTR4(cppname, cname, num, str) case num: return str;
 
-    #define ENUMINST_VAL(...) GET_MACRO4(__VA_ARGS__, ENUMINST_VAL4, ENUMINST_VAL3, ENUMINST_VAL2, ENUMINST_VAL1)(__VA_ARGS__)
-    #define ENUMINST_CASERETSTR(...) GET_MACRO4(__VA_ARGS__, ENUMINST_CASERETSTR4, ENUMINST_CASERETSTR3, ENUMINST_CASERETSTR2, ENUMINST_CASERETSTR1)(__VA_ARGS__)
+    #define __ENUMINST_VAL(...) GET_MACRO4(__VA_ARGS__, __ENUMINST_VAL4, __ENUMINST_VAL3, __ENUMINST_VAL2, __ENUMINST_VAL1)(__VA_ARGS__)
+    #define __ENUMINST_CASERETSTR(...) GET_MACRO4(__VA_ARGS__, __ENUMINST_CASERETSTR4, __ENUMINST_CASERETSTR3, __ENUMINST_CASERETSTR2, __ENUMINST_CASERETSTR1)(__VA_ARGS__)
 
-    #define ENUM_TO_STRING_EX1(enumName, attrBefore, func, val, enumDef) \
+    #define __ENUM_TO_STRING_EX1(enumName, attrBefore, func, val, enumDef) \
         attrBefore char const * func                    \
         {                                               \
             switch ((__underlying_type(enumName))val)   \
             {                                           \
-                enumDef(ENUMINST_CASERETSTR)            \
+                enumDef(__ENUMINST_CASERETSTR)          \
                 default:                                \
                     return "UNKNOWN";                   \
             }                                           \
         }
 
-    #define ENUM_TO_STRING_EX2(enumName, enumDef, cppnamespace) \
-        ENUM_TO_STRING_EX1(enumName, , cppnamespace::EnumToString(enumName const val), val, enumDef)
+    #define __ENUM_TO_STRING_EX2(enumName, enumDef, cppnamespace) \
+        __ENUM_TO_STRING_EX1(enumName, , cppnamespace::EnumToString(enumName const val), val, enumDef)
 
     /*#define ENUM_TO_STRING_EX2_DECL(enumName, enumDef, cppnamespace) \
         char const * const cppnamespace::EnumToString(enumName const val)*/
 
-    #define ENUM_TO_STRING(enumName, enumDef) \
-        ENUM_TO_STRING_EX1(enumName, , EnumToString(enumName const val), val, enumDef)
+    #define __ENUM_TO_STRING(enumName, enumDef) \
+        __ENUM_TO_STRING_EX1(enumName, , EnumToString(enumName const val), val, enumDef)
 
-    #define ENUM_TO_STRING_DECL(enumName, enumDef) \
+    #define __ENUM_TO_STRING_DECL(enumName, enumDef) \
         char const * EnumToString(enumName const val)
+#endif
+
+/**************************
+    Function Assistance
+**************************/
+
+#if defined(__BEELZEBUB__SOURCE_CXX)
+    #define __PUB_FUNC(ret, name, ...) \
+        __shared __deprecated("The Be-prefixed version should be avoided in C++") ret Be##name(__VA_ARGS__) __symbol(__deprecated_Be##name); \
+        namespace Beelzebub { __shared_cpp ret name(__VA_ARGS__) __symbol(Be##name); }
+#elif defined(__BEELZEBUB__SOURCE_C)
+    #define __PUB_FUNC(ret, name, ...) \
+        __shared ret MCATS(Be, name)(__VA_ARGS__);
 #endif
 
 /***************************
@@ -394,19 +447,24 @@
 ***************************/
 
 #if defined(__BEELZEBUB__SOURCE_CXX)
-    #define STRUCT(name) \
+    #define __STRUCT(name) \
+    struct name; \
+    using MCATS(Be, name) = name; \
     struct name
 #elif defined(__BEELZEBUB__SOURCE_C)
-    #define STRUCT(name) \
-    struct MCATS(name, _s); \
-    typedef MCATS(name, _s) name; \
-    struct MCATS(name, _s)
+    #define __STRUCT(name) \
+    struct MCATS(Be, name, _s); \
+    typedef MCATS(Be, name, _s) MCATS(Be, name); \
+    struct MCATS(Be, name, _s)
 #else
-    #define FIELDR(n, f) MCATS3(n, _, f)
+    //  Field reference (name)
+    #define FIELDR(n, f)    MCATS3(n, _, f)
+    //  Field w/ size (declaration)
     #define FIELDS(n, f, s) FIELDR(n, f): .struct FIELDR(n, f) + s
+    //  Field w/ type (declaration; size deduced from type)
     #define FIELDT(n, f, t) FIELDS(n, f, sizeof(t))
 
-    #define sizeof(type) MCATS2(SIZE_OF_, type)
+    #define sizeof(type)    MCATS2(SIZE_OF_, type)
 
     #define SIZE_OF_int8_t    1
     #define SIZE_OF_int16_t   2
@@ -425,173 +483,150 @@
 *****************/
 
 #ifndef __BEELZEBUB__SOURCE_GAS
-#ifdef __BEELZEBUB__SOURCE_CXX
-namespace Beelzebub
-{
-#endif
+    __NAMESPACE_BEGIN
 
-typedef union paddr_u
-{
-    paddr_inner_t Value;
-
-    #ifdef __BEELZEBUB__SOURCE_CXX
-        __artificial explicit constexpr paddr_u() : Value() { }
-        __artificial explicit constexpr paddr_u(paddr_inner_t val) : Value(val) { }
-
-        __artificial explicit operator paddr_inner_t() const { return this->Value; }
-    #endif
-} paddr_t;
-
-typedef union psize_u
-{
-    psize_inner_t Value;
-
-    #ifdef __BEELZEBUB__SOURCE_CXX
-        __artificial explicit constexpr psize_u() : Value() { }
-        __artificial explicit constexpr psize_u(psize_inner_t val) : Value(val) { }
-
-        __artificial explicit operator psize_inner_t() const { return this->Value; }
-    #endif
-} psize_t;
-
-typedef union vaddr_u
-{
-    vaddr_inner_t Value;
-    void const * Pointer;
-
-    #ifdef __BEELZEBUB__SOURCE_CXX
-        __artificial explicit constexpr vaddr_u() : Value() { }
-        __artificial explicit constexpr vaddr_u(vaddr_inner_t val) : Value(val) { }
-        __artificial explicit constexpr vaddr_u(void const * ptr) : Pointer(ptr) { }
-
-        __artificial explicit operator vaddr_inner_t() const { return this->Value; }
-        __artificial explicit operator void const *() const { return this->Pointer; }
-        __artificial explicit operator void *() const { return const_cast<void *>(this->Pointer); }
-    #endif
-} vaddr_t;
-
-typedef union vsize_u
-{
-    vsize_inner_t Value;
-
-    #ifdef __BEELZEBUB__SOURCE_CXX
-        __artificial explicit constexpr vsize_u() : Value() { }
-        __artificial explicit constexpr vsize_u(vsize_inner_t val) : Value(val) { }
-        __artificial explicit constexpr vsize_u(psize_t const val) : Value(val.Value) { }
-
-        __artificial explicit operator vsize_inner_t() const { return this->Value; }
-
-        __artificial operator psize_t() const { return psize_t { this->Value }; }
-    #endif
-} vsize_t;
-
-#ifdef __BEELZEBUB__SOURCE_CXX
-    typedef union PageSize_u
+    typedef union paddr_u
     {
-        page_size_inner_t Value;
+        paddr_inner_t Value;
 
-        __artificial explicit constexpr PageSize_u(page_size_inner_t const val) : Value(val) { }
+        #ifdef __BEELZEBUB__SOURCE_CXX
+            __artificial explicit constexpr paddr_u() : Value() { }
+            __artificial explicit constexpr paddr_u(paddr_inner_t val) : Value(val) { }
 
-        __artificial operator psize_t() const { return psize_t { this->Value }; }
-        __artificial operator vsize_t() const { return vsize_t { this->Value }; }
+            __artificial explicit operator paddr_inner_t() const { return this->Value; }
+        #endif
+    } paddr_t;
 
-        __artificial operator page_size_inner_t() const { return this->Value; }
-    } PageSize_t;
+    typedef union psize_u
+    {
+        psize_inner_t Value;
 
-    #define CMP_OP(TYP, OP) \
-        __artificial constexpr bool operator OP (TYP a, TYP b) { return a.Value OP b.Value; }
-    #define CMP_OP2(Ta, Tb, OP) \
-        __artificial constexpr bool operator OP (Ta a, Tb b) { return a.Value OP b; } \
-        __artificial constexpr bool operator OP (Tb a, Ta b) { return a OP b.Value; }
-    #define ARI_OP(Tr, Ta, Tb, OP) \
-        __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a.Value OP b.Value }; }
-    #define EQU_OP(Tt, To, OP) \
-        __artificial constexpr Tt & operator MCATS(OP, =) (Tt & t, To const o) { t.Value MCATS(OP, =) o.Value; return t; }
+        #ifdef __BEELZEBUB__SOURCE_CXX
+            __artificial explicit constexpr psize_u() : Value() { }
+            __artificial explicit constexpr psize_u(psize_inner_t val) : Value(val) { }
 
-    #define CMP_OPS(TYP, INN) \
-        CMP_OP(TYP, ==) CMP_OP2(TYP, INN, ==) CMP_OP(TYP, !=) CMP_OP2(TYP, INN, !=) \
-        CMP_OP(TYP,  <) CMP_OP2(TYP, INN,  <) CMP_OP(TYP, <=) CMP_OP2(TYP, INN, <=) \
-        CMP_OP(TYP,  >) CMP_OP2(TYP, INN,  >) CMP_OP(TYP, >=) CMP_OP2(TYP, INN, >=)
+            __artificial explicit operator psize_inner_t() const { return this->Value; }
+        #endif
+    } psize_t;
 
-    CMP_OPS(paddr_t, paddr_inner_t) CMP_OPS(psize_t, psize_inner_t)
-    CMP_OPS(vaddr_t, vaddr_inner_t) CMP_OPS(vsize_t, vsize_inner_t)
-    #undef CMP_OPS
+    typedef union vaddr_u
+    {
+        vaddr_inner_t Value;
+        void const * Pointer;
 
-    #define ARI_OPS(Ta, Ts) \
-        ARI_OP(Ta, Ta, Ts, +) ARI_OP(Ta, Ts, Ta, +) \
-        ARI_OP(Ta, Ta, Ts, -) ARI_OP(Ts, Ta, Ta, -) \
-        ARI_OP(Ts, Ts, Ts, +) ARI_OP(Ts, Ts, Ts, -) \
-        ARI_OP(Ts, Ta, Ts, %) ARI_OP(Ts, Ts, Ts, %) \
-        EQU_OP(Ta, Ts, +) EQU_OP(Ta, Ts, -) EQU_OP(Ts, Ts, +) EQU_OP(Ts, Ts, -)
+        #ifdef __BEELZEBUB__SOURCE_CXX
+            __artificial explicit constexpr vaddr_u() : Value() { }
+            __artificial explicit constexpr vaddr_u(vaddr_inner_t val) : Value(val) { }
+            __artificial explicit constexpr vaddr_u(void const * ptr) : Pointer(ptr) { }
 
-    ARI_OPS(paddr_t, psize_t) ARI_OPS(vaddr_t, vsize_t)
-    #undef ARI_OPS
+            __artificial explicit operator vaddr_inner_t() const { return this->Value; }
+            __artificial explicit operator void const *() const { return this->Pointer; }
+            __artificial explicit operator void *() const { return const_cast<void *>(this->Pointer); }
+        #endif
+    } vaddr_t;
 
-    #define ARI_PS_OPS(Ta, Ts) \
-        ARI_OP(Ta, Ta, PageSize_t, +) ARI_OP(Ta, Ta, PageSize_t, -) \
-        ARI_OP(Ts, Ts, PageSize_t, +) ARI_OP(Ts, Ts, PageSize_t, -) \
-        ARI_OP(Ts, Ta, PageSize_t, %) ARI_OP(Ts, Ts, PageSize_t, %) \
-        EQU_OP(Ta, PageSize_t, +) EQU_OP(Ta, PageSize_t, -) \
-        EQU_OP(Ts, PageSize_t, +) EQU_OP(Ts, PageSize_t, -)
+    typedef union vsize_u
+    {
+        vsize_inner_t Value;
 
-    ARI_PS_OPS(paddr_t, psize_t) ARI_PS_OPS(vaddr_t, vsize_t)
-    #undef ARI_PS_OPS
+        #ifdef __BEELZEBUB__SOURCE_CXX
+            __artificial explicit constexpr vsize_u() : Value() { }
+            __artificial explicit constexpr vsize_u(vsize_inner_t val) : Value(val) { }
+            __artificial explicit constexpr vsize_u(psize_t const val) : Value(val.Value) { }
 
-    #undef CMP_OP
-    #undef CMP_OP2
-    #undef ARI_OP
-    #undef EQU_OP
+            __artificial explicit operator vsize_inner_t() const { return this->Value; }
 
-    #define ARI_OP1(Tr, Ta, Tb, OP) \
-        __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a.Value OP b }; }
-    #define ARI_OP2(Tr, Ta, Tb, OP) \
-        __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a OP b.Value }; }
+            __artificial operator psize_t() const { return psize_t { this->Value }; }
+        #endif
+    } vsize_t;
 
-    #define ARI_SCALE_OPS(Ts) \
-        ARI_OP1(Ts, Ts, size_t, *) ARI_OP2(Ts, size_t, Ts, *) \
-        ARI_OP1(Ts, Ts, size_t, /) ARI_OP2(Ts, size_t, Ts, /) \
-        ARI_OP1(Ts, Ts, size_t, %) ARI_OP2(Ts, size_t, Ts, %)
+    #ifdef __BEELZEBUB__SOURCE_CXX
+        typedef union PageSize_u
+        {
+            page_size_inner_t Value;
 
-    ARI_SCALE_OPS(psize_t) ARI_SCALE_OPS(vsize_t) ARI_SCALE_OPS(PageSize_t)
-    #undef ARI_SCALE_OPS
+            __artificial explicit constexpr PageSize_u(page_size_inner_t const val) : Value(val) { }
 
-    #undef ARI_OP1
-    #undef ARI_OP2
+            __artificial operator psize_t() const { return psize_t { this->Value }; }
+            __artificial operator vsize_t() const { return vsize_t { this->Value }; }
 
-    template<typename T>
-    static constexpr vsize_t const SizeOf { sizeof(T) };
+            __artificial operator page_size_inner_t() const { return this->Value; }
+        } PageSize_t;
 
-    template<typename T>
-    static constexpr vsize_t const AlignOf { __alignof(T) };
+        #define CMP_OP(TYP, OP) \
+            __artificial constexpr bool operator OP (TYP a, TYP b) { return a.Value OP b.Value; }
+        #define CMP_OP2(Ta, Tb, OP) \
+            __artificial constexpr bool operator OP (Ta a, Tb b) { return a.Value OP b; } \
+            __artificial constexpr bool operator OP (Tb a, Ta b) { return a OP b.Value; }
+        #define ARI_OP(Tr, Ta, Tb, OP) \
+            __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a.Value OP b.Value }; }
+        #define EQU_OP(Tt, To, OP) \
+            __artificial constexpr Tt & operator MCATS(OP, =) (Tt & t, To const o) { t.Value MCATS(OP, =) o.Value; return t; }
 
-}   //  namespace Beelzebub
-#endif
+        #define CMP_OPS(TYP, INN) \
+            CMP_OP(TYP, ==) CMP_OP2(TYP, INN, ==) CMP_OP(TYP, !=) CMP_OP2(TYP, INN, !=) \
+            CMP_OP(TYP,  <) CMP_OP2(TYP, INN,  <) CMP_OP(TYP, <=) CMP_OP2(TYP, INN, <=) \
+            CMP_OP(TYP,  >) CMP_OP2(TYP, INN,  >) CMP_OP(TYP, >=) CMP_OP2(TYP, INN, >=)
 
-// typedef  int8_t    Int8;
-// typedef  int16_t   Int16;
-// typedef  int32_t   Int32;
-// typedef  int64_t   Int64;
+        CMP_OPS(paddr_t, paddr_inner_t) CMP_OPS(psize_t, psize_inner_t)
+        CMP_OPS(vaddr_t, vaddr_inner_t) CMP_OPS(vsize_t, vsize_inner_t)
+        #undef CMP_OPS
 
-// typedef  int8_t   SInt8;
-// typedef  int16_t  SInt16;
-// typedef  int32_t  SInt32;
-// typedef  int64_t  SInt64;
+        #define ARI_OPS(Ta, Ts) \
+            ARI_OP(Ta, Ta, Ts, +) ARI_OP(Ta, Ts, Ta, +) \
+            ARI_OP(Ta, Ta, Ts, -) ARI_OP(Ts, Ta, Ta, -) \
+            ARI_OP(Ts, Ts, Ts, +) ARI_OP(Ts, Ts, Ts, -) \
+            ARI_OP(Ts, Ta, Ts, %) ARI_OP(Ts, Ts, Ts, %) \
+            EQU_OP(Ta, Ts, +) EQU_OP(Ta, Ts, -) EQU_OP(Ts, Ts, +) EQU_OP(Ts, Ts, -)
 
-// typedef uint8_t   UInt8;
-// typedef uint16_t  UInt16;
-// typedef uint32_t  UInt32;
-// typedef uint64_t  UInt64;
+        ARI_OPS(paddr_t, psize_t) ARI_OPS(vaddr_t, vsize_t)
+        #undef ARI_OPS
 
-// typedef  intptr_t  IntPtr;
-// typedef uintptr_t UIntPtr;
+        #define ARI_PS_OPS(Ta, Ts) \
+            ARI_OP(Ta, Ta, PageSize_t, +) ARI_OP(Ta, Ta, PageSize_t, -) \
+            ARI_OP(Ts, Ts, PageSize_t, +) ARI_OP(Ts, Ts, PageSize_t, -) \
+            ARI_OP(Ts, Ta, PageSize_t, %) ARI_OP(Ts, Ts, PageSize_t, %) \
+            EQU_OP(Ta, PageSize_t, +) EQU_OP(Ta, PageSize_t, -) \
+            EQU_OP(Ts, PageSize_t, +) EQU_OP(Ts, PageSize_t, -)
 
-//  I think these names are great... I just like to have 'em here.
+        ARI_PS_OPS(paddr_t, psize_t) ARI_PS_OPS(vaddr_t, vsize_t)
+        #undef ARI_PS_OPS
 
-/*  Some funnction types...  */
+        #undef CMP_OP
+        #undef CMP_OP2
+        #undef ARI_OP
+        #undef EQU_OP
 
-typedef bool (* PredicateFunction0)(void);
-typedef void (* ActionFunction0)(void);
-#endif
+        #define ARI_OP1(Tr, Ta, Tb, OP) \
+            __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a.Value OP b }; }
+        #define ARI_OP2(Tr, Ta, Tb, OP) \
+            __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a OP b.Value }; }
+
+        #define ARI_SCALE_OPS(Ts) \
+            ARI_OP1(Ts, Ts, size_t, *) ARI_OP2(Ts, size_t, Ts, *) \
+            ARI_OP1(Ts, Ts, size_t, /) ARI_OP2(Ts, size_t, Ts, /) \
+            ARI_OP1(Ts, Ts, size_t, %) ARI_OP2(Ts, size_t, Ts, %)
+
+        ARI_SCALE_OPS(psize_t) ARI_SCALE_OPS(vsize_t) ARI_SCALE_OPS(PageSize_t)
+        #undef ARI_SCALE_OPS
+
+        #undef ARI_OP1
+        #undef ARI_OP2
+
+        template<typename T>
+        static constexpr vsize_t const SizeOf { sizeof(T) };
+
+        template<typename T>
+        static constexpr vsize_t const AlignOf { __alignof(T) };
+    #endif  //  C++
+
+    /*  Some funnction types...  */
+
+    typedef bool (* PredicateFunction0)(void);
+    typedef void (* ActionFunction0)(void);
+
+    __NAMESPACE_END //  namespace Beelzebub
+#endif  //  Non-GAS
 
 /*******************************
     Miscellaneous Assistance

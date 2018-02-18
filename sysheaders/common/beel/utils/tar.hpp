@@ -54,15 +54,10 @@ namespace Beelzebub { namespace Utils
         ENUMINST(FifoSpecial        , '6' ) \
         ENUMINST(Reserved2          , '7' )
 
-    enum class TarHeaderType : char
-    {
-        ENUM_TARHEADERTYPE(ENUMINST_VAL)
-    };
+    __ENUMDECL(TarHeaderType, ENUM_TARHEADERTYPE, LITE, char)
+    __ENUM_TO_STRING_DECL(TarHeaderType, ENUM_TARHEADERTYPE);
 
     static_assert(sizeof(TarHeaderType) == 1, "");
-
-    ENUMOPS_LITE(TarHeaderType)
-    ENUM_TO_STRING_DECL(TarHeaderType, ENUM_TARHEADERTYPE);
 
     struct TarHeader
     {

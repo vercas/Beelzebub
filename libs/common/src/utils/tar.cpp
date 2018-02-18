@@ -45,7 +45,7 @@ using namespace Beelzebub::Utils;
 
 /*  Enums  */
 
-ENUM_TO_STRING_EX2(TarHeaderType, ENUM_TARHEADERTYPE, Beelzebub::Utils)
+__ENUM_TO_STRING_EX2(TarHeaderType, ENUM_TARHEADERTYPE, Beelzebub::Utils)
 
 /***********************
     TarHeader struct

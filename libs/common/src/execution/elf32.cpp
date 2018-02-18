@@ -459,10 +459,10 @@ Elf::Symbol Elf::GetSymbol32(uint32_t index) const
         sym.Info.GetBinding(),
         sym.Other.GetVisibility(),
         true,
-        sym.SectionIndex != SHN_UNDEF,
+        sym.SectionIndex != ElfSectionIndexes::SHN_UNDEF,
     };
 
-    if (ret.Defined && sym.SectionIndex != SHN_ABS)
+    if (ret.Defined && sym.SectionIndex != ElfSectionIndexes::SHN_ABS)
     {
         // if (ret.Binding != ElfSymbolBinding::Weak)
             ret.Value += this->GetLocationDifference();

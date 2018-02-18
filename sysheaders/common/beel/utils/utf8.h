@@ -43,15 +43,17 @@
 
 #ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub { namespace Utils {
+
+#define GetUtf8Codepoint BeGetUtf8Codepoint
 #endif
 
-typedef struct DecodedCodepoint
+__STRUCT(DecodedCodepoint)
 {
     char * Next;
     wchar_t Char;
-} decoded_codepoint_t;
+};
 
-__shared decoded_codepoint_t GetUtf8Codepoint(char const * chr);
+__shared BeDecodedCodepoint GetUtf8Codepoint(char const * chr);
 
 #ifdef __BEELZEBUB__SOURCE_CXX
 }}

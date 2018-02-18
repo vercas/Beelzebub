@@ -45,7 +45,7 @@
 
 #include <beel/handles.h>
 
-#define ENUM_SYSCALLSELECTION(ENUMINST) \
+#define __ENUM_SYSCALLSELECTION(ENUMINST) \
     /*  Will simply print a value on the debug terminal. */ \
     ENUMINST(DebugPrint    , SYSCALL_DEBUG_PRINT    , 0x000, "Debug Print"    ) \
     /*  Sends an IPC message. */ \
@@ -64,18 +64,15 @@
     ENUMINST(COUNT         , SYSCALL_COUNT          , 0x020, "Syscall Count"  )
 
 #ifdef __BEELZEBUB__SOURCE_CXX
-    #define PERFORM_SYSCALL(n) PerformSyscall
+    #define BE_PERFORM_SYSCALL(n) PerformSyscall
 #else
-    #define PERFORM_SYSCALL(n) MCATS(PerformSyscall, n)
+    #define BE_PERFORM_SYSCALL(n) MCATS(BePerformSyscall, n)
 #endif
 
-#ifdef __BEELZEBUB__SOURCE_CXX
-namespace Beelzebub
-{
-#endif
-    ENUMDECL(SyscallSelection, ENUM_SYSCALLSELECTION, LITE)
+__PUB_ENUM(SyscallSelection, __ENUM_SYSCALLSELECTION, LITE)
 
-    __forceinline Handle PERFORM_SYSCALL(6)(SyscallSelection selection
+__NAMESPACE_BEGIN
+    __forceinline Handle BE_PERFORM_SYSCALL(6)(BeSyscallSelection selection
         , void * arg0, void * arg1, void * arg2
         , void * arg3, void * arg4, void * arg5)
     {
@@ -95,7 +92,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PERFORM_SYSCALL(5)(SyscallSelection selection
+    __forceinline Handle BE_PERFORM_SYSCALL(5)(BeSyscallSelection selection
         , void * arg0, void * arg1, void * arg2
         , void * arg3, void * arg4)
     {
@@ -114,7 +111,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PERFORM_SYSCALL(4)(SyscallSelection selection
+    __forceinline Handle BE_PERFORM_SYSCALL(4)(BeSyscallSelection selection
         , void * arg0, void * arg1, void * arg2
         , void * arg3)
     {
@@ -132,7 +129,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PERFORM_SYSCALL(3)(SyscallSelection selection
+    __forceinline Handle BE_PERFORM_SYSCALL(3)(BeSyscallSelection selection
         , void * arg0, void * arg1, void * arg2)
     {
         Handle res;
@@ -146,7 +143,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PERFORM_SYSCALL(2)(SyscallSelection selection
+    __forceinline Handle BE_PERFORM_SYSCALL(2)(BeSyscallSelection selection
         , void * arg0, void * arg1)
     {
         Handle res;
@@ -160,7 +157,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PERFORM_SYSCALL(1)(SyscallSelection selection
+    __forceinline Handle BE_PERFORM_SYSCALL(1)(BeSyscallSelection selection
         , void * arg0)
     {
         Handle res;
@@ -174,7 +171,7 @@ namespace Beelzebub
         return res;
     }
 
-    __forceinline Handle PERFORM_SYSCALL(0)(SyscallSelection selection)
+    __forceinline Handle BE_PERFORM_SYSCALL(0)(BeSyscallSelection selection)
     {
         Handle res;
 
@@ -185,8 +182,8 @@ namespace Beelzebub
 
         return res;
     }
-#ifdef __BEELZEBUB__SOURCE_CXX
-}
-#endif
+__NAMESPACE_END
 
 #include <beel/syscalls/memory.h>
+
+#undef BE_PERFORM_SYSCALL

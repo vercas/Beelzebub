@@ -1,0 +1,35 @@
+namespace Beelzebub;
+[output: C, GAS] prefix Be;
+
+builtin Handle = u64;
+
+flags u32 MessageFlags
+{
+    [output: C, GAS] prefix Mf;
+
+    Typed,
+    Request, // Kernel will manage a reply.
+}
+
+[size: 64]
+struct Message
+{
+    Handle Source, Destination;
+
+    MessageFlags Flags;
+
+    union
+    {
+        u32 FlagsExtra;
+        i32 Type; /* Whether this is used or not is determined by a flag. */
+    }
+
+    union
+    {
+        Handle Handles[5];
+        u64 D[5];
+        u32 W[10];
+        u16 H[20];
+        u8  B[40];
+    }
+}

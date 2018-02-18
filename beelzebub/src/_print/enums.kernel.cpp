@@ -41,9 +41,9 @@
 
 using namespace Beelzebub;
 
-ENUM_TO_STRING_EX2(FrameSize, ENUM_FRAMESIZE, Beelzebub)
-
-ENUM_TO_STRING_EX2(MemoryContent, ENUM_MEMORYCONTENT, Beelzebub)
+__ENUM_TO_STRING_EX2(FrameSize, __ENUM_FRAMESIZE, Beelzebub)
+__ENUM_TO_STRING_EX2(MemoryContent, __ENUM_MEMORYCONTENT, Beelzebub)
+__ENUM_TO_STRING_EX2(ExceptionType, __ENUM_EXCEPTIONTYPE, Beelzebub)
 
 bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
 {
@@ -66,8 +66,6 @@ bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
 
     return false;
 }
-
-ENUM_TO_STRING_EX2(ExceptionType, ENUM_EXCEPTIONTYPE, Beelzebub)
 
 /************************
     Terminal Printing

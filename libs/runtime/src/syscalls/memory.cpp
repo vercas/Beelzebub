@@ -40,9 +40,8 @@
 #include <beel/syscalls.h>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Syscalls;
 
-Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions opts)
+Handle Beelzebub::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions opts)
 {
     if unlikely(addr % PageSize.Value != 0 || size % PageSize.Value != 0)
         return HandleResult::AlignmentFailure;
@@ -57,7 +56,7 @@ Handle Syscalls::MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions
         , reinterpret_cast<void *>((uintptr_t)(int)opts));
 }
 
-Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts)
+Handle Beelzebub::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts)
 {
     if unlikely(addr % PageSize.Value != 0 || size % PageSize.Value != 0)
         return HandleResult::AlignmentFailure;
@@ -72,7 +71,7 @@ Handle Syscalls::MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions
         , reinterpret_cast<void *>((uintptr_t)(int)opts));
 }
 
-Handle Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
+Handle Beelzebub::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
 {
     if unlikely(dst == src || len == 0)
         return HandleResult::Okay;
@@ -85,7 +84,7 @@ Handle Syscalls::MemoryCopy(uintptr_t dst, uintptr_t src, size_t len)
         , reinterpret_cast<void *>((uintptr_t)len));
 }
 
-Handle Syscalls::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
+Handle Beelzebub::MemoryFill(uintptr_t dst, uint8_t val, size_t len)
 {
     if unlikely(len == 0)
         return HandleResult::Okay;

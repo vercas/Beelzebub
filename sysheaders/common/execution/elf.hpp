@@ -59,11 +59,11 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfClass : uint8_t
     {
-        ENUM_ELFCLASS(ENUMINST_VAL)
+        ENUM_ELFCLASS(__ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(ElfClass)
-    ENUM_TO_STRING_DECL(ElfClass, ENUM_ELFCLASS);
+    __ENUMOPS_LITE(ElfClass)
+    __ENUM_TO_STRING_DECL(ElfClass, ENUM_ELFCLASS);
 
 
     #define ENUM_ELFDATAENCODING(ENUMINST) \
@@ -76,11 +76,11 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfDataEncoding : uint8_t
     {
-        ENUM_ELFDATAENCODING(ENUMINST_VAL)
+        ENUM_ELFDATAENCODING(__ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(ElfDataEncoding)
-    ENUM_TO_STRING_DECL(ElfDataEncoding, ENUM_ELFDATAENCODING);
+    __ENUMOPS_LITE(ElfDataEncoding)
+    __ENUM_TO_STRING_DECL(ElfDataEncoding, ENUM_ELFDATAENCODING);
 
 
     #define ENUM_ELFOSABI(ENUMINST) \
@@ -109,11 +109,11 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfOsAbi : uint8_t
     {
-        ENUM_ELFOSABI(ENUMINST_VAL)
+        ENUM_ELFOSABI(__ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(ElfOsAbi)
-    ENUM_TO_STRING_DECL(ElfOsAbi, ENUM_ELFOSABI);
+    __ENUMOPS_LITE(ElfOsAbi)
+    __ENUM_TO_STRING_DECL(ElfOsAbi, ENUM_ELFOSABI);
 
 
     #define ENUM_ELFFILETYPE(ENUMINST) \
@@ -132,11 +132,11 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfFileType : uint16_t
     {
-        ENUM_ELFFILETYPE(ENUMINST_VAL)
+        ENUM_ELFFILETYPE(__ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(ElfFileType)
-    ENUM_TO_STRING_DECL(ElfFileType, ENUM_ELFFILETYPE);
+    __ENUMOPS_LITE(ElfFileType)
+    __ENUM_TO_STRING_DECL(ElfFileType, ENUM_ELFFILETYPE);
     
 
     #define ENUM_ELFMACHINE(ENUMINST) \
@@ -169,11 +169,11 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfMachine : uint16_t
     {
-        ENUM_ELFMACHINE(ENUMINST_VAL)
+        ENUM_ELFMACHINE(__ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(ElfMachine)
-    ENUM_TO_STRING_DECL(ElfMachine, ENUM_ELFMACHINE);
+    __ENUMOPS_LITE(ElfMachine)
+    __ENUM_TO_STRING_DECL(ElfMachine, ENUM_ELFMACHINE);
 
 
     #define ENUM_ELFSECTIONHEADERTYPE(ENUMINST) \
@@ -200,11 +200,11 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfSectionHeaderType : uint32_t
     {
-        ENUM_ELFSECTIONHEADERTYPE(ENUMINST_VAL)
+        ENUM_ELFSECTIONHEADERTYPE(__ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(ElfSectionHeaderType)
-    ENUM_TO_STRING_DECL(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE);
+    __ENUMOPS_LITE(ElfSectionHeaderType)
+    __ENUM_TO_STRING_DECL(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE);
 
 
     #define ENUM_ELFSECTIONHEADERFLAGS32(ENUMINST) \
@@ -225,11 +225,11 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfSectionHeaderFlags_32 : uint32_t
     {
-        ENUM_ELFSECTIONHEADERFLAGS32(ENUMINST_VAL)
+        ENUM_ELFSECTIONHEADERFLAGS32(__ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfSectionHeaderFlags_32)
-    ENUM_TO_STRING_DECL(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32);
+    __ENUMOPS(ElfSectionHeaderFlags_32)
+    __ENUM_TO_STRING_DECL(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32);
 
 
     #define ENUM_ELFSECTIONHEADERFLAGS64(ENUMINST) \
@@ -250,11 +250,11 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfSectionHeaderFlags_64 : uint64_t
     {
-        ENUM_ELFSECTIONHEADERFLAGS64(ENUMINST_VAL)
+        ENUM_ELFSECTIONHEADERFLAGS64(__ENUMINST_VAL)
     };
 
-    ENUMOPS(ElfSectionHeaderFlags_64)
-    ENUM_TO_STRING_DECL(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64);
+    __ENUMOPS(ElfSectionHeaderFlags_64)
+    __ENUM_TO_STRING_DECL(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64);
 
 
     #define ENUM_ELFPROGRAMHEADERTYPE(ENUMINST) \
@@ -272,31 +272,29 @@ namespace Beelzebub { namespace Execution
      */
     enum class ElfProgramHeaderType : uint32_t
     {
-        ENUM_ELFPROGRAMHEADERTYPE(ENUMINST_VAL)
+        ENUM_ELFPROGRAMHEADERTYPE(__ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(ElfProgramHeaderType)
-    ENUM_TO_STRING_DECL(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE);
+    __ENUMOPS_LITE(ElfProgramHeaderType)
+    __ENUM_TO_STRING_DECL(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE);
 
 
+    /**
+     *  ELF segment flags.
+     */
     #define ENUM_ELFPROGRAMHEADERFLAGS(ENUMINST) \
         ENUMINST(None       ,  0) \
         ENUMINST(Executable ,  1) \
         ENUMINST(Writable   ,  2) \
         ENUMINST(Readable   ,  4) \
 
+    __ENUMDECL(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS, FULL, uint32_t)
+    __ENUM_TO_STRING_DECL(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS);
+
+
     /**
-     *  ELF segment flags.
+     *  ELF DYNAMIC segment entry tags.
      */
-    enum class ElfProgramHeaderFlags : uint32_t
-    {
-        ENUM_ELFPROGRAMHEADERFLAGS(ENUMINST_VAL)
-    };
-
-    ENUMOPS(ElfProgramHeaderFlags)
-    ENUM_TO_STRING_DECL(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS);
-
-
     #define ENUM_ELFDYNAMICENTRYTAG(ENUMINST) \
         ENUMINST(DT_NULL                ,  0) \
         ENUMINST(DT_NEEDED              ,  1) \
@@ -329,18 +327,18 @@ namespace Beelzebub { namespace Execution
         ENUMINST(FiniArraySize          , 28) \
         ENUMINST(DT__MAX                , 30) /* Not really a tag value */ \
 
-    /**
-     *  ELF DYNAMIC segment entry tags.
-     */
     enum ElfDynamicEntryTag : int32_t
     {
-        ENUM_ELFDYNAMICENTRYTAG(ENUMINST_VAL)
+        ENUM_ELFDYNAMICENTRYTAG(__ENUMINST_VAL)
     };
 
-    ENUMOPS_LITE(ElfDynamicEntryTag)
-    ENUM_TO_STRING_DECL(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG);
+    __ENUMOPS_LITE(ElfDynamicEntryTag)
+    __ENUM_TO_STRING_DECL(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG);
 
 
+    /**
+     *  ELF relocation types.
+     */
     #define ENUM_ELFRELOCATIONTYPE(ENUMINST) \
         ENUMINST(R_386_NONE             ,  0) \
         ENUMINST(R_386_32               ,  1) \
@@ -394,18 +392,12 @@ namespace Beelzebub { namespace Execution
         ENUMINST(R_AMD64_IRELATIVE      , 37) \
         ENUMINST(R_AMD64__MAX           , 38) \
 
+    __ENUMDECL(ElfRelType, ENUM_ELFRELOCATIONTYPE, LITE, uint8_t)
+
 
     /**
-     *  ELF relocation types.
+     *  ELF symbol bindings.
      */
-    enum ElfRelType : uint8_t
-    {
-        ENUM_ELFRELOCATIONTYPE(ENUMINST_VAL)
-    };
-
-    ENUMOPS_LITE(ElfRelType)
-
-
     #define ENUM_ELFSYMBOLBINDING(ENUMINST) \
         ENUMINST(Local      , 0x00) \
         ENUMINST(Global     , 0x10) \
@@ -417,21 +409,16 @@ namespace Beelzebub { namespace Execution
         ENUMINST(Proc2      , 0xE0) \
         ENUMINST(Proc3      , 0xF0) \
 
-    /**
-     *  ELF symbol bindings.
-     */
-    enum class ElfSymbolBinding : uint8_t
-    {
-        ENUM_ELFSYMBOLBINDING(ENUMINST_VAL)
-    };
-
     //  Note: Yes, all the values are actually offset 4 bits left, as they would
     //  appear in the `st_info` field.
 
-    ENUMOPS(ElfSymbolBinding)
-    ENUM_TO_STRING_DECL(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING);
+    __ENUMDECL(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING, FULL, uint8_t)
+    __ENUM_TO_STRING_DECL(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING);
 
 
+    /**
+     *  ELF symbol bindings.
+     */
     #define ENUM_ELFSYMBOLTYPE(ENUMINST) \
         ENUMINST(None         , 0x0) \
         ENUMINST(Object       , 0x1) \
@@ -447,18 +434,13 @@ namespace Beelzebub { namespace Execution
         ENUMINST(Proc2        , 0xE) \
         ENUMINST(Proc3        , 0xF) \
 
+    __ENUMDECL(ElfSymbolType, ENUM_ELFSYMBOLTYPE, FULL, uint8_t)
+    __ENUM_TO_STRING_DECL(ElfSymbolType, ENUM_ELFSYMBOLTYPE);
+
+
     /**
      *  ELF symbol bindings.
      */
-    enum class ElfSymbolType : uint8_t
-    {
-        ENUM_ELFSYMBOLTYPE(ENUMINST_VAL)
-    };
-
-    ENUMOPS(ElfSymbolType)
-    ENUM_TO_STRING_DECL(ElfSymbolType, ENUM_ELFSYMBOLTYPE);
-
-
     #define ENUM_ELFSYMBOLVISIBILITY(ENUMINST) \
         ENUMINST(Default      , 0x0) \
         ENUMINST(Internal     , 0x1) \
@@ -468,18 +450,13 @@ namespace Beelzebub { namespace Execution
         ENUMINST(Singleton    , 0x5) \
         ENUMINST(Eliminate    , 0x6) \
 
+    __ENUMDECL(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY, FULL, uint8_t)
+    __ENUM_TO_STRING_DECL(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY);
+
+
     /**
-     *  ELF symbol bindings.
+     *  Special ELF section indexes, with equally special meaning.
      */
-    enum class ElfSymbolVisibility : uint8_t
-    {
-        ENUM_ELFSYMBOLVISIBILITY(ENUMINST_VAL)
-    };
-
-    ENUMOPS(ElfSymbolVisibility)
-    ENUM_TO_STRING_DECL(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY);
-
-
     #define ENUM_ELFSECTIONINDEXES(ENUMINST) \
         ENUMINST(SHN_UNDEF    , 0x0000) \
         ENUMINST(SHN_LORESERVE, 0xFF00) \
@@ -492,15 +469,7 @@ namespace Beelzebub { namespace Execution
         ENUMINST(SHN_XINDEX   , 0xFFFF) \
         ENUMINST(SHN_HIRESERVE, 0xFFFF) \
 
-    /**
-     *  Special ELF section indexes, with equally special meaning.
-     */
-    enum ElfSectionIndexes : uint16_t
-    {
-        ENUM_ELFSECTIONINDEXES(ENUMINST_VAL)
-    };
-
-    ENUMOPS_LITE(ElfSectionIndexes)
+    __ENUMDECL(ElfSectionIndexes, ENUM_ELFSECTIONINDEXES, LITE, uint16_t)
 
 
     /*  Structures  */
@@ -833,6 +802,9 @@ namespace Beelzebub { namespace Execution
     /*  ELF class  */
 
 
+    /**
+     *  Results of ELF validation.
+     */
     #define ENUM_ELFVALIDATIONRESULT(ENUMINST) \
         ENUMINST(Success                    ,  0) \
         ENUMINST(InvalidClass               ,  1) \
@@ -865,16 +837,8 @@ namespace Beelzebub { namespace Execution
         ENUMINST(WrongMagicNumber           , 28) \
         ENUMINST(WrongEndianness            , 29) \
 
-    /**
-     *  Results of ELF validation.
-     */
-    enum class ElfValidationResult : uint8_t
-    {
-        ENUM_ELFVALIDATIONRESULT(ENUMINST_VAL)
-    };
-
-    ENUMOPS_LITE(ElfValidationResult)
-    ENUM_TO_STRING_DECL(ElfValidationResult, ENUM_ELFVALIDATIONRESULT);
+    __ENUMDECL(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, LITE, uint8_t)
+    __ENUM_TO_STRING_DECL(ElfValidationResult, ENUM_ELFVALIDATIONRESULT);
 
 
     enum class RangeLoadStatus

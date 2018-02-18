@@ -41,7 +41,7 @@
 
 #include <beel/handles.h>
 
-#define ENUM_MEMREQOPTS(ENUMINST) \
+#define __ENUM_MEMREQOPTS(ENUMINST) \
     ENUMINST(None       , MEMREQ_NONE        , 0x000, "None"        ) \
     ENUMINST(Writable   , MEMREQ_WRITABLE    , 0x001, "Writable"    ) \
     ENUMINST(Executable , MEMREQ_EXECUTABLE  , 0x002, "Executable"  ) \
@@ -51,21 +51,14 @@
     ENUMINST(Commit     , MEMREQ_COMMIT      , 0x200, "Commit"      ) \
     ENUMINST(ThreadStack, MEMREQ_THREAD_STACK, 0x031, "Thread Stack")
 
-#define ENUM_MEMRELOPTS(ENUMINST) \
+#define __ENUM_MEMRELOPTS(ENUMINST) \
     ENUMINST(None       , MEMREL_NONE        , 0x000, "None"        ) \
     ENUMINST(Decommit   , MEMREL_DECOMMIT    , 0x001, "Decommit"    )
 
-#ifdef __BEELZEBUB__SOURCE_CXX
-namespace Beelzebub { namespace Syscalls
-{
-#endif
-    ENUMDECL(MemoryRequestOptions, ENUM_MEMREQOPTS, FULL)
-    ENUMDECL(MemoryReleaseOptions, ENUM_MEMRELOPTS, FULL)
+__PUB_ENUM(MemoryRequestOptions, __ENUM_MEMREQOPTS, FULL)
+__PUB_ENUM(MemoryReleaseOptions, __ENUM_MEMRELOPTS, FULL)
 
-    __shared Handle MemoryRequest(uintptr_t addr, size_t size, MemoryRequestOptions opts);
-    __shared Handle MemoryRelease(uintptr_t addr, size_t size, MemoryReleaseOptions opts);
-    __shared Handle MemoryCopy(uintptr_t dst, uintptr_t src, size_t len);
-    __shared Handle MemoryFill(uintptr_t dst, uint8_t val, size_t len);
-#ifdef __BEELZEBUB__SOURCE_CXX
-}}
-#endif
+__PUB_FUNC(BeHandle, MemoryRequest, uintptr_t addr, size_t    size, BeMemoryRequestOptions opts);
+__PUB_FUNC(BeHandle, MemoryRelease, uintptr_t addr, size_t    size, BeMemoryReleaseOptions opts);
+__PUB_FUNC(BeHandle, MemoryCopy   , uintptr_t dst , uintptr_t src , size_t                 len );
+__PUB_FUNC(BeHandle, MemoryFill   , uintptr_t dst , uint8_t   val , size_t                 len );

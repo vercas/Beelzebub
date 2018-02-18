@@ -63,7 +63,7 @@ namespace Beelzebub
 
         Exception const * Payload;
         ExceptionContext * Previous;
-        ExceptionStatus Status;
+        ExceptionContextStatus Status;
     } __packed;
 
     /**

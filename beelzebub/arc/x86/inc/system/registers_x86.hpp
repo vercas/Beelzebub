@@ -222,7 +222,7 @@ namespace Beelzebub { namespace System
         Cpuid                   = 0x00200000,
     };
 
-    ENUMOPS(FlagsRegisterFlags, size_t)
+    __ENUMOPS(FlagsRegisterFlags, size_t)
 
     /**
      *  Represents the value of a MSR.

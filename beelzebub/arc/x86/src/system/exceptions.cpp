@@ -503,7 +503,7 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
     {
         //  First, find the right context.
 
-        while (context->Status != ExceptionStatus::Active)
+        while (context->Status != ExceptionContextStatus::Active)
             if (context->Previous != nullptr)
                 context = context->Previous;
             else

@@ -45,9 +45,11 @@
 #include "lock_elision.hpp"
 #include "watchdog.hpp"
 
+#include "terminals/djinn.hpp"
 #include "terminals/serial.hpp"
 #include "terminals/vbe.hpp"
 #include "multiboot.h"
+#include "utils/port.parse.hpp"
 
 #include "system/rtc.hpp"
 #include "system/cpu.hpp"
@@ -119,12 +121,97 @@ Domain Beelzebub::Domain0;
 
 static bool MainShouldElideLocks = false;
 
-static __startup Handle InitializeTimers();
+/**********************
+    PROTO TERMINALS
+**********************/
 
-//  These are minor initialization steps performed in the order they appear here
-//  in the source code.
+DjinnTerminal initialDjinnTerminal;
+SerialTerminal initialSerialTerminal;
+VbeTerminal initialVbeTerminal;
 
-static __startup void MainParseKernelArguments()
+__startup TerminalBase * InitializeTerminalProto(char const * term)
+{
+    new (&initialDjinnTerminal) DjinnTerminal();
+    //  This one will be available at all times.
+
+    //  TODO: Properly retrieve these addresses.
+
+    new (&COM1) ManagedSerialPort(0x03F8);
+    new (&COM2) ManagedSerialPort(0x02F8);
+    new (&COM3) ManagedSerialPort(0x03E8);
+    new (&COM4) ManagedSerialPort(0x02E8);
+
+    auto ppr = ParsePort(term);
+
+    switch (ppr.Error)
+    {
+#define CASE_COM(n) \
+    case PortParseResult::COM##n:                                           \
+        COM##n.Initialize();                                                \
+        new (&initialSerialTerminal) SerialTerminal(&COM##n);               \
+                                                                            \
+        if (COM##n.Type != SerialPortType::Disconnected)                    \
+            return &initialSerialTerminal;                                  \
+        break;
+    CASE_COM(1)
+    CASE_COM(2)
+    CASE_COM(3)
+    CASE_COM(4)
+#undef CASE_COM
+    case PortParseResult::SpecificPort:
+        //  Specifically unsupported right now. Maybe later, a PCI device can be referenced instead..?
+    default:
+        //  Other cases are handled later.
+        break;
+    }
+
+    auto mbi = (multiboot_info_t *)JG_INFO_ROOT_EX->multiboot_paddr;
+
+    new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
+
+    // msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
+    //     , (uintptr_t)mbi->framebuffer_addr
+    //     , (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height
+    //     , (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
+
+    // msg(" vbe_control_info: %X4%n", mbi->vbe_control_info);
+    // msg(" vbe_mode_info: %X4%n", mbi->vbe_mode_info);
+    // msg(" vbe_mode: %X4%n", mbi->vbe_mode);
+    // msg(" vbe_interface_seg: %X4%n", mbi->vbe_interface_seg);
+    // msg(" vbe_interface_off: %X2%n", mbi->vbe_interface_off);
+    // msg(" vbe_interface_len: %X2%n", mbi->vbe_interface_len);
+
+    switch (ppr.Error)
+    {
+    case PortParseResult::Vbe:
+        return &initialVbeTerminal;
+
+    case PortParseResult::SpecificPort:
+        initialVbeTerminal << "Specific port values are not supported yet." << EndLine;
+        break;
+
+    case PortParseResult::Ethernet:
+        initialVbeTerminal << "No terminal over Ethernet protocol supported." << EndLine;
+        break;
+
+    case PortParseResult::COM1: case PortParseResult::COM2: case PortParseResult::COM3: case PortParseResult::COM4:
+        initialVbeTerminal << "Selected COM interface (" << (int)ppr.Error << ") is unuseable:" << EndLine
+            << &COM1 << EndLine << &COM2 << EndLine << &COM3 << EndLine << &COM4 << EndLine;
+        break;
+
+    default:
+        initialVbeTerminal << "Error parsing terminal command-line option." << EndLine;
+        break;
+    }
+
+    return &initialVbeTerminal;
+}
+
+/************************************
+    KERNEL COMMAND-LINE ARGUMENTS
+************************************/
+
+__startup void MainParseKernelArguments()
 {
     //  Parsing the command-line arguments given to the kernel by the bootloader.
     //  Again, platform-specific.
@@ -159,7 +246,70 @@ static __startup void MainParseKernelArguments()
     }
 }
 
-static __startup void MainInitializeInterrupts()
+/*****************
+    INTERRUPTS
+*****************/
+
+__startup Handle InitializeInterrupts()
+{
+    size_t isrStubsSize = (size_t)(&IsrStubsEnd - &IsrStubsBegin);
+
+    assert(isrStubsSize == Interrupts::Count
+        , "ISR stubs seem to have the wrong size!");
+    //  The ISR stubs must be aligned to avoid a horribly repetition.
+
+    for (size_t i = 0; i < Interrupts::Count; ++i)
+    {
+        Interrupts::Get(i)
+        .SetGate(
+            IdtGate()
+            .SetOffset(&IsrStubsBegin + i)
+            .SetSegment(Gdt::KernelCodeSegment)
+            .SetType(IdtGateType::InterruptGate)
+            .SetPresent(true))
+        .SetHandler(&MiscellaneousInterruptHandler)
+        .SetEnder(nullptr);
+    }
+
+    //  So now the IDT should be fresh out of the oven and ready for serving.
+
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+    Interrupts::Get(KnownExceptionVectors::DoubleFault).GetGate()->SetIst(1);
+    Interrupts::Get(KnownExceptionVectors::PageFault  ).GetGate()->SetIst(2);
+#endif
+
+    Interrupts::Get(KnownExceptionVectors::DivideError).SetHandler(&DivideErrorHandler);
+    Interrupts::Get(KnownExceptionVectors::Breakpoint).SetHandler(&BreakpointHandler);
+    Interrupts::Get(KnownExceptionVectors::Overflow).SetHandler(&OverflowHandler);
+    Interrupts::Get(KnownExceptionVectors::BoundRangeExceeded).SetHandler(&BoundRangeExceededHandler);
+    Interrupts::Get(KnownExceptionVectors::InvalidOpcode).SetHandler(&InvalidOpcodeHandler);
+    Interrupts::Get(KnownExceptionVectors::NoMathCoprocessor).SetHandler(&NoMathCoprocessorHandler);
+    Interrupts::Get(KnownExceptionVectors::DoubleFault).SetHandler(&DoubleFaultHandler);
+    Interrupts::Get(KnownExceptionVectors::InvalidTss).SetHandler(&InvalidTssHandler);
+    Interrupts::Get(KnownExceptionVectors::SegmentNotPresent).SetHandler(&SegmentNotPresentHandler);
+    Interrupts::Get(KnownExceptionVectors::StackSegmentFault).SetHandler(&StackSegmentFaultHandler);
+    Interrupts::Get(KnownExceptionVectors::GeneralProtectionFault).SetHandler(&GeneralProtectionHandler);
+    Interrupts::Get(KnownExceptionVectors::PageFault).SetHandler(&PageFaultHandler);
+
+    Interrupts::Get(KnownExceptionVectors::ApicTimer).RemoveHandler();
+
+    Pic::Initialize(0x20);  //  Just below the spurious interrupt vector.
+
+    Pic::Subscribe(1, &keyboard_handler);
+    Pic::Subscribe(3, &ManagedSerialPort::IrqHandler);
+    Pic::Subscribe(4, &ManagedSerialPort::IrqHandler);
+
+    Nmi::Initialize();
+
+    Interrupts::Register.Activate();
+
+    if (COM1.Type != SerialPortType::Disconnected) COM1.EnableInterrupts();
+    if (COM2.Type != SerialPortType::Disconnected) COM2.EnableInterrupts();
+
+    return HandleResult::Okay;
+}
+
+__startup void MainInitializeInterrupts()
 {
     //  Setting up basic interrupt handlers 'n stuff.
     //  Again, platform-specific.
@@ -176,6 +326,49 @@ static __startup void MainInitializeInterrupts()
         FAIL("Failed to initialize interrupts: %H", res);
     }
 }
+
+/**********************
+    DEBUG INTERFACE
+**********************/
+
+__startup Handle InitializeDebuggerInterface(int32_t interface)
+{
+
+}
+
+__startup void MainInitializeDebugInterface()
+{
+    //  Debug interface needs to be set up as requested in the kernel command-line arguments.
+    int32_t interface;  //  uint16_t range means UART.
+
+    MainTerminal->Write("[....] Initializing debugger interface...");
+
+    if (CMDO_SmpEnable.ParsingResult.IsValid())
+    {
+
+    }
+    else
+    {
+        MainTerminal->WriteLine(" None specified.\r[SKIP]");
+
+        return;
+    }
+
+    Handle res = InitializeDebuggerInterface(interface);
+
+    if (res.IsOkayResult())
+        MainTerminal->WriteLine(" Done.\r[OKAY]");
+    else
+    {
+        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+
+        FAIL("Failed to initialize debugger interface: %H", res);
+    }
+}
+
+/**********************
+    PHYSICAL MEMORY
+**********************/
 
 static __startup void MainInitializePhysicalMemory()
 {
@@ -195,6 +388,35 @@ static __startup void MainInitializePhysicalMemory()
     }
 }
 
+/***********
+    ACPI
+***********/
+
+/**
+ *  <summary>
+ *  Initializes the ACPI tables to make them easier to use by the system.
+ *  </summary>
+ */
+__startup Handle InitializeAcpiTables()
+{
+    Handle res;
+
+    res = Acpi::Crawl();
+
+    if unlikely(!res.IsOkayResult())
+        return res;
+
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    MainTerminal->WriteFormat(" %us LAPIC%s,"
+        , Acpi::PresentLapicCount, Acpi::PresentLapicCount != 1 ? "s" : "");
+#endif
+
+    MainTerminal->WriteFormat(" %us I/O APIC%s..."
+        , Acpi::IoapicCount, Acpi::IoapicCount != 1 ? "s" : "");
+
+    return HandleResult::Okay;
+}
+
 static __startup void MainInitializeAcpiTables()
 {
     //  Initialize the ACPI tables for easier use.
@@ -212,6 +434,10 @@ static __startup void MainInitializeAcpiTables()
         FAIL("Failed to initialize the ACPI tables: %H", res);
     }
 }
+
+/*********************
+    VIRTUAL MEMORY
+*********************/
 
 static __startup void MainInitializeVirtualMemory()
 {
@@ -243,6 +469,10 @@ static __startup void MainInitializeVirtualMemory()
     }
 }
 
+/************
+    CORES
+************/
+
 static __startup void MainInitializeCores()
 {
     //  Initialize the manager of processing cores.
@@ -265,6 +495,10 @@ static __startup void MainInitializeCores()
     }
 }
 
+/*****************
+    UNIT TESTS
+*****************/
+
 #ifdef __BEELZEBUB_SETTINGS_UNIT_TESTS
 static __startup void MainRunUnitTests()
 {
@@ -281,6 +515,92 @@ static __startup void MainRunUnitTests()
     }
 }
 #endif
+
+/***********
+    APIC
+***********/
+
+__startup Handle InitializeApic()
+{
+    Handle res;
+
+    paddr_t lapicPaddr = nullpaddr;
+
+    res = Acpi::FindLapicPaddr(lapicPaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to obtain LAPIC physical address.")
+        (res);
+
+    res = Vmm::MapPage(&BootstrapProcess
+        , Lapic::VirtualAddress
+        , lapicPaddr
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryMapOptions::NoReferenceCounting);
+
+    ASSERT(res.IsOkayResult(), "Failed to map page for LAPIC.")
+        (Lapic::VirtualAddress)(lapicPaddr)(res);
+
+    res = Lapic::Initialize();
+    //  This initializes the LAPIC for the BSP.
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to initialize the LAPIC.")
+        (res);
+
+    if (Lapic::X2ApicMode)
+        MainTerminal->Write(" Local x2APIC...");
+    else
+        MainTerminal->Write(" LAPIC...");
+
+    if (Acpi::IoapicCount < 1)
+    {
+        MainTerminal->Write(" no I/O APIC...");
+
+        return HandleResult::Okay;
+    }
+    
+    // uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
+
+    // uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
+    // for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    // {
+    //     if (ACPI_MADT_TYPE_IO_APIC != ((acpi_subtable_header *)e)->Type)
+    //         continue;
+
+    //     auto ioapic = (acpi_madt_io_apic *)e;
+
+    //     MainTerminal->WriteFormat("%n%*(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))"
+    //         , (size_t)25, ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);
+    // }
+
+    // e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
+    // for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    // {
+    //     switch (((acpi_subtable_header *)e)->Type)
+    //     {
+    //     case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
+    //         {
+    //             auto intovr = (acpi_madt_interrupt_override *)e;
+
+    //             MainTerminal->WriteFormat("%n%*(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))"
+    //                 , (size_t)23, intovr->Bus, intovr->SourceIrq, intovr->GlobalIrq, intovr->IntiFlags);
+    //         }
+    //         break;
+
+    //     case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
+    //         {
+    //             auto lanmi = (acpi_madt_local_apic_nmi *)e;
+
+    //             MainTerminal->WriteFormat("%n%*(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))"
+    //                 , (size_t)32, lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
+    //         }
+    //         break;
+    //     }
+    // }
+
+    return HandleResult::Okay;
+}
 
 static __startup void MainInitializeApic()
 {
@@ -300,6 +620,35 @@ static __startup void MainInitializeApic()
     }
 }
 
+/*************
+    TIMERS
+*************/
+
+__startup Handle InitializeTimers()
+{
+    PitCommand pitCmd {};
+    pitCmd.SetAccessMode(PitAccessMode::LowHigh);
+    pitCmd.SetOperatingMode(PitOperatingMode::SquareWaveGenerator);
+
+    Pit::SendCommand(pitCmd);
+
+    ApicTimer::Initialize(true);
+
+    MainTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
+
+    Pit::SetHandler();
+
+    Pit::SetFrequency(1000);
+    //  This frequency really shouldn't stress the BSP that much, considering
+    //  that the IRQ would get 2-3 million clock cycles on modern chips.
+
+    MainTerminal->WriteFormat(" PIT @ %u4 Hz...", Pit::Frequency);
+
+    Timer::Initialize();
+
+    return HandleResult::Okay;
+}
+
 static __startup void MainInitializeTimers()
 {
     //  Preparing the timers for basic timing.
@@ -317,6 +666,10 @@ static __startup void MainInitializeTimers()
         FAIL("Failed to initialize the timers: %H", res);
     }
 }
+
+/**************
+    MAILBOX
+**************/
 
 #ifdef __BEELZEBUB_SETTINGS_SMP
 static __startup void MainInitializeMailbox()
@@ -351,6 +704,189 @@ static __startup void MainBootstrapThread()
 
     Cpu::SetThread(&BootstrapThread);
     Cpu::SetProcess(&BootstrapProcess);
+}
+
+/***********************
+    PROCESSING UNITS
+***********************/
+
+__startup bool CheckApInitializationLock1()
+{
+    uint32_t volatile val = ApInitializationLock1;
+
+    return val == 0;
+}
+
+__startup bool CheckApInitializationLock3()
+{
+    uint32_t volatile val = ApInitializationLock3;
+
+    return val == 0;
+}
+
+__startup Handle InitializeAp(uint32_t const lapicId
+                            , uint32_t const procId
+                            ,   size_t const apIndex)
+{
+    Handle res;
+    //  Intermediate results.
+
+    vaddr_t vaddr = nullvaddr;
+
+    res = Vmm::AllocatePages(nullptr
+        , vsize_t(CpuStackSize)
+        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
+        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryContent::ThreadStack
+        , vaddr);
+
+    assert_or(res.IsOkayResult()
+        , "Failed to allocate stack of AP #%us"
+          " (LAPIC ID %u4, processor ID %u4): %H."
+        , apIndex, lapicId, procId
+        , res)
+    {
+        return res;
+    }
+
+    ApStackTopPointer = vaddr.Value + CpuStackSize;
+    ApInitializationLock1 = ApInitializationLock2 = ApInitializationLock3 = 1;
+
+    LapicIcr initIcr = LapicIcr(0)
+    .SetDeliveryMode(InterruptDeliveryModes::Init)
+    .SetDestinationShorthand(IcrDestinationShorthand::None)
+    .SetAssert(true)
+    .SetDestination(lapicId);
+
+    Lapic::SendIpi(initIcr);
+
+    Wait(10 * 1000);
+    //  Much more than the recommended amount, but this may be handy for busy
+    //  virtualized environments.
+
+    LapicIcr startupIcr = LapicIcr(0)
+    .SetDeliveryMode(InterruptDeliveryModes::StartUp)
+    .SetDestinationShorthand(IcrDestinationShorthand::None)
+    .SetAssert(true)
+    .SetVector(0x1000 >> 12)
+    .SetDestination(lapicId);
+
+    Lapic::SendIpi(startupIcr);
+
+    if (!Wait(10 * 1000, &CheckApInitializationLock1))
+    {
+        //  It should be ready. Let's try again.
+
+        Lapic::SendIpi(startupIcr);
+
+        if (!Wait(1000 * 1000, &CheckApInitializationLock1))
+            return HandleResult::Timeout;
+    }
+
+    //  If this point was reached, the AP has begun the handshake.
+
+    ApInitializationLock2 = 0;
+    //  Lower the entry barrier for the AP.
+
+    if likely(Wait(3 * 1000 * 1000, &CheckApInitializationLock3))
+        return HandleResult::Okay;
+    //  Now the AP must acknowledge passing the barrier before the BSP can
+    //  proceed. The timeout here is just symbolic and this should succeed at
+    //  the first or second calls of the predicate.
+    
+    return HandleResult::Timeout;
+}
+
+__startup Handle InitializeProcessingUnits()
+{
+    Handle res;
+    size_t apCount = 0;
+
+    paddr_t const bootstrapPaddr { 0x1000 };
+    vaddr_t const bootstrapVaddr { 0x1000 };
+    //  This's gonna be for AP bootstrappin' code.
+
+    res = Vmm::MapPage(&BootstrapProcess, bootstrapVaddr, bootstrapPaddr
+        , MemoryFlags::Global | MemoryFlags::Executable | MemoryFlags::Writable
+        , MemoryMapOptions::NoReferenceCounting);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to map page for AP bootstrap code.")
+        (bootstrapVaddr)(bootstrapPaddr)(res);
+
+    res = Vmm::InvalidatePage(nullptr, bootstrapVaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to invalidate page for AP bootstrap code.")
+        (bootstrapVaddr)(bootstrapPaddr)(res);
+
+    BootstrapPml4Address = BootstrapProcess.PagingTable;
+
+    COMPILER_MEMORY_BARRIER();
+    //  Needed to make sure that the PML4 address is copied over.
+
+    memcpy((void *)bootstrapVaddr, &ApBootstrapBegin, (uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin);
+    //  This makes sure the code can be executed by the AP.
+
+    KernelGdtPointer = GdtRegister::Retrieve();
+
+    BREAKPOINT_SET_AUX((int volatile *)((uintptr_t)&ApBreakpointCookie - (uintptr_t)&ApBootstrapBegin + bootstrapVaddr.Value));
+    InterruptState const int_cookie = InterruptState::Enable();
+
+    // MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
+    //     , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
+
+    uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
+    uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
+    for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
+    {
+        if (ACPI_MADT_TYPE_LOCAL_APIC != ((acpi_subtable_header *)e)->Type)
+            continue;
+
+        auto lapic = (acpi_madt_local_apic *)e;
+
+        // MainTerminal->WriteFormat("%n%*(( MADTe: %s LAPIC LID-%u1 PID-%u1 F-%X4 ))"
+        //     , (size_t)30, lapic->Id == Lapic::GetId() ? "BSP" : " AP"
+        //     , lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
+
+        if (0 != (ACPI_MADT_ENABLED & lapic->LapicFlags)
+            && lapic->Id != Lapic::GetId())
+        {
+            //  "Absent" LAPICs and the BSP need not be reset!
+
+            ++apCount;
+
+            res = InitializeAp(lapic->Id, lapic->ProcessorId, apCount);
+
+            if unlikely(!res.IsOkayResult())
+            {
+                msg("Failed to initialize AP #%us (LAPIC ID %u1, processor ID %u1)"
+                    ": %H%n"
+                    , apCount, lapic->Id, lapic->ProcessorId, res);
+
+                assert(false, "FAILED AP INIT!");
+                //  This will only catch fire in debug mode.
+            }
+        }
+    }
+
+    Wait(10 * 1000);
+    //  Wait a bitsy before unmapping the page.
+
+    int_cookie.Restore();
+    BREAKPOINT_SET_AUX(nullptr);
+
+    res = Vmm::UnmapPage(&BootstrapProcess, bootstrapVaddr);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to unmap page containing AP boostrap code.")
+        (bootstrapVaddr)(bootstrapPaddr)(res);
+
+    CpuDataSetUp = true;
+    //  Let the kernel know that CPU data is available for use.
+
+    return HandleResult::Okay;
 }
 
 static __startup void MainInitializeExtraCpus()
@@ -558,23 +1094,36 @@ static __startup void MainInitializeKernelModules()
     }
 }
 
-static __startup void MainInitializeMainTerminal()
+/*********************
+    MAIN TERMINALS
+*********************/
+
+__startup TerminalBase * InitializeTerminalMain(char const * term)
+{
+    if (term == nullptr || strcmp("vbe", term) == 0)
+        return &initialVbeTerminal;
+
+    if (strcmp("serial", term) == 0)
+        return &initialSerialTerminal;
+
+    assert_or(false, "Unknown terminal type: %s", term)
+    {
+        return &initialVbeTerminal;
+    }
+}
+
+static __startup void MainInitializeMainTerminal(char const * term)
 {
     //  Upgrade the terminal to a more capable and useful one.
     //  Yet again, platform-specific.
 
     MainTerminal->Write("[....] Initializing main terminal...");
 
-    TerminalBase * secondaryTerminal;
-
-    if (CMDO_Term.ParsingResult.IsValid())
-        secondaryTerminal = InitializeTerminalMain(CMDO_Term.StringValue);
-    else
-        secondaryTerminal = InitializeTerminalMain(nullptr);
+    TerminalBase * const secondaryTerminal = InitializeTerminalMain(term);
 
     MainTerminal->WriteLine(" Done.\r[OKAY]");
-
     MainTerminal->WriteLine("Switching over.");
+
     MainTerminal = secondaryTerminal;
 }
 
@@ -599,26 +1148,36 @@ void Beelzebub::Main()
 
     Domain0.Gdt = GdtRegister::Retrieve();
 
-    InitializationLock.Acquire();
+    //  Step 0 is parsing the command-line arguments given to the kernel, so it knows how to operate.
+    MainParseKernelArguments();
 
-    //  First step is getting a simple terminal running for the most
-    //  basic of output. This should be x86-common.
-    MainTerminal = InitializeTerminalProto();
+    char const * const term = CMDO_Term.ParsingResult.IsValid() ? CMDO_Term.StringValue : nullptr;
+
+    //  Basic terminal(s) are initialized as soon as possible.
+    MainTerminal = InitializeTerminalProto(term);
 
     MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
+
+    // MSG("Stack pointer in Beelzebub::Main is %Xp.%n", GetCurrentStackPointer());
+
+    MainInitializeDebugInterface();
+    //  These two steps need to be finished as quickly as possible.
 
     Rtc::Read();
     DEBUG_TERM << "Boot time: " << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
         << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds << EndLine;
 
-    // MSG("Stack pointer in Beelzebub::Main is %Xp.%n", GetCurrentStackPointer());
+    MSGEX("Test {0} {1} {2} {2} {0} {1} {1} {0:bit}.\n", true, -124, "rada");
 
-    MainParseKernelArguments();
     MainInitializeInterrupts();
     MainInitializePhysicalMemory();
     MainInitializeAcpiTables();
     MainInitializeVirtualMemory();
     MainInitializeBootModules();
+
+    //  This should really be done under a lock.
+    InitializationLock.Acquire();
+
     MainInitializeCores();
 
     DebugRegisters::Initialize();
@@ -689,7 +1248,7 @@ void Beelzebub::Main()
     MainInitializeSyscalls();
     MainInitializeKernelModules();
 
-    MainInitializeMainTerminal();
+    MainInitializeMainTerminal(term);
 
     //  Permit other processors to initialize themselves.
     MainTerminal->WriteLine("--  Initialization complete! --");
@@ -1127,474 +1686,3 @@ void Beelzebub::Secondary()
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 }
 #endif
-
-/****************
-    TERMINALS
-****************/
-
-SerialTerminal initialSerialTerminal;
-VbeTerminal initialVbeTerminal;
-
-TerminalBase * InitializeTerminalProto()
-{
-    //  TODO: Properly retrieve these addresses.
-
-    new (&COM1) ManagedSerialPort(0x03F8);
-    COM1.Initialize();
-
-    new (&COM2) ManagedSerialPort(0x02F8);
-    COM2.Initialize();
-
-    new (&COM3) ManagedSerialPort(0x03E8);
-    COM3.Initialize();
-
-    new (&COM4) ManagedSerialPort(0x02E8);
-    COM4.Initialize();
-
-    if (COM1.Type != SerialPortType::Disconnected)
-    {
-        //  Initializes the serial terminal.
-        new (&initialSerialTerminal) SerialTerminal(&COM1);
-
-        Beelzebub::Debug::DebugTerminal = &initialSerialTerminal;
-    }
-
-    auto mbi = (multiboot_info_t *)JG_INFO_ROOT_EX->multiboot_paddr;
-
-    new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
-
-#ifdef __BEELZEBUB__CONF_RELEASE
-    Beelzebub::Debug::DebugTerminal = &initialVbeTerminal;
-#endif
-
-    initialVbeTerminal << &COM1 << EndLine << &COM2 << EndLine << &COM3 << EndLine << &COM4 << EndLine;
-
-    // msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
-    //     , (uintptr_t)mbi->framebuffer_addr
-    //     , (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height
-    //     , (uint16_t)mbi->framebuffer_pitch, (uint8_t)mbi->framebuffer_bpp);
-
-    // msg(" vbe_control_info: %X4%n", mbi->vbe_control_info);
-    // msg(" vbe_mode_info: %X4%n", mbi->vbe_mode_info);
-    // msg(" vbe_mode: %X4%n", mbi->vbe_mode);
-    // msg(" vbe_interface_seg: %X4%n", mbi->vbe_interface_seg);
-    // msg(" vbe_interface_off: %X2%n", mbi->vbe_interface_off);
-    // msg(" vbe_interface_len: %X2%n", mbi->vbe_interface_len);
-
-    //  And returns it.
-    //return &initialSerialTerminal; // termPtr;
-    return &initialVbeTerminal;
-}
-
-TerminalBase * InitializeTerminalMain(char * clue)
-{
-    if (clue == nullptr || strcmp("vbe", clue) == 0)
-        return &initialVbeTerminal;
-
-    if (strcmp("serial", clue) == 0)
-        return &initialSerialTerminal;
-
-    assert_or(false, "Unknown terminal type: %s", clue)
-    {
-        return &initialVbeTerminal;
-    }
-}
-
-/*****************
-    INTERRUPTS
-*****************/
-
-Handle InitializeInterrupts()
-{
-    size_t isrStubsSize = (size_t)(&IsrStubsEnd - &IsrStubsBegin);
-
-    assert(isrStubsSize == Interrupts::Count
-        , "ISR stubs seem to have the wrong size!");
-    //  The ISR stubs must be aligned to avoid a horribly repetition.
-
-    for (size_t i = 0; i < Interrupts::Count; ++i)
-    {
-        Interrupts::Get(i)
-        .SetGate(
-            IdtGate()
-            .SetOffset(&IsrStubsBegin + i)
-            .SetSegment(Gdt::KernelCodeSegment)
-            .SetType(IdtGateType::InterruptGate)
-            .SetPresent(true))
-        .SetHandler(&MiscellaneousInterruptHandler)
-        .SetEnder(nullptr);
-    }
-
-    //  So now the IDT should be fresh out of the oven and ready for serving.
-
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-    Interrupts::Get(KnownExceptionVectors::DoubleFault).GetGate()->SetIst(1);
-    Interrupts::Get(KnownExceptionVectors::PageFault  ).GetGate()->SetIst(2);
-#endif
-
-    Interrupts::Get(KnownExceptionVectors::DivideError).SetHandler(&DivideErrorHandler);
-    Interrupts::Get(KnownExceptionVectors::Breakpoint).SetHandler(&BreakpointHandler);
-    Interrupts::Get(KnownExceptionVectors::Overflow).SetHandler(&OverflowHandler);
-    Interrupts::Get(KnownExceptionVectors::BoundRangeExceeded).SetHandler(&BoundRangeExceededHandler);
-    Interrupts::Get(KnownExceptionVectors::InvalidOpcode).SetHandler(&InvalidOpcodeHandler);
-    Interrupts::Get(KnownExceptionVectors::NoMathCoprocessor).SetHandler(&NoMathCoprocessorHandler);
-    Interrupts::Get(KnownExceptionVectors::DoubleFault).SetHandler(&DoubleFaultHandler);
-    Interrupts::Get(KnownExceptionVectors::InvalidTss).SetHandler(&InvalidTssHandler);
-    Interrupts::Get(KnownExceptionVectors::SegmentNotPresent).SetHandler(&SegmentNotPresentHandler);
-    Interrupts::Get(KnownExceptionVectors::StackSegmentFault).SetHandler(&StackSegmentFaultHandler);
-    Interrupts::Get(KnownExceptionVectors::GeneralProtectionFault).SetHandler(&GeneralProtectionHandler);
-    Interrupts::Get(KnownExceptionVectors::PageFault).SetHandler(&PageFaultHandler);
-
-    Interrupts::Get(KnownExceptionVectors::ApicTimer).RemoveHandler();
-
-    Pic::Initialize(0x20);  //  Just below the spurious interrupt vector.
-
-    Pic::Subscribe(1, &keyboard_handler);
-    Pic::Subscribe(3, &ManagedSerialPort::IrqHandler);
-    Pic::Subscribe(4, &ManagedSerialPort::IrqHandler);
-
-    Nmi::Initialize();
-
-    Interrupts::Register.Activate();
-
-    if (COM1.Type != SerialPortType::Disconnected) COM1.EnableInterrupts();
-    if (COM2.Type != SerialPortType::Disconnected) COM2.EnableInterrupts();
-
-    return HandleResult::Okay;
-}
-
-/***********
-    ACPI
-***********/
-
-/**
- *  <summary>
- *  Initializes the ACPI tables to make them easier to use by the system.
- *  </summary>
- */
-Handle InitializeAcpiTables()
-{
-    Handle res;
-
-    res = Acpi::Crawl();
-
-    if unlikely(!res.IsOkayResult())
-        return res;
-
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    MainTerminal->WriteFormat(" %us LAPIC%s,"
-        , Acpi::PresentLapicCount, Acpi::PresentLapicCount != 1 ? "s" : "");
-#endif
-
-    MainTerminal->WriteFormat(" %us I/O APIC%s..."
-        , Acpi::IoapicCount, Acpi::IoapicCount != 1 ? "s" : "");
-
-    return HandleResult::Okay;
-}
-
-/***********
-    APIC
-***********/
-
-Handle InitializeApic()
-{
-    Handle res;
-
-    paddr_t lapicPaddr = nullpaddr;
-
-    res = Acpi::FindLapicPaddr(lapicPaddr);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to obtain LAPIC physical address.")
-        (res);
-
-    res = Vmm::MapPage(&BootstrapProcess
-        , Lapic::VirtualAddress
-        , lapicPaddr
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryMapOptions::NoReferenceCounting);
-
-    ASSERT(res.IsOkayResult(), "Failed to map page for LAPIC.")
-        (Lapic::VirtualAddress)(lapicPaddr)(res);
-
-    res = Lapic::Initialize();
-    //  This initializes the LAPIC for the BSP.
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to initialize the LAPIC.")
-        (res);
-
-    if (Lapic::X2ApicMode)
-        MainTerminal->Write(" Local x2APIC...");
-    else
-        MainTerminal->Write(" LAPIC...");
-
-    if (Acpi::IoapicCount < 1)
-    {
-        MainTerminal->Write(" no I/O APIC...");
-
-        return HandleResult::Okay;
-    }
-    
-    // uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
-
-    // uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
-    // for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
-    // {
-    //     if (ACPI_MADT_TYPE_IO_APIC != ((acpi_subtable_header *)e)->Type)
-    //         continue;
-
-    //     auto ioapic = (acpi_madt_io_apic *)e;
-
-    //     MainTerminal->WriteFormat("%n%*(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))"
-    //         , (size_t)25, ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);
-    // }
-
-    // e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
-    // for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
-    // {
-    //     switch (((acpi_subtable_header *)e)->Type)
-    //     {
-    //     case ACPI_MADT_TYPE_INTERRUPT_OVERRIDE:
-    //         {
-    //             auto intovr = (acpi_madt_interrupt_override *)e;
-
-    //             MainTerminal->WriteFormat("%n%*(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))"
-    //                 , (size_t)23, intovr->Bus, intovr->SourceIrq, intovr->GlobalIrq, intovr->IntiFlags);
-    //         }
-    //         break;
-
-    //     case ACPI_MADT_TYPE_LOCAL_APIC_NMI:
-    //         {
-    //             auto lanmi = (acpi_madt_local_apic_nmi *)e;
-
-    //             MainTerminal->WriteFormat("%n%*(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))"
-    //                 , (size_t)32, lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
-    //         }
-    //         break;
-    //     }
-    // }
-
-    return HandleResult::Okay;
-}
-
-/*************
-    TIMERS
-*************/
-
-Handle InitializeTimers()
-{
-    PitCommand pitCmd {};
-    pitCmd.SetAccessMode(PitAccessMode::LowHigh);
-    pitCmd.SetOperatingMode(PitOperatingMode::SquareWaveGenerator);
-
-    Pit::SendCommand(pitCmd);
-
-    ApicTimer::Initialize(true);
-
-    MainTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
-
-    Pit::SetHandler();
-
-    Pit::SetFrequency(1000);
-    //  This frequency really shouldn't stress the BSP that much, considering
-    //  that the IRQ would get 2-3 million clock cycles on modern chips.
-
-    MainTerminal->WriteFormat(" PIT @ %u4 Hz...", Pit::Frequency);
-
-    Timer::Initialize();
-
-    return HandleResult::Okay;
-}
-
-/***********************
-    PROCESSING UNITS
-***********************/
-
-__startup Handle InitializeAp(uint32_t const lapicId
-                            , uint32_t const procId
-                            ,   size_t const apIndex);
-
-/**
- *  <summary>
- *  Initializes the other processing units in the system.
- *  </summary>
- */
-Handle InitializeProcessingUnits()
-{
-    Handle res;
-    size_t apCount = 0;
-
-    paddr_t const bootstrapPaddr { 0x1000 };
-    vaddr_t const bootstrapVaddr { 0x1000 };
-    //  This's gonna be for AP bootstrappin' code.
-
-    res = Vmm::MapPage(&BootstrapProcess, bootstrapVaddr, bootstrapPaddr
-        , MemoryFlags::Global | MemoryFlags::Executable | MemoryFlags::Writable
-        , MemoryMapOptions::NoReferenceCounting);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to map page for AP bootstrap code.")
-        (bootstrapVaddr)(bootstrapPaddr)(res);
-
-    res = Vmm::InvalidatePage(nullptr, bootstrapVaddr);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to invalidate page for AP bootstrap code.")
-        (bootstrapVaddr)(bootstrapPaddr)(res);
-
-    BootstrapPml4Address = BootstrapProcess.PagingTable;
-
-    COMPILER_MEMORY_BARRIER();
-    //  Needed to make sure that the PML4 address is copied over.
-
-    memcpy((void *)bootstrapVaddr, &ApBootstrapBegin, (uintptr_t)&ApBootstrapEnd - (uintptr_t)&ApBootstrapBegin);
-    //  This makes sure the code can be executed by the AP.
-
-    KernelGdtPointer = GdtRegister::Retrieve();
-
-    BREAKPOINT_SET_AUX((int volatile *)((uintptr_t)&ApBreakpointCookie - (uintptr_t)&ApBootstrapBegin + bootstrapVaddr.Value));
-    InterruptState const int_cookie = InterruptState::Enable();
-
-    // MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
-    //     , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
-
-    uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
-    uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
-    for (/* nothing */; e < madtEnd; e += ((acpi_subtable_header *)e)->Length)
-    {
-        if (ACPI_MADT_TYPE_LOCAL_APIC != ((acpi_subtable_header *)e)->Type)
-            continue;
-
-        auto lapic = (acpi_madt_local_apic *)e;
-
-        // MainTerminal->WriteFormat("%n%*(( MADTe: %s LAPIC LID-%u1 PID-%u1 F-%X4 ))"
-        //     , (size_t)30, lapic->Id == Lapic::GetId() ? "BSP" : " AP"
-        //     , lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
-
-        if (0 != (ACPI_MADT_ENABLED & lapic->LapicFlags)
-            && lapic->Id != Lapic::GetId())
-        {
-            //  "Absent" LAPICs and the BSP need not be reset!
-
-            ++apCount;
-
-            res = InitializeAp(lapic->Id, lapic->ProcessorId, apCount);
-
-            if unlikely(!res.IsOkayResult())
-            {
-                msg("Failed to initialize AP #%us (LAPIC ID %u1, processor ID %u1)"
-                    ": %H%n"
-                    , apCount, lapic->Id, lapic->ProcessorId, res);
-
-                assert(false, "FAILED AP INIT!");
-                //  This will only catch fire in debug mode.
-            }
-        }
-    }
-
-    Wait(10 * 1000);
-    //  Wait a bitsy before unmapping the page.
-
-    int_cookie.Restore();
-    BREAKPOINT_SET_AUX(nullptr);
-
-    res = Vmm::UnmapPage(&BootstrapProcess, bootstrapVaddr);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to unmap page containing AP boostrap code.")
-        (bootstrapVaddr)(bootstrapPaddr)(res);
-
-    CpuDataSetUp = true;
-    //  Let the kernel know that CPU data is available for use.
-
-    return HandleResult::Okay;
-}
-
-__startup bool CheckApInitializationLock1()
-{
-    uint32_t volatile val = ApInitializationLock1;
-
-    return val == 0;
-}
-
-__startup bool CheckApInitializationLock3()
-{
-    uint32_t volatile val = ApInitializationLock3;
-
-    return val == 0;
-}
-
-Handle InitializeAp(uint32_t const lapicId
-                  , uint32_t const procId
-                  , size_t const apIndex)
-{
-    Handle res;
-    //  Intermediate results.
-
-    vaddr_t vaddr = nullvaddr;
-
-    res = Vmm::AllocatePages(nullptr
-        , vsize_t(CpuStackSize)
-        , MemoryAllocationOptions::Commit   | MemoryAllocationOptions::VirtualKernelHeap
-        | MemoryAllocationOptions::GuardLow | MemoryAllocationOptions::GuardHigh
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryContent::ThreadStack
-        , vaddr);
-
-    assert_or(res.IsOkayResult()
-        , "Failed to allocate stack of AP #%us"
-          " (LAPIC ID %u4, processor ID %u4): %H."
-        , apIndex, lapicId, procId
-        , res)
-    {
-        return res;
-    }
-
-    ApStackTopPointer = vaddr.Value + CpuStackSize;
-    ApInitializationLock1 = ApInitializationLock2 = ApInitializationLock3 = 1;
-
-    LapicIcr initIcr = LapicIcr(0)
-    .SetDeliveryMode(InterruptDeliveryModes::Init)
-    .SetDestinationShorthand(IcrDestinationShorthand::None)
-    .SetAssert(true)
-    .SetDestination(lapicId);
-
-    Lapic::SendIpi(initIcr);
-
-    Wait(10 * 1000);
-    //  Much more than the recommended amount, but this may be handy for busy
-    //  virtualized environments.
-
-    LapicIcr startupIcr = LapicIcr(0)
-    .SetDeliveryMode(InterruptDeliveryModes::StartUp)
-    .SetDestinationShorthand(IcrDestinationShorthand::None)
-    .SetAssert(true)
-    .SetVector(0x1000 >> 12)
-    .SetDestination(lapicId);
-
-    Lapic::SendIpi(startupIcr);
-
-    if (!Wait(10 * 1000, &CheckApInitializationLock1))
-    {
-        //  It should be ready. Let's try again.
-
-        Lapic::SendIpi(startupIcr);
-
-        if (!Wait(1000 * 1000, &CheckApInitializationLock1))
-            return HandleResult::Timeout;
-    }
-
-    //  If this point was reached, the AP has begun the handshake.
-
-    ApInitializationLock2 = 0;
-    //  Lower the entry barrier for the AP.
-
-    if likely(Wait(3 * 1000 * 1000, &CheckApInitializationLock3))
-        return HandleResult::Okay;
-    //  Now the AP must acknowledge passing the barrier before the BSP can
-    //  proceed. The timeout here is just symbolic and this should succeed at
-    //  the first or second calls of the predicate.
-    
-    return HandleResult::Timeout;
-}

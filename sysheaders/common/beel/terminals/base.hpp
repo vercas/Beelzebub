@@ -82,6 +82,23 @@ namespace Beelzebub { namespace Terminals
      **/
     class TerminalBase;
 
+    typedef TerminalWriteResult (* PositionalFormatArgumentWriter)(TerminalBase * term, void const * val, char const * format);
+
+    template<typename TArg>
+    __shared_cpp TerminalWriteResult WriteFormattedValue(TerminalBase * term, TArg const * val, char const * format);
+
+    struct PositionalFormatArgument
+    {
+        void const * const Value;
+        PositionalFormatArgumentWriter const Writer;
+
+        inline PositionalFormatArgument(void const * val, PositionalFormatArgumentWriter wr)
+            : Value(val), Writer(wr)
+        {
+
+        }
+    };
+
     typedef TerminalBase & (* TerminalModifier)(TerminalBase & term);
 
     template<typename TArg>
@@ -144,6 +161,7 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult Write(char const c);
         virtual TerminalWriteResult Write(char const * const str, size_t len = SIZE_MAX);
         virtual TerminalWriteResult Write(char const * const fmt, va_list args);
+        virtual TerminalWriteResult Write(char const * fmt, size_t argc, PositionalFormatArgument const * argv);
         virtual TerminalWriteResult WriteLine(char const * const str, size_t len = SIZE_MAX);
         __solid __min_float TerminalWriteResult WriteFormat(char const * const fmt, ...);
 
@@ -203,6 +221,14 @@ namespace Beelzebub { namespace Terminals
         __forceinline TerminalWriteResult WriteLine()
         {
             return this->WriteLine("", 1);
+        }
+
+        template<typename... TArgs>
+        inline TerminalWriteResult WriteEx(char const * fmt, const TArgs... args)
+        {
+            PositionalFormatArgument const argv[] = { PositionalFormatArgument(reinterpret_cast<void const *>(&args), reinterpret_cast<PositionalFormatArgumentWriter>(&WriteFormattedValue<TArgs>))... };
+
+            return this->Write(fmt, sizeof(argv) / sizeof(PositionalFormatArgument), argv);
         }
 
         /*  Fields  */

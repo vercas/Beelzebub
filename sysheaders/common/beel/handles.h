@@ -90,25 +90,16 @@
     ENUMINST(Process                  , 0x11U, "PRCS") \
     /*  A unit of management. */ \
     ENUMINST(Job                      , 0x12U, "JOB") \
+    /*  A kernel module. */ \
+    ENUMINST(KernelModule             , 0x1FU, "KMOD") \
     \
-    /*  A miscellaneous/anonymous object belonging to the kernel. */ \
-    ENUMINST(KernelObject             , 0x20U, "KOBJ") \
-    /*  A miscellaneous/anonymous object belonging to a service. */ \
-    ENUMINST(ServiceObject            , 0x21U, "SOBJ") \
-    /*  A miscellaneous/anonymous object belonging to an application. */ \
-    ENUMINST(ApplicationObject        , 0x22U, "AOBJ") \
+    /*  A miscellaneous/anonymous communication channel. */ \
+    ENUMINST(Channel                  , 0x20U, "CHAN") \
     \
     /*  A file in the InitRD. */ \
     ENUMINST(InitRdFile               , 0x30U, "irdF") \
     /*  A directory in the InitRD. */ \
     ENUMINST(InitRdDirectory          , 0x31U, "irdD") \
-    /*  A kernel module. */ \
-    ENUMINST(KernelModule             , 0x32U, "KMOD") \
-    \
-    /*  An table which associates handles with resources. */ \
-    ENUMINST(HandleTable              , 0xF0U, "HTBL") \
-    /*  A finite set of handles. */ \
-    ENUMINST(MultiHandle              , 0xF1U, "MHND") \
 
 #define ENUM_HANDLERESULT(ENUMINST) \
     /*  Saul Goodman! */ \
@@ -212,15 +203,8 @@
 
 namespace Beelzebub
 {
-    enum class HandleType : uint8_t
-    {
-        ENUM_HANDLETYPE(ENUMINST_VAL)
-    };
-
-    enum class HandleResult : uint8_t
-    {
-        ENUM_HANDLERESULT(ENUMINST_VAL)
-    };
+    __ENUMDECL(HandleType, ENUM_HANDLETYPE, LITE, uint8_t)
+    __ENUMDECL(HandleResult, ENUM_HANDLERESULT, LITE, uint8_t)
 
     struct Handle
     {
@@ -525,33 +509,28 @@ namespace Beelzebub
     };
 }
 
+using BeHandle = Beelzebub::Handle;
+
 #elif defined(__BEELZEBUB__SOURCE_C)
-    
-    enum HANDLE_TYPE
-    {
-        ENUM_HANDLETYPE(ENUMINST_VAL)
-    };
 
-    enum HANDLE_RESULT
-    {
-        ENUM_HANDLERESULT(ENUMINST_VAL)
-    };
+    __ENUMDECL(HandleType, ENUM_HANDLETYPE, LITE, uint8_t)
+    __ENUMDECL(HandleResult, ENUM_HANDLERESULT, LITE, uint8_t)
 
-    typedef union Handle
+    typedef union BeHandle_u
     {
         uint64_t Value;
-        uint32_t Dwords[2];
-        uint16_t Words[4];
-        uint8_t  Bytes[8];
-    } Handle;
+        uint32_t W[2];
+        uint16_t H[4];
+        uint8_t  B[8];
+    } BeHandle;
 
     //  Eh... Good enough?
 
 #else
 
 .struct 0
-FIELDT(Handle, Value, uint64_t)
-Handle_size:
-#define SIZE_OF_Handle Handle_size
+FIELDT(BeHandle, Value, uint64_t)
+BeHandle_size:
+#define SIZE_OF_BeHandle BeHandle_size
 
 #endif

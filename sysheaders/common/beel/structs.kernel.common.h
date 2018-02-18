@@ -41,30 +41,49 @@
 
 #include <beel/handles.h>
 
-#ifdef __BEELZEBUB__SOURCE_CXX
-namespace Beelzebub
-{
-#endif
+#define BEELZEBUB_MESSAGE_SIZE (64)
+#define BEELZEBUB_MESSAGE_DWORDS (5)
+
+__NAMESPACE_BEGIN
 
 #ifndef __ASSEMBLER__
-STRUCT(Message)
-{
-    Handle Destination, Source;
-    uint64_t Flags;
-
-    __extension__ union
+    __STRUCT(Message)
     {
-        Handle Handles[5];  //  Handles (double words)
-        uint64_t D[5    ];  //  Double words
-        uint32_t W[5 * 2];  //  Words
-        uint16_t H[5 * 4];  //  Half words
-        uint8_t  B[5 * 8];  //  Bytes
+    #ifdef __BEELZEBUB__SOURCE_CXX
+        static constexpr unsigned short Size = BEELZEBUB_MESSAGE_SIZE;
+        static constexpr unsigned short DwordCount = BEELZEBUB_MESSAGE_DWORDS;
+    #endif
+
+        BeHandle Destination, Source;
+
+        __extension__ union
+        {
+            uint64_t Flags;
+
+            __extension__ struct
+            {
+                int32_t Type;
+                uint32_t FlagsLow;
+            };
+        };
+
+        __extension__ union
+        {
+            BeHandle Handles[BEELZEBUB_MESSAGE_DWORDS];  //  Handles (double words)
+            uint64_t D[BEELZEBUB_MESSAGE_DWORDS    ];  //  Double words
+            uint32_t W[BEELZEBUB_MESSAGE_DWORDS * 2];  //  Words
+            uint16_t H[BEELZEBUB_MESSAGE_DWORDS * 4];  //  Half words
+            uint8_t  B[BEELZEBUB_MESSAGE_DWORDS * 8];  //  Bytes
+        };
     };
-};
 #else
 #endif
 
 #ifdef __BEELZEBUB__SOURCE_CXX
-    static_assert(sizeof(Message) == 64, "IPC message struct should be exactly 64 bytes in size!");
-}
+    static_assert(sizeof(Message) == Message::Size, "IPC message struct should be exactly 64 bytes in size!");
+
+    #undef BEELZEBUB_MESSAGE_DWORDS
+    #undef BEELZEBUB_MESSAGE_SIZE
 #endif
+
+__NAMESPACE_END

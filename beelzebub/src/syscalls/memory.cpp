@@ -46,11 +46,10 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::Memory;
-using namespace Beelzebub::Syscalls;
 
 static constexpr vsize_t const ChunkSize { 1 * 1 << 20 };  //  1 MiB.
 
-Handle Syscalls::MemoryRequest(uintptr_t const _addr, size_t const _size, MemoryRequestOptions opts)
+Handle Beelzebub::MemoryRequest(uintptr_t const _addr, size_t const _size, MemoryRequestOptions opts)
 {
     vaddr_t addr { _addr };
     vsize_t const size { _size };
@@ -97,7 +96,7 @@ Handle Syscalls::MemoryRequest(uintptr_t const _addr, size_t const _size, Memory
     return Handle(HandleType::Page, addr.Value, false);
 }
 
-Handle Syscalls::MemoryRelease(uintptr_t const _addr, size_t const _size, MemoryReleaseOptions opts)
+Handle Beelzebub::MemoryRelease(uintptr_t const _addr, size_t const _size, MemoryReleaseOptions opts)
 {
     (void)opts;
 
@@ -118,7 +117,7 @@ Handle Syscalls::MemoryRelease(uintptr_t const _addr, size_t const _size, Memory
     return Vmm::FreePages(nullptr, addr, size);
 }
 
-Handle Syscalls::MemoryCopy(uintptr_t const _dst, uintptr_t const _src, size_t const _len)
+Handle Beelzebub::MemoryCopy(uintptr_t const _dst, uintptr_t const _src, size_t const _len)
 {
     vaddr_t const dst { _dst }, src { _src };
     vsize_t const len { _len };
@@ -176,7 +175,7 @@ Handle Syscalls::MemoryCopy(uintptr_t const _dst, uintptr_t const _src, size_t c
     return HandleResult::Okay;
 }
 
-Handle Syscalls::MemoryFill(uintptr_t const _dst, uint8_t const val, size_t const _len)
+Handle Beelzebub::MemoryFill(uintptr_t const _dst, uint8_t const val, size_t const _len)
 {
     vaddr_t const dst { _dst };
     vsize_t const len { _len };

@@ -98,11 +98,21 @@ FAIL_N, FAIL_N, FAIL_N, FAIL_N, FAIL_0)(__VA_ARGS__)
         Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);      \
 })
 
+#define MSGEX(...)  __extension__ ({                                    \
+    if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+        Beelzebub::Debug::DebugTerminal->WriteEx(__VA_ARGS__);          \
+})
+
 #ifdef __BEELZEBUB_KERNEL
     #define MSG_(...)  __extension__ ({                                     \
         if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
             withLock (Beelzebub::Debug::MsgSpinlock)                        \
                 Beelzebub::Debug::DebugTerminal->WriteFormat(__VA_ARGS__);  \
+    })
+    #define MSGEX_(...)  __extension__ ({                                   \
+        if likely(Beelzebub::Debug::DebugTerminal != nullptr)               \
+            withLock (Beelzebub::Debug::MsgSpinlock)                        \
+                Beelzebub::Debug::DebugTerminal->WriteEx(__VA_ARGS__);      \
     })
 #endif
 //  Thse three are available for all configurations!

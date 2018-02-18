@@ -52,22 +52,22 @@ uint32_t Execution::ElfMagicNumber = 0x464C457F;
 
 /*  Enum-to-string  */
 
-ENUM_TO_STRING_EX2(ElfClass, ENUM_ELFCLASS, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfDataEncoding, ENUM_ELFDATAENCODING, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfOsAbi, ENUM_ELFOSABI, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfFileType, ENUM_ELFFILETYPE, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfMachine, ENUM_ELFMACHINE, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfSymbolType, ENUM_ELFSYMBOLTYPE, Beelzebub::Execution)
-ENUM_TO_STRING_EX2(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfClass, ENUM_ELFCLASS, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfDataEncoding, ENUM_ELFDATAENCODING, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfOsAbi, ENUM_ELFOSABI, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfFileType, ENUM_ELFFILETYPE, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfMachine, ENUM_ELFMACHINE, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfSymbolType, ENUM_ELFSYMBOLTYPE, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY, Beelzebub::Execution)
 
-ENUM_TO_STRING_EX2(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, Beelzebub::Execution)
+__ENUM_TO_STRING_EX2(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, Beelzebub::Execution)
 
 #include <beel/terminals/base.hpp>
 

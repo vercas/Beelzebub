@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,20 +39,18 @@
 
 #pragma once
 
-#include <cmd_options.hpp>
-#include <global_options.h>
+#include <beel/result.hpp>
 
-namespace Beelzebub
+namespace Beelzebub::Utils
 {
-    extern CommandLineOptionSpecification CMDO_Term;
-    extern CommandLineOptionSpecification CMDO_Tests;
-    extern CommandLineOptionSpecification CMDO_Debugger;
-    extern CommandLineOptionSpecification CMDO_UnitTests;
-    extern CommandLineOptionSpecification CMDO_SmpEnable;
+    enum class PortParseResult
+    {
+        Success = 0, SpecificPort = 0,
+        COM1 = 1, COM2, COM3, COM4,
+        Ethernet = 100,
+        Vbe = 200,
+        Error = -1,
+    };
 
-    extern CommandLineOptionSpecification * CommandLineOptionsHead;
-
-    __startup Handle InstanceGlobalOptions();
-
-    __startup Handle InitializeTestFlags();
+    Result<PortParseResult, uint16_t> ParsePort(char const * val);
 }

@@ -47,5 +47,5 @@ using namespace Beelzebub;
 
 /*  Printing  */
 
-ENUM_TO_STRING_EX1(HandleType, , Handle::GetTypeString() const, this->GetType(), ENUM_HANDLETYPE)
-ENUM_TO_STRING_EX1(HandleResult, , Handle::GetResultString() const, this->GetResult(), ENUM_HANDLERESULT)
+__ENUM_TO_STRING_EX1(HandleType, , Handle::GetTypeString() const, this->GetType(), ENUM_HANDLETYPE)
+__ENUM_TO_STRING_EX1(HandleResult, , Handle::GetResultString() const, this->GetResult(), ENUM_HANDLERESULT)

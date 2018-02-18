@@ -56,13 +56,13 @@
 #define __catch(...) GET_MACRO2(__dummy__, ##__VA_ARGS__, __catch1, __catch0)(__VA_ARGS__)
 
 #define __x_suspend do { \
-    if (__x_ctxt_g.Context.Status == ExceptionStatus::Active) \
-        __x_ctxt_g.Context.Status = ExceptionStatus::Suspended; \
+    if (__x_ctxt_g.Context.Status == ExceptionContextStatus::Active) \
+        __x_ctxt_g.Context.Status = ExceptionContextStatus::Suspended; \
 } while (false)
 
 #define __x_resume do { \
-    if (__x_ctxt_g.Context.Status == ExceptionStatus::Suspended) \
-        __x_ctxt_g.Context.Status = ExceptionStatus::Active; \
+    if (__x_ctxt_g.Context.Status == ExceptionContextStatus::Suspended) \
+        __x_ctxt_g.Context.Status = ExceptionContextStatus::Active; \
 } while (false)
 
 namespace Beelzebub

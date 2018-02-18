@@ -47,7 +47,6 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
-using namespace Beelzebub::Syscalls;
 
 bool Execution::MapSegment64(uintptr_t loc, uintptr_t img, ElfProgramHeader_64 const & phdr, void * data)
 {

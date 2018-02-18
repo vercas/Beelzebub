@@ -45,172 +45,160 @@
 
 #include <beel/metaprogramming.h>
 
+/**
+ *  Represents possible page/frame sizes.
+ */
+#define __ENUM_FRAMESIZE(ENUMINST) \
+    ENUMINST(_4KiB , 1) \
+    ENUMINST(_64KiB, 2) \
+    ENUMINST(_2MiB , 3) \
+    ENUMINST(_4MiB , 4) \
+    ENUMINST(_1GiB , 5)
+
+__PUB_ENUM(FrameSize, __ENUM_FRAMESIZE, LITE, uint8_t)
+
+/**
+ *  Represents possible magnitudes of addresses (number of significant bits in their numeric value).
+ */
+#define __ENUM_ADDRESSMAGNITUDE(ENUMINST) \
+    ENUMINST(_16bit, 1   ) \
+    ENUMINST(_24bit, 2   ) \
+    ENUMINST(_32bit, 3   ) \
+    ENUMINST(_48bit, 4   ) \
+    ENUMINST(Any   , 0xFF)
+
+__PUB_ENUM(AddressMagnitude, __ENUM_ADDRESSMAGNITUDE, LITE, uint8_t)
+
+/**
+ *  Options for memory (un)mapping.
+ */
+#define __ENUM_MEMORYMAPOPTIONS(ENUMINST) \
+    /* No special actions. */ \
+    ENUMINST(None                , 0x00) \
+    /* No locking will be performed. */ \
+    ENUMINST(NoLocking           , 0x01) \
+    /* Frame references will not be changed. */ \
+    ENUMINST(NoReferenceCounting , 0x02) \
+    /* Unmapping is done with precision - large pages are split if necessary. */ \
+    ENUMINST(PreciseUnmapping    , 0x04) \
+    /* Unmapping does not cause TLB invalidation. */ \
+    ENUMINST(NoInvalidation      , 0x08) \
+    /* If TLB invalidation is enabled, it is not broadcast. */ \
+    ENUMINST(NoBroadcasting      , 0x10)
+
+__PUB_ENUM(MemoryMapOptions, __ENUM_MEMORYMAPOPTIONS, FULL)
+
+/**
+ *  Represents flags to check memory for.
+ */
+#define __ENUM_MEMORYCHECKTYPE(ENUMINST) \
+    ENUMINST(Readable, 0x0) \
+    ENUMINST(Writable, 0x1) \
+    ENUMINST(Free    , 0x2) \
+    ENUMINST(Userland, 0x4) \
+    /* Means it's owned exclusively by the process in question. */ \
+    ENUMINST(Private , 0x8)
+
+__PUB_ENUM(MemoryCheckType, __ENUM_MEMORYCHECKTYPE, FULL)
+
+/**
+ *  Represents characteristics of pages that can be mapped.
+ */
+#define __ENUM_MEMORYFLAGS(ENUMINST) \
+    ENUMINST(None      , 0x00) /* No flags. */ \
+    ENUMINST(Global    , 0x01) /* Shared by all processes. */ \
+    ENUMINST(Userland  , 0x02) /* Accessible by user code. */ \
+    ENUMINST(Writable  , 0x04) /* Writing to the page is allowed. */ \
+    ENUMINST(Executable, 0x08) /* Executing code from the page is allowed. */
+
+__PUB_ENUM(MemoryFlags, __ENUM_MEMORYFLAGS, FULL, uint8_t)
+
+/**
+ *  Represents possible contents of a memory range.
+ */
+#define __ENUM_MEMORYCONTENT(ENUMINST) \
+    ENUMINST(Generic       , 0x00) /*  Generic contents, nothing remarkable.  */ \
+    ENUMINST(Share         , 0x01) /*  Shared with other processes.  */ \
+    ENUMINST(ThreadStack   , 0x02) /*  A thread's stack.  */ \
+    ENUMINST(Runtime       , 0x03) /*  Part of the runtime.  */ \
+    ENUMINST(KernelModule  , 0x04) /*  A kernel module mapped in memory.  */ \
+    ENUMINST(CpuDatas      , 0x05) /*  The specific data structures of CPUs.  */ \
+    ENUMINST(VasDescriptors, 0x06) /*  Descriptors of a VAS.  */ \
+    ENUMINST(HandleTable   , 0x07) /*  (Part of) The kernel's handle table.  */ \
+    ENUMINST(HandleMap     , 0x08) /*  (Part of) A process's handle map.  */ \
+    ENUMINST(BootModule    , 0x80) /*  A module loaded by the bootloader.  */ \
+    ENUMINST(VbeFramebuffer, 0x81) /*  The VBE framebuffer.  */ \
+    ENUMINST(AcpiTable     , 0x82) /*  An ACPI table.  */ \
+    ENUMINST(VmmBootstrap  , 0xFE) /*  VMM bootstrapping data.  */ \
+    ENUMINST(Free          , 0xFF) /*  Nothing, waiting to be used.  */
+
+__PUB_ENUM(MemoryContent, __ENUM_MEMORYCONTENT, LITE, uint8_t)
+
+
+/////////////////////////////////////////////
+// THESE VALUES ARE HARDCODED IN ASSEMBLY! //
+/////////////////////////////////////////////
+/**
+ *  Possible status of an exception context.
+ */
+#define __ENUM_EXCEPTIONCONTEXTSTATUS(ENUMINST) \
+    ENUMINST(Active   , 0) /* All good. */ \
+    ENUMINST(Suspended, 1) /* Temporarily suspended. */ \
+    ENUMINST(Handling , 2) /* In the process of handling an exception. */ \
+    ENUMINST(SettingUp, 3) /* Context is being set up. */ \
+    ENUMINST(Unknown  , ~((uintptr_t)0))
+
+__PUB_ENUM(ExceptionContextStatus, __ENUM_EXCEPTIONCONTEXTSTATUS, LITE, uintptr_t)
+
+/**
+ *  Known exception types.
+ */
+#define __ENUM_EXCEPTIONTYPE(ENUMINST) \
+    ENUMINST(None                   , 0x00) /*  This one indicates that there is no exception. */ \
+    ENUMINST(NullReference          , 0x01) /*  Null pointer dereference.  */ \
+    ENUMINST(MemoryAccessViolation  , 0x02) /*  Illegal memory access.  */ \
+    ENUMINST(DivideByZero           , 0x03) /*  Integral division by zero.  */ \
+    ENUMINST(ArithmeticOverflow     , 0x04) /*  Checked arithmetic overflow.  */ \
+    ENUMINST(InvalidInstruction     , 0x05) /*  Invalid instruction encoding or opcode.  */ \
+    ENUMINST(UnitTestFailure        , 0xFF) /*  A unit test failed.  */ \
+    ENUMINST(Unknown                , (0UL - 1UL)) /*  Haywire!  */
+
+__PUB_ENUM(ExceptionType, __ENUM_EXCEPTIONTYPE, LITE, uintptr_t)
+
+/**
+ *  
+ */
+#define __ENUM_MEMORYACCESSTYPE(ENUMINST) \
+    ENUMINST(Read        , 0) \
+    ENUMINST(Write       , 1) \
+    ENUMINST(Execute     , 2) \
+    ENUMINST(Unprivileged, 1 << 6) \
+    ENUMINST(Unaligned   , 1 << 7)
+
+__PUB_ENUM(MemoryAccessType, __ENUM_MEMORYACCESSTYPE, FULL, uint8_t)
+
+/**
+ *  Represents possible flags of a memory location
+ */
+#define __ENUM_MEMORYLOCATIONFLAGS(ENUMINST) \
+    ENUMINST(None          , 0x00) \
+    ENUMINST(Present       , 0x01) /*  The memory at the given (virtual) address is mapped.  */ \
+    ENUMINST(Writable      , 0x02) /*  The memory may be written.  */ \
+    ENUMINST(Executable    , 0x04) /*  The memory may be executed.  */ \
+    ENUMINST(Global        , 0x08) /*  The memory is global (shared by all processes).  */ \
+    ENUMINST(Userland      , 0x10) /*  The memory is accessible by userland.  */ \
+
+__PUB_ENUM(MemoryLocationFlags, __ENUM_MEMORYLOCATIONFLAGS, FULL, uint16_t)
+
 namespace Beelzebub
 {
-    /**
-     *  Represents possible page/frame sizes.
-     */
-    #define ENUM_FRAMESIZE(ENUMINST) \
-        ENUMINST(_4KiB , 1) \
-        ENUMINST(_64KiB, 2) \
-        ENUMINST(_2MiB , 3) \
-        ENUMINST(_4MiB , 4) \
-        ENUMINST(_1GiB , 5)
-
-    ENUMDECL(FrameSize, ENUM_FRAMESIZE, LITE, uint8_t)
+    __ENUM_TO_STRING_DECL(ExceptionType, __ENUM_EXCEPTIONTYPE);
 
 #ifdef __BEELZEBUB_KERNEL
-    ENUM_TO_STRING_DECL(FrameSize, ENUM_FRAMESIZE);
-#endif
-
-    /**
-     *  Represents possible magnitudes of addresses (number of significant bits in their numeric value).
-     */
-    enum class AddressMagnitude : uint8_t
-    {
-        _16bit = 1,
-        _24bit = 2,
-        _32bit = 3,
-        _48bit = 4,
-
-        Any = 0xFF,
-    };
-
-    ENUMOPS_LITE(AddressMagnitude, uint8_t)
-
-    /**
-     *  Options for memory (un)mapping.
-     */
-    enum class MemoryMapOptions : int
-    {
-        //  No special actions.
-        None                 = 0x00,
-        //  No locking will be performed.
-        NoLocking            = 0x01,
-        //  Frame references will not be changed.
-        NoReferenceCounting  = 0x02,
-        //  Unmapping is done with precision - large pages are split if necessary.
-        PreciseUnmapping     = 0x04,
-        //  Unmapping does not cause TLB invalidation.
-        NoInvalidation       = 0x08,
-        //  If TLB invalidation is enabled, it is not broadcast.
-        NoBroadcasting       = 0x10,
-    };
-
-    ENUMOPS(MemoryMapOptions, int)
-
-    /**
-     *  Represents flags to check memory for.
-     */
-    enum class MemoryCheckType
-    {
-        Readable = 0x0,
-        Writable = 0x1,
-        Free     = 0x2,
-        Userland = 0x4,
-        Private  = 0x8, //  Means it's owned exclusively by the process in question.
-    };
-
-    ENUMOPS(MemoryCheckType)
-
-    /**
-     *  Represents characteristics of pages that can be mapped.
-     */
-    enum class MemoryFlags : uint8_t
-    {
-        //  No flags.
-        None       = 0x0,
-
-        //  Shared by all processes.
-        Global     = 0x01,
-        //  Accessible by user code.
-        Userland   = 0x02,
-
-        //  Writing to the page is allowed.
-        Writable   = 0x04,
-        //  Executing code from the page is allowed.
-        Executable = 0x08,
-    };
-
-    ENUMOPS(MemoryFlags, uint8_t)
-
-    /**
-     *  Represents possible contents of a memory range.
-     */
-    #define ENUM_MEMORYCONTENT(ENUMINST) \
-        ENUMINST(Generic       , 0x00) /*  Generic contents, nothing remarkable.  */ \
-        ENUMINST(Share         , 0x01) /*  Shared with other processes.  */ \
-        ENUMINST(ThreadStack   , 0x02) /*  A thread's stack.  */ \
-        ENUMINST(Runtime       , 0x03) /*  Part of the runtime.  */ \
-        ENUMINST(KernelModule  , 0x04) /*  A kernel module mapped in memory.  */ \
-        ENUMINST(CpuDatas      , 0x05) /*  The specific data structures of CPUs.  */ \
-        ENUMINST(VasDescriptors, 0x06) /*  Descriptors of a VAS.  */ \
-        ENUMINST(BootModule    , 0x80) /*  A module loaded by the bootloader.  */ \
-        ENUMINST(VbeFramebuffer, 0x81) /*  The VBE framebuffer.  */ \
-        ENUMINST(AcpiTable     , 0x82) /*  An ACPI table.  */ \
-        ENUMINST(VmmBootstrap  , 0xFE) /*  VMM bootstrapping data.  */ \
-        ENUMINST(Free          , 0xFF) /*  Nothing, waiting to be used.  */ \
-
-    ENUMDECL(MemoryContent, ENUM_MEMORYCONTENT, LITE, uint8_t)
-
-#ifdef __BEELZEBUB_KERNEL
-    ENUM_TO_STRING_DECL(MemoryContent, ENUM_MEMORYCONTENT);
+    __ENUM_TO_STRING_DECL(MemoryContent, __ENUM_MEMORYCONTENT);
 
     bool MemoryContentsMergeable(MemoryContent a, MemoryContent b);
+
+    __ENUM_TO_STRING_DECL(FrameSize, __ENUM_FRAMESIZE);
 #endif
-
-    enum class ExceptionStatus : uintptr_t
-    {
-        /////////////////////////////////////////////
-        // THESE VALUES ARE HARDCODED IN ASSEMBLY! //
-        /////////////////////////////////////////////
-
-        Active                  = 0,
-        Suspended               = 1,
-        Handling                = 2,
-        SettingUp               = 3,
-
-        Unknown                 = ~((uintptr_t)0),
-    };
-
-    /**
-     *  Known exception types.
-     */
-    #define ENUM_EXCEPTIONTYPE(ENUMINST) \
-        ENUMINST(None                   , 0x00) /*  This one indicates that there is no exception. */ \
-        ENUMINST(NullReference          , 0x01) /*  Null pointer dereference.  */ \
-        ENUMINST(MemoryAccessViolation  , 0x02) /*  Illegal memory access.  */ \
-        ENUMINST(DivideByZero           , 0x03) /*  Integral division by zero.  */ \
-        ENUMINST(ArithmeticOverflow     , 0x04) /*  Checked arithmetic overflow.  */ \
-        ENUMINST(InvalidInstruction     , 0x05) /*  Invalid instruction encoding or opcode.  */ \
-        ENUMINST(UnitTestFailure        , 0xFF) /*  A unit test failed.  */ \
-        ENUMINST(Unknown                , (0UL - 1UL)) /*  Haywire!  */ \
-
-    ENUMDECL(ExceptionType, ENUM_EXCEPTIONTYPE, LITE, uintptr_t)
-    ENUM_TO_STRING_DECL(ExceptionType, ENUM_EXCEPTIONTYPE);
-
-    enum class MemoryAccessType : uint8_t
-    {
-        Read            = 0,
-        Write           = 1,
-        Execute         = 2,
-
-        Unprivileged    = 1 << 6,
-        Unaligned       = 1 << 7,
-    };
-
-    ENUMOPS(MemoryAccessType)
-
-    /**
-     *  Represents possible flags of a memory location
-     */
-    #define ENUM_MEMORYLOCATIONFLAGS(ENUMINST) \
-        ENUMINST(None          , 0x00) \
-        ENUMINST(Present       , 0x01) /*  The memory at the given (virtual) address is mapped.  */ \
-        ENUMINST(Writable      , 0x02) /*  The memory may be written.  */ \
-        ENUMINST(Executable    , 0x04) /*  The memory may be executed.  */ \
-        ENUMINST(Global        , 0x08) /*  The memory is global (shared by all processes).  */ \
-        ENUMINST(Userland      , 0x10) /*  The memory is accessible by userland.  */ \
-
-    ENUMDECL(MemoryLocationFlags, ENUM_MEMORYLOCATIONFLAGS, FULL, uint16_t)
 }

@@ -42,9 +42,9 @@
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
 
-decoded_codepoint_t Utils::GetUtf8Codepoint(char const * chr)
+DecodedCodepoint Utils::GetUtf8Codepoint(char const * chr)
 {
-    decoded_codepoint_t res;
+    DecodedCodepoint res;
     unsigned char c1 = *reinterpret_cast<unsigned char const *>(chr);
 
     if (c1 >= 0xE0 /* 0b1110_xxxx */)

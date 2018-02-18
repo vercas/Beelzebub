@@ -69,7 +69,7 @@ void Beelzebub::ThrowException()
     if (context == nullptr)
         goto failure;
 
-    while (context->Status != ExceptionStatus::Active)
+    while (context->Status != ExceptionContextStatus::Active)
         if (context->Previous != nullptr)
             context = context->Previous;
         else

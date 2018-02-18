@@ -109,7 +109,7 @@ void kmain_ap()
     COMMAND-LINE ARGUMENTS
 *****************************/
 
-Handle ParseKernelArguments()
+Handle Beelzebub::ParseKernelArguments()
 {
     Handle res;
     char * cmdline = nullptr;
@@ -344,9 +344,6 @@ Handle InitializeVirtualMemory()
     ++BootstrapProcess.ActiveCoreCount;
 
     RemapTerminal(MainTerminal);
-
-    if (MainTerminal != Debug::DebugTerminal)
-        RemapTerminal(Debug::DebugTerminal);
 
     //  Now mapping the lower 16 MiB.
 

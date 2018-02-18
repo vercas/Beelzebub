@@ -84,7 +84,7 @@ namespace Beelzebub { namespace System
         Mailbox                     = 0xFF,
     };
 
-    ENUMOPS_LITE(KnownExceptionVectors)
+    __ENUMOPS_LITE(KnownExceptionVectors)
 
     /************************
         Interrupt Vectors

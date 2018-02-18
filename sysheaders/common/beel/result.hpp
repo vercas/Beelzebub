@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,22 +37,41 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
-
-#include <cmd_options.hpp>
-#include <global_options.h>
+#include <beel/metaprogramming.h>
 
 namespace Beelzebub
 {
-    extern CommandLineOptionSpecification CMDO_Term;
-    extern CommandLineOptionSpecification CMDO_Tests;
-    extern CommandLineOptionSpecification CMDO_Debugger;
-    extern CommandLineOptionSpecification CMDO_UnitTests;
-    extern CommandLineOptionSpecification CMDO_SmpEnable;
+    template<typename TError, typename TValue>
+    struct Result
+    {
+        /*  Types  */
 
-    extern CommandLineOptionSpecification * CommandLineOptionsHead;
+        using ErrorType = TError;
+        using ValueType = TValue;
 
-    __startup Handle InstanceGlobalOptions();
+        static_assert(TError::Success == (TError)0, "Success value must be 0.");
 
-    __startup Handle InitializeTestFlags();
+        /*  Constructors  */
+
+        inline Result(TError const err) : Error(err), _Dummy() { }
+        inline Result(TValue const val) : Error(ErrorType::Success), Value(val) { }
+
+        /*  Fields  */
+
+        TError const Error;
+
+        union
+        {
+            bool const _Dummy;
+            TValue const Value;
+        };
+
+        /*  Operators  */
+
+        __artificial bool operator ==(TError err) { return this->Error == err; }
+        __artificial bool operator !=(TError err) { return this->Error != err; }
+
+        __artificial bool operator ==(TValue && val) { return this->Error == ErrorType::Success && (this->Value == val); }
+        __artificial bool operator !=(TValue && val) { return this->Error != ErrorType::Success || (this->Value != val); }
+    };
 }

@@ -46,7 +46,6 @@
 #include <beel/syscalls/memory.h>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Syscalls;
 using namespace Beelzebub::System;
 
 static Synchronization::SmpLock InitLock {};

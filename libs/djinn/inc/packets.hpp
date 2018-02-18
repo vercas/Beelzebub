@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,20 +39,4 @@
 
 #pragma once
 
-#include <cmd_options.hpp>
-#include <global_options.h>
-
-namespace Beelzebub
-{
-    extern CommandLineOptionSpecification CMDO_Term;
-    extern CommandLineOptionSpecification CMDO_Tests;
-    extern CommandLineOptionSpecification CMDO_Debugger;
-    extern CommandLineOptionSpecification CMDO_UnitTests;
-    extern CommandLineOptionSpecification CMDO_SmpEnable;
-
-    extern CommandLineOptionSpecification * CommandLineOptionsHead;
-
-    __startup Handle InstanceGlobalOptions();
-
-    __startup Handle InitializeTestFlags();
-}
+#include <djinn.h>

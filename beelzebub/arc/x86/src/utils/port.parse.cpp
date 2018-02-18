@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,22 +37,30 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include "utils/port.parse.hpp"
+#include <beel/utils/conversions.hpp>
+#include <string.h>
 
-#include <cmd_options.hpp>
-#include <global_options.h>
+using namespace Beelzebub;
+using namespace Beelzebub::Utils;
 
-namespace Beelzebub
+Result<PortParseResult, uint16_t> Utils::ParsePort(char const * val)
 {
-    extern CommandLineOptionSpecification CMDO_Term;
-    extern CommandLineOptionSpecification CMDO_Tests;
-    extern CommandLineOptionSpecification CMDO_Debugger;
-    extern CommandLineOptionSpecification CMDO_UnitTests;
-    extern CommandLineOptionSpecification CMDO_SmpEnable;
+    if (strcasecmp(val, "COM1") == 0) return PortParseResult::COM1;
+    if (strcasecmp(val, "COM2") == 0) return PortParseResult::COM2;
+    if (strcasecmp(val, "COM3") == 0) return PortParseResult::COM3;
+    if (strcasecmp(val, "COM4") == 0) return PortParseResult::COM4;
 
-    extern CommandLineOptionSpecification * CommandLineOptionsHead;
+    if (strcasecmp(val, "ethernet") == 0) return PortParseResult::Ethernet;
 
-    __startup Handle InstanceGlobalOptions();
+    if (strcasecmp(val, "vbe") == 0) return PortParseResult::Vbe;
 
-    __startup Handle InitializeTestFlags();
+    uint16_t port;
+    Handle res = FromString(val, port);
+
+    if (res == HandleResult::Okay)
+        return port;
+    //  Welp, this is a valid port if the parsing succeeded.
+
+    return PortParseResult::Error;
 }

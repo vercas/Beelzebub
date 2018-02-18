@@ -66,54 +66,54 @@ static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset
 
     switch (rtype)
     {
-    case R_AMD64_COPY:
+    case ElfRelType::R_AMD64_COPY:
         relocSize = Z;  //  Speshul case.
         break;
 
-    case R_AMD64_TLSDESC:
+    case ElfRelType::R_AMD64_TLSDESC:
         relocSize = 16;
         break;
 
-    case R_AMD64_64:
-    case R_AMD64_GLOB_DAT:
-    case R_AMD64_JUMP_SLOT:
-    case R_AMD64_RELATIVE:
-    case R_AMD64_PC64:
-    case R_AMD64_GOTOFF64:
-    case R_AMD64_GOT64:
-    case R_AMD64_GOTPCREL64:
-    case R_AMD64_GOTPC64:
-    case R_AMD64_GOTPLT64:
-    case R_AMD64_PLTOFF64:
-    case R_AMD64_SIZE64:
-    case R_AMD64_IRELATIVE:
+    case ElfRelType::R_AMD64_64:
+    case ElfRelType::R_AMD64_GLOB_DAT:
+    case ElfRelType::R_AMD64_JUMP_SLOT:
+    case ElfRelType::R_AMD64_RELATIVE:
+    case ElfRelType::R_AMD64_PC64:
+    case ElfRelType::R_AMD64_GOTOFF64:
+    case ElfRelType::R_AMD64_GOT64:
+    case ElfRelType::R_AMD64_GOTPCREL64:
+    case ElfRelType::R_AMD64_GOTPC64:
+    case ElfRelType::R_AMD64_GOTPLT64:
+    case ElfRelType::R_AMD64_PLTOFF64:
+    case ElfRelType::R_AMD64_SIZE64:
+    case ElfRelType::R_AMD64_IRELATIVE:
         relocSize = 8;
         break;
 
-    case R_AMD64_PC32:
-    case R_AMD64_GOT32:
-    case R_AMD64_PLT32:
-    case R_AMD64_GOTPCREL:
-    case R_AMD64_32:
-    case R_AMD64_32S:
-    case R_AMD64_GOTPC32:
-    case R_AMD64_SIZE32:
-    case R_AMD64_GOTPC32_TLSDESC:
+    case ElfRelType::R_AMD64_PC32:
+    case ElfRelType::R_AMD64_GOT32:
+    case ElfRelType::R_AMD64_PLT32:
+    case ElfRelType::R_AMD64_GOTPCREL:
+    case ElfRelType::R_AMD64_32:
+    case ElfRelType::R_AMD64_32S:
+    case ElfRelType::R_AMD64_GOTPC32:
+    case ElfRelType::R_AMD64_SIZE32:
+    case ElfRelType::R_AMD64_GOTPC32_TLSDESC:
         relocSize = 4;
         break;
 
-    case R_AMD64_16:
-    case R_AMD64_PC16:
+    case ElfRelType::R_AMD64_16:
+    case ElfRelType::R_AMD64_PC16:
         relocSize = 2;
         break;
 
-    case R_AMD64_8:
-    case R_AMD64_PC8:
+    case ElfRelType::R_AMD64_8:
+    case ElfRelType::R_AMD64_PC8:
         relocSize = 1;
         break;
 
-    case R_AMD64_NONE:
-    case R_AMD64_TLSDESC_CALL:
+    case ElfRelType::R_AMD64_NONE:
+    case ElfRelType::R_AMD64_TLSDESC_CALL:
         relocSize = 0;
         break;
 
@@ -125,7 +125,7 @@ static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset
     //  are reported. Next step is checking whether it is actually possible to
     //  perform the relocation.
 
-    if (rtype != R_AMD64_NONE)
+    if (rtype != ElfRelType::R_AMD64_NONE)
         switch (CheckRangeLoaded(elf, offset, relocSize, RangeLoadOptions::Writable))
         {
         case RangeLoadStatus::CompletelyAbsent:
@@ -155,17 +155,17 @@ static ElfValidationResult PerformRelocation64(Elf const * elf, uintptr_t offset
 
     switch (rtype)
     {
-    case R_AMD64_NONE: break;
+    case ElfRelType::R_AMD64_NONE: break;
 
-    case R_AMD64_64:        *(addr.u64) = S + A;    break;
+    case ElfRelType::R_AMD64_64:        *(addr.u64) = S + A;    break;
 
     //  TODO: Beat up whoever came up with copy relocations.
-    case R_AMD64_COPY: memcpy(addr.u8, reinterpret_cast<void *>(S), Z); break;
+    case ElfRelType::R_AMD64_COPY: memcpy(addr.u8, reinterpret_cast<void *>(S), Z); break;
 
-    case R_AMD64_GLOB_DAT:
-    case R_AMD64_JUMP_SLOT: *(addr.u64) = S;        break;
+    case ElfRelType::R_AMD64_GLOB_DAT:
+    case ElfRelType::R_AMD64_JUMP_SLOT: *(addr.u64) = S;        break;
 
-    case R_AMD64_RELATIVE:  *(addr.u64) = B + A;    break;
+    case ElfRelType::R_AMD64_RELATIVE:  *(addr.u64) = B + A;    break;
 
     default: return ElfValidationResult::UnsupportedRelocationType;
     }

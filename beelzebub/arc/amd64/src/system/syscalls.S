@@ -59,26 +59,55 @@ SyscallEntry_64:
     swapgs
     //  Grab kernel GS base ASAP.
 
-    movq    %rax, %gs:(SyscallRegisters@tpoff + FIELDR(SyscallRegisters64, RAX))
+    //movq    %rax, %gs:(GeneralRegisters@tpoff + FIELDR(BeGeneralRegisters64, RAX))
 
     movq    %rsp, %gs:SyscallUserlandStack@tpoff
     movq    %gs:SyscallStack@tpoff, %rsp
     //  Back up user stack pointer into core data and retrieve the kernel
     //  stack pointer, also ASAP.
 
-    pushq   %rcx
-    pushq   %r11
-    //  Back up return RIP and RFLAGS on kernel stack.
+    subq    $sizeof(BeGeneralRegisters64), %rsp
+    //  Ensure data on the stack is not going to get pwnd by interrupts.
 
-    pushq   %rax
+    movq    %rax, FIELDR(BeGeneralRegisters64, ErrorCode)(%rsp)
+    movq    %rax, FIELDR(BeGeneralRegisters64, RAX)(%rsp)
     //  This is the syscall selection.
 
     movq    %gs:SyscallUserlandStack@tpoff, %rax
-    pushq   %rax
-    //  This is the userland stack.
+    movq    %rax, FIELDR(BeGeneralRegisters64, RSP)(%rsp)
+    //  This is the userland stack pointer.
 
     sti
-    //  Syscalls are interruptible.
+    //  Syscalls are interruptible. The rest of this code is safe to interrupt as well.
+
+    movq    %r11, FIELDR(BeGeneralRegisters64, RFLAGS)(%rsp)
+    movq    %rcx, FIELDR(BeGeneralRegisters64, RIP)(%rsp)
+    //  Back up return RIP and RFLAGS on kernel stack.
+
+    movq    %rcx, FIELDR(BeGeneralRegisters64, RCX)(%rsp)
+    movq    %rbx, FIELDR(BeGeneralRegisters64, RBX)(%rsp)
+    movq    %rdx, FIELDR(BeGeneralRegisters64, RDX)(%rsp)
+    movq    %rbp, FIELDR(BeGeneralRegisters64, RBP)(%rsp)
+    movq    %rdi, FIELDR(BeGeneralRegisters64, RDI)(%rsp)
+    movq    %rsi, FIELDR(BeGeneralRegisters64, RSI)(%rsp)
+    movq    %r8,  FIELDR(BeGeneralRegisters64, R8 )(%rsp)
+    movq    %r9,  FIELDR(BeGeneralRegisters64, R9 )(%rsp)
+    movq    %r10, FIELDR(BeGeneralRegisters64, R10)(%rsp)
+    movq    %r11, FIELDR(BeGeneralRegisters64, R11)(%rsp)
+    movq    %r12, FIELDR(BeGeneralRegisters64, R12)(%rsp)
+    movq    %r13, FIELDR(BeGeneralRegisters64, R13)(%rsp)
+    movq    %r14, FIELDR(BeGeneralRegisters64, R14)(%rsp)
+    movq    %r15, FIELDR(BeGeneralRegisters64, R15)(%rsp)
+    //  Yes, these include two previous registers too.
+
+    movq    $0x18, %rax
+    movq    %rax, FIELDR(BeGeneralRegisters64, CS)(%rsp)
+    //  Userland code segment.
+
+    addq    $8, %rax
+    movq    %rax, FIELDR(BeGeneralRegisters64, SS)(%rsp)
+    movq    %rax, FIELDR(BeGeneralRegisters64, DS)(%rsp)
+    //  Stack segment of userland.
 
     xchgq   %r10, %rcx
     //  RCX contained return RIP and R10 contained the fourth argument.
@@ -88,31 +117,31 @@ SyscallEntry_64:
     //  Just a vanilla call. The arguments are already in the right registers
     //  and stack positions.
 
-    popq    %rdi
-    //  This retrieves the userland stack.
+    movq    FIELDR(BeGeneralRegisters64, RFLAGS)(%rsp), %r11
+    movq    FIELDR(BeGeneralRegisters64, RIP   )(%rsp), %rcx
+    //  Back up return RIP and RFLAGS on kernel stack.
 
-    addq    $8, %rsp
-    //  "Pop" the syscall selection.
-
-    //  No need to swap R10 and RCX again.
-
-    popq    %r11
-    popq    %rcx
-    //  Restore return RFLAGS and RIP from kernel stack.
-
-    xorl    %esi, %esi
-    xorl    %edx, %edx
-    xorl    %r8d, %r8d
-    xorl    %r9d, %r9d
-    //  Make sure that information is not leaked!
+    movq    FIELDR(BeGeneralRegisters64, RBX)(%rsp), %rbx
+    movq    FIELDR(BeGeneralRegisters64, RDX)(%rsp), %rdx
+    movq    FIELDR(BeGeneralRegisters64, RBP)(%rsp), %rbp
+    movq    FIELDR(BeGeneralRegisters64, RDI)(%rsp), %rdi
+    movq    FIELDR(BeGeneralRegisters64, RSI)(%rsp), %rsi
+    movq    FIELDR(BeGeneralRegisters64, R8 )(%rsp), %r8
+    movq    FIELDR(BeGeneralRegisters64, R9 )(%rsp), %r9
+    movq    FIELDR(BeGeneralRegisters64, R10)(%rsp), %r10
+    movq    FIELDR(BeGeneralRegisters64, R12)(%rsp), %r12
+    movq    FIELDR(BeGeneralRegisters64, R13)(%rsp), %r13
+    movq    FIELDR(BeGeneralRegisters64, R14)(%rsp), %r14
+    movq    FIELDR(BeGeneralRegisters64, R15)(%rsp), %r15
+    //  Now they are excluded.
 
     cli
     //  Will disable interrupts until sysret.
 
-    swapgs
-    //  Restore user GS base.
+    movq    FIELDR(BeGeneralRegisters64, RSP)(%rsp), %rsp
+    //  Restore userland stack.
 
-    movq    %rdi, %rsp
-    //  Restore user stack.
+    swapgs
+    //  And GS base.
 
     sysretq

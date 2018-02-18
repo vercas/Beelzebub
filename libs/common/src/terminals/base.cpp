@@ -38,6 +38,7 @@
 */
 
 #include <beel/terminals/base.hpp>
+#include <string.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
@@ -232,7 +233,7 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
     char c;
     char const * fmts = fmt, * nakedStart = nullptr;
 
-    while ((c = *fmts++) != 0)
+    while ((c = *fmts++) != '\0')
     {
         if (inFormat)
         {
@@ -543,6 +544,114 @@ TerminalWriteResult TerminalBase::Write(char const * const fmt, va_list args)
 
     if (nakedStart != nullptr)
         TERMTRY1(this->Write(nakedStart), res, cnt);
+
+    return res;
+}
+
+TerminalWriteResult TerminalBase::Write(char const * fmt, size_t argc, PositionalFormatArgument const * argv)
+{
+    if (!this->Capabilities->CanOutput)
+        return {HandleResult::UnsupportedOperation, 0U, InvalidCoordinates};
+
+    enum { OutOfFormat = 0, ReadingIndex, ReadingFormat } state = OutOfFormat;
+    char c;
+    size_t argIndex;
+    char const * nakedStart = nullptr, * indexStart = nullptr, * formatStart = nullptr;
+
+    TerminalWriteResult res {};
+    uint32_t cnt = 0U;
+
+    while ((c = *fmt++) != '\0')
+        switch (state)
+        {
+        case ReadingIndex:
+            if (c == '{')
+            {
+                if (indexStart == fmt - 1)
+                {
+                    TERMTRY1(this->Write('{'), res, cnt);
+
+                    state = OutOfFormat;
+                }
+                else
+                    return {HandleResult::FormatBadSpecifier, cnt, InvalidCoordinates};
+            }
+            else if (c == ':' || c == '}')
+            {
+                if (indexStart == fmt - 1)
+                    return {HandleResult::FormatBadSpecifier, cnt, InvalidCoordinates};
+                else
+                {
+                    for (char const * s = indexStart; s < fmt - 1; ++s)
+                    {
+                        char const d = *s;
+
+                        if (d < '0' || d > '9')
+                            return {HandleResult::FormatBadSpecifier, cnt, InvalidCoordinates};
+
+                        argIndex = (argIndex * 10) + (d - '0');
+                    }
+
+                    if (argIndex >= argc)
+                        return {HandleResult::FormatBadSpecifier, cnt, InvalidCoordinates};
+
+                    if (c == ':')
+                    {
+                        formatStart = fmt;
+                        state = ReadingFormat;
+                    }
+                    else
+                    {
+                        state = OutOfFormat;
+
+                        TERMTRY1(argv[argIndex].Writer(this, argv[argIndex].Value, nullptr), res, cnt);
+                    }
+                }
+            }
+
+            break;
+
+        case ReadingFormat:
+            if (c == '}')
+            {
+                char formatBuf[fmt - formatStart] = {};
+                strncpy(formatBuf, formatStart, fmt - formatStart - 1);
+                
+                state = OutOfFormat;
+
+                TERMTRY1(argv[argIndex].Writer(this, argv[argIndex].Value, formatBuf), res, cnt);
+            }
+            else if (c == '{')
+                return {HandleResult::FormatBadSpecifier, cnt, InvalidCoordinates};
+
+            break;
+
+        default:
+            if (c == '{')
+            {
+                if (nakedStart != nullptr)
+                {
+                    TERMTRY1(this->Write(nakedStart, fmt - 1 - nakedStart), res, cnt);
+
+                    nakedStart = nullptr;
+                }
+
+                state = ReadingIndex;
+                indexStart = fmt;
+                argIndex = 0;
+            }
+            else if unlikely(nakedStart == nullptr)
+                nakedStart = fmt - 1;
+                //  `fmt - 1` = &c
+            
+            break;
+        }
+
+    if (state != OutOfFormat)
+        return {HandleResult::FormatBadSpecifier, cnt, InvalidCoordinates};
+
+    if (nakedStart != nullptr)
+        TERMTRY1(this->Write(nakedStart, fmt - 1 - nakedStart), res, cnt);
 
     return res;
 }
@@ -1169,6 +1278,21 @@ namespace Beelzebub { namespace Terminals
 
         return term;
     }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<bool>(TerminalBase * term, bool const * val, char const * format)
+    {
+        if (format == nullptr || ::streq(format, "Bool"))
+            return term->Write(*val ? "True" : "False");
+        else if (::streq(format, "bool"))
+            return term->Write(*val ? "true" : "false");
+        else if (::streq(format, "tick"))
+            return term->Write(*val ? 'X' : ' ');
+        else if (::streq(format, "bit"))
+            return term->Write(*val ? '1' : '0');
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
     
     #define SPAWN_INT(size, type) template<> \
     TerminalBase & operator << <type>(TerminalBase & term, type const value) \
@@ -1185,6 +1309,14 @@ namespace Beelzebub { namespace Terminals
             term.MCATS(WriteHex, size)(static_cast<MCATS(uint, size, _t)>(value), term.FormatState.NumericUppercase); \
  \
         return term; \
+    } \
+    template<> \
+    TerminalWriteResult WriteFormattedValue<type>(TerminalBase * term, type const * val, char const * format) \
+    { \
+        if (format == nullptr) \
+            return term->WriteIntD(*val); \
+        else \
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates}; \
     }
 
     #define SPAWN_UINT(size, type) template<> \
@@ -1202,6 +1334,14 @@ namespace Beelzebub { namespace Terminals
             term.MCATS(WriteHex, size)(value, term.FormatState.NumericUppercase); \
  \
         return term; \
+    } \
+    template<> \
+    TerminalWriteResult WriteFormattedValue<type>(TerminalBase * term, type const * val, char const * format) \
+    { \
+        if (format == nullptr) \
+            return term->WriteUIntD(*val); \
+        else \
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates}; \
     }
 
     SPAWN_INT(16, signed short)
@@ -1234,6 +1374,19 @@ namespace Beelzebub { namespace Terminals
 
         return term;
     }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<void *>(TerminalBase * term, void * const * val, char const * format)
+    {
+        if (format == nullptr)
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+            return term->WriteHex64(reinterpret_cast<uintptr_t>(*val), true);
+#else
+            return term->WriteHex32(reinterpret_cast<uintptr_t>(*val), true);
+#endif
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
     
     template<>
     TerminalBase & operator << <void const *>(TerminalBase & term, void const * const value)
@@ -1250,6 +1403,19 @@ namespace Beelzebub { namespace Terminals
     }
 
     template<>
+    TerminalWriteResult WriteFormattedValue<void const *>(TerminalBase * term, void const * const * val, char const * format)
+    {
+        if (format == nullptr)
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+            return term->WriteHex64(reinterpret_cast<uintptr_t>(*val), true);
+#else
+            return term->WriteHex32(reinterpret_cast<uintptr_t>(*val), true);
+#endif
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
+
+    template<>
     TerminalBase & operator << <paddr_t>(TerminalBase & term, paddr_t const value)
     {
 #if   defined(__BEELZEBUB__ARCH_AMD64)
@@ -1259,6 +1425,19 @@ namespace Beelzebub { namespace Terminals
 #endif
 
         return term;
+    }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<paddr_t>(TerminalBase * term, paddr_t const * val, char const * format)
+    {
+        if (format == nullptr)
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+            return term->WriteHex64(val->Value, true);
+#else
+            return term->WriteHex32(val->Value, true);
+#endif
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
     }
 
     template<>
@@ -1274,11 +1453,33 @@ namespace Beelzebub { namespace Terminals
     }
 
     template<>
+    TerminalWriteResult WriteFormattedValue<vaddr_t>(TerminalBase * term, vaddr_t const * val, char const * format)
+    {
+        if (format == nullptr)
+#if   defined(__BEELZEBUB__ARCH_AMD64)
+            return term->WriteHex64(val->Value, true);
+#else
+            return term->WriteHex32(val->Value, true);
+#endif
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
+
+    template<>
     TerminalBase & operator << <psize_t>(TerminalBase & term, psize_t const value)
     {
         term.WriteHexVar(value.Value, term.FormatState.NumericUppercase);
 
         return term;
+    }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<psize_t>(TerminalBase * term, psize_t const * val, char const * format)
+    {
+        if (format == nullptr)
+            return term->WriteHexVar(val->Value, true);
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
     }
 
     template<>
@@ -1290,11 +1491,29 @@ namespace Beelzebub { namespace Terminals
     }
 
     template<>
+    TerminalWriteResult WriteFormattedValue<vsize_t>(TerminalBase * term, vsize_t const * val, char const * format)
+    {
+        if (format == nullptr)
+            return term->WriteHexVar(val->Value, true);
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
+
+    template<>
     TerminalBase & operator << <PageSize_t>(TerminalBase & term, PageSize_t const value)
     {
         term.WriteHexVar(value.Value, term.FormatState.NumericUppercase);
 
         return term;
+    }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<PageSize_t>(TerminalBase * term, PageSize_t const * val, char const * format)
+    {
+        if (format == nullptr)
+            return term->WriteHexVar(val->Value, true);
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
     }
 
     template<>
@@ -1328,6 +1547,15 @@ namespace Beelzebub { namespace Terminals
 
         return term;
     }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<char const *>(TerminalBase * term, char const * const * val, char const * format)
+    {
+        if (format == nullptr)
+            return term->Write(*val);
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
     
     template<>
     TerminalBase & operator << <char *>(TerminalBase & term, char * const value)
@@ -1335,6 +1563,15 @@ namespace Beelzebub { namespace Terminals
         term.Write(const_cast<char const *>(value));
 
         return term;
+    }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<char *>(TerminalBase * term, char * const * val, char const * format)
+    {
+        if (format == nullptr)
+            return term->Write(*val);
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
     }
     
     template<>
@@ -1344,6 +1581,15 @@ namespace Beelzebub { namespace Terminals
 
         return term;
     }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<Handle>(TerminalBase * term, Handle const * val, char const * format)
+    {
+        if (format == nullptr)
+            return term->WriteHandle(*val);
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
     
     template<>
     TerminalBase & operator << <HandleResult>(TerminalBase & term, HandleResult const value)
@@ -1351,6 +1597,14 @@ namespace Beelzebub { namespace Terminals
         term.WriteHandle(value);
 
         return term;
+    }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<HandleResult>(TerminalBase * term, HandleResult const * val, char const * format)
+    {
+        Handle const han = *val;
+
+        return WriteFormattedValue<Handle>(term, &han, format);
     }
     
     template<>

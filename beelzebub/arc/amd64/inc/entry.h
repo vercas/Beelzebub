@@ -42,18 +42,9 @@
 #include <beel/handles.h>
 #include <jegudiel.h>
 
-#ifdef __BEELZEBUB__SOURCE_CXX
-    #include <beel/terminals/base.hpp>
-    #include <system/cpuid.hpp>
-    #include <system/domain.hpp>
-
-    #define Handle Beelzebub::Handle
-    #define TerminalBase Beelzebub::Terminals::TerminalBase
-#else
-    #define TerminalBase void
-    //  Hue hue hue.
-    //  Hue.
-#endif
+#include <beel/terminals/base.hpp>
+#include <system/cpuid.hpp>
+#include <system/domain.hpp>
 
 #define JG_INFO_ROOT_BASE          (0xFFFFFFFFFFFE0000)
 
@@ -67,40 +58,21 @@
 __extern __public __startup void kmain_bsp();
 __extern __startup void kmain_ap();
 
-#ifdef __BEELZEBUB__SOURCE_CXX
 namespace Beelzebub
 {
     extern System::CpuId BootstrapCpuid;
+
+    __startup Handle ParseKernelArguments();
+
+    // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
+    __startup Handle InitializePhysicalAllocator(jg_info_mmap_t * map
+        , size_t cnt, uintptr_t freeStart, Beelzebub::System::Domain * domain);
+    __startup Handle InitializePhysicalMemory();
+    __startup Handle InitializeVirtualMemory();
+
+    __startup Handle InitializeModules();
+
+    #ifdef __BEELZEBUB__TEST_MT
+    __startup void StartMultitaskingTest();
+    #endif
 }
-#endif
-
-__extern __startup Handle ParseKernelArguments();
-
-__extern __startup Handle InitializeInterrupts();
-
-// TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
-__extern __startup Handle InitializePhysicalAllocator(jg_info_mmap_t * map
-    , size_t cnt, uintptr_t freeStart, Beelzebub::System::Domain * domain);
-__extern __startup Handle InitializePhysicalMemory();
-__extern __startup Handle InitializeVirtualMemory();
-
-__extern __startup Handle InitializeAcpiTables();
-
-__extern __startup Handle InitializeApic();
-
-__extern __startup Handle InitializeProcessingUnits();
-
-__extern __startup Handle InitializeModules();
-
-__extern __startup TerminalBase * InitializeTerminalProto();
-__extern __startup TerminalBase * InitializeTerminalMain(char * clue);
-
-#ifdef __BEELZEBUB__TEST_MT
-__extern __startup void StartMultitaskingTest();
-#endif
-
-#ifdef __cplusplus
-    #undef Handle
-#endif
-
-#undef TerminalBase
