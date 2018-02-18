@@ -117,4 +117,9 @@ source.zip
 
 
 # vStuff
-tests/
+/documents/
+/generate/
+/source/
+/tests/
+!/source/include/actbl*
+/Makefile
