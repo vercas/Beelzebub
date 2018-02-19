@@ -1,4 +1,6 @@
 //#define GLFW_INCLUDE_GLEXT
+#define ALADIN_IMPLEMENTATION
+
 #include <GLFW\glfw3.h>
 #include <Aladin.h>
 #include <AladinRender.h>
@@ -230,4 +232,13 @@ char** AladinSplitString(char* Str, const char* Delim) {
 	}
 
 	return Ret;
+}
+
+int AladinStringArrayLen(const char** Arr) {
+	int Len = 0;
+	
+	while (Arr[Len++])
+		;
+
+	return Len - 1;
 }

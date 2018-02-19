@@ -3,25 +3,76 @@
 #include <imgui_memory_editor.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <Networking.h>
 
-static MemoryEditor MemEdit;
-bool ShowMemEdit, ShowConsole, ShowDemoWindow;
-
-AladinConsole Console;
+NetInterface* Interface;
 
 void Initialize() {
-	ShowConsole = true;
+	Console.RegisterCommand("host", [&](const char* Msg, const char** Args) {
+		if (!Console.RequireArgs(Args, 1))
+			return;
 
-	Console.RegisterCommand("exit", [&](const char* Msg) {
-		ShowConsole = false;
+		if (Interface != NULL) {
+			Console.WriteLine("Interface already exists, call 'disconnect'");
+			return;
+		}
+
+		NamedPipeServerInterface* I = new NamedPipeServerInterface();
+		if (!I->Host(Args[1])) {
+			Console.Write("Could not spawn ");
+			Console.WriteLine(I->Name);
+
+			delete I;
+			return;
+		}
+
+		Interface = I;
+
+		Console.Write("Hosting ");
+		Console.Write(Interface->Name);
+		Console.Write(" on '");
+		Console.Write(Args[1]);
+		Console.WriteLine("'");
 	});
 
-	Console.RegisterCommand("shite", [&](const char* Msg) {
-		Console.WriteLine("Hello! You executed the \"shite\" command!");
+	Console.RegisterCommand("disconnect", [&](const char* Msg, const char** Args) {
+		if (!Console.RequireArgs(Args, 0))
+			return;
+
+		if (Interface == NULL) {
+			Console.WriteLine("Nothing to do");
+			return;
+		}
+
+		delete Interface;
+		Interface = NULL;
+		Console.WriteLine("Disconnected");
 	});
 }
 
 void Loop(float Dt) {
+	char Data[1024] = { 0 };
+
+	if (Interface != NULL && !Interface->Valid()) {
+		Console.WriteLine("Invalid interface");
+		Console.Execute("disconnect", false);
+	}
+
+	if (Interface != NULL && Interface->Read(Data, 1, false) != -1) {
+		/*while (Interface->Read(Data, 1, false) != -1)
+			;
+
+		Console.WriteLine("Received a data packet!");*/
+
+		Interface->Read(Data, 4, true);
+		int Len = *(int*)Data;
+
+		memset(Data, 0, Len + 1);
+		Interface->Read(Data, Len, true);
+
+		Console.WriteLine(Data);
+	}
+
 	if (ImGui::BeginMainMenuBar()) {
 		if (ImGui::BeginMenu("File")) {
 			if (ImGui::MenuItem("Exit"))
@@ -31,9 +82,7 @@ void Loop(float Dt) {
 		}
 
 		if (ImGui::BeginMenu("Tools")) {
-			ImGui::MenuItem("Memory Editor", NULL, &ShowMemEdit);
-			ImGui::MenuItem("Console", NULL, &ShowConsole);
-			ImGui::MenuItem("Demo", NULL, &ShowDemoWindow);
+			ImGui::MenuItem("Console", NULL, &Console.Show);
 			ImGui::EndMenu();
 		}
 
@@ -50,27 +99,22 @@ void Loop(float Dt) {
 
 		ImGui::Separator();
 
-		if (ShowConsole)
+		if (Interface == NULL)
+			ImGui::Text("Interface NULL");
+		else
+			ImGui::Text(Interface->Name);
+
+		ImGui::Separator();
+
+		if (Console.Show)
 			if (ImGui::BeginMenu("Console")) {
 				ImGui::SetWindowFocus("Console");
 				ImGui::EndMenu();
 			}
 
-		if (ShowMemEdit)
-			if (ImGui::BeginMenu("Memory Editor")) {
-				ImGui::SetWindowFocus("Memory Editor");
-				ImGui::EndMenu();
-			}
 
 		ImGui::EndMainMenuBar();
 	}
 
-	if (ShowConsole)
-		Console.Draw();
-
-	if (ShowDemoWindow)
-		ImGui::ShowDemoWindow();
-
-	/*if (ShowMemEdit)
-		MemEdit.DrawWindow("Memory Editor", (unsigned char*)ConsoleInputBuffer, ConsoleInputBufferLen);*/
+	Console.Draw();
 }

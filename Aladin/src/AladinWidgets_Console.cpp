@@ -2,16 +2,36 @@
 #include <imgui.h>
 
 AladinConsole::AladinConsole() {
-	ConsoleInputBufferLen = 4096;
+	Show = true;
+
+	ConsoleInputBufferLen = 1024;
 	ConsoleInputBuffer = (char*)calloc(ConsoleInputBufferLen, 1);
 
-	ConsoleOutputBufferLen = 4096;
+	ConsoleOutputBufferLen = 4096 * 2;
+	//ConsoleOutputBufferLen = 500;
 	ConsoleOutputBuffer = (char*)calloc(ConsoleOutputBufferLen, 1);
 	Clear();
 
-	RegisterCommand("clear", [&](const char* Msg) {
+	RegisterCommand("clear", [&](const char* Msg, const char** Args) {
 		Clear();
 	});
+
+	RegisterCommand("exit", [&](const char* Msg, const char** Args) {
+		Console.Show = false;
+	});
+}
+
+bool AladinConsole::RequireArgs(const char** Args, int Cnt) {
+	int ArgCnt = 0;
+
+	if ((ArgCnt = AladinStringArrayLen(Args)) != Cnt + 1) {
+		char Bfr[1024] = { 0 };
+		sprintf(Bfr, "Command requires %i arguments, received %i", Cnt, ArgCnt - 1);
+		WriteLine(Bfr);
+		return false;
+	}
+
+	return true;
 }
 
 void AladinConsole::Clear() {
@@ -21,6 +41,9 @@ void AladinConsole::Clear() {
 
 void AladinConsole::Write(const char* Msg) {
 	int Len = strlen(Msg);
+	if (ConsoleOutputBufferPos - ConsoleOutputBuffer + Len >= ConsoleOutputBufferLen)
+		Clear();
+
 	memcpy(ConsoleOutputBufferPos, Msg, Len);
 	ConsoleOutputBufferPos += Len;
 }
@@ -30,23 +53,25 @@ void AladinConsole::WriteLine(const char* Msg) {
 	Write("\n");
 }
 
-void AladinConsole::RegisterCommand(const char* Name, std::function<void(const char*)> F) {
+void AladinConsole::RegisterCommand(const char* Name, std::function<void(const char*, const char**)> F) {
 	Cmds.insert({ Name, F });
 }
 
-void AladinConsole::Execute(const char* Msg) {
+void AladinConsole::Execute(const char* Msg, bool Echo) {
 	if (strlen(Msg) == 0)
 		return;
 
-	Write(">> ");
-	WriteLine(Msg);
+	if (Echo) {
+		Write(">> ");
+		WriteLine(Msg);
+	}
 
 	char* MsgDup = strdup(Msg);
 	char** Args = AladinSplitString(MsgDup, " ");
 
 	for each (auto C in Cmds) {
 		if (!strcmp(*Args, C.first)) {
-			C.second(Msg);
+			C.second(Msg, (const char**)Args);
 
 			goto END; // You're gonna hate me for this :troll:
 		}
@@ -54,8 +79,6 @@ void AladinConsole::Execute(const char* Msg) {
 
 	Write("Unknown command '");
 	Write(*Args);
-	Write("' in '");
-	Write(Msg);
 	WriteLine("'");
 
 END:
@@ -64,6 +87,9 @@ END:
 }
 
 void AladinConsole::Draw() {
+	if (!Show)
+		return;
+
 	if (ImGui::Begin("Console", NULL, ImGuiWindowFlags_MenuBar)) {
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("Options")) {
