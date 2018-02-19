@@ -4,8 +4,7 @@
 #include <GLFW\glfw3.h>
 #endif
 
-float alWidth;
-float alHeight;
+float DWidth, DHeight;
 
 void alInit() {
 #ifdef ALADIN_RENDERER_TYPE_OPENGL2
@@ -27,23 +26,25 @@ void alInit() {
 #endif
 }
 
-void alSetView(float Width, float Height) {
-	alWidth = Width;
-	alHeight = Height;
+void alSetView(float Width, float Height, float DisplayWidth, float DisplayHeight) {
+	DWidth = DisplayWidth;
+	DHeight = DisplayHeight;
 
 #ifdef ALADIN_RENDERER_TYPE_OPENGL2
-	glViewport(0, 0, alWidth, alHeight);
+	glViewport(0, 0, Width, Height);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, alWidth, alHeight, 0, -1, 1);
+	glOrtho(0, DisplayWidth, DisplayHeight, 0, -1, 1);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
 #endif
 }
 
 void alSetScissor(float X, float Y, float W, float H) {
 	if (W == -1)
-		W = alWidth;
+		W = DWidth;
 	if (H == -1)
-		H = alHeight;
+		H = DHeight;
 
 #ifdef ALADIN_RENDERER_TYPE_OPENGL2
 	glScissor(X, Y, W, H);

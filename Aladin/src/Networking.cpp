@@ -1,8 +1,10 @@
 #include <Aladin.h>
 #include <Networking.h>
 
+#ifdef _WIN32 || _WIN64
 #include <iostream>
 #include <Windows.h>
+#endif
 
 NamedPipeServerInterface::NamedPipeServerInterface() {
 	Name = "Named Pipe Server";
@@ -37,7 +39,7 @@ bool NamedPipeServerInterface::Host(const char* Name) {
 			break;
 
 		case ERROR_IO_PENDING:
-			if (Ret = WaitForSingleObject(Ol.hEvent, 500)) {
+			if (Ret = WaitForSingleObject(Ol.hEvent, 30000)) {
 				DWORD Ign;
 				Ret = GetOverlappedResult(PipeHandle, &Ol, &Ign, FALSE);
 

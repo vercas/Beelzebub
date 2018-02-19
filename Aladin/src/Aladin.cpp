@@ -12,10 +12,14 @@ double Time = 0.0f;
 bool MouseJustPressed[3] = { false, false, false };
 
 int main(int argc, const char* argv[]) {
+	AladinSetDPIAware();
+
 	if (!glfwInit()) {
 		printf("Could not initialize glfw");
 		return -1;
 	}
+
+	//glfwGetmonitor
 
 	// TODO: Fetch desktop resolution and create something less gay
 	Width = 1200;
@@ -52,8 +56,16 @@ int main(int argc, const char* argv[]) {
 
 void ImGui_Draw(ImDrawData* Data) {
 	ImGuiIO& IO = ImGui::GetIO();
-	float FrameWidth = IO.DisplaySize.x;
-	float FrameHeight = IO.DisplaySize.y;
+	float FrameWidth = IO.DisplaySize.x * IO.DisplayFramebufferScale.x;
+	float FrameHeight = IO.DisplaySize.y * IO.DisplayFramebufferScale.y;
+	if (FrameWidth == 0 || FrameHeight == 0)
+		return;
+
+	Data->ScaleClipRects(IO.DisplayFramebufferScale);
+
+	alSetView(FrameWidth, FrameHeight, IO.DisplaySize.x, IO.DisplaySize.y);
+	alSetScissor(0, 0, -1, -1);
+	alClear(0.5f, 0.5f, 0.5f, 1);
 
 	for (int n = 0; n < Data->CmdListsCount; n++) {
 		const ImDrawList* CmdList = Data->CmdLists[n];
@@ -194,10 +206,6 @@ void AladinUpdateBegin(float Dt) {
 	}
 
 	glfwSetInputMode(Window, GLFW_CURSOR, IO.MouseDrawCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
-
-	alSetView(Width, Height);
-	alSetScissor(0, 0, -1, -1);
-	alClear(0.5f, 0.5f, 0.5f, 1);
 	ImGui::NewFrame();
 }
 
@@ -236,7 +244,7 @@ char** AladinSplitString(char* Str, const char* Delim) {
 
 int AladinStringArrayLen(const char** Arr) {
 	int Len = 0;
-	
+
 	while (Arr[Len++])
 		;
 

@@ -21,6 +21,8 @@ void InitGUI();
 void AladinUpdateBegin(float Dt);
 void AladinUpdateEnd(float Dt);
 
+void AladinSetDPIAware();
+
 // AladinGUI
 void Initialize();
 void Loop(float Dt);

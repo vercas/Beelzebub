@@ -3,7 +3,7 @@
 #define ALADIN_RENDERER_TYPE_OPENGL2
 
 void alInit();
-void alSetView(float Width, float Height);
+void alSetView(float Width, float Height, float DisplayWidth, float DisplayHeight);
 
 void alSetScissor(float X, float Y, float W, float H);
 void alClear(float R, float G, float B, float A);
