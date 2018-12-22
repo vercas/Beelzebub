@@ -37,13 +37,14 @@
     thorough explanation regarding other files.
 */
 
-#include <_print/idt.hpp>
-#include <debug.hpp>
+#include <beel/terminals/base.hpp>
+#include "system/interrupts.hpp"
 
 using namespace Beelzebub;
-using namespace Beelzebub::Debug;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
+
+__ENUM_TO_STRING_IMPL(IdtGateType, ENUM_IDTGATETYPE, Beelzebub::System)
 
 static const char * getIdtGateType(IdtGateType const type)
 {
@@ -91,58 +92,64 @@ static const char * getIdtGateType(IdtGateType const type)
 }
 
 /*********************
-    IdtGate Struct
+    DEBUG PRINTING
 *********************/
 
-TerminalWriteResult PrintToTerminal(TerminalBase * const term, IdtGate const val)
+namespace Beelzebub { namespace Terminals
 {
-    return term->WriteFormat("%Xp|%X2| %u1 |%s|%b%b|%t|%n"
-        , val.GetOffset(), val.GetSegment(), val.GetIst()
-        , getIdtGateType(val.GetType()), val.GetDplHigh(), val.GetDplLow()
-        , val.GetPresent());
-}
-
-TerminalWriteResult PrintToDebugTerminal(IdtGate const val)
-{
-    return PrintToTerminal(DebugTerminal, val);
-}
-
-/*************************
-    IdtRegister Struct
-*************************/
-
-TerminalWriteResult PrintToTerminal(TerminalBase * const term, IdtRegister const val)
-{
-    TerminalWriteResult tret;
-    
-    TERMTRY0(term->WriteFormat("IDT Register: %Xp %X2;%n"
-        "Ind|     Offset     |Segm|IST|Type|PL|P|%n"
-        , val.Pointer, val.Size), tret);
-
-    uint32_t cnt;
-
-    for (size_t i = 0, j = 0; j < val.Size && i < 256; ++i, j += 16)
+    template<>
+    TerminalBase & operator << <IdtGate>(TerminalBase & term, IdtGate const val)
     {
-        if (i < 100)
-        {
-            TERMTRY1(term->Write(' '), tret, cnt);
+        term.WriteFormat("|%Xp|%X2| %u1 |%s|%b%b|%t|"
+                , val.GetOffset(), val.GetSegment(), val.GetIst()
+                , getIdtGateType(val.GetType()), val.GetDplHigh(), val.GetDplLow()
+                , val.GetPresent());
 
-            if (i < 10)
-            {
-                TERMTRY1(term->Write(' '), tret, cnt);
-            }
-        }
-
-        TERMTRY1(term->WriteUIntD((uint64_t)i), tret, cnt);
-        TERMTRY1(term->Write('|'), tret, cnt);
-        
-        TERMTRY1(PrintToTerminal(term, val.Pointer->Entries[i]), tret, cnt);
+        return term;
     }
 
-    return tret;
-}
+    template<>
+    TerminalWriteResult WriteFormattedValue<IdtGate>(TerminalBase * term, IdtGate const * val, char const * format)
+    {
+        if (format == nullptr)
+            return term->WriteFormat("|%Xp|%X2| %u1 |%s|%b%b|%t|"
+                , val->GetOffset(), val->GetSegment(), val->GetIst()
+                , getIdtGateType(val->GetType()), val->GetDplHigh(), val->GetDplLow()
+                , val->GetPresent());
+        else
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
 
-TerminalWriteResult PrintToDebugTerminal(IdtRegister const val)
-{
-    return PrintToTerminal(DebugTerminal, val);
-}
+    template<>
+    TerminalWriteResult WriteFormattedValue<IdtRegister>(TerminalBase * term, IdtRegister const * val, char const * format)
+    {
+        TerminalWriteResult tret;
+        
+        TERMTRY0(term->WriteFormat("IDT Register: %Xp %X2;%n"
+            "Ind|     Offset     |Segm|IST|Type|PL|P|%n"
+            , val->Pointer, val->Size), tret);
+
+        uint32_t cnt;
+
+        for (size_t i = 0, j = 0; j < val->Size && i < 256; ++i, j += 16)
+        {
+            if (i < 100)
+            {
+                TERMTRY1(term->Write(' '), tret, cnt);
+
+                if (i < 10)
+                {
+                    TERMTRY1(term->Write(' '), tret, cnt);
+                }
+            }
+
+            TERMTRY1(term->WriteUIntD((uint64_t)i), tret, cnt);
+            
+            TERMTRY1(WriteFormattedValue<IdtGate>(term, val->Pointer->Entries + i, nullptr), tret, cnt);
+
+            TERMTRY1(term->WriteLine(), tret, cnt);
+        }
+
+        return tret;
+    }
+}}

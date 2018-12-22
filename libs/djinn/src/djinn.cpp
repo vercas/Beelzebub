@@ -72,12 +72,12 @@ retry:
 }
 
 template<typename TPacket, bool BRetry = true>
-static DJINN_POLL_RES Poll(TPacket & pack, uint64_t timeout = 0)
+static DJINN_POLL_RES Poll(TPacket & pack, size_t & len, uint64_t timeout = 0)
 {
     DJINN_POLL_RES res;
 
 retry:
-    res = InitData.Poller(&pack, sizeof(pack));
+    res = InitData.Poller(&pack, sizeof(pack), &len);
     
     if (BRetry && res == DJINN_POLL_AWAIT)
     {
@@ -92,6 +92,18 @@ retry:
 
         goto retry;
     }
+
+    return res;
+}
+
+template<typename TPacket, bool BRetry = true>
+static DJINN_POLL_RES Poll(TPacket & pack, uint64_t timeout = 0)
+{
+    size_t len;
+    DJINN_POLL_RES res = Poll(pack, len, timeout);
+
+    if (len != sizeof(TPacket))
+        return DJINN_POLL_PACKET_SIZE_OOR;
 
     return res;
 }
@@ -118,13 +130,15 @@ DJINN_INIT_RES DjinnInitialize(DjinnInitData * data)
 
     //  Send first handshake packet.
 
+    for (size_t volatile i = 0; i < 1000000000; ++i) { }
+
     DJINN_SEND_RES sres = Send(DwordPacket(HandshakePacket0, nuance));
 
     if (sres != DJINN_SEND_SUCCESS)
         FAIL(DJINN_INIT_HANDSHAKE_FAILED);
 
     DwordPacket buf1;
-    DJINN_POLL_RES pres = Poll(buf1, 10000);
+    DJINN_POLL_RES pres = Poll(buf1, 1000000);
     //  TODO: Timing.
 
     if (pres == DJINN_POLL_NOTHING)
@@ -169,19 +183,26 @@ DjinnLogResult DjinnLog(char const * str, int cnt)
     if (cnt > (int)(InitData.PacketMaxSize - sizeof(SimplePacket)))
         cnt = (int)(InitData.PacketMaxSize - sizeof(SimplePacket));
 
+    if (reinterpret_cast<uintptr_t>(str) < 0xFFFF000000000000ULL)
+    {
+        str = "DAFUQ?!";
+        cnt = 7;
+    }
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wvla"
     size_t const pSize = cnt + sizeof(SimplePacket);
     uint8_t buf[pSize];
+    uint8_t * const bufPtr = &(buf[0]);
 #pragma GCC diagnostic pop
 
-    new (reinterpret_cast<SimplePacket *>(buf + 0)) SimplePacket(LogPacket);
-    memcpy(buf + 2, str, cnt);
+    new (reinterpret_cast<SimplePacket *>(bufPtr)) SimplePacket(LogPacket);
+    memcpy(bufPtr + sizeof(SimplePacket), str, cnt);
 
     DJINN_SEND_RES res;
 
 retry:
-    res = InitData.Sender(buf + 0, pSize);
+    res = InitData.Sender(bufPtr, pSize);
 
     if (res == DJINN_SEND_AWAIT)
     {

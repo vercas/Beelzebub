@@ -37,9 +37,7 @@
     thorough explanation regarding other files.
 */
 
-#include <beel/handles.h>
-
-#include <beel/structs.kernel.hpp>
+#include <beel/structs.kernel.h>
 
 #define KRN_SYM_GLB_FNC(name, attr, retType, ...) \
     __shared attr retType name(__VA_ARGS__) { __unreachable_code; }

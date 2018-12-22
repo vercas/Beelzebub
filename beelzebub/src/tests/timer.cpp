@@ -39,11 +39,11 @@
 
 #ifdef __BEELZEBUB__TEST_TIMER
 
-#include <tests/timer.hpp>
-#include <timer.hpp>
-#include <synchronization/atomic.hpp>
-#include <system/timers/apic.timer.hpp>
-#include <system/rtc.hpp>
+#include "tests/timer.hpp"
+#include "timer.hpp"
+#include <beel/sync/atomic.hpp>
+#include "system/timers/apic.timer.hpp"
+#include "system/rtc.hpp"
 
 #include <debug.hpp>
 
@@ -53,10 +53,8 @@ using namespace Beelzebub::Terminals;
 
 static Synchronization::Atomic<int> Counter {6};
 
-static __startup void Test1(System::IsrState * const state, void * cookie)
+static __startup void Test1(void * cookie)
 {
-    (void)state;
-
     Rtc::Read();
     DEBUG_TERM_ << "Timer hit: " << (size_t)cookie << ": "
                 << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day

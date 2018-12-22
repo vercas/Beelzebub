@@ -43,54 +43,12 @@
 #include <debug.hpp>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::InterruptControllers;
 
 /****************
     Nmi class
 ****************/
-
-/*  Statics  */
-
-Nmi::HandlerNode * Nmi::Handlers = nullptr;
-Nmi::EnderNode * Nmi::Enders = nullptr;
-
-/*  Initialization  */
-
-void Nmi::Initialize()
-{
-    Interrupts::Get(KnownExceptionVectors::NmiInterrupt).SetHandler(&Handler);
-}
-
-void Nmi::AddHandler(Nmi::HandlerNode * e)
-{
-    ASSERT(e->Function != nullptr);
-
-    HandlerNode * * next = &Handlers;
-
-    while (*next != nullptr)
-        next = &((*next)->Next);
-
-    *next = e;
-
-    ASSERT(e->Next == nullptr);
-}
-
-void Nmi::AddEnder(Nmi::EnderNode * e, bool unique)
-{
-    EnderNode * * next = &Enders;
-
-    while (*next != nullptr)
-    {
-        if unlikely(unique && (*next)->Function == e->Function)
-            return;
-
-        next = &((*next)->Next);
-    }
-
-    *next = e;
-}
 
 /*  Operation  */
 
@@ -109,19 +67,4 @@ void Nmi::Send(uint32_t id)
         .SetDestinationShorthand(IcrDestinationShorthand::None)
         .SetAssert(true)
         .SetDestination(id));
-}
-
-void Nmi::Handler(INTERRUPT_HANDLER_ARGS_FULL)
-{
-    for (HandlerNode * han = Handlers; han != nullptr; han = han->Next)
-    {
-        ASSERT(han->Function != nullptr);
-
-        han->Function(state, nullptr, handler, vector);
-    }
-
-    for (EnderNode * end = Enders; end != nullptr; end = end->Next)
-        end->Function(handler, vector);
-
-    END_OF_INTERRUPT();
 }

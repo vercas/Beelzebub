@@ -53,8 +53,18 @@ namespace Beelzebub
 
         /*  Constructors  */
 
-        inline Result(TError const err) : Error(err), _Dummy() { }
-        inline Result(TValue const val) : Error(ErrorType::Success), Value(val) { }
+        inline constexpr Result() : Error((TError)(-1)), _Dummy() { }
+
+        inline constexpr Result(TError const err) : Error(err), _Dummy() { }
+        inline constexpr Result(TValue const val) : Error(ErrorType::Success), Value(val) { }
+
+        // inline constexpr Result(Result & other) : Error(other.Error)
+        // {
+        //     if (other.Error == ErrorType::Success)
+        //         this->Value = other.Value;
+        //     else
+        //         this->_Dummy = { };
+        // }
 
         /*  Fields  */
 
@@ -73,5 +83,9 @@ namespace Beelzebub
 
         __artificial bool operator ==(TValue && val) { return this->Error == ErrorType::Success && (this->Value == val); }
         __artificial bool operator !=(TValue && val) { return this->Error != ErrorType::Success || (this->Value != val); }
+
+        __artificial bool operator ==(Result && other) { return this->Error == other.Error && (this->Error != ErrorType::Success || this->Value == other.Value); }
+        __artificial bool operator !=(Result && other) { return this->Error != other.Error || (this->Error == ErrorType::Success && this->Value != other.Value); }
+
     };
 }

@@ -38,6 +38,7 @@
 */
 
 #include "watchdog.hpp"
+#include "irqs.hpp"
 #include "cores.hpp"
 #include "timer.hpp"
 #include "system/nmi.hpp"
@@ -56,20 +57,20 @@ static SmpLock PrintLock {};
 
 static Atomic<size_t> Left {0};
 
-static __hot void WatchdogNmiHandler(INTERRUPT_HANDLER_ARGS_FULL)
+static __hot void WatchdogNmiHandler(InterruptContext const * context, void * cookie)
 {
-    (void)ender;
-    (void)handler;
-    (void)vector;
+    (void)cookie;
 
     if (Left.Load() == 0)
         return;
 
+    auto const regs = context->Registers;
+
     withLock (PrintLock)
     {
-        MSG("%n$%us:%Xp|%Xs$%n", Cpu::GetData()->Index, state->RIP, state->RAX);
+        MSG("%n$%us:%Xp|%Xs$%n", Cpu::GetData()->Index, regs->RIP, regs->RAX);
 
-        uintptr_t stackPtr = state->RSP;
+        uintptr_t stackPtr = regs->RSP;
         uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
@@ -84,7 +85,7 @@ static __hot void WatchdogNmiHandler(INTERRUPT_HANDLER_ARGS_FULL)
         for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
         {
             MSG("%X2|%Xp|%Xs|%s"
-                , (uint16_t)(stackPtr - state->RSP)
+                , (uint16_t)(stackPtr - regs->RSP)
                 , stackPtr
                 , *((size_t const *)stackPtr)
                 , odd ? "\r\n" : "\t");
@@ -94,7 +95,7 @@ static __hot void WatchdogNmiHandler(INTERRUPT_HANDLER_ARGS_FULL)
 
         Utils::StackFrame stackFrame;
 
-        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+        if (stackFrame.LoadFirst(regs->RSP, regs->RBP, regs->RIP))
         {
             do
             {
@@ -108,11 +109,10 @@ static __hot void WatchdogNmiHandler(INTERRUPT_HANDLER_ARGS_FULL)
     --Left;
 }
 
-static Nmi::HandlerNode NmiEntry { &WatchdogNmiHandler };
+static InterruptHandlerNode WatchdogNmiNode { &WatchdogNmiHandler };
 
-static __hot void WatchdogTimerHandler(IsrState * const state, void * cookie)
+static __hot void WatchdogTimerHandler(void * cookie)
 {
-    (void)state;
     (void)cookie;
 
     MSG_("&%us&", Cpu::GetData()->Index);
@@ -138,7 +138,7 @@ bool Watchdog::Initialize()
     if (!Assignee.CmpXchgStrong(expected, Cpu::GetData()->Index))
         return false;
 
-    Nmi::AddHandler(&NmiEntry);
+    ASSERT(WatchdogNmiNode.Subscribe(Irqs::Nmi) == IrqSubscribeResult::Success);
 
     Timer::Enqueue(1secs_l, WatchdogTimerHandler);
 

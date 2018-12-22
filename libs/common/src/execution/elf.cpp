@@ -37,7 +37,8 @@
     thorough explanation regarding other files.
 */
 
-#include <execution/elf.hpp>
+#include "execution/elf.hpp"
+#include <beel/terminals/base.hpp>
 
 #include <string.h>
 #include <math.h>
@@ -52,66 +53,39 @@ uint32_t Execution::ElfMagicNumber = 0x464C457F;
 
 /*  Enum-to-string  */
 
-__ENUM_TO_STRING_EX2(ElfClass, ENUM_ELFCLASS, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfDataEncoding, ENUM_ELFDATAENCODING, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfOsAbi, ENUM_ELFOSABI, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfFileType, ENUM_ELFFILETYPE, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfMachine, ENUM_ELFMACHINE, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfSectionHeaderType, ENUM_ELFSECTIONHEADERTYPE, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfSectionHeaderFlags_32, ENUM_ELFSECTIONHEADERFLAGS32, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfSectionHeaderFlags_64, ENUM_ELFSECTIONHEADERFLAGS64, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfProgramHeaderType, ENUM_ELFPROGRAMHEADERTYPE, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfProgramHeaderFlags, ENUM_ELFPROGRAMHEADERFLAGS, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfDynamicEntryTag, ENUM_ELFDYNAMICENTRYTAG, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfSymbolBinding, ENUM_ELFSYMBOLBINDING, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfSymbolType, ENUM_ELFSYMBOLTYPE, Beelzebub::Execution)
-__ENUM_TO_STRING_EX2(ElfSymbolVisibility, ENUM_ELFSYMBOLVISIBILITY, Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfClass                  , ENUM_ELFCLASS                 , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfDataEncoding           , ENUM_ELFDATAENCODING          , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfOsAbi                  , ENUM_ELFOSABI                 , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfFileType               , ENUM_ELFFILETYPE              , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfMachine                , ENUM_ELFMACHINE               , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfSectionHeaderType      , ENUM_ELFSECTIONHEADERTYPE     , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfSectionHeaderFlags_32  , ENUM_ELFSECTIONHEADERFLAGS32  , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfSectionHeaderFlags_64  , ENUM_ELFSECTIONHEADERFLAGS64  , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfProgramHeaderType      , ENUM_ELFPROGRAMHEADERTYPE     , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfProgramHeaderFlags     , ENUM_ELFPROGRAMHEADERFLAGS    , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfDynamicEntryTag        , ENUM_ELFDYNAMICENTRYTAG       , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfSymbolBinding          , ENUM_ELFSYMBOLBINDING         , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfSymbolType             , ENUM_ELFSYMBOLTYPE            , Beelzebub::Execution)
+__ENUM_TO_STRING_IMPL(ElfSymbolVisibility       , ENUM_ELFSYMBOLVISIBILITY      , Beelzebub::Execution)
 
-__ENUM_TO_STRING_EX2(ElfValidationResult, ENUM_ELFVALIDATIONRESULT, Beelzebub::Execution)
-
-#include <beel/terminals/base.hpp>
+__ENUM_TO_STRING_IMPL(ElfValidationResult       , ENUM_ELFVALIDATIONRESULT      , Beelzebub::Execution)
 
 /*  Now to implement some << operator magic.  */
 
 namespace Beelzebub::Terminals
 {
-    /*  First, the enums  */
+    // template<>
+    // TerminalBase & operator << <ElfProgramHeaderFlags>(TerminalBase & term, ElfProgramHeaderFlags const value)
+    // {
+    //     term.WriteHex32((uint32_t)value);
+    //     term.Write(" (");
+    //     term.Write(0 != (value & ElfProgramHeaderFlags::Readable  ) ? "R" : " ");
+    //     term.Write(0 != (value & ElfProgramHeaderFlags::Writable  ) ? "W" : " ");
+    //     term.Write(0 != (value & ElfProgramHeaderFlags::Executable) ? "E" : " ");
+    //     term.Write(")");
 
-    #define SPAWN_ENUM(eName) \
-    template<> \
-    TerminalBase & operator << <eName>(TerminalBase & term, eName const value) \
-    { \
-        return term << (__underlying_type(eName))(value) << " (" << EnumToString(value) << ")"; \
-    }
-
-    SPAWN_ENUM(ElfClass)
-    SPAWN_ENUM(ElfDataEncoding)
-    SPAWN_ENUM(ElfOsAbi)
-    SPAWN_ENUM(ElfFileType)
-    SPAWN_ENUM(ElfMachine)
-
-    SPAWN_ENUM(ElfProgramHeaderType)
-
-    SPAWN_ENUM(ElfDynamicEntryTag)
-
-    SPAWN_ENUM(ElfSymbolBinding)
-    SPAWN_ENUM(ElfSymbolType)
-    SPAWN_ENUM(ElfSymbolVisibility)
-
-    SPAWN_ENUM(ElfValidationResult)
-
-    template<>
-    TerminalBase & operator << <ElfProgramHeaderFlags>(TerminalBase & term, ElfProgramHeaderFlags const value)
-    {
-        term.WriteHex32((uint32_t)value);
-        term.Write(" (");
-        term.Write(0 != (value & ElfProgramHeaderFlags::Readable  ) ? "R" : " ");
-        term.Write(0 != (value & ElfProgramHeaderFlags::Writable  ) ? "W" : " ");
-        term.Write(0 != (value & ElfProgramHeaderFlags::Executable) ? "E" : " ");
-        term.Write(")");
-
-        return term;
-    }
+    //     return term;
+    // }
 
     /*  Then, the structs  */
 

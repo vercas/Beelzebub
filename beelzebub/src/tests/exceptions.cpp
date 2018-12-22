@@ -98,7 +98,7 @@ void TestExceptions()
                 , "(Iteration %us) Exception type should be %up, not %up!"
                 , i, ExceptionType::MemoryAccessViolation, x->Type);
 
-            ASSERT(x->MemoryAccessViolation.Address == testPtr
+            ASSERT(x->MemoryAccessViolation.Address.Pointer == testPtr
                 , "(Iteration %us) Memory violation address should be %Xp, not %Xp!"
                 , i, testPtr, x->MemoryAccessViolation.Address);
 

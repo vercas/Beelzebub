@@ -36,7 +36,6 @@
 ; thorough explanation regarding other files.
 
 global InterruptHandlers
-global InterruptEnders
 
 %assign i 0
 %rep 256
@@ -48,7 +47,6 @@ global IsrStubsBegin
 global IsrStubsEnd
 
 global IsrCommonStub
-global IsrFullStub
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -59,11 +57,11 @@ DEFAULT REL
 
 align 16
 
-;   This is a stub for an ISR that needs a full system state.
-IsrFullStub:
+;   This is the common assembly stub for all ISRs.
+IsrCommonStub:
     push    rax
     push    rbx
-    push    rdx
+    push    rcx
     push    rbp
     push    rdi
     push    rsi
@@ -88,51 +86,48 @@ IsrFullStub:
     ;   Make sure the data segments are the kernel's, before accessing data below.
 
     mov     rax, InterruptHandlers
-    mov     rdx, qword [rax + rcx * 8]
+    mov     rsi, qword [rax + rdx * 8]
     ;   Handler pointer.
 
-    test    rdx, rdx
-    jz      .skip
+    ;test    rsi, rsi
+    ;jz      .skip
     ;   A null handler means the call is skipped.
 
-    mov     rax, InterruptEnders
-    mov     rsi, qword [rax + rcx * 8]
-    ;   Ender pointer.
-
     mov     rdi, rsp
-    ;   Stack pointer as first parameter (IsrState *)
+    ;   Stack pointer as first parameter (GeneralRegisters64 *)
 
     mov     rax, [rsp + 0x90]
     cmp     al, byte 0x8 
-    je      .skip_swap_1
+    je      .no_swap
     ;   If the old code segment was the kernel's, skip the swapping.
 
     ;   The continuous path is the one that includes swapping because most CPU
     ;   time should be spent in the userland anyway.
 
+    mov     ebp, 0
+    ;   Reset frame linkage; don't want to accidentally link with userland.
+
     swapgs
 
-.skip_swap_1:
-    mov     ebp, 0
-    ;   The base pointer has to be 0, so the interrupt handler's stack frames do
-    ;   not link to the userland frames.
-    
     ;   At this point, the arguments given are the following:
     ;   1. RDI = State pointer
-    ;   2. RSI = Ender pointer
-    ;   3. RDX = Handler pointer
-    ;   4. RCX = Vector
-    call    rdx
+    ;   2. RSI = Handler pointer
+    ;   3. RDX = Vector
+    call    rsi
     ;   Call handler. Preserves RBP by convention.
-
-    mov     rax, [rsp + 0x90]
-    cmp     al, byte 0x8 
-    je      .skip_swap_2
-    ;   The code segment may have changed. If it's the kernel's, no swap.
 
     swapgs
 
-.skip_swap_2:
+    jmp     .skip
+    ;   Pop
+
+.no_swap:
+    ;   The base pointer is unaltered in this branch. The kernel maintains
+    ;   proper linkage.
+    
+    call    rsi
+    ;   Call handler. Preserves RBP by convention.
+
 .skip:
     pop     rax 
     mov     es, ax
@@ -150,13 +145,13 @@ IsrFullStub:
     pop     rsi
     pop     rdi
     pop     rbp
-    pop     rdx
+    pop     rcx
     pop     rbx
     pop     rax
-    ;   Restore general-purpose registers, except RCX.
+    ;   Restore general-purpose registers, except RDX.
 
-    pop     rcx
-    ;   Pop RCX
+    pop     rdx
+    ;   Pop RDX
 
     add     rsp, 8
     ;   "Pop" error code.
@@ -166,17 +161,17 @@ IsrFullStub:
 %macro ISR_NOERRCODE 1
     IsrStub%1:
         push    qword 0
-        push    rcx
-        mov     ecx, %1
-        jmp     IsrFullStub
+        push    rdx
+        mov     edx, %1
+        jmp     IsrCommonStub
     align 16
 %endmacro
 
 %macro ISR_ERRCODE 1
     IsrStub%1:
-        push    rcx
-        mov     ecx, %1
-        jmp     IsrFullStub
+        push    rdx
+        mov     edx, %1
+        jmp     IsrCommonStub
     align 16
 %endmacro
 
@@ -226,103 +221,6 @@ IsrStubsBegin:
 IsrStubsEnd:
     nop ;   Dummy.
 
-align 16
-
-;   This is a stub for an ISR that does not require the state of the whole
-;   system.
-IsrCommonStub:
-    push    rax
-    push    rdx
-    push    rbp
-    push    rdi
-    push    rsi
-    push    r8
-    push    r9
-    push    r10
-    push    r11
-    ;   Store caller-saved registers, except RCX.
-
-    xor     rax, rax
-    mov     ax, ds
-    push    rax
-    ;   Save data segment.
-
-    mov     ax, 0x10
-    mov     ds, ax
-    mov     es, ax
-    ;   Make sure the data segments are the kernel's, before accessing data below.
-
-    mov     rax, InterruptHandlers
-    mov     rdx, qword [rax + rcx * 8]
-    ;   Handler pointer.
-
-    test    rdx, rdx
-    jz      .skip
-    ;   A null handler means the call is skipped.
-
-    mov     rax, InterruptEnders
-    mov     rsi, qword [rax + rcx * 8]
-    ;   Ender pointer.
-
-    mov     rdi, rsp
-    ;   Stack pointer as first parameter (IsrState *)
-
-    mov     rax, [rsp + 0x68]
-    cmp     al, byte 0x8 
-    je      .skip_swap_1
-    ;   If the old code segment was the kernel's, skip the swapping.
-
-    ;   The continuous path is the one that includes swapping because most CPU
-    ;   time should be spent in the userland anyway.
-
-    swapgs
-
-.skip_swap_1:
-    mov     ebp, 0
-    ;   The base pointer has to be 0, so the interrupt handler's stack frames do
-    ;   not link to the userland frames.
-    
-    ;   At this point, the arguments given are the following:
-    ;   1. RDI = State pointer
-    ;   2. RSI = Ender pointer
-    ;   3. RDX = Handler pointer
-    ;   4. RCX = Vector
-    call    rdx
-    ;   Call handler. Preserves RBP by convention.
-
-    mov     rax, [rsp + 0x68]
-    cmp     al, byte 0x8 
-    je      .skip_swap_2
-    ;   The code segment may have changed. If it's the kernel's, no swap.
-
-    swapgs
-
-.skip_swap_2:
-.skip:
-    pop     rax 
-    mov     es, ax
-    mov     ds, ax
-    ;   Simply restore the data segments.
-
-    pop     r11
-    pop     r10
-    pop     r9
-    pop     r8
-    pop     rsi
-    pop     rdi
-    pop     rbp
-    pop     rdx
-    pop     rax
-    ;   Restore caller-saved registers, except RCX.
-
-    pop     rcx
-    ;   Pop RCX
-
-    add     rsp, 8
-    ;   "Pop" error code.
-
-    iretq
-
 DEFAULT ABS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -332,6 +230,4 @@ section .bss
 align 16
 
 InterruptHandlers:
-    resb 8 * 256
-InterruptEnders:
     resb 8 * 256

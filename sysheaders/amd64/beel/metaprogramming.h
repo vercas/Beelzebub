@@ -60,16 +60,12 @@ typedef uint64_t page_size_inner_t;
     Some Types
 *****************/
 
-#ifdef __BEELZEBUB__SOURCE_CXX
-namespace Beelzebub
-{
-#endif
+__NAMESPACE_BEGIN
 
 typedef uint64_t  creg_t; //  Control register.
 
-#ifdef __BEELZEBUB__SOURCE_CXX
-}   //  namespace Beelzebub
-#endif
+__NAMESPACE_END
+
 typedef  int64_t ssize_t;
 
 typedef  __int128_t  int128_t;
@@ -109,19 +105,20 @@ typedef __uint128_t uint128_t;
 #endif
 
 #ifdef __BEELZEBUB__SOURCE_CXX
-namespace Beelzebub
-{
-    template<typename T>
-    static __forceinline uintptr_t GetExtendedPointer(T const ptr)
-    {
-        return GET_EXTENDED_POINTER(ptr);
-    }
+__NAMESPACE_BEGIN
 
-    static __forceinline uintptr_t GetCurrentStackPointer()
-    {
-        return GET_CURRENT_STACK_POINTER();
-    }
+template<typename T>
+static __forceinline uintptr_t GetExtendedPointer(T const ptr)
+{
+    return GET_EXTENDED_POINTER(ptr);
 }
+
+static __forceinline uintptr_t GetCurrentStackPointer()
+{
+    return GET_CURRENT_STACK_POINTER();
+}
+
+__NAMESPACE_END
 #endif
 
 /***************************
@@ -132,6 +129,10 @@ namespace Beelzebub
     #define SIZE_OF_size_t 8
     #define SIZE_OF_intptr_t 8
     #define SIZE_OF_uintptr_t 8
+    #define SIZE_OF_paddr_t 8
+    #define SIZE_OF_psize_t 8
+    #define SIZE_OF_vaddr_t 8
+    #define SIZE_OF_vsize_t 8
 #endif
 
 /****************
@@ -139,11 +140,12 @@ namespace Beelzebub
 ****************/
 
 #ifdef __BEELZEBUB__SOURCE_CXX
-namespace Beelzebub
-{
+__NAMESPACE_BEGIN
+
     static constexpr PageSize_t const PageSize { 0x1000 };
     static constexpr PageSize_t const LargePageSize { 0x200000 };
-}
+
+__NAMESPACE_END
 #elif !defined(__ASSEMBLER__)
 #define __PAGE_SIZE         ((size_t)0x1000)
 #define __LARGE_PAGE_SIZE   ((size_t)0x200000)

@@ -48,12 +48,12 @@ int gettimeofday(struct timeval * tv, struct timezone * tz)
 {
     (void)tz;
 
-    if likely(tv != nullptr)
-    {
-        size_t const counter = Pit::Counter.Load();
+    // if likely(tv != nullptr)
+    // {
+    //     size_t const counter = Pit::Counter.Load();
 
-        *tv = {(time_t)(counter / 1000), (suseconds_t)((counter % 1000) * 1000)};
-    }
+    //     *tv = {(time_t)(counter / 1000), (suseconds_t)((counter % 1000) * 1000)};
+    // }
 
     return 0;
 }

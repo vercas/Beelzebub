@@ -353,59 +353,54 @@
 
     //  Why? For the glory of C++, of course.
 
+    //  Simple enumerator item with default value.
+    #define __ENUMINST_VAL1(name) name,
+    //  Enumerator item with given value.
+    #define __ENUMINST_VAL2(name, num) name = num,
+    //  Enumerator item with given value and string representation.
+    #define __ENUMINST_VAL3(name, num, str) name = num,
+    //  Enumerator item with different names on C and C++, but same value and string representation on both.
+    #define __ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
+
+    //  Enumerator item with all four possibilities above.
+    #define __ENUMINST_VAL(...) GET_MACRO4(__VA_ARGS__, __ENUMINST_VAL4, __ENUMINST_VAL3, __ENUMINST_VAL2, __ENUMINST_VAL1)(__VA_ARGS__)
+
+    //  Integer-based enumerator.
     #define __ENUMDECL2(name, macro) \
         enum class name { macro(__ENUMINST_VAL) };
 
+    //  Integer enumerator with operators.
     #define __ENUMDECL3(name, macro, type)          \
         enum class name { macro(__ENUMINST_VAL) };  \
         MCATS(__ENUMOPS_, type)(name)
 
+    //  Typed enumerator with operators.
     #define __ENUMDECL4(name, macro, type, inner)           \
         enum class name : inner { macro(__ENUMINST_VAL) };  \
         MCATS(__ENUMOPS_, type)(name, inner)
 
+    //  Abstraction over the three possibilities above.
     #define __ENUMDECL(name, ...) \
         GET_MACRO3(__VA_ARGS__, __ENUMDECL4, __ENUMDECL3, __ENUMDECL2)(name, __VA_ARGS__)
 
+    //  Public API enumerator declaration, based on same possibilities.
     #define __PUB_ENUM(name, ...) \
         namespace Beelzebub { __ENUMDECL(name, __VA_ARGS__) } \
         using MCATS(Be, name) = Beelzebub::name;
-#elif !defined(__ASSEMBLER__)
-    #define __ENUMDECL(name, macro, ...)  \
-        typedef enum MCATS(name, _t) { macro(__ENUMINST_VAL) } name;
 
-    #define __PUB_ENUM(name, macro, ...)  \
-        typedef enum MCATS(Be, name, _t) { macro(__ENUMINST_VAL) } MCATS(Be, name);
-#endif
-
-#ifndef __BEELZEBUB__SOURCE_GAS
-    //  Simple enumeration item with default value.
-    #define __ENUMINST_VAL1(name) name,
+    //  Simple enumerator item with default value.
     #define __ENUMINST_CASERETSTR1(name) case name: return #name;
-
-    //  Enumeration item with given value.
-    #define __ENUMINST_VAL2(name, num) name = num,
+    //  Enumerator item with given value.
     #define __ENUMINST_CASERETSTR2(name, num) case num: return #name;
-
-    //  Enumeration item with given value and string representation.
-    #define __ENUMINST_VAL3(name, num, str) name = num,
+    //  Enumerator item with given value and string representation.
     #define __ENUMINST_CASERETSTR3(name, num, str) case num: return str;
-
-    //  Enumeration item with different names on C and C++, but same value and string
-    //  representation on both.
-
-    #ifdef __BEELZEBUB__SOURCE_CXX
-        #define __ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
-    #else
-        #define __ENUMINST_VAL4(cppname, cname, num, str) cname = num,
-    #endif
-
+    //  Enumerator item with different names on C and C++, but same value and string representation on both.
     #define __ENUMINST_CASERETSTR4(cppname, cname, num, str) case num: return str;
 
-    #define __ENUMINST_VAL(...) GET_MACRO4(__VA_ARGS__, __ENUMINST_VAL4, __ENUMINST_VAL3, __ENUMINST_VAL2, __ENUMINST_VAL1)(__VA_ARGS__)
+    //  Abstraction over the 4 cases above.
     #define __ENUMINST_CASERETSTR(...) GET_MACRO4(__VA_ARGS__, __ENUMINST_CASERETSTR4, __ENUMINST_CASERETSTR3, __ENUMINST_CASERETSTR2, __ENUMINST_CASERETSTR1)(__VA_ARGS__)
 
-    #define __ENUM_TO_STRING_EX1(enumName, attrBefore, func, val, enumDef) \
+    /*#define __ENUM_TO_STRING_EX1(enumName, attrBefore, func, val, enumDef) \
         attrBefore char const * func                    \
         {                                               \
             switch ((__underlying_type(enumName))val)   \
@@ -419,14 +414,109 @@
     #define __ENUM_TO_STRING_EX2(enumName, enumDef, cppnamespace) \
         __ENUM_TO_STRING_EX1(enumName, , cppnamespace::EnumToString(enumName const val), val, enumDef)
 
-    /*#define ENUM_TO_STRING_EX2_DECL(enumName, enumDef, cppnamespace) \
-        char const * const cppnamespace::EnumToString(enumName const val)*/
-
     #define __ENUM_TO_STRING(enumName, enumDef) \
         __ENUM_TO_STRING_EX1(enumName, , EnumToString(enumName const val), val, enumDef)
 
-    #define __ENUM_TO_STRING_DECL(enumName, enumDef) \
-        char const * EnumToString(enumName const val)
+    #define __ENUM_TO_STRING_IMPL(enumName, enumDef) \
+        __ENUM_TO_STRING_EX1(enumName, , EnumToString(enumName const val), val, enumDef)*/
+
+    #define __ENUM_TO_STRING_IMPL2(enumName, enumDef)   \
+    namespace Beelzebub {                               \
+        char const * EnumToString(enumName const val)   \
+        {                                               \
+            switch ((__underlying_type(enumName))val)   \
+            {                                           \
+                enumDef(__ENUMINST_CASERETSTR)          \
+            default:                                    \
+                return "UNKNOWN";                       \
+            }                                           \
+        }                                               \
+        namespace Terminals                             \
+        {                                               \
+            template<>                                  \
+            TerminalBase & operator << <enumName>(TerminalBase & term, enumName const val)  \
+            {                                           \
+                return term << (__underlying_type(enumName))(val) << " (" << EnumToString(val) << ")";  \
+            }                                           \
+            template<>                                  \
+            TerminalWriteResult WriteFormattedValue<enumName>(TerminalBase * term, enumName const * val, char const * format)   \
+            {                                           \
+                return WriteFormattedEnumHelper(term, (uint64_t)(*val), format, [](uint64_t val64) { return EnumToString((enumName)val64); }, sizeof(enumName));    \
+            }                                           \
+        }                                               \
+    }
+
+    #define __ENUM_TO_STRING_IMPL3(enumName, enumDef, cppNamespace) \
+    namespace cppNamespace {                            \
+        char const * EnumToString(enumName const val)   \
+        {                                               \
+            switch ((__underlying_type(enumName))val)   \
+            {                                           \
+                enumDef(__ENUMINST_CASERETSTR)          \
+            default:                                    \
+                return "UNKNOWN";                       \
+            }                                           \
+        }                                               \
+    }                                                   \
+    namespace Beelzebub { namespace Terminals           \
+    {                                                   \
+        template<>                                      \
+        TerminalBase & operator << <enumName>(TerminalBase & term, enumName const val)  \
+        {                                               \
+            return term << (__underlying_type(enumName))(val) << " (" << cppNamespace::EnumToString(val) << ")";    \
+        }                                               \
+        template<>                                      \
+        TerminalWriteResult WriteFormattedValue<enumName>(TerminalBase * term, enumName const * val, char const * format)   \
+        {                                               \
+            return WriteFormattedEnumHelper(term, (uint64_t)(*val), format, [](uint64_t val64) { return cppNamespace::EnumToString((enumName)val64); }, sizeof(enumName));    \
+        }                                               \
+    }}
+
+    #define __ENUM_TO_STRING_IMPL(enumName, ...) GET_MACRO2(__VA_ARGS__, __ENUM_TO_STRING_IMPL3, __ENUM_TO_STRING_IMPL2)(enumName, __VA_ARGS__)
+
+    #define __ENUM_TO_STRING_DECL(enumName) \
+        char const * EnumToString(enumName const val);
+#elif !defined(__ASSEMBLER__)
+    //  Simple enumerator item with default value.
+    #define __ENUMINST_VAL1(name) 
+    //  Enumerator item with given value.
+    #define __ENUMINST_VAL2(name, num) static const name = num;
+    //  Enumerator item with given value and string representation.
+    #define __ENUMINST_VAL3(name, num, str) name = num,
+    //  Enumerator item with different names on C and C++, but same value and string representation on both.
+    #define __ENUMINST_VAL4(cppname, cname, num, str) cppname = num,
+
+    //  Enumerator item with all four possibilities above.
+    #define __ENUMINST_VAL(...) GET_MACRO4(__VA_ARGS__, __ENUMINST_VAL4, __ENUMINST_VAL3, __ENUMINST_VAL2, __ENUMINST_VAL1)(__VA_ARGS__)
+
+    //  Integer-based enumerator.
+    #define __ENUMDECL2(name, macro) \
+        typedef int Be##name;
+
+    //  Integer enumerator with operators.
+    #define __ENUMDECL3(name, macro, type)          \
+        typedef int Be##name;
+
+    //  Typed enumerator with operators.
+    #define __ENUMDECL4(name, macro, type, inner)           \
+        typedef inner Be##name;
+
+    //  Abstraction over the three possibilities above.
+    #define __ENUMDECL(name, ...) \
+        GET_MACRO3(__VA_ARGS__, __ENUMDECL4, __ENUMDECL3, __ENUMDECL2)(name, __VA_ARGS__)
+
+    //  Public API enumerator declaration, based on same possibilities.
+    #define __PUB_ENUM(name, ...) \
+        __ENUMDECL(name, __VA_ARGS__)
+#endif
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+    #ifdef __BEELZEBUB__SOURCE_CXX
+    #else
+        #define __ENUMINST_VAL4(cppname, cname, num, str) cname = num,
+    #endif
+
+
 #endif
 
 /**************************
@@ -558,6 +648,9 @@
         #define CMP_OP2(Ta, Tb, OP) \
             __artificial constexpr bool operator OP (Ta a, Tb b) { return a.Value OP b; } \
             __artificial constexpr bool operator OP (Tb a, Ta b) { return a OP b.Value; }
+        #define CMP_OP3(Ta, Tb, OP) \
+            __artificial constexpr bool operator OP (Ta a, Tb b) { return a.Value OP b.Value; } \
+            __artificial constexpr bool operator OP (Tb a, Ta b) { return a.Value OP b.Value; }
         #define ARI_OP(Tr, Ta, Tb, OP) \
             __artificial constexpr Tr operator OP (Ta const a, Tb const b) { return Tr { a.Value OP b.Value }; }
         #define EQU_OP(Tt, To, OP) \
@@ -568,9 +661,17 @@
             CMP_OP(TYP,  <) CMP_OP2(TYP, INN,  <) CMP_OP(TYP, <=) CMP_OP2(TYP, INN, <=) \
             CMP_OP(TYP,  >) CMP_OP2(TYP, INN,  >) CMP_OP(TYP, >=) CMP_OP2(TYP, INN, >=)
 
+        #define CMP_OPS2(Ta, Tb) \
+            CMP_OP3(Ta, Tb, ==) CMP_OP3(Ta, Tb, !=) \
+            CMP_OP3(Ta, Tb,  <) CMP_OP3(Ta, Tb, <=) \
+            CMP_OP3(Ta, Tb,  >) CMP_OP3(Ta, Tb, >=)
+
         CMP_OPS(paddr_t, paddr_inner_t) CMP_OPS(psize_t, psize_inner_t)
         CMP_OPS(vaddr_t, vaddr_inner_t) CMP_OPS(vsize_t, vsize_inner_t)
+        CMP_OPS2(psize_t, PageSize_t)
+        CMP_OPS2(vsize_t, PageSize_t)
         #undef CMP_OPS
+        #undef CMP_OPS2
 
         #define ARI_OPS(Ta, Ts) \
             ARI_OP(Ta, Ta, Ts, +) ARI_OP(Ta, Ts, Ta, +) \
@@ -594,6 +695,7 @@
 
         #undef CMP_OP
         #undef CMP_OP2
+        #undef CMP_OP3
         #undef ARI_OP
         #undef EQU_OP
 
@@ -605,9 +707,12 @@
         #define ARI_SCALE_OPS(Ts) \
             ARI_OP1(Ts, Ts, size_t, *) ARI_OP2(Ts, size_t, Ts, *) \
             ARI_OP1(Ts, Ts, size_t, /) ARI_OP2(Ts, size_t, Ts, /) \
-            ARI_OP1(Ts, Ts, size_t, %) ARI_OP2(Ts, size_t, Ts, %)
+            ARI_OP1(Ts, Ts, size_t, %) ARI_OP2(Ts, size_t, Ts, %) \
+            ARI_OP1(Ts, Ts, int, *) ARI_OP2(Ts, int, Ts, *) \
+            ARI_OP1(Ts, Ts, int, /) ARI_OP2(Ts, int, Ts, /) \
+            ARI_OP1(Ts, Ts, int, %) ARI_OP2(Ts, int, Ts, %)
 
-        ARI_SCALE_OPS(psize_t) ARI_SCALE_OPS(vsize_t) ARI_SCALE_OPS(PageSize_t)
+        ARI_SCALE_OPS(PageSize_t) ARI_SCALE_OPS(psize_t) ARI_SCALE_OPS(vsize_t)
         #undef ARI_SCALE_OPS
 
         #undef ARI_OP1

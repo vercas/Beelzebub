@@ -41,9 +41,9 @@
 
 #include <valloc/platform.hpp>
 #include "memory/vmm.hpp"
-#include "system/debug.registers.hpp"
-#include "utils/stack_walk.hpp"
-#include "_print/isr.hpp"
+// #include "system/debug.registers.hpp"
+// #include "utils/stack_walk.hpp"
+// #include "_print/isr.hpp"
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -51,65 +51,65 @@ using namespace Beelzebub::Debug;
 using namespace Beelzebub::Memory;
 using namespace Valloc;
 
-static __hot void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties & bp)
-{
-    (void)bp;
+// static __hot void DumpStack(INTERRUPT_HANDLER_ARGS, void * address, System::BreakpointProperties & bp)
+// {
+//     (void)bp;
 
-    size_t val = *reinterpret_cast<size_t *>(address);
+//     size_t val = *reinterpret_cast<size_t *>(address);
 
-    if (val == (2 << 20))
-        goto end;
+//     if (val == (2 << 20))
+//         goto end;
 
-    withLock (MsgSpinlock)
-    {
-        DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
+//     withLock (MsgSpinlock)
+//     {
+//         DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
 
-        MSG("Breakpoint Address: %Xp%n", address);
-        MSG("Value at Address: %us%n", val);
+//         MSG("Breakpoint Address: %Xp%n", address);
+//         MSG("Value at Address: %us%n", val);
 
-        PrintToDebugTerminal(state);
+//         DEBUG_TERM << state;
 
-        uintptr_t stackPtr = state->RSP;
-        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
+//         uintptr_t stackPtr = state->RSP;
+//         uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
-        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
-        {
-            MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
-                , sizeof(size_t), stackPtr);
+//         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+//         {
+//             MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
+//                 , sizeof(size_t), stackPtr);
 
-            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
-        }
+//             stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+//         }
 
-        bool odd;
-        for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
-        {
-            MSG("%X2|%Xp|%Xs|%s"
-                , (uint16_t)(stackPtr - state->RSP)
-                , stackPtr
-                , *((size_t const *)stackPtr)
-                , odd ? "\r\n" : "\t");
-        }
+//         bool odd;
+//         for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+//         {
+//             MSG("%X2|%Xp|%Xs|%s"
+//                 , (uint16_t)(stackPtr - state->RSP)
+//                 , stackPtr
+//                 , *((size_t const *)stackPtr)
+//                 , odd ? "\r\n" : "\t");
+//         }
 
-        if (odd) MSG("%n");
+//         if (odd) MSG("%n");
 
-        Utils::StackFrame stackFrame;
+//         Utils::StackFrame stackFrame;
 
-        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
-        {
-            do
-            {
-                MSG("[Func %Xp; Stack top %Xp + %us]%n"
-                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+//         if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+//         {
+//             do
+//             {
+//                 MSG("[Func %Xp; Stack top %Xp + %us]%n"
+//                     , stackFrame.Function, stackFrame.Top, stackFrame.Size);
 
-            } while (stackFrame.LoadNext());
-        }
+//             } while (stackFrame.LoadNext());
+//         }
 
-        DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
-    }
+//         DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
+//     }
 
-end:
-    END_OF_INTERRUPT();
-}
+// end:
+//     END_OF_INTERRUPT();
+// }
 
 void Platform::AllocateMemory(void * & addr, size_t & size)
 {
@@ -133,8 +133,8 @@ void Platform::AllocateMemory(void * & addr, size_t & size)
     {
         addr = const_cast<void *>(vaddr.Pointer);
 
-        System::DebugRegisters::AddBreakpoint((vaddr + vsize_t(16)).Pointer
-            , 8, true, System::BreakpointCondition::DataWrite, &DumpStack);
+        // System::DebugRegisters::AddBreakpoint((vaddr + vsize_t(16)).Pointer
+        //     , 8, true, System::BreakpointCondition::DataWrite, &DumpStack);
     }
 }
 
@@ -144,7 +144,7 @@ void Platform::FreeMemory(void * addr, size_t size)
 
     Vmm::FreePages(nullptr, vaddr_t(addr), vsize_t(size));
 
-    System::DebugRegisters::RemoveBreakpoint((vaddr_t(addr) + vsize_t(16)).Pointer);
+    // System::DebugRegisters::RemoveBreakpoint((vaddr_t(addr) + vsize_t(16)).Pointer);
 }
 
 void Platform::ErrorMessage(char const * fmt, ...)

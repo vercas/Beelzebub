@@ -39,8 +39,7 @@
 
 #pragma once
 
-#include <beel/enums.kernel.hpp>
-#include <beel/structs.kernel.hpp>
+#include <beel/structs.kernel.h>
 #include <beel/sync/smp.lock.hpp>
 #include <math.h>
 

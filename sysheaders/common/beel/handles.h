@@ -206,6 +206,9 @@ namespace Beelzebub
     __ENUMDECL(HandleType, ENUM_HANDLETYPE, LITE, uint8_t)
     __ENUMDECL(HandleResult, ENUM_HANDLERESULT, LITE, uint8_t)
 
+    __ENUM_TO_STRING_DECL(HandleType)
+    __ENUM_TO_STRING_DECL(HandleResult)
+
     struct Handle
     {
         /*  Statics  */
@@ -432,8 +435,8 @@ namespace Beelzebub
 
         /*  Printing  */
 
-        __noinline char const * GetTypeString() const;
-        __noinline char const * GetResultString() const;
+        inline char const * GetTypeString() const   { return EnumToString(this->GetType());   }
+        inline char const * GetResultString() const { return EnumToString(this->GetResult()); }
 
     } __packed;
     //  So GCC thinks that Handle isn't POD enough unless I pack it. GG.

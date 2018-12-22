@@ -45,6 +45,13 @@ using namespace Beelzebub;
 using namespace Beelzebub::System;
 using namespace Beelzebub::System::InterruptControllers;
 
+#define PIC1_CMD                    0x20
+#define PIC1_DATA                   0x21
+#define PIC2_CMD                    0xA0
+#define PIC2_DATA                   0xA1
+#define PIC_READ_IRR                0x0a    /* OCW3 irq ready next CMD read */
+#define PIC_READ_ISR                0x0b    /* OCW3 irq service next CMD read */
+
 /****************
     Pic class
 ****************/
@@ -53,14 +60,15 @@ using namespace Beelzebub::System::InterruptControllers;
 
 uint8_t Pic::VectorOffset = 0;
 bool Pic::Active = false;
+InterruptEnderNode Pic::EnderNode { &Pic::IrqEnder };
 
 /*  Ender  */
 
-void Pic::IrqEnder(INTERRUPT_ENDER_ARGS)
+void Pic::IrqEnder(InterruptContext const * context, void * cookie, InterruptEndType type)
 {
-    (void)handler;
+    (void)cookie;
 
-    if (vector >= VectorOffset + 8)
+    if (context->IrqVector.Value >= 8)
         Io::Out8(SlaveCommandPort, 0x20);
  
     Io::Out8(MasterCommandPort, 0x20);
@@ -77,12 +85,10 @@ void Pic::Initialize(uint8_t const vecOff)
     Disable();
 
     //  Remove interrupt enders.
-    for (size_t i = 0; i < 16; i++)
+    for (int i = 0; i < 16; i++)
     {
-        auto vec = Interrupts::Get((uint8_t)(VectorOffset + i));
-
-        if (vec.GetEnder() == &(Pic::IrqEnder))
-            vec.SetEnder(nullptr);
+        if (InterruptEnderNode::Get(irq_t(i)) == &EnderNode)
+            ASSERT(EnderNode.Unregister(irq_t(i)) == IrqEnderUnregisterResult::Success);
     }
  
     //  Initialization sequence for cascade mode.
@@ -101,15 +107,13 @@ void Pic::Initialize(uint8_t const vecOff)
     Io::Out8(SlaveDataPort, 0x01);
 
     //  Set interrupt enders.
-    for (size_t i = 0; i < 16; i++)
+    for (int i = 0; i < 16; i++)
     {
-        auto vec = Interrupts::Get((uint8_t)(vecOff + i));
-
-        assert(vec.GetEnder() == nullptr
-            , "Interrupt vector #%u1 already had an ender?! (%Xp)%n"
-            , vec, vec.GetEnder());
+        assert(InterruptEnderNode::Get(irq_t(i)) == nullptr
+            , "IRQ #%u1 already had an ender?! (%Xp)%n"
+            , (uint8_t)i, InterruptEnderNode::Get(irq_t(i)));
         
-        vec.SetEnder(&(Pic::IrqEnder));
+        ASSERT(EnderNode.Register(irq_t(i)) == IrqEnderRegisterResult::Success);
     }
  
     //  Restore masks.
@@ -118,6 +122,8 @@ void Pic::Initialize(uint8_t const vecOff)
 
     VectorOffset = vecOff;
     Active = true;
+
+    MSG("PIC IRR: %X2; ISR: %X2%n", GetIrrs(), GetIsrs());
 }
 
 void Pic::Disable()
@@ -129,98 +135,85 @@ void Pic::Disable()
     Io::Out8(SlaveDataPort, 0xFF);
 }
 
-/*  Subscription  */
+// /*  Subscription  */
 
-static bool PicSubscribe(uint8_t const irq, void const * const handler, bool const fullHandler, bool const unmask)
-{
-    assert_or(irq < 16
-        , "IRQ number is out of the range of the PIC: %u1%n"
-        , irq)
-    {
-        return false;
-    }
+// bool Pic::Subscribe(uint8_t const irq, InterruptHandlerFunction const handler, bool const unmask)
+// {
+//     assert_or(irq < 16
+//         , "IRQ number is out of the range of the PIC: %u1%n"
+//         , irq)
+//     {
+//         return false;
+//     }
 
-    auto vec = Interrupts::Get((uint8_t)(Pic::VectorOffset + irq));
+//     auto vec = Interrupts::Get((uint8_t)(Pic::VectorOffset + irq));
 
-    assert_or(vec.GetEnder() == nullptr || vec.GetEnder() == &(Pic::IrqEnder)
-        , "Interrupt vector #%u1 (IRQ%u1) already has an ender?! (%Xp)%n"
-        , vec, irq, vec.GetEnder())
-    {
-        return false;
-    }
+//     assert_or(vec.GetEnder() == nullptr || vec.GetEnder() == &(Pic::IrqEnder)
+//         , "Interrupt vector #%u1 (IRQ%u1) already has an ender?! (%Xp)%n"
+//         , vec, irq, vec.GetEnder())
+//     {
+//         return false;
+//     }
 
-    if (fullHandler)
-        vec.SetHandler(reinterpret_cast<InterruptHandlerFullFunction>(handler));
-    else
-        vec.SetHandler(reinterpret_cast<InterruptHandlerPartialFunction>(handler));
+//     vec.SetHandler(handler);
 
-    vec.SetEnder(&(Pic::IrqEnder));
+//     vec.SetEnder(&(Pic::IrqEnder));
 
-    if (unmask)
-    {
-        if (irq >= 8)
-            Io::Out8(Pic::SlaveDataPort , (uint8_t)(Io::In8(Pic::SlaveDataPort ) & ~(1 << (irq - 8))));
-        else
-            Io::Out8(Pic::MasterDataPort, (uint8_t)(Io::In8(Pic::MasterDataPort) & ~(1 <<  irq     )));
-    }
+//     if (unmask)
+//     {
+//         if (irq >= 8)
+//             Io::Out8(Pic::SlaveDataPort , (uint8_t)(Io::In8(Pic::SlaveDataPort ) & ~(1 << (irq - 8))));
+//         else
+//             Io::Out8(Pic::MasterDataPort, (uint8_t)(Io::In8(Pic::MasterDataPort) & ~(1 <<  irq     )));
+//     }
 
-    return true;
-}
+//     return true;
+// }
 
-bool Pic::Subscribe(uint8_t const irq, InterruptHandlerPartialFunction const handler, bool const unmask)
-{
-    return PicSubscribe(irq, reinterpret_cast<void const *>(handler), false, unmask);
-}
+// bool Pic::Unsubscribe(uint8_t const irq, bool const mask)
+// {
+//     assert_or(irq < 16
+//         , "IRQ number is out of the range of the PIC: %u1%n"
+//         , irq)
+//     {
+//         return false;
+//     }
 
-bool Pic::Subscribe(uint8_t const irq, InterruptHandlerFullFunction const handler, bool const unmask)
-{
-    return PicSubscribe(irq, reinterpret_cast<void const *>(handler), true, unmask);
-}
+//     auto vec = Interrupts::Get((uint8_t)(VectorOffset + irq));
 
-bool Pic::Unsubscribe(uint8_t const irq, bool const mask)
-{
-    assert_or(irq < 16
-        , "IRQ number is out of the range of the PIC: %u1%n"
-        , irq)
-    {
-        return false;
-    }
+//     assert_or(vec.GetEnder() == &(Pic::IrqEnder)
+//         , "Interrupt vector #%u1 (IRQ%u1) already has the wrong ender! (%Xp)%n"
+//         , vec, irq, vec.GetEnder())
+//     {
+//         return false;
+//     }
 
-    auto vec = Interrupts::Get((uint8_t)(VectorOffset + irq));
+//     if (mask)
+//     {
+//         if (irq >= 8)
+//             Io::Out8( SlaveDataPort, (uint8_t)(Io::In8( SlaveDataPort) | (1 << (irq - 8))));
+//         else
+//             Io::Out8(MasterDataPort, (uint8_t)(Io::In8(MasterDataPort) | (1 <<  irq     )));
+//     }
 
-    assert_or(vec.GetEnder() == &(Pic::IrqEnder)
-        , "Interrupt vector #%u1 (IRQ%u1) already has the wrong ender! (%Xp)%n"
-        , vec, irq, vec.GetEnder())
-    {
-        return false;
-    }
+//     vec.RemoveHandler().SetEnder(nullptr);
 
-    if (mask)
-    {
-        if (irq >= 8)
-            Io::Out8( SlaveDataPort, (uint8_t)(Io::In8( SlaveDataPort) | (1 << (irq - 8))));
-        else
-            Io::Out8(MasterDataPort, (uint8_t)(Io::In8(MasterDataPort) | (1 <<  irq     )));
-    }
+//     return true;
+// }
 
-    vec.RemoveHandler().SetEnder(nullptr);
+// bool Pic::IsSubscribed(uint8_t const irq)
+// {
+//     assert_or(irq < 16
+//         , "IRQ number is out of the range of the PIC: %u1%n"
+//         , irq)
+//     {
+//         return false;
+//     }
 
-    return true;
-}
+//     auto vec = Interrupts::Get((uint8_t)(VectorOffset + irq));
 
-bool Pic::IsSubscribed(uint8_t const irq)
-{
-    assert_or(irq < 16
-        , "IRQ number is out of the range of the PIC: %u1%n"
-        , irq)
-    {
-        return false;
-    }
-
-    auto vec = Interrupts::Get((uint8_t)(VectorOffset + irq));
-
-    return vec.GetEnder() == &(Pic::IrqEnder);
-}
+//     return vec.GetEnder() == &(Pic::IrqEnder);
+// }
 
 /*  Masking  */
 
@@ -265,3 +258,23 @@ bool Pic::GetMasked(uint8_t const irq)
     else
         return 0 != (Io::In8(MasterDataPort) & (1 <<  irq     ));
 }
+
+
+static uint16_t PicGetIrqReg(int ocw3)
+{
+    Io::Out8(Pic::MasterCommandPort, ocw3);
+    Io::Out8(Pic::SlaveCommandPort, ocw3);
+
+    return (Io::In8(Pic::SlaveCommandPort) << 8) | Io::In8(Pic::MasterCommandPort);
+}
+
+uint16_t Pic::GetIrrs(void)
+{
+    return PicGetIrqReg(0x0a);
+}
+
+uint16_t Pic::GetIsrs(void)
+{
+    return PicGetIrqReg(0x0b);
+}
+

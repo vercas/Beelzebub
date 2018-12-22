@@ -45,7 +45,6 @@
 
 #include <kernel.hpp>
 #include <debug.hpp>
-#include <_print/isr.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -77,7 +76,7 @@ void keyboard_send_command(uint8_t cmd)
     Io::Out8(0x60, cmd);
 }
 
-void keyboard_handler(INTERRUPT_HANDLER_ARGS_FULL)
+void keyboard_handler(INTERRUPT_HANDLER_ARGS)
 {
     uint8_t code = Io::In8(0x60);
     Io::Out8(0x61, Io::In8(0x61));
@@ -119,7 +118,7 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS_FULL)
 
             if (activeThread != nullptr)
             {
-                activeThread->State = *state;
+                // activeThread->State = *state;
 
                 //msg("PRE-SWITCH ");
                 //PrintToDebugTerminal(state);
@@ -143,6 +142,4 @@ void keyboard_handler(INTERRUPT_HANDLER_ARGS_FULL)
             break;//*/
         }
     }
-
-    END_OF_INTERRUPT();
 }

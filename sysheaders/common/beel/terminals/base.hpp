@@ -255,4 +255,25 @@ namespace Beelzebub { namespace Terminals
 
     __shared_cpp_inline TerminalBase & NumericUppercase(TerminalBase & term);
     __shared_cpp_inline TerminalBase & NumericLowercase(TerminalBase & term);
+
+    __shared_cpp TerminalWriteResult WriteFormattedEnumHelper(TerminalBase * term
+                                                            , uint64_t val
+                                                            , char const * format
+                                                            , char const * (*printer)(uint64_t val)
+                                                            , size_t sz);
+
+    __shared_cpp TerminalWriteResult WriteFormattedIntHelper(TerminalBase * term
+                                                           , uint64_t val
+                                                           , char const * format
+                                                           , unsigned long long defFmt
+                                                           , size_t sz);
+
+    template<typename TInt>
+    __artificial TerminalWriteResult WriteFormattedIntHelperEx(TerminalBase * term
+                                                             , TInt val
+                                                             , char const * format
+                                                             , unsigned long long defFmt)
+    {
+        return WriteFormattedIntHelper(term, (uint64_t)val, format, defFmt, sizeof(TInt));
+    }
 }}

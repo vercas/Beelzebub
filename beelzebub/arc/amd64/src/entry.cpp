@@ -186,10 +186,10 @@ Handle Beelzebub::ParseKernelArguments()
  *  region's available entries.
  *  </summary>
  */
-Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
-                                 , size_t cnt
-                                 , paddr_t freeStart
-                                 , Domain * domain)
+__startup Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
+                                           , size_t cnt
+                                           , paddr_t freeStart
+                                           , Domain * domain)
 {
     Handle res; //  Used for intermediary results.
 
@@ -289,7 +289,7 @@ Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't depend on
  *  Initializes the system's physical memory for all domains.
  *  </summary>
  */
-Handle InitializePhysicalMemory()
+Handle Beelzebub::InitializePhysicalMemory()
 {
     Handle res;
 
@@ -297,8 +297,11 @@ Handle InitializePhysicalMemory()
     BootstrapCpuid.Initialize();
     //  This is required to page all the available memory.
 
-    BootstrapCpuid.PrintToTerminal(DebugTerminal);
-    msg("%n");
+    if (DebugTerminal != nullptr)
+    {
+        BootstrapCpuid.PrintToTerminal(DebugTerminal);
+        msg("%n");
+    }
 
     res = InitializePhysicalAllocator(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, paddr_t(JG_INFO_ROOT_EX->free_paddr), &Domain0);
 
@@ -313,58 +316,7 @@ Handle InitializePhysicalMemory()
     VIRTUAL MEMORY
 *********************/
 
-__startup void RemapTerminal(TerminalBase * const terminal);
-
-/**
- *  <summary>
- *  Prepares the virtual address space to be used as intended by the kernel.
- *  </summary>
- */
-Handle InitializeVirtualMemory()
-{
-    Handle res;
-    //  Used for intermediary results.
-
-    //  PAGING INITIALIZATION
-
-    paddr_t const pml4_paddr = Pmm::AllocateFrame(1, AddressMagnitude::_32bit);
-
-    if (pml4_paddr == nullpaddr)
-        return HandleResult::OutOfMemory;
-
-    memset((void *)(pml4_paddr.Value), 0, PageSize.Value);
-    //  Clear it all out!
-
-    new (&BootstrapProcess) Process(0, pml4_paddr);
-
-    VmmArc::Page1GB = BootstrapCpuid.CheckFeature(CpuFeature::Page1GB);
-    VmmArc::NX      = BootstrapCpuid.CheckFeature(CpuFeature::NX     );
-
-    Vmm::Bootstrap(&BootstrapProcess);
-    ++BootstrapProcess.ActiveCoreCount;
-
-    RemapTerminal(MainTerminal);
-
-    //  Now mapping the lower 16 MiB.
-
-    res = Vmm::MapRange(&BootstrapProcess
-        , vaddr_t(VmmArc::IsaDmaStart), nullpaddr, vsize_t(VmmArc::IsaDmaLength)
-        , MemoryFlags::Global | MemoryFlags::Writable
-        , MemoryMapOptions::NoReferenceCounting);
-
-    ASSERT(res.IsOkayResult()
-        , "Failed to map range at %Xp (%XP) for ISA DMA: %H."
-        , VmmArc::IsaDmaStart, nullpaddr
-        , res);
-
-    //  TODO: Management for ISA DMA.
-
-    Cpu::SetCr0(Cpu::GetCr0().SetWriteProtect(true));
-
-    return HandleResult::Okay;
-}
-
-void RemapTerminal(TerminalBase * const terminal)
+__startup void RemapTerminal(TerminalBase * const terminal)
 {
     Handle res;
 
@@ -405,6 +357,55 @@ void RemapTerminal(TerminalBase * const terminal)
     }
 
     //  TODO: Make a VGA text terminal and also handle it here.
+}
+
+/**
+ *  <summary>
+ *  Prepares the virtual address space to be used as intended by the kernel.
+ *  </summary>
+ */
+Handle Beelzebub::InitializeVirtualMemory()
+{
+    Handle res;
+    //  Used for intermediary results.
+
+    //  PAGING INITIALIZATION
+
+    paddr_t const pml4_paddr = Pmm::AllocateFrame(1, AddressMagnitude::_32bit);
+
+    if (pml4_paddr == nullpaddr)
+        return HandleResult::OutOfMemory;
+
+    ::memset((void *)(pml4_paddr.Value), 0, PageSize.Value);
+    //  Clear it all out!
+
+    new (&BootstrapProcess) Process(0, pml4_paddr);
+
+    VmmArc::Page1GB = BootstrapCpuid.CheckFeature(CpuFeature::Page1GB);
+    VmmArc::NX      = BootstrapCpuid.CheckFeature(CpuFeature::NX     );
+
+    Vmm::Bootstrap(&BootstrapProcess);
+    ++BootstrapProcess.ActiveCoreCount;
+
+    RemapTerminal(MainTerminal);
+
+    //  Now mapping the lower 16 MiB.
+
+    res = Vmm::MapRange(&BootstrapProcess
+        , vaddr_t(VmmArc::IsaDmaStart), nullpaddr, vsize_t(VmmArc::IsaDmaLength)
+        , MemoryFlags::Global | MemoryFlags::Writable
+        , MemoryMapOptions::NoReferenceCounting);
+
+    ASSERT(res.IsOkayResult()
+        , "Failed to map range at %Xp (%XP) for ISA DMA: %H."
+        , VmmArc::IsaDmaStart, nullpaddr
+        , res);
+
+    //  TODO: Management for ISA DMA.
+
+    Cpu::SetCr0(Cpu::GetCr0().SetWriteProtect(true));
+
+    return HandleResult::Okay;
 }
 
 /**************
@@ -475,7 +476,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
  *  Initializes the kernel modules.
  *  </summary>
  */
-Handle InitializeModules()
+Handle Beelzebub::InitializeModules()
 {
     Handle res;
 
@@ -595,7 +596,7 @@ Handle InitializeModules()
 //     return (char *)(uintptr_t)vaddr2;
 // }
 
-void StartMultitaskingTest()
+void Beelzebub::StartMultitaskingTest()
 {
     // new (&tPb) Process();
     // //  Initialize a new process for thread series B.

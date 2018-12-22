@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,10 +37,51 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include "irqs.hpp"
 
-#include <system/idt.hpp>
-#include <_print/print_template.hpp>
+using namespace Beelzebub;
 
-PRINT_FUNCS_CONST(Beelzebub::System::IdtGate)
-PRINT_FUNCS_CONST(Beelzebub::System::IdtRegister)
+/**********************************
+    InterruptHandlerNode struct
+**********************************/
+
+/*  Linkage  */
+
+bool InterruptHandlerNode::AddToList(InterruptHandlerNode * * first)
+{
+    do
+    {
+        if (*first == nullptr || (*first)->Priority < this->Priority)
+            break;
+        //  Is there no next node? Yeee boiiii.
+        //  Is this pointing at a node with lower priority? Bingo.
+
+        first = &((*first)->Next);
+    } while (true);
+
+    this->Next = *first;
+    *first = this;
+
+    return true;
+}
+
+bool InterruptHandlerNode::RemoveFromList(InterruptHandlerNode * * first)
+{
+    InterruptHandlerNode * node;
+
+    while ((node = *first) != nullptr)
+        if (node == this)
+        {
+            *first = this->Next;
+            return true;
+        }
+        else
+            first = &(node->Next);
+    //  Loop until something points to this node, then make it point to the next one.
+
+    return false;
+}
+
+/*****************
+    Irqs class
+*****************/

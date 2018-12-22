@@ -98,6 +98,7 @@ protected:
     inline __BASE(Process)(uint16_t const id) : Id( id) { }
 
 public:
+    /*  Fields  */
 #endif
 
     uint16_t const Id;
@@ -110,10 +111,21 @@ public:
 #ifndef __ASSEMBLER__
 __STRUCT(__BASE(Thread))
 {
+#ifdef __BEELZEBUB__SOURCE_CXX
+protected:
+    /*  Constructor(s)  */
+
+    inline __BASE(Thread)() : Owner(), ExceptionContext(), Exception() { }
+    inline __BASE(Thread)(__BASE(BeProcess) * owner) : Owner(owner), ExceptionContext(), Exception() { }
+
+public:
+    /*  Fields  */
+#endif
+
     __BASE(BeProcess) * const Owner;
 
-    BeExceptionContext * XContext;
-    BeException X;
+    BeExceptionContext * ExceptionContext;
+    BeException Exception;
 };
 #endif
 
@@ -133,11 +145,11 @@ __STRUCT(GeneralRegisters64)
     uint64_t RSI;
     uint64_t RDI;
     uint64_t RBP;
-    uint64_t RDX;
+    uint64_t RCX;
     uint64_t RBX;
     uint64_t RAX;
     
-    uint64_t RCX;
+    uint64_t RDX;
 
     uint64_t ErrorCode;
 
@@ -201,13 +213,29 @@ BeGeneralRegisters32_size:
 #define SIZE_OF_BeGeneralRegisters32 BeGeneralRegisters32_size
 #endif
 
+#ifndef __ASSEMBLER__
+__STRUCT(ThreadState)
+{
+    BeGeneralRegisters64 GeneralRegisters;
+    uint64_t FsBase;
+    uint64_t GsBase;
+};
+#else
+.struct 0
+FIELDT(BeThreadState, GeneralRegisters, BeGeneralRegisters64)
+FIELDT(BeThreadState, FsBase          , uint64_t)
+FIELDT(BeThreadState, GsBase          , uint64_t)
+BeThreadState_size:
+#define SIZE_OF_BeThreadState BeThreadState_size
+#endif
+
 /**
  *  The data available to an individual CPU core.
  */
 #ifndef __ASSEMBLER__
-__STRUCT(CpuData)
+__STRUCT(__BASE(CpuData))
 {
-    BeCpuData * SelfPointer;
+    __BASE(BeCpuData) * SelfPointer;
     size_t Index;
     uint32_t LapicId;
     uint32_t Padding1;
@@ -215,8 +243,8 @@ __STRUCT(CpuData)
     uintptr_t SyscallStack, SyscallUserlandStack;
     BeGeneralRegisters64 GeneralRegisters;
 
-    BeThread * ActiveThread;
-    BeProcess * ActiveProcess;
+    __BASE(BeThread) * ActiveThread;
+    __BASE(BeProcess) * ActiveProcess;
 } __aligned(128);
 #else
 .struct 0

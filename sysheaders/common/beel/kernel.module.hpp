@@ -43,9 +43,7 @@
 #error This file must only be included in a Beelzebub kernel module.
 #endif
 
-#include <beel/handles.h>
-
-#include <beel/structs.kernel.hpp>
+#include <beel/structs.kernel.h>
 
 #define KRN_SYM_GLB_FNC(name, attr, retType, ...) \
     __extern attr retType name(__VA_ARGS__);

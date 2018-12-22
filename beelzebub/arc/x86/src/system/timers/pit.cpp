@@ -44,7 +44,6 @@
 #include <kernel.hpp>
     
 #include <debug.hpp>
-#include <_print/isr.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -93,15 +92,14 @@ static inline DividerFrequency GetRealFrequency(uint32_t freq)
 
 /*  Statics  */
 
-Atomic<size_t> Pit::Counter {0};
 uint32_t Pit::Period {0};
 uint32_t Pit::Frequency {0};
 
 /*  IRQ Handler  */
 
-void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
+void Pit::IrqHandler(InterruptContext const * context, void * cookie)
 {
-    ++Counter;
+    (void)cookie;
 
     if (CpuDataSetUp && Scheduling)
     {
@@ -109,7 +107,7 @@ void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
 
         if (activeThread != nullptr && activeThread->Next != activeThread)
         {
-            activeThread->State = *state;
+            // activeThread->State.GeneralRegisters = *state;
 
             // if (activeThread == &BootstrapThread)
             //     msg("(( RIP = %Xp ))", state->RIP);
@@ -122,15 +120,13 @@ void Pit::IrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
             //     , activeThread, activeThread->Next, activeThread->Previous
             //     , activeThread == &BootstrapThread);
 
-            activeThread->SwitchToNext(state);
+            activeThread->SwitchToNext(context->Registers);
 
             // msg("%nPOST-SWITCH ");
             // PrintToDebugTerminal(state);
             // msg("%n");
         }
     }
-
-    END_OF_INTERRUPT();
 }
 
 /*  Initialization  */
@@ -148,22 +144,6 @@ void Pit::SetFrequency(uint32_t freq)
 
     Io::Out8(0x40, (uint8_t)(divfreq.Divider     ));  //  Low byte
     Io::Out8(0x40, (uint8_t)(divfreq.Divider >> 8));  //  High byte
-}
-
-void Pit::SetHandler(InterruptHandlerFullFunction han)
-{
-    if (han == nullptr)
-        Pic::Subscribe(IrqNumber, IrqHandler);
-    else
-        Pic::Subscribe(IrqNumber, han);
-}
-
-void Pit::SetHandler(InterruptHandlerPartialFunction han)
-{
-    if (han == nullptr)
-        Pic::Subscribe(IrqNumber, IrqHandler);
-    else
-        Pic::Subscribe(IrqNumber, han);
 }
 
 void Pit::SendCommand(PitCommand const cmd)

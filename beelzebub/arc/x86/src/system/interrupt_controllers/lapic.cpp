@@ -82,13 +82,17 @@ vaddr_t const Lapic::VirtualAddress { 0xFFFFFFFFFFFFF000 };
 
 /*  Ender  */
 
-void Lapic::IrqEnder(INTERRUPT_ENDER_ARGS)
+static __hot void LapicIrqEnder(InterruptContext const * context, void * cookie, InterruptEndType type)
 {
-    (void)handler;
-    (void)vector;
+    (void)context;
+    (void)cookie;
 
-    EndOfInterrupt();
+    assert(type == InterruptEndType::AfterKernel);
+
+    Lapic::EndOfInterrupt();
 }
+
+InterruptEnderNode Lapic::Ender { &LapicIrqEnder };
 
 /*  Initialization  */
 

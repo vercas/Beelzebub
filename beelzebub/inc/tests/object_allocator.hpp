@@ -39,11 +39,9 @@
 
 #pragma once
 
-#include <synchronization/smp_barrier.hpp>
+#include <beel/sync/barrier.hpp>
 #include <beel/handles.h>
 
-extern Beelzebub::Synchronization::SmpBarrier ObjectAllocatorTestBarrier1;
-extern Beelzebub::Synchronization::SmpBarrier ObjectAllocatorTestBarrier2;
-extern Beelzebub::Synchronization::SmpBarrier ObjectAllocatorTestBarrier3;
+extern Beelzebub::Synchronization::Barrier ObjectAllocatorTestBarrier;
 
 __startup Beelzebub::Handle TestObjectAllocator(bool const bsp);

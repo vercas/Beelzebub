@@ -96,7 +96,7 @@ struct Dr7
 static __thread size_t BreakpointCount = 0;
 static __thread BreakpointFunction Handlers[4];
 
-static __hot __realign_stack void DebugHandler(INTERRUPT_HANDLER_ARGS_FULL)
+static __hot __realign_stack void DebugHandler(INTERRUPT_HANDLER_ARGS)
 {
     size_t dr6;
 
@@ -126,7 +126,8 @@ static __hot __realign_stack void DebugHandler(INTERRUPT_HANDLER_ARGS_FULL)
             asm volatile ( "mov %0, %%dr7 \n\t" : : "r"(dr7.Value) );
             //  Temporarily disable this specific breakpoint.
 
-            Handlers[i](state, ender, handler, vector, bpAddr, bp);
+            // Handlers[i](state, ender, handler, vector, bpAddr, bp);
+            //  TODO: All this stuff needs to go into Djinn.
 
             dr7.SetProperties(i, bp);
             asm volatile ( "mov %0, %%dr7 \n\t" : : "r"(dr7.Value) );
@@ -281,7 +282,7 @@ void DebugRegisters::Initialize()
     else
         return;
 
-    Interrupts::Get(KnownExceptionVectors::Debug).SetHandler(&DebugHandler);
+    Interrupts::Get(KnownIsrs::Debug).SetHandler(&DebugHandler);
 }
 
 /*  Operation  */

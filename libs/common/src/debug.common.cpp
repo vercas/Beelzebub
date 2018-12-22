@@ -69,7 +69,8 @@ void Debug::DebugMessage(char const * const fmt, ...)
 
     va_start(args, fmt);
 
-    DebugTerminal->Write(fmt, args);
+    if (Debug::DebugTerminal != nullptr)
+        DebugTerminal->Write(fmt, args);
 
     va_end(args);
 }

@@ -61,16 +61,16 @@ ManagedSerialPort Beelzebub::System::COM4 {0x02E8};
 
 size_t const SerialPort::QueueSize = 16;
 
-/*  Static methods  */
+// /*  Static methods  */
 
-void SerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
-{
-    (void)state;
+// void SerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
+// {
+//     (void)state;
 
-    //COM1.WriteNtString("IRQ!");
+//     //COM1.WriteNtString("IRQ!");
 
-    END_OF_INTERRUPT();
-}
+//     END_OF_INTERRUPT();
+// }
 
 /*  Construction  */
 
@@ -172,13 +172,13 @@ size_t SerialPort::WriteNtString(char const * const str, size_t len) const
 
 /*  Static methods  */
 
-void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
+void ManagedSerialPort::IrqHandler(InterruptContext const * context, ManagedSerialPort * port)
 {
-    (void)state;
+    (void)context;
 
-    uint8_t const iir = Io::In8(COM1.BasePort + 2);
+    uint8_t const iir = Io::In8(port->BasePort + 2);
 
-    if (0 == (iir & 1) && COM1.ImmediateStatus == 0)
+    if (0 == (iir & 1) && port->ImmediateStatus == 0)
     {
         uint8_t const cause = (iir & 0xE) >> 1;
 
@@ -186,13 +186,13 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
         {
             //  Needs more data!
 
-            if (COM1.WriteLock.TryAcquire())
+            if (port->WriteLock.TryAcquire())
             {
-                with (RingBufferConcurrent::PopCookie const cookie = COM1.Queue.TryBeginPop(COM1.QueueSize))
+                with (RingBufferConcurrent::PopCookie const cookie = port->Queue.TryBeginPop(port->QueueSize))
                 {
                     if (cookie.IsValid())
                     {
-                        Io::Out8n(COM1.BasePort, cookie.Array, cookie.Count);
+                        Io::Out8n(port->BasePort, cookie.Array, cookie.Count);
                         // MainTerminal->Write('S');
                     }
                     // else
@@ -200,7 +200,7 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
                     //  Failing this check means another consumer obtained data.
                 }
 
-                COM1.WriteLock.Release();
+                port->WriteLock.Release();
             }
             // else
             // {
@@ -219,8 +219,6 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
     }
     // else
     //     MainTerminal->Write('?');
-
-    END_OF_INTERRUPT();
 }
 
 /*  Construction  */
@@ -228,8 +226,8 @@ void ManagedSerialPort::IrqHandler(INTERRUPT_HANDLER_ARGS)
 ManagedSerialPort::ManagedSerialPort(uint16_t const basePort) 
     : BasePort( basePort)
     , QueueSize(16)
-    , Type()
     , OutputCount(0)
+    , Type()
     , ReadLock()
     , WriteLock()
     , Queue(this->Buffer, 1024)

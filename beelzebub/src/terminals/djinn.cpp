@@ -39,6 +39,7 @@
 
 #include "terminals/djinn.hpp"
 #include <djinn.h>
+#include <string.h>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Terminals;
@@ -98,8 +99,11 @@ DjinnTerminal::DjinnTerminal()
 
 /*  Writing  */
 
-static TerminalWriteResult WriteWrapper(const char * str, size_t len, bool & cont)
+static TerminalWriteResult WriteWrapper(char const * str, size_t len, bool & cont)
 {
+    if (len == SIZE_MAX)
+        len = strlen(str);
+
     size_t const n = len;
     cont = false;
 
@@ -126,7 +130,7 @@ static TerminalWriteResult WriteWrapper(const char * str, size_t len, bool & con
     return {HandleResult::Okay, (uint32_t)n, InvalidCoordinates};
 }
 
-TerminalWriteResult DjinnTerminal::WriteUtf8(const char * c)
+TerminalWriteResult DjinnTerminal::WriteUtf8(char const * c)
 {
     size_t i = 1;
     char temp[7] = "\0\0\0\0\0\0";
@@ -146,16 +150,16 @@ TerminalWriteResult DjinnTerminal::WriteUtf8(const char * c)
     }
 
     bool dummy;
-    return WriteWrapper(temp, i, dummy);
+    return WriteWrapper(&(temp[0]), i, dummy);
 }
 
-TerminalWriteResult DjinnTerminal::Write(const char * str, size_t len)
+TerminalWriteResult DjinnTerminal::Write(char const * str, size_t len)
 {
     bool dummy;
     return WriteWrapper(str, len, dummy);
 }
 
-TerminalWriteResult DjinnTerminal::WriteLine(const char * str, size_t len)
+TerminalWriteResult DjinnTerminal::WriteLine(char const * str, size_t len)
 {
     bool cont;
 
@@ -168,4 +172,9 @@ TerminalWriteResult DjinnTerminal::WriteLine(const char * str, size_t len)
     if (res.Size == 2) res.Size += (uint32_t)len;
 
     return res;
+}
+
+Handle DjinnTerminal::Flush()
+{
+    return HandleResult::Okay;
 }

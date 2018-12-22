@@ -40,7 +40,7 @@
 #pragma once
 
 #include <memory/enums.hpp>
-#include <beel/enums.kernel.hpp>
+#include <beel/enums.kernel.h>
 
 namespace Beelzebub { namespace Memory
 {

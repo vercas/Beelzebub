@@ -41,8 +41,8 @@
 
 #include "execution/process.arc.hpp"
 #include "memory/vas.hpp"
-    
-#include <beel/structs.kernel.hpp>
+
+#include <beel/structs.kernel.h>
 #include <beel/sync/smp.lock.hpp>
 #include <beel/sync/atomic.hpp>
 
@@ -54,7 +54,6 @@ namespace Beelzebub { namespace Execution
     class Process : public ProcessBase, public ProcessArchitecturalBase
     {
     public:
-
         /*  Constructors  */
 
         inline Process()

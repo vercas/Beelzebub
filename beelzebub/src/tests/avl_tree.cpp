@@ -39,11 +39,11 @@
 
 #ifdef __BEELZEBUB__TEST_AVL_TREE
 
-#include <tests/avl_tree.hpp>
-#include <utils/avl_tree.hpp>
+#include "tests/avl_tree.hpp"
+#include <beel/utils/avl.tree.hpp>
 
-#include <memory/object_allocator_smp.hpp>
-#include <memory/object_allocator_pools_heap.hpp>
+#include "memory/object_allocator_smp.hpp"
+#include "memory/object_allocator_pools_heap.hpp"
 
 #include <debug.hpp>
 

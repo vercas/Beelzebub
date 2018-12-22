@@ -38,14 +38,9 @@
 */
 
 #include <beel/handles.h>
+#include <beel/terminals/base.hpp>
 
 using namespace Beelzebub;
 
-/********************
-    Handle struct
-********************/
-
-/*  Printing  */
-
-__ENUM_TO_STRING_EX1(HandleType, , Handle::GetTypeString() const, this->GetType(), ENUM_HANDLETYPE)
-__ENUM_TO_STRING_EX1(HandleResult, , Handle::GetResultString() const, this->GetResult(), ENUM_HANDLERESULT)
+__ENUM_TO_STRING_IMPL(HandleType, ENUM_HANDLETYPE)
+__ENUM_TO_STRING_IMPL(HandleResult, ENUM_HANDLERESULT)

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,11 +37,48 @@
     thorough explanation regarding other files.
 */
 
+/*  Note that the implementation of this header is architecture-specific.  */
+
 #pragma once
 
-#include <system/isr.hpp>
+#include <beel/structs.kernel.h>
+#include "execution/thread.hpp"
+#include "execution/process.hpp"
 
-namespace Beelzebub { namespace Execution
+namespace Beelzebub
 {
-    typedef Beelzebub::System::IsrState ThreadState;
-}}
+    /**
+     *  <summary>Represents an abstraction of the system's IRQs and ISRs.</summary>
+     */
+    class Scheduler
+    {
+    public:
+        /*  Public  */
+
+        static __thread tid_t IdleTid;
+
+    protected:
+        /*  Constructor(s)  */
+
+        Scheduler() = default;
+
+    public:
+        Scheduler(Scheduler const &) = delete;
+        Scheduler & operator =(Scheduler const &) = delete;
+
+        /*  Initialization  */
+
+        static __startup Handle Initialize(bool bsp);
+
+        static __cold void Engage();
+
+        /*  Properties  */
+
+        static size_t GetMaximumProcesses();
+        static size_t GetMaximumThreads();
+        static size_t GetMaximumScheduledThreads();
+
+        static size_t GetIdleCores();
+        static size_t GetTotalCores();
+    };
+}

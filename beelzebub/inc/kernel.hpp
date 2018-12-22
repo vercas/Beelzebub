@@ -45,7 +45,17 @@
 
 namespace Beelzebub
 {
+    enum class MainTerminalInterfaces
+    {
+        None = 0,
+
+        COM1, COM2, COM3, COM4,
+        VBE,
+    };
+
     extern Terminals::TerminalBase * MainTerminal;
+    extern MainTerminalInterfaces MainTerminalInterface;
+
     extern bool Scheduling;
     extern bool CpuDataSetUp;
 

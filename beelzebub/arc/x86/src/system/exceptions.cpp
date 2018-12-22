@@ -49,7 +49,6 @@
 #include "execution/extended_states.hpp"
 
 #include "_print/paging.hpp"
-#include "_print/isr.hpp"
 
 #include "utils/stack_walk.hpp"
 
@@ -95,7 +94,7 @@ void System::DivideErrorHandler(INTERRUPT_HANDLER_ARGS)
     else
         MSG("<< DIVIDE ERROR! >>%n");
 
-    PrintToDebugTerminal(state);
+    DEBUG_TERM << state;
 
     uintptr_t stackPtr = state->RSP;
     uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
@@ -242,7 +241,7 @@ void System::StackSegmentFaultHandler(INTERRUPT_HANDLER_ARGS)
 /**
  *  Interrupt handler for general protection exceptions.
  */
-void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
+void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS)
 {
     CpuData * cpuData = CpuDataSetUp ? Cpu::GetData() : nullptr;
 
@@ -253,7 +252,7 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
         else
             MSG("<< GP FAULT! >>%n");
 
-        PrintToDebugTerminal(state);
+        DEBUG_TERM << state;
 
         uintptr_t stackPtr = state->RSP;
         uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
@@ -297,7 +296,7 @@ void System::GeneralProtectionHandler(INTERRUPT_HANDLER_ARGS_FULL)
 /**
  *  Interrupt handler for page faults.
  */
-void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
+void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS)
 {
     vaddr_t CR2 { Cpu::GetCr2() };
     auto pff = (PageFaultFlags)(state->ErrorCode);
@@ -450,7 +449,8 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
 
             if (e != nullptr)
             {
-                PrintToTerminal(Beelzebub::Debug::DebugTerminal, *e);
+                if (Debug::DebugTerminal != nullptr)
+                    PrintToTerminal(Beelzebub::Debug::DebugTerminal, *e);
 
                 MSG(" >>%n");
             }
@@ -459,7 +459,7 @@ void System::PageFaultHandler(INTERRUPT_HANDLER_ARGS_FULL)
 
             MSG("<< AT@%Xp >>%n", activeThread);
 
-            PrintToDebugTerminal(state);
+            DEBUG_TERM << state;
 
             uintptr_t stackPtr = state->RSP;
             uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);

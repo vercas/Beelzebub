@@ -83,11 +83,16 @@ __startup void TestDereferenceFailure(uintptr_t volatile * const testPtr)
     __catch (x)
     {
         ASSERT_EQ("%up", ExceptionType::MemoryAccessViolation, x->Type);
-        ASSERT_EQ("%Xp", testPtr, x->MemoryAccessViolation.Address);
+        ASSERT_EQ("%Xp", testPtr, x->MemoryAccessViolation.Address.Pointer);
         ASSERT_EQ("%XP", nullpaddr, x->MemoryAccessViolation.PhysicalAddress);
         ASSERT_EQ("%X2", MemoryLocationFlags::None, x->MemoryAccessViolation.PageFlags);
         ASSERT_EQ("%X1", MemoryAccessType::Write, x->MemoryAccessViolation.AccessType);
     }
+}
+
+__startup void TestDereferenceFailure(vaddr_t const testPtr)
+{
+    TestDereferenceFailure((uintptr_t volatile *)(testPtr.Pointer));
 }
 
 void TestVas()
@@ -104,7 +109,7 @@ void TestVas()
 
     //  Firstly, the kernel stack page of the test thread.
 
-    uintptr_t stackVaddr = nullvaddr;
+    vaddr_t stackVaddr = nullvaddr;
 
     res = Vmm::AllocatePages(nullptr
         , 3 * PageSize
@@ -116,8 +121,8 @@ void TestVas()
         , "Failed to allocate stack for VAS test thread: %H."
         , res);
 
-    testThread.KernelStackTop = stackVaddr + 3 * PageSize;
-    testThread.KernelStackBottom = stackVaddr;
+    testThread.KernelStackTop = (stackVaddr + 3 * PageSize).Value;
+    testThread.KernelStackBottom = stackVaddr.Value;
 
     testThread.EntryPoint = &TestThreadCode;
 
@@ -131,7 +136,7 @@ void TestVas()
 
 void * TestThreadCode(void *)
 {
-    uintptr_t vaddr = nullvaddr, vaddr1, vaddr2;
+    vaddr_t vaddr = nullvaddr, vaddr1, vaddr2;
 
     Handle res = Vmm::AllocatePages(nullptr
         , 4 * PageSize
@@ -148,10 +153,10 @@ void * TestThreadCode(void *)
 
     memset((void *)vaddr, 0xCD, 4 * PageSize);
 
-    TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
+    TestDereferenceFailure(vaddr - SizeOf<uintptr_t>);
 
     if (vaddr + 4 * PageSize < Vmm::UserlandEnd)
-        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 4 * PageSize));
+        TestDereferenceFailure(vaddr + 4 * PageSize);
 
     vaddr = Vmm::UserlandStart + 1337 * PageSize;
 
@@ -171,11 +176,11 @@ void * TestThreadCode(void *)
 
     memset((void *)vaddr, 0xAB, 5 * PageSize);
 
-    if (vaddr - sizeof(uintptr_t) < vaddr1 || vaddr - sizeof(uintptr_t) >= vaddr1 + 4 * PageSize)
-        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
+    if (vaddr - SizeOf<uintptr_t> < vaddr1 || vaddr - SizeOf<uintptr_t> >= vaddr1 + 4 * PageSize)
+        TestDereferenceFailure(vaddr - SizeOf<uintptr_t>);
 
     if (vaddr + 5 * PageSize < Vmm::UserlandEnd && (vaddr + 5 * PageSize < vaddr1 || vaddr + PageSize >= vaddr1))
-        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
+        TestDereferenceFailure(vaddr + 5 * PageSize);
 
     vaddr = nullvaddr;
 
@@ -192,14 +197,14 @@ void * TestThreadCode(void *)
 
     memset((void *)vaddr, 0x65, 6 * PageSize);
 
-    if ((vaddr - sizeof(uintptr_t) < vaddr1 || vaddr - sizeof(uintptr_t) >= vaddr1 + 4 * PageSize)
-     && (vaddr - sizeof(uintptr_t) < vaddr2 || vaddr - sizeof(uintptr_t) >= vaddr2 + 5 * PageSize))
-        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr - sizeof(uintptr_t)));
+    if ((vaddr - SizeOf<uintptr_t> < vaddr1 || vaddr - SizeOf<uintptr_t> >= vaddr1 + 4 * PageSize)
+     && (vaddr - SizeOf<uintptr_t> < vaddr2 || vaddr - SizeOf<uintptr_t> >= vaddr2 + 5 * PageSize))
+        TestDereferenceFailure(vaddr - SizeOf<uintptr_t>);
 
     if (vaddr + 6 * PageSize < Vmm::UserlandEnd
     && (vaddr + 6 * PageSize < vaddr1 || vaddr + 2 * PageSize >= vaddr1)
     && (vaddr + 6 * PageSize < vaddr2 || vaddr +     PageSize >= vaddr2))
-        TestDereferenceFailure(reinterpret_cast<uintptr_t volatile *>(vaddr + 5 * PageSize));
+        TestDereferenceFailure(vaddr + 5 * PageSize);
 
     Barrier = false;
 

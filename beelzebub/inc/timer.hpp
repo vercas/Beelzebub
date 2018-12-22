@@ -40,19 +40,14 @@
 #pragma once
 
 #include <beel/timing.hpp>
-#include <system/interrupts.hpp>
 #include <beel/handles.h>
 
 namespace Beelzebub
 {
-    typedef void (* TimedFunction)(System::IsrState * const state, void * cookie);
+    typedef void (* TimedFunctionVoid)(void * cookie);
 
-    struct TimerEntry
-    {
-        TimedFunction Function;
-        void * Cookie;
-        uint32_t Time;
-    };
+    template<typename TCookie>
+    using TimedFunction = void (*)(TCookie *);
 
     /**
      *  <summary>Represents an abstract system timer.</summary>
@@ -82,6 +77,12 @@ namespace Beelzebub
 
         /*  Operation  */
 
-        static bool Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie = nullptr);
+        static bool Enqueue(TimeSpanLite delay, TimedFunctionVoid func, void * cookie = nullptr);
+
+        template<typename TCookie>
+        static bool Enqueue(TimeSpanLite delay, TimedFunction<TCookie> func, TCookie * cookie)
+        {
+            return Enqueue(delay, static_cast<TimedFunctionVoid>(func), cookie);
+        }
     };
 }

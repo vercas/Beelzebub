@@ -39,6 +39,6 @@
 
 #pragma once
 
-#include <system/interrupts.hpp>
+#include <beel/metaprogramming.h>
 
 __startup void TestInterruptLatency();

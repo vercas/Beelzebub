@@ -17,6 +17,7 @@ BochsLog.txt
 .vs/
 *~
 *.sublime-workspace
+\.directory
 /BOCHS.bat
 /QEMU.bat
 /start_vmware.bat

@@ -38,6 +38,7 @@
 */
 
 #include <beel/utils/tar.hpp>
+#include <beel/terminals/base.hpp>
 #include <string.h>
 
 using namespace Beelzebub;
@@ -45,7 +46,7 @@ using namespace Beelzebub::Utils;
 
 /*  Enums  */
 
-__ENUM_TO_STRING_EX2(TarHeaderType, ENUM_TARHEADERTYPE, Beelzebub::Utils)
+__ENUM_TO_STRING_IMPL(TarHeaderType, ENUM_TARHEADERTYPE, Beelzebub::Utils)
 
 /***********************
     TarHeader struct
@@ -159,21 +160,11 @@ bool TarHeader::IsInDirectory(char const * dir, bool includeSelf) const
     //  the last char of the name must be non-zero.
 }
 
-#include <beel/terminals/base.hpp>
 
 /*  Now to implement some << operator magic.  */
 
 namespace Beelzebub { namespace Terminals
 {
-    #define SPAWN_ENUM(eName) \
-    template<> \
-    TerminalBase & operator << <eName>(TerminalBase & term, eName const value) \
-    { \
-        return term << (__underlying_type(eName))(value) << " (" << EnumToString(value) << ")"; \
-    }
-
-    SPAWN_ENUM(TarHeaderType)
-
     template<>
     TerminalBase & operator << <TarHeader const *>(TerminalBase & term, TarHeader const * const value)
     {

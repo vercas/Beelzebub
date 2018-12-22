@@ -86,7 +86,7 @@ static __solid void TestVmmCrossIntegrity(bool const bsp);
 #endif
 
 static __solid void TestVmmIntegrity(bool const bsp);
-static __hot void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties & bp);
+// static __hot void DumpStack(INTERRUPT_HANDLER_ARGS, void * address, System::BreakpointProperties & bp);
 
 void TestVmm(bool const bsp)
 {
@@ -784,71 +784,71 @@ void TestVmmIntegrity(bool const bsp)
 }
 
 #include "utils/stack_walk.hpp"
-#include "_print/isr.hpp"
+// #include "_print/isr.hpp"
 
-void DumpStack(INTERRUPT_HANDLER_ARGS_FULL, void * address, System::BreakpointProperties & bp)
-{
-    (void)bp;
+// void DumpStack(INTERRUPT_HANDLER_ARGS, void * address, System::BreakpointProperties & bp)
+// {
+//     (void)bp;
 
-    uint32_t val = *reinterpret_cast<uint32_t *>(address);
+//     uint32_t val = *reinterpret_cast<uint32_t *>(address);
 
-    if (val == ExpectedTop)
-    {
-        // MSG_("@ Value is as expected: %X4 @", val);
+//     if (val == ExpectedTop)
+//     {
+//         // MSG_("@ Value is as expected: %X4 @", val);
 
-        goto end;
-    }
+//         goto end;
+//     }
 
-    withLock (Debug::MsgSpinlock)
-    {
-        DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
+//     withLock (Debug::MsgSpinlock)
+//     {
+//         DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
 
-        MSG("Breakpoint Address: %Xp%n", address);
-        MSG("Value at Address: %X4%n", val);
-        MSG("Expected: %X4%n", ExpectedTop);
+//         MSG("Breakpoint Address: %Xp%n", address);
+//         MSG("Value at Address: %X4%n", val);
+//         MSG("Expected: %X4%n", ExpectedTop);
 
-        PrintToDebugTerminal(state);
+//         DEBUG_TERM << state;
 
-        uintptr_t stackPtr = state->RSP;
-        uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
+//         uintptr_t stackPtr = state->RSP;
+//         uintptr_t const stackEnd = RoundUp(stackPtr, PageSize.Value);
 
-        if ((stackPtr & (sizeof(size_t) - 1)) != 0)
-        {
-            MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
-                , sizeof(size_t), stackPtr);
+//         if ((stackPtr & (sizeof(size_t) - 1)) != 0)
+//         {
+//             MSG("Stack pointer was not a multiple of %us! (%Xp)%n"
+//                 , sizeof(size_t), stackPtr);
 
-            stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
-        }
+//             stackPtr &= ~((uintptr_t)(sizeof(size_t) - 1));
+//         }
 
-        bool odd;
-        for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
-        {
-            MSG("%X2|%Xp|%Xs|%s"
-                , (uint16_t)(stackPtr - state->RSP)
-                , stackPtr
-                , *((size_t const *)stackPtr)
-                , odd ? "\r\n" : "\t");
-        }
+//         bool odd;
+//         for (odd = false; stackPtr < stackEnd; stackPtr += sizeof(size_t), odd = !odd)
+//         {
+//             MSG("%X2|%Xp|%Xs|%s"
+//                 , (uint16_t)(stackPtr - state->RSP)
+//                 , stackPtr
+//                 , *((size_t const *)stackPtr)
+//                 , odd ? "\r\n" : "\t");
+//         }
 
-        if (odd) MSG("%n");
+//         if (odd) MSG("%n");
 
-        Utils::StackFrame stackFrame;
+//         Utils::StackFrame stackFrame;
 
-        if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
-        {
-            do
-            {
-                MSG("[Func %Xp; Stack top %Xp + %us]%n"
-                    , stackFrame.Function, stackFrame.Top, stackFrame.Size);
+//         if (stackFrame.LoadFirst(state->RSP, state->RBP, state->RIP))
+//         {
+//             do
+//             {
+//                 MSG("[Func %Xp; Stack top %Xp + %us]%n"
+//                     , stackFrame.Function, stackFrame.Top, stackFrame.Size);
 
-            } while (stackFrame.LoadNext());
-        }
+//             } while (stackFrame.LoadNext());
+//         }
 
-        DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
-    }
+//         DEBUG_TERM << "-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --" << Terminals::EndLine;
+//     }
 
-end:
-    END_OF_INTERRUPT();
-}
+// end:
+//     END_OF_INTERRUPT();
+// }
 
 #endif

@@ -84,9 +84,9 @@ SyscallEntry_64:
     movq    %rcx, FIELDR(BeGeneralRegisters64, RIP)(%rsp)
     //  Back up return RIP and RFLAGS on kernel stack.
 
-    movq    %rcx, FIELDR(BeGeneralRegisters64, RCX)(%rsp)
-    movq    %rbx, FIELDR(BeGeneralRegisters64, RBX)(%rsp)
     movq    %rdx, FIELDR(BeGeneralRegisters64, RDX)(%rsp)
+    movq    %rbx, FIELDR(BeGeneralRegisters64, RBX)(%rsp)
+    movq    %rcx, FIELDR(BeGeneralRegisters64, RCX)(%rsp)
     movq    %rbp, FIELDR(BeGeneralRegisters64, RBP)(%rsp)
     movq    %rdi, FIELDR(BeGeneralRegisters64, RDI)(%rsp)
     movq    %rsi, FIELDR(BeGeneralRegisters64, RSI)(%rsp)

@@ -1,5 +1,5 @@
 #!/usr/bin/env lua
-require "vmake-edge"
+require "vmake"
 
 --[[
     Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
@@ -173,27 +173,27 @@ GlobalData {
 
 local availableTests = List {
     -- "MT",
-    -- "STR",
-    -- "PMM",
+    "STR",
+    "PMM",
     "VMM",
-    -- "OBJA",
-    --"METAP",
-    --"EXCP",
+    "OBJA",
+    "METAP",
+    "EXCP",
     -- "APP",
-    -- "KMOD",
-    -- "TIMER",
-    -- "MAILBOX",
-    -- "STACKINT",
-    -- "AVL_TREE",
-    --"TERMINAL",
-    --"CMDO",
-    -- "FPU",
-    -- "BIGINT",
+    "KMOD",
+    "TIMER",
+    "MAILBOX",
+    "STACKINT",
+    "AVL_TREE",
+    "TERMINAL",
+    "CMDO",
+    "FPU",
+    "BIGINT",
     -- "LOCK_ELISION",
     -- "RW_SPINLOCK",
     -- "RW_TICKETLOCK",
-    -- "VAS",
-    --"INTERRUPT_LATENCY",
+    "VAS",
+    "INTERRUPT_LATENCY",
     "MALLOC",
 }
 
@@ -1002,12 +1002,12 @@ Project "Beelzebub" {
             HeadersSubdirectory     = "inc",
 
             Opts_GCC = function()
-                local res = List {
-                    "-fvisibility=hidden",
-                    "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
-                    "-flto", "-Os",
-                    "-D_DJINN",
-                } + Opts_GCC_Common + Opts_Includes
+                local res = List [[
+                    -fvisibility=hidden
+                    -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -flto -Os
+                    -D_DJINN
+                ]] + Opts_GCC_Common + Opts_Includes
                 + selArch.Data.Opts_GCC_Kernel
 
                 if selArch.Name == "amd64" then

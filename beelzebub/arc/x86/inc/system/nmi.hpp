@@ -39,8 +39,7 @@
 
 #pragma once
 
-#include "system/interrupts.hpp"
-#include <beel/sync/atomic.hpp>
+#include <beel/metaprogramming.h>
 
 namespace Beelzebub::System
 {
@@ -49,31 +48,6 @@ namespace Beelzebub::System
      */
     class Nmi
     {
-    public:
-        /*  Types  */
-
-        struct EnderNode
-        {
-            InterruptEnderFunction Function;
-            EnderNode * Next;
-
-            inline constexpr EnderNode(InterruptEnderFunction const fnc) : Function( fnc), Next(nullptr) { }
-        };
-
-        struct HandlerNode
-        {
-            InterruptHandlerFullFunction Function;
-            HandlerNode * Next;
-
-            inline constexpr HandlerNode(InterruptHandlerFullFunction const fnc) : Function( fnc), Next(nullptr) { }
-        };
-
-    private:
-        /*  Statics  */
-
-        static HandlerNode * Handlers;
-        static EnderNode * Enders;
-
     protected:
         /*  Constructor(s)  */
 
@@ -83,17 +57,9 @@ namespace Beelzebub::System
         Nmi(Nmi const &) = delete;
         Nmi & operator =(Nmi const &) = delete;
 
-        /*  Initialization  */
-
-        static __startup void Initialize();
-        static __startup void AddHandler(HandlerNode * e);
-        static __startup void AddEnder(EnderNode * e, bool unique);
-
         /*  Operation  */
 
         static __hot void Broadcast();
         static __hot void Send(uint32_t id);
-
-        static __hot __realign_stack void Handler(INTERRUPT_HANDLER_ARGS_FULL);
     };
 }

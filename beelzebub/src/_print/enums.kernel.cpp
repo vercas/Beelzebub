@@ -37,13 +37,14 @@
     thorough explanation regarding other files.
 */
 
-#include <beel/enums.kernel.hpp>
+#include <beel/enums.kernel.h>
+#include <beel/terminals/base.hpp>
 
 using namespace Beelzebub;
 
-__ENUM_TO_STRING_EX2(FrameSize, __ENUM_FRAMESIZE, Beelzebub)
-__ENUM_TO_STRING_EX2(MemoryContent, __ENUM_MEMORYCONTENT, Beelzebub)
-__ENUM_TO_STRING_EX2(ExceptionType, __ENUM_EXCEPTIONTYPE, Beelzebub)
+__ENUM_TO_STRING_IMPL(FrameSize, __ENUM_FRAMESIZE)
+__ENUM_TO_STRING_IMPL(MemoryContent, __ENUM_MEMORYCONTENT)
+__ENUM_TO_STRING_IMPL(ExceptionType, __ENUM_EXCEPTIONTYPE)
 
 bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
 {
@@ -65,27 +66,4 @@ bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
     }
 
     return false;
-}
-
-/************************
-    Terminal Printing
-************************/
-
-#include <beel/terminals/base.hpp>
-
-/*  Now to implement some << operator magic.  */
-
-namespace Beelzebub::Terminals
-{
-    /*  First, the enums  */
-
-    #define SPAWN_ENUM(eName) \
-    template<> \
-    TerminalBase & operator << <eName>(TerminalBase & term, eName const value) \
-    { \
-        return term << (__underlying_type(eName))(value) << " (" << EnumToString(value) << ")"; \
-    }
-
-    SPAWN_ENUM(FrameSize)
-    SPAWN_ENUM(ExceptionType)
 }

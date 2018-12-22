@@ -87,7 +87,7 @@ Handle Modules::Initialize()
 
 /*  (Un)loading  */
 
-Handle Modules::Load(uintptr_t start, size_t len)
+Handle Modules::Load(vaddr_t start, vsize_t len)
 {
     KernelModule * kmod = nullptr;
     Handle res = ModulesAllocator.AllocateObject(kmod);

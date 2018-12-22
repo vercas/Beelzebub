@@ -44,9 +44,7 @@
 
 #pragma once
 
-#include <beel/handles.h>
-#include <beel/enums.kernel.hpp>
-#include <beel/structs.kernel.hpp>
+#include <beel/structs.kernel.h>
 
 namespace Beelzebub { namespace Memory
 {

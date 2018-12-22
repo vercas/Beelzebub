@@ -64,11 +64,13 @@ handle_t HandleTableArc::FreeListRemovalCount { 90 };
     HandleTable class
 ************************/
 
+constexpr handle_t const HandleTable::InvalidHandle;
+
 /*  Initialization  */
 
 HandleTableInitializationResult HandleTable::Initialize(handle_t limit)
 {
-    vsize_t const size = RoundUp(limit.Value * SizeOf<HandleTableEntryArc>, PageSize);
+    vsize_t const size = RoundUp((size_t)limit.Value * SizeOf<HandleTableEntryArc>, PageSize);
     vaddr_t vaddr = nullvaddr;
 
     //  TODO: Read parameters for FreeList(Threshold|RemovalCount)

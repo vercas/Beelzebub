@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,7 +37,31 @@
     thorough explanation regarding other files.
 */
 
-#include <execution/thread_state.hpp>
+#include "irqs.hpp"
+#include "system/interrupts.hpp"
+#include <beel/terminals/base.hpp>
+#include <debug.hpp>
 
 using namespace Beelzebub;
-using namespace Beelzebub::Execution;
+using namespace Beelzebub::System;
+using namespace Beelzebub::Terminals;
+
+/*********************
+    DEBUG PRINTING
+*********************/
+
+namespace Beelzebub { namespace Terminals
+{
+    template<>
+    TerminalBase & operator << <IrqEnderRegisterResult>(TerminalBase & term, IrqEnderRegisterResult const val)
+    {
+        switch (val)
+        {
+        case IrqEnderRegisterResult::Success: term.Write("Success"); return term;
+        case IrqEnderRegisterResult::VectorOutOfRange: term.Write("VectorOutOfRange"); return term;
+        case IrqEnderRegisterResult::AlreadyRegistered: term.Write("AlreadyRegistered"); return term;
+
+        default: term.Write("UNKNOWN"); return term;
+        }
+    }
+}}

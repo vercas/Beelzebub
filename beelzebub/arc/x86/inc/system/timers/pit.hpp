@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include "system/interrupts.hpp"
+#include "irqs.hpp"
 #include <utils/bitfields.hpp>
 #include <beel/sync/atomic.hpp>
 
@@ -146,15 +146,13 @@ namespace Beelzebub { namespace System { namespace Timers
         static uint32_t const BaseFrequency = 1193182;
         static uint32_t const MinimumFrequency = 19;
 
-        static Synchronization::Atomic<size_t> Counter;
-
         static uint32_t Period, Frequency; //  In microseconds.
 
         /*  IRQ Handler  */
 
-        static uint8_t const IrqNumber = 0;
+        static constexpr irq_t const IrqVector { 0 };
 
-        static void IrqHandler(INTERRUPT_HANDLER_ARGS_FULL);
+        static void IrqHandler(InterruptContext const * context, void * cookie);
 
         /*  Constructor(s)  */
 
@@ -168,8 +166,6 @@ namespace Beelzebub { namespace System { namespace Timers
         /*  Initialization  */
 
         static __cold void SetFrequency(uint32_t freq);
-        static __cold void SetHandler(InterruptHandlerFullFunction han = nullptr);
-        static __cold void SetHandler(InterruptHandlerPartialFunction han);
 
         static __cold void SendCommand(PitCommand const cmd);
     };

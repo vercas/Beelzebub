@@ -52,6 +52,8 @@
         inline void operator delete  (void *, void *) noexcept { }
         inline void operator delete[](void *, void *) noexcept { }
     #endif
+
+    #define DJINN_FUNC __noinline __noclone
 #elif defined(_ALADIN)
     #ifdef __cplusplus
         #include <cstdint>
@@ -91,7 +93,7 @@ enum DJINN_POLL_RES
 };
 
 /*  PRECONDITION: IRQs disabled  */
-typedef enum DJINN_POLL_RES (*DjinnPacketPoller)(void const * buffer, size_t capacity);
+typedef enum DJINN_POLL_RES (*DjinnPacketPoller)(void * buffer, size_t capacity, size_t * len);
 
 //  Processing (aka asynchronous receiving)
 
@@ -128,8 +130,8 @@ enum DJINN_INIT_RES DjinnInitialize(struct DjinnInitData * data);
 
 //  Status
 
-bool DjinnGetInitialized();
-int DjinnGetDebuggerCount();
+DJINN_FUNC bool DjinnGetInitialized();
+DJINN_FUNC int DjinnGetDebuggerCount();
 
 //  Logging
 
@@ -146,7 +148,7 @@ struct DjinnLogResult
     int Count;
 };
 
-struct DjinnLogResult DjinnLog(char const * str, int cnt);
+DJINN_FUNC struct DjinnLogResult DjinnLog(char const * str, int cnt);
 
 #endif  //  defined(_ALADIN)
 

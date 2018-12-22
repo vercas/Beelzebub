@@ -319,7 +319,7 @@ namespace Beelzebub::Utils
                 
                 Handle res = StrToUIntBase8<uint64_t, 11>(str + 1, temp);
 
-                if (temp >> 32 != 0)
+                if (res == HandleResult::Okay && temp >> 32 != 0)
                     return HandleResult::ArgumentOutOfRange;
 
                 val = static_cast<uint32_t>(temp);
@@ -404,7 +404,7 @@ namespace Beelzebub::Utils
                 
                 Handle res = StrToUIntBase8<uint32_t, 6>(str + 1, temp);
 
-                if (temp >> 16 != 0)
+                if (res == HandleResult::Okay && temp >> 16 != 0)
                     return HandleResult::ArgumentOutOfRange;
 
                 val = static_cast<uint16_t>(temp);

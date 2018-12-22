@@ -38,12 +38,13 @@
 */
 
 #include "timer.hpp"
+#include "irqs.hpp"
 #include "system/timers/apic.timer.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
-#include "system/cpu.hpp"
-#include "kernel.hpp"
 #include <beel/sync/smp.lock.hpp>
 #include <string.h>
+
+#include <debug.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Synchronization;
@@ -55,11 +56,21 @@ using namespace Beelzebub::System::Timers;
     Internals
 ****************/
 
+struct TimerEntry
+{
+    TimedFunctionVoid Function;
+    void * Cookie;
+    uint32_t Time;
+};
+
 static __thread uint_fast16_t MyTimersCount = 0;
 static __thread TimerEntry MyTimers[Timer::Count];
 
-static __hot void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
+static __hot void TimerIrqHandler(InterruptContext const * context, void * cookie)
 {
+    (void)context;
+    (void)cookie;
+
     auto timersCount = MyTimersCount;
 
     if likely(timersCount > 0)
@@ -87,16 +98,14 @@ static __hot void TimerIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
             //  finishing the interrupt on another core.
         }
 
-        END_OF_INTERRUPT();
-
-        return entry.Function(state, entry.Cookie);
+        return entry.Function(entry.Cookie);
     }
-    else
-        END_OF_INTERRUPT();
 }
 
 static SmpLock InitLock {};
 static bool Initialized = false;
+
+static InterruptHandlerNode ApicTimerNode { &TimerIrqHandler, nullptr, Irqs::HighPriority };
 
 /******************
     Timer class
@@ -106,12 +115,9 @@ static bool Initialized = false;
 
 void Timer::Initialize()
 {
-    auto const vec = Interrupts::Get(KnownExceptionVectors::ApicTimer);
-    //  Unique.
-
     MyTimersCount = 0;
-    
-    ApicTimer::OneShot(0, vec.GetVector(), false);
+
+    ApicTimer::OneShot(0, (uint8_t)Irqs::ApicTimer.Value, false);
 
     //  A lock is used here because this code must only be executed once, and
     //  other cores should wait for it to finish.
@@ -121,16 +127,19 @@ void Timer::Initialize()
         if (Initialized)
             return;
 
-        vec.SetHandler(&TimerIrqHandler);
-        vec.SetEnder(&Lapic::IrqEnder);
-
         Initialized = true;
     }
+
+    ASSERT(ApicTimerNode.Subscribe(Irqs::ApicTimer) == IrqSubscribeResult::Success);
+
+    auto const regres = Lapic::Ender.Register(Irqs::ApicTimer);
+
+    ASSERT(regres == IrqEnderRegisterResult::Success || regres == IrqEnderRegisterResult::AlreadyRegistered)(regres);
 }
 
 /*  Operation  */
 
-bool Timer::Enqueue(TimeSpanLite delay, TimedFunction func, void * cookie)
+bool Timer::Enqueue(TimeSpanLite delay, TimedFunctionVoid func, void * cookie)
 {
     uint64_t ticks = delay.Value * ApicTimer::TicksPerMicrosecond;
 

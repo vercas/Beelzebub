@@ -64,9 +64,6 @@ namespace Beelzebub
 
     __startup Handle ParseKernelArguments();
 
-    // TODO: Don't depend on Jegudiel; let Jegudiel depend on Beelzebub!
-    __startup Handle InitializePhysicalAllocator(jg_info_mmap_t * map
-        , size_t cnt, uintptr_t freeStart, Beelzebub::System::Domain * domain);
     __startup Handle InitializePhysicalMemory();
     __startup Handle InitializeVirtualMemory();
 

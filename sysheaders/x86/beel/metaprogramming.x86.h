@@ -80,6 +80,12 @@
 
 typedef int comp_t; //  Result of comparison functions.
 
+__NAMESPACE_BEGIN
+
+typedef uint16_t pid_t;
+typedef uint16_t tid_t;
+
+__NAMESPACE_END
 #endif
 
 /*******************************
@@ -88,4 +94,8 @@ typedef int comp_t; //  Result of comparison functions.
 
 #ifndef __BEELZEBUB__SOURCE_GAS
     #define DO_NOTHING() asm volatile ( "pause \n\t" )
+#endif
+
+#ifndef __BEELZEBUB__CACHE_LINE_SIZE
+    #define __BEELZEBUB__CACHE_LINE_SIZE 64
 #endif

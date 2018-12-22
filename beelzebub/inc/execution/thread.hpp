@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include <execution/process.hpp>
-#include <execution/thread_state.hpp>
+#include "execution/process.hpp"
+#include <beel/structs.kernel.h>
 
 namespace Beelzebub { namespace Execution
 {
@@ -56,7 +56,7 @@ namespace Beelzebub { namespace Execution
         /*  Constructors  */
 
         inline Thread()
-            : ThreadBase( nullptr)
+            : ThreadBase()
             , KernelStackTop()
             , KernelStackBottom()
             , KernelStackPointer()
@@ -88,12 +88,12 @@ namespace Beelzebub { namespace Execution
 
         /*  Operations  */
 
-        __hot Handle SwitchTo(Thread * const other, ThreadState * const dest);    //  Implemented in architecture-specific code.
-        Handle SwitchToNext(ThreadState * const dest) { return this->SwitchTo(this->Next, dest); }
+        __hot Handle SwitchTo(Thread * other, GeneralRegisters64 * dest);   //  Implemented in architecture-specific code.
+        Handle SwitchToNext(GeneralRegisters64 * dest) { return this->SwitchTo(this->Next, dest); }
 
         /*  Properties  */
 
-        __forceinline Process * GetOwner() { return reinterpret_cast<Process *>(this->Owner); }
+        __artificial Process * GetOwner() { return reinterpret_cast<Process *>(this->Owner); }
 
         /*  Stack  */
 

@@ -60,9 +60,9 @@ using namespace Beelzebub::Memory;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
-SmpBarrier ObjectAllocatorTestBarrier1 {};
-SmpBarrier ObjectAllocatorTestBarrier2 {};
-SmpBarrier ObjectAllocatorTestBarrier3 {};
+Barrier ObjectAllocatorTestBarrier {};
+
+#define SYNC ObjectAllocatorTestBarrier.Reach()
 
 struct TestStructure
 {
@@ -435,14 +435,13 @@ __startup Handle ObjectAllocatorSpamTest()
 {
     Handle res;
 
-    ObjectAllocatorTestBarrier1.Reach();
+    SYNC;
 
     size_t volatile freeCount1 = testAllocator.GetFreeCount();
     size_t volatile capacity1 = testAllocator.GetCapacity();
     size_t volatile busyCount1 = testAllocator.GetBusyCount();
 
-    ObjectAllocatorTestBarrier2.Reach();
-    ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
+    SYNC;
 
 #ifdef __BEELZEBUB__CONF_PROFILE
     uint64_t perfAcc = 0;
@@ -527,8 +526,7 @@ __startup Handle ObjectAllocatorSpamTest()
         , perfAcc, REPETITION_COUNT_3, perfAcc / REPETITION_COUNT_3);
 #endif
 
-    ObjectAllocatorTestBarrier3.Reach();
-    ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
+    SYNC;
 
     ASSERT(capacity1 - freeCount1 == testAllocator.GetCapacity() - testAllocator.GetFreeCount()
         , "Allocator's deduced busy object count has a shady value: %us (%us - %us)"
@@ -541,8 +539,7 @@ __startup Handle ObjectAllocatorSpamTest()
         , "Allocator's busy object count has a shady value: %us, expected %us."
         , busyCount1, testAllocator.GetBusyCount());
 
-    ObjectAllocatorTestBarrier1.Reach();
-    ObjectAllocatorTestBarrier3.Reset(); //  Prepare the third barrier for re-use.
+    SYNC;
 
     return HandleResult::Okay;
 }
@@ -758,16 +755,14 @@ __startup Handle ObjectAllocatorParallelAcquireTest()
 {
     Handle res;
 
-    size_t const objCount = 2 * PageSize / sizeof(TestStructure);
+    vsize_t const objCount = 2 * PageSize / SizeOf<TestStructure>;
     //  Should make 3 merry pools.
 
-    ObjectAllocatorTestBarrier2.Reach();
-    ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
+    SYNC;
 
     msg_("Core #%us: Gunna allocate %us objects.%n", Cpu::GetData()->Index, objCount);
 
-    ObjectAllocatorTestBarrier3.Reach();
-    ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
+    SYNC;
 
     TestStructure * tOx = nullptr, * tOy = nullptr;
 
@@ -793,16 +788,14 @@ __startup Handle ObjectAllocatorParallelAcquireTest()
         tOx->Next = tOy;
     }
 
-    ObjectAllocatorTestBarrier1.Reach();
-    ObjectAllocatorTestBarrier3.Reset(); //  Prepare the third barrier for re-use.
+    SYNC;
 
     ASSERT((testAllocator.GetCapacity() - testAllocator.GetFreeCount()) % objCount == 0
         , "Busy object count should be a multiple of %us, but %us (%% %us) is not.%n"
         , objCount, testAllocator.GetCapacity() - testAllocator.GetFreeCount()
         , (testAllocator.GetCapacity() - testAllocator.GetFreeCount()) % objCount);
 
-    ObjectAllocatorTestBarrier2.Reach();
-    ObjectAllocatorTestBarrier1.Reset(); //  Prepare the first barrier for re-use.
+    SYNC;
 
     while (tOx != nullptr)
     {
@@ -814,8 +807,7 @@ __startup Handle ObjectAllocatorParallelAcquireTest()
         tOx = next;
     }
 
-    ObjectAllocatorTestBarrier3.Reach();
-    ObjectAllocatorTestBarrier2.Reset(); //  Prepare the second barrier for re-use.
+    SYNC;
 
     return HandleResult::Okay;
 }

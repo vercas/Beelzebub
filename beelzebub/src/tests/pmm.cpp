@@ -64,10 +64,10 @@ static SmpLock DeleteLock {};
 
 static constexpr size_t const RandomIterations = 1'000'000;
 static constexpr size_t const CacheSize = 2048;
-static Atomic<paddr_t> Cache[CacheSize];
+static Atomic<paddr_inner_t> Cache[CacheSize];
 static constexpr size_t const SyncerCount = 10;
-static Atomic<paddr_t> Syncers[SyncerCount];
-static __thread paddr_t MyCache[CacheSize];
+static Atomic<paddr_inner_t> Syncers[SyncerCount];
+static __thread paddr_inner_t MyCache[CacheSize];
 #ifdef PRINT
 static Atomic<size_t> RandomerCounter {0};
 #endif
@@ -85,14 +85,14 @@ void TestPmm(bool const bsp)
 
         ASSERT((testptr = Pmm::AllocateFrame(1)) != nullpaddr, "Null pointer.");
 
-        return testptr;
+        return testptr.Value;
     };
 
-    auto delPtr = [](paddr_t paddr)
+    auto delPtr = [](paddr_inner_t paddr)
     {
         uint32_t newCnt;
 
-        Handle res = Pmm::AdjustReferenceCount(paddr, newCnt, -1);
+        Handle res = Pmm::AdjustReferenceCount(paddr_t(paddr), newCnt, -1);
 
         ASSERTX(newCnt == 0 && res == HandleResult::Okay)(res)(newCnt)XEND;
     };
@@ -111,11 +111,11 @@ void TestPmm(bool const bsp)
     perfStart = CpuInstructions::Rdtsc();
 #endif
 
-    paddr_t cur = getPtr(), dummy = getPtr();
+    paddr_inner_t cur = getPtr(), dummy = getPtr();
 
     for (size_t i = 0; i < CacheSize; ++i)
     {
-        paddr_t expected = nullpaddr;
+        paddr_inner_t expected = nullpaddr.Value;
 
         if ((Cache + i)->CmpXchgStrong(expected, cur))
             cur = getPtr();
@@ -161,7 +161,7 @@ void TestPmm(bool const bsp)
         delPtr(cur);
     }
 
-    cur = nullpaddr;
+    cur = nullpaddr.Value;
 
     SYNC;
 
@@ -188,7 +188,7 @@ void TestPmm(bool const bsp)
 #endif
 
     for (size_t i = 0; i < CacheSize; ++i)
-        MyCache[i] = nullpaddr;
+        MyCache[i] = nullpaddr.Value;
 
     SYNC;
 
@@ -198,19 +198,19 @@ void TestPmm(bool const bsp)
 
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
-        if (MyCache[i] == nullpaddr)
+        if (MyCache[i] == nullpaddr.Value)
             MyCache[i] = getPtr();
         else
         {
             delPtr(MyCache[i]);
-            MyCache[i] = nullpaddr;
+            MyCache[i] = nullpaddr.Value;
         }
 
         if (++i == CacheSize) i = 0;
     }
 
     for (size_t i = 0; i < CacheSize; ++i)
-        if (MyCache[i] != nullpaddr)
+        if (MyCache[i] != nullpaddr.Value)
             delPtr(MyCache[i]);
 
 #ifdef PRINT
@@ -237,11 +237,11 @@ void TestPmm(bool const bsp)
     if (!bsp)
         for (size_t i = coreIndex - 1; i < SyncerCount; i += Cores::GetCount() - 1)
         {
-            paddr_t old = nullpaddr;
+            paddr_inner_t old = nullpaddr.Value;
 
             (Syncers + i)->Xchg(&old);
 
-            if (old != nullpaddr)
+            if (old != nullpaddr.Value)
             {
 #ifdef PRINT
                 MSG_("Core %us deletes %Xp.%n", coreIndex, old);
@@ -268,13 +268,13 @@ void TestPmm(bool const bsp)
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
     retry:
-        paddr_t old = nullpaddr;
+        paddr_inner_t old = nullpaddr.Value;
 
-        if (Cache[i] != nullpaddr)
+        if (Cache[i] != nullpaddr.Value)
         {
             old = (Cache + i)->Xchg(old);
 
-            if unlikely(old == nullpaddr)
+            if unlikely(old == nullpaddr.Value)
                 goto retry;
             //  If it became null in the meantime, retry.
 
@@ -282,11 +282,11 @@ void TestPmm(bool const bsp)
         }
         else
         {
-            if (cur == nullpaddr)
+            if (cur == nullpaddr.Value)
                 cur = getPtr();
 
             if likely((Cache + i)->CmpXchgStrong(old, cur))
-                cur = nullpaddr;
+                cur = nullpaddr.Value;
             else
                 goto retry;
             //  If it became non-null in the meantime, retry.
@@ -324,10 +324,10 @@ void TestPmm(bool const bsp)
 
     if (bsp)
         for (size_t i = 0; i < CacheSize; ++i)
-            if (Cache[i] == nullpaddr)
+            if (Cache[i] == nullpaddr.Value)
                 Cache[i] = getPtr();
 
-    if (cur != nullpaddr)
+    if (cur != nullpaddr.Value)
         delPtr(cur);
 
     SYNC;
@@ -352,7 +352,7 @@ void TestPmm(bool const bsp)
     for (size_t i = 0, j = 0; j < RandomIterations; ++j)
     {
         cur = getPtr();
-        paddr_t old = (Cache + i)->Xchg(cur);
+        paddr_inner_t old = (Cache + i)->Xchg(cur);
 
         delPtr(old);
 
@@ -392,7 +392,7 @@ void TestPmm(bool const bsp)
 
     if (bsp)
         for (size_t i = 0; i < CacheSize; ++i)
-            if (Cache[i] != nullpaddr)
+            if (Cache[i] != nullpaddr.Value)
                 delPtr(Cache[i]);
 
     delPtr(dummy);

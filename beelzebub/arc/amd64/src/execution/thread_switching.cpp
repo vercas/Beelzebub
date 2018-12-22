@@ -55,7 +55,7 @@ using namespace Beelzebub::System;
 
 /*  Operations  */
 
-Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
+Handle Thread::SwitchTo(Thread * const other, GeneralRegisters64 * const dest)
 {
     Handle res;
 
@@ -63,6 +63,8 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
     Process * const otherProc = other->GetOwner();
 
     //msg("++ ");
+
+    this->State.GeneralRegisters = *dest;
 
     InterruptGuard<> intGuard;
 
@@ -95,7 +97,7 @@ Handle Thread::SwitchTo(Thread * const other, ThreadState * const dest)
 
     //msg("B");
 
-    *dest = other->State;
+    *dest = other->State.GeneralRegisters;
 
     if (other->ExtendedState != nullptr)
     {

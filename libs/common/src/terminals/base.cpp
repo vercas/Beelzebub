@@ -38,6 +38,7 @@
 */
 
 #include <beel/terminals/base.hpp>
+#include <beel/string.hpp>
 #include <string.h>
 
 using namespace Beelzebub;
@@ -1313,10 +1314,7 @@ namespace Beelzebub { namespace Terminals
     template<> \
     TerminalWriteResult WriteFormattedValue<type>(TerminalBase * term, type const * val, char const * format) \
     { \
-        if (format == nullptr) \
-            return term->WriteIntD(*val); \
-        else \
-            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates}; \
+        return WriteFormattedIntHelperEx<type>(term, *val, format, "i"BeH); \
     }
 
     #define SPAWN_UINT(size, type) template<> \
@@ -1338,10 +1336,7 @@ namespace Beelzebub { namespace Terminals
     template<> \
     TerminalWriteResult WriteFormattedValue<type>(TerminalBase * term, type const * val, char const * format) \
     { \
-        if (format == nullptr) \
-            return term->WriteUIntD(*val); \
-        else \
-            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates}; \
+        return WriteFormattedIntHelperEx<type>(term, *val, format, "u"BeH); \
     }
 
     SPAWN_INT(16, signed short)
@@ -1360,34 +1355,7 @@ namespace Beelzebub { namespace Terminals
     SPAWN_INT(32, signed long)
     SPAWN_UINT(32, unsigned long)
 #endif
-    
-    template<>
-    TerminalBase & operator << <void *>(TerminalBase & term, void * const value)
-    {
-        uintptr_t const ptr = reinterpret_cast<uintptr_t>(value);
 
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-        term.WriteHex64(ptr, term.FormatState.NumericUppercase);
-#else
-        term.WriteHex32(ptr, term.FormatState.NumericUppercase);
-#endif
-
-        return term;
-    }
-
-    template<>
-    TerminalWriteResult WriteFormattedValue<void *>(TerminalBase * term, void * const * val, char const * format)
-    {
-        if (format == nullptr)
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-            return term->WriteHex64(reinterpret_cast<uintptr_t>(*val), true);
-#else
-            return term->WriteHex32(reinterpret_cast<uintptr_t>(*val), true);
-#endif
-        else
-            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
-    }
-    
     template<>
     TerminalBase & operator << <void const *>(TerminalBase & term, void const * const value)
     {
@@ -1405,14 +1373,25 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalWriteResult WriteFormattedValue<void const *>(TerminalBase * term, void const * const * val, char const * format)
     {
-        if (format == nullptr)
+        return WriteFormattedIntHelperEx<uintptr_t>(term, reinterpret_cast<uintptr_t>(*val), format,
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-            return term->WriteHex64(reinterpret_cast<uintptr_t>(*val), true);
+            "X8"BeH
 #else
-            return term->WriteHex32(reinterpret_cast<uintptr_t>(*val), true);
+            "X4"BeH
 #endif
-        else
-            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+        );
+    }
+
+    template<>
+    TerminalBase & operator << <void *>(TerminalBase & term, void * const value)
+    {
+        return term << const_cast<void const *>(value);
+    }
+
+    template<>
+    TerminalWriteResult WriteFormattedValue<void *>(TerminalBase * term, void * const * val, char const * format)
+    {
+        return WriteFormattedValue<void const *>(term, val, format);
     }
 
     template<>
@@ -1430,14 +1409,13 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalWriteResult WriteFormattedValue<paddr_t>(TerminalBase * term, paddr_t const * val, char const * format)
     {
-        if (format == nullptr)
+        return WriteFormattedIntHelperEx<paddr_inner_t>(term, val->Value, format,
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-            return term->WriteHex64(val->Value, true);
+            "X8"BeH
 #else
-            return term->WriteHex32(val->Value, true);
+            "X4"BeH
 #endif
-        else
-            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+        );
     }
 
     template<>
@@ -1455,14 +1433,13 @@ namespace Beelzebub { namespace Terminals
     template<>
     TerminalWriteResult WriteFormattedValue<vaddr_t>(TerminalBase * term, vaddr_t const * val, char const * format)
     {
-        if (format == nullptr)
+        return WriteFormattedIntHelperEx<vaddr_inner_t>(term, val->Value, format,
 #if   defined(__BEELZEBUB__ARCH_AMD64)
-            return term->WriteHex64(val->Value, true);
+            "X8"BeH
 #else
-            return term->WriteHex32(val->Value, true);
+            "X4"BeH
 #endif
-        else
-            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+        );
     }
 
     template<>
@@ -1591,21 +1568,21 @@ namespace Beelzebub { namespace Terminals
             return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
     }
     
-    template<>
-    TerminalBase & operator << <HandleResult>(TerminalBase & term, HandleResult const value)
-    {
-        term.WriteHandle(value);
+    // template<>
+    // TerminalBase & operator << <HandleResult>(TerminalBase & term, HandleResult const value)
+    // {
+    //     term.WriteHandle(value);
 
-        return term;
-    }
+    //     return term;
+    // }
 
-    template<>
-    TerminalWriteResult WriteFormattedValue<HandleResult>(TerminalBase * term, HandleResult const * val, char const * format)
-    {
-        Handle const han = *val;
+    // template<>
+    // TerminalWriteResult WriteFormattedValue<HandleResult>(TerminalBase * term, HandleResult const * val, char const * format)
+    // {
+    //     Handle const han = *val;
 
-        return WriteFormattedValue<Handle>(term, &han, format);
-    }
+    //     return WriteFormattedValue<Handle>(term, &han, format);
+    // }
     
     template<>
     TerminalBase & operator << <TerminalModifier>(TerminalBase & term, TerminalModifier const value)
@@ -1661,4 +1638,131 @@ TerminalBase & Terminals::NumericLowercase(TerminalBase & term)
     term.FormatState.NumericUppercase = false;
 
     return term;
+}
+
+TerminalWriteResult Terminals::WriteFormattedEnumHelper(TerminalBase * term
+                                                      , uint64_t val
+                                                      , char const * format
+                                                      , char const * (*printer)(uint64_t val)
+                                                      , size_t sz)
+{
+    bool upper = true;
+
+    switch (CStringUtils::Hash(format))
+    {
+    case 0:
+    case "s"BeH:
+        return term->Write(printer(val));
+    case "i"BeH:
+        return term->WriteIntD((int64_t)val);
+    case "u"BeH:
+        return term->WriteUIntD(val);
+
+    case "X1"BeH:
+        return term->WriteHex8((uint8_t)val, true);
+    case "X2"BeH:
+        return term->WriteHex16((uint16_t)val, true);
+    case "X4"BeH:
+        return term->WriteHex32((uint32_t)val, true);
+    case "X6"BeH:
+        return term->WriteHex48(val, true);
+    case "X8"BeH:
+        return term->WriteHex64(val, true);
+
+    case "x1"BeH:
+        return term->WriteHex8((uint8_t)val, false);
+    case "x2"BeH:
+        return term->WriteHex16((uint16_t)val, false);
+    case "x4"BeH:
+        return term->WriteHex32((uint32_t)val, false);
+    case "x6"BeH:
+        return term->WriteHex48(val, false);
+    case "x8"BeH:
+        return term->WriteHex64(val, false);
+
+    case "x"BeH:
+        upper = false;
+        [[fallthrough]]
+    case "X"BeH:    //  Here `upper` is true.
+        switch (sz)
+        {
+        case 1:
+            return term->WriteHex8((uint8_t)val, upper);
+        case 2:
+            return term->WriteHex16((uint16_t)val, upper);
+        case 4:
+            return term->WriteHex32((uint32_t)val, upper);
+        case 6:
+            return term->WriteHex48(val, upper);
+        case 8:
+            return term->WriteHex64(val, upper);
+        default:
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+        }
+
+    default:
+        return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
+}
+
+TerminalWriteResult Terminals::WriteFormattedIntHelper(TerminalBase * term
+                                                     , uint64_t val
+                                                     , char const * format
+                                                     , unsigned long long defFmt
+                                                     , size_t sz)
+{
+    bool upper = true;
+
+    switch (format == nullptr ? defFmt : CStringUtils::Hash(format))
+    {
+    case "i"BeH:
+        return term->WriteIntD((int64_t)val);
+    case "u"BeH:
+        return term->WriteUIntD(val);
+
+    case "X1"BeH:
+        return term->WriteHex8((uint8_t)val, true);
+    case "X2"BeH:
+        return term->WriteHex16((uint16_t)val, true);
+    case "X4"BeH:
+        return term->WriteHex32((uint32_t)val, true);
+    case "X6"BeH:
+        return term->WriteHex48(val, true);
+    case "X8"BeH:
+        return term->WriteHex64(val, true);
+
+    case "x1"BeH:
+        return term->WriteHex8((uint8_t)val, false);
+    case "x2"BeH:
+        return term->WriteHex16((uint16_t)val, false);
+    case "x4"BeH:
+        return term->WriteHex32((uint32_t)val, false);
+    case "x6"BeH:
+        return term->WriteHex48(val, false);
+    case "x8"BeH:
+        return term->WriteHex64(val, false);
+
+    case "x"BeH:
+        upper = false;
+        [[fallthrough]]
+    case "X"BeH:    //  Here `upper` is true.
+        switch (sz)
+        {
+        case 1:
+            return term->WriteHex8((uint8_t)val, upper);
+        case 2:
+            return term->WriteHex16((uint16_t)val, upper);
+        case 4:
+            return term->WriteHex32((uint32_t)val, upper);
+        case 6:
+            return term->WriteHex48(val, upper);
+        case 8:
+            return term->WriteHex64(val, upper);
+        default:
+            return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+        }
+
+    default:
+        return {HandleResult::FormatBadSpecifier, 0, InvalidCoordinates};
+    }
 }

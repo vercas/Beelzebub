@@ -39,7 +39,8 @@
 
 #ifdef __BEELZEBUB__TEST_INTERRUPT_LATENCY
 
-#include <tests/interrupt_latency.hpp>
+#include "tests/interrupt_latency.hpp"
+#include "irqs.hpp"
 
 #include <debug.hpp>
 
@@ -51,23 +52,18 @@ using namespace Beelzebub::Terminals;
 
 uint64_t midInterruptTime;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-
-void LatencyTestInterruptHandlerPartial(INTERRUPT_HANDLER_ARGS)
+void LatencyTestInterruptHandler(InterruptContext const * context, void * cookie)
 {
+    (void)context;
+    (void)cookie;
+
     midInterruptTime = CpuInstructions::Rdtsc();
 }
 
-void LatencyTestInterruptHandlerFull(INTERRUPT_HANDLER_ARGS_FULL)
-{
-    midInterruptTime = CpuInstructions::Rdtsc();
-}
-
-#pragma GCC diagnostic pop
+static InterruptHandlerNode TestNode { &LatencyTestInterruptHandler };
 
 template<uint8_t vec>
-__startup void DoTest(bool const full)
+__startup void DoTest()
 {
     midInterruptTime = 0xFFFFFFFFFFFFFFFFUL;
     uint64_t entryAcc = 0, exitAcc = 0;
@@ -101,21 +97,19 @@ __startup void DoTest(bool const full)
     uint64_t avgExitDur  = exitAcc  / IterationCount;
 
     DEBUG_TERM_
-        << "Interrupt (" << (full ? "FULL" : "PARTIAL") << ") entry latency: AVG "
-        << avgEntryDur << "; MIN " << minEntryDur << "; MAX " << maxEntryDur << EndLine
-        << "Interrupt (" << (full ? "FULL" : "PARTIAL") << ") exit latency: AVG "
-        << avgExitDur << "; MIN " << minExitDur << "; MAX " << maxExitDur << EndLine;
+        << "Interrupt entry latency: AVG " << avgEntryDur
+        << "; MIN " << minEntryDur << "; MAX " << maxEntryDur << EndLine
+        << "Interrupt exit latency: AVG " << avgExitDur
+        << "; MIN " << minExitDur << "; MAX " << maxExitDur << EndLine;
 }
 
 void TestInterruptLatency()
 {
     InterruptGuard<false> ig;
 
-    Interrupts::Get(0xDF).SetHandler(&LatencyTestInterruptHandlerPartial);
-    Interrupts::Get(0xDE).SetHandler(&LatencyTestInterruptHandlerFull);
+    ASSERT(TestNode.Subscribe(isr_t(0xDF)) == IrqSubscribeResult::Success);
 
-    DoTest<0xDF>(false);
-    DoTest<0xDE>(true);
+    DoTest<0xDF>();
 }
 
 #endif

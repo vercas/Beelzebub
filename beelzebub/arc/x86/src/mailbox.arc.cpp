@@ -50,6 +50,7 @@ lean & mean implementation without his aid.
 #include "system/interrupt_controllers/lapic.hpp"
 #include "system/nmi.hpp"
 #include "kernel.hpp"
+#include "irqs.hpp"
 #include <beel/sync/smp.lock.hpp>
 #include <string.h>
 
@@ -69,12 +70,10 @@ static MailboxEntryBase * GlobalTail = nullptr;
 static size_t GlobalGeneration = 0;
 #endif
 
-static __hot void ExecuteNmMail(INTERRUPT_HANDLER_ARGS_FULL)
+static __hot void ExecuteNmMail(InterruptContext const * context, void * isrCookie)
 {
-    (void)state;
-    (void)ender;
-    (void)handler;
-    (void)vector;
+    (void)context;
+    (void)isrCookie;
 
     CpuData * const data = Cpu::GetData();
 
@@ -114,8 +113,6 @@ static __hot void ExecuteNmMail(INTERRUPT_HANDLER_ARGS_FULL)
                 dstCtr->operator --();
         } while (entry != nullptr);
 }
-
-static Nmi::HandlerNode NmiEntry { &ExecuteNmMail };
 
 static __hot __solid bool ExecuteHead()
 {
@@ -207,13 +204,12 @@ execute:
     return true;
 }
 
-static __hot __realign_stack void MailboxIsrHandler(INTERRUPT_HANDLER_ARGS_FULL)
+static __hot __realign_stack void MailboxIsrHandler(InterruptContext const * context, void * cookie)
 {
-    (void)state;
+    (void)context;
+    (void)cookie;
 
     while (ExecuteHead()) { /* loopie loop */ }
-    
-    END_OF_INTERRUPT();
 }
 
 static __hot void PostInternal(MailboxEntryBase * entry, TimeWaster waster, void * cookie, bool poll, bool broadcast)
@@ -268,7 +264,7 @@ static __hot void PostInternal(MailboxEntryBase * entry, TimeWaster waster, void
                     .SetDestinationShorthand(IcrDestinationShorthand::None)
                     .SetAssert(true)
                     .SetDestination(target->LapicId)
-                    .SetVector(Interrupts::Get(KnownExceptionVectors::Mailbox).GetVector()));
+                    .SetVector(KnownIsrs::Mailbox));
         }
     }
 
@@ -281,7 +277,7 @@ static __hot void PostInternal(MailboxEntryBase * entry, TimeWaster waster, void
                 .SetDeliveryMode(InterruptDeliveryModes::Fixed)
                 .SetDestinationShorthand(IcrDestinationShorthand::AllExcludingSelf)
                 .SetAssert(true)
-                .SetVector(Interrupts::Get(KnownExceptionVectors::Mailbox).GetVector()));
+                .SetVector(KnownIsrs::Mailbox));
     }
 
     if (waster != nullptr)
@@ -321,7 +317,7 @@ static __hot void PostGlobal(MailboxEntryBase * entry, TimeWaster waster, void *
         .SetDeliveryMode(InterruptDeliveryModes::Fixed)
         .SetDestinationShorthand(IcrDestinationShorthand::AllExcludingSelf)
         .SetAssert(true)
-        .SetVector(Interrupts::Get(KnownExceptionVectors::Mailbox).GetVector()));
+        .SetVector(KnownIsrs::Mailbox);
 
     if (waster != nullptr)
         waster(cookie);
@@ -367,6 +363,9 @@ static bool FullyInitialized = false;
     Mailbox class
 ********************/
 
+static InterruptHandlerNode StandardHandler { &MailboxIsrHandler };
+static InterruptHandlerNode NmiHandler { &ExecuteNmMail };
+
 /*  Initialization  */
 
 void Mailbox::Initialize()
@@ -378,13 +377,10 @@ void Mailbox::Initialize()
     {
         if likely(!Initialized)
         {
-            auto const vec = Interrupts::Get(KnownExceptionVectors::Mailbox);
-            //  Unique.
+            ASSERT(StandardHandler.Subscribe(Irqs::Mailbox) == IrqSubscribeResult::Success);
+            ASSERT(Lapic::Ender.Register(Irqs::Mailbox) == IrqEnderRegisterResult::Success);
 
-            vec.SetHandler(&MailboxIsrHandler);
-            vec.SetEnder(&Lapic::IrqEnder);
-
-            Nmi::AddHandler(&NmiEntry);
+            ASSERT(NmiHandler.Subscribe(Irqs::Nmi) == IrqSubscribeResult::Success);
 
             Initialized = true;
         }

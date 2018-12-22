@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include "system/interrupts.hpp"
+#include "irqs.hpp"
 #include <beel/sync/smp.lock.hpp>
 #include <beel/sync/atomic.hpp>
 #include <beel/utils/ring.buffer.concurrent.hpp>
@@ -70,7 +70,7 @@ namespace Beelzebub { namespace System
 
         /*  Static methods  */
 
-        static void IrqHandler(INTERRUPT_HANDLER_ARGS);
+        // static void IrqHandler(InterruptContext const * context, void * cookie);
 
         /*  Construction  */
 
@@ -126,7 +126,7 @@ namespace Beelzebub { namespace System
     public:
         /*  Static methods  */
 
-        static void IrqHandler(INTERRUPT_HANDLER_ARGS);
+        static void IrqHandler(InterruptContext const * context, ManagedSerialPort * port);
 
         /*  Construction  */
 
@@ -175,12 +175,11 @@ namespace Beelzebub { namespace System
 
         uint16_t const BasePort;
         size_t QueueSize;
+        uint16_t OutputCount;
 
         SerialPortType Type;
 
     private:
-
-        uint16_t OutputCount;
 
         Synchronization::SmpLockUni ReadLock;
         Synchronization::SmpLock WriteLock;

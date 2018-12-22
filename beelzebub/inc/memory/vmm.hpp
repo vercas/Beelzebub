@@ -43,10 +43,10 @@
 
 #pragma once
 
-#include <execution/process.hpp>
-#include <memory/kernel.vas.hpp>
-#include <memory/enums.hpp>
-#include <beel/enums.kernel.hpp>
+#include "execution/process.hpp"
+#include "memory/kernel.vas.hpp"
+#include "memory/enums.hpp"
+#include <beel/enums.kernel.h>
 
 namespace Beelzebub { namespace Memory
 {

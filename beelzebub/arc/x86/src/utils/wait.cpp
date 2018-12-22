@@ -37,9 +37,10 @@
     thorough explanation regarding other files.
 */
 
-#include <utils/wait.hpp>
-#include <system/timers/pit.hpp>
-#include <system/cpu_instructions.hpp>
+#include "utils/wait.hpp"
+#include "system/timers/pit.hpp"
+#include "system/cpu_instructions.hpp"
+#include "irqs.hpp"
 #include <beel/interrupt.state.hpp>
 #include <math.h>
 
@@ -48,19 +49,34 @@ using namespace Beelzebub::System;
 using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::Utils;
 
+static Synchronization::Atomic<size_t> Counter { 0 };
+
+static __cold void PitWaitIrqHandler(InterruptContext const * context, void * cookie)
+{
+    (void)context;
+    (void)cookie;
+
+    ++Counter;
+}
+
+InterruptHandlerNode PitWaitingNode { &PitWaitIrqHandler, nullptr, Irqs::HighPriority };
+
 void Utils::Wait(uint64_t const microseconds)
 {
+    if unlikely(!PitWaitingNode.IsSubscribed())
+        PitWaitingNode.Subscribe(Pit::IrqVector);
+
     size_t difference = RoundUp(microseconds, Pit::Period) / Pit::Period;
     //  Round up to the length of a timer tick in microseconds, then get the
     //  number of ticks.
 
-    size_t counterStart = Pit::Counter.Load();
+    size_t counterStart = Counter.Load();
 
     withInterrupts (true)
         do
         {
             CpuInstructions::Halt();
-        } while (Pit::Counter.Load() - counterStart < difference);
+        } while (Counter.Load() - counterStart < difference);
         //  Yes, the CPU can be halted currently, because only the BSP uses these.
 }
 
@@ -70,11 +86,14 @@ bool Utils::Wait(uint64_t const microseconds, PredicateFunction0 const pred)
         return true;
     //  Eh, just checkin'?
 
+    if unlikely(!PitWaitingNode.IsSubscribed())
+        PitWaitingNode.Subscribe(Pit::IrqVector);
+
     size_t difference = RoundUp(microseconds, Pit::Period) / Pit::Period;
     //  Round up to the length of a timer tick in microseconds, then get the
     //  number of ticks.
 
-    size_t counterStart = Pit::Counter.Load();
+    size_t counterStart = Counter.Load();
 
     withInterrupts (true)
         do
@@ -83,7 +102,7 @@ bool Utils::Wait(uint64_t const microseconds, PredicateFunction0 const pred)
 
             if (pred())
                 return true;
-        } while (Pit::Counter.Load() - counterStart < difference);
+        } while (Counter.Load() - counterStart < difference);
 
     return pred();
 }

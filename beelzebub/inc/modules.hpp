@@ -59,6 +59,6 @@ namespace Beelzebub
 
         /*  (Un)loading  */
 
-        static Handle Load(uintptr_t start, size_t len);
+        static Handle Load(vaddr_t start, vsize_t len);
     };
 }

@@ -44,6 +44,7 @@
 #include "utils/unit_tests.hpp"
 #include "lock_elision.hpp"
 #include "watchdog.hpp"
+#include "djinn.arc.hpp"
 
 #include "terminals/djinn.hpp"
 #include "terminals/serial.hpp"
@@ -58,13 +59,12 @@
 #include "execution/extended_states.hpp"
 #include "execution/runtime64.hpp"
 
+#include "irqs.hpp"
 #include "system/acpi.hpp"
 #include "system/debug.registers.hpp"
-#include "system/exceptions.hpp"
-#include "system/interrupt_controllers/pic.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
 #include "system/interrupt_controllers/ioapic.hpp"
-#include "system/nmi.hpp"
+#include "system/interrupt_controllers/pic.hpp"
 #include "system/io_ports.hpp"
 #include "system/syscalls.hpp"
 #include "system/timers/pit.hpp"
@@ -79,8 +79,6 @@
 #include "ap_bootstrap.hpp"
 
 #include "utils/wait.hpp"
-
-#include "_print/gdt.hpp"
 
 #include "all.tests.hpp"
 #include <beel/sync/barrier.hpp>
@@ -107,6 +105,8 @@ static Barrier InitBarrier;
 /*  System Globals  */
 
 TerminalBase * Beelzebub::MainTerminal = nullptr;
+MainTerminalInterfaces Beelzebub::MainTerminalInterface;
+
 bool Beelzebub::Scheduling = false;
 bool Beelzebub::CpuDataSetUp = false;
 
@@ -129,11 +129,19 @@ DjinnTerminal initialDjinnTerminal;
 SerialTerminal initialSerialTerminal;
 VbeTerminal initialVbeTerminal;
 
-__startup TerminalBase * InitializeTerminalProto(char const * term)
+__startup TerminalBase * InitializeProtoVbeTerminal()
 {
-    new (&initialDjinnTerminal) DjinnTerminal();
-    //  This one will be available at all times.
+    auto mbi = (multiboot_info_t *)JG_INFO_ROOT_EX->multiboot_paddr;
 
+    new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
+
+    MainTerminalInterface = MainTerminalInterfaces::VBE;
+
+    return &initialVbeTerminal;
+}
+
+__startup TerminalBase * InitializeTerminalProto()
+{
     //  TODO: Properly retrieve these addresses.
 
     new (&COM1) ManagedSerialPort(0x03F8);
@@ -141,33 +149,62 @@ __startup TerminalBase * InitializeTerminalProto(char const * term)
     new (&COM3) ManagedSerialPort(0x03E8);
     new (&COM4) ManagedSerialPort(0x02E8);
 
-    auto ppr = ParsePort(term);
-
-    switch (ppr.Error)
+    if (CMDO_Term.ParsingResult.IsValid())
     {
-#define CASE_COM(n) \
-    case PortParseResult::COM##n:                                           \
-        COM##n.Initialize();                                                \
-        new (&initialSerialTerminal) SerialTerminal(&COM##n);               \
-                                                                            \
-        if (COM##n.Type != SerialPortType::Disconnected)                    \
-            return &initialSerialTerminal;                                  \
-        break;
-    CASE_COM(1)
-    CASE_COM(2)
-    CASE_COM(3)
-    CASE_COM(4)
-#undef CASE_COM
-    case PortParseResult::SpecificPort:
-        //  Specifically unsupported right now. Maybe later, a PCI device can be referenced instead..?
-    default:
-        //  Other cases are handled later.
-        break;
+        auto ppr = ParsePort(CMDO_Term.StringValue);
+
+        switch (ppr.Error)
+        {
+    #define CASE_COM(n) \
+        case PortParseResult::COM##n:                                           \
+            COM##n.Initialize();                                                \
+            new (&initialSerialTerminal) SerialTerminal(&COM##n);               \
+                                                                                \
+            if (COM##n.Type != SerialPortType::Disconnected)                    \
+            {                                                                   \
+                MainTerminalInterface = MainTerminalInterfaces::COM##n;         \
+                return &initialSerialTerminal;                                  \
+            }                                                                   \
+            break;
+        CASE_COM(1)
+        CASE_COM(2)
+        CASE_COM(3)
+        CASE_COM(4)
+    #undef CASE_COM
+        case PortParseResult::SpecificPort:
+            //  Specifically unsupported right now. Maybe later, a PCI device can be referenced instead..?
+        default:
+            //  Other cases are handled later.
+            break;
+        }
+
+        InitializeProtoVbeTerminal();
+
+        switch (ppr.Error)
+        {
+        case PortParseResult::Vbe:
+            return &initialVbeTerminal;
+
+        case PortParseResult::SpecificPort:
+            initialVbeTerminal << "Specific port values are not supported yet." << EndLine;
+            break;
+
+        case PortParseResult::Ethernet:
+            initialVbeTerminal << "No terminal over Ethernet protocol supported." << EndLine;
+            break;
+
+        case PortParseResult::COM1: case PortParseResult::COM2: case PortParseResult::COM3: case PortParseResult::COM4:
+            initialVbeTerminal << "Selected COM interface (" << (int)ppr.Error << ") is unuseable:" << EndLine
+                << &COM1 << EndLine << &COM2 << EndLine << &COM3 << EndLine << &COM4 << EndLine;
+            break;
+
+        default:
+            initialVbeTerminal << "Error parsing terminal command-line option: " << CMDO_Term.StringValue << EndLine;
+            break;
+        }
     }
-
-    auto mbi = (multiboot_info_t *)JG_INFO_ROOT_EX->multiboot_paddr;
-
-    new (&initialVbeTerminal) VbeTerminal((uintptr_t)mbi->framebuffer_addr, (uint16_t)mbi->framebuffer_width, (uint16_t)mbi->framebuffer_height, (uint16_t)mbi->framebuffer_pitch, (uint8_t)(mbi->framebuffer_bpp / 8));
+    else
+        InitializeProtoVbeTerminal();
 
     // msg("VM: %Xp; W: %u2, H: %u2, P: %u2; BPP: %u1.%n"
     //     , (uintptr_t)mbi->framebuffer_addr
@@ -181,29 +218,6 @@ __startup TerminalBase * InitializeTerminalProto(char const * term)
     // msg(" vbe_interface_off: %X2%n", mbi->vbe_interface_off);
     // msg(" vbe_interface_len: %X2%n", mbi->vbe_interface_len);
 
-    switch (ppr.Error)
-    {
-    case PortParseResult::Vbe:
-        return &initialVbeTerminal;
-
-    case PortParseResult::SpecificPort:
-        initialVbeTerminal << "Specific port values are not supported yet." << EndLine;
-        break;
-
-    case PortParseResult::Ethernet:
-        initialVbeTerminal << "No terminal over Ethernet protocol supported." << EndLine;
-        break;
-
-    case PortParseResult::COM1: case PortParseResult::COM2: case PortParseResult::COM3: case PortParseResult::COM4:
-        initialVbeTerminal << "Selected COM interface (" << (int)ppr.Error << ") is unuseable:" << EndLine
-            << &COM1 << EndLine << &COM2 << EndLine << &COM3 << EndLine << &COM4 << EndLine;
-        break;
-
-    default:
-        initialVbeTerminal << "Error parsing terminal command-line option." << EndLine;
-        break;
-    }
-
     return &initialVbeTerminal;
 }
 
@@ -213,37 +227,22 @@ __startup TerminalBase * InitializeTerminalProto(char const * term)
 
 __startup void MainParseKernelArguments()
 {
-    //  Parsing the command-line arguments given to the kernel by the bootloader.
-    //  Again, platform-specific.
-
-    MainTerminal->Write("[....] Parsing command-line arguments...");
     Handle res = ParseKernelArguments();
 
     if (res.IsOkayResult())
     {
-        MainTerminal->Write(" And tests...");
         res = InitializeTestFlags();
 
-        if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
-        else
-        {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
+        if (res != HandleResult::Okay)
             FAIL("Failed to initialize test flags (%H; \"%s\"): %H"
                 , CMDO_Tests.ParsingResult
                 , CMDO_Tests.ParsingResult.IsOkayResult()
                     ? CMDO_Tests.StringValue
                     : "NO VALUE"
                 , res);
-        }
     }
     else
-    {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
         FAIL("Failed to parse kernel command-line arguments: %H", res);
-    }
 }
 
 /*****************
@@ -258,55 +257,12 @@ __startup Handle InitializeInterrupts()
         , "ISR stubs seem to have the wrong size!");
     //  The ISR stubs must be aligned to avoid a horribly repetition.
 
-    for (size_t i = 0; i < Interrupts::Count; ++i)
-    {
-        Interrupts::Get(i)
-        .SetGate(
-            IdtGate()
-            .SetOffset(&IsrStubsBegin + i)
-            .SetSegment(Gdt::KernelCodeSegment)
-            .SetType(IdtGateType::InterruptGate)
-            .SetPresent(true))
-        .SetHandler(&MiscellaneousInterruptHandler)
-        .SetEnder(nullptr);
-    }
+    Handle res = Irqs::Initialize();
 
-    //  So now the IDT should be fresh out of the oven and ready for serving.
+    // if (COM1.Type != SerialPortType::Disconnected) COM1.EnableInterrupts();
+    // if (COM2.Type != SerialPortType::Disconnected) COM2.EnableInterrupts();
 
-#if   defined(__BEELZEBUB__ARCH_AMD64)
-    Interrupts::Get(KnownExceptionVectors::DoubleFault).GetGate()->SetIst(1);
-    Interrupts::Get(KnownExceptionVectors::PageFault  ).GetGate()->SetIst(2);
-#endif
-
-    Interrupts::Get(KnownExceptionVectors::DivideError).SetHandler(&DivideErrorHandler);
-    Interrupts::Get(KnownExceptionVectors::Breakpoint).SetHandler(&BreakpointHandler);
-    Interrupts::Get(KnownExceptionVectors::Overflow).SetHandler(&OverflowHandler);
-    Interrupts::Get(KnownExceptionVectors::BoundRangeExceeded).SetHandler(&BoundRangeExceededHandler);
-    Interrupts::Get(KnownExceptionVectors::InvalidOpcode).SetHandler(&InvalidOpcodeHandler);
-    Interrupts::Get(KnownExceptionVectors::NoMathCoprocessor).SetHandler(&NoMathCoprocessorHandler);
-    Interrupts::Get(KnownExceptionVectors::DoubleFault).SetHandler(&DoubleFaultHandler);
-    Interrupts::Get(KnownExceptionVectors::InvalidTss).SetHandler(&InvalidTssHandler);
-    Interrupts::Get(KnownExceptionVectors::SegmentNotPresent).SetHandler(&SegmentNotPresentHandler);
-    Interrupts::Get(KnownExceptionVectors::StackSegmentFault).SetHandler(&StackSegmentFaultHandler);
-    Interrupts::Get(KnownExceptionVectors::GeneralProtectionFault).SetHandler(&GeneralProtectionHandler);
-    Interrupts::Get(KnownExceptionVectors::PageFault).SetHandler(&PageFaultHandler);
-
-    Interrupts::Get(KnownExceptionVectors::ApicTimer).RemoveHandler();
-
-    Pic::Initialize(0x20);  //  Just below the spurious interrupt vector.
-
-    Pic::Subscribe(1, &keyboard_handler);
-    Pic::Subscribe(3, &ManagedSerialPort::IrqHandler);
-    Pic::Subscribe(4, &ManagedSerialPort::IrqHandler);
-
-    Nmi::Initialize();
-
-    Interrupts::Register.Activate();
-
-    if (COM1.Type != SerialPortType::Disconnected) COM1.EnableInterrupts();
-    if (COM2.Type != SerialPortType::Disconnected) COM2.EnableInterrupts();
-
-    return HandleResult::Okay;
+    return res;
 }
 
 __startup void MainInitializeInterrupts()
@@ -331,21 +287,48 @@ __startup void MainInitializeInterrupts()
     DEBUG INTERFACE
 **********************/
 
-__startup Handle InitializeDebuggerInterface(int32_t interface)
-{
-
-}
-
 __startup void MainInitializeDebugInterface()
 {
     //  Debug interface needs to be set up as requested in the kernel command-line arguments.
-    int32_t interface;  //  uint16_t range means UART.
+    DjinnInterfaces iface;
+    Handle res;
 
     MainTerminal->Write("[....] Initializing debugger interface...");
 
-    if (CMDO_SmpEnable.ParsingResult.IsValid())
+    if (CMDO_Debugger.ParsingResult.IsValid())
     {
+        auto ppr = ParsePort(CMDO_Debugger.StringValue);
 
+        switch (ppr.Error)
+        {
+    #define CASE_COM(n) \
+        case PortParseResult::COM##n:                                           \
+            if (MainTerminalInterface == MainTerminalInterfaces::COM##n)        \
+                goto conflict;                                                  \
+                                                                                \
+            COM##n.Initialize();                                                \
+            iface = DjinnInterfaces::COM##n;                                    \
+                                                                                \
+            if (COM##n.Type == SerialPortType::Disconnected)                    \
+            {                                                                   \
+                MainTerminal->WriteFormat(" COM" #n " not connected.\r[FAIL]%n"); \
+                                                                                \
+                return;                                                         \
+            }                                                                   \
+                                                                                \
+            break;
+
+        CASE_COM(1)
+        CASE_COM(2)
+        CASE_COM(3)
+        CASE_COM(4)
+    #undef CASE_COM
+
+        default:
+            MainTerminal->WriteFormat(" Unsupported: %i4 %s.\r[FAIL]%n", ppr.Error, CMDO_Debugger.StringValue);
+
+            return;
+        }
     }
     else
     {
@@ -354,16 +337,27 @@ __startup void MainInitializeDebugInterface()
         return;
     }
 
-    Handle res = InitializeDebuggerInterface(interface);
+    for (size_t volatile i = 0; i < 1000000000; ++i) { }
+
+    res = InitializeDebuggerInterface(iface);
 
     if (res.IsOkayResult())
+    {
         MainTerminal->WriteLine(" Done.\r[OKAY]");
+
+        Debug::DebugTerminal = new (&initialDjinnTerminal) DjinnTerminal();
+    }
     else
     {
         MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize debugger interface: %H", res);
     }
+
+    return;
+
+conflict:
+    MainTerminal->WriteLine(" Conflict with kernel terminal.\r[FAIL]");
 }
 
 /**********************
@@ -630,13 +624,14 @@ __startup Handle InitializeTimers()
     pitCmd.SetAccessMode(PitAccessMode::LowHigh);
     pitCmd.SetOperatingMode(PitOperatingMode::SquareWaveGenerator);
 
+    Pic::SetMasked(0, false);
+    //  TODO: Burn.
+
     Pit::SendCommand(pitCmd);
 
     ApicTimer::Initialize(true);
 
     MainTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
-
-    Pit::SetHandler();
 
     Pit::SetFrequency(1000);
     //  This frequency really shouldn't stress the BSP that much, considering
@@ -1098,28 +1093,28 @@ static __startup void MainInitializeKernelModules()
     MAIN TERMINALS
 *********************/
 
-__startup TerminalBase * InitializeTerminalMain(char const * term)
+__startup TerminalBase * InitializeTerminalMain()
 {
-    if (term == nullptr || strcmp("vbe", term) == 0)
-        return &initialVbeTerminal;
-
-    if (strcmp("serial", term) == 0)
-        return &initialSerialTerminal;
-
-    assert_or(false, "Unknown terminal type: %s", term)
+    switch (MainTerminalInterface)
     {
+    case MainTerminalInterfaces::VBE:
         return &initialVbeTerminal;
+    default:
+        return &initialSerialTerminal;
     }
+
+    //  TODO: Maybe get rid of this? It was added because of some very twisteed
+    //  assumptions, way too early in the development process.
 }
 
-static __startup void MainInitializeMainTerminal(char const * term)
+static __startup void MainInitializeMainTerminal()
 {
     //  Upgrade the terminal to a more capable and useful one.
     //  Yet again, platform-specific.
 
     MainTerminal->Write("[....] Initializing main terminal...");
 
-    TerminalBase * const secondaryTerminal = InitializeTerminalMain(term);
+    TerminalBase * const secondaryTerminal = InitializeTerminalMain();
 
     MainTerminal->WriteLine(" Done.\r[OKAY]");
     MainTerminal->WriteLine("Switching over.");
@@ -1148,19 +1143,20 @@ void Beelzebub::Main()
 
     Domain0.Gdt = GdtRegister::Retrieve();
 
+    // for (size_t volatile i = 1000000000000; i > 0; --i) DO_NOTHING();
+
     //  Step 0 is parsing the command-line arguments given to the kernel, so it knows how to operate.
     MainParseKernelArguments();
 
-    char const * const term = CMDO_Term.ParsingResult.IsValid() ? CMDO_Term.StringValue : nullptr;
-
     //  Basic terminal(s) are initialized as soon as possible.
-    MainTerminal = InitializeTerminalProto(term);
+    MainTerminal = InitializeTerminalProto();
 
     MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
 
     // MSG("Stack pointer in Beelzebub::Main is %Xp.%n", GetCurrentStackPointer());
 
     MainInitializeDebugInterface();
+    MainInitializeInterrupts();
     //  These two steps need to be finished as quickly as possible.
 
     Rtc::Read();
@@ -1169,7 +1165,6 @@ void Beelzebub::Main()
 
     MSGEX("Test {0} {1} {2} {2} {0} {1} {1} {0:bit}.\n", true, -124, "rada");
 
-    MainInitializeInterrupts();
     MainInitializePhysicalMemory();
     MainInitializeAcpiTables();
     MainInitializeVirtualMemory();
@@ -1248,7 +1243,7 @@ void Beelzebub::Main()
     MainInitializeSyscalls();
     MainInitializeKernelModules();
 
-    MainInitializeMainTerminal(term);
+    MainInitializeMainTerminal();
 
     //  Permit other processors to initialize themselves.
     MainTerminal->WriteLine("--  Initialization complete! --");

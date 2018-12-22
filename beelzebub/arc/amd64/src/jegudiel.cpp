@@ -37,10 +37,9 @@
     thorough explanation regarding other files.
 */
 
+#include "entry.h"
 #include <jegudiel.h>
-#include <system/isr.hpp>
-#include <keyboard.hpp>
-#include <entry.h>
+#include <beel/metaprogramming.h>
 
 __extern
 {
@@ -51,7 +50,7 @@ __extern
         JG_INFO_ROOT_BASE ,                     // info_vaddr
         0xFFFFFFFFFFFF9000,                     // idt_vaddr
         0xFFFFFFFFFFFF2000,                     // gdt_vaddr
-        (uintptr_t)&kmain_ap,                   // ap_entry
+        0,                                      // ap_entry
         0,                                      // syscall_entry
         0                                       // isr_entry_table
     };

@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <beel/structs.kernel.hpp>
+#include <beel/structs.kernel.h>
 
 namespace Beelzebub { namespace System
 {
@@ -48,7 +48,7 @@ namespace Beelzebub { namespace System
 
     __extern __thread uintptr_t SyscallStack;
     __extern __thread uintptr_t SyscallUserlandStack;
-    __extern __thread SyscallRegisters64 SyscallRegisters;
+    // __extern __thread SyscallRegisters64 SyscallRegisters;
 
     /**
      *  <summary>Contains methods for interfacing with syscalls.</summary>

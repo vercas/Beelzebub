@@ -41,7 +41,6 @@
 #include <system/cpu.hpp>
 #include <math.h>
 #include <debug.hpp>
-#include <_print/isr.hpp>
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -56,33 +55,33 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
 
     thread->KernelStackPointer = thread->KernelStackTop - sizeof(ThreadState);
 
-    thread->State.RIP = (uintptr_t)thread->EntryPoint;
-    thread->State.CS = Cpu::GetCs();
-    thread->State.DS = Cpu::GetDs();
-    thread->State.SS = Cpu::GetSs();
+    thread->State.GeneralRegisters.RIP = (uintptr_t)thread->EntryPoint;
+    thread->State.GeneralRegisters.CS = Cpu::GetCs();
+    thread->State.GeneralRegisters.DS = Cpu::GetDs();
+    thread->State.GeneralRegisters.SS = Cpu::GetSs();
 
-    //thread->State.Vector = 3;  //  Uhm, not sure if the value matters but a breakpoint is the least bad.
-    thread->State.ErrorCode = 0;
+    //thread->State.GeneralRegisters.Vector = 3;  //  Uhm, not sure if the value matters but a breakpoint is the least bad.
+    thread->State.GeneralRegisters.ErrorCode = 0;
 
-    thread->State.RFLAGS = (uint64_t)(FlagsRegisterFlags::Reserved1 | FlagsRegisterFlags::InterruptEnable | FlagsRegisterFlags::Cpuid);
+    thread->State.GeneralRegisters.RFLAGS = (uint64_t)(FlagsRegisterFlags::Reserved1 | FlagsRegisterFlags::InterruptEnable | FlagsRegisterFlags::Cpuid);
 
-    thread->State.RSP = thread->State.RBP = thread->KernelStackTop;
+    thread->State.GeneralRegisters.RSP = thread->State.GeneralRegisters.RBP = thread->KernelStackTop;
     //  Upon interrupt return, the stack will be clean.
 
-    thread->State.RAX = 0;
-    thread->State.RBX = 0;
-    thread->State.RCX = 0;
-    thread->State.RDX = 0;
-    thread->State.RSI = 0;
-    thread->State.RDI = 0;
-    thread->State.R8  = 0;
-    thread->State.R9  = 0;
-    thread->State.R10 = 0;
-    thread->State.R11 = 0;
-    thread->State.R12 = 0;
-    thread->State.R13 = 0;
-    thread->State.R14 = 0;
-    thread->State.R15 = 0;
+    thread->State.GeneralRegisters.RAX = 0;
+    thread->State.GeneralRegisters.RBX = 0;
+    thread->State.GeneralRegisters.RCX = 0;
+    thread->State.GeneralRegisters.RDX = 0;
+    thread->State.GeneralRegisters.RSI = 0;
+    thread->State.GeneralRegisters.RDI = 0;
+    thread->State.GeneralRegisters.R8  = 0;
+    thread->State.GeneralRegisters.R9  = 0;
+    thread->State.GeneralRegisters.R10 = 0;
+    thread->State.GeneralRegisters.R11 = 0;
+    thread->State.GeneralRegisters.R12 = 0;
+    thread->State.GeneralRegisters.R13 = 0;
+    thread->State.GeneralRegisters.R14 = 0;
+    thread->State.GeneralRegisters.R15 = 0;
 
     // withInterrupts (false)
     // {

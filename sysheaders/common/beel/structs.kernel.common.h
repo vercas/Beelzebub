@@ -40,6 +40,7 @@
 #pragma once
 
 #include <beel/handles.h>
+#include <beel/enums.kernel.h>
 
 #define BEELZEBUB_MESSAGE_SIZE (64)
 #define BEELZEBUB_MESSAGE_DWORDS (5)
@@ -84,6 +85,77 @@ __NAMESPACE_BEGIN
 
     #undef BEELZEBUB_MESSAGE_DWORDS
     #undef BEELZEBUB_MESSAGE_SIZE
+#endif
+
+#ifndef __ASSEMBLER__
+__STRUCT(MemoryAccessViolationData)
+{
+    //  These are ordered by size, descending.
+
+    paddr_t PhysicalAddress;
+    vaddr_t Address;
+    //  Physical address may be larger (PAE).
+
+    MemoryLocationFlags PageFlags;
+    MemoryAccessType AccessType;
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+    inline MemoryAccessViolationData()
+        : PhysicalAddress( 0)
+        , Address(nullvaddr)
+        , PageFlags()
+        , AccessType()
+    {
+
+    }
+#endif
+};
+// #else
+// .struct 0
+// FIELDT(BeMemoryAccessViolationData, PhysicalAddress, paddr_t    )
+// FIELDT(BeMemoryAccessViolationData, Address        , vaddr_t    )
+// FIELDT(BeMemoryAccessViolationData, PageFlags      , uint16_t   )
+// FIELDT(BeMemoryAccessViolationData, AccessType     , uint8_t    )
+// BeMemoryAccessViolationData_size:
+#endif
+
+#ifndef __ASSEMBLER__
+__STRUCT(UnitTestFailureData)
+{
+    char const * FileName;
+    size_t Line;
+};
+// #else
+// .struct 0
+// FIELDT(BeUnitTestFailureData, FileName, intptr_t )
+// FIELDT(BeUnitTestFailureData, Line    , size_t   )
+// BeUnitTestFailureData_size:
+#endif
+
+#ifndef __ASSEMBLER__
+__STRUCT(Exception)
+{
+    ExceptionType Type;
+    uintptr_t InstructionPointer;
+    uintptr_t StackPointer;
+
+    __extension__ union
+    {
+        MemoryAccessViolationData MemoryAccessViolation;
+        UnitTestFailureData UnitTestFailure;
+    };
+
+#ifdef __BEELZEBUB__SOURCE_CXX
+    inline Exception()
+        : Type(ExceptionType::None)
+        , InstructionPointer()
+        , StackPointer()
+        , MemoryAccessViolation()
+    {
+
+    }
+#endif
+};
 #endif
 
 __NAMESPACE_END

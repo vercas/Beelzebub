@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <beel/structs.kernel.hpp>
+#include <beel/structs.kernel.h>
 
 #define withExceptionContext(name) with(Beelzebub::ExceptionGuard name)
 

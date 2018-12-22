@@ -39,7 +39,7 @@
 
 #ifdef __BEELZEBUB__TEST_BIGINT
 
-#include <utils/bigint.hpp>
+#include <beel/utils/bigint.hpp>
 #include <math.h>
 
 #include <debug.hpp>

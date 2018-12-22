@@ -55,7 +55,7 @@ namespace Beelzebub { namespace Utils
         ENUMINST(Reserved2          , '7' )
 
     __ENUMDECL(TarHeaderType, ENUM_TARHEADERTYPE, LITE, char)
-    __ENUM_TO_STRING_DECL(TarHeaderType, ENUM_TARHEADERTYPE);
+    __ENUM_TO_STRING_DECL(TarHeaderType);
 
     static_assert(sizeof(TarHeaderType) == 1, "");
 

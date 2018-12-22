@@ -54,6 +54,12 @@ using namespace Beelzebub::System::Timers;
     Calibration
 ******************/
 
+static __cold void PitTickIrqHandler(InterruptContext const * context, void * cookie);
+static __cold void CalibratorIrqHandler(InterruptContext const * context, void * cookie);
+
+InterruptHandlerNode PitNode { &PitTickIrqHandler, nullptr, Irqs::MaxPriority };
+InterruptHandlerNode LapicNode { &CalibratorIrqHandler, nullptr, Irqs::MaxPriority };
+
 static constexpr uint32_t const PitFrequency = 14551;
 
 enum CalibrationStatus { Ongoing, Successful, Failed };
@@ -63,18 +69,12 @@ static constexpr int const StageCount = 100;
 static Atomic<CalibrationStatus> Status;
 static size_t FirstCounter, AverageCounter;
 
-static __cold void PitTickIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
+void PitTickIrqHandler(InterruptContext const * context, void * cookie)
 {
-    (void)state;
+    (void)context;
+    (void)cookie;
 
-    if likely(Stage < StageCount)
-    {
-        if unlikely(Stage == 0)
-            FirstCounter = Lapic::ReadRegister(LapicRegister::TimerCurrentCount);
-
-        ++Stage;
-    }
-    else
+    if unlikely(Stage >= StageCount)
     {
         size_t current = Lapic::ReadRegister(LapicRegister::TimerCurrentCount);
 
@@ -84,23 +84,19 @@ static __cold void PitTickIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
         //  If calibration hasn't failed by the last stage, then it has succeeded.
         CalibrationStatus st = Ongoing;
         Status.CmpXchgStrong(st, Successful);
-
-        //  Make sure this will not run again.
-        Pit::SetHandler();
     }
-
-    END_OF_INTERRUPT();
+    else if unlikely(Stage++ == 0)  //  Note the post-increment!
+        FirstCounter = Lapic::ReadRegister(LapicRegister::TimerCurrentCount);
 }
 
-static __cold void CalibratorIrqHandler(INTERRUPT_HANDLER_ARGS_FULL)
+void CalibratorIrqHandler(InterruptContext const * context, void * cookie)
 {
-    (void)state;
+    (void)context;
+    (void)cookie;
 
     //  If calibration already succeeded, no reason to force failure upon it.
     CalibrationStatus st = Ongoing;
     Status.CmpXchgStrong(st, Failed);
-
-    END_OF_INTERRUPT();
 }
 
 /****************
@@ -141,40 +137,23 @@ void ApicTimer::Initialize(bool bsp)
     if likely(!bsp)
     {
         Lapic::WriteRegister(LapicRegister::TimerDivisor, TranslateDivisor(Divisor));
-        
+
         return;
     }
 
-    //  First, set up the vector.
+    //  First, set up the handlers.
 
-    auto vec = Interrupts::Get(KnownExceptionVectors::ApicTimer);
+    ASSERT(PitNode.Subscribe(Pit::IrqVector) == IrqSubscribeResult::Success);
+    ASSERT(LapicNode.Subscribe(Irqs::ApicTimer) == IrqSubscribeResult::Success);
 
-    void const * handler = vec.GetHandler();
-
-    if (handler == nullptr)
-        vec.SetHandler(&CalibratorIrqHandler);
-    else
-    {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-        ASSERT(handler == &CalibratorIrqHandler
-            , "Wrong APIC timer calibration interrupt handler.")
-            (handler);
-#pragma GCC diagnostic pop
-    }
-
-    vec.SetEnder(&Lapic::IrqEnder);
+    ASSERT(Lapic::Ender.Register(Irqs::ApicTimer) == IrqEnderRegisterResult::Success);
 
     //  Then, the PIT.
-
-    Pit::SetHandler(&PitTickIrqHandler);
-    //  Use the PIT for calibration.
 
     Pit::SetFrequency(PitFrequency);
     //  This should equate to a divisor of 82, and a period of ~68.724 microseconds.
 
     //  Then, calibrate.
-
     bool sufficient = false;
     unsigned int divisor;
     size_t freq = 0, absFreq = 0;
@@ -183,7 +162,7 @@ void ApicTimer::Initialize(bool bsp)
     {
         Lapic::WriteRegister(LapicRegister::TimerDivisor, TranslateDivisor(divisor));
 
-        ApicTimer::SetInternal(0xFFFFFFFF, vec.GetVector(), false);
+        ApicTimer::SetInternal(0xFFFFFFFF, (uint8_t)Irqs::ApicTimer.Value, false);
 
         Stage = 0;
         Status = Ongoing;
@@ -209,7 +188,8 @@ void ApicTimer::Initialize(bool bsp)
         //  register, this divisor is sufficient.
     }
 
-    Pit::SetHandler();
+    ASSERT(PitNode.Unsubscribe() == IrqUnsubscribeResult::Success);
+    ASSERT(LapicNode.Unsubscribe() == IrqUnsubscribeResult::Success);
 
     Stop();
     //  No more timing.
@@ -240,12 +220,10 @@ void ApicTimer::Stop()
 
 void ApicTimer::SetInternal(uint32_t count, uint8_t interrupt, bool periodic, bool mask)
 {
-    Lapic::WriteRegister(LapicRegister::TimerLvt,
-        ApicTimerLvt(0)
+    Lapic::WriteTimerLvt(ApicTimerLvt(0)
         .SetVector(interrupt)
         .SetMode(periodic ? ApicTimerMode::Periodic : ApicTimerMode::OneShot)
-        .SetMask(mask)
-        .Value);
+        .SetMask(mask));
 
     Lapic::WriteRegister(LapicRegister::TimerInitialCount, count);
 }

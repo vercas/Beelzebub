@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <system/interrupts.hpp>
+#include "irqs.hpp"
 
 namespace Beelzebub { namespace System { namespace InterruptControllers
 {
@@ -61,7 +61,8 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
 
         /*  Ender  */
 
-        static __hot void IrqEnder(INTERRUPT_ENDER_ARGS);
+        static __hot void IrqEnder(InterruptContext const * context, void * cookie, InterruptEndType type);
+        static InterruptEnderNode EnderNode;
 
         /*  Constructor(s)  */
 
@@ -77,17 +78,19 @@ namespace Beelzebub { namespace System { namespace InterruptControllers
         static __cold void Initialize(uint8_t const vecOff);
         static __cold void Disable();
 
-        /*  Subscription  */
+        // /*  Subscription  */
 
-        static bool Subscribe(uint8_t const irq, InterruptHandlerPartialFunction const handler, bool const unmask = true);
-        static bool Subscribe(uint8_t const irq, InterruptHandlerFullFunction const handler, bool const unmask = true);
+        // static bool Subscribe(uint8_t const irq, InterruptHandlerFunction const handler, bool const unmask = true);
         
-        static bool Unsubscribe(uint8_t const irq, bool const mask = true);
-        static bool IsSubscribed(uint8_t const irq);
+        // static bool Unsubscribe(uint8_t const irq, bool const mask = true);
+        // static bool IsSubscribed(uint8_t const irq);
 
         /*  Masking  */
 
         static bool SetMasked(uint8_t const irq, bool const masked);
         static bool GetMasked(uint8_t const irq);
+
+        static uint16_t GetIrrs();
+        static uint16_t GetIsrs();
     };
 }}}

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2018 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -39,8 +39,58 @@
 
 #pragma once
 
-#include <system/isr.hpp>
-#include <_print/print_template.hpp>
+#include <beel/metaprogramming.h>
 
-PRINT_FUNCS_CONST(Beelzebub::System::IsrStatePartial const *)
-PRINT_FUNCS_CONST(Beelzebub::System::IsrState const *)
+namespace Beelzebub
+{
+    typedef unsigned long long strhash_t;
+
+    class CStringUtils
+    {
+    public:
+        /*  Constants  */
+
+        static constexpr strhash_t const Prime = 0x100000001B3ull;
+        static constexpr strhash_t const Basis = 0xCBF29CE484222325ull;
+
+    protected:
+        /*  Constructor(s)  */
+
+        CStringUtils() = default;
+
+    public:
+        CStringUtils(CStringUtils const &) = delete;
+        CStringUtils & operator =(CStringUtils const &) = delete;
+
+        static inline strhash_t Hash(char const * str)
+        {
+            if unlikely(str == nullptr)
+                return 0;
+
+            strhash_t ret = Basis;
+         
+            while (*(str++))
+            {
+                ret ^= *str;
+                ret *= Prime;
+            }
+         
+            return ret;
+        }
+
+        static inline constexpr strhash_t HashConstexprInner(char const * str, strhash_t last_value)
+        {
+            return *str ? HashConstexprInner(str + 1, (*str ^ last_value) * Prime) : last_value;
+        }
+
+        static inline constexpr strhash_t HashConstexpr(char const * str)
+        {
+            return str == nullptr ? 0 : HashConstexprInner(str, Basis);
+        }
+    };
+}
+
+static inline constexpr unsigned long long operator""BeH(char const * str, size_t)
+{
+    return Beelzebub::CStringUtils::HashConstexpr(str);
+}

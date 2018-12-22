@@ -279,7 +279,7 @@ void * WatchTestThread(void *)
 
     while (true)
     {
-        void * activeThread = Cpu::GetThread();
+        // void * activeThread = Cpu::GetThread();
 
         // MSG("WATCHER (%Xp) sees %u1 & %u8!%n", activeThread, *data, *data2);
         // DEBUG_TERM  << "WATCHER (" << Hexadecimal << activeThread << Decimal
