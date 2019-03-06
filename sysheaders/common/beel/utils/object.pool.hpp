@@ -97,7 +97,7 @@ namespace Beelzebub::Utils
                     if (0 != (old & BusyMask))
                         return false;
                     //  Busy bit is 1 means this cannot be acquired.
-                } while (!__atomic_compare_exchange_n(&(this->Value), &old, 0xFFFFFFFFFFFFFFFFUL, false, __ATOMIC_RELEASE, __ATOMIC_RELAXED);
+                } while (!__atomic_compare_exchange_n(&(this->Value), &old, Unallocated, false, __ATOMIC_RELEASE, __ATOMIC_RELAXED));
 
                 next = old & ValueMask;
 
@@ -136,10 +136,11 @@ namespace Beelzebub::Utils
         }
 
         inline ObjectPool(void * storage, size_t cap)
-            : Head( NoNext), Padding1(), Tail(NoNext), Padding2()
+            : Head( 0), Padding1(), Tail(cap - 1), Padding2()
             , Entries(reinterpret_cast<Entry *>(storage)), Capacity(cap)
         {
-            
+            for (size_t i = 0; i < cap - 1; ++i)
+                this->Entries[i] = Entry(i + 1);
         }
 
         /*  Actions  */
