@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <beel/metaprogramming.h>
+#include <beel/sync/smp.lock.hpp>
 
 namespace Beelzebub::Utils
 {
@@ -51,141 +51,196 @@ namespace Beelzebub::Utils
         /*  Statics  */
 
 #ifdef __BEELZEBUB__ARCH_AMD64
-        static constexpr uint64_t const PointerMask = 0x7FFFFFFFFFFFFFFFUL;
+        static constexpr uintptr_t const ValueMask   = 0xFFFFFFFFFFFFFFFEUL;
+        static constexpr uintptr_t const ValueShift  = 1;
+        static constexpr uintptr_t const BusyMask    = 0x0000000000000001UL;
+
+        static constexpr uintptr_t const NoNext      = 0xFFFFFFFFFFFFFFFEUL;
+        static constexpr uintptr_t const NotFree     = 0xFFFFFFFFFFFFFFFCUL;
+
+        static constexpr uintptr_t const Unallocated = 0xFFFFFFFFFFFFFFFFUL;
+        static constexpr uintptr_t const Deallocated = 0xFFFFFFFFFFFFFFFDUL;
 #else
 #error TODO
-        static constexpr uint64_t const PointerMask = 0x00000000FFFFFFFFUL;
+        static constexpr uintptr_t const ValueMask   = 0xFFFFFFFEUL;
+        static constexpr uintptr_t const ValueShift  = 1;
+        static constexpr uintptr_t const BusyMask    = 0x00000001UL;
+
+        static constexpr uintptr_t const NoNext      = 0xFFFFFFFEUL;
+        static constexpr uintptr_t const NotFree     = 0xFFFFFFFCUL;
+
+        static constexpr uintptr_t const Unallocated = 0xFFFFFFFFUL;
+        static constexpr uintptr_t const Deallocated = 0xFFFFFFFAUL;
 #endif
-
-        static constexpr uint64_t const ValueMask   = 0x7FFFFFFFFFFFFFFFUL;
-        static constexpr uint64_t const BusyMask    = 0x8000000000000000UL;
-
-        static constexpr uint64_t const NoNext      = 0x7FFFFFFFFFFFFFFFUL;
-        static constexpr uint64_t const NotFree     = 0x7FFFFFFFFFFFFFFEUL;
-
-        static constexpr uint64_t const Unallocated = 0xFFFFFFFFFFFFFFFFUL;
-        static constexpr uint64_t const Deallocated = 0xFFFFFFFFFFFFFFFEUL;
-
-        struct Entry
-        {
-            uint64_t Value;
-
-            inline bool IsBusy() const { return 0 != (this->Value & BusyMask); }
-            inline bool IsFree() const { return 0 == (this->Value & BusyMask); }
-
-            inline bool IsAwaitingValue() const { return this->Value == 0xFFFFFFFFFFFFFFFFUL; }
-
-            inline uint64_t GetNext() const { return this->Value & ValueMask; }
-            
-            inline T * GetPointer() const
-            {
-#ifdef __BEELZEBUB__ARCH_AMD64
-                return 0 != (this->Value & 0x0000800000000000UL)
-                    ? this->Value | 0xFFFF000000000000UL
-                    : this->Value & 0x0000FFFFFFFFFFFFUL;
-#else
-                return reinterpret_cast<T *>(this->Value & PointerMask);
-#endif
-            }
-
-            inline bool Acquire(uint64_t & next)
-            {
-                uint64_t old = __atomic_load_n(&(this->Value), __ATOMIC_ACQUIRE);
-
-                do
-                {
-                    if (0 != (old & BusyMask))
-                        return false;
-                    //  Busy bit is 1 means this cannot be acquired.
-                } while (!__atomic_compare_exchange_n(&(this->Value), &old, Unallocated, false, __ATOMIC_RELEASE, __ATOMIC_RELAXED));
-
-                next = old & ValueMask;
-
-                return true;
-            }
-
-            inline bool SetPointer(T * val)
-            {
-                uint64_t const newVal = reinterpret_cast<uint64_t>(val) | BusyMask;
-                uint64_t old = __atomic_load_n(&(this->Value), __ATOMIC_ACQUIRE);
-
-                if (old != 0xFFFFFFFFFFFFFFFFUL)
-                    return false;
-
-                return __atomic_compare_exchange_n(&(this->Value), &old, newVal, false, __ATOMIC_RELEASE, __ATOMIC_RELAXED);
-            }
-
-            inline bool UnsetPointer(T * & val)
-            {
-                uint64_t old = __atomic_load_n(&(this->Value), __ATOMIC_ACQUIRE);
-
-                if (old == 0xFFFFFFFFFFFFFFFFUL || 0 == (old & BusyMask))
-                    return false;
-
-                return __atomic_compare_exchange_n(&(this->Value), &old, Deallocated, false, __ATOMIC_RELEASE, __ATOMIC_RELAXED);
-            }
-        };
 
         /*  Constructors  */
 
         inline ObjectPool()
-            : Head( NoNext), Padding1(), Tail(NoNext), Padding2()
-            , Entries(nullptr), Capacity(0)
+            : Head( NoNext), Tail(NoNext), Entries(nullptr), Capacity(0), Lock()
         {
             
         }
 
         inline ObjectPool(void * storage, size_t cap)
-            : Head( 0), Padding1(), Tail(cap - 1), Padding2()
+            : Head( 0), Tail(cap - 1)
             , Entries(reinterpret_cast<Entry *>(storage)), Capacity(cap)
+            , Lock()
         {
-            for (size_t i = 0; i < cap - 1; ++i)
-                this->Entries[i] = Entry(i + 1);
+            for (uintptr_t i = 0; i < cap - 1; ++i)
+                this->Entries[i] = (i + 1) << ValueShift;
+
+            this->Entries[cap - 1] = NoNext;
         }
 
         /*  Actions  */
 
-        inline uint64_t Pop()
+        inline uintptr_t Acquire()
         {
-            uint64_t head;
+            uintptr_t head;
 
-            do
+            withLock (this->Lock)
             {
-                head = __atomic_load_n(&(this->Head), __ATOMIC_ACQUIRE);
+                head = this->Head;
 
-                if (head == NoNext)
-                    break;
-            } while (!this->Entries[head].Acquire(this->Head));
-            
+                if (head != NoNext)
+                {
+                    if (this->Entries[head] == NoNext)
+                        this->Head = this->Tail = NoNext;
+                    else
+                        this->Head = this->Entries[head] >> ValueShift;
+
+                    this->Entries[head] = Unallocated;
+                }
+            }
+
             return head;
         }
 
-        inline bool SetPointer(uint64_t id, T * val)
+        inline uintptr_t Acquire(T const * val)
         {
-            if (id >= this->Capacity)
-                return false;
+            uintptr_t head;
 
-            return this->Entries[id].SetPointer(val);
+            withLock (this->Lock)
+            {
+                head = this->Head;
+
+                if (head != NoNext)
+                {
+                    if (this->Entries[head] == NoNext)
+                        this->Head = this->Tail = NoNext;
+                    else
+                        this->Head = this->Entries[head] >> ValueShift;
+
+                    this->Entries[head] = reinterpret_cast<uintptr_t>(val) | BusyMask;
+                }
+            }
+
+            return head;
         }
 
-        inline bool UnsetPointer(uint64_t id, T * & val)
+        inline bool SetPointer(uintptr_t id, T const * val)
+        {
+            if (id >= this->Capacity || 0 != (reinterpret_cast<uintptr_t>(val) & ValueMask))
+                return false;
+
+            // bool set = true;
+
+            // withLock (this->Lock)
+            // {
+            //     if (this->Entries[id] == Unallocated)
+            //         this->Entries[id] = reinterpret_cast<uintptr_t>(val) | BusyMask;
+            //     else
+            //         set = false;
+            // }
+
+            // return set;
+
+            uintptr_t const newVal = reinterpret_cast<uintptr_t>(val) | BusyMask;
+            uintptr_t old = Unallocated;
+
+            return __atomic_compare_exchange_n(this->Entries + id, &old, newVal, false, __ATOMIC_SEQ_CST, __ATOMIC_RELAXED);
+        }
+
+        inline bool UnsetPointer(uintptr_t id, T * & val)
         {
             if (id >= this->Capacity)
                 return false;
 
-            return this->Entries[id].UnsetPointer(val);
+            // bool set = true;
+
+            // withLock (this->Lock)
+            // {
+            //     if (0 == (this->Entries[id] & BusyMask) || this->Entries[id] == Unallocated)
+            //         set = false;
+            //     else
+            //     {
+            //         val = reinterpret_cast<T *>(this->Entries[id] & ValueMask);
+            //         this->Entries[id] = Deallocated;
+            //     }
+            // }
+
+            // return set;
+
+            uintptr_t old = __atomic_load_n(this->Entries + id, __ATOMIC_ACQUIRE);
+
+            if (old == Unallocated || 0 == (old & BusyMask))
+                return false;
+
+            return __atomic_compare_exchange_n(this->Entries + id, &old, Deallocated, false, __ATOMIC_RELEASE, __ATOMIC_RELAXED);
+        }
+
+        inline T * Resolve(uintptr_t id)
+        {
+            if (id >= this->Capacity)
+                return nullptr;
+
+            uintptr_t val = __atomic_load_n(this->Entries + id, __ATOMIC_ACQUIRE);
+
+            if (val == Unallocated || 0 == (val & BusyMask))
+                return nullptr;
+
+            return reinterpret_cast<T *>(val & ValueMask);
+        }
+
+        inline bool Release(uintptr_t id)
+        {
+            if (id >= this->Capacity)
+                return false;
+
+            uintptr_t old = __atomic_load_n(this->Entries + id, __ATOMIC_ACQUIRE);
+
+            if (0 == (old & BusyMask))
+                return false;
+
+            if (!__atomic_compare_exchange_n(this->Entries + id, &old, NoNext, false, __ATOMIC_RELEASE, __ATOMIC_RELAXED))
+            {
+                // TODO: Catch fire?
+                return false;
+            }
+
+            withLock (this->Lock)
+            {
+                if (this->Tail == NoNext)
+                    this->Head = this->Tail = id;
+                else
+                {
+                    this->Entries[this->Tail] = id << ValueShift;
+                    this->Tail = id;
+                }
+            }
+
+            return true;
         }
 
     private:
         /*  Fields  */
 
-        uint64_t Head;
-        uint8_t Padding1[__BEELZEBUB__CACHE_LINE_SIZE - sizeof(uint64_t)];
+        uintptr_t Head;
+        uintptr_t Tail;
 
-        uint64_t Tail;
-        uint8_t Padding2[__BEELZEBUB__CACHE_LINE_SIZE - sizeof(uint64_t)];
-
-        Entry * Entries;
+        uintptr_t * Entries;
         size_t Capacity;
+
+        SmpLockUni Lock;
     };
 }
