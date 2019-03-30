@@ -438,7 +438,7 @@ GlobalData {
             --"-fdollars-in-identifiers",
             "-pipe", "--sysroot=" .. Sysroot,
             "-Wshadow", "-Wframe-larger-than=300",
-            --"-no-integrated-cpp", "-Btoolchain",
+            --"-no-integrated-cpp", "-Btoolchain/",
         } + Opts_GCC_Precompiler
         + selArch.Data.Opts_GCC + selConf.Data.Opts_GCC
         + specialOptions
@@ -458,6 +458,7 @@ GlobalData {
 GlobalData {
     Sysroot                 = DAT "outDir + 'sysroot'",
     SysheadersPath          = DAT "Sysroot + 'usr/include'",
+    SysheadersDummyPath     = DAT "outDir  + 'sysheaders.dummy'",
     JegudielPath            = DAT "outDir  + 'jegudiel.bin'",
     CommonLibraryPath       = DAT "Sysroot + 'usr/lib/libcommon.'    .. selArch.Name .. '.a'",
     RuntimeLibraryPath      = DAT "Sysroot + 'usr/lib/libbeelzebub.' .. selArch.Name .. '.so'",
@@ -466,6 +467,26 @@ GlobalData {
     TestKernelModulePath    = DAT "Sysroot + 'kmods/test.kmod'",
     KernelPath              = DAT "outDir  + 'beelzebub.bin'",
     LoadtestAppPath         = DAT "Sysroot + 'apps/loadtest.exe'",
+
+    SysheaderDirectories = function()
+        local res = List { "sysheaders/common" }
+
+        for arch in selArch:Hierarchy() do
+            res:Append(DirPath("sysheaders") + arch.Name)
+        end
+
+        return res
+    end,
+
+    SysheaderDirectoriesIncludes = function()
+        local res = List { }
+
+        SysheaderDirectories:ForEach(function(val)
+            res:AppendMany { "-isystem", val }
+        end)
+
+        return res
+    end,
 
     CrtFiles = function()
         return selArch.Data.CrtFiles:Select(function(val)
@@ -539,13 +560,21 @@ Project "Beelzebub" {
 
         Directory = "sysheaders",
 
-        Output = function()
-            local files = Headers:Select(function(val)
-                return SysheadersPath + val:SkipDirs(2)
-            end)
+        Output = DAT "SysheadersDummyPath",
 
-            return files
-        end,
+        Rule "Dummy File" {
+            Filter = FLT "SysheadersDummyPath",
+
+            Source = function(dst)
+                return Headers:Select(function(val)
+                    return SysheadersPath + val:SkipDirs(2)
+                end)
+            end,
+
+            Action = function(dst, src)
+                fs.Copy(dst, src[1])
+            end,
+        },
 
         Rule "Copy Header" {
             Filter = function(dst)
@@ -605,7 +634,7 @@ Project "Beelzebub" {
                     -mno-sse4 -mno-sse4a -mno-fma4 -mno-ssse3 -mno-bmi -mno-bmi2
                     -O0
                 ]] + Opts_GCC_Precompiler + Opts_Includes
-                   + specialOptions
+                   + specialOptions + SysheaderDirectoriesIncludes
             end,
 
             Opts_NASM       = List "-f elf64",
@@ -614,8 +643,6 @@ Project "Beelzebub" {
         },
 
         Directory = "jegudiel",
-
-        Dependencies = "System Headers",
 
         Output = DAT "JegudielPath",
 
@@ -679,6 +706,7 @@ Project "Beelzebub" {
                     -D__BEELZEBUB_STATIC_LIBRARY
                 ]] + Opts_GCC_Common + Opts_Includes
                    + selArch.Data.Opts_GCC_Kernel
+                   + SysheaderDirectoriesIncludes
 
                 if selArch.Name == "amd64" then
                     res:Append("-mcmodel=large")
@@ -759,7 +787,8 @@ Project "Beelzebub" {
                     "-flto", settUnopt and "-O0" or "-O2",
                     "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
                 } + Opts_GCC_Common + Opts_Includes
-                + selArch.Data.Opts_GCC_Kernel
+                  + selArch.Data.Opts_GCC_Kernel
+                  + SysheaderDirectoriesIncludes
 
                 if selArch.Name == "amd64" then
                     res:Append("-mcmodel=kernel")
@@ -890,6 +919,7 @@ Project "Beelzebub" {
                     -flto
                     -D__BEELZEBUB_DYNAMIC_LIBRARY
                 ]] + Opts_GCC_Common + Opts_Includes
+                   + SysheaderDirectoriesIncludes
             end,
 
             Opts_Opti = function()
@@ -932,8 +962,6 @@ Project "Beelzebub" {
 
         Directory = "libs/runtime",
 
-        Dependencies = "System Headers",
-
         Output = DAT "RuntimeLibraryPath",
 
         Rule "Strip Binary" {
@@ -961,6 +989,7 @@ Project "Beelzebub" {
                     -O0 -flto
                     -D__BEELZEBUB_DYNAMIC_LIBRARY
                 ]] + Opts_GCC_Common + Opts_Includes
+                   + SysheaderDirectoriesIncludes
             end,
 
             Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
@@ -976,8 +1005,6 @@ Project "Beelzebub" {
         },
 
         Directory = "libs/kmod",
-
-        Dependencies = "System Headers",
 
         Output = DAT "KernelModuleLibraryPath",
 
@@ -1039,6 +1066,7 @@ Project "Beelzebub" {
                     -flto
                     -D__BEELZEBUB_APPLICATION
                 ]] + Opts_GCC_Common + Opts_Includes
+                   + SysheaderDirectoriesIncludes
             end,
 
             Opts_Opti = function()
@@ -1067,8 +1095,6 @@ Project "Beelzebub" {
 
         Directory = "apps/loadtest",
 
-        Dependencies = "System Headers",
-
         Output = DAT "LoadtestAppPath",
 
         Rule "Strip Binary" {
@@ -1092,7 +1118,7 @@ Project "Beelzebub" {
             SourcesSubdirectory     = "src",
             HeadersSubdirectory     = "inc",
 
-            Opts_Includes           = LST "-Iacpica/source/include !Opts_Includes_Base",
+            Opts_Includes           = LST "-Iacpica/source/include !Opts_Includes_Base !SysheaderDirectoriesIncludes",
 
             Opts_Includes_Nasm = function()
                 return Opts_Includes_Nasm_Base:Append(("-I" .. SysheadersPath) .. "/")
@@ -1164,8 +1190,6 @@ Project "Beelzebub" {
 
         Directory = "beelzebub",
 
-        Dependencies = "System Headers",
-
         Output = DAT "KernelPath",
 
         Rule "Strip Binary" {
@@ -1193,6 +1217,7 @@ Project "Beelzebub" {
                     -D__BEELZEBUB_KERNEL_MODULE
                 ]] + Opts_GCC_Common + Opts_Includes
                    + selArch.Data.Opts_GCC_Kernel
+                   + SysheaderDirectoriesIncludes
 
                 return res
             end,
@@ -1224,8 +1249,6 @@ Project "Beelzebub" {
         },
 
         Directory = "kmods/test",
-
-        Dependencies = "System Headers",
 
         Output = DAT "TestKernelModulePath",
 
@@ -1296,9 +1319,7 @@ Project "Beelzebub" {
 
         Directory = "image",
 
-        Dependencies = List {
-            "System Headers"
-        },
+        Dependencies = "System Headers",
 
         Output = DAT "IsoFile",
 
