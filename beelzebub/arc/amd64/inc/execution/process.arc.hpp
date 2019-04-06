@@ -54,11 +54,21 @@ namespace Beelzebub { namespace Execution
         /*  Constructors  */
 
         inline ProcessArchitecturalBase()
+            : PagingTable( nullpaddr)
         {
 
         }
 
         ProcessArchitecturalBase(ProcessArchitecturalBase const &) = delete;
         ProcessArchitecturalBase & operator =(ProcessArchitecturalBase const &) = delete;
+
+        /*  Operations  */
+
+        void PreSetActive();
+
+        /*  Memory  */
+
+        paddr_t PagingTable;
+        void SetPagingTable(paddr_t pt);
     };
 }}

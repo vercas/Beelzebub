@@ -43,7 +43,7 @@ using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 
 /******************
-Thread class
+    Thread class
 *******************/
 
 /*  Linkage  */

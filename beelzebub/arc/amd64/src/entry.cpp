@@ -373,13 +373,14 @@ Handle Beelzebub::InitializeVirtualMemory()
 
     paddr_t const pml4_paddr = Pmm::AllocateFrame(1, AddressMagnitude::_32bit);
 
-    if (pml4_paddr == nullpaddr)
-        return HandleResult::OutOfMemory;
+    ASSERT(pml4_paddr != nullpaddr, "Failed to allocate frame for System process's PML4.");
 
     ::memset((void *)(pml4_paddr.Value), 0, PageSize.Value);
     //  Clear it all out!
 
-    new (&BootstrapProcess) Process(0, pml4_paddr);
+    new (&BootstrapProcess) Process(1);
+    BootstrapProcess.SetPagingTable(pml4_paddr);
+    BootstrapProcess.SetName("System");
 
     VmmArc::Page1GB = BootstrapCpuid.CheckFeature(CpuFeature::Page1GB);
     VmmArc::NX      = BootstrapCpuid.CheckFeature(CpuFeature::NX     );
@@ -404,6 +405,8 @@ Handle Beelzebub::InitializeVirtualMemory()
     //  TODO: Management for ISA DMA.
 
     Cpu::SetCr0(Cpu::GetCr0().SetWriteProtect(true));
+
+    BootstrapProcess.SetActive();
 
     return HandleResult::Okay;
 }

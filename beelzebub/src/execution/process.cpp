@@ -50,6 +50,23 @@ using namespace Beelzebub::Memory;
 
 /*  Operations  */
 
+void Process::SetActive()
+{
+    ASSERT(this->State == ProcessState::Constructing);
+    ASSERT(this->Id != 0);
+
+    this->PreSetActive();
+}
+
+void Process::SetName(char const * name)
+{
+    ASSERT(this->State == ProcessState::Constructing);
+    ASSERT(this->Name == nullptr);
+    ASSERT(name != nullptr);
+
+    this->Name = name;
+}
+
 Handle Process::SwitchTo(Process * const other)
 {
     Handle res;

@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2015 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,67 +37,29 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include "execution/process.hpp"
+#include <debug.hpp>
 
-#include "execution/process.arc.hpp"
-#include "memory/vas.hpp"
+using namespace Beelzebub;
+using namespace Beelzebub::Execution;
 
-#include <beel/structs.kernel.h>
-#include <beel/sync/smp.lock.hpp>
-#include <beel/sync/atomic.hpp>
+/*************************************
+    ProcessArchitecturalBase class
+*************************************/
 
-namespace Beelzebub { namespace Execution
+/*  Operations  */
+
+void ProcessArchitecturalBase::PreSetActive()
 {
-    enum class ProcessState
-    {
-        Constructing,
-        Active,
-    };
+    ASSERT(this->PagingTable != nullpaddr);
+}
 
-    /**
-     *  A unit of isolation.
-     */
-    class Process : public ProcessBase, public ProcessArchitecturalBase
-    {
-    public:
-        /*  Constructors  */
+/*  Memory  */
 
-        inline Process(uint16_t id = 0)
-            : ProcessBase( id)
-            , ProcessArchitecturalBase()
-            , State(ProcessState::Constructing)
-            , Name(nullptr)
-            , ActiveCoreCount(0)
-            , LocalTablesLock()
-            , AlienPagingTablesLock()
-            , Vas()
-            , RuntimeLoaded(false)
-        {
+void ProcessArchitecturalBase::SetPagingTable(paddr_t pt)
+{
+    ASSERT(static_cast<Process *>(this)->State == ProcessState::Constructing);
+    ASSERT(this->PagingTable == nullpaddr);
 
-        }
-
-        Process(Process const &) = delete;
-        Process & operator =(Process const &) = delete;
-
-        /*  Operations  */
-
-        ProcessState State;
-        void SetActive();
-
-        char const * Name;
-        void SetName(char const * name);
-
-        Synchronization::Atomic<size_t> ActiveCoreCount;
-        __hot Handle SwitchTo(Process * const other);
-
-        /*  Memory  */
-
-        Synchronization::SmpLock LocalTablesLock;
-
-        Synchronization::SmpLock AlienPagingTablesLock;
-
-        Memory::Vas Vas;
-
-        bool RuntimeLoaded;
-    };
-}}
+    this->PagingTable = pt;
+}

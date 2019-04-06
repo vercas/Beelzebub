@@ -99,7 +99,8 @@ void TestVas()
 {
     Barrier = true;
 
-    new (&testProcess) Process();
+    new (&testProcess) Process(2);
+    testProcess.SetName("VAS Test Process");
 
     Vmm::Initialize(&testProcess);
 
@@ -127,6 +128,8 @@ void TestVas()
     testThread.EntryPoint = &TestThreadCode;
 
     InitializeThreadState(&testThread);
+
+    testProcess.SetActive();
 
     withInterrupts (false)
         BootstrapThread.IntroduceNext(&testThread);

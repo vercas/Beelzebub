@@ -309,8 +309,8 @@ Handle Vmm::Initialize(Process * proc)
 {
     CpuInstructions::InvalidateTlb(VmmArc::GetAlienPml4());
 
-    paddr_t const pml4_paddr = proc->PagingTable
-        = Pmm::AllocateFrame(1, AddressMagnitude::_32bit);
+    paddr_t const pml4_paddr = Pmm::AllocateFrame(1, AddressMagnitude::_32bit);
+    proc->SetPagingTable(pml4_paddr);
 
     if (pml4_paddr == nullpaddr)
         return HandleResult::OutOfMemory;
