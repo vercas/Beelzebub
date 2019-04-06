@@ -58,6 +58,7 @@
 #include "execution/thread_init.hpp"
 #include "execution/extended_states.hpp"
 #include "execution/runtime64.hpp"
+#include "execution.hpp"
 
 #include "irqs.hpp"
 #include "system/acpi.hpp"
@@ -1169,6 +1170,8 @@ void Beelzebub::Main()
     MainInitializeAcpiTables();
     MainInitializeVirtualMemory();
     MainInitializeBootModules();
+
+    InitializeExecutionData();
 
     //  This should really be done under a lock.
     InitializationLock.Acquire();

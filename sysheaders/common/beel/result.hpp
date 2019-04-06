@@ -37,6 +37,8 @@
     thorough explanation regarding other files.
 */
 
+#pragma once
+
 #include <beel/metaprogramming.h>
 
 namespace Beelzebub

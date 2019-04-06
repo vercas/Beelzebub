@@ -39,9 +39,22 @@
 
 #pragma once
 
-#include <execution/thread.hpp>
+#include "execution/thread.hpp"
+#include <beel/result.hpp>
 
 namespace Beelzebub
 {
-    Handle SpawnProcess();
+    __startup void InitializeExecutionData();
+
+    enum class SpawnProcessResult
+    {
+        Success,
+        OutOfMemory,
+        LimitReached,
+    };
+
+    typedef SpawnProcessResult SpawnThreadResult;
+
+    Result<SpawnProcessResult, Execution::Process *> SpawnProcess();
+    Result<SpawnThreadResult, Execution::Thread *> SpawnThread(Execution::Process * owner);
 }

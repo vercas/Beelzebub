@@ -46,7 +46,7 @@
 namespace Beelzebub::Utils
 {
     template<typename T>
-    struct ObjectPool
+    struct IdPool
     {
         /*  Statics  */
 
@@ -75,15 +75,15 @@ namespace Beelzebub::Utils
 
         /*  Constructors  */
 
-        inline ObjectPool()
+        inline IdPool()
             : Head( NoNext), Tail(NoNext), Entries(nullptr), Capacity(0), Lock()
         {
             
         }
 
-        inline ObjectPool(void * storage, size_t cap)
+        inline IdPool(void * storage, size_t cap)
             : Head( 0), Tail(cap - 1)
-            , Entries(reinterpret_cast<Entry *>(storage)), Capacity(cap)
+            , Entries(reinterpret_cast<uintptr_t *>(storage)), Capacity(cap)
             , Lock()
         {
             for (uintptr_t i = 0; i < cap - 1; ++i)
@@ -241,6 +241,6 @@ namespace Beelzebub::Utils
         uintptr_t * Entries;
         size_t Capacity;
 
-        SmpLockUni Lock;
+        Synchronization::SmpLockUni Lock;
     };
 }

@@ -37,17 +37,42 @@
     thorough explanation regarding other files.
 */
 
-#include <execution.hpp>
+#include "execution.hpp"
+#include "kernel.hpp"
 #include <memory/object_allocator_smp.hpp>
 #include <memory/object_allocator_pools_heap.hpp>
+#include <beel/utils/id.pool.hpp>
+#include <new>
+
+#define MAX_PROCESSES 4095
+#define MAX_THREADS 65536
+//  TODO: Make these a setting.
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
+using namespace Beelzebub::Utils;
 
-ObjectAllocatorSmp ProcessAllocator;
+IdPool<Process> ProcessIds;
+IdPool<Thread> ThreadIds;
 
-Handle Beelzebub::SpawnProcess()
+void Beelzebub::InitializeExecutionData()
+{
+    void * procList = new uintptr_t[MAX_PROCESSES];
+    void * threadList = new uintptr_t[MAX_THREADS];
+
+    ASSERT(procList != nullptr);
+    ASSERT(threadList != nullptr);
+
+    new (&ProcessIds) IdPool<Process>(procList, MAX_PROCESSES);
+    new (&ThreadIds) IdPool<Thread>(threadList, MAX_THREADS);
+
+    uintptr_t const bootstrapProcessId = ProcessIds.Acquire(&BootstrapProcess);
+
+    ASSERT(BootstrapProcess.Id == bootstrapProcessId);
+}
+
+Result<SpawnProcessResult, Execution::Process *> Beelzebub::SpawnProcess()
 {
 
 }
