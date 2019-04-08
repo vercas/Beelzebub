@@ -25,6 +25,7 @@ BochsLog.txt
 /scripts/StartBochs.bat
 /start_virtualbox.bat
 /toolchain/debug.logger
+/toolchain/**/*.o
 
 /image/grub/
 /include_
