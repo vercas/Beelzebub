@@ -1171,8 +1171,6 @@ void Beelzebub::Main()
     MainInitializeVirtualMemory();
     MainInitializeBootModules();
 
-    InitializeExecutionData();
-
     //  This should really be done under a lock.
     InitializationLock.Acquire();
 
@@ -1196,6 +1194,8 @@ void Beelzebub::Main()
 #endif
 
     MainBootstrapThread();
+
+    InitializeExecutionData();
 
 #ifdef __BEELZEBUB__TEST_STACKINT
     if (CHECK_TEST(STACKINT))
