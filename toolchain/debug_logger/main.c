@@ -40,8 +40,12 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <netdb.h>
 #include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 #include <errno.h>
+#include <arpa/inet.h>
 
 #define _ALADIN
 #include "djinn.h"
@@ -65,39 +69,73 @@ int SendPacketG(struct DjinnGenericPacket const * DGP, int len);
 
 int main(int argc, char * * argv)
 {
-    struct sockaddr_un addr;
     int ret, reportedConnectionFailure = 0;
 
-    if (argc < 2)
-    {
-        fprintf(stderr, "Expected one argument: socket to connect to.\n");
-        return 126;
-    }
+    // if (argc < 2)
+    // {
+    //     fprintf(stderr, "Expected one argument: socket to connect to.\n");
+    //     return 126;
+    // }
 
 start_over:
-    if ((SockFD = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
+    if (argc == 2)
     {
-        perror("socket");
-        return 1;
-    }
+        struct sockaddr_un addr;
 
-    memset(&addr, 0, sizeof(addr));
-    addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, argv[1], sizeof(addr.sun_path)-1);
-
-    if (connect(SockFD, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-    {
-        if (reportedConnectionFailure != errno)
+        if ((SockFD = socket(AF_UNIX, SOCK_STREAM, 0)) < 0)
         {
-            perror("connect");
-            printf("Looking for socket %s...\n", addr.sun_path);
-            reportedConnectionFailure = errno;
+            perror("Unix socket");
+            return 1;
         }
 
-        close(SockFD);
-        sleep(1);
+        memset(&addr, 0, sizeof(addr));
+        addr.sun_family = AF_UNIX;
+        strncpy(addr.sun_path, argv[1], sizeof(addr.sun_path)-1);
 
-        goto start_over;
+        if (connect(SockFD, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+        {
+            if (reportedConnectionFailure != errno)
+            {
+                perror("Unix socket connect");
+                printf("Looking for Unix socket %s...\n", addr.sun_path);
+                reportedConnectionFailure = errno;
+            }
+
+            close(SockFD);
+            sleep(1);
+
+            goto start_over;
+        }
+    }
+    else
+    {
+        struct sockaddr_in addr;
+
+        if ((SockFD = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        {
+            perror("TCP socket");
+            return 1;
+        }
+
+        memset(&addr, 0, sizeof(addr));
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
+        addr.sin_port = htons(2345);
+
+        if (connect(SockFD, (struct sockaddr *)&addr, sizeof(addr)) < 0)
+        {
+            if (reportedConnectionFailure != errno)
+            {
+                perror("TCP socket connect");
+                printf("Looking for TCP server 127.0.0.1:2345...\n");
+                reportedConnectionFailure = errno;
+            }
+
+            close(SockFD);
+            sleep(1);
+
+            goto start_over;
+        }
     }
 
     printf("Connected.\n");
