@@ -143,8 +143,13 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunctionVoid func, void * cookie)
 {
     uint64_t ticks = delay.Value * ApicTimer::TicksPerMicrosecond;
 
+    DEBUG_TERM_ << "Enqueuing timer for " << ticks << " ticks." << Terminals::EndLine;
+
     if unlikely(ticks > 0xFFFFFFFFULL)
+    {
+        MSG_("Too many ticks: %X8%n", ticks);
         return false;
+    }
     else if unlikely(ticks == 0)
         ticks = 1;
 
@@ -153,7 +158,10 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunctionVoid func, void * cookie)
     uint_fast16_t timersCount = MyTimersCount;
 
     if unlikely(timersCount == Timer::Count)
+    {
+        MSG_("Too many timers!%n");
         return false;
+    }
 
     if likely(timersCount > 0)
     {

@@ -1,6 +1,10 @@
 CFLAGS+=-iquote ../../sysheaders/common/
 
-all: ../debug.logger
+all: bin/aladin
 
-../debug.logger: main.o
+bin/aladin: main.o | bin
 	$(CC) -o $@ $<
+
+bin:
+	mkdir bin
+

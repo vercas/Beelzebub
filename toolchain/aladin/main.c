@@ -46,6 +46,8 @@
 #define _ALADIN
 #include "djinn.h"
 
+//#define DUMP_PACKETS
+
 enum STATE
 {
     AwaitingHandshake,
@@ -53,10 +55,21 @@ enum STATE
     Logging
 } State;
 
-int SockFD = 0, awaitingBogusByte;
-char BuffIn[256];
+int SockFD = 0;
 
-int ReadPacket(void); // Returns packet length or negative integer on error.
+struct ReadPacket
+{
+    int Length;
+
+    union
+    {
+        struct DjinnSimplePacket  const * DSP;
+        struct DjinnDwordPacket   const * DDP;
+        struct DjinnGenericPacket const * DGP;
+    };
+};
+
+struct ReadPacket ReadPacket(void); // Returns packet or negative length on error.
 int Loop(void); // Returns 0 on success, 1 when the socket closed.
 
 int SendPacketS(uint16_t type);
@@ -101,7 +114,6 @@ start_over:
     }
 
     printf("Connected.\n");
-    awaitingBogusByte = 1;
     State = AwaitingHandshake;
 
     ret = Loop();
@@ -120,37 +132,26 @@ start_over:
 
 int Loop(void)
 {
-    int len;
+    struct ReadPacket rp;
 
 loop_again:
-    if ((len = ReadPacket()) < 0)
-        return len;
-
-    struct DjinnSimplePacket  const * DSP = (void *)(BuffIn + 1);
-    struct DjinnDwordPacket   const * DDP = (void *)(BuffIn + 1);
-    struct DjinnGenericPacket const * DGP = (void *)(BuffIn + 1);
-
-    printf("Pack[%2d]:", len);
-
-    for (int i = 0; i < len; ++i)
-        printf(" %02X", (unsigned int)BuffIn[i + 1] & 0xFF);
-
-    printf("\n");
+    if ((rp = ReadPacket()).Length < 0)
+        return rp.Length;
 
     switch (State)
     {
     case AwaitingHandshake:
-        if (DDP->Type != DJINN_PACKET_HANDSHAKE0)
+        if (rp.DDP->Type != DJINN_PACKET_HANDSHAKE0)
         {
-            printf("Expected DJINN_PACKET_HANDSHAKE0 (%u), got %u instead.\n", DJINN_PACKET_HANDSHAKE0, DDP->Type);
+            printf("Expected DJINN_PACKET_HANDSHAKE0 (%u), got %u instead.\n", DJINN_PACKET_HANDSHAKE0, rp.DDP->Type);
             return -100;
         }
         else
         {
-            if (DDP->Payload != 0xF00000FF00FFF000ULL)
+            if (rp.DDP->Payload != 0xF00000FF00FFF000ULL)
             {
-                printf("Expected DJINN_PACKET_HANDSHAKE0 payload to be %ullX, got %ullX instead.\n"
-                    , 0xF00000FF00FFF000ULL, DDP->Payload);
+                printf("Expected DJINN_PACKET_HANDSHAKE0 payload to be %lluX, got %lluX instead.\n"
+                    , 0xF00000FF00FFF000ULL, rp.DDP->Payload);
                 return -101;
             }
 
@@ -160,17 +161,17 @@ loop_again:
         }
 
     case AwaitingHandshakeResponse:
-        if (DDP->Type != DJINN_PACKET_HANDSHAKE2)
+        if (rp.DDP->Type != DJINN_PACKET_HANDSHAKE2)
         {
-            printf("Expected DJINN_PACKET_HANDSHAKE2 (%u), got %u instead.\n", DJINN_PACKET_HANDSHAKE2, DDP->Type);
+            printf("Expected DJINN_PACKET_HANDSHAKE2 (%u), got %u instead.\n", DJINN_PACKET_HANDSHAKE2, rp.DDP->Type);
             return -110;
         }
         else
         {
-            if (DDP->Payload != (0x123456789ABCDEF0 ^ 0xF00000FF00FFF000ULL))
+            if (rp.DDP->Payload != (0x123456789ABCDEF0 ^ 0xF00000FF00FFF000ULL))
             {
-                printf("Expected DJINN_PACKET_HANDSHAKE2 payload to be %ullX, got %ullX instead.\n"
-                    , 0x123456789ABCDEF0 ^ 0xF00000FF00FFF000ULL, DDP->Payload);
+                printf("Expected DJINN_PACKET_HANDSHAKE2 payload to be %lluX, got %lluX instead.\n"
+                    , 0x123456789ABCDEF0 ^ 0xF00000FF00FFF000ULL, rp.DDP->Payload);
                 return -111;
             }
 
@@ -179,15 +180,20 @@ loop_again:
         }
 
     case Logging:
-        switch (DSP->Type)
+        switch (rp.DSP->Type)
         {
         case DJINN_PACKET_LOG:
-            printf("%.*s", len - 3, DGP->Payload);
+            //printf("%.*s", len - 3, rp.DGP->Payload);
+            fwrite(rp.DGP->Payload, rp.Length - sizeof(rp.DGP->Type), 1, stdout);
+            fflush(stdout);
             break;
 
         default:
-            printf("Unsupport packet type: %u\n", DSP->Type);
+            printf("Unsupport packet type: %u\n", rp.DSP->Type);
+            break;
         }
+
+        break;
 
     default:
         printf("Unknown state!\n");
@@ -197,69 +203,67 @@ loop_again:
     goto loop_again;
 }
 
-int ReadPacket()
+struct ReadPacket ReadPacket()
 {
+    static char BuffIn[4096];
+    static int BuffLen = 0;
+
     int cursor, len, packLen;
+    struct ReadPacket ret = { 0, { (struct DjinnSimplePacket *)(BuffIn + 1) } };
 
-    // printf("Reading new packet.\n");
-
-    if ((cursor = recv(SockFD, BuffIn, sizeof(BuffIn), 0)) < 0)
+    if (BuffLen > 0)
     {
-        perror("recv first part of packet");
-        return -1;
+        //  If there is data in the buffer, remove a packet from it.
+
+        cursor = BuffLen - BuffIn[0] - 1;
+#ifdef DUMP_PACKETS
+        printf("Shifting BuffIn: %p [%d] <- %p | %d\n", BuffIn, BuffLen, BuffIn + BuffIn[0] + 1, cursor);
+#endif
+        if (cursor > 0)
+            memmove(BuffIn, BuffIn + BuffIn[0] + 1, cursor);
     }
-    else if (cursor == 0)
-    {
-        puts("Disconnected.");
-        return -2;
-    }
+    else
+        cursor = 0;
 
-    packLen = BuffIn[0];
-
-    if (awaitingBogusByte && packLen == '\r')
-    {
-        printf("Discarding bizzare carriage return at the beginning of the package.\n");
-
-        memmove(BuffIn, BuffIn + 1, --cursor);
-        packLen = BuffIn[0];
-
-        awaitingBogusByte = 0;
-    }
-
-    ++packLen;  //  Account for the size prefix.
-
-    // for (int i = 0; i < cursor; ++i)
-        // printf(" %02uX", BuffIn[i]);
-
-    // printf("\n");
-
-    // printf("Read %d bytes at first, length is %d.\n", cursor, packLen);
+    if (cursor == 0)
+        packLen = sizeof(BuffIn);   //  No length available (yet) means read as much as possible.
+    else
+        packLen = BuffIn[0] + 1;    //  Account for the size prefix.
 
     while (cursor < packLen)
-        if ((len = recv(SockFD, BuffIn + cursor, packLen - cursor, 0)) < 0)
+        if ((len = recv(SockFD, BuffIn + cursor, sizeof(BuffIn) - cursor, 0)) < 0)
         {
-            perror("recv mid-packet");
-            return -3;
+            perror("recv packet");
+            ret.Length = -1;
+            return ret;
         }
         else if (len == 0)
         {
             puts("Disconnected.");
-            return -2;
+            ret.Length = -2;
+            return ret;
         }
         else
         {
-            // for (int i = 0; i < len; ++i)
-                // printf(" %02uX", BuffIn[cursor + i]);
-
-            // printf("\n");
+            if (cursor == 0)
+                packLen = BuffIn[0] + 1;    //  Now the size is known!
 
             cursor += len;
-            // printf("Read %d more bytes for a total of %d bytes.\n", len, cursor);
         }
 
-    // printf("Packet done.\n");
+#ifdef DUMP_PACKETS
+    printf(" IN [%2d]:", packLen - 1);
 
-    return packLen - 1; //  Accounting again for size prefix.
+    for (int i = 1; i < packLen; ++i)
+        printf(" %02X", (unsigned int)BuffIn[i] & 0xFF);
+
+    printf("\n");
+#endif
+
+    BuffLen = cursor;
+
+    ret.Length = packLen - 1;
+    return ret;
 }
 
 int SendPacketS(uint16_t type)
@@ -279,9 +283,21 @@ int SendPacketD(uint16_t type, uint64_t payload)
 int SendPacketG(struct DjinnGenericPacket const * DGP, int len)
 {
     int cursor = 0, ret;
+    static char BuffOut[256];
+    BuffOut[0] = len;
+    memcpy(BuffOut + 1, DGP, len++);
+
+#ifdef DUMP_PACKETS
+    printf("OUT [%2d]:", BuffOut[0]);
+
+    for (int i = 1; i < len; ++i)
+        printf(" %02X", (unsigned int)BuffOut[i] & 0xFF);
+
+    printf("\n");
+#endif
 
     while (cursor < len)
-        if ((ret = send(SockFD, (char *)DGP + cursor, len - cursor, 0)) < 0)
+        if ((ret = send(SockFD, BuffOut + cursor, len - cursor, 0)) < 0)
         {
             perror("send packet");
             return -1;
