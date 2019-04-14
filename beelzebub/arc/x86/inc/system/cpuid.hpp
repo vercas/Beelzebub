@@ -105,6 +105,8 @@ namespace Beelzebub { namespace System
                          : "a" (in1), "c" (in2));
         }
 
+        static constexpr size_t const FeatureIntegerCount = 4;
+
         /*  Cosntructor(s)  */
 
         CpuId() = default;
@@ -139,7 +141,7 @@ namespace Beelzebub { namespace System
 
         uint32_t VersionInformation, FeatureFlagsStandardB;
         uint32_t ExtendedSignature, FeatureFlagsExtendedB, FeatureFlagsExtendedC;
-        uint32_t FeatureIntegers[3];
+        uint32_t FeatureIntegers[FeatureIntegerCount];
 
         /*  Info extraction  */
 

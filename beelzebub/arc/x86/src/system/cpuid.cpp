@@ -109,6 +109,13 @@ void CpuId::Initialize()
         this->Vendor = CpuVendor::Unknown;
     }
 
+    if (this->MaxExtendedValue >= 0x80000007U)
+    {
+        Execute(0x80000007U
+            , dummy, dummy, dummy
+            , this->FeatureIntegers[3]);
+    }
+
     if (this->MaxExtendedValue >= 0x80000004U)
     {
         //  First part (16 characters) of the processor name string.
@@ -160,7 +167,7 @@ bool CpuId::CheckFeature(const CpuFeature feature) const
     FEATUREBITEX(val, varInd, bit);
     //  Extracts the relevant information.
 
-    if (varInd < 3)
+    if (varInd < FeatureIntegerCount)
         return 0 != (this->FeatureIntegers[varInd] & bit);
     else
         return false;

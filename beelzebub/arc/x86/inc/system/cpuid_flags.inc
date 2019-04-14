@@ -92,12 +92,14 @@ CPUID_FEATURE(NX                          ,  2, 20, NX                          
 CPUID_FEATURE(Page1GB                     ,  2, 26, Page1GB                     )
 CPUID_FEATURE(RDTSP                       ,  2, 27, RDTSP                       )
 CPUID_FEATURE(LM                          ,  2, 29, LM                          )
+CPUID_FEATURE(InvariantTsc                ,  3,  8, Invariant-TSC               )
 
 /*
  *  Register indexes:
  *       0: 0x00000001 EDX
  *       1: 0x00000001 ECX
  *       2: 0x80000001 EDX
+ *       3: 0x80000007 EDX
  *
  *      99:--PLACEHOLDER--
  */
