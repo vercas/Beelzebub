@@ -41,6 +41,7 @@
 #include "irqs.hpp"
 #include "system/timers/apic.timer.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
+#include "system/cpuid.hpp"
 #include <beel/sync/smp.lock.hpp>
 #include <string.h>
 
@@ -135,6 +136,14 @@ void Timer::Initialize()
     auto const regres = Lapic::Ender.Register(Irqs::ApicTimer);
 
     ASSERT(regres == IrqEnderRegisterResult::Success || regres == IrqEnderRegisterResult::AlreadyRegistered)(regres);
+
+    uint32_t cccf, numerator, denominator, dummy;
+
+    CpuId::Execute(0x15, denominator, numerator, cccf, dummy);
+
+    DEBUG_TERM_ << "Core Crystal Clock Frequency: " << cccf
+                << " Hz; Numerator: " << numerator << "; Denominator: "
+                << denominator << "; dummy: " << dummy << Terminals::EndLine;
 }
 
 /*  Operation  */
