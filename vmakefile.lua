@@ -141,13 +141,6 @@ GlobalData {
         return settXcDir or (xcsDir + ("gcc-" .. selArch.Data.GccTargetName .. "-beelzebub/bin"))
     end,
 
-    CC    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
-    CXX   = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-g++'",
-    GAS   = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
-    LO    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
-    LD    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-ld'",
-    AR    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc-ar'",
-    STRIP = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-strip'",
     AS    = "nasm",
     TAR   = "tar",
     GZIP  = "gzip",
@@ -514,6 +507,8 @@ GlobalData {
     UserlandDynamicAllocatorPath = function()
         return Sysroot + ("usr/lib/lib" .. dynAllocLibs[settUsrDynAlloc] .. ".userland.a")
     end,
+
+    AladinPath = DAT "outDir + 'aladin'",
 }
 
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
@@ -532,6 +527,16 @@ end
 
 Project "Beelzebub" {
     Description = "Lord of Flies",
+
+    Data = {
+        CC    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
+        CXX   = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-g++'",
+        GAS   = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
+        LO    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc'",
+        LD    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-ld'",
+        AR    = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-gcc-ar'",
+        STRIP = DAT "XCDirectory + selArch.Data.GccTargetName .. '-beelzebub-strip'",
+    },
 
     Output = function()
         if selArch.Base.Data.ISO then
@@ -1386,6 +1391,51 @@ Project "Beelzebub" {
 
             Action = CopySingleFileAction,
         },
+    },
+
+    CreateMissingDirectoriesRule(true),
+}
+
+Project "Toolchain" {
+    Description = "Toolchain for building Beelzebub",
+
+    Data = {
+        CC    = "gcc",
+        CXX   = "g++",
+        GAS   = "gcc",
+        LO    = "gcc",
+        LD    = "gcc",
+        AR    = "gcc-ar",
+        STRIP = "strip",
+    },
+
+    Output = LST "!AladinPath",
+
+    ManagedComponent "Aladin" {
+        Languages = { "C" },
+        Target = "Executable",
+
+        Data = {
+            BinaryPath = DAT "AladinPath",
+            -- PrecompiledCppHeader = "common.h",
+
+            Opts_Includes = function()
+                local res = Opts_Includes_Base
+
+                SysheaderDirectories:ForEach(function(val)
+                    res:AppendMany { "-iquote", val }
+                end)
+
+                return res
+            end,
+
+            Opts_C = LST "-std=gnu11 -flto -DALADIN !Opts_Includes",
+            Opts_LD = LST "-fuse-linker-plugin !Opts_C",
+        },
+
+        Directory = "toolchain/aladin",
+
+        Output = DAT "AladinPath",
     },
 
     CreateMissingDirectoriesRule(true),
