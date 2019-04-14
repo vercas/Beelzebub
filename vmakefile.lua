@@ -133,6 +133,8 @@ CmdOpt "xc-dir" {
 
     Handler = function(val)
         settXcDir = val
+
+        TransferArgument("--xc-dir=" .. val)
     end,
 }
 
@@ -219,6 +221,8 @@ CmdOpt "tests" "t" {
                 settSelTests:AppendUnique(testName)
             end
         end
+
+        TransferArgument("--tests=" .. val)
     end,
 }
 
@@ -243,6 +247,8 @@ CmdOpt "unit-tests" {
         else
             settUnitTests = bVal
         end
+
+        TransferArgument("--unit-tests=" .. val)
     end,
 }
 
@@ -276,6 +282,8 @@ CmdOpt "kernel-dynalloc" {
         end
 
         settKrnDynAlloc = string.upper(val)
+
+        TransferArgument("--kernel-dynalloc=" .. val)
     end,
 }
 
@@ -292,6 +300,8 @@ CmdOpt "userland-dynalloc" {
         end
 
         settUsrDynAlloc = string.upper(val)
+
+        TransferArgument("--userland-dynalloc=" .. val)
     end,
 }
 
@@ -318,6 +328,8 @@ CmdOpt "march" {
         end
 
         specialOptions:Append("-march=" .. val)
+
+        TransferArgument("--march=" .. val)
     end,
 }
 
@@ -332,6 +344,8 @@ CmdOpt "mtune" {
         end
 
         specialOptions:Append("-mtune=" .. val)
+
+        TransferArgument("--mtune=" .. val)
     end,
 }
 
@@ -341,7 +355,11 @@ CmdOpt "smp" {
 
     Type = "boolean",
 
-    Handler = function(val) settSmp = val end,
+    Handler = function(val)
+        settSmp = val
+
+        TransferArgument("--smp=" .. val)
+    end,
 }
 
 CmdOpt "inline-spinlocks" {
@@ -350,7 +368,11 @@ CmdOpt "inline-spinlocks" {
 
     Type = "boolean",
 
-    Handler = function(val) settInlineSpinlocks = val end,
+    Handler = function(val)
+        settInlineSpinlocks = val
+
+        TransferArgument("--inline-spinlocks=" .. val)
+    end,
 }
 
 CmdOpt "apic-mode" {
@@ -366,6 +388,8 @@ CmdOpt "apic-mode" {
         end
 
         settApicMode = string.upper(val)
+
+        TransferArgument("--apic-mode=" .. val)
     end,
 }
 
@@ -374,7 +398,11 @@ CmdOpt "unoptimize" {
 
     Type = "boolean",
 
-    Handler = function(val) settUnopt = val end,
+    Handler = function(val)
+        settUnopt = val
+
+        TransferArgument("--unoptimize=" .. val)
+    end,
 }
 
 --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --  --
