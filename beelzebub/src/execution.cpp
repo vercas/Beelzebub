@@ -67,9 +67,15 @@ void Beelzebub::InitializeExecutionData()
     new (&ProcessIds) IdPool<Process>(procList, MAX_PROCESSES);
     new (&ThreadIds) IdPool<Thread>(threadList, MAX_THREADS);
 
-    uintptr_t const bootstrapProcessId = ProcessIds.Acquire(&BootstrapProcess);
+    uintptr_t bootstrapProcessId = ProcessIds.Acquire(&BootstrapProcess);
 
-    ASSERT(BootstrapProcess.Id == bootstrapProcessId);
+    ASSERT(bootstrapProcessId == 0)(bootstrapProcessId);
+    //  This one is discarded and reserved forever.
+
+    bootstrapProcessId = ProcessIds.Acquire(&BootstrapProcess);
+
+    ASSERT(BootstrapProcess.Id == bootstrapProcessId)(BootstrapProcess.Id)(bootstrapProcessId);
+    //  Should be 1 now.
 }
 
 Result<SpawnProcessResult, Execution::Process *> Beelzebub::SpawnProcess()

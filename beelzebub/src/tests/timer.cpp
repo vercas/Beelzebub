@@ -79,6 +79,7 @@ void TestTimer()
     DEBUG_TERM_ << "Starting 6 timers at "
                 << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
                 << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds
+                << "; Ticks per microsecond: " << Timers::ApicTimer::TicksPerMicrosecond
                 << EndLine;
 
     ASSERT(Timer::Enqueue(3secs_l        , &Test1, reinterpret_cast<void *>(3)));
