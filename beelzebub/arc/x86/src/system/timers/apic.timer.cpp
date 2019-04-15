@@ -63,12 +63,10 @@ static __cold void CalibratorIrqHandler(InterruptContext const * context, void *
 InterruptHandlerNode PitNode { &PitTickIrqHandler, nullptr, Irqs::MaxPriority };
 InterruptHandlerNode LapicNode { &CalibratorIrqHandler, nullptr, Irqs::MaxPriority };
 
-static constexpr uint32_t const PitFrequency = 14551;
-
 enum CalibrationStatus { Ongoing, Successful, Failed };
 
 static int Stage = 0;
-static constexpr int const TotalStages = 100;
+static int TotalStages = 100;
 static Atomic<CalibrationStatus> Status;
 static size_t FirstTicks, AverageTicksPerStage;
 static size_t FirstCount, AverageCountsPerStage;
@@ -181,6 +179,14 @@ void ApicTimer::Initialize(bool bsp)
 
     //  Then, the PIT.
 
+    uint32_t PitFrequency = 14551;
+
+    if (BootstrapCpuid.CheckFeature(CpuFeature::VIRTUALIZED))
+    {
+        PitFrequency = 100;
+        TotalStages = 10;
+    }
+
     Pit::SetFrequency(PitFrequency);
     //  This should equate to a divisor of 82, and a period of ~68.724 microseconds.
 
@@ -189,8 +195,7 @@ void ApicTimer::Initialize(bool bsp)
     unsigned int divisor;
     size_t freq = 0, absFreq = 0, tscfrq = 0;
 
-    // for (divisor = 1; !sufficient && divisor <= 128; divisor <<= 1)
-    for (divisor = 128; !sufficient && divisor >= 1; divisor >>= 1)
+    for (divisor = 1; !sufficient && divisor <= 128; divisor <<= 1)
     {
         Lapic::WriteRegister(LapicRegister::TimerDivisor, TranslateDivisor(divisor));
 
@@ -204,13 +209,11 @@ void ApicTimer::Initialize(bool bsp)
         //  Now, wait for the counter to change.
 
         if (Status == Failed)
-            // continue;
-            break;
+            continue;
         //  Upon failure, the divisor needs to be increased.
 
         if (AverageTicksPerStage < Pit::Period)
-            // break;
-            continue;
+            break;
         //  No point in testing further if microsecond precision cannot be achieved.
 
         freq = AverageTicksPerStage * PitFrequency;
