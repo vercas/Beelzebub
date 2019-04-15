@@ -100,6 +100,7 @@ using namespace Beelzebub::Utils;
 
 static SmpLock InitializationLock;
 static SmpLock TerminalMessageLock;
+static TerminalBase * InitTerminal = nullptr;
 
 static Barrier InitBarrier;
 
@@ -273,14 +274,14 @@ __startup void MainInitializeInterrupts()
     //  Setting up basic interrupt handlers 'n stuff.
     //  Again, platform-specific.
 
-    MainTerminal->Write("[....] Initializing interrupts...");
+    InitTerminal->Write("[....] Initializing interrupts...");
     Handle res = InitializeInterrupts();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize interrupts: %H", res);
     }
@@ -296,7 +297,7 @@ __startup void MainInitializeDebugInterface()
     DjinnInterfaces iface;
     Handle res;
 
-    MainTerminal->Write("[....] Initializing debugger interface...");
+    InitTerminal->Write("[....] Initializing debugger interface...");
 
     if (CMDO_Debugger.ParsingResult.IsValid())
     {
@@ -314,7 +315,7 @@ __startup void MainInitializeDebugInterface()
                                                                                 \
             if (COM##n.Type == SerialPortType::Disconnected)                    \
             {                                                                   \
-                MainTerminal->WriteFormat(" COM" #n " not connected.\r[FAIL]%n"); \
+                InitTerminal->WriteFormat(" COM" #n " not connected.\r[FAIL]%n"); \
                                                                                 \
                 return;                                                         \
             }                                                                   \
@@ -328,14 +329,14 @@ __startup void MainInitializeDebugInterface()
     #undef CASE_COM
 
         default:
-            MainTerminal->WriteFormat(" Unsupported: %i4 %s.\r[FAIL]%n", ppr.Error, CMDO_Debugger.StringValue);
+            InitTerminal->WriteFormat(" Unsupported: %i4 %s.\r[FAIL]%n", ppr.Error, CMDO_Debugger.StringValue);
 
             return;
         }
     }
     else
     {
-        MainTerminal->WriteLine(" None specified.\r[SKIP]");
+        InitTerminal->WriteLine(" None specified.\r[SKIP]");
 
         return;
     }
@@ -346,13 +347,13 @@ __startup void MainInitializeDebugInterface()
 
     if (res.IsOkayResult())
     {
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
 
         Debug::DebugTerminal = new (&initialDjinnTerminal) DjinnTerminal();
     }
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize debugger interface: %H", res);
     }
@@ -360,7 +361,7 @@ __startup void MainInitializeDebugInterface()
     return;
 
 conflict:
-    MainTerminal->WriteLine(" Conflict with kernel terminal.\r[FAIL]");
+    InitTerminal->WriteLine(" Conflict with kernel terminal.\r[FAIL]");
 }
 
 /**********************
@@ -372,14 +373,14 @@ static __startup void MainInitializePhysicalMemory()
     //  Initialize the memory by partition and allocation.
     //  Differs on IA-32 and AMD64. May tweak virtual memory in the process.
 
-    MainTerminal->Write("[....] Initializing physical memory...");
+    InitTerminal->Write("[....] Initializing physical memory...");
     Handle res = InitializePhysicalMemory();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize physical memory: %H", res);
     }
@@ -404,11 +405,11 @@ __startup Handle InitializeAcpiTables()
         return res;
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
-    MainTerminal->WriteFormat(" %us LAPIC%s,"
+    InitTerminal->WriteFormat(" %us LAPIC%s,"
         , Acpi::PresentLapicCount, Acpi::PresentLapicCount != 1 ? "s" : "");
 #endif
 
-    MainTerminal->WriteFormat(" %us I/O APIC%s..."
+    InitTerminal->WriteFormat(" %us I/O APIC%s..."
         , Acpi::IoapicCount, Acpi::IoapicCount != 1 ? "s" : "");
 
     return HandleResult::Okay;
@@ -419,14 +420,14 @@ static __startup void MainInitializeAcpiTables()
     //  Initialize the ACPI tables for easier use.
     //  Mostly common on x86.
 
-    MainTerminal->Write("[....] Crawling ACPI tables...");
+    InitTerminal->Write("[....] Crawling ACPI tables...");
     Handle res = InitializeAcpiTables();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize the ACPI tables: %H", res);
     }
@@ -441,26 +442,26 @@ static __startup void MainInitializeVirtualMemory()
     //  Initialize the virtual memory for use by the kernel.
     //  Differs on IA-32 and AMD64, but both need the APIC remapped.
 
-    MainTerminal->Write("[....] Initializing virtual memory...");
+    InitTerminal->Write("[....] Initializing virtual memory...");
     Handle res = InitializeVirtualMemory();
 
     if (res.IsOkayResult())
     {
-        MainTerminal->Write(" remapping APIC tables... ");
+        InitTerminal->Write(" remapping APIC tables... ");
         res = Acpi::Remap();
 
         if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
+            InitTerminal->WriteLine(" Done.\r[OKAY]");
         else
         {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+            InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
             FAIL("Failed to remap APIC tables: %H", res);
         }
     }
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize virtual memory: %H", res);
     }
@@ -475,18 +476,18 @@ static __startup void MainInitializeCores()
     //  Initialize the manager of processing cores.
     //  Conceptually common on x86, but implemented differently.
 
-    MainTerminal->Write("[....] Initializing processing cores manager...");
+    InitTerminal->Write("[....] Initializing processing cores manager...");
     Handle res = Cores::Initialize(Acpi::PresentLapicCount);
 
     if (res.IsOkayResult())
     {
         Cores::Register();
 
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
     }
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize processing cores manager: %H", res);
     }
@@ -503,11 +504,11 @@ static __startup void MainRunUnitTests()
 
     if (CMDO_UnitTests.ParsingResult.IsValid() && CMDO_UnitTests.BooleanValue)
     {
-        MainTerminal->Write("[....] Running unit tests... ");
+        InitTerminal->Write("[....] Running unit tests... ");
 
         UnitTestsReport report = RunUnitTests();
 
-        *MainTerminal << report.SuccessCount << "/" << report.TestCount
+        *InitTerminal << report.SuccessCount << "/" << report.TestCount
             << " successful.\r[OKAY]" << EndLine;
     }
 }
@@ -546,13 +547,13 @@ __startup Handle InitializeApic()
         (res);
 
     if (Lapic::X2ApicMode)
-        MainTerminal->Write(" Local x2APIC...");
+        InitTerminal->Write(" Local x2APIC...");
     else
-        MainTerminal->Write(" LAPIC...");
+        InitTerminal->Write(" LAPIC...");
 
     if (Acpi::IoapicCount < 1)
     {
-        MainTerminal->Write(" no I/O APIC...");
+        InitTerminal->Write(" no I/O APIC...");
 
         return HandleResult::Okay;
     }
@@ -567,7 +568,7 @@ __startup Handle InitializeApic()
 
     //     auto ioapic = (acpi_madt_io_apic *)e;
 
-    //     MainTerminal->WriteFormat("%n%*(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))"
+    //     InitTerminal->WriteFormat("%n%*(( MADTe: I/O APIC ID-%u1 ADDR-%X4 GIB-%X4 ))"
     //         , (size_t)25, ioapic->Id, ioapic->Address, ioapic->GlobalIrqBase);
     // }
 
@@ -580,7 +581,7 @@ __startup Handle InitializeApic()
     //         {
     //             auto intovr = (acpi_madt_interrupt_override *)e;
 
-    //             MainTerminal->WriteFormat("%n%*(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))"
+    //             InitTerminal->WriteFormat("%n%*(( MADTe: INT OVR BUS-%u1 SIRQ-%u1 GIRQ-%X4 IFLG-%X2 ))"
     //                 , (size_t)23, intovr->Bus, intovr->SourceIrq, intovr->GlobalIrq, intovr->IntiFlags);
     //         }
     //         break;
@@ -589,7 +590,7 @@ __startup Handle InitializeApic()
     //         {
     //             auto lanmi = (acpi_madt_local_apic_nmi *)e;
 
-    //             MainTerminal->WriteFormat("%n%*(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))"
+    //             InitTerminal->WriteFormat("%n%*(( MADTe: LA NMI PID-%u1 IFLG-%X2 LINT-%u1 ))"
     //                 , (size_t)32, lanmi->ProcessorId, lanmi->IntiFlags, lanmi->Lint);
     //         }
     //         break;
@@ -604,14 +605,14 @@ static __startup void MainInitializeApic()
     //  Initialize the LAPIC for the BSP and the I/O APIC.
     //  Mostly common on x86.
 
-    MainTerminal->Write("[....] Initializing APIC...");
+    InitTerminal->Write("[....] Initializing APIC...");
     Handle res = InitializeApic();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize the APIC: %H", res);
     }
@@ -634,13 +635,13 @@ __startup Handle InitializeTimers()
 
     ApicTimer::Initialize(true);
 
-    MainTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
+    InitTerminal->WriteFormat(" APIC @ %u8 Hz...", ApicTimer::Frequency);
 
     Pit::SetFrequency(1000);
     //  This frequency really shouldn't stress the BSP that much, considering
     //  that the IRQ would get 2-3 million clock cycles on modern chips.
 
-    MainTerminal->WriteFormat(" PIT @ %u4 Hz...", Pit::Frequency);
+    InitTerminal->WriteFormat(" PIT @ %u4 Hz...", Pit::Frequency);
 
     Timer::Initialize();
 
@@ -652,14 +653,14 @@ static __startup void MainInitializeTimers()
     //  Preparing the timers for basic timing.
     //  Common on x86.
 
-    MainTerminal->Write("[....] Initializing timers...");
+    InitTerminal->Write("[....] Initializing timers...");
     Handle res = InitializeTimers();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize the timers: %H", res);
     }
@@ -675,11 +676,11 @@ static __startup void MainInitializeMailbox()
     //  Preparing the mailbox.
     //  Common on x86.
 
-    MainTerminal->Write("[....] Initializing mailbox...");
+    InitTerminal->Write("[....] Initializing mailbox...");
     
     Mailbox::Initialize();
 
-    MainTerminal->WriteLine(" Done.\r[OKAY]");
+    InitTerminal->WriteLine(" Done.\r[OKAY]");
 }
 #endif
 
@@ -687,15 +688,15 @@ static __startup void MainBootstrapThread()
 {
     //  Turns the current system state into a kernel process and a main thread.
 
-    MainTerminal->Write("[....] Initializing as bootstrap thread...");
+    InitTerminal->Write("[....] Initializing as bootstrap thread...");
 
     Handle res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess);
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize main entry point as bootstrap thread: %H", res);
     }
@@ -832,7 +833,7 @@ __startup Handle InitializeProcessingUnits()
     BREAKPOINT_SET_AUX((int volatile *)((uintptr_t)&ApBreakpointCookie - (uintptr_t)&ApBootstrapBegin + bootstrapVaddr.Value));
     InterruptState const int_cookie = InterruptState::Enable();
 
-    // MainTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
+    // InitTerminal->WriteFormat("%n      PML4 addr: %XP, GDT addr: %Xp; BSP LAPIC ID: %u4"
     //     , BootstrapPml4Address, KernelGdtPointer.Pointer, Lapic::GetId());
 
     uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
@@ -844,7 +845,7 @@ __startup Handle InitializeProcessingUnits()
 
         auto lapic = (acpi_madt_local_apic *)e;
 
-        // MainTerminal->WriteFormat("%n%*(( MADTe: %s LAPIC LID-%u1 PID-%u1 F-%X4 ))"
+        // InitTerminal->WriteFormat("%n%*(( MADTe: %s LAPIC LID-%u1 PID-%u1 F-%X4 ))"
         //     , (size_t)30, lapic->Id == Lapic::GetId() ? "BSP" : " AP"
         //     , lapic->Id, lapic->ProcessorId, lapic->LapicFlags);
 
@@ -896,13 +897,13 @@ static __startup void MainInitializeExtraCpus()
     //  Note: If SMP is disabled by build, nothing is done, and only the BSP is
     //  used.
 
-    MainTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
+    InitTerminal->WriteLine("[SKIP] Kernel was build with SMP disabled. Other processing units ignored.");
 #else
     MainShouldElideLocks = false;
 
     if (CMDO_SmpEnable.ParsingResult.IsValid() && !CMDO_SmpEnable.BooleanValue)
     {
-        MainTerminal->WriteLine("[SKIP] Extra processing units ignored as indicated in arguments.");
+        InitTerminal->WriteLine("[SKIP] Extra processing units ignored as indicated in arguments.");
 
         CpuDataSetUp = MainShouldElideLocks = true;
         //  Let the kernel know that CPU data is available for use, and elide
@@ -910,21 +911,21 @@ static __startup void MainInitializeExtraCpus()
     }
     else if (Acpi::PresentLapicCount > 1)
     {
-        MainTerminal->Write("[....] Initializing extra processing units...");
+        InitTerminal->Write("[....] Initializing extra processing units...");
         Handle res = InitializeProcessingUnits();
 
         if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
+            InitTerminal->WriteLine(" Done.\r[OKAY]");
         else
         {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+            InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
             FAIL("Failed to initialize the extra processing units: %H", res);
         }
     }
     else
     {
-        MainTerminal->WriteLine("[SKIP] No extra processing units available.");
+        InitTerminal->WriteLine("[SKIP] No extra processing units available.");
 
         CpuDataSetUp = MainShouldElideLocks = true;
         //  Once again...
@@ -937,7 +938,7 @@ static __startup void MainElideLocks()
 #ifdef __BEELZEBUB__TEST_LOCK_ELISION
     if (CHECK_TEST(LOCK_ELISION))
     {
-        MainTerminal->WriteLine("[TEST] Testing lock elision...");
+        InitTerminal->WriteLine("[TEST] Testing lock elision...");
 
         TestLockElision();
     }
@@ -952,14 +953,14 @@ static __startup void MainElideLocks()
     if (MainShouldElideLocks)
    #endif
     {
-        MainTerminal->Write("[....] Eliding locks...");
+        InitTerminal->Write("[....] Eliding locks...");
         Handle res = ElideLocks();
 
         if (res.IsOkayResult())
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
+            InitTerminal->WriteLine(" Done.\r[OKAY]");
         else
         {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+            InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
             FAIL("Failed to elide locks: %H", res);
         }
@@ -972,23 +973,23 @@ static __startup void MainInitializeBootModules()
     //  Initialize the modules loaded by the bootloader with the kernel.
     //  Mostly common.
 
-    MainTerminal->Write("[....] Initializing boot modules...");
+    InitTerminal->Write("[....] Initializing boot modules...");
     Handle res = InitializeModules();
 
     if (res.IsOkayResult())
     {
         // if (KernelImage != nullptr)
-            MainTerminal->WriteLine(" Done.\r[OKAY]");
+            InitTerminal->WriteLine(" Done.\r[OKAY]");
         // else
         // {
-        //     MainTerminal->WriteFormat(" Fail! No kernel image found.\r[FAIL]%n");
+        //     InitTerminal->WriteFormat(" Fail! No kernel image found.\r[FAIL]%n");
 
         //     FAIL("Kernel image hasn't been found!");
         // }
     }
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize modules: %H", res);
     }
@@ -999,22 +1000,22 @@ static __startup void MainInitializeRuntimeLibraries()
     //  Initialize the modules loaded with the kernel.
     //  Mostly common.
 
-    MainTerminal->Write("[....] Initializing runtime libraries...");
+    InitTerminal->Write("[....] Initializing runtime libraries...");
 
 #if   defined(__BEELZEBUB__ARCH_AMD64)
     Handle res = Runtime64::Initialize();
 
     if (res.IsOkayResult())
-        MainTerminal->Write(" 64-bit...");
+        InitTerminal->Write(" 64-bit...");
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize 64-bit runtime: %H", res);
     }
 #endif
 
-    MainTerminal->WriteLine(" Done.\r[OKAY]");
+    InitTerminal->WriteLine(" Done.\r[OKAY]");
     
     //  TODO: The 32-bit subsystem should be handled by a kernel module.
 }
@@ -1029,23 +1030,23 @@ static __startup void MainInitializeFpu()
 
     if (Fpu::StateSize != 0)
     {
-        MainTerminal->Write("[....] Initializing extended thread states...");
+        InitTerminal->Write("[....] Initializing extended thread states...");
         Handle res = ExtendedStates::Initialize(Fpu::StateSize, Fpu::StateAlignment);
 
         if (res.IsOkayResult())
         {
-            MainTerminal->Write(" Allocating template state...");
+            InitTerminal->Write(" Allocating template state...");
 
             void * templateState;
 
             res = ExtendedStates::AllocateTemplate(templateState);
 
             if (res.IsOkayResult())
-                MainTerminal->WriteLine(" Done.\r[OKAY]");
+                InitTerminal->WriteLine(" Done.\r[OKAY]");
             else
             {
-                MainTerminal->WriteLine("\r[FAIL]%n");
-                MainTerminal->WriteLine("       Fail! Could not allocate template state.");
+                InitTerminal->WriteLine("\r[FAIL]%n");
+                InitTerminal->WriteLine("       Fail! Could not allocate template state.");
 
                 FAIL("Failed to allocate template extended thread state: %H", res);
             }
@@ -1056,22 +1057,22 @@ static __startup void MainInitializeFpu()
         }
         else
         {
-            MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+            InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
             FAIL("Failed to initialize extended thread states: %H", res);
         }
     }
     else
     {
-        MainTerminal->WriteLine("[SKIP] Extended thread states not needed by present CPU features.");
+        InitTerminal->WriteLine("[SKIP] Extended thread states not needed by present CPU features.");
     }
 }
 
 static __startup void MainInitializeSyscalls()
 {
-    MainTerminal->Write("[....] Initializing syscalls...");
+    InitTerminal->Write("[....] Initializing syscalls...");
     Syscall::Initialize();
-    MainTerminal->WriteLine(" Done.\r[OKAY]");
+    InitTerminal->WriteLine(" Done.\r[OKAY]");
 }
 
 static __startup void MainInitializeKernelModules()
@@ -1079,14 +1080,14 @@ static __startup void MainInitializeKernelModules()
     //  Prepare the kernel for loading modules into itself.
     //  Pretty much architecture-agnostic, at this point at least.
 
-    MainTerminal->Write("[....] Initializing kernel modules...");
+    InitTerminal->Write("[....] Initializing kernel modules...");
     Handle res = Modules::Initialize();
 
     if (res.IsOkayResult())
-        MainTerminal->WriteLine(" Done.\r[OKAY]");
+        InitTerminal->WriteLine(" Done.\r[OKAY]");
     else
     {
-        MainTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
+        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
 
         FAIL("Failed to initialize kernel modules: %H", res);
     }
@@ -1115,12 +1116,12 @@ static __startup void MainInitializeMainTerminal()
     //  Upgrade the terminal to a more capable and useful one.
     //  Yet again, platform-specific.
 
-    MainTerminal->Write("[....] Initializing main terminal...");
+    InitTerminal->Write("[....] Initializing main terminal...");
 
     TerminalBase * const secondaryTerminal = InitializeTerminalMain();
 
-    MainTerminal->WriteLine(" Done.\r[OKAY]");
-    MainTerminal->WriteLine("Switching over.");
+    InitTerminal->WriteLine(" Done.\r[OKAY]");
+    InitTerminal->WriteLine("Switching over.");
 
     MainTerminal = secondaryTerminal;
 }
@@ -1157,8 +1158,9 @@ void Beelzebub::Main()
 
     //  Basic terminal(s) are initialized as soon as possible.
     MainTerminal = InitializeTerminalProto();
+    InitTerminal = MainTerminal;
 
-    MainTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
+    InitTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
 
     // MSG("Stack pointer in Beelzebub::Main is %Xp.%n", GetCurrentStackPointer());
 
@@ -1174,6 +1176,8 @@ void Beelzebub::Main()
     {
         BootstrapCpuid.PrintToTerminal(Debug::DebugTerminal);
         msg("%n");
+
+        InitTerminal = Debug::DebugTerminal;
     }
 
     // MSGEX("Test {0} {1} {2} {2} {0} {1} {1} {0:bit}.\n", true, -124, "rada");
@@ -1261,7 +1265,7 @@ void Beelzebub::Main()
     MainInitializeMainTerminal();
 
     //  Permit other processors to initialize themselves.
-    MainTerminal->WriteLine("--  Initialization complete! --");
+    InitTerminal->WriteLine("--  Initialization complete! --");
     
     InitBarrier.Reset(Cores::GetCount());
 
@@ -1279,7 +1283,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(METAP))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Metaprgoramming facilities...");
+            InitTerminal->WriteLine("[TEST] Metaprgoramming facilities...");
 
         TestMetaprogramming();
     }
@@ -1289,7 +1293,8 @@ void Beelzebub::Main()
     if (CHECK_TEST(EXCP))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Exceptions...");
+            InitTerminal->WriteLine("[TEST] Exceptions...");
+        MSG_("Starting exceptions test.%n");
 
         TestExceptions();
     }
@@ -1299,7 +1304,8 @@ void Beelzebub::Main()
     if (CHECK_TEST(STR))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] string.h implementation...");
+            InitTerminal->WriteLine("[TEST] string.h implementation...");
+        MSG_("Starting string library test.%n");
 
         TestStringLibrary();
     }
@@ -1309,7 +1315,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(CMDO))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Command-line options parsing...");
+            InitTerminal->WriteLine("[TEST] Command-line options parsing...");
 
         TestCmdo();
     }
@@ -1319,7 +1325,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(TIMER))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Generic timer...");
+            InitTerminal->WriteLine("[TEST] Generic timer...");
 
         TestTimer();
     }
@@ -1329,7 +1335,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(AVL_TREE))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] AVL trees...");
+            InitTerminal->WriteLine("[TEST] AVL trees...");
 
         TestAvlTree();
     }
@@ -1339,7 +1345,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(VAS))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] VAS implementation...");
+            InitTerminal->WriteLine("[TEST] VAS implementation...");
 
         TestVas();
     }
@@ -1349,7 +1355,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(KMOD))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] A kernel module...");
+            InitTerminal->WriteLine("[TEST] A kernel module...");
 
         TestKmod();
     }
@@ -1359,7 +1365,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(TERMINAL))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Terminal implementation(s)...");
+            InitTerminal->WriteLine("[TEST] Terminal implementation(s)...");
 
         TestTerminal();
     }
@@ -1369,7 +1375,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(MT))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Starting multitasking test...");
+            InitTerminal->WriteLine("[TEST] Starting multitasking test...");
 
         StartMultitaskingTest();
     }
@@ -1379,7 +1385,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(INT_LAT))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Interrupt latency...");
+            InitTerminal->WriteLine("[TEST] Interrupt latency...");
 
         TestInterruptLatency();
     }
@@ -1389,7 +1395,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(BIGINT))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] Big integer implementation...");
+            InitTerminal->WriteLine("[TEST] Big integer implementation...");
 
         TestBigInt();
     }
@@ -1399,7 +1405,7 @@ void Beelzebub::Main()
     if (CHECK_TEST(FPU))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteLine("[TEST] FPU and SSE...");
+            InitTerminal->WriteLine("[TEST] FPU and SSE...");
 
         TestFpu();
     }
@@ -1409,12 +1415,12 @@ void Beelzebub::Main()
     if (CHECK_TEST(STACKINT))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing stack integrity.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing stack integrity.%n", Cpu::GetData()->Index);
 
         TestStackIntegrity(true);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished stack integrity test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished stack integrity test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1422,12 +1428,12 @@ void Beelzebub::Main()
     if (Cores::GetCount() > 1 && CHECK_TEST(RW_SPINLOCK))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);
 
         TestRwSpinlock(true);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1435,12 +1441,12 @@ void Beelzebub::Main()
     if (Cores::GetCount() > 1 && CHECK_TEST(RW_TICKETLOCK))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing R/W ticket lock.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing R/W ticket lock.%n", Cpu::GetData()->Index);
 
         TestRwTicketLock(true);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished R/W ticket lock test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished R/W ticket lock test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1448,12 +1454,12 @@ void Beelzebub::Main()
     if (CHECK_TEST(MAILBOX))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing mailbox.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing mailbox.%n", Cpu::GetData()->Index);
 
         TestMailbox(true);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished mailbox test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished mailbox test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1461,12 +1467,12 @@ void Beelzebub::Main()
     if (CHECK_TEST(PMM))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing physical memory manager.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing physical memory manager.%n", Cpu::GetData()->Index);
 
         TestPmm(true);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished PMM test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished PMM test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1474,12 +1480,12 @@ void Beelzebub::Main()
     if (CHECK_TEST(VMM))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing virtual memory manager.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing virtual memory manager.%n", Cpu::GetData()->Index);
 
         TestVmm(true);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished VMM test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished VMM test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1487,12 +1493,12 @@ void Beelzebub::Main()
     if (CHECK_TEST(OBJA))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
 
         TestObjectAllocator(true);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1500,12 +1506,12 @@ void Beelzebub::Main()
     if (CHECK_TEST(MALLOC))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing dynamic allocator.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing dynamic allocator.%n", Cpu::GetData()->Index);
 
         TestMalloc(true);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished dynamic allocator test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished dynamic allocator test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1592,12 +1598,12 @@ void Beelzebub::Secondary()
     if (CHECK_TEST(STACKINT))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing stack integrity.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing stack integrity.%n", Cpu::GetData()->Index);
 
         TestStackIntegrity(false);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished stack integrity test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished stack integrity test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1605,12 +1611,12 @@ void Beelzebub::Secondary()
     if (CHECK_TEST(RW_SPINLOCK))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);
         
         TestRwSpinlock(false);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished R/W spinlock test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1618,12 +1624,12 @@ void Beelzebub::Secondary()
     if (Cores::GetCount() > 1 && CHECK_TEST(RW_TICKETLOCK))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing R/W ticket lock.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing R/W ticket lock.%n", Cpu::GetData()->Index);
 
         TestRwTicketLock(false);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished R/W ticket lock test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished R/W ticket lock test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1631,12 +1637,12 @@ void Beelzebub::Secondary()
     if (CHECK_TEST(MAILBOX))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing mailbox.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing mailbox.%n", Cpu::GetData()->Index);
 
         TestMailbox(false);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished mailbox test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished mailbox test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1644,12 +1650,12 @@ void Beelzebub::Secondary()
     if (CHECK_TEST(PMM))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing physical memory manager.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing physical memory manager.%n", Cpu::GetData()->Index);
         
         TestPmm(false);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished PMM test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished PMM test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1657,12 +1663,12 @@ void Beelzebub::Secondary()
     if (CHECK_TEST(VMM))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing virtual memory manager.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing virtual memory manager.%n", Cpu::GetData()->Index);
         
         TestVmm(false);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished VMM test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished VMM test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1670,12 +1676,12 @@ void Beelzebub::Secondary()
     if (CHECK_TEST(OBJA))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing fixed-sized object allocator.%n", Cpu::GetData()->Index);
 
         TestObjectAllocator(false);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished object allocator test.%n", Cpu::GetData()->Index);
     }
 #endif
 
@@ -1683,12 +1689,12 @@ void Beelzebub::Secondary()
     if (CHECK_TEST(MALLOC))
     {
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Testing dynamic allocator.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Testing dynamic allocator.%n", Cpu::GetData()->Index);
         
         TestMalloc(false);
 
         withLock (TerminalMessageLock)
-            MainTerminal->WriteFormat("Core %us: Finished dynamic allocator test.%n", Cpu::GetData()->Index);
+            InitTerminal->WriteFormat("Core %us: Finished dynamic allocator test.%n", Cpu::GetData()->Index);
     }
 #endif
 

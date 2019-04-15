@@ -242,10 +242,10 @@ void ApicTimer::Initialize(bool bsp)
 
     TscDeadline = BootstrapCpuid.CheckFeature(CpuFeature::TscDeadline);
 
-    MSGEX("APIC timer calibrated:\n\tAPIC Timer Frequency: {0}\n\tAPIC Ticks per Microsecond: {2}"
-          "\n\tPIT Divisor: {4}\n\tTSC Frequency: {1}\n\tTSC Counts per Microsecond: {3}"
-          "\n\tTSC Deadline: {5}\n"
-        , Frequency, TscFrequency, TicksPerMicrosecond, CountsPerMicrosecond, Divisor, TscDeadline);
+    // MSGEX("APIC timer calibrated:\n\tAPIC Timer Frequency: {0}\n\tAPIC Ticks per Microsecond: {2}"
+    //       "\n\tAPIC Timer Divisor: {4}\n\tTSC Frequency: {1}\n\tTSC Counts per Microsecond: {3}"
+    //       "\n\tTSC Deadline: {5}\n"
+    //     , Frequency, TscFrequency, TicksPerMicrosecond, CountsPerMicrosecond, Divisor, TscDeadline);
 }
 
 /*  Operation  */
