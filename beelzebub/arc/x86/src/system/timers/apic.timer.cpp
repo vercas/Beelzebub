@@ -40,6 +40,7 @@
 #include "system/timers/apic.timer.hpp"
 #include "system/timers/pit.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
+#include "system/cpuid.hpp"
 #include <beel/sync/atomic.hpp>
 
 #include <debug.hpp>
@@ -139,6 +140,27 @@ void ApicTimer::Initialize(bool bsp)
         Lapic::WriteRegister(LapicRegister::TimerDivisor, TranslateDivisor(Divisor));
 
         return;
+    }
+
+    if (BootstrapCpuid.MaxStandardValue >= 0x15)
+    {
+        uint32_t cccf = 1337, numerator = 1338, denominator = 1339, dummy = 1340;
+
+        CpuId::Execute(0x15, denominator, numerator, cccf, dummy);
+
+        DEBUG_TERM_ << "Core Crystal Clock Frequency: " << cccf
+                    << " Hz; Numerator: " << numerator << "; Denominator: "
+                    << denominator << "; dummy: " << dummy << Terminals::EndLine;
+    }
+
+    if (BootstrapCpuid.CheckFeature(CpuFeature::VIRTUALIZED) && BootstrapCpuid.MaxVirtualizationValue >= 0x40000010)
+    {
+        uint32_t tscFreq = 1341, apicFreq = 1342, ecx = 1343, edx = 1344;
+
+        CpuId::Execute(0x40000010, tscFreq, apicFreq, ecx, edx);
+
+        DEBUG_TERM_ << "TSC Frequency: " << tscFreq << " KHz; APIC Frequency: "
+                    << apicFreq << "; ECX: " << ecx << "; EDX: " << edx << Terminals::EndLine;
     }
 
     //  First, set up the handlers.

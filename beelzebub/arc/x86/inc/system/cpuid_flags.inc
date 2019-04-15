@@ -85,6 +85,7 @@ CPUID_FEATURE(OSXSAVE                     ,  1, 27, OSXSAVE                     
 CPUID_FEATURE(AVX                         ,  1, 28, AVX                         )
 CPUID_FEATURE(F16C                        ,  1, 29, F16C                        )
 CPUID_FEATURE(RDRAND                      ,  1, 30, RDRAND                      )
+CPUID_FEATURE(VIRTUALIZED                 ,  1, 31, Virtualized                 )
 CPUID_FEATURE(SMEP                        , 99, 99, SMEP                        )  //  TODO
 CPUID_FEATURE(SMAP                        , 99, 99, SMAP                        )  //  TODO
 CPUID_FEATURE(SyscallSysret               ,  2, 11, SyscallSysret               )

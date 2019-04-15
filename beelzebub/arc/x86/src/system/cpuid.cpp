@@ -81,7 +81,7 @@ void CpuId::Initialize()
         , dummy
         , dummy);
 
-    this->VendorString.Characters[12] = 0;
+    this->VendorString.Characters[12] = '\0';
     //  Just ensuring null-termination.
 
     //  Find the standard feature flags.
@@ -140,8 +140,38 @@ void CpuId::Initialize()
             , this->ProcessorName.Integers[11]);
     }
 
-    this->ProcessorName.Characters[48] = 0;
+    this->ProcessorName.Characters[48] = '\0';
     //  Just makin' sure.
+
+    if (this->CheckFeature(CpuFeature::VIRTUALIZED))
+    {
+        //  Find the max standard value and vendor string.
+        Execute(0x40000000U
+            , this->MaxVirtualizationValue
+            , this->HypervisorString.Integers[0]
+            , this->HypervisorString.Integers[1]
+            , this->HypervisorString.Integers[2]);
+
+        if      (::memeq(this->HypervisorString.Characters, "KVMKVMKVM\0\0\0", 12))
+        {
+            this->Hypervisor = VirtualizationVendor::KVM;
+        }
+        else if (::memeq(this->HypervisorString.Characters, "Microsoft Hv", 12))
+        {
+            this->Hypervisor = VirtualizationVendor::Microsoft;
+        }
+        else
+        {
+            this->Hypervisor = VirtualizationVendor::Unknown;
+        }
+
+        this->HypervisorString.Characters[12] = '\0';
+    }
+    else
+    {
+        this->HypervisorString.Characters[0] = '\0';
+        this->Hypervisor = VirtualizationVendor::None;
+    }
 }
 
 void CpuId::InitializeIntel()
@@ -227,10 +257,39 @@ TerminalWriteResult CpuId::PrintToTerminal(TerminalBase * const term) const
     if (this->MaxExtendedValue >= 0x80000004U)
         TERMTRY1(term->WriteFormat("  Processor Name: %s%n", this->ProcessorName.Characters), tret, cnt);
 
+    if (this->CheckFeature(CpuFeature::VIRTUALIZED))
+    {
+        TERMTRY1(term->WriteFormat("  Hypervisor String: %s%n", this->HypervisorString.Characters), tret, cnt);
+
+        TERMTRY1(term->Write("  Virtualization Vendor: "), tret, cnt);
+
+        switch (this->Hypervisor)
+        {
+            case VirtualizationVendor::None:
+                TERMTRY1(term->WriteLine("NONE?!"), tret, cnt);
+                break;
+
+            case VirtualizationVendor::Microsoft:
+                TERMTRY1(term->WriteLine("Microsoft"), tret, cnt);
+                break;
+
+            case VirtualizationVendor::KVM:
+                TERMTRY1(term->WriteLine("KVM"), tret, cnt);
+                break;
+
+            default:
+                TERMTRY1(term->WriteLine("UNKNOWN"), tret, cnt);
+                break;
+        }
+    }
+
     TERMTRY1(term->WriteLine("  ----"), tret, cnt);
 
     TERMTRY1(term->WriteFormat("  Max Standard Value: %X4%n", this->MaxStandardValue), tret, cnt);
     TERMTRY1(term->WriteFormat("  Max Extended Value: %X4%n", this->MaxExtendedValue), tret, cnt);
+
+    if (this->CheckFeature(CpuFeature::VIRTUALIZED))
+        TERMTRY1(term->WriteFormat("  Max Virtualization Value: %X4%n", this->MaxVirtualizationValue), tret, cnt);
 
     TERMTRY1(term->WriteLine("  ---- Version info"), tret, cnt);
 

@@ -87,8 +87,6 @@ using namespace Beelzebub::System::Timers;
 using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
-CpuId Beelzebub::BootstrapCpuid;
-
 /*******************
     ENTRY POINTS
 *******************/
@@ -292,16 +290,6 @@ __startup Handle InitializePhysicalAllocator(jg_info_mmap_t * map // TODO: Don't
 Handle Beelzebub::InitializePhysicalMemory()
 {
     Handle res;
-
-    BootstrapCpuid = CpuId();
-    BootstrapCpuid.Initialize();
-    //  This is required to page all the available memory.
-
-    if (DebugTerminal != nullptr)
-    {
-        BootstrapCpuid.PrintToTerminal(DebugTerminal);
-        msg("%n");
-    }
 
     res = InitializePhysicalAllocator(JG_INFO_MMAP_EX, JG_INFO_ROOT_EX->mmap_count, paddr_t(JG_INFO_ROOT_EX->free_paddr), &Domain0);
 

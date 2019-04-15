@@ -73,6 +73,20 @@ namespace Beelzebub { namespace System
     };
 
     /**
+     *  Known/supported virtualization vendors
+     */
+    enum class VirtualizationVendor
+    {
+        //  The vendor is not yet known.
+        Unknown = 0,
+
+        Microsoft,  //  Hyper-V
+        KVM,        //  Green Hat, for the colorblind.
+
+        None = -1,  //  Running on physical hardware, or just undetectable.
+    };
+
+    /**
      *  Known/supported CPU features
      */
     enum class CpuFeature : uint32_t
@@ -142,6 +156,16 @@ namespace Beelzebub { namespace System
         uint32_t VersionInformation, FeatureFlagsStandardB;
         uint32_t ExtendedSignature, FeatureFlagsExtendedB, FeatureFlagsExtendedC;
         uint32_t FeatureIntegers[FeatureIntegerCount];
+
+        uint32_t MaxVirtualizationValue;
+
+        union
+        {
+            char Characters[13];
+            uint32_t Integers[3];
+        } HypervisorString;
+
+        VirtualizationVendor Hypervisor;
 
         /*  Info extraction  */
 
@@ -216,3 +240,8 @@ namespace Beelzebub { namespace System
         __cold Terminals::TerminalWriteResult PrintToTerminal(Terminals::TerminalBase * const term) const;
     };
 }}
+
+namespace Beelzebub
+{
+    extern System::CpuId BootstrapCpuid;
+}

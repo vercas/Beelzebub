@@ -116,6 +116,8 @@ Thread Beelzebub::BootstrapThread;
 
 Domain Beelzebub::Domain0;
 
+CpuId Beelzebub::BootstrapCpuid;
+
 /**********************************
     System Initialization Steps
 **********************************/
@@ -1134,6 +1136,10 @@ void Beelzebub::Main()
     Handle res;
     //  Used for intermediary results.
 
+    BootstrapCpuid = CpuId();
+    BootstrapCpuid.Initialize();
+    //  This is required to page all the available memory.
+
     new (&Domain0) Domain();
     //  Initialize domain 0. Make sure it's not in a possibly-invalid state.
 
@@ -1164,7 +1170,13 @@ void Beelzebub::Main()
     DEBUG_TERM << "Boot time: " << Rtc::Year << '-' << Rtc::Month << '-' << Rtc::Day
         << ' ' << Rtc::Hours << ':' << Rtc::Minutes << ':' << Rtc::Seconds << EndLine;
 
-    MSGEX("Test {0} {1} {2} {2} {0} {1} {1} {0:bit}.\n", true, -124, "rada");
+    if (Debug::DebugTerminal != nullptr)
+    {
+        BootstrapCpuid.PrintToTerminal(Debug::DebugTerminal);
+        msg("%n");
+    }
+
+    // MSGEX("Test {0} {1} {2} {2} {0} {1} {1} {0:bit}.\n", true, -124, "rada");
 
     MainInitializePhysicalMemory();
     MainInitializeAcpiTables();
