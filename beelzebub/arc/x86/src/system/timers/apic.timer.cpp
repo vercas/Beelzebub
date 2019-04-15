@@ -41,6 +41,8 @@
 #include "system/timers/pit.hpp"
 #include "system/interrupt_controllers/lapic.hpp"
 #include "system/cpuid.hpp"
+#include "system/msrs.hpp"
+#include "system/cpu_instructions.hpp"
 #include <beel/sync/atomic.hpp>
 
 #include <debug.hpp>
@@ -66,28 +68,34 @@ static constexpr uint32_t const PitFrequency = 14551;
 enum CalibrationStatus { Ongoing, Successful, Failed };
 
 static int Stage = 0;
-static constexpr int const StageCount = 100;
+static constexpr int const TotalStages = 100;
 static Atomic<CalibrationStatus> Status;
-static size_t FirstCounter, AverageCounter;
+static size_t FirstTicks, AverageTicksPerStage;
+static size_t FirstCount, AverageCountsPerStage;
 
 void PitTickIrqHandler(InterruptContext const * context, void * cookie)
 {
     (void)context;
     (void)cookie;
 
-    if unlikely(Stage >= StageCount)
+    if unlikely(Stage >= TotalStages)
     {
-        size_t current = Lapic::ReadRegister(LapicRegister::TimerCurrentCount);
+        size_t const currentTicks = Lapic::ReadRegister(LapicRegister::TimerCurrentCount);
+        size_t const currentCount = CpuInstructions::Rdtsc();
 
-        //  Turn the accumulated counters into a proper average.
-        AverageCounter = (FirstCounter - current) / StageCount;
+        //  Turn the accumulated ticks and count into proper averages.
+        AverageTicksPerStage = (FirstTicks - currentTicks) / TotalStages;
+        AverageCountsPerStage = (currentCount - FirstCount) / TotalStages;
 
         //  If calibration hasn't failed by the last stage, then it has succeeded.
         CalibrationStatus st = Ongoing;
         Status.CmpXchgStrong(st, Successful);
     }
     else if unlikely(Stage++ == 0)  //  Note the post-increment!
-        FirstCounter = Lapic::ReadRegister(LapicRegister::TimerCurrentCount);
+    {
+        FirstTicks = Lapic::ReadRegister(LapicRegister::TimerCurrentCount);
+        FirstCount = CpuInstructions::Rdtsc();
+    }
 }
 
 void CalibratorIrqHandler(InterruptContext const * context, void * cookie)
@@ -127,9 +135,10 @@ static uint32_t TranslateDivisor(unsigned int val)
 
 /*  Statics  */
 
-uint64_t ApicTimer::Frequency;
-size_t ApicTimer::TicksPerMicrosecond;
+uint64_t ApicTimer::Frequency, ApicTimer::TscFrequency;
+size_t ApicTimer::TicksPerMicrosecond, ApicTimer::CountsPerMicrosecond;
 uint32_t ApicTimer::Divisor;
+bool ApicTimer::TscDeadline;
 
 /*  Initialization  */
 
@@ -178,7 +187,7 @@ void ApicTimer::Initialize(bool bsp)
     //  Then, calibrate.
     bool sufficient = false;
     unsigned int divisor;
-    size_t freq = 0, absFreq = 0;
+    size_t freq = 0, absFreq = 0, tscfrq = 0;
 
     for (divisor = 1; !sufficient && divisor <= 128; divisor <<= 1)
     {
@@ -197,12 +206,13 @@ void ApicTimer::Initialize(bool bsp)
             continue;
         //  Upon failure, the divisor needs to be increased.
 
-        if (AverageCounter < Pit::Period)
+        if (AverageTicksPerStage < Pit::Period)
             break;
         //  No point in testing further if microsecond precision cannot be achieved.
 
-        freq = AverageCounter * PitFrequency;
+        freq = AverageTicksPerStage * PitFrequency;
         absFreq = freq * divisor;
+        tscfrq = AverageCountsPerStage * PitFrequency;
 
         if (freq < 0xFFFFFFFFUL)
             sufficient = true;
@@ -219,8 +229,17 @@ void ApicTimer::Initialize(bool bsp)
     ASSERT(sufficient);
 
     Frequency = absFreq;
+    TscFrequency = tscfrq;
     TicksPerMicrosecond = (freq + (400000 / divisor)) / 1000000;
+    CountsPerMicrosecond = TscFrequency / 1000000;
     Divisor = divisor;
+
+    TscDeadline = BootstrapCpuid.CheckFeature(CpuFeature::TscDeadline);
+
+    MSGEX("APIC timer calibrated:\n\tAPIC Timer Frequency: {0}\n\tAPIC Ticks per Microsecond: {2}"
+          "\n\tPIT Divisor: {4}\n\tTSC Frequency: {1}\n\tTSC Counts per Microsecond: {3}"
+          "\n\tTSC Deadline: {5}\n"
+        , Frequency, TscFrequency, TicksPerMicrosecond, CountsPerMicrosecond, Divisor, TscDeadline);
 }
 
 /*  Operation  */

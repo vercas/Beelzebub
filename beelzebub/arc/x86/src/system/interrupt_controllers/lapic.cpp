@@ -37,14 +37,14 @@
     thorough explanation regarding other files.
 */
 
-#include <system/interrupt_controllers/lapic.hpp>
+#include "system/interrupt_controllers/lapic.hpp"
 
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE)
-#include <system/cpu.hpp>
+#include "system/cpu.hpp"
 #endif
 
 #if defined(__BEELZEBUB_SETTINGS_APIC_MODE_FLEXIBLE) || defined(__BEELZEBUB_SETTINGS_APIC_MODE_X2APIC)
-#include <system/msrs.hpp>
+#include "system/msrs.hpp"
 #endif
 
 #include <debug.hpp>

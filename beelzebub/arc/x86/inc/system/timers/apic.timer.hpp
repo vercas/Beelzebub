@@ -51,9 +51,10 @@ namespace Beelzebub { namespace System { namespace Timers
     public:
         /*  Statics  */
 
-        static uint64_t Frequency;
-        static size_t TicksPerMicrosecond;
+        static uint64_t Frequency, TscFrequency;
+        static size_t TicksPerMicrosecond, CountsPerMicrosecond;
         static uint32_t Divisor;
+        static bool TscDeadline;
 
     protected:
         /*  Constructor(s)  */
