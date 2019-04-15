@@ -189,7 +189,8 @@ void ApicTimer::Initialize(bool bsp)
     unsigned int divisor;
     size_t freq = 0, absFreq = 0, tscfrq = 0;
 
-    for (divisor = 1; !sufficient && divisor <= 128; divisor <<= 1)
+    // for (divisor = 1; !sufficient && divisor <= 128; divisor <<= 1)
+    for (divisor = 128; !sufficient && divisor >= 1; divisor >>= 1)
     {
         Lapic::WriteRegister(LapicRegister::TimerDivisor, TranslateDivisor(divisor));
 
@@ -203,11 +204,13 @@ void ApicTimer::Initialize(bool bsp)
         //  Now, wait for the counter to change.
 
         if (Status == Failed)
-            continue;
+            // continue;
+            break;
         //  Upon failure, the divisor needs to be increased.
 
         if (AverageTicksPerStage < Pit::Period)
-            break;
+            // break;
+            continue;
         //  No point in testing further if microsecond precision cannot be achieved.
 
         freq = AverageTicksPerStage * PitFrequency;
