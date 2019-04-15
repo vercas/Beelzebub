@@ -144,14 +144,7 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunctionVoid func, void * cookie)
 {
     uint64_t ticks = delay.Value * ApicTimer::TicksPerMicrosecond;
 
-    DEBUG_TERM_ << "Enqueuing timer for " << ticks << " ticks." << Terminals::EndLine;
-
-    if unlikely(ticks > 0xFFFFFFFFULL)
-    {
-        MSG_("Too many ticks: %X8%n", ticks);
-        return false;
-    }
-    else if unlikely(ticks == 0)
+    if unlikely(ticks == 0)
         ticks = 1;
 
     InterruptGuard<> intGuard;
@@ -178,6 +171,10 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunctionVoid func, void * cookie)
         for (uint64_t acc = 0; i < timersCount && (acc += MyTimers[i].Time) <= ticks; ++i)
             lastTicks = acc;
 
+        if unlikely(ticks - lastTicks > 0xFFFFFFFFULL)
+            return false;
+        //  Difference is too large.
+
         uint32_t diff = (uint32_t)(ticks - lastTicks);
 
         if (i < timersCount)
@@ -201,6 +198,9 @@ bool Timer::Enqueue(TimeSpanLite delay, TimedFunctionVoid func, void * cookie)
     else
     {
         //  No timers means a simple insertion at the first position.
+
+        if unlikely(ticks > 0xFFFFFFFFULL)
+            return false;
 
         ApicTimer::SetCount((uint32_t)ticks);
 
