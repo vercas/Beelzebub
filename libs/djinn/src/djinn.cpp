@@ -218,5 +218,51 @@ retry:
 
 DjinnLogResult DjinnLogUInt(uint64_t val, DJINN_LOG_INT_FORMAT fmt)
 {
+    if (__atomic_load_n(&DebuggerCount, __ATOMIC_ACQUIRE) == 0)
+        return { DJINN_LOG_NO_DEBUGGERS, 0 };
 
+    DwordPacket out(LogIntHexVarUPacket, val);
+    //  Works with little endian numbers.
+
+    DJINN_SEND_RES res;
+    size_t pSize = sizeof(SimplePacket);
+
+    switch (fmt)
+    {
+    case DJINN_INT_DEC:       out.Type = LogIntDecPacket;     pSize += 8;  break;
+    case DJINN_INT_UDEC:      out.Type = LogIntUDecPacket;    pSize += 8;  break;
+    case DJINN_INT_HEX8_L:    out.Type = LogIntHex8LPacket;   pSize += 1;  break;
+    case DJINN_INT_HEX8_U:    out.Type = LogIntHex8UPacket;   pSize += 1;  break;
+    case DJINN_INT_HEX16_L:   out.Type = LogIntHex16LPacket;  pSize += 2;  break;
+    case DJINN_INT_HEX16_U:   out.Type = LogIntHex16UPacket;  pSize += 2;  break;
+    case DJINN_INT_HEX24_L:   out.Type = LogIntHex24LPacket;  pSize += 3;  break;
+    case DJINN_INT_HEX24_U:   out.Type = LogIntHex24UPacket;  pSize += 3;  break;
+    case DJINN_INT_HEX32_L:   out.Type = LogIntHex32LPacket;  pSize += 4;  break;
+    case DJINN_INT_HEX32_U:   out.Type = LogIntHex32UPacket;  pSize += 4;  break;
+    case DJINN_INT_HEX48_L:   out.Type = LogIntHex48LPacket;  pSize += 6;  break;
+    case DJINN_INT_HEX48_U:   out.Type = LogIntHex48UPacket;  pSize += 6;  break;
+    case DJINN_INT_HEX64_L:   out.Type = LogIntHex64LPacket;  pSize += 8;  break;
+    case DJINN_INT_HEX64_U:   out.Type = LogIntHex64UPacket;  pSize += 8;  break;
+    case DJINN_INT_HEX_VAR_L: out.Type = LogIntHexVarLPacket; pSize += 8;  break;
+    case DJINN_INT_HEX_VAR_U: out.Type = LogIntHexVarUPacket; pSize += 8;  break;
+    }
+
+    if (pSize > InitData.PacketMaxSize)
+        return { DJINN_LOG_STRINGIFY, 0 };
+    //  This means the caller better provide a string because the number is too
+    //  large for the underlying transport protocol.
+
+retry:
+    res = InitData.Sender(&out, pSize);
+
+    if (res == DJINN_SEND_AWAIT)
+    {
+        DJINN_DO_NOTHING();
+        goto retry;
+    }
+
+    if (res == DJINN_SEND_SUCCESS)
+        return { DJINN_LOG_SUCCESS, (int)(pSize - sizeof(SimplePacket)) };
+    else
+        return { DJINN_LOG_FAIL, 0 };
 }

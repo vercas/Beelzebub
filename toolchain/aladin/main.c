@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <inttypes.h>
 
 #define _ALADIN
 #include "djinn.h"
@@ -68,6 +69,9 @@ struct ReadPacket
     union
     {
         struct DjinnSimplePacket  const * DSP;
+        struct DjinnBytePacket    const * DBP;
+        struct DjinnHwordPacket   const * DHP;
+        struct DjinnWordPacket    const * DWP;
         struct DjinnDwordPacket   const * DDP;
         struct DjinnGenericPacket const * DGP;
     };
@@ -223,6 +227,102 @@ loop_again:
         case DJINN_PACKET_LOG:
             //printf("%.*s", len - 3, rp.DGP->Payload);
             fwrite(rp.DGP->Payload, rp.Length - sizeof(rp.DGP->Type), 1, stdout);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_DEC:
+            printf("%" PRId64, rp.DDP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_UDEC:
+            printf("%" PRIu64, rp.DDP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX8_L:
+            printf("%02" PRIx8, rp.DBP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX8_U:
+            printf("%02" PRIX8, rp.DBP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX16_L:
+            printf("%04" PRIx16, rp.DHP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX16_U:
+            printf("%04" PRIX16, rp.DHP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX24_L:
+            {
+                uint32_t val = 0;
+                memcpy(&val, rp.DGP->Payload, 3);
+                printf("%06" PRIx32, val);
+                fflush(stdout);
+                break;
+            }
+
+        case DJINN_PACKET_LOG_INT_HEX24_U:
+            {
+                uint32_t val = 0;
+                memcpy(&val, rp.DGP->Payload, 3);
+                printf("%06" PRIX32, val);
+                fflush(stdout);
+                break;
+            }
+
+        case DJINN_PACKET_LOG_INT_HEX32_L:
+            printf("%08" PRIx32, rp.DWP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX32_U:
+            printf("%08" PRIX32, rp.DWP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX48_L:
+            {
+                uint64_t val = 0;
+                memcpy(&val, rp.DGP->Payload, 6);
+                printf("%012" PRIx64, val);
+                fflush(stdout);
+                break;
+            }
+
+        case DJINN_PACKET_LOG_INT_HEX48_U:
+            {
+                uint64_t val = 0;
+                memcpy(&val, rp.DGP->Payload, 6);
+                printf("%012" PRIX64, val);
+                fflush(stdout);
+                break;
+            }
+
+        case DJINN_PACKET_LOG_INT_HEX64_L:
+            printf("%016" PRIx64, rp.DDP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX64_U:
+            printf("%016" PRIX64, rp.DDP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX_VAR_L:
+            printf("%" PRIx64, rp.DDP->Payload);
+            fflush(stdout);
+            break;
+
+        case DJINN_PACKET_LOG_INT_HEX_VAR_U:
+            printf("%" PRIX64, rp.DDP->Payload);
             fflush(stdout);
             break;
 

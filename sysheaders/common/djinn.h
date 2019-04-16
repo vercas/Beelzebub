@@ -140,6 +140,7 @@ enum DJINN_LOG_RES
     DJINN_LOG_SUCCESS,
     DJINN_LOG_NO_DEBUGGERS,
     DJINN_LOG_FAIL,
+    DJINN_LOG_STRINGIFY,
 };
 
 struct DjinnLogResult
@@ -154,13 +155,20 @@ enum DJINN_LOG_INT_FORMAT
 {
     DJINN_INT_DEC,
     DJINN_INT_UDEC,
-    DJINN_INT_HEX8,
-    DJINN_INT_HEX16,
-    DJINN_INT_HEX24,
-    DJINN_INT_HEX32,
-    DJINN_INT_HEX48,
-    DJINN_INT_HEX64,
-    DJINN_INT_HEX_VAR,
+    DJINN_INT_HEX8_L,
+    DJINN_INT_HEX16_L,
+    DJINN_INT_HEX24_L,
+    DJINN_INT_HEX32_L,
+    DJINN_INT_HEX48_L,
+    DJINN_INT_HEX64_L,
+    DJINN_INT_HEX_VAR_L,
+    DJINN_INT_HEX8_U,
+    DJINN_INT_HEX16_U,
+    DJINN_INT_HEX24_U,
+    DJINN_INT_HEX32_U,
+    DJINN_INT_HEX48_U,
+    DJINN_INT_HEX64_U,
+    DJINN_INT_HEX_VAR_U,
 };
 
 DJINN_FUNC struct DjinnLogResult DjinnLogUInt(uint64_t val, enum DJINN_LOG_INT_FORMAT fmt);
@@ -182,21 +190,49 @@ static struct DjinnLogResult DjinnLogInt(int64_t val, enum DJINN_LOG_INT_FORMAT 
 #define DJINN_PACKET_HANDSHAKE2         ((uint16_t)0x0003)
 
 #define DJINN_PACKET_LOG                ((uint16_t)0x0010)
-#define DJINN_PACKET_LOG_INT_DEC        ((uint16_t)0x0011)
-#define DJINN_PACKET_LOG_INT_UDEC       ((uint16_t)0x0012)
-#define DJINN_PACKET_LOG_INT_HEX8       ((uint16_t)0x0013)
-#define DJINN_PACKET_LOG_INT_HEX16      ((uint16_t)0x0014)
-#define DJINN_PACKET_LOG_INT_HEX24      ((uint16_t)0x0015)
-#define DJINN_PACKET_LOG_INT_HEX32      ((uint16_t)0x0016)
-#define DJINN_PACKET_LOG_INT_HEX48      ((uint16_t)0x0017)
-#define DJINN_PACKET_LOG_INT_HEX64      ((uint16_t)0x0018)
-#define DJINN_PACKET_LOG_INT_HEX_VAR    ((uint16_t)0x0019)
+
+#define DJINN_PACKET_LOG_INT_DEC        ((uint16_t)0x0020)
+#define DJINN_PACKET_LOG_INT_UDEC       ((uint16_t)0x0021)
+
+#define DJINN_PACKET_LOG_INT_HEX8_L     ((uint16_t)0x0030)
+#define DJINN_PACKET_LOG_INT_HEX16_L    ((uint16_t)0x0031)
+#define DJINN_PACKET_LOG_INT_HEX24_L    ((uint16_t)0x0032)
+#define DJINN_PACKET_LOG_INT_HEX32_L    ((uint16_t)0x0033)
+#define DJINN_PACKET_LOG_INT_HEX48_L    ((uint16_t)0x0034)
+#define DJINN_PACKET_LOG_INT_HEX64_L    ((uint16_t)0x0035)
+#define DJINN_PACKET_LOG_INT_HEX_VAR_L  ((uint16_t)0x0036)
+
+#define DJINN_PACKET_LOG_INT_HEX8_U     ((uint16_t)0x0038)
+#define DJINN_PACKET_LOG_INT_HEX16_U    ((uint16_t)0x0039)
+#define DJINN_PACKET_LOG_INT_HEX24_U    ((uint16_t)0x003A)
+#define DJINN_PACKET_LOG_INT_HEX32_U    ((uint16_t)0x003B)
+#define DJINN_PACKET_LOG_INT_HEX48_U    ((uint16_t)0x003C)
+#define DJINN_PACKET_LOG_INT_HEX64_U    ((uint16_t)0x003D)
+#define DJINN_PACKET_LOG_INT_HEX_VAR_U  ((uint16_t)0x003E)
 
 #pragma pack(1)
 
 struct DjinnSimplePacket
 {
     uint16_t Type;
+};
+
+struct DjinnBytePacket
+{
+    uint16_t Type;
+    uint8_t Payload;
+};
+
+struct DjinnHwordPacket
+{
+    uint16_t Type;
+    uint16_t Payload;
+};
+
+struct DjinnWordPacket
+{
+    uint16_t Type;
+    uint32_t Payload;
 };
 
 struct DjinnDwordPacket
@@ -230,15 +266,25 @@ enum PacketType : uint16_t
     HandshakePacket2    = 0x0003,
 
     LogPacket           = 0x0010,
-    LogIntDecPacket     = 0x0011,
-    LogIntUDecPacket    = 0x0012,
-    LogIntHex8Packet    = 0x0013,
-    LogIntHex16Packet   = 0x0014,
-    LogIntHex24Packet   = 0x0015,
-    LogIntHex32Packet   = 0x0016,
-    LogIntHex48Packet   = 0x0017,
-    LogIntHex64Packet   = 0x0018,
-    LogIntHexVarPacket  = 0x0019,
+
+    LogIntDecPacket     = 0x0020,
+    LogIntUDecPacket    = 0x0021,
+
+    LogIntHex8LPacket   = 0x0030,
+    LogIntHex16LPacket  = 0x0031,
+    LogIntHex24LPacket  = 0x0032,
+    LogIntHex32LPacket  = 0x0033,
+    LogIntHex48LPacket  = 0x0034,
+    LogIntHex64LPacket  = 0x0035,
+    LogIntHexVarLPacket = 0x0036,
+
+    LogIntHex8UPacket   = 0x0038,
+    LogIntHex16UPacket  = 0x0039,
+    LogIntHex24UPacket  = 0x003A,
+    LogIntHex32UPacket  = 0x003B,
+    LogIntHex48UPacket  = 0x003C,
+    LogIntHex64UPacket  = 0x003D,
+    LogIntHexVarUPacket = 0x003E,
 };
 
 #pragma pack(1)
@@ -249,6 +295,30 @@ struct SimplePacket
 
     inline SimplePacket() : Type(InvalidPacket) { }
     inline explicit SimplePacket(PacketType type) : Type(type) { }
+};
+
+struct BytePacket : SimplePacket
+{
+    uint8_t Payload;
+
+    inline BytePacket() : SimplePacket(), Payload(0) { }
+    inline explicit BytePacket(PacketType type, uint8_t payload) : SimplePacket(type), Payload(payload) { }
+};
+
+struct HwordPacket : SimplePacket
+{
+    uint16_t Payload;
+
+    inline HwordPacket() : SimplePacket(), Payload(0) { }
+    inline explicit HwordPacket(PacketType type, uint16_t payload) : SimplePacket(type), Payload(payload) { }
+};
+
+struct WordPacket : SimplePacket
+{
+    uint32_t Payload;
+
+    inline WordPacket() : SimplePacket(), Payload(0) { }
+    inline explicit WordPacket(PacketType type, uint32_t payload) : SimplePacket(type), Payload(payload) { }
 };
 
 struct DwordPacket : SimplePacket

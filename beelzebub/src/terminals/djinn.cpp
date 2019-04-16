@@ -181,48 +181,180 @@ Handle DjinnTerminal::Flush()
 
 /*  Utilitary methods  */
 
+static uint32_t UInt64LenHelper(uint64_t val)
+{
+    size_t count = 1;
+
+    if (val >= 10000000000000000UL) { count += 16; val /= 10000000000000000UL; }
+    if (val >= 100000000U)          { count += 8;  val /= 100000000U;          }
+    if (val >= 10000)               { count += 4;  val /= 10000;               }
+    if (val >= 100)                 { count += 2;  val /= 100;                 }
+    if (val >= 10)                    count += 1;
+
+    return count;
+}
+
+static uint32_t Int64LenHelper(int64_t val)
+{
+    if (val > 0)
+        return UInt64LenHelper(static_cast<uint64_t>( val));
+    else
+        return UInt64LenHelper(static_cast<uint64_t>(-val)) + 1;
+}
+
+static uint32_t Hex64LenHelper(uint64_t val)
+{
+    size_t count = 1;
+
+    if (val >> 32) { count += 8; val >>= 32; }
+    if (val >> 16) { count += 4; val >>= 16; }
+    if (val >>  8) { count += 2; val >>=  8; }
+    if (val >>  4)   count += 1;
+
+    return count;
+}
+
 TerminalWriteResult DjinnTerminal::WriteIntD(int64_t val)
 {
+    DjinnLogResult res = DjinnLogInt(val, DJINN_INT_DEC);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, Int64LenHelper(val), InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteIntD(val);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
 TerminalWriteResult DjinnTerminal::WriteUIntD(uint64_t val)
 {
+    DjinnLogResult res = DjinnLogUInt(val, DJINN_INT_UDEC);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, UInt64LenHelper(val), InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteUIntD(val);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
-TerminalWriteResult DjinnTerminal::WriteHex8 (uint8_t  val, bool upper)
+TerminalWriteResult DjinnTerminal::WriteHex8(uint8_t val, bool upper)
 {
+    DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX8_U : DJINN_INT_HEX8_L);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, 2, InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteHex8(val, upper);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
 TerminalWriteResult DjinnTerminal::WriteHex16(uint16_t val, bool upper)
 {
+    DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX16_U : DJINN_INT_HEX16_L);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, 4, InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteHex16(val, upper);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
 TerminalWriteResult DjinnTerminal::WriteHex24(uint32_t val, bool upper)
 {
+    DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX24_U : DJINN_INT_HEX24_L);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, 6, InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteHex24(val, upper);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
 TerminalWriteResult DjinnTerminal::WriteHex32(uint32_t val, bool upper)
 {
+    DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX32_U : DJINN_INT_HEX32_L);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, 8, InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteHex32(val, upper);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
 TerminalWriteResult DjinnTerminal::WriteHex48(uint64_t val, bool upper)
 {
+    DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX48_U : DJINN_INT_HEX48_L);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, 12, InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteHex48(val, upper);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
 TerminalWriteResult DjinnTerminal::WriteHex64(uint64_t val, bool upper)
 {
+    DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX64_U : DJINN_INT_HEX64_L);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, 16, InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteHex64(val, upper);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
 TerminalWriteResult DjinnTerminal::WriteHexVar(uint64_t val, bool upper)
 {
+    DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX_VAR_U : DJINN_INT_HEX_VAR_L);
 
+    switch (res.Result)
+    {
+    case DJINN_LOG_SUCCESS:
+    case DJINN_LOG_NO_DEBUGGERS:
+        return {HandleResult::Okay, Hex64LenHelper(val), InvalidCoordinates};
+    case DJINN_LOG_STRINGIFY:
+        return this->TerminalBase::WriteHexVar(val, upper);
+    default:
+        return {HandleResult::Failed, 0, InvalidCoordinates};
+    }
 }
 
