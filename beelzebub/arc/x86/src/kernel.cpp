@@ -249,6 +249,52 @@ __startup void MainParseKernelArguments()
         FAIL("Failed to parse kernel command-line arguments: %H", res);
 }
 
+/******************
+    NICE THINGS
+******************/
+
+__startup void WriteWelcomeMessage()
+{
+    char const * const msgL = "Welcome to Beelzebub!";
+    char const * const msgR = " (c) 2015 Alexandru-Mihai Maftei";
+
+    if (MainTerminal->Capabilities->CanGetSize
+        && MainTerminal->Capabilities->CanOutput
+        && MainTerminal->Capabilities->CanGetOutputPosition)
+    {
+        TerminalWriteResult const res = MainTerminal->Write(msgL);
+        TerminalCoordinates const mts = MainTerminal->GetSize();
+        size_t const sizeR = 32;    //  TO BE MANUALLY CHANGED ACCORDINGLY
+
+        if (res.End.X + sizeR <= mts.X)
+        {
+            //  In other words, if the right message fits after the left message
+            //  in this terminal...
+
+            MainTerminal->WriteAt(msgR, {mts.X - sizeR, res.End.Y}, sizeR);
+        }
+        else if (sizeR <= mts.X)
+        {
+            //  Doesn't fit together but fits on its own.
+            //  Right message is printed onto the next line, aligned right.
+
+            MainTerminal->WriteAt(msgR, {mts.X - sizeR, res.End.Y + 1}, sizeR);
+        }
+        else
+        {
+            //  Just won't fit. Meh.
+
+            MainTerminal->WriteLine();
+            MainTerminal->WriteLine(msgR);
+        }
+    }
+    else
+    {
+        MainTerminal->Write(msgL);
+        MainTerminal->WriteLine(msgR);
+    }
+}
+
 /*****************
     INTERRUPTS
 *****************/
@@ -1160,7 +1206,7 @@ void Beelzebub::Main()
     MainTerminal = InitializeTerminalProto();
     InitTerminal = MainTerminal;
 
-    InitTerminal->WriteLine("Welcome to Beelzebub!                            (c) 2015 Alexandru-Mihai Maftei");
+    WriteWelcomeMessage();
 
     // MSG("Stack pointer in Beelzebub::Main is %Xp.%n", GetCurrentStackPointer());
 
