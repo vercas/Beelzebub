@@ -60,5 +60,15 @@
                 "IN_SUBLIME": "true",
             },
         },
+        {
+            "name": "Full Build in Terminus",
+            "cmd":
+            [
+                "bash", "-c", "./scripts/full-build"
+            ],
+            "target": "terminus_open",
+            "working_dir": "$folder",
+            "auto_close": false
+        }
     ]
 }
