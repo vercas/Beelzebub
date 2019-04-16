@@ -190,18 +190,18 @@ namespace Beelzebub { namespace Terminals
 
         /*  Utilitary methods  */
 
-        virtual TerminalWriteResult WriteHandle(const Handle val);
+        virtual TerminalWriteResult WriteHandle(Handle const val);
 
-        virtual TerminalWriteResult WriteIntD(int64_t const val);
-        virtual TerminalWriteResult WriteUIntD(uint64_t const val);
+        virtual TerminalWriteResult WriteIntD(int64_t val);
+        virtual TerminalWriteResult WriteUIntD(uint64_t val);
 
-        virtual TerminalWriteResult WriteHex8 (uint8_t  const val, bool const upper = true);
-        virtual TerminalWriteResult WriteHex16(uint16_t const val, bool const upper = true);
-        virtual TerminalWriteResult WriteHex24(uint32_t const val, bool const upper = true);
-        virtual TerminalWriteResult WriteHex32(uint32_t const val, bool const upper = true);
-        virtual TerminalWriteResult WriteHex48(uint64_t const val, bool const upper = true);
-        virtual TerminalWriteResult WriteHex64(uint64_t const val, bool const upper = true);
-        virtual TerminalWriteResult WriteHexVar(uint64_t const val, bool const upper = true);
+        virtual TerminalWriteResult WriteHex8 (uint8_t  val, bool upper = true);
+        virtual TerminalWriteResult WriteHex16(uint16_t val, bool upper = true);
+        virtual TerminalWriteResult WriteHex24(uint32_t val, bool upper = true);
+        virtual TerminalWriteResult WriteHex32(uint32_t val, bool upper = true);
+        virtual TerminalWriteResult WriteHex48(uint64_t val, bool upper = true);
+        virtual TerminalWriteResult WriteHex64(uint64_t val, bool upper = true);
+        virtual TerminalWriteResult WriteHexVar(uint64_t val, bool upper = true);
 
         virtual __min_float TerminalWriteResult WriteHexFloat(float const val, bool const upper = true);
         virtual __min_float TerminalWriteResult WriteHexDouble(double const val, bool const upper = true);

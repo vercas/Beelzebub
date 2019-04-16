@@ -178,3 +178,51 @@ Handle DjinnTerminal::Flush()
 {
     return HandleResult::Okay;
 }
+
+/*  Utilitary methods  */
+
+TerminalWriteResult DjinnTerminal::WriteIntD(int64_t val)
+{
+
+}
+
+TerminalWriteResult DjinnTerminal::WriteUIntD(uint64_t val)
+{
+
+}
+
+TerminalWriteResult DjinnTerminal::WriteHex8 (uint8_t  val, bool upper)
+{
+
+}
+
+TerminalWriteResult DjinnTerminal::WriteHex16(uint16_t val, bool upper)
+{
+
+}
+
+TerminalWriteResult DjinnTerminal::WriteHex24(uint32_t val, bool upper)
+{
+
+}
+
+TerminalWriteResult DjinnTerminal::WriteHex32(uint32_t val, bool upper)
+{
+
+}
+
+TerminalWriteResult DjinnTerminal::WriteHex48(uint64_t val, bool upper)
+{
+
+}
+
+TerminalWriteResult DjinnTerminal::WriteHex64(uint64_t val, bool upper)
+{
+
+}
+
+TerminalWriteResult DjinnTerminal::WriteHexVar(uint64_t val, bool upper)
+{
+
+}
+

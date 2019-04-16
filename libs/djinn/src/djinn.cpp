@@ -216,3 +216,7 @@ retry:
         return { DJINN_LOG_FAIL, 0 };
 }
 
+DjinnLogResult DjinnLogUInt(uint64_t val, DJINN_LOG_INT_FORMAT fmt)
+{
+
+}

@@ -58,5 +58,18 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult WriteLine(char const * const str, size_t len) override;
 
         virtual Handle Flush() override;
+
+        /*  Utilitary methods  */
+
+        virtual TerminalWriteResult WriteIntD(int64_t val) override;
+        virtual TerminalWriteResult WriteUIntD(uint64_t val) override;
+
+        virtual TerminalWriteResult WriteHex8 (uint8_t  val, bool upper) override;
+        virtual TerminalWriteResult WriteHex16(uint16_t val, bool upper) override;
+        virtual TerminalWriteResult WriteHex24(uint32_t val, bool upper) override;
+        virtual TerminalWriteResult WriteHex32(uint32_t val, bool upper) override;
+        virtual TerminalWriteResult WriteHex48(uint64_t val, bool upper) override;
+        virtual TerminalWriteResult WriteHex64(uint64_t val, bool upper) override;
+        virtual TerminalWriteResult WriteHexVar(uint64_t val, bool upper) override;
     };
 }}

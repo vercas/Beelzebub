@@ -150,17 +150,47 @@ struct DjinnLogResult
 
 DJINN_FUNC struct DjinnLogResult DjinnLog(char const * str, int cnt);
 
+enum DJINN_LOG_INT_FORMAT
+{
+    DJINN_INT_DEC,
+    DJINN_INT_UDEC,
+    DJINN_INT_HEX8,
+    DJINN_INT_HEX16,
+    DJINN_INT_HEX24,
+    DJINN_INT_HEX32,
+    DJINN_INT_HEX48,
+    DJINN_INT_HEX64,
+    DJINN_INT_HEX_VAR,
+};
+
+DJINN_FUNC struct DjinnLogResult DjinnLogUInt(uint64_t val, enum DJINN_LOG_INT_FORMAT fmt);
+
+static struct DjinnLogResult DjinnLogInt(int64_t val, enum DJINN_LOG_INT_FORMAT fmt)
+{
+    return DjinnLogUInt((uint64_t)val, fmt);
+}
+
 #endif  //  defined(_ALADIN)
 
 #ifndef __cplusplus
 
 //  Packets
 
-#define DJINN_PACKET_INVALID    ((uint16_t)0x0000)
-#define DJINN_PACKET_HANDSHAKE0 ((uint16_t)0x0001)
-#define DJINN_PACKET_HANDSHAKE1 ((uint16_t)0x0002)
-#define DJINN_PACKET_HANDSHAKE2 ((uint16_t)0x0003)
-#define DJINN_PACKET_LOG        ((uint16_t)0x0010)
+#define DJINN_PACKET_INVALID            ((uint16_t)0x0000)
+#define DJINN_PACKET_HANDSHAKE0         ((uint16_t)0x0001)
+#define DJINN_PACKET_HANDSHAKE1         ((uint16_t)0x0002)
+#define DJINN_PACKET_HANDSHAKE2         ((uint16_t)0x0003)
+
+#define DJINN_PACKET_LOG                ((uint16_t)0x0010)
+#define DJINN_PACKET_LOG_INT_DEC        ((uint16_t)0x0011)
+#define DJINN_PACKET_LOG_INT_UDEC       ((uint16_t)0x0012)
+#define DJINN_PACKET_LOG_INT_HEX8       ((uint16_t)0x0013)
+#define DJINN_PACKET_LOG_INT_HEX16      ((uint16_t)0x0014)
+#define DJINN_PACKET_LOG_INT_HEX24      ((uint16_t)0x0015)
+#define DJINN_PACKET_LOG_INT_HEX32      ((uint16_t)0x0016)
+#define DJINN_PACKET_LOG_INT_HEX48      ((uint16_t)0x0017)
+#define DJINN_PACKET_LOG_INT_HEX64      ((uint16_t)0x0018)
+#define DJINN_PACKET_LOG_INT_HEX_VAR    ((uint16_t)0x0019)
 
 #pragma pack(1)
 
@@ -193,13 +223,22 @@ namespace Djinn
 
 enum PacketType : uint16_t
 {
-    InvalidPacket    = 0x0000,
+    InvalidPacket       = 0x0000,
 
-    HandshakePacket0 = 0x0001,
-    HandshakePacket1 = 0x0002,
-    HandshakePacket2 = 0x0003,
+    HandshakePacket0    = 0x0001,
+    HandshakePacket1    = 0x0002,
+    HandshakePacket2    = 0x0003,
 
-    LogPacket        = 0x0010,
+    LogPacket           = 0x0010,
+    LogIntDecPacket     = 0x0011,
+    LogIntUDecPacket    = 0x0012,
+    LogIntHex8Packet    = 0x0013,
+    LogIntHex16Packet   = 0x0014,
+    LogIntHex24Packet   = 0x0015,
+    LogIntHex32Packet   = 0x0016,
+    LogIntHex48Packet   = 0x0017,
+    LogIntHex64Packet   = 0x0018,
+    LogIntHexVarPacket  = 0x0019,
 };
 
 #pragma pack(1)
