@@ -51,6 +51,11 @@ Result<PortParseResult, uint16_t> Utils::ParsePort(char const * val)
     if (strcasecmp(val, "COM3") == 0) return PortParseResult::COM3;
     if (strcasecmp(val, "COM4") == 0) return PortParseResult::COM4;
 
+    if (strcasecmp(val, "COM1Base64") == 0) return PortParseResult::COM1Base64;
+    if (strcasecmp(val, "COM2Base64") == 0) return PortParseResult::COM2Base64;
+    if (strcasecmp(val, "COM3Base64") == 0) return PortParseResult::COM3Base64;
+    if (strcasecmp(val, "COM4Base64") == 0) return PortParseResult::COM4Base64;
+
     if (strcasecmp(val, "ethernet") == 0) return PortParseResult::Ethernet;
 
     if (strcasecmp(val, "vbe") == 0) return PortParseResult::Vbe;

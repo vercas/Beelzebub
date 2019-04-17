@@ -47,6 +47,7 @@ namespace Beelzebub::Utils
     {
         Success = 0, SpecificPort = 0,
         COM1 = 1, COM2, COM3, COM4,
+        COM1Base64 = 10, COM2Base64, COM3Base64, COM4Base64,
         Ethernet = 100,
         Vbe = 200,
         Error = -1,

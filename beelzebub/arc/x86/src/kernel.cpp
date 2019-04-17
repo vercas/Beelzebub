@@ -202,6 +202,11 @@ __startup TerminalBase * InitializeTerminalProto()
                 << &COM1 << EndLine << &COM2 << EndLine << &COM3 << EndLine << &COM4 << EndLine;
             break;
 
+        case PortParseResult::COM1Base64: case PortParseResult::COM2Base64:
+        case PortParseResult::COM3Base64: case PortParseResult::COM4Base64:
+            initialVbeTerminal << "Base64-encoded serial ports cannot be used as terminal." << EndLine;
+            break;
+
         default:
             initialVbeTerminal << "Error parsing terminal command-line option: " << CMDO_Term.StringValue << EndLine;
             break;
@@ -340,7 +345,7 @@ __startup void MainInitializeInterrupts()
 __startup void MainInitializeDebugInterface()
 {
     //  Debug interface needs to be set up as requested in the kernel command-line arguments.
-    DjinnInterfaces iface;
+    DjinnInterfaces iface = DjinnInterfaces::None;
     Handle res;
 
     InitTerminal->Write("[....] Initializing debugger interface...");
@@ -352,12 +357,16 @@ __startup void MainInitializeDebugInterface()
         switch (ppr.Error)
         {
     #define CASE_COM(n) \
+        case PortParseResult::COM##n##Base64:                                   \
+            iface = DjinnInterfaces::COM##n##Base64;                            \
         case PortParseResult::COM##n:                                           \
             if (MainTerminalInterface == MainTerminalInterfaces::COM##n)        \
                 goto conflict;                                                  \
                                                                                 \
             COM##n.Initialize();                                                \
-            iface = DjinnInterfaces::COM##n;                                    \
+                                                                                \
+            if (iface == DjinnInterfaces::None)                                 \
+                iface = DjinnInterfaces::COM##n;                                \
                                                                                 \
             if (COM##n.Type == SerialPortType::Disconnected)                    \
             {                                                                   \
@@ -407,6 +416,7 @@ __startup void MainInitializeDebugInterface()
     return;
 
 conflict:
+    iface = DjinnInterfaces::None;
     InitTerminal->WriteLine(" Conflict with kernel terminal.\r[FAIL]");
 }
 

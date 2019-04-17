@@ -47,7 +47,9 @@ namespace Beelzebub
     enum class DjinnInterfaces
     {
         COM1, COM2, COM3, COM4,
+        COM1Base64, COM2Base64, COM3Base64, COM4Base64,
         Ethernet,
+        None,
     };
 
     __startup Handle InitializeDebuggerInterface(DjinnInterfaces iface);
