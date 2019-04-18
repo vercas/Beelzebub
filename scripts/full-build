@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-time lua vmakefile.lua -t all --march=native --mtune=native -cfj $(getconf _NPROCESSORS_ONLN) $*
+time lua vmakefile.lua -t all --march=native --mtune=native -cfj $(getconf _NPROCESSORS_ONLN) Beelzebub Toolchain $*
