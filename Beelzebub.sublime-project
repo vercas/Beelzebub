@@ -9,23 +9,7 @@
     ],
     "settings":
     {
-        "SublimeLinter":
-        {
-            "linters":
-            {
-                "gcc":
-                {
-                    "disable": false,
-                    "executable": "lua",
-                    "extra_flags":
-                    [
-                        "${project_folder}/vmakefile.lua",
-                        "--tests=all",
-                        "--lint"
-                    ],
-                },
-            },
-        }
+        "custom.beel": true
     },
     "build_systems":
     [
