@@ -1,5 +1,5 @@
 #!/usr/bin/env lua
-require "vmake"
+require "vmake-edge"
 
 --[[
     Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
@@ -194,6 +194,36 @@ local availableTests = List {
 
 local settSelTests, settUnitTests = List { }, true
 
+local testSplitters = {
+    [';'] = true,
+    [','] = true,
+}
+
+local testDescriptions = {
+    STR =                           "String library",
+    PMM =                  "Physical Memory Manager",
+    VMM =                   "Virtual Memory Manager",
+    OBJA =                        "Object Allocator",
+    METAP =                        "Metaprogramming",
+    EXCP =                              "Exceptions",
+    APP =                         "Test application",
+    KMOD =                          "Kernel Modules",
+    TIMER =                           "Kernel Timer",
+    MAILBOX =              "Inter-CPU communication",
+    STACKINT =                     "Stack Integrity",
+    AVL_TREE =             "AVL Tree implementation",
+    TERMINAL =             "Terminal implementation",
+    CMDO =             "Command-line option parsing",
+    FPU =                      "Floating Point Unit",
+    BIGINT =            "Big Integer implementation",
+    LOCK_ELISION = "Lock removal on unicore systems",
+    RW_SPINLOCK =              "Read-Write Spinlock",
+    RW_TICKETLOCK =         "Read-Write Ticket Lock",
+    VAS =                    "Virtual Address Space",
+    INTERRUPT_LATENCY =  "Profile interrupt latency",
+    MALLOC =              "Dynamic memory allocator",
+}
+
 CmdOpt "tests" "t" {
     Description = "Specifies which tests to include in the Beelzebub build.",
     Display = "name-1,name 2;name_3,...|all",
@@ -207,12 +237,12 @@ CmdOpt "tests" "t" {
                 settSelTests:AppendUnique(testName)
             end)
         else
-            for test in string.iteratesplit(val, "[,;]") do
-                if #test == 0 or string.find(test, "[^%a%d%s%-_]") then
+            for test in val:iteratesplit "[,;]" do
+                if #test == 0 or test:find "[^%a%d%s%-_]" then
                     error("Beelzebub test \"" .. test .. "\" contains invalid characters.")
                 end
 
-                local testName = string.upper(string.gsub(test, "[%s%-]", "_"))
+                local testName = test:gsub("[%s%-]", "_"):upper()
 
                 if not availableTests:Contains(testName) then
                     error("Unknown Beelzebub test \"" .. testName .. "\".")
@@ -223,6 +253,38 @@ CmdOpt "tests" "t" {
         end
 
         TransferArgument("--tests=" .. val)
+    end,
+
+    Autocomplete = function(res, val)
+        local selectedTests = val:split("[,;]")
+        local wantedTest = selectedTests[#selectedTests] or val
+
+        if testSplitters[val:sub(-1)] then
+            --  Ends in a splitter? Means any test is good.
+            wantedTest = ""
+        else
+            selectedTests[#selectedTests] = nil
+        end
+
+        local prefix = val:sub(1, #val - #wantedTest)
+
+        --  selectedTests contains all the tests that are already chosen.
+        --  wantedTest is the one being Autocompleted.
+
+        selectedTests = List(selectedTests):Select(function(test)
+            return test:gsub("[%s%-]", "_"):upper()
+        end)
+        wantedTest = wantedTest:gsub("[%s%-]", "_"):upper()
+
+        if val == "" then
+            res[#res + 1] = { "all", "Every available test" }
+        end
+
+        availableTests:ForEach(function(testName)
+            if not selectedTests:Contains(testName) and testName:find(wantedTest, 1, true) == 1 then
+                res[#res + 1] = { prefix .. testName, testDescriptions[testName] or "Test" }
+            end
+        end)
     end,
 }
 
@@ -249,6 +311,12 @@ CmdOpt "unit-tests" {
         end
 
         TransferArgument("--unit-tests=" .. val)
+    end,
+
+    Autocomplete = function(res, val)
+        res[#res + 1] = { "off",    "Unit tests are not included." }
+        res[#res + 1] = { "on",     "Unit tests are included, with verbose output." }
+        res[#res + 1] = { "quiet",  "Unit tests are included but output is silenced." }
     end,
 }
 
@@ -285,6 +353,12 @@ CmdOpt "kernel-dynalloc" {
 
         TransferArgument("--kernel-dynalloc=" .. val)
     end,
+
+    Autocomplete = function(res, val)
+        availableDynamicAllocators:ForEach(function(name)
+            res[#res + 1] = { name }
+        end)
+    end,
 }
 
 CmdOpt "userland-dynalloc" {
@@ -302,6 +376,12 @@ CmdOpt "userland-dynalloc" {
         settUsrDynAlloc = string.upper(val)
 
         TransferArgument("--userland-dynalloc=" .. val)
+    end,
+
+    Autocomplete = function(res, val)
+        availableDynamicAllocators:ForEach(function(name)
+            res[#res + 1] = { name }
+        end)
     end,
 }
 
@@ -390,6 +470,12 @@ CmdOpt "apic-mode" {
         settApicMode = string.upper(val)
 
         TransferArgument("--apic-mode=" .. val)
+    end,
+
+    Autocomplete = function(res, val)
+        availableApicModes:ForEach(function(name)
+            res[#res + 1] = { name }
+        end)
     end,
 }
 
@@ -1463,7 +1549,7 @@ Project "Toolchain" {
                 return res
             end,
 
-            Opts_C = LST "-std=gnu11 -flto -DALADIN !Opts_Includes",
+            Opts_C = LST "-std=gnu11 -flto -D_ALADIN !Opts_Includes",
             Opts_LD = LST "-fuse-linker-plugin !Opts_C",
         },
 
