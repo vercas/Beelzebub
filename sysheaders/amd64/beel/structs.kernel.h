@@ -115,13 +115,13 @@ __STRUCT(__BASE(Thread))
 protected:
     /*  Constructor(s)  */
 
-    inline __BASE(Thread)() : Owner(), ExceptionContext(), Exception() { }
-    inline __BASE(Thread)(__BASE(BeProcess) * owner) : Owner(owner), ExceptionContext(), Exception() { }
+    inline __BASE(Thread)(uint16_t const id, __BASE(BeProcess) * owner) : Id( id), Owner(owner), ExceptionContext(), Exception() { }
 
 public:
     /*  Fields  */
 #endif
 
+    uint16_t const Id;
     __BASE(BeProcess) * const Owner;
 
     BeExceptionContext * ExceptionContext;

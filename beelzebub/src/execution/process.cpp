@@ -52,17 +52,17 @@ using namespace Beelzebub::Memory;
 
 void Process::SetActive()
 {
-    ASSERT(this->State == ProcessState::Constructing);
-    ASSERT(this->Id != 0);
+    assert(this->State == ProcessState::Constructing);
+    assert(this->Id != 0);
 
     this->PreSetActive();
 }
 
 void Process::SetName(char const * name)
 {
-    ASSERT(this->State == ProcessState::Constructing);
-    ASSERT(this->Name == nullptr);
-    ASSERT(name != nullptr);
+    assert(this->State == ProcessState::Constructing);
+    assert(this->Name == nullptr);
+    assert(name != nullptr);
 
     this->Name = name;
 }

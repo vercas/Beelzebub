@@ -44,6 +44,12 @@
 
 namespace Beelzebub { namespace Execution
 {
+    enum class Threadtate
+    {
+        Constructing,
+        Active,
+    };
+
     typedef void * (*ThreadEntryPointFunction)(void * const arg);
 
     /**
@@ -56,7 +62,9 @@ namespace Beelzebub { namespace Execution
         /*  Constructors  */
 
         inline Thread()
-            : ThreadBase()
+            : ThreadBase( 0, nullptr)
+            , State(ThreadState::Constructing)
+            , Name(nullptr)
             , KernelStackTop()
             , KernelStackBottom()
             , KernelStackPointer()
@@ -72,8 +80,10 @@ namespace Beelzebub { namespace Execution
         Thread(Thread const &) = delete;
         Thread & operator =(Thread const &) = delete;
 
-        inline Thread(Process * const owner)
-            : ThreadBase( owner)
+        inline Thread(uint16_t id, Process * const owner)
+            : ThreadBase( id, owner)
+            , State(ThreadState::Constructing)
+            , Name(nullptr)
             , KernelStackTop()
             , KernelStackBottom()
             , KernelStackPointer()
@@ -88,6 +98,12 @@ namespace Beelzebub { namespace Execution
 
         /*  Operations  */
 
+        ThreadState State;
+        void SetActive();
+
+        char const * Name;
+        void SetName(char const * name);
+
         __hot Handle SwitchTo(Thread * other, GeneralRegisters64 * dest);   //  Implemented in architecture-specific code.
         Handle SwitchToNext(GeneralRegisters64 * dest) { return this->SwitchTo(this->Next, dest); }
 
@@ -97,10 +113,8 @@ namespace Beelzebub { namespace Execution
 
         /*  Stack  */
 
-        uintptr_t KernelStackTop;
-        uintptr_t KernelStackBottom;
-
-        uintptr_t KernelStackPointer;
+        uintptr_t KernelStackTop, KernelStackBottom, KernelStackPointer;
+        void SetKernelStack(uintptr_t top, uintptr_t bottom);
 
         /*  State  */
 

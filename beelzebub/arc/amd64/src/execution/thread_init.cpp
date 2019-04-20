@@ -49,11 +49,11 @@ using namespace Beelzebub::System;
 
 void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
 {
-    thread->KernelStackTop &= ~((uintptr_t)0xF);
-    thread->KernelStackBottom = (thread->KernelStackBottom + 0xF) & ~((uintptr_t)0xF);
+    // thread->KernelStackTop &= ~((uintptr_t)0xF);
+    // thread->KernelStackBottom = (thread->KernelStackBottom + 0xF) & ~((uintptr_t)0xF);
     //  Makin' sure the stack is aligned on a 16-byte boundary.
 
-    thread->KernelStackPointer = thread->KernelStackTop - sizeof(ThreadState);
+    // thread->KernelStackPointer = thread->KernelStackTop - sizeof(ThreadState);
 
     thread->State.GeneralRegisters.RIP = (uintptr_t)thread->EntryPoint;
     thread->State.GeneralRegisters.CS = Cpu::GetCs();
@@ -92,16 +92,17 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
 
 Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp)
 {
-    //new (bsp) Process(bsmm);
-    new (bst) Thread(bsp);
+    // new (bst) Thread(1, bsp);
 
     //uint64_t dummy = 0x0056657263617300;
     //  Just a dummy value.
 
-    bst->KernelStackBottom = 0xFFFFFFFFFFFFC000U;//RoundDown((uintptr_t)&dummy, PageSize);
-    bst->KernelStackTop = 0xFFFFFFFFFFFFF000U;//RoundUp((uintptr_t)&dummy, PageSize);
+    bst->SetKernelStack(0xFFFFFFFFFFFFF000U, 0xFFFFFFFFFFFFC000U);
+    // bst->KernelStackBottom = 0xFFFFFFFFFFFFC000U;//RoundDown((uintptr_t)&dummy, PageSize);
+    // bst->KernelStackTop = 0xFFFFFFFFFFFFF000U;//RoundUp((uintptr_t)&dummy, PageSize);
 
     bst->Next = bst->Previous = bst;
 
+    bst->SetActive();
     return HandleResult::Okay;
 }

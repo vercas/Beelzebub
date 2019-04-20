@@ -112,8 +112,8 @@ MainTerminalInterfaces Beelzebub::MainTerminalInterface;
 bool Beelzebub::Scheduling = false;
 bool Beelzebub::CpuDataSetUp = false;
 
-Process Beelzebub::BootstrapProcess;
-Thread Beelzebub::BootstrapThread;
+Process Beelzebub::BootstrapProcess(1);
+Thread Beelzebub::BootstrapThread(1, &BootstrapProcess);
 
 Domain Beelzebub::Domain0;
 
