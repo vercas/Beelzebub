@@ -44,7 +44,7 @@
 
 namespace Beelzebub { namespace Execution
 {
-    enum class Threadtate
+    enum class ThreadStatus
     {
         Constructing,
         Active,
@@ -63,7 +63,7 @@ namespace Beelzebub { namespace Execution
 
         inline Thread()
             : ThreadBase( 0, nullptr)
-            , State(ThreadState::Constructing)
+            , Status(ThreadStatus::Constructing)
             , Name(nullptr)
             , KernelStackTop()
             , KernelStackBottom()
@@ -82,7 +82,7 @@ namespace Beelzebub { namespace Execution
 
         inline Thread(uint16_t id, Process * const owner)
             : ThreadBase( id, owner)
-            , State(ThreadState::Constructing)
+            , Status(ThreadStatus::Constructing)
             , Name(nullptr)
             , KernelStackTop()
             , KernelStackBottom()
@@ -98,7 +98,7 @@ namespace Beelzebub { namespace Execution
 
         /*  Operations  */
 
-        ThreadState State;
+        ThreadStatus Status;
         void SetActive();
 
         char const * Name;

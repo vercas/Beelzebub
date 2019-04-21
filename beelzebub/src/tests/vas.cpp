@@ -104,7 +104,7 @@ void TestVas()
 
     Vmm::Initialize(&testProcess);
 
-    new (&testThread) Thread(&testProcess);
+    new (&testThread) Thread(2, &testProcess);
 
     Handle res;
 

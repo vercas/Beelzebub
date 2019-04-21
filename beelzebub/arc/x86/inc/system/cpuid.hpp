@@ -82,6 +82,7 @@ namespace Beelzebub { namespace System
 
         Microsoft,  //  Hyper-V
         KVM,        //  Green Hat, for the colorblind.
+        Citrix,     //  Lemony.
 
         None = -1,  //  Running on physical hardware, or just undetectable.
     };

@@ -160,6 +160,10 @@ void CpuId::Initialize()
         {
             this->Hypervisor = VirtualizationVendor::Microsoft;
         }
+        else if (::memeq(this->HypervisorString.Characters, "XenVMMXenVMM", 12))
+        {
+            this->Hypervisor = VirtualizationVendor::Citrix;
+        }
         else
         {
             this->Hypervisor = VirtualizationVendor::Unknown;
@@ -275,6 +279,10 @@ TerminalWriteResult CpuId::PrintToTerminal(TerminalBase * const term) const
 
             case VirtualizationVendor::KVM:
                 TERMTRY1(term->WriteLine("KVM"), tret, cnt);
+                break;
+
+            case VirtualizationVendor::Citrix:
+                TERMTRY1(term->WriteLine("Citrix"), tret, cnt);
                 break;
 
             default:

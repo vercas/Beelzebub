@@ -48,10 +48,13 @@
 #include <arpa/inet.h>
 #include <inttypes.h>
 
-#define _ALADIN
 #include "djinn.h"
 
-//#define DUMP_PACKETS
+// #define DUMP_PACKETS
+
+/************
+    State
+************/
 
 enum STATE
 {
@@ -77,12 +80,34 @@ struct ReadPacket
     };
 };
 
-struct ReadPacket ReadPacket(void); // Returns packet or negative length on error.
-int Loop(void); // Returns 0 on success, 1 when the socket closed.
+struct ReadPacket ReadPacketSock(void);
+int SendPacketGSock(struct DjinnGenericPacket const * DGP, int len);
 
-int SendPacketS(uint16_t type);
-int SendPacketD(uint16_t type, uint64_t payload);
-int SendPacketG(struct DjinnGenericPacket const * DGP, int len);
+struct ReadPacket ReadPacketSockBase64(void);
+int SendPacketGSockBase64(struct DjinnGenericPacket const * DGP, int len);
+
+struct ReadPacket (* ReadPacket)(void); // Returns packet or negative length on error.
+int (* SendPacketG)(struct DjinnGenericPacket const * DGP, int len);
+
+static inline int SendPacketS(uint16_t type)
+{
+    struct DjinnSimplePacket DSP = { type };
+
+    return SendPacketG((struct DjinnGenericPacket const *)&DSP, sizeof(DSP));
+}
+
+static inline int SendPacketD(uint16_t type, uint64_t payload)
+{
+    struct DjinnDwordPacket DDP = { type, payload };
+
+    return SendPacketG((struct DjinnGenericPacket const *)&DDP, sizeof(DDP));
+}
+
+/*******************
+    Initializing
+*******************/
+
+int Loop(void); // Returns 0 on success, 1 when the socket closed.
 
 int main(int argc, char * * argv)
 {
@@ -95,7 +120,7 @@ int main(int argc, char * * argv)
     // }
 
 start_over:
-    if (argc == 2)
+    if (argc >= 2)
     {
         struct sockaddr_un addr;
 
@@ -155,6 +180,9 @@ start_over:
         }
     }
 
+    ReadPacket = argc >= 3 ? ReadPacketSockBase64 : ReadPacketSock;
+    SendPacketG = argc >= 3 ? SendPacketGSockBase64 : SendPacketGSock;
+
     printf("Connected.\n");
     State = AwaitingHandshake;
 
@@ -171,6 +199,10 @@ start_over:
 
     return 0;
 }
+
+/*******************
+    Loop-de-doop
+*******************/
 
 int Loop(void)
 {
@@ -341,7 +373,11 @@ loop_again:
     goto loop_again;
 }
 
-struct ReadPacket ReadPacket()
+/**************
+    Sockets
+**************/
+
+struct ReadPacket ReadPacketSock()
 {
     static char BuffIn[4096];
     static int BuffLen = 0;
@@ -404,21 +440,7 @@ struct ReadPacket ReadPacket()
     return ret;
 }
 
-int SendPacketS(uint16_t type)
-{
-    struct DjinnSimplePacket DSP = { type };
-
-    return SendPacketG((struct DjinnGenericPacket const *)&DSP, sizeof(DSP));
-}
-
-int SendPacketD(uint16_t type, uint64_t payload)
-{
-    struct DjinnDwordPacket DDP = { type, payload };
-
-    return SendPacketG((struct DjinnGenericPacket const *)&DDP, sizeof(DDP));
-}
-
-int SendPacketG(struct DjinnGenericPacket const * DGP, int len)
+int SendPacketGSock(struct DjinnGenericPacket const * DGP, int len)
 {
     int cursor = 0, ret;
     static char BuffOut[256];
@@ -436,6 +458,240 @@ int SendPacketG(struct DjinnGenericPacket const * DGP, int len)
 
     while (cursor < len)
         if ((ret = send(SockFD, BuffOut + cursor, len - cursor, 0)) < 0)
+        {
+            perror("send packet");
+            return -1;
+        }
+        else if (ret == 0)
+        {
+            puts("Disconnected.");
+            return -2;
+        }
+        else
+            cursor += ret;
+
+    return cursor;
+}
+
+/******************************
+    Sockets, base64-encoded
+******************************/
+
+static uint32_t const Base64Values[256] = {
+ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 62, 63, 62, 62, 63,
+52, 53, 54, 55, 56, 57, 58, 59, 60, 61,  0,  0,  0,  0,  0,  0,
+ 0,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  0,  0,  0,  0, 63,
+ 0, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51
+};
+
+struct ReadPacket ReadPacketSockBase64()
+{
+    static uint8_t BuffIn[4096], BuffPack[3072];
+    static int BuffLen = 0, LastPackEnd = 0;
+
+    int cursor, len;
+    struct ReadPacket ret = { 0, { (struct DjinnSimplePacket *)BuffPack } };
+
+    if (BuffLen > LastPackEnd)
+    {
+        //  If there is data in the buffer, remove a packet from it.
+
+        cursor = BuffLen - LastPackEnd;
+#ifdef DUMP_PACKETS
+        printf("Shifting BuffIn: %p [%d] <- %p | %d\n", BuffIn, BuffLen, BuffIn + LastPackEnd, cursor);
+#endif
+        memmove(BuffIn, BuffIn + LastPackEnd, cursor);
+
+#ifdef DUMP_PACKETS
+        printf("Shifted!\n");
+#endif
+    }
+    else
+        cursor = 0;
+
+    LastPackEnd = 0;
+    size_t i = 0;
+
+    do
+    {
+        for (/* nothing */; i < cursor; ++i)
+        {
+            switch (BuffIn[i])
+            {
+            case '\n':  //  End of message.
+// #ifdef DUMP_PACKETS
+//                 printf("Newline at %d\n", i);
+// #endif
+
+                LastPackEnd = i + 1;
+                goto post_rec_loop;
+
+            case '\r':  //  AFAIK these are strays...
+#ifdef DUMP_PACKETS
+                printf("Carriage return at %zd\n", i);
+#endif
+                if (cursor > i + 1)
+                    memmove(BuffIn + i, BuffIn + i + 1, cursor - i - 1);
+
+                --i, --cursor;
+                break;
+
+// #ifdef DUMP_PACKETS
+//             default:
+//                 printf("'%c' at %zd\n", BuffIn[i], i);
+//                 break;
+// #endif
+            }
+        }
+
+        if (cursor >= sizeof(BuffIn))
+        {
+            puts("Input buffer overflow.");
+            ret.Length = -2;
+            return ret;
+        }
+
+        if ((len = recv(SockFD, BuffIn + cursor, sizeof(BuffIn) - cursor, 0)) < 0)
+        {
+            perror("recv packet");
+            ret.Length = -1;
+            return ret;
+        }
+        else if (len == 0)
+        {
+            puts("Disconnected.");
+            ret.Length = -2;
+            return ret;
+        }
+        else
+            cursor += len;
+    }
+    while (LastPackEnd == 0);
+
+post_rec_loop:
+    BuffLen = cursor;
+
+    if (LastPackEnd % 4 != 1)
+        printf("Unaligned packet? %d %d\n", LastPackEnd, LastPackEnd % 4);
+
+    size_t j = 0;
+
+    for (i = 0; i < LastPackEnd - 5; i += 4)
+    {
+        uint32_t const n = Base64Values[BuffIn[i    ]] << 18 | Base64Values[BuffIn[i + 1]] << 12
+                         | Base64Values[BuffIn[i + 2]] <<  6 | Base64Values[BuffIn[i + 3]];
+        BuffPack[j++] = n >> 16;
+        BuffPack[j++] = n >> 8 & 0xFF;
+        BuffPack[j++] = n & 0xFF;
+    }
+
+    if (BuffIn[i + 2] == '=')
+    {
+        //  This means there's two padding sextets, so just one byte.
+
+        uint32_t const n = Base64Values[BuffIn[i + 0]] << 18 | Base64Values[BuffIn[i + 1]] << 12;
+
+        BuffPack[j++] = n >> 16;
+    }
+    else if (BuffIn[i + 3] == '=')
+    {
+        //  This means there's just one padding sextet, so two bytes.
+
+        uint32_t const n = Base64Values[BuffIn[i + 0]] << 18 | Base64Values[BuffIn[i + 1]] << 12
+                         | Base64Values[BuffIn[i + 2]] <<  6;
+
+        BuffPack[j++] = n >> 16;
+        BuffPack[j++] = n >>  8 & 0xFF;
+    }
+    else
+    {
+        uint32_t const n = Base64Values[BuffIn[i + 0]] << 18 | Base64Values[BuffIn[i + 1]] << 12
+                         | Base64Values[BuffIn[i + 2]] <<  6 | Base64Values[BuffIn[i + 3]];
+
+        BuffPack[j++] = n >> 16;
+        BuffPack[j++] = n >>  8 & 0xFF;
+        BuffPack[j++] = n       & 0xFF;
+    }
+
+#ifdef DUMP_PACKETS
+    printf(" IN [%2d]:", j);
+
+    for (i = 0; i < j; ++i)
+        printf(" %02X", (unsigned int)BuffPack[i] & 0xFF);
+
+    printf("\n");
+
+    fwrite(BuffIn, LastPackEnd, 1, stdout);
+    fflush(stdout);
+#endif
+
+    ret.Length = j;
+    return ret;
+}
+
+static uint8_t const Base64Chars[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+int SendPacketGSockBase64(struct DjinnGenericPacket const * DGP, int len)
+{
+    static uint8_t BuffOut[1536];
+
+    size_t oLen = 4 * ((len + 2) / 3);
+
+    if (oLen >= 1536)
+        return -10;
+
+    uint8_t * pos = BuffOut;
+    uint8_t const * in = (uint8_t const *)DGP;
+    uint8_t const * end = in + len;
+
+    for (/* nothing */; end - in >= 3; in += 3)
+    {
+        *pos++ = Base64Chars[                         in[0] >> 2 ];
+        *pos++ = Base64Chars[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+        *pos++ = Base64Chars[((in[1] & 0x0f) << 2) | (in[2] >> 6)];
+        *pos++ = Base64Chars[  in[2] & 0x3f                      ];
+    }
+
+    if (end - in)
+    {
+        *pos++ = Base64Chars[in[0] >> 2];
+
+        if (end - in == 1)
+        {
+            *pos++ = Base64Chars[ (in[0] & 0x03) << 4                ];
+            *pos++ = '=';
+        }
+        else
+        {
+            *pos++ = Base64Chars[((in[0] & 0x03) << 4) | (in[1] >> 4)];
+            *pos++ = Base64Chars[ (in[1] & 0x0f) << 2                ];
+        }
+
+        *pos++ = '=';
+    }
+
+    *pos++ = '\n';
+    *pos = '\0';
+
+#ifdef DUMP_PACKETS
+    printf("OUT [%2d]:", len);
+
+    for (int i = 0; i < len; ++i)
+        printf(" %02X", (unsigned int)*((uint8_t const *)DGP + i) & 0xFF);
+
+    printf("\n");
+
+    puts((char const *)BuffOut);
+#endif
+
+    int cursor = 0, ret;
+
+    while (BuffOut + cursor < pos)
+        if ((ret = send(SockFD, BuffOut + cursor, pos - BuffOut - cursor, 0)) < 0)
         {
             perror("send packet");
             return -1;

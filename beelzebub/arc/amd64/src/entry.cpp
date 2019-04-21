@@ -366,7 +366,7 @@ Handle Beelzebub::InitializeVirtualMemory()
     ::memset((void *)(pml4_paddr.Value), 0, PageSize.Value);
     //  Clear it all out!
 
-    // new (&BootstrapProcess) Process(1);
+    new (&BootstrapProcess) Process(1);
     BootstrapProcess.SetPagingTable(pml4_paddr);
     BootstrapProcess.SetName("System");
 

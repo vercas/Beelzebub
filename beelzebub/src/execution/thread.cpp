@@ -48,19 +48,20 @@ using namespace Beelzebub::Execution;
 
 /*  Operations  */
 
-void ThreadState::SetActive()
+void Thread::SetActive()
 {
-    assert(this->State == ThreadState::Constructing);
+    assert(this->Status == ThreadStatus::Constructing);
     assert(this->Id != 0);
     assert(this->KernelStackTop != 0);
     assert(this->KernelStackBottom != 0);
 
-    this->PreSetActive();
+    // this->PreSetActive();
+    this->Status = ThreadStatus::Active;
 }
 
-void ThreadState::SetName(char const * name)
+void Thread::SetName(char const * name)
 {
-    assert(this->State == ThreadState::Constructing);
+    assert(this->Status == ThreadStatus::Constructing);
     assert(this->Name == nullptr);
     assert(name != nullptr);
 
@@ -69,9 +70,9 @@ void ThreadState::SetName(char const * name)
 
 /*  Stack  */
 
-void SetKernelStack(uintptr_t top, uintptr_t bottom)
+void Thread::SetKernelStack(uintptr_t top, uintptr_t bottom)
 {
-    assert(this->State == ThreadState::Constructing);
+    assert(this->Status == ThreadStatus::Constructing);
     assert(this->KernelStackTop == 0);
     assert(this->KernelStackBottom == 0);
     assert(top != 0);

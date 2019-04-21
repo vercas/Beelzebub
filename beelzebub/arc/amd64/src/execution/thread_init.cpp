@@ -92,7 +92,7 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
 
 Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp)
 {
-    // new (bst) Thread(1, bsp);
+    new (bst) Thread(1, bsp);
 
     //uint64_t dummy = 0x0056657263617300;
     //  Just a dummy value.

@@ -56,6 +56,7 @@ void Process::SetActive()
     assert(this->Id != 0);
 
     this->PreSetActive();
+    this->State = ProcessState::Active;
 }
 
 void Process::SetName(char const * name)
