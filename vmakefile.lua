@@ -1,5 +1,5 @@
 #!/usr/bin/env lua
-require "vmake-edge"
+require "vmake"
 
 --[[
     Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
