@@ -60,7 +60,7 @@ namespace Beelzebub { namespace Synchronization
             : Lock(&lock)
             , Cookie(lock.Acquire())
         {
-            
+
         }
 
         LockGuard(LockGuard const &) = delete;
@@ -125,14 +125,14 @@ namespace Beelzebub { namespace Synchronization
             : Lock(nullptr)
             , Cookie(TLock::InvalidCookie)
         {
-            
+
         }
 
         __forceinline LockGuardFlexible(TLock * lock)
             : Lock( lock)
             , Cookie((lock == nullptr) ? TLock::InvalidCookie : lock->Acquire())
         {
-            
+
         }
 
         LockGuardFlexible(LockGuardFlexible const &) = delete;
