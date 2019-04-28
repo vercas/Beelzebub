@@ -88,7 +88,7 @@ Handle Beelzebub::ElideLocks()
     {
         vaddr_t const vaddr = vaddr_t(&kernel_mapping_start) + pageInd * PageSize;
 
-        res = Vmm::GetPageFlags(&BootstrapProcess, vaddr, flags[pageInd]);
+        res = Vmm::GetPageFlags(nullptr, vaddr, flags[pageInd]);
 
         assert_or(res.IsOkayResult()
             , "Failed to retrieve flags of page %Xp for lock elision: %H"
@@ -97,7 +97,7 @@ Handle Beelzebub::ElideLocks()
             return res;
         }
 
-        res = Vmm::SetPageFlags(&BootstrapProcess, vaddr, MemoryFlags::Writable | flags[pageInd]);
+        res = Vmm::SetPageFlags(nullptr, vaddr, MemoryFlags::Writable | flags[pageInd]);
 
         assert_or(res.IsOkayResult()
             , "Failed to apply flags to page %Xp for lock elision: %H"
@@ -137,7 +137,7 @@ Handle Beelzebub::ElideLocks()
     {
         vaddr_t const vaddr = vaddr_t(&kernel_mapping_start) + pageInd * PageSize;
 
-        res = Vmm::SetPageFlags(&BootstrapProcess, vaddr, flags[pageInd]);
+        res = Vmm::SetPageFlags(nullptr, vaddr, flags[pageInd]);
 
         assert_or(res.IsOkayResult()
             , "Failed to restore flags to page %Xp for lock elision: %H"

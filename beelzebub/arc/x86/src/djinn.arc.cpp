@@ -57,7 +57,7 @@ __hot DJINN_POLL_RES DjinnPollPacketFromSerialPortBase64(void * buffer, size_t c
 
 Handle Beelzebub::InitializeDebuggerInterface(DjinnInterfaces iface)
 {
-    bool b64 = true;
+    bool b64 = false;
 
     switch (iface)
     {

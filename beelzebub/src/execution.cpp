@@ -68,13 +68,17 @@ void Beelzebub::InitializeExecutionData()
     new (&ThreadIds) IdPool<Thread>(threadList, MAX_THREADS);
 
     uintptr_t bootstrapProcessId = ProcessIds.Acquire(&BootstrapProcess);
+    uintptr_t bootstrapThreadId = ThreadIds.Acquire(&BootstrapThread);
 
     ASSERT(bootstrapProcessId == 0)(bootstrapProcessId);
-    //  This one is discarded and reserved forever.
+    ASSERT(bootstrapThreadId == 0)(bootstrapThreadId);
+    //  These ones is discarded and reserved forever.
 
     bootstrapProcessId = ProcessIds.Acquire(&BootstrapProcess);
+    bootstrapThreadId = ThreadIds.Acquire(&BootstrapThread);
 
     ASSERT(BootstrapProcess.Id == bootstrapProcessId)(BootstrapProcess.Id)(bootstrapProcessId);
+    ASSERT(BootstrapThread.Id == bootstrapThreadId)(BootstrapThread.Id)(bootstrapThreadId);
     //  Should be 1 now.
 }
 

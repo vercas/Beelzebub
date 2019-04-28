@@ -127,36 +127,62 @@ DJINN_INIT_RES DjinnInitialize(DjinnInitData * data)
     //  Data seems okay. Obtain nuance.
 
     uint64_t const nuance = 0xF00000FF00FFF000ULL;
-
-    //  Send first handshake packet.
-
-    for (size_t volatile i = 0; i < 1000000000; ++i) { }
-
-    DJINN_SEND_RES sres = Send(DwordPacket(HandshakePacket0, nuance));
-
-    if (sres != DJINN_SEND_SUCCESS)
-        FAIL(DJINN_INIT_HANDSHAKE_FAILED);
-
-    DwordPacket buf1;
-    DJINN_POLL_RES pres = Poll(buf1, 1000000);
-    //  TODO: Timing.
-
-    if (pres == DJINN_POLL_NOTHING)
-        goto success;
-    //  No response simply means the debugger is not listening.
-
-    if (pres != DJINN_POLL_SUCCESS || buf1.Type != HandshakePacket1)
-        FAIL(DJINN_INIT_HANDSHAKE_FAILED);
-
-    sres = Send(DwordPacket(HandshakePacket2, buf1.Payload ^ nuance));
-
-    if (sres != DJINN_SEND_SUCCESS)
-        FAIL(DJINN_INIT_HANDSHAKE_FAILED);
-
-    ++DebuggerCount;
+    int attempts = 8;
+    bool firstAttempt = false;
 
 #undef FAIL
-success:
+#define FAIL(val) do { \
+    if (attempts > 1) \
+        continue; \
+    __atomic_store_n(&InitStatus, Uninitialized, __ATOMIC_RELEASE); \
+    return (val); \
+} while(false);
+
+    for (/* nothing */; attempts > 0; --attempts)
+    {
+        //  Send first handshake packet.
+
+        if (!firstAttempt)
+        {
+            firstAttempt = true;
+
+            for (size_t volatile i = 0; i < 100000000; ++i) { }
+            //  This is incredibly fast on some CPUs...
+        }
+
+        DJINN_SEND_RES sres = Send(DwordPacket(HandshakePacket0, nuance));
+
+        if (sres != DJINN_SEND_SUCCESS)
+            FAIL(DJINN_INIT_HANDSHAKE_FAILED);
+
+        DwordPacket buf1;
+        DJINN_POLL_RES pres = Poll(buf1, 1000000);
+        //  TODO: Timing.
+
+        if (pres == DJINN_POLL_NOTHING)
+        {
+            //  No response simply means the debugger is not listening.
+
+            if (attempts > 1)
+                break;
+            else
+                continue;
+        }
+
+        if (pres != DJINN_POLL_SUCCESS || buf1.Type != HandshakePacket1)
+            FAIL(DJINN_INIT_HANDSHAKE_FAILED);
+
+        sres = Send(DwordPacket(HandshakePacket2, buf1.Payload ^ nuance));
+
+        if (sres != DJINN_SEND_SUCCESS)
+            FAIL(DJINN_INIT_HANDSHAKE_FAILED);
+
+        ++DebuggerCount;
+        break;
+    }
+
+#undef FAIL
+
     __atomic_store_n(&InitStatus, Uninitialized, __ATOMIC_RELEASE);
     return DJINN_INIT_SUCCESS;
 }

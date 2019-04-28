@@ -321,7 +321,7 @@ __startup void RemapTerminal(TerminalBase * const terminal)
         
         vaddr_t vaddr = nullvaddr;
 
-        res = Vmm::AllocatePages(&BootstrapProcess
+        res = Vmm::AllocatePages(nullptr
             , size
             , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
             , MemoryFlags::Global | MemoryFlags::Writable
@@ -332,7 +332,7 @@ __startup void RemapTerminal(TerminalBase * const terminal)
             , "Failed to reserve %Xs bytes to map VBE framebuffer: %H."
             , size, res);
 
-        res = Vmm::MapRange(&BootstrapProcess
+        res = Vmm::MapRange(nullptr
             , vaddr, paddr_t(term->VideoMemory), size
             , MemoryFlags::Global | MemoryFlags::Writable
             , MemoryMapOptions::NoReferenceCounting);
@@ -380,7 +380,7 @@ Handle Beelzebub::InitializeVirtualMemory()
 
     //  Now mapping the lower 16 MiB.
 
-    res = Vmm::MapRange(&BootstrapProcess
+    res = Vmm::MapRange(nullptr
         , vaddr_t(VmmArc::IsaDmaStart), nullpaddr, vsize_t(VmmArc::IsaDmaLength)
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryMapOptions::NoReferenceCounting);
@@ -430,7 +430,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
 
     vaddr_t vaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(&BootstrapProcess
+    res = Vmm::AllocatePages(nullptr
         , size
         , MemoryAllocationOptions::Reserve | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global
@@ -443,7 +443,7 @@ __startup Handle HandleModule(size_t const index, jg_info_module_t const * const
         , index, JG_INFO_STRING_EX + module->name
         , res);
 
-    res = Vmm::MapRange(&BootstrapProcess
+    res = Vmm::MapRange(nullptr
         , vaddr, paddr_t(module->address), size
         , MemoryFlags::Global
         , MemoryMapOptions::NoReferenceCounting);

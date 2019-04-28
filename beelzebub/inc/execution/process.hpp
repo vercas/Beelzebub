@@ -45,6 +45,7 @@
 #include <beel/structs.kernel.h>
 #include <beel/sync/smp.lock.hpp>
 #include <beel/sync/atomic.hpp>
+#include <beel/memory/reference.counting.hpp>
 
 namespace Beelzebub { namespace Execution
 {
@@ -57,13 +58,16 @@ namespace Beelzebub { namespace Execution
     /**
      *  A unit of isolation.
      */
-    class Process : public ProcessBase, public ProcessArchitecturalBase
+    class Process : public Memory::ReferenceCounted<Process>
+                  , public ProcessBase
+                  , public ProcessArchitecturalBase
     {
     public:
         /*  Constructors  */
 
         inline Process(uint16_t id = 0)
-            : ProcessBase( id)
+            : ReferenceCounted()
+            , ProcessBase( id)
             , ProcessArchitecturalBase()
             , State(ProcessState::Constructing)
             , Name(nullptr)
