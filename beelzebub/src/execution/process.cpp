@@ -37,8 +37,8 @@
     thorough explanation regarding other files.
 */
 
-#include <execution/thread.hpp>
-#include <memory/vmm.hpp>
+#include "execution/thread.hpp"
+#include "memory/vmm.hpp"
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
@@ -48,20 +48,27 @@ using namespace Beelzebub::Memory;
     Process class
 *********************/
 
+/*  Destructors  */
+
+void Process::ReleaseMemory()
+{
+    MSG_("Should reclaim %Xp%n", this);
+}
+
 /*  Operations  */
 
 void Process::SetActive()
 {
-    assert(this->State == ProcessState::Constructing);
+    assert(this->Status == ProcessStatus::Constructing);
     assert(this->Id != 0);
 
     this->PreSetActive();
-    this->State = ProcessState::Active;
+    this->Status = ProcessStatus::Active;
 }
 
 void Process::SetName(char const * name)
 {
-    assert(this->State == ProcessState::Constructing);
+    assert(this->Status == ProcessStatus::Constructing);
     assert(this->Name == nullptr);
     assert(name != nullptr);
 

@@ -44,17 +44,21 @@
 
 namespace Beelzebub
 {
+    extern Execution::Process BootstrapProcess;
+    extern Execution::Thread BootstrapThread;
+
     __startup void InitializeExecutionData();
 
-    enum class SpawnProcessResult
+    Memory::UniquePointer<Execution::Process> SpawnProcess();
+    Memory::UniquePointer<Execution::Thread> SpawnThread(Execution::Process * owner);
+
+    static __forceinline Memory::UniquePointer<Execution::Thread> SpawnThread(Memory::LocalPointer<Execution::Process> owner)
     {
-        Success,
-        OutOfMemory,
-        LimitReached,
-    };
+        return SpawnThread(owner.Get());
+    }
 
-    typedef SpawnProcessResult SpawnThreadResult;
-
-    Result<SpawnProcessResult, Execution::Process *> SpawnProcess();
-    Result<SpawnThreadResult, Execution::Thread *> SpawnThread(Execution::Process * owner);
+    static __forceinline Memory::UniquePointer<Execution::Thread> SpawnThread(Memory::GlobalPointer<Execution::Process> owner)
+    {
+        return SpawnThread(owner.Get());
+    }
 }

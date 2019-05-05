@@ -43,7 +43,18 @@
 #error This file must only be included in a Beelzebub kernel module.
 #endif
 
-#include <beel/structs.kernel.h>
+#include <beel/metaprogramming.h>
+
+#define __BASE(NAME) NAME
+
+namespace Beelzebub
+{
+    __FORWARD(Process)
+    __FORWARD(Thread)
+    __FORWARD(CpuData)
+    __FORWARD(Exception)
+    __FORWARD(ExceptionContext)
+}
 
 #define KRN_SYM_GLB_FNC(name, attr, retType, ...) \
     __extern attr retType name(__VA_ARGS__);
@@ -56,10 +67,7 @@
 #undef KRN_SYM_GLB_FNC
 #undef KRN_SYM_NMS_FNC
 
-namespace Beelzebub
-{
-
-}
+#include <beel/structs.kernel.h>
 
 #define KMOD_ENTRY_DEFINITION               \
 __extern Handle __start() __alias(_start);  \

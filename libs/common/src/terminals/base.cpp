@@ -1682,7 +1682,7 @@ TerminalWriteResult Terminals::WriteFormattedEnumHelper(TerminalBase * term
 
     case "x"BeH:
         upper = false;
-        [[fallthrough]]
+        [[fallthrough]];
     case "X"BeH:    //  Here `upper` is true.
         switch (sz)
         {
@@ -1744,7 +1744,7 @@ TerminalWriteResult Terminals::WriteFormattedIntHelper(TerminalBase * term
 
     case "x"BeH:
         upper = false;
-        [[fallthrough]]
+        [[fallthrough]];
     case "X"BeH:    //  Here `upper` is true.
         switch (sz)
         {

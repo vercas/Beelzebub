@@ -78,7 +78,7 @@ namespace Beelzebub::Utils
         inline IdPool()
             : Head( NoNext), Tail(NoNext), Entries(nullptr), Capacity(0), Lock()
         {
-            
+
         }
 
         inline IdPool(void * storage, size_t cap)
@@ -90,6 +90,13 @@ namespace Beelzebub::Utils
                 this->Entries[i] = (i + 1) << ValueShift;
 
             this->Entries[cap - 1] = NoNext;
+        }
+
+        /*  Properties  */
+
+        inline size_t GetCapacity() const
+        {
+            return this->Capacity;
         }
 
         /*  Actions  */
@@ -140,7 +147,7 @@ namespace Beelzebub::Utils
 
         inline bool SetPointer(uintptr_t id, T const * val)
         {
-            if (id >= this->Capacity || 0 != (reinterpret_cast<uintptr_t>(val) & ValueMask))
+            if (id >= this->Capacity || 0 != (reinterpret_cast<uintptr_t>(val) & ~ValueMask))
                 return false;
 
             // bool set = true;

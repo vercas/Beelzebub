@@ -189,7 +189,7 @@ bool AssertHelper::RealityCheck()
 {
     if (this->State++ == 0)
     {
-        (void)MsgSpinlock.Acquire();
+        auto __unused cookie = MsgSpinlock.Acquire();
         //  The returned cookie is explicitly discarded!
 
         return true;

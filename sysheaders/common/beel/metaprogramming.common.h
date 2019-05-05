@@ -537,14 +537,20 @@
 ***************************/
 
 #if defined(__BEELZEBUB__SOURCE_CXX)
-    #define __STRUCT(name) \
+    #define __FORWARD(name) \
     struct name; \
-    using MCATS(Be, name) = name; \
+    using MCATS(Be, name) = name;
+
+    #define __STRUCT(name) \
+    __FORWARD(name) \
     struct name
 #elif defined(__BEELZEBUB__SOURCE_C)
-    #define __STRUCT(name) \
+    #define __FORWARD(name) \
     struct MCATS(Be, name, _s); \
-    typedef MCATS(Be, name, _s) MCATS(Be, name); \
+    typedef MCATS(Be, name, _s) MCATS(Be, name);
+
+    #define __STRUCT(name) \
+    __FORWARD(name) \
     struct MCATS(Be, name, _s)
 #else
     //  Field reference (name)

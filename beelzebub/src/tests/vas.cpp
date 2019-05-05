@@ -39,14 +39,13 @@
 
 #ifdef __BEELZEBUB__TEST_VAS
 
-#include <tests/vas.hpp>
-#include <memory/vmm.hpp>
-#include <execution/thread.hpp>
-#include <execution/thread_init.hpp>
+#include "tests/vas.hpp"
+#include "memory/vmm.hpp"
+#include "execution/thread.hpp"
+#include "execution/thread_init.hpp"
+#include "execution.hpp"
+
 #include <beel/exceptions.hpp>
-
-#include <kernel.hpp>
-
 #include <string.h>
 #include <debug.hpp>
 
@@ -56,8 +55,8 @@ using namespace Beelzebub::Memory;
 using namespace Beelzebub::System;
 using namespace Beelzebub::Terminals;
 
-static Thread testThread;
-static Process testProcess;
+static LocalPointer<Thread> testThread;
+static LocalPointer<Process> testProcess;
 
 static volatile bool Barrier;
 
@@ -99,12 +98,12 @@ void TestVas()
 {
     Barrier = true;
 
-    new (&testProcess) Process(2);
-    testProcess.SetName("VAS Test Process");
+    testProcess = SpawnProcess();
+    testProcess->SetName("VAS Test Process");
 
-    Vmm::Initialize(&testProcess);
+    Vmm::Initialize(testProcess);
 
-    new (&testThread) Thread(2, &testProcess);
+    testThread = SpawnThread(testProcess);
 
     Handle res;
 
@@ -122,17 +121,17 @@ void TestVas()
         , "Failed to allocate stack for VAS test thread: %H."
         , res);
 
-    testThread.KernelStackTop = (stackVaddr + 3 * PageSize).Value;
-    testThread.KernelStackBottom = stackVaddr.Value;
+    testThread->KernelStackTop = (stackVaddr + 3 * PageSize).Value;
+    testThread->KernelStackBottom = stackVaddr.Value;
 
-    testThread.EntryPoint = &TestThreadCode;
+    testThread->EntryPoint = &TestThreadCode;
 
-    InitializeThreadState(&testThread);
+    InitializeThreadState(testThread.Get());
 
-    testProcess.SetActive();
+    testProcess->SetActive();
 
     withInterrupts (false)
-        BootstrapThread.IntroduceNext(&testThread);
+        BootstrapThread.IntroduceNext(testThread.Get());
 
     while (Barrier) CpuInstructions::DoNothing();
 }

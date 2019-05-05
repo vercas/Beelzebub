@@ -45,6 +45,7 @@
 #include "kernel.hpp"
 #include "cores.hpp"
 #include "mailbox.hpp"
+#include "execution.hpp"
 
 #include <beel/interrupt.state.hpp>
 #include <string.h>

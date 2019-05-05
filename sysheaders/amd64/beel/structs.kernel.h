@@ -40,12 +40,7 @@
 #pragma once
 
 #include <beel/structs.kernel.common.h>
-
-#ifdef __BEELZEBUB_KERNEL
-    #define __BASE(NAME) MCATS(NAME, Base)
-#else
-    #define __BASE(NAME) NAME
-#endif
+// #include <beel/memory/reference.counting.hpp>
 
 __NAMESPACE_BEGIN
 
@@ -85,50 +80,6 @@ FIELDT(BeExceptionContext, Status        , uintptr_t  )
 BeExceptionContext_size:
 #endif
 
-/**
- *  A unit of isolation.
- */
-#ifndef __ASSEMBLER__
-__STRUCT(__BASE(Process))
-{
-#ifdef __BEELZEBUB__SOURCE_CXX
-protected:
-    /*  Constructor(s)  */
-
-    inline __BASE(Process)(uint16_t const id) : Id( id) { }
-
-public:
-    /*  Fields  */
-#endif
-
-    uint16_t const Id;
-};
-#endif
-
-/**
- *  A unit of execution.
- */
-#ifndef __ASSEMBLER__
-__STRUCT(__BASE(Thread))
-{
-#ifdef __BEELZEBUB__SOURCE_CXX
-protected:
-    /*  Constructor(s)  */
-
-    inline __BASE(Thread)(uint16_t const id, __BASE(BeProcess) * owner) : Id( id), Owner(owner), ExceptionContext(), Exception() { }
-
-public:
-    /*  Fields  */
-#endif
-
-    uint16_t const Id;
-    __BASE(BeProcess) * const Owner;
-
-    BeExceptionContext * ExceptionContext;
-    BeException Exception;
-};
-#endif
-
 #ifndef __ASSEMBLER__
 __STRUCT(GeneralRegisters64)
 {
@@ -148,7 +99,7 @@ __STRUCT(GeneralRegisters64)
     uint64_t RCX;
     uint64_t RBX;
     uint64_t RAX;
-    
+
     uint64_t RDX;
 
     uint64_t ErrorCode;

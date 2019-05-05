@@ -17,6 +17,7 @@ BochsLog.txt
 .vs/
 *~
 *.sublime-workspace
+/compile_commands.json
 \.directory
 /BOCHS.bat
 /QEMU.bat

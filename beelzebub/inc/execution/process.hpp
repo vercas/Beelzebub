@@ -47,9 +47,22 @@
 #include <beel/sync/atomic.hpp>
 #include <beel/memory/reference.counting.hpp>
 
+#define DEFINE_PROCESS_DATA(type, name) \
+    __section(process_data) __used type name;
+
+#define DECLARE_PROCESS_DATA(type, name) \
+    extern type name;
+
+#define GET_PROCESS_DATA(proc, name) \
+    (*reinterpret_cast<decltype(&name)>(reinterpret_cast<uint8_t *>(proc) \
+                                      + reinterpret_cast<size_t>(&name) \
+                                      - reinterpret_cast<size_t>(&process_data_start)))
+
+extern "C" uint8_t process_data_start;
+
 namespace Beelzebub { namespace Execution
 {
-    enum class ProcessState
+    enum class ProcessStatus
     {
         Constructing,
         Active,
@@ -67,9 +80,10 @@ namespace Beelzebub { namespace Execution
 
         inline Process(uint16_t id = 0)
             : ReferenceCounted()
-            , ProcessBase( id)
+            , ProcessBase()
             , ProcessArchitecturalBase()
-            , State(ProcessState::Constructing)
+            , Id(id)
+            , Status(ProcessStatus::Constructing)
             , Name(nullptr)
             , ActiveCoreCount(0)
             , LocalTablesLock()
@@ -83,9 +97,17 @@ namespace Beelzebub { namespace Execution
         Process(Process const &) = delete;
         Process & operator =(Process const &) = delete;
 
+        /*  Destructors  */
+
+        void ReleaseMemory();
+
+        /*  Basics  */
+
+        uint16_t const Id;
+
         /*  Operations  */
 
-        ProcessState State;
+        ProcessStatus Status;
         void SetActive();
 
         char const * Name;

@@ -5,20 +5,20 @@ SECTIONS
     . = 0xFFFFFFFF80000000;
     kernel_mapping_start = .;
 
-    .text.unlikely : {
-        *(.text.unlikely)
-    }
-
-    .text.assertions ALIGN(16) : {
-        *(.text.assertions)
+    .text.hot ALIGN(16) : {
+        *(.text.hot)
     }
 
     .text ALIGN(16) : {
         *(.text)
     }
 
-    .text.hot ALIGN(16) : {
-        *(.text.hot)
+    .text.unlikely : {
+        *(.text.unlikely)
+    }
+
+    .text.assertions ALIGN(16) : {
+        *(.text.assertions)
     }
 
     .rodata ALIGN(0x1000) : {
@@ -83,6 +83,20 @@ SECTIONS
         *(.locks.acq)
         *(.locks.rel)
         locks_section_end = .;
+    }
+
+    .thread_data ALIGN(16) : {
+        thread_data_start = .;
+        *(.bootstrap_thread)
+        *(.thread_data)
+        thread_data_end = .;
+    }
+
+    .process_data ALIGN(16) : {
+        process_data_start = .;
+        *(.bootstrap_process)
+        *(.process_data)
+        process_data_end = .;
     }
 
     .text.userland ALIGN(0x1000) : {

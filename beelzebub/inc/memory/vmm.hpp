@@ -124,7 +124,18 @@ namespace Beelzebub { namespace Memory
         /*  Initialization  */
 
         static __startup Handle Bootstrap(Execution::Process * const bootstrapProc);
+
         static Handle Initialize(Execution::Process * proc);
+
+        static __forceinline Handle Initialize(LocalPointer<Execution::Process> & proc)
+        {
+            return Initialize(proc.Get());
+        }
+
+        static __forceinline Handle Initialize(GlobalPointer<Execution::Process> & proc)
+        {
+            return Initialize(proc.Get());
+        }
 
         /*  Activation and Status  */
 

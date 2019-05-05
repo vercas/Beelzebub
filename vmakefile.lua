@@ -1,5 +1,5 @@
 #!/usr/bin/env lua
-require "vmake"
+require "vmake-edge"
 
 --[[
     Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
@@ -795,7 +795,10 @@ Project "Beelzebub" {
             Filter = function(dst) return dst:EndsWith(".c.o") end,
 
             Source = function(dst)
-                return List { SourceDirectory + dst:Skip(ObjectsDirectory):TrimEnd(2), dst:GetParent() }
+                local codeFile = SourceDirectory + dst:Skip(ObjectsDirectory):TrimEnd(2)
+                codeFile.IsCodeFile = true
+
+                return List { codeFile, dst:GetParent() }
                 --  2 = #".o"
             end,
 
@@ -828,6 +831,7 @@ Project "Beelzebub" {
                 local res = List [[
                     -fvisibility=hidden
                     -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -Wno-invalid-offsetof
                     -D__BEELZEBUB_STATIC_LIBRARY
                 ]] + Opts_GCC_Common + Opts_Includes
                    + selArch.Data.Opts_GCC_Kernel
@@ -847,8 +851,8 @@ Project "Beelzebub" {
             end,
 
             Opts_C          = LST "!Opts_GCC !Opts_Opti -std=gnu99 -flto",
-            Opts_CXX_CRT    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
-            Opts_CXX        = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions -flto",
+            Opts_CXX_CRT    = LST "!Opts_GCC -std=gnu++17 -fno-rtti -fno-exceptions",
+            Opts_CXX        = LST "!Opts_GCC !Opts_Opti -std=gnu++17 -fno-rtti -fno-exceptions -flto",
             Opts_NASM       = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
             Opts_GAS_CRT    = LST "!Opts_GCC",
             Opts_GAS        = LST "!Opts_GAS_CRT -flto",
@@ -909,6 +913,7 @@ Project "Beelzebub" {
                 local res = List {
                     "-fvisibility=hidden",
                     "-Wall", "-Wextra", "-Wpedantic", "-Wsystem-headers",
+                    "-Wno-invalid-offsetof",
                     "-flto", settUnopt and "-O0" or "-O2",
                     "-D__BEELZEBUB_STATIC_LIBRARY", "-D__BEELZEBUB_KERNEL",
                 } + Opts_GCC_Common + Opts_Includes
@@ -922,7 +927,7 @@ Project "Beelzebub" {
                 return res
             end,
 
-            Opts_CXX        = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_CXX        = LST "!Opts_GCC -std=gnu++17 -fno-rtti -fno-exceptions",
             Opts_AR         = List "rcs",
         },
 
@@ -953,7 +958,7 @@ Project "Beelzebub" {
     --         end,
 
     --         Opts_C       = function() return Opts_GCC + List { "-std=gnu99", } end,
-    --         Opts_CXX     = function() return Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+    --         Opts_CXX     = function() return Opts_GCC + List { "-std=gnu++17", "-fno-rtti", "-fno-exceptions", } end,
     --         Opts_NASM    = function() return Opts_GCC_Precompiler + Opts_Includes_Nasm + selArch.Data.Opts_NASM end,
     --         Opts_GAS     = function() return Opts_GCC end,
 
@@ -1001,7 +1006,7 @@ Project "Beelzebub" {
     --         end,
 
     --         Opts_C       = function() return Opts_GCC + List { "-std=gnu99", } end,
-    --         Opts_CXX     = function() return Opts_GCC + List { "-std=gnu++14", "-fno-rtti", "-fno-exceptions", } end,
+    --         Opts_CXX     = function() return Opts_GCC + List { "-std=gnu++17", "-fno-rtti", "-fno-exceptions", } end,
     --         Opts_NASM    = function() return Opts_GCC_Precompiler + Opts_Includes_Nasm + selArch.Data.Opts_NASM end,
     --         Opts_GAS     = function() return Opts_GCC end,
 
@@ -1041,6 +1046,7 @@ Project "Beelzebub" {
                     -fvisibility=hidden -fPIC
                     -ffreestanding -nodefaultlibs -static-libgcc
                     -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -Wno-invalid-offsetof
                     -flto
                     -D__BEELZEBUB_DYNAMIC_LIBRARY
                 ]] + Opts_GCC_Common + Opts_Includes
@@ -1054,7 +1060,7 @@ Project "Beelzebub" {
             end,
 
             Opts_C      = LST "!Opts_GCC !Opts_Opti -std=gnu99",
-            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++17 -fno-rtti -fno-exceptions",
             Opts_NASM   = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
             Opts_GAS    = LST "!Opts_GCC",
 
@@ -1111,13 +1117,14 @@ Project "Beelzebub" {
                     -fvisibility=hidden -fPIC
                     -ffreestanding -nodefaultlibs -static-libgcc
                     -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -Wno-invalid-offsetof
                     -O0 -flto
                     -D__BEELZEBUB_DYNAMIC_LIBRARY
                 ]] + Opts_GCC_Common + Opts_Includes
                    + SysheaderDirectoriesIncludes
             end,
 
-            Opts_CXX    = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_CXX    = LST "!Opts_GCC -std=gnu++17 -fno-rtti -fno-exceptions",
 
             LD          = DAT "LO",
             Opts_LD     = LST "-shared !Opts_GCC -fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic",
@@ -1157,6 +1164,7 @@ Project "Beelzebub" {
                 local res = List [[
                     -fvisibility=hidden
                     -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -Wno-invalid-offsetof
                     -flto -Os
                     -D_DJINN
                 ]] + Opts_GCC_Common + Opts_Includes
@@ -1169,7 +1177,7 @@ Project "Beelzebub" {
                 return res
             end,
 
-            Opts_CXX        = LST "!Opts_GCC -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_CXX        = LST "!Opts_GCC -std=gnu++17 -fno-rtti -fno-exceptions",
             Opts_AR         = List "rcs",
         },
 
@@ -1188,6 +1196,7 @@ Project "Beelzebub" {
                 return List [[
                     -fvisibility=hidden
                     -Wall -Wsystem-headers
+                    -Wno-invalid-offsetof
                     -flto
                     -D__BEELZEBUB_APPLICATION
                 ]] + Opts_GCC_Common + Opts_Includes
@@ -1200,7 +1209,7 @@ Project "Beelzebub" {
                 }
             end,
 
-            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++17 -fno-rtti -fno-exceptions",
 
             LD          = DAT "LO",
             Opts_LD     = LST "!Opts_GCC !Opts_Opti -fuse-linker-plugin -Wl,-z,max-page-size=0x1000",
@@ -1253,6 +1262,7 @@ Project "Beelzebub" {
                 local res = List [[
                     -fvisibility=hidden -fno-PIE -fno-PIC
                     -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -Wno-invalid-offsetof
                     -flto
                     -D__BEELZEBUB_KERNEL
                 ]] + Opts_GCC_Common + Opts_Includes
@@ -1272,7 +1282,7 @@ Project "Beelzebub" {
             end,
 
             Opts_C      = LST "!Opts_GCC !Opts_Opti -std=gnu99",
-            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++17 -fno-rtti -fno-exceptions",
             Opts_NASM   = LST "!Opts_GCC_Precompiler !Opts_Includes_Nasm !selArch.Data.Opts_NASM",
             Opts_GAS    = LST "!Opts_GCC",
 
@@ -1338,6 +1348,7 @@ Project "Beelzebub" {
                 local res = List [[
                     -fvisibility=hidden -fPIC
                     -Wall -Wextra -Wpedantic -Wsystem-headers
+                    -Wno-invalid-offsetof
                     -flto
                     -D__BEELZEBUB_KERNEL_MODULE
                 ]] + Opts_GCC_Common + Opts_Includes
@@ -1353,7 +1364,7 @@ Project "Beelzebub" {
                 }
             end,
 
-            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++14 -fno-rtti -fno-exceptions",
+            Opts_CXX    = LST "!Opts_GCC !Opts_Opti -std=gnu++17 -fno-rtti -fno-exceptions",
 
             LD          = DAT "LO",
             Opts_LD     = LST "!Opts_GCC !Opts_Opti -fuse-linker-plugin -Wl,-z,max-page-size=0x1000 -Wl,-Bsymbolic",
@@ -1464,7 +1475,7 @@ Project "Beelzebub" {
 
         Rule "GZip Jegudiel" {
             Filter = FLT "IsoJegudielPath",
-            
+
             Source = function(dst)
                 return List { JegudielPath, dst:GetParent() }
             end,
@@ -1474,7 +1485,7 @@ Project "Beelzebub" {
 
         Rule "GZip Beelzebub" {
             Filter = FLT "IsoKernelPath",
-            
+
             Source = function(dst)
                 return List { KernelPath, dst:GetParent() }
             end,
@@ -1484,7 +1495,7 @@ Project "Beelzebub" {
 
         Rule "Copy GRUB El Torito" {
             Filter = FLT "IsoEltoritoPath",
-            
+
             Source = function(dst)
                 return List { SourceEltorito, dst:GetParent() }
             end,
@@ -1494,7 +1505,7 @@ Project "Beelzebub" {
 
         Rule "Copy GRUB Font" {
             Filter = FLT "IsoGrubfontPath",
-            
+
             Source = function(dst)
                 return List { SourceGrubfont, dst:GetParent() }
             end,
@@ -1504,7 +1515,7 @@ Project "Beelzebub" {
 
         Rule "Copy GRUB Configuration" {
             Filter = FLT "IsoGrubconfPath",
-            
+
             Source = function(dst)
                 return List { SourceGrubconf, dst:GetParent() }
             end,

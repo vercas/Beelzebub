@@ -46,6 +46,42 @@ using namespace Beelzebub::Execution;
     Thread class
 *******************/
 
+/*  Constructors  */
+
+Thread::Thread(uint16_t id, Process * const owner)
+    : ReferenceCounted()
+    , ThreadBase()
+    , Id(id)
+    , Owner(owner)
+    , Status(ThreadStatus::Constructing)
+    , Name(nullptr)
+    , KernelStackTop()
+    , KernelStackBottom()
+    , KernelStackPointer()
+    , State()
+    , ExtendedState(nullptr)
+    , Previous(nullptr)
+    , Next(nullptr)
+    , EntryPoint()
+{
+
+}
+
+/*  Destructors  */
+
+Thread::~Thread()
+{
+    assert(this->Owner == nullptr);
+}
+
+void Thread::ReleaseMemory()
+{
+    if (this->Owner != nullptr)
+        this->Owner = nullptr;
+    else
+        assert(this->Status == ThreadStatus::Constructing);
+}
+
 /*  Operations  */
 
 void Thread::SetActive()
@@ -54,6 +90,7 @@ void Thread::SetActive()
     assert(this->Id != 0);
     assert(this->KernelStackTop != 0);
     assert(this->KernelStackBottom != 0);
+    assert(this->Owner != nullptr);
 
     // this->PreSetActive();
     this->Status = ThreadStatus::Active;
@@ -79,7 +116,7 @@ void Thread::SetKernelStack(uintptr_t top, uintptr_t bottom)
     assert(bottom != 0);
     assert(top % 16 == 0);      //  Stack alignment.
     assert(bottom % 16 == 0);   //  Stack alignment.
- 
+
     this->KernelStackTop = top;
     this->KernelStackBottom = bottom;
 }

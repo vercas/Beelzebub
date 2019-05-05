@@ -62,16 +62,6 @@ namespace Beelzebub { namespace Memory
      */
     struct FrameDescriptor
     {
-        /*  Constants  */
-
-        static constexpr FrameDescriptor * const Invalid
-            = reinterpret_cast<FrameDescriptor *>(0x81);
-
-        static __forceinline bool IsValid(FrameDescriptor const * const desc)
-        {
-            return desc != Invalid;
-        }
-
         /*  Fields  */
 
         //  Number of references to this frame.
@@ -193,9 +183,6 @@ namespace Beelzebub { namespace Memory
     {
         /*  Constants  */
 
-        static constexpr SmallFrameDescriptor * const Invalid
-            = reinterpret_cast<SmallFrameDescriptor *>(0x81);
-
         static constexpr uint16_t const NullIndex = 0;
 
         /*  Fields  */
@@ -263,9 +250,6 @@ namespace Beelzebub { namespace Memory
     struct LargeFrameDescriptor : FrameDescriptor
     {
         /*  Constants  */
-
-        static constexpr LargeFrameDescriptor * const Invalid
-            = reinterpret_cast<LargeFrameDescriptor *>(0x81);
 
         static constexpr uint32_t const NullIndex = SplitFrameExtra::NullIndex;
 

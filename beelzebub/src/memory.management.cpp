@@ -1,5 +1,5 @@
 /*
-    Copyright (c) 2016 Alexandru-Mihai Maftei. All rights reserved.
+    Copyright (c) 2019 Alexandru-Mihai Maftei. All rights reserved.
 
 
     Developed by: Alexandru-Mihai Maftei
@@ -37,62 +37,41 @@
     thorough explanation regarding other files.
 */
 
-#pragma once
+#include <beel/memory/reference.counting.hpp>
+#include <debug.hpp>
 
-#include <stdlib.h>
+using namespace Beelzebub;
+using namespace Beelzebub::Memory;
 
-namespace std
-{
-    class nothrow_t {};
-
-    static constexpr nothrow_t const nothrow {};
-
-    typedef __SIZE_TYPE__ size_t;
-}
-
-#if defined(__BEELZEBUB__IN_KERNEL)
-
-extern __malloc void * operator new(std::size_t size) noexcept;
-extern __malloc void * operator new[](std::size_t size) noexcept;
-extern void operator delete(void * ptr) noexcept;
-extern void operator delete[](void * ptr) noexcept;
-
-#if __cplusplus >= 201402L
-extern void operator delete(void * ptr, std::size_t size) noexcept;
-extern void operator delete[](void * ptr, std::size_t size) noexcept;
-#endif
-
-#else
-
-__forceinline __returns_nonnull  __malloc void * operator new(std::size_t size) throw(std::bad_alloc)
+void * operator new(std::size_t size)
 {
     return malloc(size);
 }
 
-__forceinline __returns_nonnull  __malloc void * operator new[](std::size_t size) throw(std::bad_alloc)
+void * operator new[](std::size_t size)
 {
     return malloc(size);
 }
 
-__forceinline void operator delete(void * ptr) noexcept
+void operator delete(void * ptr)
 {
     free(ptr);
 }
 
-__forceinline void operator delete[](void * ptr) noexcept
+void operator delete[](void * ptr)
 {
     free(ptr);
 }
 
 #if __cplusplus >= 201402L
-__forceinline void operator delete(void * ptr, std::size_t size) noexcept
+void operator delete(void * ptr, std::size_t size)
 {
     (void)size;
 
     free(ptr);
 }
 
-__forceinline void operator delete[](void * ptr, std::size_t size) noexcept
+void operator delete[](void * ptr, std::size_t size)
 {
     (void)size;
 
@@ -100,33 +79,7 @@ __forceinline void operator delete[](void * ptr, std::size_t size) noexcept
 }
 #endif
 
-#endif
-
-__forceinline __malloc void * operator new(std::size_t size, std::nothrow_t const &) noexcept
+void Beelzebub::Memory::ReportDanglingUniquePointer(void * value)
 {
-    return malloc(size);
+    FAIL("Encountered danglingg unique pointer: %Xp", value);
 }
-
-__forceinline __malloc void * operator new[](std::size_t size, std::nothrow_t const &) noexcept
-{
-    return malloc(size);
-}
-
-__forceinline void operator delete(void * ptr, std::nothrow_t const &) noexcept
-{
-    free(ptr);
-}
-
-__forceinline void operator delete[](void * ptr, std::nothrow_t const &) noexcept
-{
-    free(ptr);
-}
-
-#if !defined(__BEELZEBUB__PLACEMENT_NEW)
-    #define __BEELZEBUB__PLACEMENT_NEW
-
-    __returns_nonnull inline void * operator new  (std::size_t, void * p) noexcept { return p; }
-    __returns_nonnull inline void * operator new[](std::size_t, void * p) noexcept { return p; }
-    __forceinline void operator delete  (void *, void *) noexcept { }
-    __forceinline void operator delete[](void *, void *) noexcept { }
-#endif

@@ -39,12 +39,13 @@
 
 #include "memory/vmm.hpp"
 #include "memory/pmm.hpp"
-#include <memory/object_allocator_pools_heap.hpp>
-#include <beel/interrupt.state.hpp>
 #include "system/cpu.hpp"
 #include "kernel.hpp"
 #include "cores.hpp"
+#include "execution.hpp"
 
+#include <memory/object_allocator_pools_heap.hpp>
+#include <beel/interrupt.state.hpp>
 #include <string.h>
 #include <math.h>
 #include <debug.hpp>

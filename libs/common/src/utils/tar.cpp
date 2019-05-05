@@ -60,20 +60,20 @@ size_t TarHeader::GetNumber(char const * str, size_t size)
 
     switch (size)
     {
-    #define CASE(num) case (num): val += (size_t)(str[size - num] - '0') << (3 * (num - 1))
+    #define CASE(num) case (num): val += (size_t)(str[size - num] - '0') << (3 * (num - 1)); [[fallthrough]];
 
-        CASE(12);
-        CASE(11);
-        CASE(10);
-        CASE( 9);
-        CASE( 8);
-        CASE( 7);
-        CASE( 6);
-        CASE( 5);
-        CASE( 4);
-        CASE( 3);
-        CASE( 2);
-        CASE( 1);
+        CASE(12)
+        CASE(11)
+        CASE(10)
+        CASE( 9)
+        CASE( 8)
+        CASE( 7)
+        CASE( 6)
+        CASE( 5)
+        CASE( 4)
+        CASE( 3)
+        CASE( 2)
+        CASE( 1)
 
     #undef CASE
 

@@ -672,6 +672,8 @@ do_small_frame:
                 break;
             }
 
+            break;
+
         case FrameStatus::Reserved:
             return HandleResult::PageReserved;
 

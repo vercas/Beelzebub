@@ -83,15 +83,30 @@ KRN_SYM_GLB_FNC(strcasestrex, , char const *, char const * haystack, char const 
 /******************************************************************************\
 \*  Basic system information and state                                        */
 
-KRN_SYM_NMS_FNC(GetCpuData           ,                , Beelzebub::CpuData const *, void)
-KRN_SYM_NMS_FNC(GetActiveProcess     ,                , Beelzebub::Process const *, void)
-KRN_SYM_NMS_FNC(GetActiveThread      ,                , Beelzebub::Thread  const *, void)
+KRN_SYM_NMS_FNC(GetCpuData           , __must_check   , __BASE(CpuData) *, void)
+KRN_SYM_NMS_FNC(GetActiveProcess     , __must_check   , __BASE(Process) *, void)
+KRN_SYM_NMS_FNC(GetActiveThread      , __must_check   , __BASE(Thread)  *, void)
+
+/******************************************************************************\
+\*  Process information and manipulation                                      */
+
+KRN_SYM_NMS_FNC(GetProcessById       , __must_check   , __BASE(Process) *, uintptr_t id)
+KRN_SYM_NMS_FNC(ReleaseProcess       ,                , uintptr_t        , __BASE(Process)       * proc)
+KRN_SYM_NMS_FNC(GetProcessId         , __must_check   , uintptr_t        , __BASE(Process) const * proc)
+
+/******************************************************************************\
+\*  Thread information and manipulation                                       */
+
+KRN_SYM_NMS_FNC(GetThreadById        , __must_check   , __BASE(Thread) * , uintptr_t id)
+KRN_SYM_NMS_FNC(ReleaseThread        ,                , uintptr_t        , __BASE(Thread)       * thread)
+KRN_SYM_NMS_FNC(GetThreadId          , __must_check   , uintptr_t        , __BASE(Thread) const * thread)
+KRN_SYM_NMS_FNC(GetThreadOwner       , __must_check   , __BASE(Process) *, __BASE(Thread) const * thread)
 
 /******************************************************************************\
 \*  Exceptions                                                                */
 
-KRN_SYM_NMS_FNC(GetException         ,                , Beelzebub::Exception *         , void)
-KRN_SYM_NMS_FNC(GetExceptionContext  ,                , Beelzebub::ExceptionContext * *, void)
-KRN_SYM_NMS_FNC(EnterExceptionContext, __returns_twice, bool                           , Beelzebub::ExceptionContext * context)
-KRN_SYM_NMS_FNC(LeaveExceptionContext,                , void                           , void)
-KRN_SYM_NMS_FNC(ThrowException       , __noreturn     , void                           , void)
+KRN_SYM_NMS_FNC(GetException         , __must_check   , Exception *         , void)
+KRN_SYM_NMS_FNC(GetExceptionContext  , __must_check   , ExceptionContext * *, void)
+KRN_SYM_NMS_FNC(EnterExceptionContext, __returns_twice, bool                , ExceptionContext * context)
+KRN_SYM_NMS_FNC(LeaveExceptionContext,                , void                , void)
+KRN_SYM_NMS_FNC(ThrowException       , __noreturn     , void                , void)

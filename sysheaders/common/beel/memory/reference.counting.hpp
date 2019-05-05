@@ -40,6 +40,7 @@
 #pragma once
 
 #include <beel/metaprogramming.h>
+#include <new>
 
 namespace Beelzebub { namespace Memory {
     template<typename T>
@@ -48,11 +49,78 @@ namespace Beelzebub { namespace Memory {
     template<typename T>
     struct GlobalPointer;
 
+    extern void ReportDanglingUniquePointer(void * value);
+
+    namespace {
+        template<typename T> struct __RemoveReference       { typedef T Type; };
+        template<typename T> struct __RemoveReference<T &>  { typedef T Type; };
+        template<typename T> struct __RemoveReference<T &&> { typedef T Type; };
+
+        template<typename T> inline typename __RemoveReference<T>::Type && Move(T && arg) { return (typename __RemoveReference<T>::Type &&)arg; }
+    }
+
+    template<typename T>
+    struct UniquePointer
+    {
+        friend struct LocalPointer<T>;
+        friend struct GlobalPointer<T>;
+
+        /*  Constructors  */
+
+        inline UniquePointer(T * ptr) : Pointer( ptr) { }
+
+        inline UniquePointer(UniquePointer<T> && other)
+            : Pointer(Move(other.Pointer))
+        {
+            other.Pointer = nullptr;
+        }
+
+        inline UniquePointer<T> & operator =(UniquePointer<T> && other)
+        {
+            this->Pointer = Move(other.Pointer);
+            other.Pointer = nullptr;
+
+            return *this;
+        }
+
+        UniquePointer(UniquePointer const &) = delete;
+        UniquePointer & operator =(UniquePointer const &) = delete;
+
+        /*  Destructor  */
+
+        inline ~UniquePointer()
+        {
+            if unlikely(this->Pointer != nullptr)
+                ReportDanglingUniquePointer(this->Pointer);
+        }
+
+        /*  Accessing  */
+
+        T * operator->() const { return   this->Pointer;  }
+        T & operator*()  const { return *(this->Pointer); }
+
+        explicit operator bool() const { return this->Pointer != nullptr; }
+
+        T * Get() const { return this->Pointer; }
+
+        T * Release()
+        {
+            T * tmp = this->Pointer;
+            this->Pointer = nullptr;
+            return tmp;
+        }
+
+    private:
+        /*  Fields  */
+
+        T * Pointer;
+    };
+
     template<typename T>
     class ReferenceCounted
     {
-        friend class GlobalPointer<T>;
-        friend class LocalPointer<T>::LocalCopy;
+        friend struct LocalPointer<T>::LocalCopy;
+        friend struct GlobalPointer<T>;
 
     public:
         /*  Constructors  */
@@ -67,10 +135,12 @@ namespace Beelzebub { namespace Memory {
         }
 
         ReferenceCounted(ReferenceCounted const &) = delete;
+        ReferenceCounted(ReferenceCounted &&) = delete;
         ReferenceCounted & operator =(ReferenceCounted const &) = delete;
+        ReferenceCounted & operator =(ReferenceCounted &&) = delete;
 
-    private:
-        /*  Methods  */
+    protected:
+        /*  Reference Counting  */
 
         inline size_t AcquireReference() { return __atomic_fetch_add(&(this->AcquireCount), 1, __ATOMIC_ACQUIRE); };
 
@@ -95,35 +165,76 @@ namespace Beelzebub { namespace Memory {
     };
 
     template<typename T>
-    class GlobalPointer
+    struct GlobalPointer
     {
-        friend class LocalPointer<T>;
-        friend class LocalPointer<T>::LocalCopy;
+        friend struct LocalPointer<T>;
+        friend struct LocalPointer<T>::LocalCopy;
 
-    public:
         /*  Constructors  */
 
         inline GlobalPointer() : Pointer( nullptr) { }
 
-        inline GlobalPointer(GlobalPointer * ptr)
-            : Pointer( ptr->Pointer)
+        inline GlobalPointer(GlobalPointer<T> const & other)
+            : Pointer( other.Pointer)
         {
             if likely(this->Pointer != nullptr)
                 this->Pointer->AcquireReference();
         }
 
-        inline GlobalPointer(GlobalPointer const & other)
+        inline GlobalPointer(GlobalPointer<T> && other)
+            : Pointer(Move(other.Pointer))
         {
-            if likely((this->Pointer = other.Pointer) != nullptr)
-                this->Pointer->AcquireReference();
+            other.Pointer = nullptr;
         }
 
-        inline GlobalPointer & operator =(GlobalPointer const & other)
+        inline GlobalPointer(LocalPointer<T> ptr)
+        {
+            if likely(ptr.Pointer != nullptr)
+                (this->Pointer = ptr.Pointer->Pointer)->AcquireReference();
+            else
+                this->Pointer = nullptr;
+        }
+
+        inline GlobalPointer<T> & operator =(GlobalPointer<T> const & other)
+        {
+            if unlikely(this->Pointer == other.Pointer)
+                return *this;
+
+            if likely(this->Pointer != nullptr)
+                this->Pointer->ReleaseReference();
+
+            if likely((this->Pointer = other.Pointer) != nullptr)
+                this->Pointer->AcquireReference();
+
+            return *this;
+        }
+
+        inline GlobalPointer<T> & operator =(GlobalPointer<T> && other)
+        {
+            if unlikely(this->Pointer == Move(other.Pointer))
+            {
+                other.Pointer = nullptr;
+
+                return *this;
+            }
+
+            if likely(this->Pointer != nullptr)
+                this->Pointer->ReleaseReference();
+
+            this->Pointer = other.Pointer;
+            other.Pointer = nullptr;
+
+            return *this;
+        }
+
+        inline GlobalPointer<T> & operator =(LocalPointer<T> other)
         {
             if likely(this->Pointer != nullptr)
                 this->Pointer->ReleaseReference();
-            if likely((this->Pointer = other.Pointer) != nullptr)
-                this->Pointer->AcquireReference();
+
+            if likely(other.Pointer != nullptr)
+                (this->Pointer = other.Pointer->Pointer)->AcquireReference();
+
             return *this;
         }
 
@@ -135,6 +246,23 @@ namespace Beelzebub { namespace Memory {
                 this->Pointer->ReleaseReference();
         }
 
+        /*  Accessing  */
+
+        inline __must_check T * Get() const { return static_cast<T *>(this->Pointer); }
+
+        inline T * operator->() const { return  this->Get(); }
+        inline T & operator*()  const { return *this->Get(); }
+
+        explicit inline operator bool() const { return this->Pointer != nullptr; }
+
+        /*  Comparisons  */
+
+        inline bool operator ==(T * other) const { return this->Pointer == other; }
+        inline bool operator !=(T * other) const { return this->Pointer != other; }
+
+        inline bool operator ==(GlobalPointer<T> const & other) const { return this->Pointer == other.Pointer; }
+        inline bool operator !=(GlobalPointer<T> const & other) const { return this->Pointer != other.Pointer; }
+
     private:
         /*  Fields  */
 
@@ -144,11 +272,16 @@ namespace Beelzebub { namespace Memory {
     template<typename T>
     struct LocalPointer
     {
+        friend struct GlobalPointer<T>;
+
     private:
         /*  Subtypes  */
 
-        class LocalCopy
+        struct LocalCopy
         {
+            friend struct GlobalPointer<T>;
+            friend struct LocalPointer<T>;
+
         public:
             /*  Constructors  */
 
@@ -159,10 +292,19 @@ namespace Beelzebub { namespace Memory {
                 ptr->AcquireReference();
             }
 
+            inline LocalCopy(ReferenceCounted<T> * ptr, bool increaseCount)
+                : Count( 1)
+                , Pointer(ptr)
+            {
+                if unlikely(increaseCount)
+                    ptr->AcquireReference();
+                //  Unlikely because the other overload would be used.
+            }
+
             LocalCopy(LocalCopy const &) = delete;
             LocalCopy & operator =(LocalCopy const &) = delete;
 
-            /*  Methods  */
+            /*  Reference Counting  */
 
             inline size_t AcquireReference() { return this->Count++; };
 
@@ -170,7 +312,7 @@ namespace Beelzebub { namespace Memory {
             {
                 size_t count;
 
-                if unlikely((count == --this->Count) == 0)
+                if unlikely((count = --this->Count) == 0)
                     delete this;    //  Commit sudoku.
 
                 return count;
@@ -188,37 +330,115 @@ namespace Beelzebub { namespace Memory {
 
         inline LocalPointer() : Pointer( nullptr) { }
 
-        inline LocalPointer(LocalPointer * ptr)
-            : Pointer( ptr->Pointer)
+        inline LocalPointer(LocalPointer<T> const & ptr)
+            : Pointer( ptr.Pointer)
         {
             if likely(this->Pointer != nullptr)
                 this->Pointer->AcquireReference();
         }
 
-        inline LocalPointer(GlobalPointer<T> * ptr)
+        inline LocalPointer(LocalPointer<T> && other)
+            : Pointer(Move(other.Pointer))
         {
-            if likely(ptr->Pointer != nullptr)
-                this->Pointer = new LocalCopy(ptr->Pointer);
+            other.Pointer = nullptr;
         }
 
-        inline LocalPointer(LocalPointer const & other)
+        // inline LocalPointer(GlobalPointer<T> ptr)
+        // {
+        //     if likely(ptr.Pointer != nullptr)
+        //         this->Pointer = new LocalCopy(ptr.Pointer);
+        // }
+
+        // inline LocalPointer(UniquePointer<T> const & other)
+        // {
+        //     if likely(other.Pointer != nullptr)
+        //         this->Pointer = new LocalCopy(other.Release());
+        //     else
+        //         this->Pointer = nullptr;
+        // }
+
+        inline LocalPointer(UniquePointer<T> && other)
         {
-            if likely((this->Pointer = other.Pointer) != nullptr)
-                this->Pointer->AcquireReference();
+            if likely(other.Pointer != nullptr)
+                this->Pointer = new LocalCopy(other.Release());
+            else
+                this->Pointer = nullptr;
         }
 
         inline LocalPointer(GlobalPointer<T> const & other)
         {
             if likely(other.Pointer != nullptr)
                 this->Pointer = new LocalCopy(other.Pointer);
+            else
+                this->Pointer = nullptr;
         }
 
-        inline LocalPointer & operator =(LocalPointer const & other)
+        inline LocalPointer(GlobalPointer<T> && other)
+        {
+            if likely(other.Pointer != nullptr)
+            {
+                this->Pointer = new LocalCopy(other.Pointer, false);
+
+                other.Pointer = nullptr;
+            }
+            else
+                this->Pointer = nullptr;
+        }
+
+        inline LocalPointer(ReferenceCounted<T> * ptr)
+        {
+            if likely(ptr != nullptr)
+                this->Pointer = new LocalCopy(ptr);
+            else
+                this->Pointer = nullptr;
+        }
+
+        inline LocalPointer & operator =(LocalPointer<T> const & other)
+        {
+            if unlikely(this->Pointer == other.Pointer)
+                return *this;
+
+            if likely(this->Pointer != nullptr)
+                this->Pointer->ReleaseReference();
+
+            if likely((this->Pointer = other.Pointer) != nullptr)
+                this->Pointer->AcquireReference();
+
+            return *this;
+        }
+
+        inline LocalPointer & operator =(LocalPointer<T> && other)
         {
             if likely(this->Pointer != nullptr)
                 this->Pointer->ReleaseReference();
-            if likely((this->Pointer = other.Pointer) != nullptr)
-                this->Pointer->AcquireReference();
+
+            this->Pointer = Move(other.Pointer);
+            other.Pointer = nullptr;
+
+            return *this;
+        }
+
+        // inline LocalPointer & operator =(UniquePointer<T> const & other)
+        // {
+        //     if likely(this->Pointer != nullptr)
+        //         this->Pointer->ReleaseReference();
+
+        //     if likely((this->Pointer = other.Pointer) != nullptr)
+        //         this->Pointer->AcquireReference();
+
+        //     return *this;
+        // }
+
+        inline LocalPointer & operator =(UniquePointer<T> && other)
+        {
+            if likely(this->Pointer != nullptr)
+                this->Pointer->ReleaseReference();
+
+            if likely(other.Pointer != nullptr)
+                this->Pointer = new LocalCopy(other.Release());
+            else
+                this->Pointer = nullptr;
+
             return *this;
         }
 
@@ -226,8 +446,21 @@ namespace Beelzebub { namespace Memory {
         {
             if likely(this->Pointer != nullptr)
                 this->Pointer->ReleaseReference();
+
             if likely(other.Pointer != nullptr)
                 this->Pointer = new LocalCopy(other.Pointer);
+
+            return *this;
+        }
+
+        inline LocalPointer & operator =(ReferenceCounted<T> * other)
+        {
+            if likely(this->Pointer != nullptr)
+                this->Pointer->ReleaseReference();
+
+            if likely(other != nullptr)
+                this->Pointer = new LocalCopy(other);
+
             return *this;
         }
 
@@ -238,6 +471,15 @@ namespace Beelzebub { namespace Memory {
             if likely(this->Pointer != nullptr)
                 this->Pointer->ReleaseReference();
         }
+
+        /*  Accessing  */
+
+        __must_check T * Get() const { return this->Pointer ? static_cast<T *>(this->Pointer->Pointer) : nullptr; }
+
+        T * operator->() const { return  this->Get(); }
+        T & operator*()  const { return *this->Get(); }
+
+        explicit operator bool() const { return this->Pointer != nullptr; }
 
     private:
         /*  Fields  */

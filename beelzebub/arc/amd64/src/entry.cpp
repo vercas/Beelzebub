@@ -65,6 +65,7 @@
 #include "entry.h"
 #include "global_options.hpp"
 #include "cores.hpp"
+#include "execution.hpp"
 
 #include <beel/sync/atomic.hpp>
 #include <math.h>

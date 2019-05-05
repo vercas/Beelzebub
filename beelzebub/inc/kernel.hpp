@@ -59,9 +59,6 @@ namespace Beelzebub
     extern bool Scheduling;
     extern bool CpuDataSetUp;
 
-    extern Execution::Process BootstrapProcess;
-    extern Execution::Thread BootstrapThread;
-
     extern System::Domain Domain0;
 
     /**

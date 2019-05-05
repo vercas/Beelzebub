@@ -112,9 +112,6 @@ MainTerminalInterfaces Beelzebub::MainTerminalInterface;
 bool Beelzebub::Scheduling = false;
 bool Beelzebub::CpuDataSetUp = false;
 
-Process Beelzebub::BootstrapProcess(1);
-Thread Beelzebub::BootstrapThread(1, &BootstrapProcess);
-
 Domain Beelzebub::Domain0;
 
 CpuId Beelzebub::BootstrapCpuid;
@@ -269,21 +266,21 @@ __startup void WriteWelcomeMessage()
     {
         TerminalWriteResult const res = MainTerminal->Write(msgL);
         TerminalCoordinates const mts = MainTerminal->GetSize();
-        size_t const sizeR = 32;    //  TO BE MANUALLY CHANGED ACCORDINGLY
+        int16_t const sizeR = 32;    //  TO BE MANUALLY CHANGED ACCORDINGLY
 
         if (res.End.X + sizeR <= mts.X)
         {
             //  In other words, if the right message fits after the left message
             //  in this terminal...
 
-            MainTerminal->WriteAt(msgR, {mts.X - sizeR, res.End.Y}, sizeR);
+            MainTerminal->WriteAt(msgR, {(int16_t)(mts.X - sizeR), res.End.Y}, sizeR);
         }
         else if (sizeR <= mts.X)
         {
             //  Doesn't fit together but fits on its own.
             //  Right message is printed onto the next line, aligned right.
 
-            MainTerminal->WriteAt(msgR, {mts.X - sizeR, res.End.Y + 1}, sizeR);
+            MainTerminal->WriteAt(msgR, {(int16_t)(mts.X - sizeR), (int16_t)(res.End.Y + 1)}, sizeR);
         }
         else
         {
@@ -359,6 +356,7 @@ __startup void MainInitializeDebugInterface()
     #define CASE_COM(n) \
         case PortParseResult::COM##n##Base64:                                   \
             iface = DjinnInterfaces::COM##n##Base64;                            \
+            [[fallthrough]];                                                    \
         case PortParseResult::COM##n:                                           \
             if (MainTerminalInterface == MainTerminalInterfaces::COM##n)        \
                 goto conflict;                                                  \
@@ -733,7 +731,7 @@ static __startup void MainInitializeMailbox()
     //  Common on x86.
 
     InitTerminal->Write("[....] Initializing mailbox...");
-    
+
     Mailbox::Initialize();
 
     InitTerminal->WriteLine(" Done.\r[OKAY]");
@@ -1187,6 +1185,8 @@ static __startup void MainInitializeMainTerminal()
 *******************/
 
 /*  Main entry point  */
+DECLARE_THREAD_DATA(int, TestThreadData1)
+DECLARE_THREAD_DATA(int, TestThreadData4)
 
 void Beelzebub::Main()
 {
@@ -1242,6 +1242,14 @@ void Beelzebub::Main()
     MainInitializeAcpiTables();
     MainInitializeVirtualMemory();
     MainInitializeBootModules();
+
+    InitTerminal->WriteFormat("TTD pointer: %Xp (%Xp) -> %Xp = %Xp%n"
+        , &BootstrapThread, reinterpret_cast<uint8_t *>(&BootstrapThread) + sizeof(Thread)
+        , &TestThreadData4, &GET_THREAD_DATA(&BootstrapThread, TestThreadData4));
+
+    InitTerminal->WriteFormat("TTD pointer: %Xp (%Xp) -> %Xp = %Xp%n"
+        , &BootstrapThread, reinterpret_cast<uint8_t *>(&BootstrapThread) + sizeof(Thread)
+        , &TestThreadData1, &GET_THREAD_DATA(&BootstrapThread, TestThreadData1));
 
     //  This should really be done under a lock.
     InitializationLock.Acquire();
@@ -1322,7 +1330,7 @@ void Beelzebub::Main()
 
     //  Permit other processors to initialize themselves.
     InitTerminal->WriteLine("--  Initialization complete! --");
-    
+
     InitBarrier.Reset(Cores::GetCount());
 
     InitializationLock.Release();

@@ -63,24 +63,28 @@ Handle Beelzebub::InitializeDebuggerInterface(DjinnInterfaces iface)
     {
     case DjinnInterfaces::COM1Base64:
         b64 = true;
+        [[fallthrough]];
     case DjinnInterfaces::COM1:
         DjinnPort = &COM1;
         break;
 
     case DjinnInterfaces::COM2Base64:
         b64 = true;
+        [[fallthrough]];
     case DjinnInterfaces::COM2:
         DjinnPort = &COM2;
         break;
 
     case DjinnInterfaces::COM3Base64:
         b64 = true;
+        [[fallthrough]];
     case DjinnInterfaces::COM3:
         DjinnPort = &COM3;
         break;
 
     case DjinnInterfaces::COM4Base64:
         b64 = true;
+        [[fallthrough]];
     case DjinnInterfaces::COM4:
         DjinnPort = &COM4;
         break;

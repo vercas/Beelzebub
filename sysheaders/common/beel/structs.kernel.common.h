@@ -42,10 +42,22 @@
 #include <beel/handles.h>
 #include <beel/enums.kernel.h>
 
+#ifndef __BASE
+    #ifdef __BEELZEBUB_KERNEL
+        #define __BASE(NAME) MCATS(NAME, Base)
+    #else
+        #define __BASE(NAME) NAME
+    #endif
+#endif
+
 #define BEELZEBUB_MESSAGE_SIZE (64)
 #define BEELZEBUB_MESSAGE_DWORDS (5)
 
 __NAMESPACE_BEGIN
+
+#ifndef __ASSEMBLER__
+__FORWARD(ExceptionContext)
+#endif
 
 #ifndef __ASSEMBLER__
     __STRUCT(Message)
@@ -155,6 +167,58 @@ __STRUCT(Exception)
 
     }
 #endif
+};
+#endif
+
+/**
+ *  A unit of isolation.
+ */
+#ifndef __ASSEMBLER__
+__STRUCT(__BASE(Process))
+{
+#ifdef __BEELZEBUB__SOURCE_CXX
+protected:
+    /*  Constructor(s)  */
+
+    inline __BASE(Process)() { }
+
+#ifdef __BEELZEBUB_KERNEL_MODULE
+    /*  Properties  */
+
+    inline uintptr_t GetId() const { return GetProcessId(this); };
+#endif
+
+public:
+    /*  Fields  */
+#endif
+};
+#endif
+
+/**
+ *  A unit of execution.
+ */
+#ifndef __ASSEMBLER__
+__STRUCT(__BASE(Thread))
+{
+#ifdef __BEELZEBUB__SOURCE_CXX
+protected:
+    /*  Constructor(s)  */
+
+    inline __BASE(Thread)() : ExceptionContext(), Exception() { }
+
+#ifdef __BEELZEBUB_KERNEL_MODULE
+    /*  Properties  */
+
+    inline uintptr_t GetId() const { return GetThreadId(this); };
+    inline __BASE(Process) * GetOwner() const { return GetThreadOwner(this); };
+#endif
+
+public:
+    /*  Exceptions  */
+#endif
+
+    BeExceptionContext * ExceptionContext;
+    BeException Exception;
 };
 #endif
 

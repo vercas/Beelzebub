@@ -51,15 +51,15 @@ using namespace Beelzebub::Execution;
 
 void ProcessArchitecturalBase::PreSetActive()
 {
-    ASSERT(this->PagingTable != nullpaddr);
+    assert(this->PagingTable != nullpaddr);
 }
 
 /*  Memory  */
 
 void ProcessArchitecturalBase::SetPagingTable(paddr_t pt)
 {
-    ASSERT(static_cast<Process *>(this)->State == ProcessState::Constructing);
-    ASSERT(this->PagingTable == nullpaddr);
+    assert(static_cast<Process *>(this)->Status == ProcessStatus::Constructing);
+    assert(this->PagingTable == nullpaddr);
 
     this->PagingTable = pt;
 }

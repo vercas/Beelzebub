@@ -59,8 +59,8 @@ Handle Thread::SwitchTo(Thread * const other, GeneralRegisters64 * const dest)
 {
     Handle res;
 
-    Process * const thisProc = this->GetOwner();
-    Process * const otherProc = other->GetOwner();
+    Process * const thisProc = this->Owner.Get();
+    Process * const otherProc = other->Owner.Get();
 
     //msg("++ ");
 

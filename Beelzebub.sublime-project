@@ -1,78 +1,94 @@
 {
-    "folders":
-    [
-        {
-            "name": "Beelzebub",
-            "path": ".",
-            "folder_exclude_patterns": ["build", ".vs", ".vmake", ".git", ".stfolder", ".stversions"],
-        }
-    ],
-    "settings":
-    {
-        "custom.beel": true
-    },
-    "build_systems":
-    [
-        {
-            "name": "Beelzebub - Debug - AMD64 - All Tests",
-            "cmd": "lua vmakefile.lua -t all --march=native --mtune=native -j 8 Beelzebub debug amd64",
-            
-            "working_dir": "$project_path",
-            "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
-
-            "windows":
-            {
-                "path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
-            },
-
-            "env":
-            {
-                "IN_SUBLIME": "true",
-            },
-        },
-        {
-            "name": "Beelzebub - Profile - AMD64 - All Tests",
-            "cmd": "lua vmakefile.lua -t all --march=native --mtune=native -j 8 Beelzebub profile amd64",
-            
-            "working_dir": "$project_path",
-            "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
-
-            "windows":
-            {
-                "path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
-            },
-
-            "env":
-            {
-                "IN_SUBLIME": "true",
-            },
-        },
-        {
-            "name": "Beelzebub - Release - AMD64 - All Tests",
-            "cmd": "lua vmakefile.lua -t all --march=native --mtune=native -j 8 Beelzebub release amd64",
-            
-            "working_dir": "$project_path",
-            "file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
-
-            "windows":
-            {
-                "path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation",
-            },
-
-            "env":
-            {
-                "IN_SUBLIME": "true",
-            },
-        },
-        {
-            "name": "Full Build in Terminus",
-            "cmd":
-            [
-                "bash", "-c", "./scripts/full-build"
-            ],
-            "target": "terminus_open",
-            "working_dir": "$folder",
-            "auto_close": false
-        }
-    ]
+	"build_systems":
+	[
+		{
+			"cmd": "lua vmakefile.lua -t all --march=native --mtune=native -j 8 Beelzebub debug amd64",
+			"env":
+			{
+				"IN_SUBLIME": "true"
+			},
+			"file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
+			"name": "Beelzebub - Debug - AMD64 - All Tests",
+			"windows":
+			{
+				"path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation"
+			},
+			"working_dir": "$project_path"
+		},
+		{
+			"cmd": "lua vmakefile.lua -t all --march=native --mtune=native -j 8 Beelzebub profile amd64",
+			"env":
+			{
+				"IN_SUBLIME": "true"
+			},
+			"file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
+			"name": "Beelzebub - Profile - AMD64 - All Tests",
+			"windows":
+			{
+				"path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation"
+			},
+			"working_dir": "$project_path"
+		},
+		{
+			"cmd": "lua vmakefile.lua -t all --march=native --mtune=native -j 8 Beelzebub release amd64",
+			"env":
+			{
+				"IN_SUBLIME": "true"
+			},
+			"file_regex": "^(?:In file included from | *)(.+):([0-9]+):([0-9]+): ?(.*)$",
+			"name": "Beelzebub - Release - AMD64 - All Tests",
+			"windows":
+			{
+				"path": "C:\\cygwin64\\usr\\local\\bin;C:\\cygwin64\\usr\\bin;C:\\cygwin64\\bin;C:\\Program Files (x86)\\VMware\\VMware Workstation"
+			},
+			"working_dir": "$project_path"
+		},
+		{
+			"auto_close": false,
+			"cmd":
+			[
+				"bash",
+				"-c",
+				"./scripts/full-build"
+			],
+			"name": "Full Build in Terminus",
+			"target": "terminus_open",
+			"working_dir": "$folder"
+		}
+	],
+	"folders":
+	[
+		{
+			"folder_exclude_patterns":
+			[
+				"build",
+				".vs",
+				".vmake",
+				".git",
+				".stfolder",
+				".stversions"
+			],
+			"name": "Beelzebub",
+			"path": "."
+		}
+	],
+	"settings":
+	{
+		"LSP":
+		{
+			"ccls":
+			{
+				"enabled": false
+			},
+			"clangd":
+			{
+				"enabled": false
+			},
+			"cquery":
+			{
+				"enabled": true
+			}
+		},
+		"custom.beel": true
+	}
 }
