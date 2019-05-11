@@ -12,7 +12,7 @@
     rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
     sell copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-    
+
       * Redistributions of source code must retain the above copyright notice,
         this list of conditions and the following disclaimers.
       * Redistributions in binary form must reproduce the above copyright

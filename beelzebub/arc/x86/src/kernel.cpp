@@ -59,6 +59,7 @@
 #include "execution/extended_states.hpp"
 #include "execution/runtime64.hpp"
 #include "execution.hpp"
+#include "scheduler.hpp"
 
 #include "irqs.hpp"
 #include "system/acpi.hpp"
@@ -98,18 +99,19 @@ using namespace Beelzebub::Utils;
 
 //SmpBarrier InitializationBarrier {};
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
 static SmpLock InitializationLock;
+static Barrier InitializationBarrier;
+#endif
+
 static SmpLock TerminalMessageLock;
 static TerminalBase * InitTerminal = nullptr;
-
-static Barrier InitBarrier;
 
 /*  System Globals  */
 
 TerminalBase * Beelzebub::MainTerminal = nullptr;
 MainTerminalInterfaces Beelzebub::MainTerminalInterface;
 
-bool Beelzebub::Scheduling = false;
 bool Beelzebub::CpuDataSetUp = false;
 
 Domain Beelzebub::Domain0;
@@ -611,7 +613,7 @@ __startup Handle InitializeApic()
 
         return HandleResult::Okay;
     }
-    
+
     // uintptr_t madtEnd = (uintptr_t)Acpi::MadtPointer + Acpi::MadtPointer->Header.Length;
 
     // uintptr_t e = (uintptr_t)Acpi::MadtPointer + sizeof(*Acpi::MadtPointer);
@@ -738,25 +740,19 @@ static __startup void MainInitializeMailbox()
 }
 #endif
 
-static __startup void MainBootstrapThread()
+/****************
+    SCHEDULER
+****************/
+
+static __startup void MainInitializeScheduler(MainParameters * params)
 {
     //  Turns the current system state into a kernel process and a main thread.
 
-    InitTerminal->Write("[....] Initializing as bootstrap thread...");
+    InitTerminal->Write("[....] Initializing scheduler...");
 
-    Handle res = InitializeBootstrapThread(&BootstrapThread, &BootstrapProcess);
+    Scheduler::Initialize(params);
 
-    if (res.IsOkayResult())
-        InitTerminal->WriteLine(" Done.\r[OKAY]");
-    else
-    {
-        InitTerminal->WriteFormat(" Fail..? %H\r[FAIL]%n", res);
-
-        FAIL("Failed to initialize main entry point as bootstrap thread: %H", res);
-    }
-
-    Cpu::SetThread(&BootstrapThread);
-    Cpu::SetProcess(&BootstrapProcess);
+    InitTerminal->WriteLine(" Done.\r[OKAY]");
 }
 
 /***********************
@@ -847,7 +843,7 @@ __startup Handle InitializeAp(uint32_t const lapicId
     //  Now the AP must acknowledge passing the barrier before the BSP can
     //  proceed. The timeout here is just symbolic and this should succeed at
     //  the first or second calls of the predicate.
-    
+
     return HandleResult::Timeout;
 }
 
@@ -1070,7 +1066,7 @@ static __startup void MainInitializeRuntimeLibraries()
 #endif
 
     InitTerminal->WriteLine(" Done.\r[OKAY]");
-    
+
     //  TODO: The 32-bit subsystem should be handled by a kernel module.
 }
 
@@ -1184,14 +1180,19 @@ static __startup void MainInitializeMainTerminal()
     ENTRY POINTS
 *******************/
 
-/*  Main entry point  */
-DECLARE_THREAD_DATA(int, TestThreadData1)
-DECLARE_THREAD_DATA(int, TestThreadData4)
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+static __startup void SecondaryEntryPoint(MainParameters * params);
+#endif
 
-void Beelzebub::Main()
+void Beelzebub::Main(MainParameters * params)
 {
     Handle res;
     //  Used for intermediary results.
+
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    if (!params->BSP)
+        return SecondaryEntryPoint(params);
+#endif
 
     BootstrapCpuid = CpuId();
     BootstrapCpuid.Initialize();
@@ -1200,7 +1201,10 @@ void Beelzebub::Main()
     new (&Domain0) Domain();
     //  Initialize domain 0. Make sure it's not in a possibly-invalid state.
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
     InitializationLock.Reset();
+#endif
+
     TerminalMessageLock.Reset();
     Domain0.GdtLock.Reset();
     //  Make sure these are clear.
@@ -1243,18 +1247,8 @@ void Beelzebub::Main()
     MainInitializeVirtualMemory();
     MainInitializeBootModules();
 
-    InitTerminal->WriteFormat("TTD pointer: %Xp (%Xp) -> %Xp = %Xp%n"
-        , &BootstrapThread, reinterpret_cast<uint8_t *>(&BootstrapThread) + sizeof(Thread)
-        , &TestThreadData4, &GET_THREAD_DATA(&BootstrapThread, TestThreadData4));
-
-    InitTerminal->WriteFormat("TTD pointer: %Xp (%Xp) -> %Xp = %Xp%n"
-        , &BootstrapThread, reinterpret_cast<uint8_t *>(&BootstrapThread) + sizeof(Thread)
-        , &TestThreadData1, &GET_THREAD_DATA(&BootstrapThread, TestThreadData1));
-
-    //  This should really be done under a lock.
-    InitializationLock.Acquire();
-
     MainInitializeCores();
+    Cpu::SetProcess(&BootstrapProcess);
 
     DebugRegisters::Initialize();
 
@@ -1273,7 +1267,7 @@ void Beelzebub::Main()
     MainInitializeMailbox();
 #endif
 
-    MainBootstrapThread();
+    MainInitializeScheduler(params);
 
     InitializeExecutionData();
 
@@ -1317,7 +1311,13 @@ void Beelzebub::Main()
         MallocTestBarrier.Reset(Cores::GetCount());
 #endif
 
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    //  This should really be done under a lock.
+    InitializationLock.Acquire();
+
     MainInitializeExtraCpus();
+#endif
+
     // MainElideLocks();
 
     MainInitializeRuntimeLibraries();
@@ -1331,13 +1331,15 @@ void Beelzebub::Main()
     //  Permit other processors to initialize themselves.
     InitTerminal->WriteLine("--  Initialization complete! --");
 
-    InitBarrier.Reset(Cores::GetCount());
+#if   defined(__BEELZEBUB_SETTINGS_SMP)
+    InitializationBarrier.Reset(Cores::GetCount());
 
     InitializationLock.Release();
 
-    InitBarrier.Reach();
+    InitializationBarrier.Reach();
+#endif
 
-    Scheduling = true;
+    Scheduler::Engage();
 
     Interrupts::Enable();
 
@@ -1579,14 +1581,14 @@ void Beelzebub::Main()
     }
 #endif
 
+    InitTerminal->WriteFormat("Core %us is ready for idling.%n", Cpu::GetData()->Index);
+
     //  Allow the CPU to rest.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();
 }
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
-/*  Secondary entry point  */
-
-void Beelzebub::Secondary()
+static void SecondaryEntryPoint(MainParameters * params)
 {
     InitializationLock.Acquire();
 
@@ -1609,6 +1611,8 @@ void Beelzebub::Secondary()
 
     Cores::Register();
     //  Register the core with the core manager.
+
+    Cpu::SetProcess(&BootstrapProcess);
 
     MSG_("Registered core #%us... %W", Cpu::GetData()->Index);
 
@@ -1641,22 +1645,27 @@ void Beelzebub::Secondary()
 
     MSG_("Initialized FPU... %W");
 
-    Interrupts::Enable();
-    //  Enable interrupts, this core is almost ready.
-
-    MSG_("Enabled interrupts... %W");
-
     Mailbox::Initialize();
     //  And the mailbox. This one needs interrupts enabled.
 
-    MSG_("Initialized mailbox!%n%W");
+    MSG_("Initialized mailbox... %W");
+
+    Scheduler::Initialize(params);
+    //  Meh...
+
+    MSG_("Initialized scheduler! %n%W");
 
     // Watchdog::Initialize();
     // //  Sadly needed.
 
     InitializationLock.Release();
 
-    InitBarrier.Reach();
+    InitializationBarrier.Reach();
+
+    Scheduler::Engage();
+
+    Interrupts::Enable();
+    //  Enable interrupts, this core is almost ready.
 
 #ifdef __BEELZEBUB__TEST_STACKINT
     if (CHECK_TEST(STACKINT))
@@ -1676,7 +1685,7 @@ void Beelzebub::Secondary()
     {
         withLock (TerminalMessageLock)
             InitTerminal->WriteFormat("Core %us: Testing R/W spinlock.%n", Cpu::GetData()->Index);
-        
+
         TestRwSpinlock(false);
 
         withLock (TerminalMessageLock)
@@ -1697,6 +1706,8 @@ void Beelzebub::Secondary()
     }
 #endif
 
+    msg_("hue hue hue%n");
+
 #if defined(__BEELZEBUB_SETTINGS_SMP) && defined(__BEELZEBUB__TEST_MAILBOX)
     if (CHECK_TEST(MAILBOX))
     {
@@ -1715,7 +1726,7 @@ void Beelzebub::Secondary()
     {
         withLock (TerminalMessageLock)
             InitTerminal->WriteFormat("Core %us: Testing physical memory manager.%n", Cpu::GetData()->Index);
-        
+
         TestPmm(false);
 
         withLock (TerminalMessageLock)
@@ -1728,7 +1739,7 @@ void Beelzebub::Secondary()
     {
         withLock (TerminalMessageLock)
             InitTerminal->WriteFormat("Core %us: Testing virtual memory manager.%n", Cpu::GetData()->Index);
-        
+
         TestVmm(false);
 
         withLock (TerminalMessageLock)
@@ -1754,13 +1765,15 @@ void Beelzebub::Secondary()
     {
         withLock (TerminalMessageLock)
             InitTerminal->WriteFormat("Core %us: Testing dynamic allocator.%n", Cpu::GetData()->Index);
-        
+
         TestMalloc(false);
 
         withLock (TerminalMessageLock)
             InitTerminal->WriteFormat("Core %us: Finished dynamic allocator test.%n", Cpu::GetData()->Index);
     }
 #endif
+
+    InitTerminal->WriteFormat("Core %us is ready for idling.%n", Cpu::GetData()->Index);
 
     //  Allow the CPU to rest.
     while (true) if (CpuInstructions::CanHalt) CpuInstructions::Halt();

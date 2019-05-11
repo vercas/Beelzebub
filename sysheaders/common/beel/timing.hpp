@@ -131,4 +131,16 @@ namespace Beelzebub
 
     inline constexpr TimeSpanLite operator "" secs_l(unsigned long long val)
     { return TimeSpanLite(val * 1'000'000UL); }
+
+    inline constexpr TimeSpan operator "" msecs(unsigned long long val)
+    { return TimeSpan(val * 1'000'000'000'000'000ULL); }
+
+    inline constexpr TimeSpanLite operator "" msecs_l(unsigned long long val)
+    { return TimeSpanLite(val * 1'000UL); }
+
+    inline constexpr TimeSpan operator "" usecs(unsigned long long val)
+    { return TimeSpan(val * 1'000'000'000'000ULL); }
+
+    inline constexpr TimeSpanLite operator "" usecs_l(unsigned long long val)
+    { return TimeSpanLite(val * 1UL); }
 }

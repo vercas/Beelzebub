@@ -90,7 +90,7 @@ static __hot void TimerIrqHandler(InterruptContext const * context, void * cooki
 
             if unlikely(next == 0)
                 next = 1;
-            
+
             ApicTimer::SetCount(next);
 
             //  It is VITAL that the timer is used again to guarantee that the

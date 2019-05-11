@@ -124,12 +124,12 @@ IsrCommonStub:
 .no_swap:
     ;   The base pointer is unaltered in this branch. The kernel maintains
     ;   proper linkage.
-    
+
     call    rsi
     ;   Call handler. Preserves RBP by convention.
 
 .skip:
-    pop     rax 
+    pop     rax
     mov     es, ax
     mov     ds, ax
     ;   Simply restore the data segments.

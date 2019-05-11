@@ -321,6 +321,8 @@ Handle Vmm::AllocatePages(Process * proc, vsize_t const size
         vaddr_t ret = vaddr;    //  Just a quicker way...
         SmpLock * heapLock;
 
+        // MSG_("ret = vaddr = %Xp BEFORE; size = %Xs%n", ret, size);
+
         if (0 != (type & MemoryAllocationOptions::VirtualUser))
         {
             res = proc->Vas.Allocate(ret, size, flags, content, type);
@@ -335,6 +337,8 @@ Handle Vmm::AllocatePages(Process * proc, vsize_t const size
         }
 
         vaddr = ret;
+
+        // MSG_("ret = vaddr = %Xp AFTER%n", ret);
 
         if unlikely(res != HandleResult::Okay)
             return res;
@@ -355,6 +359,8 @@ Handle Vmm::AllocatePages(Process * proc, vsize_t const size
 
             res = Vmm::MapPage(proc, ret + offset, paddr
                 , flags, MemoryMapOptions::NoLocking);
+
+            // MSG_("Mapped %XP at %Xp: %H%n", paddr, ret + offset, res);
 
             if unlikely(res != HandleResult::Okay)
                 goto backtrack;

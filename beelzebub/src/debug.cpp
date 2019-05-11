@@ -55,6 +55,10 @@ using namespace Beelzebub::Terminals;
 #if defined(__BEELZEBUB_SETTINGS_SMP)
 static Atomic<bool> DeathCanary {false};
 
+#ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
+static SmpLock vAllocDumpLock;
+#endif
+
 static __cold void Killer(void * cookie)
 {
     (void)cookie;
@@ -62,11 +66,13 @@ static __cold void Killer(void * cookie)
     DEBUG_TERM_ << "Core " << Decimal << Cpu::GetData()->Index << " was ordered to catch fire." << EndLine;
 
     #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-    withLock (MsgSpinlock)
+    withLock (vAllocDumpLock)
     {
         DEBUG_TERM << "-------------------- vAlloc on core " << Cpu::GetData()->Index << " --------------------" << EndLine;
 
         Valloc::DumpMyState();
+
+        DEBUG_TERM << "--------------------                  --------------------" << EndLine;
     }
     #endif
 
@@ -92,11 +98,11 @@ static __cold __noreturn void Die()
             (void)cookie;
 
 #else
-    DEBUG_TERM_ << "System is set on fire." << EndLine;
+        DEBUG_TERM_ << "System is set on fire." << EndLine;
 #endif
 
 #ifdef __BEELZEBUB_SETTINGS_KRNDYNALLOC_VALLOC
-            withLock (MsgSpinlock)
+            withLock (vAllocDumpLock)
             {
                 DEBUG_TERM << "-------------------- vAlloc on core " << Cpu::GetData()->Index << " --------------------" << EndLine;
 
@@ -132,6 +138,8 @@ void Debug::CatchFire(char const * const file
                     , char const * const cond
                     , char const * const msg)
 {
+    (void)InterruptState::Disable();
+
     if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
         withLock (MsgSpinlock)
         {
@@ -155,6 +163,8 @@ void Debug::CatchFireV(char const * const file
                      , char const * const cond
                      , char const * const fmt, va_list args)
 {
+    (void)InterruptState::Disable();
+
     if (DebugTerminal != nullptr && DebugTerminal->Capabilities->CanOutput)
         withLock (MsgSpinlock)
         {

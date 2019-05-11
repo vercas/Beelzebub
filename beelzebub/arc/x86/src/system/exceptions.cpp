@@ -164,7 +164,7 @@ void System::NoMathCoprocessorHandler(INTERRUPT_HANDLER_ARGS)
         , "There should be an active thread when trying to use the FPU.")XEND;
 
     CpuData * cpuData = Cpu::GetData();
-    
+
     if likely(cpuData->LastExtendedStateThread != activeThread)
     {
         if likely(activeThread->ExtendedState == nullptr)

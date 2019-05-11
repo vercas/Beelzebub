@@ -179,8 +179,6 @@ namespace Beelzebub { namespace System
 
         SerialPortType Type;
 
-    private:
-
         Synchronization::SmpLockUni ReadLock;
         Synchronization::SmpLock WriteLock;
 

@@ -77,7 +77,7 @@ TerminalCapabilities DjinnTerminalCapabilities = {
 
     false,  //  bool CanGetTabulatorWidth; //  Tabulator width may be retrieved.
     false,  //  bool CanSetTabulatorWidth; //  Tabulator width may be changed.
-    
+
     true,   //  bool SequentialOutput;     //  Character sequences can be output without explicit position.
 
     false,  //  bool SupportsTitle;        //  Supports assignment of a title.
@@ -94,17 +94,15 @@ TerminalCapabilities DjinnTerminalCapabilities = {
 DjinnTerminal::DjinnTerminal()
     : TerminalBase(&DjinnTerminalCapabilities)
 {
-    
+
 }
 
 /*  Writing  */
 
 static TerminalWriteResult WriteWrapper(char const * str, size_t len, bool & cont)
 {
-    if (len == SIZE_MAX)
-        len = strlen(str);
-
     size_t const n = len;
+    uint32_t u = 0;
     cont = false;
 
     while (len > 0)
@@ -114,20 +112,24 @@ static TerminalWriteResult WriteWrapper(char const * str, size_t len, bool & con
         switch (res.Result)
         {
         case DJINN_LOG_SUCCESS:
+            for (size_t i = 0; str[i] != '\0' && i < res.Count; ++i)
+                if likely((str[i] & 0xC0) != 0x80)
+                    ++u;
+
             str += res.Count;
             len -= res.Count;
 
             break;  //  Keep printing.
 
         case DJINN_LOG_NO_DEBUGGERS:
-            return {HandleResult::Okay, (uint32_t)n, InvalidCoordinates};
+            return {HandleResult::Okay, u, InvalidCoordinates};
         default:
-            return {HandleResult::Failed, (uint32_t)(n - len), InvalidCoordinates};
+            return {HandleResult::Failed, u, InvalidCoordinates};
         }
     }
 
     cont = true;
-    return {HandleResult::Okay, (uint32_t)n, InvalidCoordinates};
+    return {HandleResult::Okay, u, InvalidCoordinates};
 }
 
 TerminalWriteResult DjinnTerminal::WriteUtf8(char const * c)
@@ -155,18 +157,25 @@ TerminalWriteResult DjinnTerminal::WriteUtf8(char const * c)
 
 TerminalWriteResult DjinnTerminal::Write(char const * str, size_t len)
 {
+    if (len == SIZE_MAX)
+        len = strlen(str);
+
     bool dummy;
     return WriteWrapper(str, len, dummy);
 }
 
 TerminalWriteResult DjinnTerminal::WriteLine(char const * str, size_t len)
 {
+    if (len == SIZE_MAX)
+        len = strlen(str);
+
     bool cont;
 
     TerminalWriteResult res = WriteWrapper(str, len, cont);
 
     if (!cont) return res;
 
+    len = res.Size;
     res = WriteWrapper("\r\n", 2, cont);
 
     if (res.Size == 2) res.Size += (uint32_t)len;

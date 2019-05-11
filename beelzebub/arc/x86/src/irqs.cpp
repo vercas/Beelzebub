@@ -256,6 +256,10 @@ size_t const Irqs::MinPriority;
 
 static bool Ready = false;
 
+/*  Statics  */
+
+__thread InterruptContext * Irqs::CurrentContext = nullptr;
+
 /*  Initialization  */
 
 Handle Irqs::Initialize()
@@ -321,8 +325,8 @@ struct InterruptContextInternal : InterruptContext
 {
     /*  Constructors  */
 
-    inline constexpr InterruptContextInternal(InterruptStackState * reg, isr_t isr)
-        : InterruptContext(reg, isr, irq_invalid)
+    inline constexpr InterruptContextInternal(InterruptStackState * reg, isr_t isr, InterruptContext * next)
+        : InterruptContext(reg, isr, irq_invalid, next)
     {
         if (isr.Value >= IrqsOffset && isr.Value < (IrqsOffset + 48)) //  TODO: Magic limit.
             this->IrqVector = irq_t(isr.Value - IrqsOffset);
@@ -334,8 +338,9 @@ void Irqs::CommonInterruptHandler(INTERRUPT_HANDLER_ARGS)
     (void)handler;
 
     InterruptVectorData const * const vd = Vectors + vector;
-    
-    InterruptContextInternal context { state, isr_t(vector) };
+
+    InterruptContextInternal context { state, isr_t(vector), CurrentContext };
+    CurrentContext = &context;
 
     context.CurrentHandler = vd->First;
 
@@ -352,4 +357,6 @@ void Irqs::CommonInterruptHandler(INTERRUPT_HANDLER_ARGS)
     if (vd->Ender)
         vd->Ender->Ender(&context, vd->Ender->Cookie, InterruptEndType::AfterKernel);
     //  TODO: Userland-handled interrupts.
+
+    CurrentContext = context.Next;
 }

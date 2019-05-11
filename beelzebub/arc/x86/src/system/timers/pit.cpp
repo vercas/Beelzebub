@@ -42,7 +42,7 @@
 #include <system/io_ports.hpp>
 #include <system/cpu.hpp>   //  Only used for task switching right now...
 #include <kernel.hpp>
-    
+
 #include <debug.hpp>
 
 using namespace Beelzebub;
@@ -101,32 +101,32 @@ void Pit::IrqHandler(InterruptContext const * context, void * cookie)
 {
     (void)cookie;
 
-    if (CpuDataSetUp && Scheduling)
-    {
-        Thread * const activeThread = Cpu::GetThread();
+    // if (CpuDataSetUp && Scheduling)
+    // {
+    //     Thread * const activeThread = Cpu::GetThread();
 
-        if (activeThread != nullptr && activeThread->Next != activeThread)
-        {
-            // activeThread->State.GeneralRegisters = *state;
+    //     if (activeThread != nullptr && activeThread->Next != activeThread)
+    //     {
+    //         // activeThread->State.GeneralRegisters = *state;
 
-            // if (activeThread == &BootstrapThread)
-            //     msg("(( RIP = %Xp ))", state->RIP);
+    //         // if (activeThread == &BootstrapThread)
+    //         //     msg("(( RIP = %Xp ))", state->RIP);
 
-            // msg("PRE-SWITCH ");
-            // PrintToDebugTerminal(state);
-            // msg("%n");
+    //         // msg("PRE-SWITCH ");
+    //         // PrintToDebugTerminal(state);
+    //         // msg("%n");
 
-            // msg("(( AT=%Xp; N=%Xp; P=%Xp; BST=%B ))%n"
-            //     , activeThread, activeThread->Next, activeThread->Previous
-            //     , activeThread == &BootstrapThread);
+    //         // msg("(( AT=%Xp; N=%Xp; P=%Xp; BST=%B ))%n"
+    //         //     , activeThread, activeThread->Next, activeThread->Previous
+    //         //     , activeThread == &BootstrapThread);
 
-            activeThread->SwitchToNext(context->Registers);
+    //         activeThread->SwitchToNext(context->Registers);
 
-            // msg("%nPOST-SWITCH ");
-            // PrintToDebugTerminal(state);
-            // msg("%n");
-        }
-    }
+    //         // msg("%nPOST-SWITCH ");
+    //         // PrintToDebugTerminal(state);
+    //         // msg("%n");
+    //     }
+    // }
 }
 
 /*  Initialization  */

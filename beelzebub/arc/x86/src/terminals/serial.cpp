@@ -76,7 +76,7 @@ TerminalCapabilities SerialTerminalCapabilities = {
 
     false,  //  bool CanGetTabulatorWidth; //  Tabulator width may be retrieved.
     false,  //  bool CanSetTabulatorWidth; //  Tabulator width may be changed.
-    
+
     true,   //  bool SequentialOutput;     //  Character sequences can be output without explicit position.
 
     false,  //  bool SupportsTitle;        //  Supports assignment of a title.
@@ -94,7 +94,7 @@ SerialTerminal::SerialTerminal(ManagedSerialPort * const port)
     : TerminalBase(&SerialTerminalCapabilities)
     , Port(port)
 {
-    
+
 }
 
 /*  Writing  */

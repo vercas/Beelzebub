@@ -64,7 +64,7 @@ Thread::Thread(uint16_t id, Process * const owner)
     , Next(nullptr)
     , EntryPoint()
 {
-
+    owner->AcquireReference();
 }
 
 /*  Destructors  */
@@ -77,7 +77,7 @@ Thread::~Thread()
 void Thread::ReleaseMemory()
 {
     if (this->Owner != nullptr)
-        this->Owner = nullptr;
+        this->Owner->ReleaseReference();
     else
         assert(this->Status == ThreadStatus::Constructing);
 }

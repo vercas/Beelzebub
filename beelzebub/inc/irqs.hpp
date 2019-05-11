@@ -89,13 +89,14 @@ namespace Beelzebub
     {
         /*  Constructors  */
 
-        inline constexpr InterruptContext(System::InterruptStackState * reg, isr_t isr, irq_t irq)
-            : Registers(reg)
+        inline constexpr InterruptContext(System::InterruptStackState * reg, isr_t isr, irq_t irq, InterruptContext * next)
+            : Registers( reg)
             , IsrVector(isr)
             , IrqVector(irq)
             , CurrentHandler(nullptr)
             , Counter(0)
             , ValidCounter(0)
+            , Next(next)
         {
 
         }
@@ -108,6 +109,8 @@ namespace Beelzebub
 
         InterruptHandlerNode * CurrentHandler;
         size_t Counter, ValidCounter;
+
+        InterruptContext * Next;
     };
 
     typedef void (* InterruptHandlerVoid)(InterruptContext const * context, void * cookie);
@@ -278,6 +281,10 @@ namespace Beelzebub
 
     #undef EIRQ
 #endif
+
+        /*  Statics  */
+
+        static __thread InterruptContext * CurrentContext;
 
     protected:
         /*  Constructor(s)  */

@@ -898,7 +898,10 @@ void Valloc::DumpMyState()
     Arena * arena, * next;
 
     if (VALLOC_UNLIKELY((arena = TD.FirstArena) == nullptr))
+    {
+        Platform::ErrorMessage("No arenas!");
         return;
+    }
 
     do
     {

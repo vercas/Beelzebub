@@ -166,8 +166,8 @@ bits 64 ;   Then long mode directly.
 
     ;debugchar 'I'
 
-    mov     rax, ApStackTopPointer
-    mov     rsp, qword [rax]
+    mov     rdi, ApStackTopPointer
+    mov     rsp, qword [rdi]
     ;   The entry point will surely need a stack.
 
     ;debugchar 'J'

@@ -94,13 +94,25 @@ using namespace Beelzebub::Terminals;
 
 void kmain_bsp()
 {
-    return Beelzebub::Main();
+    MainParameters params {
+        true,   //  BSP
+        0xFFFFFFFFFFFFF000UL,
+        0xFFFFFFFFFFFFC000U
+    };
+
+    return Beelzebub::Main(&params);
 }
 
 #if   defined(__BEELZEBUB_SETTINGS_SMP)
-void kmain_ap()
+void kmain_ap(uintptr_t stackTop)
 {
-    return Beelzebub::Secondary();
+    MainParameters params {
+        false,  //  BSP
+        stackTop,
+        stackTop - CpuStackSize
+    };
+
+    return Beelzebub::Main(&params);
 }
 #endif
 
@@ -319,7 +331,7 @@ __startup void RemapTerminal(TerminalBase * const terminal)
          && term->VideoMemory <  VmmArc::KernelHeapEnd)
             return;
         //  Nothing to do, folks.
-        
+
         vaddr_t vaddr = nullvaddr;
 
         res = Vmm::AllocatePages(nullptr

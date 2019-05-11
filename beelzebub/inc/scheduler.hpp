@@ -41,21 +41,66 @@
 
 #pragma once
 
-#include <beel/structs.kernel.h>
 #include "execution/thread.hpp"
-#include "execution/process.hpp"
+#include "kernel.hpp"
 
 namespace Beelzebub
 {
     /**
-     *  <summary>Represents an abstraction of the system's IRQs and ISRs.</summary>
+     *  Scheduler assistance!
      */
     class Scheduler
     {
     public:
-        /*  Public  */
+        static constexpr size_t const MaximumCPUs = 512;
+        static constexpr int const PriorityLevels = 32;
 
-        static __thread tid_t IdleTid;
+        static bool Postpone;
+
+        struct AffinityMask
+        {
+            static constexpr size_t const Size = (MaximumCPUs + sizeof(size_t) * 8 - 1) / (sizeof(size_t) * 8);
+
+            inline bool IsAllZero() const
+            {
+                size_t val = 0;
+
+                for (size_t i = 0; i < Size; ++i)
+                    val |= this->Bitmap[i];
+
+                return val == 0;
+            }
+
+            inline bool IsAllOne() const
+            {
+                size_t val = ~(size_t)0UL;
+
+                for (size_t i = 0; i < Size; ++i)
+                    val &= this->Bitmap[i];
+
+                return val == ~(size_t)0UL;
+            }
+
+            inline bool operator [](size_t const index) const
+            {
+                size_t const indexWord = (index & ~(sizeof(size_t) * 8UL - 1UL)) >> (sizeof(size_t) == 4 ? 5 : 6);
+                size_t const indexBitMask = 1UL << (index & (sizeof(size_t) * 8UL - 1UL));
+
+                return 0 != (this->Bitmap[indexWord] & indexBitMask);
+            }
+
+            inline void SetBit(size_t const index)
+            {
+                size_t const indexWord = (index & ~(sizeof(size_t) * 8UL - 1UL)) >> (sizeof(size_t) == 4 ? 5 : 6);
+                size_t const indexBitMask = 1UL << (index & (sizeof(size_t) * 8UL - 1UL));
+
+                this->Bitmap[indexWord] |= indexBitMask;
+            }
+
+            size_t Bitmap[Size];
+        };
+
+        static AffinityMask const & AllCpusMask;
 
     protected:
         /*  Constructor(s)  */
@@ -68,17 +113,19 @@ namespace Beelzebub
 
         /*  Initialization  */
 
-        static __startup Handle Initialize(bool bsp);
+        static __startup void Initialize(MainParameters * params);
 
-        static __cold void Engage();
+    private:
+        static __startup void InitializeIdleThread(MainParameters * params);
+
+    public:
+        static void Engage();
+
+        static void Enroll(Execution::Thread * thread);
 
         /*  Properties  */
 
-        static size_t GetMaximumProcesses();
-        static size_t GetMaximumThreads();
-        static size_t GetMaximumScheduledThreads();
-
-        static size_t GetIdleCores();
-        static size_t GetTotalCores();
+        static SchedulerStatus GetStatus(Execution::Thread * thread);
+        static void SetAffinity(Execution::Thread * thread, AffinityMask const & affinity);
     };
 }

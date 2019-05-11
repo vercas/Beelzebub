@@ -220,7 +220,7 @@ namespace Beelzebub { namespace Terminals
 
         __forceinline TerminalWriteResult WriteLine()
         {
-            return this->WriteLine("", 1);
+            return this->WriteLine("", 0);
         }
 
         template<typename... TArgs>

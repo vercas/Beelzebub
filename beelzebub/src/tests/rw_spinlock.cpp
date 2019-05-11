@@ -63,7 +63,7 @@ static RwSpinlock tLock {};
 
 void TestRwSpinlock(bool bsp)
 {
-    if (bsp) Scheduling = false;
+    if (bsp) Scheduler::Postpone = true;
 
     SYNC;
 
@@ -251,7 +251,7 @@ void TestRwSpinlock(bool bsp)
 
     SYNC;
 
-    if (bsp) Scheduling = true;
+    if (bsp) Scheduler::Postpone = false;
 }
 
 #endif

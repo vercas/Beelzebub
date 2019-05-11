@@ -42,7 +42,7 @@
 #include "tests/pmm.hpp"
 #include "memory/pmm.hpp"
 #include "cores.hpp"
-#include "kernel.hpp"
+#include "scheduler.hpp"
 #include <new>
 
 #include <beel/sync/smp.lock.hpp>
@@ -75,7 +75,7 @@ static Atomic<size_t> RandomerCounter {0};
 
 void TestPmm(bool const bsp)
 {
-    if (bsp) Scheduling = false;
+    if (bsp) Scheduler::Postpone = true;
 
     size_t coreIndex = Cpu::GetData()->Index;
 
@@ -399,7 +399,7 @@ void TestPmm(bool const bsp)
 
     SYNC;
 
-    if (bsp) Scheduling = true;
+    if (bsp) Scheduler::Postpone = false;
 }
 
 #endif

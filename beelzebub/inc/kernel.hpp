@@ -39,8 +39,7 @@
 
 #pragma once
 
-#include <system/domain.hpp>    //  Platform-specific.
-#include <execution/thread.hpp>
+#include "system/domain.hpp"    //  Platform-specific.
 #include <beel/terminals/base.hpp>
 
 namespace Beelzebub
@@ -56,25 +55,18 @@ namespace Beelzebub
     extern Terminals::TerminalBase * MainTerminal;
     extern MainTerminalInterfaces MainTerminalInterface;
 
-    extern bool Scheduling;
     extern bool CpuDataSetUp;
 
     extern System::Domain Domain0;
 
+    struct MainParameters
+    {
+        bool BSP;
+        uintptr_t StackTop, StackBottom;
+    };
+
     /**
      *  <summary>Entry point for the bootstrap processor.</summary>
      */
-    __startup void Main();
-
-#if   defined(__BEELZEBUB_SETTINGS_SMP)
-    /**
-     *  <summary>Entry point for application processors.</summary>
-     */
-    __startup void Secondary();
-
-    /**
-     *  <summary>Entry point for other domains.</summary>
-     */
-    __startup void Ternary();
-#endif
+    __startup void Main(MainParameters * params);
 }

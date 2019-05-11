@@ -40,24 +40,13 @@
 /*  Note that the implementation of this header is architecture-specific.  */
 
 #include "scheduler.hpp"
-#include "memory/vmm.hpp"
-#include <math.h>
-#include <new>
+#include "execution.hpp"
+#include "system/cpu.hpp"
 
 using namespace Beelzebub;
 using namespace Beelzebub::Execution;
 using namespace Beelzebub::Memory;
-
-static size_t MaxProcesses = 4095;
-static size_t MaxThreads = sizeof(tid_t);
-static size_t MaxScheduledThreads = 100;
-
-static Process * * Processes;
-static Thread * * Threads;
-
-static __thread Thread * * MyThreads;
-static __thread Thread * IdleThread;
-static __thread Thread * ActiveThread;
+using namespace Beelzebub::System;
 
 /**********************
     Scheduler class
@@ -65,94 +54,23 @@ static __thread Thread * ActiveThread;
 
 /*  Initialization  */
 
-Handle Scheduler::Initialize(bool bsp)
+void Scheduler::InitializeIdleThread(MainParameters * params)
 {
-    if (bsp)
+    Thread * thread;
+
+    if (params->BSP)
     {
-        //  TODO: Read parameters for limits.
-
-        vsize_t size;
-        vaddr_t vaddr;
-
-        if (MaxProcesses * SizeOf<Process *> >= 2 * PageSize)
-        {
-            size = RoundUp(MaxProcesses * SizeOf<Process *>, PageSize);
-            vaddr = nullvaddr;
-
-            Handle res = Vmm::AllocatePages(nullptr
-                , size
-                , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-                | MemoryAllocationOptions::GuardFull
-                , MemoryFlags::Global | MemoryFlags::Writable
-                , MemoryContent::ProcessList
-                , vaddr);
-
-            if (res != HandleResult::Okay)
-                return HandleResult::OutOfMemory;
-
-            Processes = (Process * *)(vaddr.Pointer);
-        }
-        else
-        {
-            Processes = new (std::nothrow) Process*[MaxProcesses];
-
-            if (Processes == nullptr)
-                return HandleResult::OutOfMemory;
-        }
-
-        if (MaxThreads * SizeOf<Thread *> >= 2 * PageSize)
-        {
-            size = RoundUp(MaxThreads * SizeOf<Thread *>, PageSize);
-            vaddr = nullvaddr;
-
-            Handle res = Vmm::AllocatePages(nullptr
-                , size
-                , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
-                | MemoryAllocationOptions::GuardFull
-                , MemoryFlags::Global | MemoryFlags::Writable
-                , MemoryContent::ThreadList
-                , vaddr);
-
-            if (res != HandleResult::Okay)
-                return HandleResult::OutOfMemory;
-
-            Threads = (Thread * *)(vaddr.Pointer);
-        }
-        else
-        {
-            Threads = new (std::nothrow) Thread*[MaxThreads];
-
-            if (Threads == nullptr)
-                return HandleResult::OutOfMemory;
-        }
+        thread = new (&BootstrapThread) Thread(1, &BootstrapProcess);
+    }
+    else
+    {
+        thread = SpawnThread(&BootstrapProcess).Release();
     }
 
-    MyThreads = new (std::nothrow) Thread*[MaxScheduledThreads];
+    thread->AcquireReference();
 
-    if (MyThreads == nullptr)
-        return HandleResult::OutOfMemory;
+    thread->SetKernelStack(params->StackTop, params->StackBottom);
+    thread->SetActive();
 
-    return HandleResult::Okay;
-}
-
-void Scheduler::Engage()
-{
-
-}
-
-/*  Properties  */
-
-size_t Scheduler::GetMaximumProcesses()
-{
-    return MaxProcesses;
-}
-
-size_t Scheduler::GetMaximumThreads()
-{
-    return MaxThreads;
-}
-
-size_t Scheduler::GetMaximumScheduledThreads()
-{
-    return MaxScheduledThreads;
+    Cpu::SetThread(thread);
 }

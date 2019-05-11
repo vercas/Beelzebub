@@ -42,32 +42,42 @@
 #include "execution/process.hpp"
 #include <beel/structs.kernel.h>
 
-/*#define DEFINE_THREAD_DATA(type, name) \
-    static __section(thread_data) type MCATS(__dummy_var_, __LINE__); \
-    type * name = reinterpret_cast<type *>(reinterpret_cast<uint8_t *>(&(MCATS(__dummy_var_, __LINE__))) \
-                                         - &thread_data_start + sizeof(Thread));
-
-#define DECLARE_THREAD_DATA(type, name) \
-    extern type * name;
-
-#define GET_THREAD_DATA(thr, name) \
-    (*reinterpret_cast<decltype(*name)>(reinterpret_cast<uint8_t *>(thr) + reinterpret_cast<size_t>(name)))*/
-
 #define DEFINE_THREAD_DATA(type, name) \
-    __section(thread_data) __used type name;
+    __section(thread_data) __used type name##DUMMY; \
+    Beelzebub::Execution::ThreadData<type> __used name { &name##DUMMY };
 
 #define DECLARE_THREAD_DATA(type, name) \
-    extern type name;
-
-#define GET_THREAD_DATA(thr, name) \
-    (*reinterpret_cast<decltype(&name)>(reinterpret_cast<uint8_t *>(thr) \
-                                      + reinterpret_cast<size_t>(&name) \
-                                      - reinterpret_cast<size_t>(&thread_data_start)))
+    extern Beelzebub::Execution::ThreadData<type> name;
 
 extern "C" uint8_t thread_data_start;
 
+namespace Beelzebub
+{
+    class Scheduler;
+}
+
 namespace Beelzebub { namespace Execution
 {
+    class Thread;
+
+    template<typename T>
+    struct ThreadData
+    {
+        size_t const DataAddress;
+
+        inline constexpr ThreadData(T const * val) : DataAddress(reinterpret_cast<size_t>(val)) { }
+
+        inline T & operator ()(Thread * const thr) const
+        {
+            return *reinterpret_cast<T *>(reinterpret_cast<uint8_t *>(thr) + this->DataAddress - reinterpret_cast<size_t>(&thread_data_start));
+        }
+
+        inline Thread * GetContainer(T * data)
+        {
+            return reinterpret_cast<Thread *>(reinterpret_cast<uint8_t *>(data) - this->DataAddress + reinterpret_cast<size_t>(&thread_data_start));
+        }
+    };
+
     enum class ThreadStatus
     {
         Constructing,
@@ -82,8 +92,12 @@ namespace Beelzebub { namespace Execution
     class Thread : public Memory::ReferenceCounted<Thread>
                  , public ThreadBase
     {
-    public:
+        friend class Beelzebub::Scheduler;
 
+        // using Memory::ReferenceCounted<Thread>::AcquireReference;
+        // using Memory::ReferenceCounted<Thread>::ReleaseReference;
+
+    public:
         /*  Constructors  */
 
         inline Thread()
@@ -111,7 +125,7 @@ namespace Beelzebub { namespace Execution
         /*  Basics  */
 
         uint16_t const Id;
-        Memory::GlobalPointer<Process> Owner;
+        Process * Owner;
 
         /*  Operations  */
 

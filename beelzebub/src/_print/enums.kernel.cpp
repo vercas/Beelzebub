@@ -45,6 +45,7 @@ using namespace Beelzebub;
 __ENUM_TO_STRING_IMPL(FrameSize, __ENUM_FRAMESIZE)
 __ENUM_TO_STRING_IMPL(MemoryContent, __ENUM_MEMORYCONTENT)
 __ENUM_TO_STRING_IMPL(ExceptionType, __ENUM_EXCEPTIONTYPE)
+__ENUM_TO_STRING_IMPL(SchedulerStatus, __ENUM_SCHEDULERSTATUS)
 
 bool Beelzebub::MemoryContentsMergeable(MemoryContent a, MemoryContent b)
 {

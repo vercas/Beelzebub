@@ -69,7 +69,7 @@ namespace Beelzebub { namespace Synchronization
         }
 
         /*  Constructors  */
-     
+
         Atomic() = default;
         inline constexpr Atomic(T const val) : InnerValue( val ) { }
         Atomic(Atomic const &) = delete;

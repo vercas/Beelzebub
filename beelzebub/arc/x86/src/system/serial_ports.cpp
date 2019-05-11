@@ -246,7 +246,7 @@ static SerialPortType FindType(uint16_t const base)
     if (flags == 0xFF && Io::In8(base + 5) == 0xFF && Io::In8(base + 6) == 0xFF)
         return SerialPortType::Disconnected;
     //  Best I can do.
-    
+
     if (0 != (flags & 0x40))
         if (0 != (flags & 0x80))
             if (0 != (flags & 0x20))

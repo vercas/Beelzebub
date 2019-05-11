@@ -328,7 +328,7 @@ namespace Beelzebub { namespace Memory {
     public:
         /*  Constructors  */
 
-        inline LocalPointer() : Pointer( nullptr) { }
+        inline constexpr LocalPointer() : Pointer( nullptr) { }
 
         inline LocalPointer(LocalPointer<T> const & ptr)
             : Pointer( ptr.Pointer)
@@ -480,6 +480,21 @@ namespace Beelzebub { namespace Memory {
         T & operator*()  const { return *this->Get(); }
 
         explicit operator bool() const { return this->Pointer != nullptr; }
+
+        /*  Comparisons  */
+
+        inline bool operator ==(T * other) const { return this->Pointer == nullptr ? (other == nullptr) : this->Pointer->Pointer == other; }
+        inline bool operator !=(T * other) const { return this->Pointer == nullptr ? (other != nullptr) : this->Pointer->Pointer != other; }
+
+        inline bool operator ==(LocalPointer<T> const & other) const
+        {
+            return this->Pointer == other.Pointer || (this->Pointer != nullptr && other.Pointer != nullptr && this->Pointer->Pointer == other.Pointer->Pointer);
+            //  Either they point to the same copies, or they point to copies that point to the same object.
+        }
+        inline bool operator !=(LocalPointer<T> const & other) const { return !this->operator ==(other); }
+
+        inline bool operator ==(GlobalPointer<T> const & other) const { return this->Pointer == nullptr ? (other.Pointer == nullptr) : this->Pointer->Pointer == other.Pointer; }
+        inline bool operator !=(GlobalPointer<T> const & other) const { return this->Pointer == nullptr ? (other.Pointer != nullptr) : this->Pointer->Pointer != other.Pointer; }
 
     private:
         /*  Fields  */

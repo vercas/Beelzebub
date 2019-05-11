@@ -190,6 +190,12 @@ namespace Beelzebub { namespace Debug
             return *this;
         }
 
+        template<typename T>
+        inline AssertHelper & operator ()(char const * name, T const val, Terminals::TerminalModifier mod = nullptr)
+        {
+            return this->DumpParameter<T>(name, val, mod);
+        }
+
         /*  Fields  */
 
         Terminals::TerminalBase & Term;

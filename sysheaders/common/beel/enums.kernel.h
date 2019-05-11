@@ -194,6 +194,17 @@ __PUB_ENUM(MemoryAccessType, __ENUM_MEMORYACCESSTYPE, FULL, uint8_t)
 
 __PUB_ENUM(MemoryLocationFlags, __ENUM_MEMORYLOCATIONFLAGS, FULL, uint16_t)
 
+/**
+ *  Possible status of a thread in regards to scheduling.
+ */
+#define __ENUM_SCHEDULERSTATUS(ENUMINST) \
+    ENUMINST(Unscheduled , 0) /* Thread is not currently participating in scheduling. */ \
+    ENUMINST(Queued      , 1) /* Queued for scheduling but not yet executing or due to be executed. */ \
+    ENUMINST(Executing   , 2) /* Currently being executed, or will execute shortly. */ \
+    ENUMINST(Blocked     , 3) /* Thread is waiting for an event. */ \
+
+__PUB_ENUM(SchedulerStatus, __ENUM_SCHEDULERSTATUS, LITE)
+
 #endif
 
 #ifdef __BEELZEBUB__SOURCE_CXX
@@ -208,5 +219,7 @@ namespace Beelzebub
 
     __ENUM_TO_STRING_DECL(FrameSize);
 #endif
+
+    __ENUM_TO_STRING_DECL(SchedulerStatus);
 }
 #endif

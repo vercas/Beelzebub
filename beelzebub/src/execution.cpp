@@ -42,6 +42,8 @@
 #include <memory/object_allocator_smp.hpp>
 #include <memory/object_allocator_pools_heap.hpp>
 #include <beel/utils/id.pool.hpp>
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_PROCESSES 4095
 #define MAX_THREADS 65536
@@ -58,11 +60,12 @@ __section(bootstrap_thread)  Thread  Beelzebub::BootstrapThread(1, &BootstrapPro
 IdPool<Process> ProcessIds;
 IdPool<Thread> ThreadIds;
 
-DEFINE_THREAD_DATA(int, TestThreadData1)
-DEFINE_THREAD_DATA(int, TestThreadData2)
-DEFINE_THREAD_DATA(int, TestThreadData3)
-DEFINE_THREAD_DATA(int, TestThreadData4)
-DEFINE_THREAD_DATA(int, TestThreadData5)
+extern "C" uint8_t process_data_start;
+extern "C" uint8_t process_data_end;
+extern "C" uint8_t thread_data_start;
+extern "C" uint8_t thread_data_end;
+
+static size_t ProcessSize, ThreadSize;
 
 void Beelzebub::InitializeExecutionData()
 {
@@ -94,6 +97,12 @@ void Beelzebub::InitializeExecutionData()
 
     ASSERT(ProcessIds.Resolve(2) == nullptr);
     ASSERT(ThreadIds.Resolve(2) == nullptr);
+
+    ASSERT(&process_data_end > &process_data_start)((void *)&process_data_end)((void *)&process_data_start);
+    ASSERT(&thread_data_end > &thread_data_start)((void *)&thread_data_end)((void *)&thread_data_start);
+
+    ProcessSize = reinterpret_cast<size_t>(&process_data_end) - reinterpret_cast<size_t>(&process_data_start);
+    ThreadSize = reinterpret_cast<size_t>(&thread_data_end) - reinterpret_cast<size_t>(&thread_data_start);
 }
 
 UniquePointer<Process> Beelzebub::SpawnProcess()
@@ -105,7 +114,7 @@ UniquePointer<Process> Beelzebub::SpawnProcess()
 
     assert(ProcessIds.Resolve(id) == nullptr);
 
-    Process * obj = new Process((uint16_t)id);
+    Process * obj = reinterpret_cast<Process *>(::malloc(ProcessSize));
 
     if unlikely(obj == nullptr)
     {
@@ -113,6 +122,9 @@ UniquePointer<Process> Beelzebub::SpawnProcess()
 
         return nullptr;
     }
+
+    new (obj) Process((uint16_t)id);
+    ::memset(obj + 1, 0, ProcessSize - sizeof(*obj));
 
     ASSERTX(ProcessIds.SetPointer(id, obj))
         (id)
@@ -133,7 +145,7 @@ UniquePointer<Thread> Beelzebub::SpawnThread(Process * owner)
 
     assert(ThreadIds.Resolve(id) == nullptr);
 
-    Thread * obj = new Thread((uint16_t)id, owner);
+    Thread * obj = reinterpret_cast<Thread *>(::malloc(ThreadSize));
 
     if unlikely(obj == nullptr)
     {
@@ -141,6 +153,9 @@ UniquePointer<Thread> Beelzebub::SpawnThread(Process * owner)
 
         return nullptr;
     }
+
+    new (obj) Thread((uint16_t)id, owner);
+    ::memset(obj + 1, 0, ThreadSize - sizeof(*obj));
 
     ASSERTX(ThreadIds.SetPointer(id, obj))
         (id)

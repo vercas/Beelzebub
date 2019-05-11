@@ -63,7 +63,7 @@ static RwTicketLock tLock {};
 
 void TestRwTicketLock(bool bsp)
 {
-    if (bsp) Scheduling = false;
+    if (bsp) Scheduler::Postpone = true;
 
     SYNC;
 
@@ -187,7 +187,7 @@ void TestRwTicketLock(bool bsp)
 
     SYNC;
 
-    if (bsp) Scheduling = true;
+    if (bsp) Scheduler::Postpone = false;
 }
 
 #endif

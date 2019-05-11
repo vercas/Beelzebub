@@ -56,7 +56,7 @@
 #define JG_INFO_STRING_EX          ((char             *) JG_INFO_OFFSET_EX(string))
 
 __extern __public __startup void kmain_bsp();
-__extern __startup void kmain_ap();
+__extern __startup void kmain_ap(uintptr_t stackTop);
 
 namespace Beelzebub
 {

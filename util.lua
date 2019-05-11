@@ -159,7 +159,7 @@ if FUNC == FUNC_READELF then
 
 elseif FUNC == FUNC_DISASSEMBLE then
 
-    shell("objdump", "-M", "intel", "-CdlSw", PROJ, "|", "less")
+    shell("objdump", "-M", "intel", "-CdrlSw", PROJ, "|", "less")
 
 --------------------------------------------------------------------------------
 

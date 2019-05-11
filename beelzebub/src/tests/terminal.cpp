@@ -81,14 +81,14 @@ TerminalWriteResult TestTerminal()
     TERMTRY1(term->WriteFormat("%#testing marks%#", &mark1, &mark2), res, cnt);
     EXPECT(50);
 
-    ASSERT(mark1 ==  0, "Mark 1 should be 0, not %us.", mark1);
-    ASSERT(mark2 == 13, "Mark 2 should be 13, not %us.", mark2);
+    ASSERT(mark1 ==  0)(mark1);
+    ASSERT(mark2 == 13)(mark2);
 
     TERMTRY1(term->WriteFormat("%s%# further%#", "testing", &mark1, &mark2), res, cnt);
     EXPECT(65);
 
-    ASSERT(mark1 ==  7, "Mark 1 should be 7, not %us.", mark1);
-    ASSERT(mark2 == 15, "Mark 2 should be 15, not %us.", mark2);
+    ASSERT(mark1 ==  7)(mark1);
+    ASSERT(mark2 == 15)(mark2);
 
     TERMTRY1(term->WriteLine(), res, cnt);
     EXPECT(67);
@@ -102,8 +102,8 @@ TerminalWriteResult TestTerminal()
         , &mark2), res, cnt);
     EXPECT(96);
 
-    ASSERT(mark1 ==  2, "Mark 1 should be 2, not %us.", mark1);
-    ASSERT(mark2 == 29, "Mark 2 should be 29, not %us.", mark2);
+    ASSERT(mark1 ==  2)(mark1);
+    ASSERT(mark2 == 29)(mark2);
 
     TERMTRY1(term->Write("└─"), res, cnt);
     EXPECT(98);
@@ -129,26 +129,26 @@ TerminalWriteResult TestTerminal()
     TERMTRY1(term->WriteFormat("%#├─%#", &mark1, &mark2), res, cnt);
     EXPECT(110);
 
-    ASSERT(mark1 == 0, "Mark 1 should be 0, not %us.", mark1);
-    ASSERT(mark2 == 2, "Mark 2 should be 2, not %us.", mark2);
+    ASSERT(mark1 == 0)(mark1);
+    ASSERT(mark2 == 2)(mark2);
 
     TERMTRY1(term->WriteFormat("%#%s{123456}%#", &mark1, "├─", &mark2), res, cnt);
     EXPECT(120);
 
-    ASSERT(mark1 ==  0, "Mark 1 should be 0, not %us.", mark1);
-    ASSERT(mark2 == 10, "Mark 2 should be 10, not %us.", mark2);
+    ASSERT(mark1 ==  0)(mark1);
+    ASSERT(mark2 == 10)(mark2);
 
     TERMTRY1(term->WriteFormat("%s%#{123456}%#", "├─", &mark1, &mark2), res, cnt);
     EXPECT(130);
 
-    ASSERT(mark1 ==  2, "Mark 1 should be 2, not %us.", mark1);
-    ASSERT(mark2 == 10, "Mark 2 should be 10, not %us.", mark2);
+    ASSERT(mark1 ==  2)(mark1);
+    ASSERT(mark2 == 10)(mark2);
 
     TERMTRY1(term->WriteFormat("%#%*%#", &mark1, (size_t)30, &mark2), res, cnt);
     EXPECT(160);
 
-    ASSERT(mark1 ==  0, "Mark 1 should be 0, not %us.", mark1);
-    ASSERT(mark2 == 30, "Mark 2 should be 30, not %us.", mark2);
+    ASSERT(mark1 ==  0)(mark1);
+    ASSERT(mark2 == 30)(mark2);
 
     TERMTRY1(term->WriteLine(), res, cnt);
 

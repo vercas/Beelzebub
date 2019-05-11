@@ -42,7 +42,7 @@
 #include "tests/vmm.hpp"
 #include "memory/vmm.hpp"
 #include "cores.hpp"
-#include "kernel.hpp"
+#include "scheduler.hpp"
 #include "watchdog.hpp"
 #include "system/debug.registers.hpp"
 #include <new>
@@ -90,7 +90,7 @@ static __solid void TestVmmIntegrity(bool const bsp);
 
 void TestVmm(bool const bsp)
 {
-    if (bsp) Scheduling = false;
+    if (bsp) Scheduler::Postpone = true;
 
     size_t coreIndex = Cpu::GetData()->Index;
 
@@ -470,7 +470,7 @@ void TestVmm(bool const bsp)
 
     if (bsp)
     {
-        Scheduling = true;
+        Scheduler::Postpone = false;
 
         // System::DebugRegisters::RemoveBreakpoint(&(Vmm::KVas.Tree.Root));
         // // System::DebugRegisters::RemoveBreakpoint(&(Vmm::KVas.First));

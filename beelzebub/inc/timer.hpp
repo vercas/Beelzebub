@@ -82,7 +82,7 @@ namespace Beelzebub
         template<typename TCookie>
         static bool Enqueue(TimeSpanLite delay, TimedFunction<TCookie> func, TCookie * cookie)
         {
-            return Enqueue(delay, static_cast<TimedFunctionVoid>(func), cookie);
+            return Enqueue(delay, reinterpret_cast<TimedFunctionVoid>(func), cookie);
         }
     };
 }

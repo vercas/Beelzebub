@@ -41,7 +41,7 @@
 
 #include "tests/stack_integrity.hpp"
 #include <beel/sync/smp.lock.hpp>
-#include "kernel.hpp"
+#include "scheduler.hpp"
 
 #include <debug.hpp>
 
@@ -70,7 +70,7 @@ void TestStackIntegrity(bool bsp)
     uint32_t HashValue;
     uint32_t GlobalSeed = 1;
 
-    if (bsp) Scheduling = false;
+    if (bsp) Scheduler::Postpone = true;
 
     SYNC;
 
@@ -156,7 +156,7 @@ void TestStackIntegrity(bool bsp)
 
     SYNC;
 
-    if (bsp) Scheduling = true;
+    if (bsp) Scheduler::Postpone = false;
 }
 
 #endif

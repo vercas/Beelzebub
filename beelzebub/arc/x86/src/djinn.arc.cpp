@@ -45,6 +45,7 @@
 
 using namespace Beelzebub;
 using namespace Beelzebub::Utils;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::System;
 
 ManagedSerialPort * DjinnPort = nullptr;
@@ -130,6 +131,8 @@ DJINN_SEND_RES DjinnSendPacketThroughSerialPort(void const * packet, size_t size
     if (size > 0xFF)
         return DJINN_SEND_PACKET_SIZE_OOR;
 
+    LockGuard<SmpLock> lg { DjinnPort->WriteLock };
+
     if unlikely(DjinnPort->OutputCount >= DjinnPort->QueueSize && !DjinnPort->CanWrite())
         return DJINN_SEND_AWAIT;
 
@@ -195,7 +198,9 @@ DJINN_SEND_RES DjinnSendPacketThroughSerialPortBase64(void const * packet, size_
 
     uint8_t const * in = reinterpret_cast<uint8_t const *>(packet);
     uint8_t const * const end = in + size;
-    
+
+    LockGuard<SmpLock> lg { DjinnPort->WriteLock };
+
     for (/* nothing */; end - in >= 3; in += 3)
     {
         WriteByte(Base64Chars[in[0] >> 2]);

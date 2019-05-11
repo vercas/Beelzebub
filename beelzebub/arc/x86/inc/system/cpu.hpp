@@ -268,32 +268,48 @@ namespace Beelzebub { namespace System
 
         static __forceinline Execution::Thread * GetThread()
         {
-            return reinterpret_cast<Execution::Thread *>(CpuInstructions::GsGetPointer(
-                offsetof(struct CpuData, ActiveThread)
-            ));
+            return static_cast<Execution::Thread *>(
+                reinterpret_cast<ThreadBase *>(
+                    CpuInstructions::GsGetPointer(
+                        offsetof(struct CpuData, ActiveThread)
+                    )
+                )
+            );
         }
 
         static __forceinline Execution::Thread * SetThread(Execution::Thread const * val)
         {
-            return reinterpret_cast<Execution::Thread *>(CpuInstructions::GsSetPointer(
-                offsetof(struct CpuData, ActiveThread),
-                reinterpret_cast<uintptr_t>(val)
-            ));
+            return reinterpret_cast<Execution::Thread *>(
+                CpuInstructions::GsSetPointer(
+                    offsetof(struct CpuData, ActiveThread),
+                    reinterpret_cast<uintptr_t>(
+                        static_cast<ThreadBase const *>(val)
+                    )
+                )
+            );
         }
 
         static __forceinline Execution::Process * GetProcess()
         {
-            return reinterpret_cast<Execution::Process *>(CpuInstructions::GsGetPointer(
-                offsetof(struct CpuData, ActiveProcess)
-            ));
+            return static_cast<Execution::Process *>(
+                reinterpret_cast<ProcessBase *>(
+                    CpuInstructions::GsGetPointer(
+                        offsetof(struct CpuData, ActiveProcess)
+                    )
+                )
+            );
         }
 
         static __forceinline Execution::Process * SetProcess(Execution::Process const * val)
         {
-            return reinterpret_cast<Execution::Process *>(CpuInstructions::GsSetPointer(
-                offsetof(struct CpuData, ActiveProcess),
-                reinterpret_cast<uintptr_t>(val)
-            ));
+            return reinterpret_cast<Execution::Process *>(
+                CpuInstructions::GsSetPointer(
+                    offsetof(struct CpuData, ActiveProcess),
+                    reinterpret_cast<uintptr_t>(
+                        static_cast<ProcessBase const *>(val)
+                    )
+                )
+            );
         }
 #endif
     };

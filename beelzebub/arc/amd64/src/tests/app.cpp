@@ -142,8 +142,8 @@ void TestApplication()
     InitializeThreadState(&testThread);
     //  This sets up the thread so it goes directly to the entry point when switched to.
 
-    withInterrupts (false)
-        BootstrapThread.IntroduceNext(&testThread);
+    // withInterrupts (false)
+    //     BootstrapThread.IntroduceNext(&testThread);
 
     // DEBUG_TERM_ << "Initialized app test main thread." << Terminals::EndLine;
 

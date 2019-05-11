@@ -41,7 +41,7 @@
 
 #include "tests/vas.hpp"
 #include "memory/vmm.hpp"
-#include "execution/thread.hpp"
+#include "scheduler.hpp"
 #include "execution/thread_init.hpp"
 #include "execution.hpp"
 
@@ -111,8 +111,7 @@ void TestVas()
 
     vaddr_t stackVaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(nullptr
-        , 3 * PageSize
+    res = Vmm::AllocatePages(3 * PageSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualKernelHeap
         , MemoryFlags::Global | MemoryFlags::Writable
         , MemoryContent::ThreadStack, stackVaddr);
@@ -129,9 +128,9 @@ void TestVas()
     InitializeThreadState(testThread.Get());
 
     testProcess->SetActive();
+    testThread->SetActive();
 
-    withInterrupts (false)
-        BootstrapThread.IntroduceNext(testThread.Get());
+    Scheduler::Enroll(testThread.Get());
 
     while (Barrier) CpuInstructions::DoNothing();
 }
@@ -162,8 +161,7 @@ void * TestThreadCode(void *)
 
     vaddr = Vmm::UserlandStart + 1337 * PageSize;
 
-    res = Vmm::AllocatePages(nullptr
-        , 5 * PageSize
+    res = Vmm::AllocatePages(5 * PageSize
         , MemoryAllocationOptions::Commit | MemoryAllocationOptions::VirtualUser
         , MemoryFlags::Userland | MemoryFlags::Writable
         , MemoryContent::Generic
@@ -186,8 +184,7 @@ void * TestThreadCode(void *)
 
     vaddr = nullvaddr;
 
-    res = Vmm::AllocatePages(nullptr
-        , 6 * PageSize
+    res = Vmm::AllocatePages(6 * PageSize
         , MemoryAllocationOptions::AllocateOnDemand | MemoryAllocationOptions::VirtualUser | MemoryAllocationOptions::GuardLow
         , MemoryFlags::Userland | MemoryFlags::Writable
         , MemoryContent::Generic

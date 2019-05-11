@@ -161,6 +161,21 @@ namespace Beelzebub { namespace Memory
             return MapPage(proc, vaddr, paddr, FrameSize::_4KiB, flags, opts);
         }
 
+        static __hot __forceinline Handle MapPage(vaddr_t const vaddr, paddr_t paddr
+            , FrameSize size
+            , MemoryFlags const flags
+            , MemoryMapOptions opts = MemoryMapOptions::None)
+        {
+            return MapPage(nullptr, vaddr, paddr, size, flags, opts);
+        }
+
+        static __hot __forceinline Handle MapPage(vaddr_t const vaddr, paddr_t paddr
+            , MemoryFlags const flags
+            , MemoryMapOptions opts = MemoryMapOptions::None)
+        {
+            return MapPage(nullptr, vaddr, paddr, FrameSize::_4KiB, flags, opts);
+        }
+
         static __hot __solid Handle MapRange(Execution::Process * proc
             , vaddr_t vaddr, paddr_t paddr, vsize_t size
             , MemoryFlags const flags
@@ -236,8 +251,20 @@ namespace Beelzebub { namespace Memory
             , vsize_t const size, MemoryAllocationOptions const type
             , MemoryFlags const flags, MemoryContent content, vaddr_t & vaddr);
 
+        static __hot __forceinline Handle AllocatePages(vsize_t const size
+            , MemoryAllocationOptions const type
+            , MemoryFlags const flags, MemoryContent content, vaddr_t & vaddr)
+        {
+            return AllocatePages(nullptr, size, type, flags, content, vaddr);
+        }
+
         static __hot __solid Handle FreePages(Execution::Process * proc
             , vaddr_t const vaddr, vsize_t const size);
+
+        static __hot __forceinline Handle FreePages(vaddr_t const vaddr, vsize_t const size)
+        {
+            return FreePages(nullptr, vaddr, size);
+        }
 
         /*  Flags  */
 

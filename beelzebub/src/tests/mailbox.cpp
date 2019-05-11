@@ -43,6 +43,7 @@
 #include "mailbox.hpp"
 #include "cores.hpp"
 #include "kernel.hpp"
+#include "scheduler.hpp"
 
 #include <debug.hpp>
 
@@ -149,9 +150,13 @@ static __startup void TestEmptyFunc(void * cookie)
 
 void TestMailbox(bool bsp)
 {
+    assert(InterruptState::IsEnabled());
+
+    msg_("Core %us entered mailbox test.%n", Cpu::GetData()->Index);
+
     if (bsp)
     {
-        Scheduling = false;
+        Scheduler::Postpone = true;
 
         ALLOCATE_MAIL_BROADCAST(m1, &TestFunc, reinterpret_cast<void *>(1));
         m1.Post();
@@ -195,7 +200,7 @@ void TestMailbox(bool bsp)
             << "Spam mail latency: AVG "
             << ((perfEnd - perfStart) / (SpamCount * Cores::GetCount())) << EndLine;
 
-        Scheduling = true;
+        Scheduler::Postpone = false;
     }
 }
 

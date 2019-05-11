@@ -89,20 +89,3 @@ void Beelzebub::Execution::InitializeThreadState(Thread * const thread)
     //     PrintToDebugTerminal(&(thread->State));
     // }
 }
-
-Handle Beelzebub::Execution::InitializeBootstrapThread(Thread * const bst, Process * const bsp)
-{
-    new (bst) Thread(1, bsp);
-
-    //uint64_t dummy = 0x0056657263617300;
-    //  Just a dummy value.
-
-    bst->SetKernelStack(0xFFFFFFFFFFFFF000U, 0xFFFFFFFFFFFFC000U);
-    // bst->KernelStackBottom = 0xFFFFFFFFFFFFC000U;//RoundDown((uintptr_t)&dummy, PageSize);
-    // bst->KernelStackTop = 0xFFFFFFFFFFFFF000U;//RoundUp((uintptr_t)&dummy, PageSize);
-
-    bst->Next = bst->Previous = bst;
-
-    bst->SetActive();
-    return HandleResult::Okay;
-}

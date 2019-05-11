@@ -48,20 +48,37 @@
 #include <beel/memory/reference.counting.hpp>
 
 #define DEFINE_PROCESS_DATA(type, name) \
-    __section(process_data) __used type name;
+    __section(process_data) __used type name##DUMMY; \
+    Beelzebub::Execution::ProcessData<type> __used name { &name##DUMMY };
 
 #define DECLARE_PROCESS_DATA(type, name) \
-    extern type name;
-
-#define GET_PROCESS_DATA(proc, name) \
-    (*reinterpret_cast<decltype(&name)>(reinterpret_cast<uint8_t *>(proc) \
-                                      + reinterpret_cast<size_t>(&name) \
-                                      - reinterpret_cast<size_t>(&process_data_start)))
+    extern Beelzebub::Execution::ProcessData<type> name;
 
 extern "C" uint8_t process_data_start;
 
 namespace Beelzebub { namespace Execution
 {
+    class Thread;
+    class Process;
+
+    template<typename T>
+    struct ProcessData
+    {
+        size_t const DataAddress;
+
+        inline constexpr ProcessData(T const * val) : DataAddress(reinterpret_cast<size_t>(val)) { }
+
+        inline T & operator ()(Process * const proc) const
+        {
+            return *reinterpret_cast<T *>(reinterpret_cast<uint8_t *>(proc) + this->DataAddress - reinterpret_cast<size_t>(&process_data_start));
+        }
+
+        inline Process * GetContainer(T * data)
+        {
+            return reinterpret_cast<Process *>(reinterpret_cast<uint8_t *>(data) - this->DataAddress + reinterpret_cast<size_t>(&process_data_start));
+        }
+    };
+
     enum class ProcessStatus
     {
         Constructing,
@@ -75,6 +92,7 @@ namespace Beelzebub { namespace Execution
                   , public ProcessBase
                   , public ProcessArchitecturalBase
     {
+        friend class Thread;
     public:
         /*  Constructors  */
 

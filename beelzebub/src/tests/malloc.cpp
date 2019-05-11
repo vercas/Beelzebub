@@ -43,6 +43,7 @@
 #include "memory/vmm.hpp"
 #include "cores.hpp"
 #include "kernel.hpp"
+#include "scheduler.hpp"
 #include <new>
 
 #include <beel/sync/smp.lock.hpp>
@@ -86,7 +87,7 @@ static Atomic<size_t> RandomerCounter {0};
 
 void TestMalloc(bool const bsp)
 {
-    if (bsp) Scheduling = false;
+    if (bsp) Scheduler::Postpone = true;
 
     size_t coreIndex = Cpu::GetData()->Index;
     TestStructure * dummy = nullptr;
@@ -220,7 +221,7 @@ void TestMalloc(bool const bsp)
     if (bsp)
     {
         void * ptr = malloc(10);
-        
+
         ASSERT((ptr = realloc(ptr, 20)) != nullptr);
         ASSERT((ptr = realloc(ptr, 40)) != nullptr);
         ASSERT((ptr = realloc(ptr, 80)) != nullptr);
@@ -473,7 +474,7 @@ void TestMalloc(bool const bsp)
     {
         DEBUG_TERM_ << &(Memory::Vmm::KVas);
 
-        Scheduling = true;
+        Scheduler::Postpone = false;
     }
 }
 
