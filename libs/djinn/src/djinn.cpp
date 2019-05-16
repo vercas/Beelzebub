@@ -61,7 +61,7 @@ static DJINN_SEND_RES Send(TPacket const pack)
 
 retry:
     res = InitData.Sender(&pack, sizeof(pack));
-    
+
     if (BRetry && res == DJINN_SEND_AWAIT)
     {
         DJINN_DO_NOTHING();
@@ -78,7 +78,7 @@ static DJINN_POLL_RES Poll(TPacket & pack, size_t & len, uint64_t timeout = 0)
 
 retry:
     res = InitData.Poller(&pack, sizeof(pack), &len);
-    
+
     if (BRetry && res == DJINN_POLL_AWAIT)
     {
         DJINN_DO_NOTHING();

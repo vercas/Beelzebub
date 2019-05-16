@@ -62,7 +62,7 @@ static volatile bool Barrier;
 
 static __startup void * TestThreadCode(void *);
 
-__startup void TestDereferenceFailure(uintptr_t volatile * const testPtr)
+__startup __unsanitized void TestDereferenceFailure(uintptr_t volatile * const testPtr)
 {
     // DEBUG_TERM_ << " <POKING " << (void *)testPtr << ">";
 

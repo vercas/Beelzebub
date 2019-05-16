@@ -46,7 +46,7 @@
 
     #if !defined(__BEELZEBUB__PLACEMENT_NEW) && defined(_DJINN) && defined(__cplusplus)
         #define __BEELZEBUB__PLACEMENT_NEW
-        
+
         inline void * operator new  (std::size_t, void * p) noexcept { return p; }
         inline void * operator new[](std::size_t, void * p) noexcept { return p; }
         inline void operator delete  (void *, void *) noexcept { }

@@ -57,6 +57,8 @@ using namespace Beelzebub::System;
 
 static __hot void SplitLargeFrame(LargeFrameDescriptor * desc, uint16_t cnt = LargeFrameDescriptor::SubDescriptorsCount)
 {
+    assert(desc->GetExtras() != nullptr)((void *)desc);
+
     auto extra = new (desc->GetExtras()) SplitFrameExtra();
 
     int i = 1;
@@ -329,7 +331,10 @@ FrameAllocationSpace::FrameAllocationSpace(paddr_t phys_start, paddr_t phys_end)
         this->ControlAreaSize += psize_t(sizeof(LargeFrameDescriptor));
         this->FreeSize        += phys_end - algn_end - PageSize;
 
-        SplitLargeFrame(new (this->Map + frameCount) LargeFrameDescriptor(), (phys_end - algn_end).Value / PageSize.Value - 2);
+        auto desc = new (this->Map + frameCount) LargeFrameDescriptor();
+        desc->SubDescriptors = reinterpret_cast<SmallFrameDescriptor *>(algn_end.Value);
+
+        SplitLargeFrame(desc, (phys_end - algn_end).Value / PageSize.Value - 2);
 
         this->SplitFree = frameCount;
 

@@ -225,6 +225,7 @@
         #define __internal         __attribute__((__visibility__("internal")))
 
         #define __deprecated(txt)  __attribute__((__deprecated__(txt)))
+        #define __unsanitized      __attribute__((no_sanitize("undefined")))
     #else
         #error Unsupported compiler!
 
@@ -750,15 +751,17 @@
 #endif
 
 #ifndef __BEELZEBUB__SOURCE_GAS
-    #define COMPILER_MEMORY_BARRIER() asm volatile ( "" : : : "memory" )
+    #define COMPILER_MEMORY_BARRIER() __asm__ volatile ( "" : : : "memory" )
 
-    #define FORCE_ORDER(before, after) asm volatile ( ""                  \
+    #define FORCE_ORDER(before, after) __asm__ volatile ( ""                  \
                                                     : [out]"=m"(after )   \
                                                     : [in ] "m"(before) )
 
-    #define FORCE_EVAL(before) asm volatile ( "" : : "rm"(before) )
+    #define FORCE_EVAL(before) __asm__ volatile ( "" : : "rm"(before) )
 
-    #define EMPTY_STATEMENT asm volatile ( "" )
+    #define EMPTY_STATEMENT __asm__ volatile ( "" )
+
+    #define UNFUCK(val) __asm__ volatile ( "" : "+rm"(val) )
 
     #define with(primExp)                                                   \
         for (bool MCATS(_go_, __LINE__) = true; MCATS(_go_, __LINE__); )    \

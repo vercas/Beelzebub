@@ -48,7 +48,7 @@
 using namespace Beelzebub;
 using namespace Beelzebub::System;
 
-__startup void TestNullDereference(uintptr_t volatile * const testPtr)
+__startup __unsanitized void TestNullDereference(uintptr_t volatile * const testPtr)
 {
     uintptr_t volatile * volatile testNullPtr = reinterpret_cast<uintptr_t volatile *>(testPtr - testPtr);
 
@@ -82,8 +82,8 @@ __startup void TestManualThrow(unsigned arg)
 
 void TestExceptions()
 {
-    uintptr_t volatile * volatile testPtr = reinterpret_cast<uintptr_t volatile *>(0x1234567);
-    
+    uintptr_t volatile * volatile testPtr = reinterpret_cast<uintptr_t volatile *>(0x1234560);
+
     for (size_t volatile i = 0; i < 100; ++i)
         __try
         {

@@ -417,19 +417,19 @@ SmpLockUni syncer;
 #define TESTALLOC3(T, n)                                                   \
     T * MCATS(tO, n) = nullptr;                                            \
     res = testAllocator.AllocateObject(MCATS(tO, n));                      \
-    ASSERT(res.IsOkayResult()                                              \
+    ASSERTX(res.IsOkayResult()                                             \
         , "Failed to allocate object \"" #n "\": %H%n"                     \
-        , res);
+        , res)XEND;
 
 #define TESTREMOV3(n)                                                      \
     res = testAllocator.DeallocateObject(MCATS(tO, n));                    \
-    ASSERT(res.IsOkayResult()                                              \
+    ASSERTX(res.IsOkayResult()                                             \
         , "Failed to delete object \"" #n "\" (%Xp): %H%n"                 \
-        , MCATS(tO, n), res);
+        , MCATS(tO, n), res)XEND;
 
-#define TESTDIFF(n1, n2) ASSERT(MCATS(tO, n1) != MCATS(tO, n2)             \
+#define TESTDIFF(n1, n2) ASSERTX(MCATS(tO, n1) != MCATS(tO, n2)            \
     , "Test objects \"" #n1 "\" and \"" #n2 "\" should be different: %Xp." \
-    , MCATS(tO, n1));
+    , MCATS(tO, n1))XEND;
 
 __startup Handle ObjectAllocatorSpamTest()
 {
@@ -456,20 +456,20 @@ __startup Handle ObjectAllocatorSpamTest()
         TESTALLOC2(TestStructure, A)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-        ASSERT(res.IsOkayResult()
+        ASSERTX(res.IsOkayResult()
             , "Failed to allocate test object A for repetition %us: %H"
-            , 1 + REPETITION_COUNT - x, res);
-#endif        
+            , 1 + REPETITION_COUNT - x, res)XEND;
+#endif
 
         for (size_t y = REPETITION_COUNT; y > 0; --y)
         {
             TESTALLOC2(TestStructure, B)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-            ASSERT(res.IsOkayResult()
+            ASSERTX(res.IsOkayResult()
                 , "Failed to allocate test object B for repetition %us->%us: %H"
-                , 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, res);
-#endif            
+                , 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, res)XEND;
+#endif
 
             TESTDIFF(A, B)
 
@@ -478,10 +478,10 @@ __startup Handle ObjectAllocatorSpamTest()
                 TESTALLOC2(TestStructure, C)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-                ASSERT(res.IsOkayResult()
+                ASSERTX(res.IsOkayResult()
                     , "Failed to allocate test object C for repetition %us->%us->%us: %H"
-                    , 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, 1 + REPETITION_COUNT - z, res);
-#endif                
+                    , 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, 1 + REPETITION_COUNT - z, res)XEND;
+#endif
 
                 TESTDIFF(A, C)
                 TESTDIFF(B, C)
@@ -489,28 +489,28 @@ __startup Handle ObjectAllocatorSpamTest()
                 TESTREMOV2(C)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-                ASSERT(res.IsOkayResult()
+                ASSERTX(res.IsOkayResult()
                     , "Failed to remove test object C (%Xp) for repetition %us->%us->%us: %H"
-                    , tOC, 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, 1 + REPETITION_COUNT - z, res);
-#endif                
+                    , tOC, 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, 1 + REPETITION_COUNT - z, res)XEND;
+#endif
             }
 
             TESTREMOV2(B)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-            ASSERT(res.IsOkayResult()
+            ASSERTX(res.IsOkayResult()
                 , "Failed to remove test object B (%Xp) for repetition %us->%us: %H"
-                , tOB, 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, res);
-#endif            
+                , tOB, 1 + REPETITION_COUNT - x, 1 + REPETITION_COUNT - y, res)XEND;
+#endif
         }
 
         TESTREMOV2(A)
 
 #ifdef __BEELZEBUB__TEST_OBJA_ASSERTIONS
-        ASSERT(res.IsOkayResult()
+        ASSERTX(res.IsOkayResult()
             , "Failed to remove test object A (%Xp) for repetition %us: %H"
-            , tOA, 1 + REPETITION_COUNT - x, res);
-#endif        
+            , tOA, 1 + REPETITION_COUNT - x, res)XEND;
+#endif
 
 #ifdef __BEELZEBUB__CONF_PROFILE
         uint64_t perfEnd = CpuInstructions::Rdtsc();
@@ -528,18 +528,20 @@ __startup Handle ObjectAllocatorSpamTest()
 
     SYNC;
 
-    ASSERT(capacity1 - freeCount1 == testAllocator.GetCapacity() - testAllocator.GetFreeCount()
+    ASSERTX(capacity1 - freeCount1 == testAllocator.GetCapacity() - testAllocator.GetFreeCount()
         , "Allocator's deduced busy object count has a shady value: %us (%us - %us)"
           ", expected %us (%us - %us)."
         , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
         , testAllocator.GetCapacity(), testAllocator.GetFreeCount()
-        , capacity1 - freeCount1, capacity1, freeCount1);
+        , capacity1 - freeCount1, capacity1, freeCount1)XEND;
 
-    ASSERT(busyCount1 == testAllocator.GetBusyCount()
+    ASSERTX(busyCount1 == testAllocator.GetBusyCount()
         , "Allocator's busy object count has a shady value: %us, expected %us."
-        , busyCount1, testAllocator.GetBusyCount());
+        , busyCount1, testAllocator.GetBusyCount())XEND;
 
     SYNC;
+
+    msg_("Finished allocator spam test.%n");
 
     return HandleResult::Okay;
 }
@@ -563,9 +565,9 @@ __startup Handle ThreePoolTest()
         //     , "The allocator wasn't asked to acquire a pool when allocating a "
         //       "(new) first object..?");
 
-        ASSERT(testAllocator.PoolCount == 1
+        ASSERTX(testAllocator.PoolCount == 1
             , "Test allocator should have exactly one pool now, not %us.%n"
-            , testAllocator.PoolCount.Load());
+            , testAllocator.PoolCount.Load())XEND;
 
         msg("~~ STARTING MULTIPLE POOL TEST WITH cap %us (%u4), fc %us (%u4) ~~%n"
             , testAllocator.GetCapacity(), testAllocator.FirstPool->Capacity
@@ -587,13 +589,13 @@ __startup Handle ThreePoolTest()
 
             if unlikely(i == 3)
             {
-                ASSERT(testAllocator.GetFreeCount() == 1
+                ASSERTX(testAllocator.GetFreeCount() == 1
                     , "Test allocator should only have one free object, not %us.%n"
-                    , testAllocator.GetFreeCount());
+                    , testAllocator.GetFreeCount())XEND;
 
-                ASSERT(testAllocator.PoolCount == (allocatedOnce ? 2u : 1u)
+                ASSERTX(testAllocator.PoolCount == (allocatedOnce ? 2u : 1u)
                     , "Test allocator should have exactly %u4 pool now, not %us.%n"
-                    , allocatedOnce ? 2u : 1u, testAllocator.PoolCount.Load());
+                    , allocatedOnce ? 2u : 1u, testAllocator.PoolCount.Load())XEND;
 
                 // ASSERT(!askedToAcquire
                 //     , "The allocator asked to acquire a pool before it was full..?");
@@ -605,13 +607,13 @@ __startup Handle ThreePoolTest()
             }
             else if unlikely(i == 2)
             {
-                ASSERT(testAllocator.GetFreeCount() == 0
+                ASSERTX(testAllocator.GetFreeCount() == 0
                     , "Test allocator should only have 0 free objects, not %us.%n"
-                    , testAllocator.GetFreeCount());
+                    , testAllocator.GetFreeCount())XEND;
 
-                ASSERT(testAllocator.PoolCount == (allocatedOnce ? 2u : 1u)
+                ASSERTX(testAllocator.PoolCount == (allocatedOnce ? 2u : 1u)
                     , "Test allocator should have exactly %u4 pool now, not %us.%n"
-                    , allocatedOnce ? 2u : 1u, testAllocator.PoolCount.Load());
+                    , allocatedOnce ? 2u : 1u, testAllocator.PoolCount.Load())XEND;
 
                 // ASSERT(!askedToAcquire
                 //     , "The allocator asked to acquire a pool before it was full..?");
@@ -626,13 +628,13 @@ __startup Handle ThreePoolTest()
 
             res = testAllocator.AllocateObject(tOx);
 
-            ASSERT(res.IsOkayResult()
+            ASSERTX(res.IsOkayResult()
                 , "Failed to allocate capacity-filling object #%us: %H%n"
-                , i, res);
+                , i, res)XEND;
 
-            ASSERT(0 != (tOx->Qwords[0] & 1)
+            ASSERTX(0 != (tOx->Qwords[0] & 1)
                 , "Recently-allocated object %Xp has busy bit clear!%n"
-                , tOx);
+                , tOx)XEND;
 
             tOt = tOy;
             while (tOt != nullptr)
@@ -643,19 +645,19 @@ __startup Handle ThreePoolTest()
             }
 
             if (tOy != nullptr)
-                ASSERT(tOy->Next != tOx
-                    , "Previous test object points to the current one..?");
+                ASSERTX(tOy->Next != tOx
+                    , "Previous test object points to the current one..?")XEND;
 
             tOx->Next = tOy;
 
             if unlikely(i == 1 && !allocatedOnce)
             {
-                ASSERT(testAllocator.GetFreeCount() > 1
-                    , "Test allocator should have more than one free object!%n");
+                ASSERTX(testAllocator.GetFreeCount() > 1
+                    , "Test allocator should have more than one free object!%n")XEND;
 
-                ASSERT(testAllocator.PoolCount == 2
+                ASSERTX(testAllocator.PoolCount == 2
                     , "Test allocator should have exactly two pools now, not %us.%n"
-                    , testAllocator.PoolCount.Load());
+                    , testAllocator.PoolCount.Load())XEND;
 
                 i = testAllocator.GetFreeCount() + 3;
                 allocatedOnce = true;
@@ -676,9 +678,9 @@ __startup Handle ThreePoolTest()
             }
         }
 
-        ASSERT(capacity2 != testAllocator.GetCapacity()
+        ASSERTX(capacity2 != testAllocator.GetCapacity()
             , "The allocator's capacity should've changed from %us!"
-            , capacity2);
+            , capacity2)XEND;
 
         // ASSERT(askedToAcquire
         //     , "The allocator should have been asked to acquire a pool "
@@ -690,9 +692,9 @@ __startup Handle ThreePoolTest()
 
         // askedToAcquire = false;
 
-        ASSERT(testAllocator.PoolCount == 3
+        ASSERTX(testAllocator.PoolCount == 3
             , "Test allocator should have exactly three pools now, not %us.%n"
-            , testAllocator.PoolCount.Load());
+            , testAllocator.PoolCount.Load())XEND;
 
         //  Now clean up the acquired objects.
 
@@ -709,9 +711,9 @@ __startup Handle ThreePoolTest()
 
             if (poolCount == newPoolCount)
             {
-                ASSERT(0 == (tOx->Qwords[0] & 1)
+                ASSERTX(0 == (tOx->Qwords[0] & 1)
                     , "Recently-deallocated object %Xp has busy bit set!%n"
-                    , tOx);
+                    , tOx)XEND;
             }
             else
             {
@@ -731,21 +733,21 @@ __startup Handle ThreePoolTest()
         //     , "The allocator should have asked to remove a pool after "
         //       "deallocating the last object!");
 
-        ASSERT(testAllocator.GetFreeCount() == 0
+        ASSERTX(testAllocator.GetFreeCount() == 0
             , "The test allocator should have a free count of 0, not %us!"
-            , testAllocator.GetFreeCount());
+            , testAllocator.GetFreeCount())XEND;
 
-        ASSERT(testAllocator.PoolCount == 0
+        ASSERTX(testAllocator.PoolCount == 0
             , "Test allocator should have no pools now, not %us.%n"
-            , testAllocator.PoolCount.Load());
+            , testAllocator.PoolCount.Load())XEND;
 
-        ASSERT(testAllocator.GetCapacity() == 0
+        ASSERTX(testAllocator.GetCapacity() == 0
             , "The test allocator should have a capacity of 0, not %us!"
-            , testAllocator.GetCapacity());
+            , testAllocator.GetCapacity())XEND;
 
-        ASSERT(testAllocator.FirstPool == nullptr
+        ASSERTX(testAllocator.FirstPool == nullptr
             , "Test allocator should have no first pool now, not %Xp.%n"
-            , testAllocator.FirstPool);
+            , testAllocator.FirstPool)XEND;
     }
 
     return HandleResult::Okay;
@@ -775,25 +777,25 @@ __startup Handle ObjectAllocatorParallelAcquireTest()
 
         res = testAllocator.AllocateObject(tOx);
 
-        ASSERT(res.IsOkayResult()
+        ASSERTX(res.IsOkayResult()
             , "Failed to allocate capacity-filling object #%us: %H%n"
-            , i, res);
+            , i, res)XEND;
 
         TESTDIFF(x, y);
 
         if (tOy != nullptr)
-            ASSERT(tOy->Next != tOx
-                , "Previous test object points to the current one..?");
+            ASSERTX(tOy->Next != tOx
+                , "Previous test object points to the current one..?")XEND;
 
         tOx->Next = tOy;
     }
 
     SYNC;
 
-    ASSERT((testAllocator.GetCapacity() - testAllocator.GetFreeCount()) % objCount == 0
+    ASSERTX((testAllocator.GetCapacity() - testAllocator.GetFreeCount()) % objCount == 0
         , "Busy object count should be a multiple of %us, but %us (%% %us) is not.%n"
         , objCount, testAllocator.GetCapacity() - testAllocator.GetFreeCount()
-        , (testAllocator.GetCapacity() - testAllocator.GetFreeCount()) % objCount);
+        , (testAllocator.GetCapacity() - testAllocator.GetFreeCount()) % objCount)XEND;
 
     SYNC;
 
@@ -870,9 +872,9 @@ Handle TestObjectAllocator(bool const bsp)
 
         TESTALLOC3(TestStructure, 5)
 
-        ASSERT(tO2 == tO5
+        ASSERTX(tO2 == tO5
             , "2nd and 5th test objects should be identical: %Xp vs %Xp"
-            , tO2, tO5);
+            , tO2, tO5)XEND;
 
         TESTDIFF(1, 2)
         TESTDIFF(1, 3)
@@ -887,16 +889,16 @@ Handle TestObjectAllocator(bool const bsp)
         //     , testAllocator.FreeCount.Load()
         //     , testAllocator.PoolCount.Load());
 
-        ASSERT(testAllocator.PoolCount == 1
+        ASSERTX(testAllocator.PoolCount == 1
             , "Test allocator should have only one pool, not %us.%n"
-            , testAllocator.PoolCount.Load());
+            , testAllocator.PoolCount.Load())XEND;
 
-        ASSERT(testAllocator.GetCapacity() - testAllocator.GetFreeCount() == 4
+        ASSERTX(testAllocator.GetCapacity() - testAllocator.GetFreeCount() == 4
                 && testAllocator.GetBusyCount() == 4
             , "Test allocator should have only 4 objects non-free, not %us "
               "(%us - %us).%n"
             , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
-            , testAllocator.GetCapacity(), testAllocator.GetFreeCount());
+            , testAllocator.GetCapacity(), testAllocator.GetFreeCount())XEND;
 
         // ASSERT(!askedToAcquire
         //     , "The allocator was asked to acquire a pool when it shouldn't have "
@@ -910,6 +912,8 @@ Handle TestObjectAllocator(bool const bsp)
         // askedToEnlarge = askedToAcquire = askedToRemove = false;
         // //  These may have occured already!
 
+        msg_("About to force pool to enlarge.%n");
+
         TestStructure * tOx = nullptr, * tOy = nullptr, * tOt = nullptr;
 
         for (size_t i = testAllocator.GetFreeCount(); i > 0; --i)
@@ -918,9 +922,9 @@ Handle TestObjectAllocator(bool const bsp)
 
             if unlikely(i == 1)
             {
-                ASSERT(testAllocator.GetFreeCount() == 1
+                ASSERTX(testAllocator.GetFreeCount() == 1
                     , "Test allocator should only have one free object, not %us.%n"
-                    , testAllocator.GetFreeCount());
+                    , testAllocator.GetFreeCount())XEND;
 
                 // ASSERT(!askedToEnlarge
                 //     , "The allocator asked to enlarge a pool before it was full..?");
@@ -928,9 +932,9 @@ Handle TestObjectAllocator(bool const bsp)
 
             res = testAllocator.AllocateObject(tOx);
 
-            ASSERT(res.IsOkayResult()
+            ASSERTX(res.IsOkayResult()
                 , "Failed to allocate capacity-filling object #%us: %H%n"
-                , i, res);
+                , i, res)XEND;
 
             tOt = tOy;
             while (tOt != nullptr)
@@ -941,11 +945,13 @@ Handle TestObjectAllocator(bool const bsp)
             }
 
             if (tOy != nullptr)
-                ASSERT(tOy->Next != tOx
-                    , "Previous test object points to the current one..?");
+                ASSERTX(tOy->Next != tOx
+                    , "Previous test object points to the current one..?")XEND;
 
             tOx->Next = tOy;
         }
+
+        msg_("Loop over.%n");
 
         // ASSERT(askedToEnlarge
         //     , "The allocator should have asked to enlarge a pool after "
@@ -962,17 +968,23 @@ Handle TestObjectAllocator(bool const bsp)
         TESTALLOC3(TestStructure, 13)
         TESTALLOC3(TestStructure, 14)
 
+        msg_("AAAAAAA%n");
+
         TESTREMOV3(13)
+
+        msg_("BBBBBBB%n");
 
         // ASSERT(!askedToRemove
         //     , "The allocator asked to remove a pool when objects should still be"
         //       "left in it!");
 
         res = testAllocator.DeallocateObject(tO13);
-        ASSERT(res.IsResult(HandleResult::ObjaAlreadyFree)
+        ASSERTX(res.IsResult(HandleResult::ObjaAlreadyFree)
             , "Deletion of object \"13\" (%Xp) should've returned "
               "\"already freed\": %H%n"
-            , tO13, res);
+            , tO13, res)XEND;
+
+        msg_("CCCCCCC%n");
 
         // ASSERT(!askedToRemove
         //     , "The allocator asked to remove a pool when objects should still be"
@@ -980,9 +992,11 @@ Handle TestObjectAllocator(bool const bsp)
 
         TESTALLOC3(TestStructure, 15)
 
-        ASSERT(tO13 == tO15
+        ASSERTX(tO13 == tO15
             , "13th and 15th test objects should be identical: %Xp vs %Xp"
-            , tO13, tO15);
+            , tO13, tO15)XEND;
+
+        msg_("DDDDDDD%n");
 
         TESTDIFF(11, 12) TESTDIFF(11, 1) TESTDIFF(11, 2) TESTDIFF(11, x) TESTDIFF(11, y)
         TESTDIFF(11, 13) TESTDIFF(11, 1) TESTDIFF(11, 3) TESTDIFF(11, x) TESTDIFF(11, y)
@@ -994,15 +1008,21 @@ Handle TestObjectAllocator(bool const bsp)
         // ASSERT(!askedToRemove
         //     , "The allocator asked to remove a pool before it was empty..?");
 
+        msg_("EEEEEEE%n");
+
         //  Let's try full removal.
 
-        TESTREMOV3( 3) TESTREMOV3( 1) TESTREMOV3( 4) TESTREMOV3( 5)
-        TESTREMOV3(12) TESTREMOV3(11) TESTREMOV3(14) TESTREMOV3(15)
+        TESTREMOV3( 3) msg_(" 3%n"); TESTREMOV3( 1) msg_(" 1%n"); TESTREMOV3( 4) msg_(" 4%n"); TESTREMOV3( 5) msg_(" 5%n");
+        TESTREMOV3(12) msg_("12%n"); TESTREMOV3(11) msg_("11%n"); TESTREMOV3(14) msg_("14%n"); TESTREMOV3(15) msg_("15%n");
         //  Removing known objects.
+
+        msg_("FFFFFFF%n");
 
         // ASSERT(!askedToRemove
         //     , "The allocator asked to remove a pool when objects should still be"
         //       "left in it!");
+
+        msg_("About to remove a list of objects.%n");
 
         //  This uses `y` and not `x` because the latter is removed last.
         while (tOy != nullptr)
@@ -1020,53 +1040,53 @@ Handle TestObjectAllocator(bool const bsp)
         // ASSERT(!askedToRemove
         //     , "The allocator asked to remove a pool when one object should be left in it!");
 
-        ASSERT(testAllocator.GetCapacity() == testAllocator.FirstPool->Capacity
+        ASSERTX(testAllocator.GetCapacity() == testAllocator.FirstPool->Capacity
             , "The test allocator should have a capacity equal to its first "
               "pool's, not %us (expected %us)!"
-            , testAllocator.GetCapacity(), testAllocator.FirstPool->Capacity);
+            , testAllocator.GetCapacity(), testAllocator.FirstPool->Capacity)XEND;
 
-        ASSERT(testAllocator.GetFreeCount() == testAllocator.FirstPool->FreeCount
+        ASSERTX(testAllocator.GetFreeCount() == testAllocator.FirstPool->FreeCount
             , "The test allocator should have a free count equal to its first "
               "pool's, not %us (expected %us)!"
-            , testAllocator.GetFreeCount(), testAllocator.FirstPool->FreeCount);
+            , testAllocator.GetFreeCount(), testAllocator.FirstPool->FreeCount)XEND;
 
-        ASSERT(testAllocator.GetCapacity() - testAllocator.GetFreeCount() == 1
+        ASSERTX(testAllocator.GetCapacity() - testAllocator.GetFreeCount() == 1
             , "The test allocator should have exactly one deduced busy object, "
               "not %us (%us - %us)!"
             , testAllocator.GetCapacity() - testAllocator.GetFreeCount()
-            , testAllocator.GetCapacity(), testAllocator.GetFreeCount());
+            , testAllocator.GetCapacity(), testAllocator.GetFreeCount())XEND;
 
-        ASSERT(testAllocator.GetBusyCount() == 1
+        ASSERTX(testAllocator.GetBusyCount() == 1
             , "The test allocator should have exactly one busy object, not %us!"
-            , testAllocator.GetBusyCount());
+            , testAllocator.GetBusyCount())XEND;
 
-        /*msg("~~ REMOVING LAST OBJECT ~~%n");//*/
+        msg("~~ REMOVING LAST OBJECT ~~%n");//*/
         COMPILER_MEMORY_BARRIER();
 
         TESTREMOV3(x)
 
-        /*msg("~~ FINISHED REMOVING LAST OBJECT ~~%n");//*/
+        msg("~~ FINISHED REMOVING LAST OBJECT ~~%n");//*/
         COMPILER_MEMORY_BARRIER();
 
         // ASSERT(askedToRemove
         //     , "The allocator should have asked to remove a pool after "
         //       "deallocating the last object!");
 
-        ASSERT(testAllocator.GetCapacity() == 0
+        ASSERTX(testAllocator.GetCapacity() == 0
             , "The test allocator should have a capacity of 0, not %us!"
-            , testAllocator.GetCapacity());
+            , testAllocator.GetCapacity())XEND;
 
-        ASSERT(testAllocator.GetFreeCount() == 0
+        ASSERTX(testAllocator.GetFreeCount() == 0
             , "The test allocator should have a free count of 0, not %us!"
-            , testAllocator.GetFreeCount());
+            , testAllocator.GetFreeCount())XEND;
 
-        ASSERT(testAllocator.PoolCount == 0
+        ASSERTX(testAllocator.PoolCount == 0
             , "Test allocator should have no pools now, not %us.%n"
-            , testAllocator.PoolCount.Load());
+            , testAllocator.PoolCount.Load())XEND;
 
-        ASSERT(testAllocator.FirstPool == nullptr
+        ASSERTX(testAllocator.FirstPool == nullptr
             , "Test allocator should have no first pool now, not %Xp.%n"
-            , testAllocator.FirstPool);
+            , testAllocator.FirstPool)XEND;
 
         //  Now let's try getting three pools!
 

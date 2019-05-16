@@ -42,6 +42,7 @@
 #include <string.h>
 
 using namespace Beelzebub;
+using namespace Beelzebub::Synchronization;
 using namespace Beelzebub::Terminals;
 
 /*  Djinn terminal descriptor  */
@@ -151,6 +152,8 @@ TerminalWriteResult DjinnTerminal::WriteUtf8(char const * c)
         //  This copies the remainder of the bytes, up to 6.
     }
 
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     bool dummy;
     return WriteWrapper(&(temp[0]), i, dummy);
 }
@@ -159,6 +162,8 @@ TerminalWriteResult DjinnTerminal::Write(char const * str, size_t len)
 {
     if (len == SIZE_MAX)
         len = strlen(str);
+
+    LockGuard<SmpLockUni> lg { this->WriteLock };
 
     bool dummy;
     return WriteWrapper(str, len, dummy);
@@ -170,6 +175,8 @@ TerminalWriteResult DjinnTerminal::WriteLine(char const * str, size_t len)
         len = strlen(str);
 
     bool cont;
+
+    LockGuard<SmpLockUni> lg { this->WriteLock };
 
     TerminalWriteResult res = WriteWrapper(str, len, cont);
 
@@ -225,6 +232,8 @@ static uint32_t Hex64LenHelper(uint64_t val)
 
 TerminalWriteResult DjinnTerminal::WriteIntD(int64_t val)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogInt(val, DJINN_INT_DEC);
 
     switch (res.Result)
@@ -241,6 +250,8 @@ TerminalWriteResult DjinnTerminal::WriteIntD(int64_t val)
 
 TerminalWriteResult DjinnTerminal::WriteUIntD(uint64_t val)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogUInt(val, DJINN_INT_UDEC);
 
     switch (res.Result)
@@ -257,6 +268,8 @@ TerminalWriteResult DjinnTerminal::WriteUIntD(uint64_t val)
 
 TerminalWriteResult DjinnTerminal::WriteHex8(uint8_t val, bool upper)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX8_U : DJINN_INT_HEX8_L);
 
     switch (res.Result)
@@ -273,6 +286,8 @@ TerminalWriteResult DjinnTerminal::WriteHex8(uint8_t val, bool upper)
 
 TerminalWriteResult DjinnTerminal::WriteHex16(uint16_t val, bool upper)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX16_U : DJINN_INT_HEX16_L);
 
     switch (res.Result)
@@ -289,6 +304,8 @@ TerminalWriteResult DjinnTerminal::WriteHex16(uint16_t val, bool upper)
 
 TerminalWriteResult DjinnTerminal::WriteHex24(uint32_t val, bool upper)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX24_U : DJINN_INT_HEX24_L);
 
     switch (res.Result)
@@ -305,6 +322,8 @@ TerminalWriteResult DjinnTerminal::WriteHex24(uint32_t val, bool upper)
 
 TerminalWriteResult DjinnTerminal::WriteHex32(uint32_t val, bool upper)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX32_U : DJINN_INT_HEX32_L);
 
     switch (res.Result)
@@ -321,6 +340,8 @@ TerminalWriteResult DjinnTerminal::WriteHex32(uint32_t val, bool upper)
 
 TerminalWriteResult DjinnTerminal::WriteHex48(uint64_t val, bool upper)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX48_U : DJINN_INT_HEX48_L);
 
     switch (res.Result)
@@ -337,6 +358,8 @@ TerminalWriteResult DjinnTerminal::WriteHex48(uint64_t val, bool upper)
 
 TerminalWriteResult DjinnTerminal::WriteHex64(uint64_t val, bool upper)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX64_U : DJINN_INT_HEX64_L);
 
     switch (res.Result)
@@ -353,6 +376,8 @@ TerminalWriteResult DjinnTerminal::WriteHex64(uint64_t val, bool upper)
 
 TerminalWriteResult DjinnTerminal::WriteHexVar(uint64_t val, bool upper)
 {
+    LockGuard<SmpLockUni> lg { this->WriteLock };
+
     DjinnLogResult res = DjinnLogUInt(val, upper ? DJINN_INT_HEX_VAR_U : DJINN_INT_HEX_VAR_L);
 
     switch (res.Result)

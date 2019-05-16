@@ -51,10 +51,10 @@
 //   0: 7 - Bit index
 //   8:31 - Value index
 
-#define FEATUREBIT(varInd, bitInd) (((varInd) << 8U) | ((bitInd) & 0xFFU))
+#define FEATUREBIT(varInd, bitInd) (((varInd) << 5U) | ((bitInd) & 0x1FU))
 #define FEATUREBITEX(val, varInd, bit) do { \
-    varInd = val >> 8U;                     \
-    bit = 1U << (val & 0xFFU);              \
+    varInd = val >> 5U;                     \
+    bit = 1U << (val & 0x1FU);              \
 } while (false)
 
 namespace Beelzebub { namespace System
@@ -120,7 +120,7 @@ namespace Beelzebub { namespace System
                          : "a" (in1), "c" (in2));
         }
 
-        static constexpr size_t const FeatureIntegerCount = 4;
+        static constexpr size_t const FeatureIntegerCount = 5;
 
         /*  Cosntructor(s)  */
 

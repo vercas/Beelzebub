@@ -176,6 +176,15 @@ void CpuId::Initialize()
         this->HypervisorString.Characters[0] = '\0';
         this->Hypervisor = VirtualizationVendor::None;
     }
+
+    if (this->Hypervisor == VirtualizationVendor::KVM
+        && (this->MaxVirtualizationValue == 0
+            || this->MaxVirtualizationValue >= 0x40000001U))
+    {
+        Execute(0x40000001U
+            , this->FeatureIntegers[4]
+            , dummy, dummy, dummy);
+    }
 }
 
 void CpuId::InitializeIntel()

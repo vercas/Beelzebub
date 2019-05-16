@@ -93,7 +93,7 @@ public:
     {
         //  This constructor is required because of the const fields.
     }
-         
+
     OBJA_ALOC_TYPE(OBJA_ALOC_TYPE const &) = delete;
     OBJA_ALOC_TYPE & operator =(const OBJA_ALOC_TYPE &) = delete;
 
@@ -109,7 +109,7 @@ public:
     {
         if (sizeof(T) > this->ObjectSize)
             return HandleResult::ArgumentTemplateInvalid;
-        
+
         //  Yes, smaller objects will be accepted.
 
         void * pRes;

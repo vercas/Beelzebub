@@ -77,7 +77,7 @@ namespace Beelzebub { namespace Utils
 
         /*  Properties and Manipulation  */
 
-        static int GetHeight(AvlTreeNode const * const dis)
+        static int GetHeight(AvlTreeNode<TPayload> const * const dis)
         {
             if unlikely(dis == nullptr)
                 return 0;
@@ -85,7 +85,7 @@ namespace Beelzebub { namespace Utils
                 return dis->Height;
         }
 
-        static int GetBalance(AvlTreeNode const * const dis)
+        static int GetBalance(AvlTreeNode<TPayload> const * const dis)
         {
             if unlikely(dis == nullptr)
                 return 0;
@@ -98,7 +98,7 @@ namespace Beelzebub { namespace Utils
             return this->Height = Maximum(GetHeight(this->Left), GetHeight(this->Right)) + 1;
         }
 
-        AvlTreeNode * FindMinimum()
+        AvlTreeNode<TPayload> * FindMinimum()
         {
             if unlikely(this->Left == nullptr)
                 return this;
@@ -106,7 +106,7 @@ namespace Beelzebub { namespace Utils
                 return this->Left->FindMinimum();
         }
 
-        AvlTreeNode * FindMaximum()
+        AvlTreeNode<TPayload> * FindMaximum()
         {
             if unlikely(this->Right == nullptr)
                 return this;
@@ -116,9 +116,9 @@ namespace Beelzebub { namespace Utils
 
         /*  Operations  */
 
-        AvlTreeNode * RotateLeft()
+        AvlTreeNode<TPayload> * RotateLeft()
         {
-            AvlTreeNode * const right = this->Right;
+            AvlTreeNode<TPayload> * const right = this->Right;
 
             this->Right = right->Left;
             right->Left = this;
@@ -132,9 +132,9 @@ namespace Beelzebub { namespace Utils
             //  This one should replace the current node in the hierarchy.
         }
 
-        AvlTreeNode * RotateRight()
+        AvlTreeNode<TPayload> * RotateRight()
         {
-            AvlTreeNode * const left = this->Left;
+            AvlTreeNode<TPayload> * const left = this->Left;
 
             this->Left  = left->Right;
             left->Right = this;
@@ -148,7 +148,7 @@ namespace Beelzebub { namespace Utils
             //  This one should replace the current node in the hierarchy.
         }
 
-        AvlTreeNode * Balance()
+        AvlTreeNode<TPayload> * Balance()
         {
             this->ComputeHeight();
 
@@ -174,7 +174,7 @@ namespace Beelzebub { namespace Utils
 
         /*  Fields  */
 
-        AvlTreeNode * Left, * Right;
+        AvlTreeNode<TPayload> * Left, * Right;
         int Height; //  Don't really care about the type.
 
         TPayload Payload;

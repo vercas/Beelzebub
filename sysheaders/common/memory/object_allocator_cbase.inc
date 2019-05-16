@@ -453,7 +453,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                         && this->ReleaseOptions == PoolReleaseOptions::KeepOne)))
             {
                 //  If the pool's busy count is 1, this is a candidate for removal.
-            
+
                 //  So, if all pools can be released, this one can be.
                 //  If no pools can be released, this condition will be false.
                 //  Otherwise, more than one pool (and the options say keep one)
@@ -485,7 +485,7 @@ Handle OBJA_ALOC_TYPE::DeallocateObject(void * const object)
                     if (previous != nullptr)
                     {
                         previous->Next = next;
-                        
+
 #ifdef OBJA_MULTICONSUMER
                         previous->PropertiesLock.Release();
 #endif

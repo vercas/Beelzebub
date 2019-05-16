@@ -438,7 +438,7 @@ CmdOpt "smp" {
     Handler = function(val)
         settSmp = val
 
-        TransferArgument("--smp=" .. val)
+        TransferArgument("--smp=" .. (val and "on" or "off"))
     end,
 }
 
@@ -451,7 +451,7 @@ CmdOpt "inline-spinlocks" {
     Handler = function(val)
         settInlineSpinlocks = val
 
-        TransferArgument("--inline-spinlocks=" .. val)
+        TransferArgument("--inline-spinlocks=" .. (val and "on" or "off"))
     end,
 }
 
@@ -487,7 +487,7 @@ CmdOpt "unoptimize" {
     Handler = function(val)
         settUnopt = val
 
-        TransferArgument("--unoptimize=" .. val)
+        TransferArgument("--unoptimize=" .. (val and "on" or "off"))
     end,
 }
 
@@ -1165,7 +1165,7 @@ Project "Beelzebub" {
                     -fvisibility=hidden
                     -Wall -Wextra -Wpedantic -Wsystem-headers
                     -Wno-invalid-offsetof
-                    -flto -Os
+                    -Os
                     -D_DJINN
                 ]] + Opts_GCC_Common + Opts_Includes
                 + selArch.Data.Opts_GCC_Kernel

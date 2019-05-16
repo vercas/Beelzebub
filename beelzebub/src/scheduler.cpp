@@ -84,7 +84,7 @@ struct SchedulerQueue
         size_t const cpuIndexWord = (cpuIndex & ~SizeMask) >> SizeShift;
         size_t const cpuIndexBitMask = 1UL << (cpuIndex & SizeMask);
 
-        if (0 != (cur->Affinity.Bitmap[cpuIndexWord] & cpuIndexBitMask))
+        if likely(0 != (cur->Affinity.Bitmap[cpuIndexWord] & cpuIndexBitMask))
         {
             this->First = cur->Next;
 
@@ -111,7 +111,7 @@ struct SchedulerQueue
             assert(cur->Scheduler == this->Scheduler)((void *)cur->Scheduler);
             assert(cur->Queue == this)((void *)cur->Queue);
 
-            if (0 != (cur->Affinity.Bitmap[cpuIndexWord] & cpuIndexBitMask))
+            if likely(0 != (cur->Affinity.Bitmap[cpuIndexWord] & cpuIndexBitMask))
             {
                 cur->Previous->Next = cur->Next;
 
@@ -287,6 +287,8 @@ namespace
 
         assert(ic->Next == nullptr, "An interrupt handler was pre-empted?!")((void *)ic->Next);
 
+        // msg_("Core %us|%Xp pre-empted at %Xp; Postpone = %B.%n", Cpu::GetData()->Index, scdt, ic->Registers->RIP, Scheduler::Postpone);
+
         if unlikely(Scheduler::Postpone)
         {
             enqueued = Timer::Enqueue(10usecs_l, &SchedulerTick, scdt);
@@ -363,7 +365,7 @@ void Scheduler::Engage()
 
     assert(enqueued);
 
-    msg_("My scheduler data: %Xp + %Xs%n", scdt, SizeOf<SchedulerData>);
+    // msg_("My scheduler data: %Xp + %Xs%n", scdt, SizeOf<SchedulerData>);
 }
 
 void Scheduler::Enroll(Thread * thread)

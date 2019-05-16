@@ -58,7 +58,7 @@ using namespace Beelzebub::System;
 ****************/
 
 static vsize_t DataSize, TlsSize;
-static vaddr_t DatasBase;
+static vaddr_t DatasBase, DatasEnd;
 
 static Atomic<size_t> RegistrationCounter {0};
 
@@ -90,9 +90,10 @@ Handle Cores::Initialize(size_t const count)
     if (KernelImage::Elf.TLS_64 != nullptr)
     {
         auto & phdrTls = KernelImage::Elf.TLS_64;
+        vsize_t const alignment = Maximum(AlignOf<CpuData>, vsize_t(phdrTls->Alignment));
 
-        TlsSize = vsize_t(RoundUp(phdrTls->VSize, phdrTls->Alignment));
-        DataSize = vsize_t(RoundUp(TlsSize + SizeOf<CpuData>, Maximum(AlignOf<CpuData>, vsize_t(phdrTls->Alignment))));
+        TlsSize = vsize_t(RoundUp(vsize_t(phdrTls->VSize), alignment));
+        DataSize = vsize_t(RoundUp(TlsSize + SizeOf<CpuData>, alignment));
     }
     else
     {
@@ -118,6 +119,7 @@ Handle Cores::Initialize(size_t const count)
     }
 
     Count = count;
+    DatasEnd = DatasBase + size;
 
     return HandleResult::Okay;
 }
@@ -138,7 +140,6 @@ void Cores::Register()
     //  First, initialize the kernel's CPU data structure.
 
     CpuData * const data = reinterpret_cast<CpuData *>((loc + TlsSize).Value);
-    new (data) CpuData();
 
     data->Index = index;
     data->TssSegment = TssSegmentCounter.FetchAdd(sizeof(GdtTss64Entry));

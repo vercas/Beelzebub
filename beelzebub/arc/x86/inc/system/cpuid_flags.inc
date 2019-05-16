@@ -86,8 +86,8 @@ CPUID_FEATURE(AVX                         ,  1, 28, AVX                         
 CPUID_FEATURE(F16C                        ,  1, 29, F16C                        )
 CPUID_FEATURE(RDRAND                      ,  1, 30, RDRAND                      )
 CPUID_FEATURE(VIRTUALIZED                 ,  1, 31, Virtualized                 )
-CPUID_FEATURE(SMEP                        , 99, 99, SMEP                        )  //  TODO
-CPUID_FEATURE(SMAP                        , 99, 99, SMAP                        )  //  TODO
+// CPUID_FEATURE(SMEP                        , 99, 99, SMEP                        )  //  TODO
+// CPUID_FEATURE(SMAP                        , 99, 99, SMAP                        )  //  TODO
 CPUID_FEATURE(SyscallSysret               ,  2, 11, SyscallSysret               )
 CPUID_FEATURE(NX                          ,  2, 20, NX                          )
 CPUID_FEATURE(Page1GB                     ,  2, 26, Page1GB                     )
@@ -95,12 +95,28 @@ CPUID_FEATURE(RDTSP                       ,  2, 27, RDTSP                       
 CPUID_FEATURE(LM                          ,  2, 29, LM                          )
 CPUID_FEATURE(InvariantTsc                ,  3,  8, Invariant-TSC               )
 
+CPUID_FEATURE(KVM_CLOCKSOURCE             ,  4,  0, KVM-Clocksource             )
+CPUID_FEATURE(KVM_NOP_IO_DELAY            ,  4,  1, KVM_NOP_IO_DELAY            )
+CPUID_FEATURE(KVM_MMU_OP                  ,  4,  2, KVM_MMU_OP                  )
+CPUID_FEATURE(KVM_CLOCKSOURCE2            ,  4,  3, KVM-Clocksource-2           )
+CPUID_FEATURE(KVM_ASYNC_PF                ,  4,  4, KVM-Async-PF                )
+CPUID_FEATURE(KVM_STEAL_TIME              ,  4,  5, KVM-Steal-Time              )
+CPUID_FEATURE(KVM_PV_EOI                  ,  4,  6, KVM-PV-EOI                  )
+CPUID_FEATURE(KVM_PV_UNHALT               ,  4,  7, KVM-PV-Unhalt               )
+CPUID_FEATURE(KVM_PV_TLB_FLUSH            ,  4,  9, KVM-PV-TLB-Flush            )
+CPUID_FEATURE(KVM_ASYNC_PF_VMEXIT         ,  4, 10, KVM-Async-PF-VMExit         )
+CPUID_FEATURE(KVM_PV_SEND_IPI             ,  4, 11, KVM-PV-Send-IPI             )
+CPUID_FEATURE(KVM_CLOCKSOURCE_STABLE_BIT  ,  4, 12, KVM-Clocksource-Stable-Bit  )
+
+
 /*
  *  Register indexes:
  *       0: 0x00000001 EDX
  *       1: 0x00000001 ECX
  *       2: 0x80000001 EDX
  *       3: 0x80000007 EDX
+ *
+ *       4: 0x40000001 EAX unde KVM
  *
  *      99:--PLACEHOLDER--
  */

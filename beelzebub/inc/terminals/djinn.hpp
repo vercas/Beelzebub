@@ -40,6 +40,7 @@
 #pragma once
 
 #include <beel/terminals/base.hpp>
+#include <beel/sync/smp.lock.hpp>
 
 namespace Beelzebub { namespace Terminals
 {
@@ -71,5 +72,10 @@ namespace Beelzebub { namespace Terminals
         virtual TerminalWriteResult WriteHex48(uint64_t val, bool upper) override;
         virtual TerminalWriteResult WriteHex64(uint64_t val, bool upper) override;
         virtual TerminalWriteResult WriteHexVar(uint64_t val, bool upper) override;
+
+    private:
+        /*  Fields  */
+
+        Synchronization::SmpLockUni WriteLock;
     };
 }}

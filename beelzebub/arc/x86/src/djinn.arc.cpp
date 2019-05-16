@@ -50,13 +50,13 @@ using namespace Beelzebub::System;
 
 ManagedSerialPort * DjinnPort = nullptr;
 
-__hot DJINN_SEND_RES DjinnSendPacketThroughSerialPort(void const * packet, size_t size);
-__hot DJINN_POLL_RES DjinnPollPacketFromSerialPort(void * buffer, size_t capacity, size_t * len);
+__hot __unsanitized DJINN_SEND_RES DjinnSendPacketThroughSerialPort(void const * packet, size_t size);
+__hot __unsanitized DJINN_POLL_RES DjinnPollPacketFromSerialPort(void * buffer, size_t capacity, size_t * len);
 
-__hot DJINN_SEND_RES DjinnSendPacketThroughSerialPortBase64(void const * packet, size_t size);
-__hot DJINN_POLL_RES DjinnPollPacketFromSerialPortBase64(void * buffer, size_t capacity, size_t * len);
+__hot __unsanitized DJINN_SEND_RES DjinnSendPacketThroughSerialPortBase64(void const * packet, size_t size);
+__hot __unsanitized DJINN_POLL_RES DjinnPollPacketFromSerialPortBase64(void * buffer, size_t capacity, size_t * len);
 
-Handle Beelzebub::InitializeDebuggerInterface(DjinnInterfaces iface)
+__unsanitized Handle Beelzebub::InitializeDebuggerInterface(DjinnInterfaces iface)
 {
     bool b64 = false;
 
@@ -182,7 +182,7 @@ DJINN_POLL_RES DjinnPollPacketFromSerialPort(void * buffer, size_t capacity, siz
 
 static uint8_t const Base64Chars[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-static void WriteByte(uint8_t const val)
+static __unsanitized void WriteByte(uint8_t const val)
 {
     while (DjinnPort->OutputCount >= DjinnPort->QueueSize
         && !DjinnPort->CanWrite()) ;
