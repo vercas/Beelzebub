@@ -1,4 +1,4 @@
-# Beelzebub [![Build Status](https://travis-ci.org/vercas/Beelzebub.svg?branch=master)](https://travis-ci.org/vercas/Beelzebub) [![IRC Channel](https://img.shields.io/badge/IRC-beelzebub-blue.svg)](http://webchat.freenode.net/?channels=%23%23beelzebub)
+# Beelzebub [![Build Status](https://travis-ci.org/vercas/Beelzebub.svg?branch=master)](https://travis-ci.org/vercas/Beelzebub)
 
 ### Building
 
@@ -58,9 +58,3 @@ This one grabs `genisoimage`. The binary comes from Ubuntu Server 14.04's packag
 
 Mostly `University of Illinois - NCSA Open Source License`, text and exceptions explained in `LICENSE.md`.  
 [TLDRLegal summary](https://tldrlegal.com/l/ncsa) for those who seek legal advice on the internet.  
-
-#### Miscellaneous
-
-The Travis bot notifies of build statuses on `##beelzebub` at Freenode.
-You should be able to find me there all the time.  
-
